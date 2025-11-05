@@ -1,0 +1,1846 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Editor - easyjpgtopdf</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Lato:wght@400;700&family=Poppins:wght@400;700&family=Montserrat:wght@400;700&family=Source+Sans+3:wght@400;700&family=Noto+Sans:wght@400;700&family=Merriweather:wght@400;700&family=PT+Sans:wght@400;700&family=PT+Serif:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Raleway:wght@400;700&family=Ubuntu:wght@400;700&family=Work+Sans:wght@400;700&family=Karla:wght@400;700&family=Heebo:wght@400;700&family=Rubik:wght@400;700&family=Titillium+Web:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- PDF.js libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        :root { --primary: #4361ee; --primary-dark: #3a0ca3; --secondary: #f72585; --success: #4cc9f0; --light: #f8f9fa; --dark: #212529; --gray: #6c757d; --border-radius: 12px; --box-shadow: 0 5px 15px rgba(0,0,0,0.08); --transition: all 0.3s ease; }
+        body { background: linear-gradient(135deg, #f5f7ff 0%, #e9ecef 100%); color: var(--dark); min-height: 100vh; line-height: 1.6; display:flex; flex-direction:column; }
+        .container { width: 100%; max-width: 1400px; margin: 0 auto; padding: 0 20px; }
+        header { background: #fff; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; }
+        .logo { display: flex; gap: 10px; align-items: center; font-size: 22px; font-weight: 700; color: var(--primary); text-decoration: none; }
+        .logo i { color: var(--primary-dark); }
+        .nav-links { display: flex; gap: 22px; }
+        .nav-links a { text-decoration: none; color: var(--dark); font-weight: 500; }
+        .nav-links a.active, .nav-links a:hover { color: var(--primary); }
+        .dropdown { position: relative; }
+        .dropdown-content { display: none; position: absolute; background: #fff; min-width: 200px; box-shadow: 0 8px 16px rgba(0,0,0,.1); border-radius: 8px; padding: 10px 0; top: 100%; left: 0; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .dropdown-content a { display: block; padding: 10px 20px; text-decoration: none; color: var(--dark); }
+        .dropdown-content a:hover { background: var(--light); }
+        .auth-buttons { display:flex; gap:10px; }
+        .auth-btn { padding:6px 15px; border-radius:50px; text-decoration:none; font-weight:500; transition:.3s; font-size:.9rem; }
+        .auth-btn.login { background: transparent; color: var(--primary); border:1px solid var(--primary); }
+        .auth-btn.signup { background: var(--primary); color:#fff; border:1px solid var(--primary); }
+        .page-wrap { padding: 20px 0; }
+        .editor-header { text-align: center; margin-bottom: 30px; padding: 20px; }
+        .editor-header h1 { font-size: 2.2rem; color: var(--primary); margin-bottom: 10px; }
+        .editor-header p { font-size: 1.05rem; color: var(--gray); max-width: 700px; margin: 0 auto; }
+        .editor-card { background: #fff; border-radius: var(--border-radius); padding: 30px; box-shadow: var(--box-shadow); margin-bottom: 30px; }
+        .upload-area { border: 3px dashed #ddd; border-radius: var(--border-radius); padding: 40px 20px; text-align: center; cursor: pointer; margin-bottom: 20px; transition: var(--transition); position: relative; }
+        .upload-area:hover { border-color: var(--primary); background: rgba(67, 97, 238, 0.03); }
+        .upload-area.dragover { border-color: var(--primary); background: rgba(67, 97, 238, 0.08); }
+        .upload-icon { font-size: 64px; color: var(--primary); margin-bottom: 15px; }
+        .upload-area h3 { font-size: 1.5rem; margin-bottom: 10px; color: var(--dark); }
+        .upload-area p { color: var(--gray); margin-bottom: 5px; }
+        .file-input { display: none; }
+        .file-info { background: var(--light); border-radius: var(--border-radius); padding: 20px; margin: 20px 0; display: none; }
+        .file-details { display: flex; align-items: center; gap: 15px; }
+        .file-icon { font-size: 40px; color: var(--primary); }
+        .file-text h4 { font-size: 1.2rem; margin-bottom: 5px; }
+        .file-text p { color: var(--gray); font-size: 0.9rem; }
+        .editor-section { margin: 25px 0; display: none; }
+        .editor-section h3 { margin-bottom: 15px; color: var(--primary); }
+        .editor-container { display: flex; gap: 20px; }
+        .toolbar { display: flex; flex-direction: column; gap: 15px; width: 280px; padding: 20px; background: white; border-radius: var(--border-radius); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .tool-group { display: flex; flex-direction: column; gap: 10px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
+        .tool-group:last-child { border-bottom: none; }
+        .tool-group-title { font-weight: 600; color: var(--dark); margin-bottom: 5px; }
+        .tool-btn { display: flex; align-items: center; gap: 10px; padding: 10px 15px; border: none; border-radius: 8px; background: white; color: var(--dark); cursor: pointer; transition: var(--transition); font-size: 0.95rem; text-align: left; }
+        .tool-btn:hover { background: var(--primary); color: white; }
+        .tool-btn.active { background: var(--primary); color: white; }
+        .color-picker-container { display: flex; align-items: center; gap: 10px; }
+        .color-picker { width: 40px; height: 40px; border: none; border-radius: 8px; cursor: pointer; }
+        .font-controls { display: flex; flex-direction: column; gap: 10px; }
+        .font-select, .font-size-select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; background: white; }
+        .highlight-controls { display: flex; flex-direction: column; gap: 10px; }
+        .highlight-color { display: flex; gap: 10px; flex-wrap: wrap; }
+        .highlight-btn { width: 30px; height: 30px; border: 2px solid transparent; border-radius: 4px; cursor: pointer; }
+        .highlight-btn.active { border-color: var(--dark); }
+        .preview-container { flex: 1; display: flex; flex-direction: column; }
+        .ribbon { display:flex; flex-direction:column; gap:8px; background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:10px; margin-bottom:10px; }
+        .ribbon-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap }
+        .ribbon-group { display:flex; gap:8px; align-items:center; padding:6px 8px; border-right:1px solid #eee }
+        .ribbon-group:last-child { border-right:none }
+        .group-title { font-size:.75rem; color:#6c757d; margin-right:6px; text-transform:uppercase }
+        .ribbon select, .ribbon input[type="color"] { padding:6px 8px; border:1px solid #ddd; border-radius:8px; background:#fff }
+        .ribbon .btn { padding:8px 12px }
+        .zoom-label { color:#6c757d; min-width:54px; text-align:center; }
+        .preview-area { border: 1px solid #ddd; border-radius: var(--border-radius); padding: 20px; background: white; flex: 1; display: flex; justify-content: center; align-items: flex-start; overflow: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1); position: relative; }
+        .a4-preview { width: 595px; min-height: 842px; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); position: relative; margin: 0 auto; transform-origin: top left; }
+        #pdf-canvas { display: block; width: 100%; height: 100%; }
+        #overlay-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        /* Container to hold editable text elements */
+        #text-layer { position: absolute; inset: 0; pointer-events: auto; }
+        /* Overlay image items */
+        .overlay-image { position:absolute; max-width:595px; cursor:move; user-select:none; border:1px dashed transparent; z-index:61; }
+        .overlay-image.selected { border-color:#4361ee; }
+        .editable-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: text; }
+        .page-navigation { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 20px; }
+        .page-btn { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: none; border-radius: 8px; background: var(--primary); color: white; cursor: pointer; transition: var(--transition); }
+        .page-btn:hover { background: var(--primary-dark); }
+        .page-btn:disabled { background: #ccc; cursor: not-allowed; }
+        .page-info { font-weight: 500; }
+        .action-buttons { display: flex; gap: 15px; margin-top: 25px; flex-wrap: wrap; }
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: var(--transition); text-decoration: none; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .btn-secondary { background: white; color: var(--primary); border: 2px solid var(--primary); }
+        .btn-secondary:hover { background: var(--light); }
+        .btn:disabled { background: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
+        .progress-container { margin: 20px 0; display: none; }
+        .progress-bar { width: 100%; height: 10px; background: #e9ecef; border-radius: 5px; overflow: hidden; }
+        .progress { height: 100%; background: linear-gradient(90deg, var(--primary), var(--success)); width: 0%; transition: width 0.4s ease; }
+        .progress-text { text-align: center; margin-top: 10px; color: var(--gray); font-size: 0.9rem; }
+        .loading { display: none; text-align: center; padding: 30px; }
+        .loading-spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .message { padding: 15px; border-radius: 8px; margin: 20px 0; display: none; }
+        .success-message { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error-message { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 40px; }
+        .feature-card { background: #fff; border-radius: var(--border-radius); padding: 25px; text-align: center; box-shadow: var(--box-shadow); transition: var(--transition); }
+        .feature-card:hover { transform: translateY(-5px); }
+        .feature-icon { font-size: 40px; color: var(--primary); margin-bottom: 15px; }
+        .feature-card h3 { margin-bottom: 10px; color: var(--dark); }
+        .feature-card p { color: var(--gray); }
+        footer { background: #212529; color: #fff; margin-top: auto; padding: 60px 0 30px; }
+        .footer-content { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px; margin-bottom: 40px; }
+        .footer-links { list-style: none; }
+        .footer-links a { color: #aaa; text-decoration: none; }
+        .footer-links a:hover { color: #fff; }
+        .copyright { text-align: center; color: #aaa; border-top: 1px solid #444; padding-top: 16px; font-size: .9rem; }
+        
+        /* Text editor */
+        .text-editor { position: absolute; z-index: 100; background: white; border: 1px solid #ddd; border-radius: 4px; padding: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: none; }
+        .text-editor input { border: none; outline: none; font-size: 14px; width: 200px; }
+        
+        /* Editable text elements */
+        .editable-text { position: absolute; cursor: text; padding: 2px 5px; border: 1px dashed transparent; user-select: text; white-space: pre-wrap; z-index: 60; }
+        .editable-text:hover { border-color: var(--primary); background: rgba(67, 97, 238, 0.05); }
+        .editable-text.selected { border-color: var(--primary); background: rgba(67, 97, 238, 0.1); }
+        .editable-text.editing { border: 2px solid var(--primary); background: #fff; z-index: 100; outline: none; }
+        .mask-block { position:absolute; background:#fff; pointer-events:none; z-index: 50; }
+        
+        /* Context menu */
+        .context-menu { position: absolute; background: white; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1000; display: none; }
+        .context-menu-item { padding: 8px 15px; cursor: pointer; border-bottom: 1px solid #eee; }
+        .context-menu-item:last-child { border-bottom: none; }
+        .context-menu-item:hover { background: #f5f5f5; }
+        
+        @media (max-width: 1024px) {
+            .editor-container { flex-direction: column; }
+            .toolbar { width: 100%; flex-direction: row; flex-wrap: wrap; }
+            .tool-group { flex: 1; min-width: 200px; }
+            .a4-preview { width: 100%; max-width: 595px; }
+        }
+
+        // Insert Image handlers
+        let selectedImageEl = null;
+        function onImageChosen(e){
+            const f = e.target.files && e.target.files[0]; if(!f) return;
+            const reader = new FileReader();
+            reader.onload = function(){
+                const img = new Image();
+                img.onload = function(){
+                    img.className = 'overlay-image';
+                    img.src = reader.result;
+                    img.dataset.baseW = Math.min(img.naturalWidth, 400);
+                    img.dataset.baseH = img.naturalHeight * (img.dataset.baseW / img.naturalWidth);
+                    img.style.left = '50px';
+                    img.style.top = '50px';
+                    img.style.width = img.dataset.baseW + 'px';
+                    img.style.height = 'auto';
+                    img.tabIndex = 0;
+                    img.addEventListener('click', (ev)=>{ ev.stopPropagation(); selectImage(img); });
+                    img.addEventListener('dblclick', (ev)=>{ ev.stopPropagation(); selectImage(img); });
+                    // Drag with Ctrl
+                    img.addEventListener('mousedown', (ev)=>{
+                        if(!ev.ctrlKey) return; ev.preventDefault(); selectImage(img);
+                        const sx=ev.clientX, sy=ev.clientY; const l=parseFloat(img.style.left)||0; const t=parseFloat(img.style.top)||0;
+                        function mm(e2){ img.style.left = (l + e2.clientX - sx) + 'px'; img.style.top = (t + e2.clientY - sy) + 'px'; }
+                        function mu(){ window.removeEventListener('mousemove', mm); window.removeEventListener('mouseup', mu); }
+                        window.addEventListener('mousemove', mm); window.addEventListener('mouseup', mu);
+                    });
+                    textLayer.appendChild(img);
+                    selectImage(img);
+                    imgFileInput.value = '';
+                };
+                img.src = reader.result;
+            };
+            reader.readAsDataURL(f);
+        }
+        function selectImage(el){
+            document.querySelectorAll('.overlay-image.selected').forEach(x=>x.classList.remove('selected'));
+            el.classList.add('selected'); selectedImageEl = el;
+            if(tbImageScale){
+                const baseW = parseFloat(el.dataset.baseW)||parseFloat(el.style.width)||100;
+                const curW = parseFloat(el.style.width)||baseW;
+                tbImageScale.value = Math.round((curW/baseW)*100);
+            }
+        }
+        function onImageScaleChange(){
+            if(!selectedImageEl) return;
+            const baseW = parseFloat(selectedImageEl.dataset.baseW)||parseFloat(selectedImageEl.style.width)||100;
+            const scale = Math.max(10, Math.min(300, parseInt(tbImageScale.value||'100',10)))/100;
+            selectedImageEl.style.width = (baseW * scale) + 'px';
+        }
+        @media (max-width: 768px) { 
+            .nav-links { display: none; } 
+            .action-buttons { flex-direction: column; } 
+            .btn { width: 100%; justify-content: center; } 
+            .toolbar { flex-direction: column; }
+            .tool-group { border-right: none; border-bottom: 1px solid #eee; padding-right: 0; padding-bottom: 15px; width: 100%; } 
+            .tool-group:last-child { border-bottom: none; padding-bottom: 0; } 
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <a href="index.html" class="logo">
+                    <i class="fas fa-file-pdf"></i>
+                    <span>easyjpgtopdf</span>
+                </a>
+                <div class="nav-links">
+                    <a href="index.html">Home</a>
+                    <div class="dropdown">
+                        <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="jpg-to-pdf.html">JPG to PDF</a>
+                            <a href="word-to-pdf.html">Word to PDF</a>
+                            <a href="excel-to-pdf.html">Excel to PDF</a>
+                            <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="merge-pdf.html">Merge PDF</a>
+                            <a href="split-pdf.html">Split PDF</a>
+                            <a href="compress-pdf.html">Compress PDF</a>
+                            <a href="edit-pdf.html" class="active">Pdf Editor</a>
+                            <a href="protect-pdf.html">Protect PDF</a>
+                            <a href="unlock-pdf.html">Unlock PDF</a>
+                            <a href="watermark-pdf.html">Watermark PDF</a>
+                            <a href="crop-pdf.html">Crop PDF</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="image-compressor.html">Image Compressor</a>
+                            <a href="image-resizer.html">Image Resizer</a>
+                            <a href="image-editor.html">Image Editor</a>
+                            <a href="background-remover.html">Image Background Remover</a>
+                            <a href="ocr-image.html">OCR Image</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="resume-maker.html">Resume Maker</a>
+                            <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+                            <a href="ai-image-generator.html">AI Image Generator</a>
+                            <a href="marriage-card.html">Marriage Card</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="auth-buttons">
+                    <a href="#" class="auth-btn login">Login</a>
+                    <a href="#" class="auth-btn signup">Sign Up</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container page-wrap">
+        <div class="editor-header">
+            <h1>PDF Editor - On-Screen Text Editing</h1>
+            <p>Edit text directly on your PDF - add, modify, change fonts, highlight and more</p>
+        </div>
+        <div class="editor-card">
+            <div class="upload-area" id="upload-area" tabindex="0" role="button" aria-label="Upload your PDF">
+                <div class="upload-icon"><i class="fas fa-file-pdf"></i></div>
+                <h3>Upload Your PDF File</h3>
+                <p>Drag & drop your PDF file here</p>
+                <p>or click to browse files</p>
+                <div style="margin-top:10px">
+                    <label for="file-input" class="btn btn-secondary" id="browse-btn"><i class="fas fa-folder-open"></i> Choose PDF</label>
+                </div>
+                <input type="file" id="file-input" class="file-input" accept="application/pdf,.pdf">
+            </div>
+            <div class="file-info" id="file-info">
+                <div class="file-details">
+                    <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+                    <div class="file-text">
+                        <h4 id="file-name">document.pdf</h4>
+                        <p id="file-size">0 KB</p>
+                    </div>
+                </div>
+            </div>
+            <div class="editor-section" id="editor-section">
+                <h3>Pdf Editor Text</h3>
+                <div class="editor-container">
+                    <div class="toolbar">
+                        <div class="tool-group">
+                            <div class="tool-group-title">Text Tools</div>
+                            <button class="tool-btn active" id="select-tool">
+                                <i class="fas fa-mouse-pointer"></i>
+                                <span>Select Text</span>
+                            </button>
+                            <button class="tool-btn" id="text-tool">
+                                <i class="fas fa-font"></i>
+                                <span>Add Text</span>
+                            </button>
+                            <button class="tool-btn" id="highlight-tool">
+                                <i class="fas fa-highlighter"></i>
+                                <span>Highlight</span>
+                            </button>
+                            
+                            <button class="tool-btn" id="ocr-region-btn" title="Drag a box on the page to OCR only that region">
+                                <i class="fas fa-vector-square"></i>
+                                <span>OCR Region</span>
+                            </button>
+                            <div class="font-controls">
+                                <label style="font-size:.9rem;color:var(--dark)">OCR Language</label>
+                                <select id="ocr-lang" class="font-select">
+                                    <option value="eng" selected>English (eng)</option>
+                                    <option value="hin">Hindi (hin)</option>
+                                    <option value="ben">Bengali (ben)</option>
+                                    <option value="guj">Gujarati (guj)</option>
+                                    <option value="mar">Marathi (mar)</option>
+                                    <option value="pan">Punjabi (pan)</option>
+                                    <option value="tam">Tamil (tam)</option>
+                                    <option value="tel">Telugu (tel)</option>
+                                    <option value="kan">Kannada (kan)</option>
+                                    <option value="mal">Malayalam (mal)</option>
+                                    <option value="urd">Urdu (urd)</option>
+                                    <option value="asm">Assamese (asm)</option>
+                                    <option value="ori">Odia (ori)</option>
+                                    <option value="nep">Nepali (nep)</option>
+                                    <option value="snd">Sindhi (snd)</option>
+                                    <option value="eng+hin">English + Hindi</option>
+                                </select>
+                                <label style="display:flex;align-items:center;gap:8px;color:var(--dark);margin-top:6px">
+                                    <input type="checkbox" id="ocr-auto"> Auto OCR each page
+                                </label>
+                            </div>
+                        </div>
+                        <div class="tool-group">
+                            <div class="tool-group-title">Highlight Colors</div>
+                            <div class="highlight-controls">
+                                <div class="highlight-color">
+                                    <div class="highlight-btn active" style="background-color: #FFFF00;" data-color="#FFFF00"></div>
+                                    <div class="highlight-btn" style="background-color: #00FF00;" data-color="#00FF00"></div>
+                                    <div class="highlight-btn" style="background-color: #00FFFF;" data-color="#00FFFF"></div>
+                                    <div class="highlight-btn" style="background-color: #FF00FF;" data-color="#FF00FF"></div>
+                                    <div class="highlight-btn" style="background-color: #FFA500;" data-color="#FFA500"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        
+                        
+                        
+                        
+                    </div>
+                    
+                    <div class="preview-container">
+                        <div class="ribbon">
+                          <div class="ribbon-row">
+                            <div class="ribbon-group">
+                              <div class="group-title">Font</div>
+                              <select id="tb-font-family">
+                                <option>Inter</option>
+                                <option>Roboto</option>
+                                <option>Open Sans</option>
+                                <option>Lato</option>
+                                <option>Poppins</option>
+                                <option>Montserrat</option>
+                                <option>Source Sans 3</option>
+                                <option>Noto Sans</option>
+                                <option>PT Sans</option>
+                                <option>PT Serif</option>
+                                <option>Merriweather</option>
+                                <option>Georgia</option>
+                                <option>Verdana</option>
+                                <option>Courier New</option>
+                                <option>Times New Roman</option>
+                                <option>Arial</option>
+                              </select>
+                              <select id="tb-font-size">
+                                <option>10</option>
+                                <option>12</option>
+                                <option selected>14</option>
+                                <option>16</option>
+                                <option>18</option>
+                                <option>24</option>
+                                <option>32</option>
+                              </select>
+                              <select id="tb-color-preset" title="Font Color Presets">
+                                <option value="#111827">Black</option>
+                                <option value="#ff0000">Red</option>
+                                <option value="#0057ff">Blue</option>
+                                <option value="#00a650">Green</option>
+                                <option value="#ff8c00">Orange</option>
+                                <option value="#800080">Purple</option>
+                                <option value="#808080">Gray</option>
+                                <option value="#ffff00">Yellow</option>
+                              </select>
+                              <input id="tb-color" type="color" value="#111827" title="Custom Color">
+                            </div>
+                            <div class="ribbon-group">
+                              <div class="group-title">Style</div>
+                              <button id="tb-bold" class="btn" title="Bold"><i class="fas fa-bold"></i></button>
+                              <button id="tb-italic" class="btn" title="Italic"><i class="fas fa-italic"></i></button>
+                              <button id="tb-underline" class="btn" title="Underline"><i class="fas fa-underline"></i></button>
+                            </div>
+                            <div class="ribbon-group">
+                              <div class="group-title">Align</div>
+                              <button id="tb-align-left" class="btn" title="Align Left"><i class="fas fa-align-left"></i></button>
+                              <button id="tb-align-center" class="btn" title="Align Center"><i class="fas fa-align-center"></i></button>
+                              <button id="tb-align-right" class="btn" title="Align Right"><i class="fas fa-align-right"></i></button>
+                            </div>
+                          </div>
+                          <div class="ribbon-row">
+                            <div class="ribbon-group">
+                              <div class="group-title">Edit</div>
+                              <button id="tb-undo" class="btn" title="Undo"><i class="fas fa-undo"></i></button>
+                              <button id="tb-redo" class="btn" title="Redo"><i class="fas fa-redo"></i></button>
+                              <button id="tb-clear" class="btn" title="Clear All"><i class="fas fa-trash"></i></button>
+                            </div>
+                            <div class="ribbon-group">
+                              <div class="group-title">Insert</div>
+                              <button id="tb-insert-image" class="btn" title="Insert Image"><i class="fas fa-image"></i></button>
+                              <input id="img-file-input" type="file" accept="image/*" style="display:none">
+                              <label for="tb-image-scale" class="group-title" style="margin-left:8px">Image Size</label>
+                              <input id="tb-image-scale" type="range" min="10" max="300" value="100" style="width:140px">
+                            </div>
+                            <div class="ribbon-group">
+                              <div class="group-title">Save</div>
+                              <button class="btn btn-primary" id="save-btn" disabled><i class="fas fa-download"></i> Save Edited PDF</button>
+                              <button class="btn" id="save-ocr-only-btn" disabled><i class="fas fa-file-export"></i> OCR-Only (No BG)</button>
+                              <button class="btn" id="save-selectable-btn" disabled title="Embed fonts to keep selectable text like Acrobat"><i class="fas fa-file-signature"></i> Save Selectable (Embed Fonts)</button>
+                              <label class="btn" for="add-font-input" title="Add TTF/OTF font to embed"><i class="fas fa-font"></i> Add Font</label>
+                              <input id="add-font-input" type="file" accept=".ttf,.otf,.ttc,.woff,.woff2" style="display:none">
+                            </div>
+                            <div class="ribbon-group" style="margin-left:auto">
+                              <div class="group-title">Zoom</div>
+                              <button id="zoom-out" class="btn" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
+                              <button id="zoom-in" class="btn" title="Zoom In"><i class="fas fa-search-plus"></i></button>
+                              <button id="zoom-fit" class="btn" title="Fit to Width"><i class="fas fa-expand"></i></button>
+                              <span id="zoom-pct" class="zoom-label">100%</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="preview-area">
+                            <div class="a4-preview" id="a4-preview">
+                                <canvas id="pdf-canvas"></canvas>
+                                <canvas id="overlay-canvas"></canvas>
+                                <div id="text-layer"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="page-navigation">
+                            <button class="page-btn" id="prev-page"><i class="fas fa-chevron-left"></i></button>
+                            <span class="page-info">Page <span id="page-num">1</span> of <span id="page-count">1</span></span>
+                            <button class="page-btn" id="next-page"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="progress-container" id="progress-container">
+                <div class="progress-bar">
+                    <div class="progress" id="progress-bar"></div>
+                </div>
+                <div class="progress-text" id="progress-text">Loading PDF...</div>
+            </div>
+            
+            <div class="loading" id="loading">
+                <div class="loading-spinner"></div>
+                <p>Processing your PDF file...</p>
+            </div>
+            
+            <div class="success-message message" id="success-message">
+                <i class="fas fa-check-circle"></i> Your PDF has been successfully edited!
+            </div>
+            
+            <div class="error-message message" id="error-message">
+                <i class="fas fa-exclamation-circle"></i> <span id="error-text">An error occurred during processing</span>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn btn-secondary" id="new-file-btn">
+                    <i class="fas fa-file"></i> New File
+                </button>
+            </div>
+        </div>
+        
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-edit"></i></div>
+                <h3>Direct Text Editing</h3>
+                <p>Click and edit text directly on the PDF with real-time preview</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-palette"></i></div>
+                <h3>Font Customization</h3>
+                <p>Change font family, size, color and apply highlights to text</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-text-height"></i></div>
+                <h3>Add New Text</h3>
+                <p>Insert new text anywhere on the PDF document</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
+                <h3>Secure & Private</h3>
+                <p>Your files stay in your browser - no server uploads</p>
+            </div>
+        </div>
+    </div>
+
+    
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="context-menu">
+        <div class="context-menu-item" id="edit-text">Edit Text</div>
+        <div class="context-menu-item" id="change-font">Change Font</div>
+        <div class="context-menu-item" id="change-color">Change Color</div>
+        <div class="context-menu-item" id="highlight-text">Highlight</div>
+        <div class="context-menu-item" id="remove-text">Remove Text</div>
+    </div>
+
+    <script>
+        const STABLE_MODE = false; // enable full tools, including Insert Image
+        // Set PDF.js worker path
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        
+        // DOM elements
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('file-input');
+        const fileInfo = document.getElementById('file-info');
+        const fileName = document.getElementById('file-name');
+        const fileSize = document.getElementById('file-size');
+        const editorSection = document.getElementById('editor-section');
+        const pdfCanvas = document.getElementById('pdf-canvas');
+        const overlayCanvas = document.getElementById('overlay-canvas');
+        const textLayer = document.getElementById('text-layer');
+        const a4Preview = document.getElementById('a4-preview');
+        const zoomInBtn = document.getElementById('zoom-in');
+        const zoomOutBtn = document.getElementById('zoom-out');
+        const zoomFitBtn = document.getElementById('zoom-fit');
+        const zoomPct = document.getElementById('zoom-pct');
+        // Top edit toolbar refs
+        const tbAddText = document.getElementById('tb-add-text');
+        const tbFontFamily = document.getElementById('tb-font-family');
+        const tbFontSize = document.getElementById('tb-font-size');
+        const tbColor = document.getElementById('tb-color');
+        const tbColorPreset = document.getElementById('tb-color-preset');
+        const tbBold = document.getElementById('tb-bold');
+        const tbItalic = document.getElementById('tb-italic');
+        const tbUnderline = document.getElementById('tb-underline');
+        const tbAlignLeft = document.getElementById('tb-align-left');
+        const tbAlignCenter = document.getElementById('tb-align-center');
+        const tbAlignRight = document.getElementById('tb-align-right');
+        const highlightBtns = document.querySelectorAll('.highlight-btn');
+        const prevPageBtn = document.getElementById('prev-page');
+        const nextPageBtn = document.getElementById('next-page');
+        const pageNum = document.getElementById('page-num');
+        const pageCount = document.getElementById('page-count');
+        const saveBtn = document.getElementById('save-btn');
+        const saveOcrOnlyBtn = document.getElementById('save-ocr-only-btn');
+        const saveSelectableBtn = document.getElementById('save-selectable-btn');
+        const newFileBtn = document.getElementById('new-file-btn');
+        const addFontInput = document.getElementById('add-font-input');
+        // Image controls
+        const tbInsertImage = document.getElementById('tb-insert-image');
+        const imgFileInput = document.getElementById('img-file-input');
+        const tbImageScale = document.getElementById('tb-image-scale');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const loading = document.getElementById('loading');
+        const successMessage = document.getElementById('success-message');
+        const errorMessage = document.getElementById('error-message');
+        const errorText = document.getElementById('error-text');
+        const contextMenu = document.getElementById('context-menu');
+        // OCR controls
+        const ocrLang = document.getElementById('ocr-lang');
+        const ocrAuto = document.getElementById('ocr-auto');
+        
+        // Tool elements
+        const selectTool = document.getElementById('select-tool');
+        const textTool = document.getElementById('text-tool');
+        const highlightTool = document.getElementById('highlight-tool');
+        const colorPicker = document.getElementById('color-picker');
+        const fontSizeSelect = document.getElementById('font-size');
+        const fontFamilySelect = document.getElementById('font-family');
+        // Left panel action buttons
+        const undoBtn = document.getElementById('undo-btn');
+        const redoBtn = document.getElementById('redo-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        
+        const ocrBtn = document.getElementById('ocr-btn');
+        const ocrRegionBtn = document.getElementById('ocr-region-btn');
+        
+        // PDF state
+        let pdfDoc = null;
+        let currentPage = 1;
+        let currentScale = 1.0;
+        let currentFile = null;
+        let textAnnotations = [];
+        let annotationHistory = [];
+        let redoHistory = [];
+        let activeTool = 'select';
+        let ctx, overlayCtx;
+        let uiZoom = 1;
+        let selectedTextElement = null;
+        let highlightColor = '#FFFF00';
+        let lastRenderMetrics = { xOffset:0, yOffset:0, scale:1, pageWidth:595, pageHeight:842 };
+        const embeddedFonts = {}; // key: family(lowercase) or filename -> {name, data}
+        let lastExtractedOverlayCount = 0; // overlays created from PDF.js text extraction for current page
+        
+        // Initialize
+        function init() {
+            // Ensure canvases and contexts are ready early
+            if (!ctx && pdfCanvas) ctx = pdfCanvas.getContext('2d');
+            if (!overlayCtx && overlayCanvas) overlayCtx = overlayCanvas.getContext('2d');
+            // Set up event listeners
+            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); fileInput.click(); }});
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                handleFile(e.dataTransfer.files[0]);
+            });
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) handleFile(e.target.files[0]);
+            });
+            
+            // Tool event listeners
+            selectTool.addEventListener('click', () => setActiveTool('select'));
+            textTool.addEventListener('click', () => setActiveTool('text'));
+            highlightTool.addEventListener('click', () => setActiveTool('highlight'));
+            if(undoBtn) undoBtn.addEventListener('click', undo);
+            if(redoBtn) redoBtn.addEventListener('click', redo);
+            if(clearBtn) clearBtn.addEventListener('click', clearAnnotations);
+            saveBtn.addEventListener('click', savePDF);
+            if(saveOcrOnlyBtn) saveOcrOnlyBtn.addEventListener('click', saveOCROnlyPDF);
+            if(saveSelectableBtn) saveSelectableBtn.addEventListener('click', saveSelectablePDF);
+            newFileBtn.addEventListener('click', resetEditor);
+            if(!STABLE_MODE){
+                if(tbInsertImage) tbInsertImage.addEventListener('click', ()=>{ if(imgFileInput) imgFileInput.click(); });
+                if(imgFileInput) imgFileInput.addEventListener('change', (e)=>{ if(typeof onImageChosen==='function') onImageChosen(e); });
+                if(tbImageScale) tbImageScale.addEventListener('input', ()=>{ if(typeof onImageScaleChange==='function') onImageScaleChange(); });
+            }
+
+            // Custom Font Upload -> store for selectable export and apply in UI list
+            if(addFontInput){
+                addFontInput.addEventListener('change', async (e)=>{
+                    try{
+                        const f = e.target.files && e.target.files[0];
+                        if(!f) return;
+                        const buf = await f.arrayBuffer();
+                        // Derive a family name from filename (without extension)
+                        const name = (f.name||'custom').replace(/\.[^.]+$/,'');
+                        const key = name.trim().toLowerCase();
+                        embeddedFonts[key] = { name, data: new Uint8Array(buf) };
+                        // Add to font family dropdowns if present
+                        if(tbFontFamily){
+                            const opt = document.createElement('option');
+                            opt.textContent = name; opt.value = name;
+                            tbFontFamily.appendChild(opt);
+                            tbFontFamily.value = name;
+                        }
+                        if(fontFamilySelect){
+                            const opt2 = document.createElement('option');
+                            opt2.textContent = name; opt2.value = name;
+                            fontFamilySelect.appendChild(opt2);
+                            fontFamilySelect.value = name;
+                        }
+                        // Prefer this font for new text overlays
+                        if(tbFontFamily) tbFontFamily.dispatchEvent(new Event('change'));
+                    }catch(err){ console.error('Font add failed', err); showError('Failed to add font'); }
+                    finally{ addFontInput.value = ''; }
+                });
+            }
+            
+            
+            
+            // Page navigation
+            prevPageBtn.addEventListener('click', prevPage);
+            nextPageBtn.addEventListener('click', nextPage);
+            // OCR
+            if(ocrBtn){ ocrBtn.addEventListener('click', openCleanOcrEditor); }
+            if(ocrRegionBtn){ ocrRegionBtn.addEventListener('click', enableOcrRegionMode); }
+            
+            // Canvas setup
+            ctx = pdfCanvas.getContext('2d');
+            overlayCtx = overlayCanvas.getContext('2d');
+            
+            // Set A4 dimensions (595x842 pixels at 72 DPI)
+            pdfCanvas.width = 595;
+            pdfCanvas.height = 842;
+            overlayCanvas.width = 595;
+            overlayCanvas.height = 842;
+            // Zoom controls
+            if(zoomInBtn) zoomInBtn.addEventListener('click', ()=> setUiZoom(uiZoom + 0.1));
+            if(zoomOutBtn) zoomOutBtn.addEventListener('click', ()=> setUiZoom(uiZoom - 0.1));
+            if(zoomFitBtn) zoomFitBtn.addEventListener('click', fitPreviewToWidth);
+            window.addEventListener('resize', ()=>{ if(zoomFitBtn) fitPreviewToWidth(); });
+            // Edit toolbar actions
+            // Helper to get current target element (editing or selected)
+            function getCurrentTextEl(){
+                return selectedTextElement || document.querySelector('.editable-text.editing') || document.querySelector('.editable-text.selected');
+            }
+            if(tbAddText) tbAddText.addEventListener('click', ()=> setActiveTool('text'));
+            if(tbFontFamily) tbFontFamily.addEventListener('change', ()=>{ const el=getCurrentTextEl(); if(el){ el.style.fontFamily = tbFontFamily.value; saveTextAnnotation(el); updateMask(el);} });
+            if(tbFontSize) tbFontSize.addEventListener('change', ()=>{ const el=getCurrentTextEl(); if(el){ el.style.fontSize = tbFontSize.value + 'px'; saveTextAnnotation(el); updateMask(el);} });
+            if(tbColor) tbColor.addEventListener('input', ()=>{ const el=getCurrentTextEl(); if(el){ el.style.color = tbColor.value; saveTextAnnotation(el); }});
+            if(tbColorPreset) tbColorPreset.addEventListener('change', ()=>{ const v = tbColorPreset.value; if(tbColor) tbColor.value = v; const el=getCurrentTextEl(); if(el){ el.style.color = v; saveTextAnnotation(el); }});
+            if(tbBold) tbBold.addEventListener('click', ()=>{ const el=getCurrentTextEl(); if(el){ const w=getComputedStyle(el).fontWeight; el.style.fontWeight = (w==='700'||w==='bold')?'400':'700'; saveTextAnnotation(el); updateMask(el);} });
+            if(tbItalic) tbItalic.addEventListener('click', ()=>{ const el=getCurrentTextEl(); if(el){ const s=getComputedStyle(el).fontStyle; el.style.fontStyle = (s==='italic')?'normal':'italic'; saveTextAnnotation(el); updateMask(el);} });
+            if(tbUnderline) tbUnderline.addEventListener('click', ()=>{ const el=getCurrentTextEl(); if(el){ const d=getComputedStyle(el).textDecorationLine; el.style.textDecoration = (d.includes('underline'))?'none':'underline'; saveTextAnnotation(el); updateMask(el);} });
+            if(tbAlignLeft) tbAlignLeft.addEventListener('click', ()=>{ if(selectedTextElement){ selectedTextElement.style.textAlign='left'; saveTextAnnotation(selectedTextElement);} });
+            if(tbAlignCenter) tbAlignCenter.addEventListener('click', ()=>{ if(selectedTextElement){ selectedTextElement.style.textAlign='center'; saveTextAnnotation(selectedTextElement);} });
+            if(tbAlignRight) tbAlignRight.addEventListener('click', ()=>{ if(selectedTextElement){ selectedTextElement.style.textAlign='right'; saveTextAnnotation(selectedTextElement);} });
+            
+            // Highlight color buttons (left panel) â€” set active color and apply immediately if a text element is selected/editing
+            highlightBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    highlightBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    highlightColor = btn.dataset.color;
+                    const el=getCurrentTextEl();
+                    if(el){ el.style.backgroundColor = highlightColor; saveTextAnnotation(el); updateMask(el); }
+                });
+            });
+            
+            // Context menu event listeners (guard for null)
+            const cmEdit = document.getElementById('edit-text');
+            const cmFont = document.getElementById('change-font');
+            const cmColor = document.getElementById('change-color');
+            const cmHighlight = document.getElementById('highlight-text');
+            const cmRemove = document.getElementById('remove-text');
+            if(cmEdit) cmEdit.addEventListener('click', editSelectedText);
+            if(cmFont) cmFont.addEventListener('click', changeSelectedFont);
+            if(cmColor) cmColor.addEventListener('click', changeSelectedColor);
+            if(cmHighlight) cmHighlight.addEventListener('click', highlightSelectedText);
+            if(cmRemove) cmRemove.addEventListener('click', removeSelectedText);
+            
+            // Close context menu when clicking elsewhere
+            document.addEventListener('click', (e) => {
+                if (!contextMenu.contains(e.target)) {
+                    contextMenu.style.display = 'none';
+                }
+            });
+            
+            // Set initial tool
+            setActiveTool('select');
+        }
+        
+        // Handle file upload
+        function handleFile(file) {
+            console.log("File selected:", file);
+            
+            if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+                showError('Please select a valid PDF file');
+                return;
+            }
+            
+            if (file.size > 50 * 1024 * 1024) {
+                if(!confirm('This file is larger than 50MB. It may be slow to load. Continue?')){ return; }
+            }
+            
+            currentFile = file;
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            fileInfo.style.display = 'block';
+            hideMessages();
+            
+            loadPDF(file);
+        }
+        
+        // Load PDF document
+        function loadPDF(file) {
+            progressContainer.style.display = 'block';
+            updateProgress(10, 'Loading PDF...');
+            
+            const fileReader = new FileReader();
+            
+            fileReader.onload = function() {
+                const typedArray = new Uint8Array(this.result);
+                
+                // Use pdfjsLib from the global scope
+                // If opened via file:// protocol, disable worker (browser may block cross-origin worker)
+                try{
+                    if(location && location.protocol === 'file:'){
+                        pdfjsLib.GlobalWorkerOptions.workerSrc = null; // ensure no remote worker
+                    }else{
+                        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                    }
+                }catch(_){ }
+                const docOpts = (location && location.protocol === 'file:') ? { data: typedArray, disableWorker: true } : { data: typedArray };
+                pdfjsLib.getDocument(docOpts).promise.then(function(pdf) {
+                    pdfDoc = pdf;
+                    pageCount.textContent = pdf.numPages;
+                    updateProgress(50, 'Rendering PDF...');
+                    
+                    // Render first page
+                    renderPage(currentPage);
+                    
+                    // Show editor section
+                    editorSection.style.display = 'block';
+                    saveBtn.disabled = false;
+                    if(saveOcrOnlyBtn) saveOcrOnlyBtn.disabled = false;
+                    updateProgress(100, 'PDF loaded successfully');
+                    
+                    setTimeout(() => {
+                        progressContainer.style.display = 'none';
+                    }, 1000);
+                    
+                }).catch(function(error) {
+                    console.error('Error loading PDF:', error);
+                    showError('Failed to load PDF. If you opened this page from your disk (file://), please try again or run with a local server.');
+                    progressContainer.style.display = 'none';
+                });
+            };
+            
+            fileReader.onerror = function() {
+                console.error('Error reading file');
+                showError('Error reading file. Please try again.');
+                progressContainer.style.display = 'none';
+            };
+            
+            fileReader.readAsArrayBuffer(file);
+        }
+        
+        // Render PDF page
+        function renderPage(pageNum) {
+            if (!pdfDoc) return;
+            // Ensure contexts exist
+            if (!ctx && pdfCanvas) ctx = pdfCanvas.getContext('2d');
+            if (!overlayCtx && overlayCanvas) overlayCtx = overlayCanvas.getContext('2d');
+            if (!ctx) { console.error('Canvas context not ready'); showError('Preview not ready. Please retry upload.'); return; }
+            pdfDoc.getPage(pageNum).then(function(page) {
+                const viewport = page.getViewport({ scale: 1.0 });
+                const scaleX = 595 / viewport.width;
+                const scaleY = 842 / viewport.height;
+                currentScale = Math.min(scaleX, scaleY);
+                const scaledViewport = page.getViewport({ scale: currentScale });
+                // Prepare target canvases
+                pdfCanvas.width = 595; pdfCanvas.height = 842;
+                overlayCanvas.width = 595; overlayCanvas.height = 842;
+                // re-acquire contexts after size change (some browsers drop state)
+                if (pdfCanvas) ctx = pdfCanvas.getContext('2d');
+                if (overlayCanvas) overlayCtx = overlayCanvas.getContext('2d');
+                if (!ctx) { console.error('Canvas context not ready after resize'); showError('Preview not ready. Please retry upload.'); return; }
+                const xOffset = (595 - scaledViewport.width) / 2;
+                const yOffset = (842 - scaledViewport.height) / 2;
+                lastRenderMetrics = { xOffset, yOffset, scale: currentScale, pageWidth: scaledViewport.width, pageHeight: scaledViewport.height };
+                // Clear base/overlay to white background
+                ctx.setTransform(1,0,0,1,0,0);
+                ctx.clearRect(0,0,pdfCanvas.width,pdfCanvas.height);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0,0,pdfCanvas.width,pdfCanvas.height);
+                if(overlayCtx){ overlayCtx.clearRect(0,0,overlayCanvas.width, overlayCanvas.height); }
+                // Render into an offscreen canvas to avoid transform issues
+                const off = document.createElement('canvas');
+                off.width = Math.ceil(scaledViewport.width);
+                off.height = Math.ceil(scaledViewport.height);
+                const offctx = off.getContext('2d');
+                const task = page.render({ canvasContext: offctx, viewport: scaledViewport });
+                task.promise.then(function(){
+                    // Blit to A4 canvas centered
+                    ctx.drawImage(off, Math.round(xOffset), Math.round(yOffset));
+                    document.getElementById('page-num').textContent = currentPage;
+                    // Build editable text overlays from PDF content (OCR fallback if none)
+                    lastExtractedOverlayCount = 0;
+                    extractTextContent(page, xOffset, yOffset, currentScale);
+                    renderTextAnnotations();
+                    fitPreviewToWidth();
+                    // If no selectable text was found (likely scanned PDF), fallback to OCR automatically
+                    if(lastExtractedOverlayCount === 0){
+                        runOcrOnCurrentPage();
+                    } else if(ocrAuto && ocrAuto.checked){
+                        runOcrOnCurrentPage();
+                    }
+                }).catch(function(err){
+                    console.error('PDF render (offscreen) error:', err);
+                    showError('Failed to render PDF page.');
+                });
+            }).catch(function(err){
+                console.error('PDF getPage error:', err);
+                showError('Failed to load PDF page.');
+            });
+        }
+
+        // Save selectable PDF by embedding fonts and writing text via pdf-lib
+        async function saveSelectablePDF(){
+            if(!pdfDoc || !currentFile) return;
+            loading.style.display = 'block'; hideMessages();
+            try{
+                const fileBytes = await currentFile.arrayBuffer();
+                const pdfDocW = await PDFLib.PDFDocument.load(fileBytes);
+                const page = pdfDocW.getPage(currentPage-1);
+                if(!page){ throw new Error('Page not found'); }
+                // Prepare font cache in this doc
+                const fontCache = {};
+                async function getFontForFamily(family){
+                    if(!family) family = 'Arial';
+                    const key = family.split(',')[0].trim().replace(/"/g,'').toLowerCase();
+                    if(fontCache[key]) return fontCache[key];
+                    // Try embedded custom
+                    if(embeddedFonts[key]){
+                        fontCache[key] = await pdfDocW.embedFont(embeddedFonts[key].data, { subset:true });
+                        return fontCache[key];
+                    }
+                    // Fallback map
+                    const std = PDFLib.StandardFonts;
+                    const pref = key.includes('times')?std.TimesRoman: key.includes('courier')?std.Courier: std.Helvetica;
+                    fontCache[key] = await pdfDocW.embedFont(pref);
+                    return fontCache[key];
+                }
+                // Write each editable text (await fonts and draw in order)
+                const nodes = Array.from(textLayer.querySelectorAll('.editable-text'));
+                const { xOffset, yOffset, scale } = lastRenderMetrics;
+                const ph = page.getHeight();
+                for(const el of nodes){
+                    const left = parseFloat(el.style.left)||0;
+                    const top = parseFloat(el.style.top)||0;
+                    const fs = parseFloat(el.style.fontSize)||14;
+                    const fam = (el.style.fontFamily||'Helvetica');
+                    const col = el.style.color || '#000000';
+                    const lines = (el.textContent||'').split('\n');
+                    const pdfX = (left - xOffset)/scale;
+                    const yTop = (top - yOffset)/scale;
+                    const baseY = ph - (yTop + fs/scale);
+                    const rgb = hexToRgb01(col);
+                    const font = await getFontForFamily(fam);
+                    const sizePt = fs/scale;
+                    for(let idx=0; idx<lines.length; idx++){
+                        const line = lines[idx];
+                        const y = baseY + (lines.length-1-idx)*(fs*1.2/scale);
+                        page.drawText(line, { x: pdfX, y, font, size: sizePt, color: PDFLib.rgb(rgb.r, rgb.g, rgb.b) });
+                    }
+                }
+                const outBytes = await pdfDocW.save();
+                const blob = new Blob([outBytes], { type:'application/pdf' });
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+                a.download = 'selectable-' + (currentFile.name.replace(/\.pdf$/i,'') || 'document') + '.pdf'; a.click();
+                loading.style.display = 'none'; successMessage.style.display = 'block';
+            }catch(err){
+                console.error(err);
+                loading.style.display = 'none'; showError('Selectable save failed.');
+            }
+        }
+
+        function hexToRgb01(hex){
+            const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex||'#000000');
+            if(!m) return {r:0,g:0,b:0};
+            return { r: parseInt(m[1],16)/255, g: parseInt(m[2],16)/255, b: parseInt(m[3],16)/255 };
+        }
+        
+        // Extract text content from PDF for editing
+        function extractTextContent(page, xOffset, yOffset, scale) {
+            textLayer.innerHTML = '';
+            page.getTextContent().then(function(textContent) {
+                const items = textContent.items || [];
+                if(!items.length){ lastExtractedOverlayCount = 0; return; }
+                items.forEach(function(textItem) {
+                    const tx = xOffset + (textItem.transform[4] * scale);
+                    const ty = 842 - (yOffset + (textItem.transform[5] * scale));
+                    
+                    // Create editable text element
+                    const textEl = document.createElement('div');
+                    textEl.className = 'editable-text';
+                    textEl.textContent = textItem.str;
+                    textEl.style.left = tx + 'px';
+                    textEl.style.top = (ty - 15) + 'px'; // Adjust for text height
+                    textEl.style.fontSize = (textItem.height * scale) + 'px';
+                    textEl.style.color = '#000000';
+                    textEl.style.fontFamily = 'Noto Sans, Arial, sans-serif';
+                    textEl.style.cursor = 'text';
+                    textEl.tabIndex = 0;
+                    
+                    // Store original properties
+                    textEl.dataset.originalText = textItem.str;
+                    textEl.dataset.originalFont = textItem.fontName;
+                    textEl.dataset.originalSize = (textItem.height * scale);
+                    textEl.dataset.originalX = tx;
+                    textEl.dataset.originalY = ty;
+                    
+                    // Add event listeners
+                    textEl.addEventListener('dblclick', function(e) {
+                        e.stopPropagation();
+                        makeTextEditable(textEl, e);
+                    });
+                    
+                    textEl.addEventListener('contextmenu', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        showContextMenu(e, textEl);
+                    });
+                    
+                    textEl.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        selectTextElement(textEl);
+                        // Enter edit mode on single click for faster editing
+                        makeTextEditable(textEl, e);
+                    });
+                    
+                    textLayer.appendChild(textEl);
+                    lastExtractedOverlayCount++;
+                });
+            });
+        }
+        
+        // Make text element editable (contentEditable inline)
+        function makeTextEditable(textEl, clickEvent) {
+            document.querySelectorAll('.editable-text.selected').forEach(el => {
+                el.classList.remove('selected', 'editing');
+                el.contentEditable = 'false';
+            });
+            textEl.classList.add('selected', 'editing');
+            selectedTextElement = textEl;
+            textEl.contentEditable = 'true';
+            // place caret at click position if possible, otherwise at end
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            let range = document.createRange();
+            try{
+                if(clickEvent && document.caretRangeFromPoint){
+                    const r = document.caretRangeFromPoint(clickEvent.clientX, clickEvent.clientY);
+                    if(r){ range = r; }
+                    else { range.selectNodeContents(textEl); range.collapse(false); }
+                } else if(clickEvent && document.caretPositionFromPoint){
+                    const pos = document.caretPositionFromPoint(clickEvent.clientX, clickEvent.clientY);
+                    if(pos){ range.setStart(pos.offsetNode, pos.offset); range.collapse(true); }
+                    else { range.selectNodeContents(textEl); range.collapse(false); }
+                } else {
+                    range.selectNodeContents(textEl); range.collapse(false);
+                }
+            }catch(_){ range.selectNodeContents(textEl); range.collapse(false); }
+            sel.addRange(range);
+            textEl.focus();
+            // stop propagation to avoid page click handlers
+            textEl.addEventListener('keydown', (e)=>{
+                // allow natural typing/backspace/delete; prevent bubbling for navigation keys
+                e.stopPropagation();
+            });
+            // ensure underlying mask to hide original canvas text
+            ensureMask(textEl);
+            textEl.addEventListener('input', ()=> updateMask(textEl));
+            textEl.addEventListener('blur', ()=>{
+                textEl.classList.remove('editing');
+                textEl.contentEditable = 'false';
+                saveTextAnnotation(textEl);
+            }, { once: true });
+        }
+        
+        // Finish editing text no longer needed (handled on blur)
+        
+        // Save text annotation
+        function saveTextAnnotation(textEl) {
+            const annotation = {
+                type: 'text',
+                text: textEl.textContent,
+                x: parseFloat(textEl.style.left),
+                y: parseFloat(textEl.style.top),
+                fontSize: parseFloat(textEl.style.fontSize),
+                fontFamily: textEl.style.fontFamily || 'Arial',
+                color: textEl.style.color,
+                page: currentPage,
+                timestamp: Date.now()
+            };
+            
+            addAnnotation(annotation);
+        }
+        
+        // Show context menu for text element
+        function showContextMenu(e, textEl) {
+            e.preventDefault();
+            selectedTextElement = textEl;
+            
+            contextMenu.style.left = e.pageX + 'px';
+            contextMenu.style.top = e.pageY + 'px';
+            contextMenu.style.display = 'block';
+        }
+        
+        // Edit selected text
+        function editSelectedText() {
+            if (selectedTextElement) {
+                makeTextEditable(selectedTextElement);
+                contextMenu.style.display = 'none';
+            }
+        }
+
+        // Save OCR-Only (no background image), Unicode-safe by rasterizing text via Canvas
+        async function saveOCROnlyPDF(){
+            if (!pdfDoc || !currentFile) return;
+            loading.style.display = 'block';
+            hideMessages();
+            try{
+                // Build an offscreen canvas with white background
+                const w = 595, h = 842;
+                const out = document.createElement('canvas'); out.width = w; out.height = h;
+                const octx = out.getContext('2d');
+                octx.fillStyle = '#FFFFFF';
+                octx.fillRect(0,0,w,h);
+                // Draw text overlays using browser font stack (Unicode-friendly)
+                const nodes = Array.from(textLayer.querySelectorAll('.editable-text'));
+                nodes.forEach(el => {
+                    const left = parseFloat(el.style.left)||0;
+                    const top = parseFloat(el.style.top)||0;
+                    const fs = parseFloat(el.style.fontSize)||14;
+                    const fam = el.style.fontFamily || 'Noto Sans, Arial';
+                    const col = el.style.color || '#000';
+                    const cs = getComputedStyle(el);
+                    const fw = cs.fontWeight;
+                    const it = cs.fontStyle;
+                    octx.fillStyle = col;
+                    octx.textBaseline = 'top';
+                    octx.font = `${it==='italic'?'italic ':''}${(fw==='700'||fw==='bold')?'bold ':''}${fs}px ${fam}`;
+                    const lines = (el.textContent||'').split('\n');
+                    let y = top; const lh = fs*1.2;
+                    lines.forEach(line=>{ octx.fillText(line, left, y); y += lh; });
+                });
+                // Draw overlay images
+                const imgs = Array.from(textLayer.querySelectorAll('.overlay-image'));
+                await Promise.all(imgs.map(el=> new Promise((res)=>{ const im = new Image(); im.onload=()=>{ const left=parseFloat(el.style.left)||0; const top=parseFloat(el.style.top)||0; const wv=parseFloat(el.style.width)||im.naturalWidth; const hv=im.naturalHeight*(wv/im.naturalWidth); octx.drawImage(im, left, top, wv, hv); res(); }; im.src = el.src; })));
+                // Export to PDF as a single image
+                const imgData = out.toDataURL('image/png');
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ unit:'pt', format:[w,h], compress:true });
+                doc.addImage(imgData, 'PNG', 0, 0, w, h);
+                const fname = 'ocr-only-' + (currentFile.name.replace(/\.pdf$/i,'') || 'document') + '.pdf';
+                doc.save(fname);
+                loading.style.display = 'none';
+                successMessage.style.display = 'block';
+            }catch(err){
+                console.error(err);
+                loading.style.display = 'none';
+                showError('Save failed.');
+            }
+        }
+
+        // Open a clean OCR-only editor in a new tab/window (no background shadow)
+        function openCleanOcrEditor(){
+            if(!pdfDoc){ showError('Please upload a PDF first'); return; }
+            const img = pdfCanvas.toDataURL('image/png');
+            const w = window.open('about:blank', '_blank');
+            if(!w){ showError('Popup blocked. Please allow popups for this site.'); return; }
+            const d = w.document; d.open();
+            d.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>OCR Editor</title>');
+            d.write('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">');
+            d.write('<style>body{margin:16px;background:#f5f7ff;font-family:Segoe UI,Tahoma,Arial,sans-serif}.toolbar{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px;margin-bottom:10px}.toolbar select,.toolbar input[type=color]{padding:6px 8px;border:1px solid #ddd;border-radius:8px;background:#fff}.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer}.page{width:595px;min-height:842px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.12);margin:0 auto;position:relative}#text-layer{position:absolute;inset:0}.editable-text{position:absolute;cursor:text;padding:2px 4px;border:1px dashed transparent;user-select:text;white-space:pre-wrap;z-index:2}.editable-text.selected{border-color:#4361ee;background:rgba(67,97,238,.08)}.editable-text.editing{border:2px solid #4361ee;background:#fff;z-index:3;outline:none}</style>');
+            d.write('</head><body>');
+            d.write('<div class="toolbar">'
+              + '<select id="ff"><option>Inter</option><option>Roboto</option><option>Open Sans</option><option>Lato</option><option>Poppins</option><option>Montserrat</option><option>Source Sans 3</option><option>Noto Sans</option><option>PT Sans</option><option>PT Serif</option><option>Merriweather</option><option>Georgia</option><option>Verdana</option><option>Courier New</option><option>Times New Roman</option><option selected>Arial</option></select>'
+              + '<select id="fs"><option>10</option><option>12</option><option selected>14</option><option>16</option><option>18</option><option>24</option><option>32</option></select>'
+              + '<input id="tc" type="color" value="#111827" title="Text Color">'
+              + '<button id="bBold" class="btn" title="Bold"><i class="fas fa-bold"></i></button>'
+              + '<button id="bItalic" class="btn" title="Italic"><i class="fas fa-italic"></i></button>'
+              + '<button id="bUnderline" class="btn" title="Underline"><i class="fas fa-underline"></i></button>'
+              + '<button id="bSave" class="btn" title="Save"><i class="fas fa-download"></i> Save</button>'
+              + '</div>');
+            d.write('<div class="page"><div id="text-layer"></div></div>');
+            d.write('</body></html>');
+            d.close();
+            function addScript(src){ return new Promise((res,rej)=>{ const s=d.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; d.body.appendChild(s); }); }
+            (async ()=>{
+                try{
+                    await addScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+                    await addScript('https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js');
+                    const layer = d.getElementById('text-layer');
+                    let selected=null;
+                    function select(el){ d.querySelectorAll('.editable-text.selected').forEach(e=>e.classList.remove('selected')); el.classList.add('selected'); selected=el; }
+                    function makeEditable(el){ d.querySelectorAll('.editable-text.editing').forEach(e=>{e.classList.remove('editing'); e.contentEditable='false';}); el.classList.add('editing'); el.contentEditable='true'; el.focus(); }
+                    function place(line){ const b=line.bbox; const x0=b.x0, y0=b.y0, x1=b.x1, y1=b.y1; const fs=Math.max(10, Math.round((y1-y0)*0.8)); const el=d.createElement('div'); el.className='editable-text'; el.textContent=(line.text||'').trim(); el.style.left=x0+'px'; el.style.top=y0+'px'; el.style.fontSize=fs+'px'; el.style.fontFamily=d.getElementById('ff').value; el.style.color=d.getElementById('tc').value; el.addEventListener('dblclick',e=>{e.stopPropagation(); makeEditable(el);}); el.addEventListener('click',e=>{e.stopPropagation(); select(el);}); layer.appendChild(el); }
+                    const res = await w.Tesseract.recognize(img,'eng',{logger:()=>{}});
+                    const lines = (res.data && res.data.lines)||[]; lines.forEach(l=>{ if(l && l.bbox) place(l); });
+                    // toolbar handlers
+                    d.getElementById('ff').addEventListener('change',()=>{ if(selected){ selected.style.fontFamily=d.getElementById('ff').value; }});
+                    d.getElementById('fs').addEventListener('change',()=>{ if(selected){ selected.style.fontSize=d.getElementById('fs').value+'px'; }});
+                    d.getElementById('tc').addEventListener('input',()=>{ if(selected){ selected.style.color=d.getElementById('tc').value; }});
+                    d.getElementById('bBold').addEventListener('click',()=>{ if(selected){ const wgt=w.getComputedStyle(selected).fontWeight; selected.style.fontWeight=(wgt==='700'||wgt==='bold')?'400':'700'; }});
+                    d.getElementById('bItalic').addEventListener('click',()=>{ if(selected){ const st=w.getComputedStyle(selected).fontStyle; selected.style.fontStyle=(st==='italic')?'normal':'italic'; }});
+                    d.getElementById('bUnderline').addEventListener('click',()=>{ if(selected){ const dec=w.getComputedStyle(selected).textDecorationLine; selected.style.textDecoration=(dec.includes('underline'))?'none':'underline'; }});
+                    // drag with Ctrl
+                    layer.addEventListener('mousedown',e=>{ const t=e.target; if(!(t&&t.classList&&t.classList.contains('editable-text'))) return; if(t.isContentEditable||!e.ctrlKey) return; e.preventDefault(); select(t); const sx=e.clientX, sy=e.clientY; const l=parseFloat(t.style.left)||0; const tp=parseFloat(t.style.top)||0; function mm(ev){ t.style.left=(l+ev.clientX-sx)+'px'; t.style.top=(tp+ev.clientY-sy)+'px'; } function mu(){ w.removeEventListener('mousemove',mm); w.removeEventListener('mouseup',mu);} w.addEventListener('mousemove',mm); w.addEventListener('mouseup',mu); });
+                    // save
+                    d.getElementById('bSave').addEventListener('click',()=>{ const { jsPDF }=w.jspdf; const pdf=new jsPDF({unit:'pt',format:[595,842]}); const nodes=[...d.querySelectorAll('.editable-text')]; nodes.forEach(el=>{ const left=parseFloat(el.style.left)||0; const top=parseFloat(el.style.top)||0; const fs=parseFloat(el.style.fontSize)||14; const fam=el.style.fontFamily||'Arial'; const col=el.style.color||'#000'; pdf.setTextColor(col); pdf.setFont(fam,'normal'); pdf.setFontSize(fs); const lines=(el.textContent||'').split('\n'); let y=top+fs*0.1; lines.forEach(line=>{ pdf.text(line,left,y); y+=fs*1.2; }); }); pdf.save('ocr-edited.pdf'); });
+                }catch(e){ console.error(e); }
+            })();
+        }
+        
+        // Change font of selected text
+        function changeSelectedFont() {
+            if (selectedTextElement) {
+                const newFont = prompt('Enter font family:', selectedTextElement.style.fontFamily || 'Arial');
+                if (newFont) {
+                    selectedTextElement.style.fontFamily = newFont;
+                    saveTextAnnotation(selectedTextElement);
+                }
+                contextMenu.style.display = 'none';
+            }
+        }
+        
+        // Change color of selected text
+        function changeSelectedColor() {
+            if (selectedTextElement) {
+                const newColor = prompt('Enter color (hex or name):', selectedTextElement.style.color || '#000000');
+                if (newColor) {
+                    selectedTextElement.style.color = newColor;
+                    saveTextAnnotation(selectedTextElement);
+                }
+                contextMenu.style.display = 'none';
+            }
+        }
+        
+        // Highlight selected text
+        function highlightSelectedText() {
+            if (selectedTextElement) {
+                selectedTextElement.style.backgroundColor = highlightColor;
+                saveTextAnnotation(selectedTextElement);
+                contextMenu.style.display = 'none';
+            }
+        }
+        
+        // Remove selected text
+        function removeSelectedText() {
+            if (selectedTextElement) {
+                if (confirm('Are you sure you want to remove this text?')) {
+                    selectedTextElement.remove();
+                    // Remove from annotations
+                    textAnnotations = textAnnotations.filter(ann => 
+                        !(ann.x === parseFloat(selectedTextElement.style.left) && 
+                          ann.y === parseFloat(selectedTextElement.style.top))
+                    );
+                    annotationHistory.push([...textAnnotations]);
+                    redoHistory = [];
+                    updateUndoRedoButtons();
+                }
+                contextMenu.style.display = 'none';
+            }
+        }
+        
+        // Select text element
+        function selectTextElement(textEl) {
+            document.querySelectorAll('.editable-text.selected').forEach(el => {
+                el.classList.remove('selected');
+            });
+            textEl.classList.add('selected');
+            selectedTextElement = textEl;
+        }
+        
+        // Add new text at click position
+        function addNewText(x, y) {
+            const textEl = document.createElement('div');
+            textEl.className = 'editable-text';
+            textEl.textContent = 'New Text';
+            textEl.style.left = x + 'px';
+            textEl.style.top = y + 'px';
+            const defSize = (tbFontSize && tbFontSize.value) ? tbFontSize.value : (fontSizeSelect && fontSizeSelect.value ? fontSizeSelect.value : '14');
+            const defFamily = (tbFontFamily && tbFontFamily.value) ? tbFontFamily.value : (fontFamilySelect && fontFamilySelect.value ? fontFamilySelect.value : 'Noto Sans, Arial, sans-serif');
+            const defColor = (tbColor && tbColor.value) ? tbColor.value : (colorPicker && colorPicker.value ? colorPicker.value : '#000');
+            textEl.style.fontSize = defSize + 'px';
+            textEl.style.fontFamily = defFamily;
+            textEl.style.color = defColor;
+            textEl.style.cursor = 'text';
+            
+            // Add event listeners
+            textEl.addEventListener('dblclick', function(e) {
+                e.stopPropagation();
+                makeTextEditable(textEl);
+            });
+            
+            textEl.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                showContextMenu(e, textEl);
+            });
+            
+            textEl.addEventListener('click', function(e) {
+                e.stopPropagation();
+                selectTextElement(textEl);
+            });
+            
+            textLayer.appendChild(textEl);
+            ensureMask(textEl);
+            makeTextEditable(textEl);
+        }
+        
+        // Handle canvas click for adding new text
+        function handleCanvasClick(e) {
+            if (activeTool === 'text') {
+                const rect = a4Preview.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                addNewText(x, y);
+            } else if (activeTool === 'highlight' && selectedTextElement) {
+                selectedTextElement.style.backgroundColor = highlightColor;
+                saveTextAnnotation(selectedTextElement);
+            }
+        }
+        
+        // Add event listener for canvas click
+        a4Preview.addEventListener('click', handleCanvasClick);
+
+        // Deselect when clicking outside any text element
+        a4Preview.addEventListener('mousedown', (e)=>{
+            if(!(e.target && e.target.classList && e.target.classList.contains('editable-text'))){
+                document.querySelectorAll('.editable-text.selected').forEach(el => { el.classList.remove('selected','editing'); el.contentEditable='false'; });
+                selectedTextElement = null;
+            }
+        });
+
+        // Drag to move when not editing (hold Ctrl to move to avoid text selection)
+        let dragInfo = null;
+        textLayer.addEventListener('mousedown', (e)=>{
+            const target = e.target;
+            if(!(target && target.classList && target.classList.contains('editable-text'))) return;
+            // Start drag only if not in editing mode and Ctrl pressed
+            if(target.isContentEditable || !e.ctrlKey) return;
+            e.preventDefault();
+            selectTextElement(target);
+            const startX = e.clientX, startY = e.clientY;
+            const origLeft = parseFloat(target.style.left)||0;
+            const origTop = parseFloat(target.style.top)||0;
+            dragInfo = { target, startX, startY, origLeft, origTop };
+            const onMove = (ev)=>{
+                if(!dragInfo) return;
+                const dx = ev.clientX - dragInfo.startX;
+                const dy = ev.clientY - dragInfo.startY;
+                dragInfo.target.style.left = (dragInfo.origLeft + dx) + 'px';
+                dragInfo.target.style.top = (dragInfo.origTop + dy) + 'px';
+                updateMask(dragInfo.target);
+            };
+            const onUp = ()=>{
+                if(dragInfo){ saveTextAnnotation(dragInfo.target); }
+                dragInfo = null; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp);
+            };
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onUp);
+        });
+
+        // Key handling for selected element when not editing
+        document.addEventListener('keydown', (e)=>{
+            if(!selectedTextElement) return;
+            const isEditing = selectedTextElement.isContentEditable && selectedTextElement.classList.contains('editing');
+            if(isEditing) return; // already inline editing
+
+            // Ctrl/Cmd + Delete/Backspace => remove entire block
+            if((e.key === 'Delete' || e.key === 'Backspace') && (e.ctrlKey || e.metaKey)){
+                e.preventDefault();
+                const tgt = selectedTextElement; selectedTextElement = null;
+                // remove mask if present
+                const prev = tgt.previousElementSibling; if(prev && prev.classList.contains('mask-block')) prev.remove();
+                tgt.remove();
+                textAnnotations = textAnnotations.filter(ann => !(ann.x === parseFloat(tgt.style.left) && ann.y === parseFloat(tgt.style.top)));
+                annotationHistory.push([...textAnnotations]);
+                redoHistory = [];
+                updateUndoRedoButtons();
+                return;
+            }
+
+            // Character typing -> enter edit mode and insert char
+            if(e.key && e.key.length === 1 && !e.altKey && !e.ctrlKey && !e.metaKey){
+                e.preventDefault();
+                makeTextEditable(selectedTextElement);
+                // insert the typed character at caret
+                try{ document.execCommand('insertText', false, e.key); }catch(_){ /* ignore */ }
+                updateMask(selectedTextElement);
+                return;
+            }
+
+            // Backspace/Delete -> enter edit mode and delete one character
+            if(e.key === 'Backspace' || e.key === 'Delete'){
+                e.preventDefault();
+                makeTextEditable(selectedTextElement);
+                // simulate deletion
+                setTimeout(()=>{
+                    try{ document.execCommand(e.key === 'Delete' ? 'forwardDelete' : 'delete'); }catch(_){ /* ignore */ }
+                    updateMask(selectedTextElement);
+                },0);
+                return;
+            }
+        });
+
+        // Apply formatting to selected element (guard missing left controls)
+        if(fontFamilySelect){
+            fontFamilySelect.addEventListener('change', ()=>{
+                if(selectedTextElement){ selectedTextElement.style.fontFamily = fontFamilySelect.value; saveTextAnnotation(selectedTextElement); }
+            });
+        }
+        if(fontSizeSelect){
+            fontSizeSelect.addEventListener('change', ()=>{
+                if(selectedTextElement){ selectedTextElement.style.fontSize = fontSizeSelect.value + 'px'; saveTextAnnotation(selectedTextElement); }
+            });
+        }
+        if(colorPicker){
+            colorPicker.addEventListener('input', ()=>{
+                if(selectedTextElement){ selectedTextElement.style.color = colorPicker.value; saveTextAnnotation(selectedTextElement); }
+            });
+        }
+        
+        // Set active tool
+        function setActiveTool(tool) {
+            activeTool = tool;
+            
+            // Update UI
+            document.querySelectorAll('.tool-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            switch(tool) {
+                case 'select':
+                    selectTool.classList.add('active');
+                    a4Preview.style.cursor = 'default';
+                    break;
+                case 'text':
+                    textTool.classList.add('active');
+                    a4Preview.style.cursor = 'text';
+                    break;
+                case 'highlight':
+                    highlightTool.classList.add('active');
+                    a4Preview.style.cursor = 'pointer';
+                    break;
+            }
+        }
+        
+        // Add annotation to history
+        function addAnnotation(annotation) {
+            textAnnotations.push(annotation);
+            annotationHistory.push([...textAnnotations]);
+            redoHistory = [];
+            updateUndoRedoButtons();
+        }
+        
+        // Render text annotations
+        function renderTextAnnotations() {
+            // This would render the text annotations on the overlay canvas
+            // For now, we're using DOM elements for text editing
+        }
+
+        // Mask helpers to hide original PDF text below overlays
+        function ensureMask(el){
+            if(!el || !el.parentNode) return;
+            const prev = el.previousElementSibling;
+            if(!(prev && prev.classList && prev.classList.contains('mask-block'))){
+                const m = document.createElement('div');
+                m.className = 'mask-block';
+                el.parentNode.insertBefore(m, el);
+            }
+            updateMask(el);
+        }
+        function updateMask(el){
+            if(!el) return;
+            const m = el.previousElementSibling;
+            if(!(m && m.classList && m.classList.contains('mask-block'))) return;
+            // padding to fully hide glyph descenders/overshoot
+            const padX = 4, padY = 4;
+            const left = parseFloat(el.style.left||'0');
+            const top = parseFloat(el.style.top||'0');
+            const fs = parseFloat(el.style.fontSize)||14;
+            // compute width/height using both box size and text length heuristic
+            const wBox = el.offsetWidth; const hBox = el.offsetHeight;
+            const wHeu = Math.max(1, (el.textContent||'').length) * (fs * 0.62);
+            const hHeu = fs * 1.6;
+            const w = Math.max(wBox||0, wHeu) + padX*2;
+            const h = Math.max(hBox||0, hHeu) + padY*2;
+            m.style.left = (left - padX) + 'px';
+            m.style.top = (top - padY) + 'px';
+            m.style.width = w + 'px';
+            m.style.height = h + 'px';
+        }
+        
+        // Undo last action
+        function undo() {
+            if (annotationHistory.length > 1) {
+                redoHistory.push(textAnnotations);
+                annotationHistory.pop();
+                textAnnotations = [...annotationHistory[annotationHistory.length - 1]];
+                updateUndoRedoButtons();
+                // In a real implementation, we would re-render the annotations
+            }
+        }
+        
+        // Redo last undone action
+        function redo() {
+            if (redoHistory.length > 0) {
+                textAnnotations = redoHistory.pop();
+                annotationHistory.push([...textAnnotations]);
+                updateUndoRedoButtons();
+                // In a real implementation, we would re-render the annotations
+            }
+        }
+        
+        // Clear all annotations
+        function clearAnnotations() {
+            if (confirm('Are you sure you want to clear all annotations?')) {
+                textAnnotations = [];
+                annotationHistory.push([...textAnnotations]);
+                redoHistory = [];
+                textLayer.innerHTML = '';
+                updateUndoRedoButtons();
+            }
+        }
+        
+        // Update undo/redo button states
+        function updateUndoRedoButtons() {
+            if(undoBtn) undoBtn.disabled = annotationHistory.length <= 1;
+            if(redoBtn) redoBtn.disabled = redoHistory.length === 0;
+        }
+        
+        // Save edited PDF (exports the currently visible page with overlays)
+        async function savePDF() {
+            if (!pdfDoc || !currentFile) return;
+            loading.style.display = 'block';
+            hideMessages();
+            try{
+                // Compose a snapshot of current page: base PDF canvas + overlays
+                const w = pdfCanvas.width; const h = pdfCanvas.height;
+                const out = document.createElement('canvas'); out.width = w; out.height = h;
+                const octx = out.getContext('2d');
+                // Draw base PDF
+                octx.drawImage(pdfCanvas, 0, 0);
+                // Draw overlays from DOM (first mask white, then optional highlight, then text)
+                const nodes = Array.from(textLayer.querySelectorAll('.editable-text'));
+                nodes.forEach(el => {
+                    const left = parseFloat(el.style.left)||0;
+                    const top = parseFloat(el.style.top)||0;
+                    const fs = parseFloat(el.style.fontSize)||14;
+                    const fam = el.style.fontFamily || 'Arial';
+                    const col = el.style.color || '#000';
+                    const cs = getComputedStyle(el);
+                    const fw = cs.fontWeight;
+                    const it = cs.fontStyle;
+                    const bg = el.style.backgroundColor;
+                    const padX=4, padY=4;
+                    const textW = Math.max(el.offsetWidth||0, (el.textContent||'').length * fs*0.62);
+                    const textH = Math.max(el.offsetHeight||0, fs*1.6);
+                    // 1) White mask to remove original PDF text shadow
+                    octx.fillStyle = '#FFFFFF';
+                    octx.fillRect(left-padX, top-padY, textW+padX*2, textH+padY*2);
+                    // 2) Optional highlight background over the mask
+                    if(bg && bg !== 'transparent'){
+                        octx.fillStyle = bg;
+                        octx.fillRect(left-padX, top-padY, textW+padX*2, textH+padY*2);
+                    }
+                    // 3) Draw text on top
+                    octx.fillStyle = col;
+                    octx.textBaseline = 'top';
+                    octx.font = `${it==='italic'?'italic ':''}${(fw==='700'||fw==='bold')?'bold ':''}${fs}px ${fam}`;
+                    const lines = (el.textContent||'').split('\n');
+                    let y = top; const lh = fs * 1.2;
+                    lines.forEach(line=>{ octx.fillText(line, left, y); y += lh; });
+                });
+                // Draw overlay images
+                const imgs = Array.from(textLayer.querySelectorAll('.overlay-image'));
+                await Promise.all(imgs.map(el=> new Promise((res)=>{ const im = new Image(); im.onload=()=>{ const left=parseFloat(el.style.left)||0; const top=parseFloat(el.style.top)||0; const wv=parseFloat(el.style.width)||im.naturalWidth; const hv=im.naturalHeight*(wv/im.naturalWidth); octx.drawImage(im, left, top, wv, hv); res(); }; im.src = el.src; })));
+                // Export to PDF via jsPDF with A4 points matching our 595x842 canvas
+                const imgData = out.toDataURL('image/png');
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ unit:'pt', format:[595, 842], compress:true });
+                doc.addImage(imgData, 'PNG', 0, 0, 595, 842);
+                const fname = 'edited-' + (currentFile.name.replace(/\.pdf$/i,'') || 'document') + '.pdf';
+                doc.save(fname);
+                loading.style.display = 'none';
+                successMessage.style.display = 'block';
+            }catch(err){
+                console.error(err);
+                loading.style.display = 'none';
+                showError('Save failed.');
+            }
+        }
+        
+        // Reset editor
+        function resetEditor() {
+            pdfDoc = null;
+            currentPage = 1;
+            textAnnotations = [];
+            annotationHistory = [];
+            redoHistory = [];
+            
+            fileInfo.style.display = 'none';
+            editorSection.style.display = 'none';
+            saveBtn.disabled = true;
+            if(saveOcrOnlyBtn) saveOcrOnlyBtn.disabled = true;
+            hideMessages();
+            
+            // Clear canvases and text layer
+            ctx.clearRect(0, 0, pdfCanvas.width, pdfCanvas.height);
+            if(overlayCtx) overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+            textLayer.innerHTML = '';
+            
+            // Reset file input
+            fileInput.value = '';
+            
+            // Hide context menu
+            contextMenu.style.display = 'none';
+        }
+        
+        // Navigation functions
+        function prevPage() {
+            if (currentPage <= 1) return;
+            currentPage--;
+            renderPage(currentPage);
+        }
+        
+        function nextPage() {
+            if (!pdfDoc || currentPage >= pdfDoc.numPages) return;
+            currentPage++;
+            renderPage(currentPage);
+        }
+        
+        // Utility functions
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' bytes';
+            else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            else return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+        
+        function updateProgress(percent, text) {
+            progressBar.style.width = percent + '%';
+            progressText.textContent = text;
+        }
+        
+        function showError(message) {
+            errorText.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+        
+        function hideMessages() {
+            successMessage.style.display = 'none';
+            errorMessage.style.display = 'none';
+        }
+
+        // Zoom helpers
+        function setUiZoom(z){
+            uiZoom = Math.max(0.2, Math.min(z, 3));
+            a4Preview.style.transform = `scale(${uiZoom})`;
+            if(zoomPct) zoomPct.textContent = Math.round(uiZoom*100) + '%';
+        }
+        function fitPreviewToWidth(){
+            const container = a4Preview.parentElement; if(!container) return;
+            const cs = getComputedStyle(container);
+            const padX = parseFloat(cs.paddingLeft||'0') + parseFloat(cs.paddingRight||'0');
+            const avail = container.clientWidth - padX;
+            const baseWidth = 595; // CSS width of a4-preview
+            if(baseWidth>0){ setUiZoom(avail / baseWidth); }
+        }
+
+        // OCR: create editable text overlays from current canvas
+        async function runOcrOnCurrentPage(customDataUrl, offsetX=0, offsetY=0){
+            try{
+                if(!pdfDoc){ showError('Please upload a PDF first'); return; }
+                progressContainer.style.display = 'block';
+                updateProgress(5, 'Preparing OCR...');
+                // Use the visible canvas as image source
+                const dataUrl = customDataUrl || pdfCanvas.toDataURL('image/png');
+                updateProgress(10, 'Running OCR on page...');
+                const lang = (ocrLang && ocrLang.value) ? ocrLang.value : 'eng';
+                const result = await Tesseract.recognize(dataUrl, lang, {
+                    logger: m => { if(m.status && m.progress!=null){ updateProgress(10 + Math.round(m.progress*80), m.status.replace(/_/g,' ') + '...'); } }
+                });
+                updateProgress(95, 'Placing editable text...');
+                const { lines } = result.data;
+                if(!lines || !lines.length){ updateProgress(100, 'No text found'); setTimeout(()=>{progressContainer.style.display='none';}, 800); return; }
+                // Add overlays for each OCR line
+                lines.forEach(line => {
+                    if(!line.text) return;
+                    const { x0, y0, x1, y1 } = line.bbox || {};
+                    if(x0==null||y0==null||x1==null||y1==null) return;
+                    const left = offsetX + x0;
+                    const top = offsetY + y0;
+                    const width = x1 - x0;
+                    const height = y1 - y0;
+                    const fontPx = Math.max(10, Math.round(height * 0.8));
+                    const el = document.createElement('div');
+                    el.className = 'editable-text';
+                    el.textContent = line.text.trim();
+                    el.style.left = left + 'px';
+                    el.style.top = top + 'px';
+                    el.style.fontSize = fontPx + 'px';
+                    el.style.fontFamily = (tbFontFamily && tbFontFamily.value) ? tbFontFamily.value : (fontFamilySelect && fontFamilySelect.value ? fontFamilySelect.value : 'Arial');
+                    el.style.color = (tbColor && tbColor.value) ? tbColor.value : (colorPicker && colorPicker.value ? colorPicker.value : '#000');
+                    // interactions
+                    el.addEventListener('dblclick', (e)=>{ e.stopPropagation(); makeTextEditable(el); });
+                    el.addEventListener('contextmenu', (e)=>{ e.preventDefault(); e.stopPropagation(); showContextMenu(e, el); });
+                    el.addEventListener('click', (e)=>{ e.stopPropagation(); selectTextElement(el); });
+                    textLayer.appendChild(el);
+                    ensureMask(el);
+                    saveTextAnnotation(el);
+                });
+                updateProgress(100, 'OCR completed');
+                setTimeout(()=>{progressContainer.style.display='none';}, 800);
+            }catch(err){
+                console.error(err);
+                progressContainer.style.display='none';
+                showError('OCR failed. Please try again.');
+            }
+        }
+        
+        // OCR Region selection
+        let ocrRegionMode = false;
+        let selStart = null; let selRect = null;
+        function enableOcrRegionMode(){
+            ocrRegionMode = true;
+            a4Preview.style.cursor = 'crosshair';
+        }
+        a4Preview.addEventListener('mousedown', (e)=>{
+            if(!ocrRegionMode) return;
+            const r = a4Preview.getBoundingClientRect();
+            selStart = { x: e.clientX - r.left, y: e.clientY - r.top };
+            // draw via overlay canvas
+            if(overlayCtx) overlayCtx.clearRect(0,0,overlayCanvas.width, overlayCanvas.height);
+        });
+        a4Preview.addEventListener('mousemove', (e)=>{
+            if(!ocrRegionMode || !selStart) return;
+            const r = a4Preview.getBoundingClientRect();
+            const x = e.clientX - r.left; const y = e.clientY - r.top;
+            const x0 = Math.min(selStart.x, x), y0 = Math.min(selStart.y, y);
+            const w = Math.abs(x - selStart.x), h = Math.abs(y - selStart.y);
+            selRect = { x:x0, y:y0, w, h };
+            if(overlayCtx) overlayCtx.clearRect(0,0,overlayCanvas.width, overlayCanvas.height);
+            if(overlayCtx){ overlayCtx.strokeStyle = '#3a0ca3'; overlayCtx.lineWidth = 2; overlayCtx.setLineDash([6,4]); overlayCtx.strokeRect(x0, y0, w, h); }
+        });
+        a4Preview.addEventListener('mouseup', async (e)=>{
+            if(!ocrRegionMode) return;
+            a4Preview.style.cursor = 'default';
+            ocrRegionMode = false;
+            if(!selRect || selRect.w<5 || selRect.h<5){ if(overlayCtx) overlayCtx.clearRect(0,0,overlayCanvas.width, overlayCanvas.height); return; }
+            try{
+                // crop region from pdfCanvas
+                const sx = Math.round(selRect.x), sy = Math.round(selRect.y);
+                const sw = Math.round(selRect.w), sh = Math.round(selRect.h);
+                const tmp = document.createElement('canvas'); tmp.width = sw; tmp.height = sh;
+                const tctx = tmp.getContext('2d');
+                tctx.drawImage(pdfCanvas, sx, sy, sw, sh, 0, 0, sw, sh);
+                const dataUrl = tmp.toDataURL('image/png');
+                await runOcrOnCurrentPage(dataUrl, sx, sy);
+            }finally{
+                if(overlayCtx) overlayCtx.clearRect(0,0,overlayCanvas.width, overlayCanvas.height);
+                selStart = null; selRect = null;
+            }
+        });
+        
+        // Initialize when page loads
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+<footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>easyjpgtopdf</h3>
+                    <p>Your all-in-one PDF solution for converting, editing, and managing documents with ease.</p>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert to PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="jpg-to-pdf.html">JPG to PDF</a></li>
+                        <li><a href="word-to-pdf.html">Word to PDF</a></li>
+                        <li><a href="excel-to-pdf.html">Excel to PDF</a></li>
+                        <li><a href="ppt-to-pdf.html">PowerPoint to PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert from PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="pdf-to-jpg.html">PDF to JPG</a></li>
+                        <li><a href="pdf-to-word.html">PDF to Word</a></li>
+                        <li><a href="pdf-to-excel.html">PDF to Excel</a></li>
+                        <li><a href="pdf-to-ppt.html">PDF to PowerPoint</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Pdf Editor</h3>
+                    <ul class="footer-links">
+                        <li><a href="merge-pdf.html">Merge PDF</a></li>
+                        <li><a href="split-pdf.html">Split PDF</a></li>
+                        <li><a href="compress-pdf.html">Compress PDF</a></li>
+                        <li><a href="edit-pdf.html">Pdf Editor</a></li>
+                        <li><a href="protect-pdf.html">Protect PDF</a></li>
+                        <li><a href="unlock-pdf.html">Unlock PDF</a></li>
+                        <li><a href="watermark-pdf.html">Watermark PDF</a></li>
+                        <li><a href="crop-pdf.html">Crop PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Image Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="image-compressor.html">Image Compressor</a></li>
+                        <li><a href="image-resizer.html">Image Resizer</a></li>
+                        <li><a href="image-editor.html">Image Editor</a></li>
+                        <li><a href="background-remover.html">Image Background Remover</a></li>
+                        <li><a href="ocr-image.html">OCR Image</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Design Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="resume-maker.html">Resume Maker</a></li>
+                        <li><a href="biodata-maker.html">Marrige Biodata-Data Maker</a></li>
+                        <li><a href="ai-image-generator.html">AI Image Generator</a></li>
+                        <li><a href="marriage-card.html">Marriage Card</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Company</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html#about">About Us</a></li>
+                        <li><a href="index.html#contact">Contact</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Connect With Us</h3>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fab fa-twitter"></i> Twitter</a></li>
+                        <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
+                        <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
+                        <li><a href="#"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+                <p class="attribution">Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site. <a href="attributions.html">See full acknowledgements</a>.</p>
+            </div>
+        </div>
+    </footer>

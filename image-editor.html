@@ -1,0 +1,324 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Editor | easyjpgtopdf</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}
+    :root{--primary:#4361ee;--secondary:#3a0ca3;--light:#f8f9fa;--dark:#212529;--gray:#6c757d;--primary-dark:#1d4ed8;--accent:#10b981;--border-radius:10px;--transition:.3s}
+    body{background:#f5f7ff;color:var(--dark);min-height:100vh;display:flex;flex-direction:column;line-height:1.6}
+    .container{max-width:1200px;margin:0 auto;padding:0 20px}
+    header{background:#fff;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.1)}
+    .navbar{display:flex;justify-content:space-between;align-items:center;padding:15px 0}
+    .logo{display:flex;align-items:center;gap:10px;font-size:24px;font-weight:700;color:var(--primary);text-decoration:none}
+    .logo i{color:var(--secondary)}
+    .nav-links{display:flex;gap:25px}
+    .nav-links a{text-decoration:none;color:var(--dark);font-weight:500}
+    .nav-links a:hover,.nav-links a.active{color:var(--primary)}
+    .dropdown{position:relative}
+    .dropdown-content{display:none;position:absolute;background:#fff;min-width:200px;box-shadow:0 8px 16px rgba(0,0,0,.1);z-index:1;border-radius:8px;padding:10px 0;top:100%;left:0}
+    .dropdown:hover .dropdown-content{display:block}
+    .dropdown-content a{display:block;padding:10px 20px;text-decoration:none;color:var(--dark)}
+    .dropdown-content a:hover{background:#f8f9fa}
+    .auth-buttons{display:flex;gap:10px}
+    .auth-btn{padding:6px 15px;border-radius:50px;text-decoration:none;font-weight:500;transition:all .3s;font-size:.9rem}
+    .auth-btn.login{background:transparent;color:var(--primary);border:1px solid var(--primary)}
+    .auth-btn.signup{background:var(--primary);color:#fff;border:1px solid var(--primary)}
+    .auth-btn:hover{transform:translateY(-2px);box-shadow:0 5px 10px rgba(0,0,0,.1)}
+
+    .section-title{text-align:center;margin:24px 0}
+    .section-title h2{font-size:1.8rem;margin-bottom:.5rem;color:#1e293b}
+    .section-title p{color:#64748b}
+    .upload-area{border:2px dashed #64748b;border-radius:var(--border-radius);padding:2rem 1.5rem;text-align:center;margin-bottom:1.2rem;transition:var(--transition);cursor:pointer;background:#fff}
+    .upload-area:hover{border-color:var(--accent);background:rgba(16,185,129,.05)}
+    .upload-area i{font-size:2.5rem;color:var(--accent);margin-bottom:.8rem;display:block}
+    .file-input{display:none}
+    .image-editor{display:flex;flex-direction:column;gap:1.2rem}
+    .editor-container{display:flex;flex-wrap:wrap;gap:1.2rem}
+    .image-preview{flex:1;min-width:280px;border:1px solid #ddd;border-radius:var(--border-radius);overflow:hidden;background:#f9f9f9;display:flex;align-items:center;justify-content:center;padding:1rem;height:300px}
+    .image-preview img{max-width:100%;max-height:100%;display:block}
+    .editor-controls{flex:1;min-width:280px}
+    .slider-container{margin-bottom:1.2rem}
+    .slider-container label{display:block;margin-bottom:.5rem;font-weight:500;font-size:.9rem}
+    .slider{width:100%;margin-bottom:.4rem}
+    .slider-value{text-align:right;color:#64748b;font-size:.85rem}
+    .filter-options{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:.5rem;margin:1rem 0}
+    .filter-option{padding:.5rem;background:#fff;border:1px solid #ddd;border-radius:var(--border-radius);text-align:center;cursor:pointer;transition:var(--transition);font-size:.85rem}
+    .filter-option:hover{border-color:var(--accent);background:rgba(16,185,129,.05)}
+    .filter-option.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .action-buttons{display:flex;gap:.8rem;margin-top:1.2rem;flex-wrap:wrap}
+    .btn{padding:.7rem 1.2rem;border:none;border-radius:var(--border-radius);font-size:.9rem;font-weight:500;cursor:pointer;transition:var(--transition);display:inline-flex;align-items:center;gap:.5rem}
+    .btn-primary{background:var(--primary);color:#fff}
+    .btn-primary:hover{background:#3a0ca3}
+    .btn-success{background:#059669;color:#fff}
+    .btn-success:hover{background:#047857}
+    .btn-secondary{background:#e9ecef;color:#212529}
+    .btn-secondary:hover{background:#dbe2ea}
+    @media(max-width:768px){.editor-container{flex-direction:column}}
+
+    .comments{padding:80px 0;background:#fff;border-radius:20px;margin:50px 0}
+    .comment-form{max-width:600px;margin:0 auto;background:#f8f9fa;padding:30px;border-radius:12px}
+    .form-group{margin-bottom:20px}
+    .form-group label{display:block;margin-bottom:8px;font-weight:500}
+    .form-control{width:100%;padding:12px 15px;border:1px solid #ddd;border-radius:8px;font-size:1rem}
+    footer{background:#212529;color:#fff;padding:60px 0 30px;margin-top:auto}
+    .footer-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:40px;margin-bottom:40px}
+    .footer-links{list-style:none}
+    .footer-links a{color:#aaa;text-decoration:none}
+    .footer-links a:hover{color:#fff}
+    .copyright{text-align:center;padding-top:30px;border-top:1px solid #444;color:#aaa;font-size:.9rem}
+  </style>
+</head>
+<body>
+  <header><div class="container"><nav class="navbar"><a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a><div class="nav-links"><a href="index.html" class="active">Home</a><div class="dropdown"><a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="jpg-to-pdf.html">JPG to PDF</a><a href="word-to-pdf.html">Word to PDF</a><a href="excel-to-pdf.html">Excel to PDF</a><a href="ppt-to-pdf.html">PowerPoint to PDF</a></div></div><div class="dropdown"><a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="pdf-to-jpg.html">PDF to JPG</a><a href="pdf-to-word.html">PDF to Word</a><a href="pdf-to-excel.html">PDF to Excel</a><a href="pdf-to-ppt.html">PDF to PowerPoint</a></div></div><div class="dropdown"><a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="merge-pdf.html">Merge PDF</a><a href="split-pdf.html">Split PDF</a><a href="compress-pdf.html">Compress PDF</a><a href="edit-pdf.html">Pdf Editor</a><a href="protect-pdf.html">Protect PDF</a><a href="unlock-pdf.html">Unlock PDF</a><a href="watermark-pdf.html">Watermark PDF</a><a href="crop-pdf.html">Crop PDF</a></div></div>          <div class="dropdown"><a href="#">Image Tools <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="image-compressor.html">Image Compressor</a><a href="image-resizer.html">Image Resizer</a><a href="image-editor.html">Image Editor</a><a href="background-remover.html">Image Background Remover</a><a href="ocr-image.html">OCR Image</a><a href="image-watermark.html">Image Watermark Tool</a></div></div>
+<div class="dropdown"><a href="#">Design Tools <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="resume-maker.html">Resume Maker</a><a href="biodata-maker.html">Marrige Biodata-Data Maker</a><a href="ai-image-generator.html">AI Image Generator</a><a href="marriage-card.html">Marriage Card</a></div></div></div><div class="auth-buttons"><a href="#" class="au
+th-btn login" onclick="showModal('login-modal')">Login</a><a href="#" class="auth-btn signup" onclick="showModal('signup-modal')">Sign Up</a></div></nav></div></header>
+
+  <main class="container">
+    <div class="section-title">
+      <h2>Image Editor</h2>
+      <p>Adjust your images with various editing tools. All changes are applied in real-time as you adjust the sliders.</p>
+    </div>
+
+    <div class="tool-content" id="image-editor">
+      <div class="upload-area" id="edit-upload-area">
+        <i>ðŸ“</i>
+        <h3>Drag & Drop your image here</h3>
+        <p>or click to browse files</p>
+        <input type="file" class="file-input" id="edit-file-input" accept="image/*">
+      </div>
+
+      <div class="image-editor">
+        <div class="editor-container">
+          <div class="image-preview" id="edit-preview"><p>Your image will appear here</p></div>
+          <div class="editor-controls">
+            <div class="slider-container"><label for="edit-brightness">Brightness</label><input type="range" class="slider" id="edit-brightness" min="-100" max="100" value="0"><div class="slider-value" id="edit-brightness-value">0%</div></div>
+            <div class="slider-container"><label for="edit-contrast">Contrast</label><input type="range" class="slider" id="edit-contrast" min="-100" max="100" value="0"><div class="slider-value" id="edit-contrast-value">0%</div></div>
+            <div class="slider-container"><label for="edit-saturation">Saturation</label><input type="range" class="slider" id="edit-saturation" min="-100" max="100" value="0"><div class="slider-value" id="edit-saturation-value">0%</div></div>
+            <div class="slider-container"><label for="edit-blur">Blur</label><input type="range" class="slider" id="edit-blur" min="0" max="10" value="0" step="0.1"><div class="slider-value" id="edit-blur-value">0px</div></div>
+            <div class="slider-container"><label for="edit-hue">Hue Rotate</label><input type="range" class="slider" id="edit-hue" min="0" max="360" value="0"><div class="slider-value" id="edit-hue-value">0deg</div></div>
+            <div class="slider-container"><label for="edit-opacity">Opacity</label><input type="range" class="slider" id="edit-opacity" min="0" max="100" value="100"><div class="slider-value" id="edit-opacity-value">100%</div></div>
+            <div class="control-group"><label for="edit-filter">Filter Presets</label><select id="edit-filter"><option value="none" selected>None</option><option value="grayscale">Grayscale</option><option value="sepia">Sepia</option><option value="invert">Invert</option><option value="warm">Warm Tone</option><option value="cool">Cool Tone</option><option value="vintage">Vintage</option></select></div>
+            <div class="filter-options">
+              <div class="filter-option" data-filter="none">None</div>
+              <div class="filter-option" data-filter="grayscale">Grayscale</div>
+              <div class="filter-option" data-filter="sepia">Sepia</div>
+              <div class="filter-option" data-filter="invert">Invert</div>
+              <div class="filter-option" data-filter="warm">Warm</div>
+              <div class="filter-option" data-filter="cool">Cool</div>
+              <div class="filter-option" data-filter="vintage">Vintage</div>
+              <div class="filter-option" data-filter="high-contrast">High Contrast</div>
+            </div>
+            <div class="action-buttons"><button class="btn btn-success" id="download-edited"><i class="fas fa-download"></i> Download Edited</button><button class="btn btn-secondary" id="reset-edits"><i class="fas fa-rotate"></i> Reset All</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <section class="comments">
+    <div class="container">
+      <h2 class="section-title" style="margin:0 0 20px">User Comments</h2>
+      <div class="comment-form">
+        <div class="form-group"><label for="page-comment-name">Your Name</label><input id="page-comment-name" class="form-control" type="text" placeholder="Enter your name"></div>
+        <div class="form-group"><label for="page-comment-email">Email Address</label><input id="page-comment-email" class="form-control" type="email" placeholder="Enter your email"></div>
+        <div class="form-group"><label for="page-comment">Your Comment</label><textarea id="page-comment" class="form-control" placeholder="Share your experience with this tool"></textarea></div>
+        <button class="btn" style="background:var(--primary);color:#fff">Submit Comment</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="features" style="background-color:#fff;padding:80px 0;border-radius:20px;margin-bottom:50px;">
+  <div class="container">
+    <h2 class="section-title">Why Choose easyjpgtopdf?</h2>
+    <div class="features-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:40px;">
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Secure & Private</h3>
+          <p style="color:#6c757d;">All files are processed securely and automatically deleted after 1 hour.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-bolt"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Fast Processing</h3>
+          <p style="color:#6c757d;">Our optimized algorithms process your files in seconds.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-desktop"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Works Everywhere</h3>
+          <p style="color:#6c757d;">Use easyjpgtopdf on any device with a modern web browser.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-euro-sign"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Completely Free</h3>
+          <p style="color:#6c757d;">All our basic tools are free to use with no hidden costs.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <script>
+    try{document.getElementById('y').textContent=new Date().getFullYear()}catch(_){ }
+    const editFileInput=document.getElementById('edit-file-input');
+    const editUploadArea=document.getElementById('edit-upload-area');
+    const editPreview=document.getElementById('edit-preview');
+    const editBrightness=document.getElementById('edit-brightness');
+    const editBrightnessValue=document.getElementById('edit-brightness-value');
+    const editContrast=document.getElementById('edit-contrast');
+    const editContrastValue=document.getElementById('edit-contrast-value');
+    const editSaturation=document.getElementById('edit-saturation');
+    const editSaturationValue=document.getElementById('edit-saturation-value');
+    const editBlur=document.getElementById('edit-blur');
+    const editBlurValue=document.getElementById('edit-blur-value');
+    const editHue=document.getElementById('edit-hue');
+    const editHueValue=document.getElementById('edit-hue-value');
+    const editOpacity=document.getElementById('edit-opacity');
+    const editOpacityValue=document.getElementById('edit-opacity-value');
+    const editFilter=document.getElementById('edit-filter');
+    const downloadEditedBtn=document.getElementById('download-edited');
+    const resetEditsBtn=document.getElementById('reset-edits');
+    const filterOptions=document.querySelectorAll('.filter-option');
+    let originalEditImage=null,currentEditImage=null,editCanvas=null,editCtx=null;
+
+    editUploadArea.addEventListener('click',()=>editFileInput.click());
+    editUploadArea.addEventListener('dragover',e=>{e.preventDefault();editUploadArea.style.borderColor='#10b981';editUploadArea.style.backgroundColor='rgba(16,185,129,0.05)'});
+    editUploadArea.addEventListener('dragleave',()=>{editUploadArea.style.borderColor='';editUploadArea.style.backgroundColor=''});
+    editUploadArea.addEventListener('drop',e=>{e.preventDefault();editUploadArea.style.borderColor='';editUploadArea.style.backgroundColor=''; if(e.dataTransfer.files.length){handleEditFile(e.dataTransfer.files[0])}});
+    editFileInput.addEventListener('change',e=>{ if(e.target.files.length){ handleEditFile(e.target.files[0]); }});
+
+    function handleEditFile(file){ if(!file.type.match('image.*')){alert('Please select an image file'); return;} const r=new FileReader(); r.onload=()=>{ originalEditImage=new Image(); originalEditImage.onload=()=>{ editCanvas=document.createElement('canvas'); editCtx=editCanvas.getContext('2d'); editCanvas.width=originalEditImage.width; editCanvas.height=originalEditImage.height; editCtx.drawImage(originalEditImage,0,0); currentEditImage=new Image(); currentEditImage.src=editCanvas.toDataURL(); editPreview.innerHTML=''; editPreview.appendChild(currentEditImage); resetEditControls(); applyEdits(); }; originalEditImage.src=r.result; }; r.readAsDataURL(file); }
+
+    editBrightness.addEventListener('input',()=>{editBrightnessValue.textContent=`${editBrightness.value}%`; applyEdits();});
+    editContrast.addEventListener('input',()=>{editContrastValue.textContent=`${editContrast.value}%`; applyEdits();});
+    editSaturation.addEventListener('input',()=>{editSaturationValue.textContent=`${editSaturation.value}%`; applyEdits();});
+    editBlur.addEventListener('input',()=>{editBlurValue.textContent=`${editBlur.value}px`; applyEdits();});
+    editHue.addEventListener('input',()=>{editHueValue.textContent=`${editHue.value}deg`; applyEdits();});
+    editOpacity.addEventListener('input',()=>{editOpacityValue.textContent=`${editOpacity.value}%`; applyEdits();});
+    editFilter.addEventListener('change', applyEdits);
+    filterOptions.forEach(o=>o.addEventListener('click',()=>{filterOptions.forEach(x=>x.classList.remove('active')); o.classList.add('active'); applyFilterPreset(o.getAttribute('data-filter')); }));
+
+    function applyFilterPreset(f){ resetEditControls(); switch(f){ case 'grayscale': editFilter.value='grayscale'; break; case 'sepia': editFilter.value='sepia'; break; case 'invert': editFilter.value='invert'; break; case 'warm': editBrightness.value='10'; editSaturation.value='20'; editBrightnessValue.textContent='10%'; editSaturationValue.textContent='20%'; break; case 'cool': editBrightness.value='5'; editSaturation.value='-10'; editBrightnessValue.textContent='5%'; editSaturationValue.textContent='-10%'; editHue.value='200'; editHueValue.textContent='200deg'; break; case 'vintage': editBrightness.value='-5'; editContrast.value='-10'; editSaturation.value='-20'; editBrightnessValue.textContent='-5%'; editContrastValue.textContent='-10%'; editSaturationValue.textContent='-20%'; editFilter.value='sepia'; break; case 'high-contrast': editContrast.value='50'; editSaturation.value='30'; editContrastValue.textContent='50%'; editSaturationValue.textContent='30%'; break; default: editFilter.value='none'; } applyEdits(); }
+
+    function applyEdits(){ if(!originalEditImage||!editCtx) return; editCtx.clearRect(0,0,editCanvas.width,editCanvas.height); let filter=''; if(editBrightness.value!=='0'){ const v=1+(parseInt(editBrightness.value)/100); filter+=`brightness(${v}) `;} if(editContrast.value!=='0'){ const v=1+(parseInt(editContrast.value)/100); filter+=`contrast(${v}) `;} if(editSaturation.value!=='0'){ const v=1+(parseInt(editSaturation.value)/100); filter+=`saturate(${v}) `;} if(editBlur.value!=='0'){ filter+=`blur(${editBlur.value}px) `;} if(editHue.value!=='0'){ filter+=`hue-rotate(${editHue.value}deg) `;} if(editOpacity.value!=='100'){ filter+=`opacity(${parseInt(editOpacity.value)/100}) `;} switch(editFilter.value){ case 'grayscale': filter+='grayscale(100%) '; break; case 'sepia': filter+='sepia(100%) '; break; case 'invert': filter+='invert(100%) '; break; case 'warm': filter+='sepia(30%) hue-rotate(-20deg) '; break; case 'cool': filter+='sepia(10%) hue-rotate(180deg) '; break; case 'vintage': filter+='sepia(50%) hue-rotate(-30deg) '; break;} editCtx.filter=filter.trim(); editCtx.drawImage(originalEditImage,0,0); currentEditImage.src=editCanvas.toDataURL(); }
+
+    downloadEditedBtn.addEventListener('click',()=>{ if(!currentEditImage){ alert('Please upload and edit an image first'); return; } try{ sessionStorage.setItem('img_result_dataurl', currentEditImage.src); sessionStorage.setItem('img_result_name','edited-image.jpg'); sessionStorage.setItem('img_result_mime','image/jpeg'); }catch(_){ } location.href='image-editor-result.html'; });
+    resetEditsBtn.addEventListener('click', resetEditControls);
+    function resetEditControls(){ editBrightness.value='0'; editBrightnessValue.textContent='0%'; editContrast.value='0'; editContrastValue.textContent='0%'; editSaturation.value='0'; editSaturationValue.textContent='0%'; editBlur.value='0'; editBlurValue.textContent='0px'; editHue.value='0'; editHueValue.textContent='0deg'; editOpacity.value='100'; editOpacityValue.textContent='100%'; editFilter.value='none'; filterOptions.forEach(o=>o.classList.remove('active')); const first=document.querySelector('.filter-option[data-filter="none"]'); if(first) first.classList.add('active'); if(originalEditImage) applyEdits(); }
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>easyjpgtopdf</h3>
+                    <p>Your all-in-one PDF solution for converting, editing, and managing documents with ease.</p>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert to PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="jpg-to-pdf.html">JPG to PDF</a></li>
+                        <li><a href="word-to-pdf.html">Word to PDF</a></li>
+                        <li><a href="excel-to-pdf.html">Excel to PDF</a></li>
+                        <li><a href="ppt-to-pdf.html">PowerPoint to PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert from PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="pdf-to-jpg.html">PDF to JPG</a></li>
+                        <li><a href="pdf-to-word.html">PDF to Word</a></li>
+                        <li><a href="pdf-to-excel.html">PDF to Excel</a></li>
+                        <li><a href="pdf-to-ppt.html">PDF to PowerPoint</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Pdf Editor</h3>
+                    <ul class="footer-links">
+                        <li><a href="merge-pdf.html">Merge PDF</a></li>
+                        <li><a href="split-pdf.html">Split PDF</a></li>
+                        <li><a href="compress-pdf.html">Compress PDF</a></li>
+                        <li><a href="edit-pdf.html">Pdf Editor</a></li>
+                        <li><a href="protect-pdf.html">Protect PDF</a></li>
+                        <li><a href="unlock-pdf.html">Unlock PDF</a></li>
+                        <li><a href="watermark-pdf.html">Watermark PDF</a></li>
+                        <li><a href="crop-pdf.html">Crop PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Image Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="image-compressor.html">Image Compressor</a></li>
+                        <li><a href="image-resizer.html">Image Resizer</a></li>
+                        <li><a href="image-editor.html">Image Editor</a></li>
+                        <li><a href="background-remover.html">Image Background Remover</a></li>
+                        <li><a href="ocr-image.html">OCR Image</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Design Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="resume-maker.html">Resume Maker</a></li>
+                        <li><a href="biodata-maker.html">Marrige Biodata-Data Maker</a></li>
+                        <li><a href="ai-image-generator.html">AI Image Generator</a></li>
+                        <li><a href="marriage-card.html">Marriage Card</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Company</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html#about">About Us</a></li>
+                        <li><a href="index.html#contact">Contact</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Connect With Us</h3>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fab fa-twitter"></i> Twitter</a></li>
+                        <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
+                        <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
+                        <li><a href="#"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+                <p class="attribution">Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site. <a href="attributions.html">See full acknowledgements</a>.</p>
+            </div>
+        </div>
+    </footer>
+
+

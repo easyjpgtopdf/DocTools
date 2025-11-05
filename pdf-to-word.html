@@ -1,0 +1,1131 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PDF to Word | easyjpgtopdf</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --primary: #4361ee;
+      --secondary: #3a0ca3;
+      --accent: #4cc9f0;
+      --dark: #1f2937;
+      --light: #f8fafc;
+      --border: #e2e8f0;
+      --muted: #6b7280;
+      --success: #089981;
+      --danger: #dc2626;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(180deg, #eef2ff, #f8fafc 40%);
+      color: var(--dark);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.6;
+    }
+    a { text-decoration: none; color: inherit; }
+    .container { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+    header { background: rgba(255,255,255,0.9); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 20; box-shadow: 0 2px 12px rgba(15,23,42,0.08); }
+    .navbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; }
+    .logo { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 700; color: var(--primary); }
+    .logo i { color: var(--secondary); }
+    .nav-links { display: flex; gap: 24px; align-items: center; }
+    .nav-links > a { font-weight: 600; color: var(--dark); }
+    .nav-links > a:hover, .nav-links > a.active { color: var(--primary); }
+    .dropdown { position: relative; }
+    .dropdown > a { display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--dark); }
+    .dropdown-content {
+      position: absolute;
+      left: 0;
+      top: 120%;
+      min-width: 220px;
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 18px 40px rgba(15,23,42,0.12);
+      padding: 12px 0;
+      display: none;
+      overflow: hidden;
+    }
+    .dropdown-content a {
+      display: block;
+      padding: 10px 18px;
+      color: var(--dark);
+      font-weight: 500;
+    }
+    .dropdown-content a:hover { background: #f8faff; color: var(--primary); }
+    .dropdown:hover .dropdown-content { display: block; }
+    .auth-buttons { display: flex; gap: 10px; }
+    .auth-btn { padding: 8px 16px; border-radius: 20px; border: 1px solid var(--primary); color: var(--primary); font-weight: 600; transition: 0.2s ease; }
+    .auth-btn.signup { background: var(--primary); color: white; }
+    .auth-btn.login:hover { background: rgba(67,97,238,0.08); }
+
+    .hero {
+      background: linear-gradient(140deg, rgba(67,97,238,0.1), rgba(67,97,238,0.02));
+      padding: 70px 0 50px;
+    }
+    .hero h1 { font-size: 2.8rem; margin-bottom: 16px; color: var(--dark); }
+    .hero p { color: var(--muted); max-width: 640px; }
+
+    main { flex: 1; padding-bottom: 80px; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); gap: 30px; align-items: stretch; }
+    .workspace > * { height: 100%; }
+    .card {
+      background: white;
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 20px 45px rgba(15,23,42,0.08);
+      border: 1px solid rgba(67,97,238,0.06);
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .upload-area {
+      border: 2px dashed var(--border);
+      border-radius: 18px;
+      padding: 48px;
+      text-align: center;
+      background: #f8faff;
+      transition: 0.3s ease;
+      cursor: pointer;
+    }
+    .upload-area:hover { border-color: var(--primary); background: #eef2ff; }
+    .upload-area.dragover { border-color: var(--secondary); background: #e0e7ff; transform: translateY(-3px); }
+    .upload-area.has-file { border-color: var(--primary); background: white; box-shadow: 0 12px 32px rgba(67,97,238,0.14); }
+
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      transition: 0.2s ease;
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 12px 24px rgba(67,97,238,0.18);
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn.secondary { background: white; color: var(--primary); border: 1px solid var(--primary); box-shadow: none; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .status-message { margin-top: 12px; color: var(--muted); min-height: 1.2rem; }
+    .status-message.success { color: var(--success); }
+    .status-message.error { color: var(--danger); }
+
+    .progress {
+      display: none;
+      margin-top: 18px;
+      background: #e5e7eb;
+      border-radius: 999px;
+      height: 10px;
+      overflow: hidden;
+    }
+    .progress span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      transition: width 0.2s ease;
+    }
+
+    .meta-card { display: flex; flex-direction: column; gap: 18px; height: 100%; }
+    .info-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      border: 1px solid rgba(67,97,238,0.08);
+      box-shadow: 0 14px 35px rgba(15,23,42,0.08);
+    }
+    .info-card h3 { font-size: 1.1rem; margin-bottom: 10px; color: var(--primary); }
+    .info-card p { color: var(--muted); font-size: 0.95rem; }
+    .info-card ul { list-style: none; padding-left: 0; display: grid; gap: 8px; font-size: 0.95rem; color: var(--dark); }
+    .info-card li i { color: var(--primary); margin-right: 8px; }
+
+    .preview-area { display: flex; flex-direction: column; gap: 18px; margin-top: auto; }
+    .preview-frame {
+      width: 4.9cm;
+      height: 6.5cm;
+      margin: 0 auto;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      box-shadow: inset 0 0 0 1px rgba(148,163,184,0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+    .preview-frame::after {
+      content: '6.5 cm Ã— 4.9 cm frame';
+      position: absolute;
+      bottom: 8px;
+      right: 12px;
+      font-size: 0.75rem;
+      color: rgba(99,102,241,0.7);
+    }
+    .preview-canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: 100%;
+    }
+    .page-slider {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding: 12px 6px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #fff;
+      scrollbar-width: thin;
+    }
+    .page-thumb {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      background: #f9fafb;
+      min-width: 140px;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+    .page-thumb canvas {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      background: white;
+    }
+    .page-thumb input {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      transform: scale(1.1);
+    }
+    .page-thumb.selected {
+      border-color: var(--primary);
+      background: #eef2ff;
+      box-shadow: 0 10px 22px rgba(67,97,238,0.18);
+    }
+    .page-thumb:hover { border-color: rgba(67,97,238,0.4); }
+    .slider-hint {
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: center;
+    }
+    .badge-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; font-size: 0.9rem; }
+    .badge { background: rgba(67,97,238,0.08); color: var(--primary); padding: 4px 10px; border-radius: 999px; font-weight: 600; }
+
+    .ocr-results {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(99,102,241,0.18);
+      background: #eef2ff;
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .ocr-results textarea {
+      width: 100%;
+      min-height: 180px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 12px;
+      font-family: 'Segoe UI', sans-serif;
+      resize: vertical;
+    }
+    .ocr-results header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .ocr-results header h4 { color: var(--primary); }
+
+    .export-options { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 16px; }
+    .radio-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: white;
+      min-width: 220px;
+      box-shadow: 0 8px 22px rgba(15,23,42,0.06);
+    }
+    .radio-card input { margin-top: 4px; }
+    .radio-card label { font-weight: 600; display: block; }
+    .radio-card small { display: block; color: var(--muted); margin-top: 4px; }
+
+    footer { background: #0f172a; color: white; padding: 60px 0 30px; margin-top: 80px; }
+    .footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; }
+    .footer-col h3 { margin-bottom: 12px; font-size: 1.05rem; }
+    .footer-links { list-style: none; padding-left: 0; display: grid; gap: 8px; }
+    .footer-links a { color: rgba(255,255,255,0.78); }
+    .footer-links a:hover { color: white; }
+    .copyright { margin-top: 36px; font-size: 0.85rem; color: rgba(255,255,255,0.7); text-align: center; }
+
+    @media (max-width: 980px) {
+      .workspace { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+      header { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <nav class="navbar">
+        <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
+        <div class="nav-links">
+          <a href="index.html" class="active">Home</a>
+          <div class="dropdown">
+            <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="jpg-to-pdf.html">JPG to PDF</a>
+              <a href="word-to-pdf.html">Word to PDF</a>
+              <a href="excel-to-pdf.html">Excel to PDF</a>
+              <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="pdf-to-jpg.html">PDF to JPG</a>
+              <a href="pdf-to-word.html">PDF to Word</a>
+              <a href="pdf-to-excel.html">PDF to Excel</a>
+              <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="merge-pdf.html">Merge PDF</a>
+              <a href="split-pdf.html">Split PDF</a>
+              <a href="compress-pdf.html">Compress PDF</a>
+              <a href="edit-pdf.html">Pdf Editor</a>
+              <a href="protect-pdf.html">Protect PDF</a>
+              <a href="unlock-pdf.html">Unlock PDF</a>
+              <a href="watermark-pdf.html">Watermark PDF</a>
+              <a href="crop-pdf.html">Crop PDF</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="image-compressor.html">Image Compressor</a>
+              <a href="image-resizer.html">Image Resizer</a>
+              <a href="image-editor.html">Image Editor</a>
+              <a href="background-remover.html">Image Background Remover</a>
+              <a href="ocr-image.html">OCR Image</a>
+              <a href="image-watermark.html">Image Watermark Tool</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="resume-maker.html">Resume Maker</a>
+              <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+              <a href="ai-image-generator.html">AI Image Generator</a>
+              <a href="marriage-card.html">Marriage Card</a>
+            </div>
+          </div>
+        </div>
+        <div class="auth-buttons">
+          <a href="#" class="auth-btn login" onclick="showModal('login-modal');return false;">Login</a>
+          <a href="#" class="auth-btn signup" onclick="showModal('signup-modal');return false;">Sign Up</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container">
+      <h1>PDF to Word Converter</h1>
+      <p>Extract clean, Unicode-compatible DOCX files from any PDF. Perfect for multilingual documents, forms and research papers.</p>
+    </div>
+  </section>
+
+  <main>
+    <div class="container workspace">
+      <div class="card">
+        <h2>Upload PDF</h2>
+        <p class="status-message" id="statusMessage">No file selected. Drop a PDF or browse to begin.</p>
+        <div id="dropzone" class="upload-area" role="button" tabindex="0" aria-label="Upload PDF">
+          <i class="fas fa-cloud-upload-alt" style="font-size:42px;color:var(--primary);"></i>
+          <h3 style="margin:12px 0 6px;">Drag & drop or click to choose</h3>
+          <p style="color:var(--muted);">Supports Unicode text Â· up to 50 MB PDFs Â· processing happens in your browser.</p>
+          <input id="pdf-input" type="file" accept="application/pdf" hidden>
+        </div>
+        <div id="fileInfo" class="badge-row" style="margin-top:14px; display:none;"></div>
+        <div class="actions">
+          <button id="convertBtn" class="btn" disabled><i class="fas fa-file-word"></i> Convert to DOCX</button>
+          <button id="clearBtn" class="btn secondary" disabled><i class="fas fa-rotate-left"></i> Clear</button>
+          <button id="ocrBtn" class="btn secondary" disabled><i class="fas fa-eye"></i> Continue with OCR</button>
+          <a class="btn secondary" href="index.html"><i class="fas fa-house"></i> Home</a>
+        </div>
+        <div class="info-card" style="margin-top:-6px;">
+          <h3 style="display:flex;align-items:center;gap:8px;font-size:1rem;"><i class="fas fa-filter"></i> Page Selection</h3>
+          <p style="font-size:0.92rem;color:var(--muted);margin-bottom:12px;">Choose which pages to include in the DOCX export.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:600;color:var(--dark);">
+              <input type="radio" name="pageMode" value="all" checked> All pages
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:600;color:var(--dark);">
+              <input type="radio" name="pageMode" value="range"> Range
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:600;color:var(--dark);">
+              <input type="radio" name="pageMode" value="selected"> Selected
+            </label>
+            <input id="pageRange" class="btn secondary" style="padding:10px 14px;border-radius:14px;min-width:180px;" placeholder="e.g. 1-3,5" disabled>
+          </div>
+        </div>
+        <div id="progressWrapper" style="margin-top:20px; display:none;">
+          <div style="display:flex;justify-content:space-between;font-size:0.9rem;color:var(--muted);margin-bottom:6px;">
+            <span id="progressLabel">Preparingâ€¦</span>
+            <span id="progressPercent">0%</span>
+          </div>
+          <div class="progress"><span id="progressBar"></span></div>
+        </div>
+        <div class="preview-area">
+          <div class="preview-frame">
+            <canvas id="previewCanvas" class="preview-canvas" height="0" aria-hidden="true"></canvas>
+          </div>
+          <div>
+            <div class="badge-row">
+              <span class="badge" id="pageCount" style="display:none;"></span>
+              <span class="badge" id="modeBadge" style="display:none;"></span>
+            </div>
+            <div class="page-slider" id="pageSlider" aria-label="Page thumbnails"></div>
+            <div class="slider-hint">Tick the pages you want and choose â€œSelectedâ€ above to export only those pages.</div>
+          </div>
+        </div>
+        <div class="ocr-results" id="ocrResults">
+          <header>
+            <h4><i class="fas fa-eye"></i> OCR Extraction</h4>
+            <div class="badge" id="ocrStatus">Ready</div>
+          </header>
+          <textarea id="ocrText" placeholder="OCR output will appear here. You can edit before downloading."></textarea>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <button id="downloadOcrDocx" class="btn" disabled><i class="fas fa-download"></i> Download OCR DOCX</button>
+            <button id="dismissOcr" class="btn secondary"><i class="fas fa-xmark"></i> Dismiss</button>
+          </div>
+        </div>
+      </div>
+
+      <aside class="meta-card">
+        <div class="info-card">
+          <h3><i class="fas fa-language"></i> Unicode Ready</h3>
+          <p>We normalise PDF glyphs and export using Unicode text runs to keep every script legible in Word.</p>
+          <ul>
+            <li><i class="fas fa-check-circle"></i> Hindi, Marathi, Tamil and more</li>
+            <li><i class="fas fa-check-circle"></i> RTL languages via Wordâ€™s layout engine</li>
+            <li><i class="fas fa-check-circle"></i> Automatic fallback to images if text is embedded</li>
+          </ul>
+        </div>
+        <div class="info-card">
+          <h3><i class="fas fa-sliders-h"></i> Export Mode</h3>
+          <p>Select how pages should be transferred into Word.</p>
+          <div class="export-options">
+            <label class="radio-card">
+              <input type="radio" name="exportMode" value="smart" checked>
+              <div>
+                <label>Smart (Recommended)</label>
+                <small>Extract selectable text, fallback to images if the page is scanned.</small>
+              </div>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="exportMode" value="text">
+              <div>
+                <label>Text Only</label>
+                <small>For clean PDFs with selectable text. Ignores graphics.</small>
+              </div>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="exportMode" value="image">
+              <div>
+                <label>Image Pages</label>
+                <small>Render every page as an image in the DOCX. Preserves layout.</small>
+              </div>
+            </label>
+          </div>
+        </div>
+        <div class="info-card">
+          <h3><i class="fas fa-lightbulb"></i> Tips</h3>
+          <ul>
+            <li><i class="fas fa-check-circle"></i> For very large PDFs, convert in batches of 200 pages.</li>
+            <li><i class="fas fa-check-circle"></i> Smart mode gives best balance of selectable text and layout.</li>
+            <li><i class="fas fa-check-circle"></i> Use Wordâ€™s font replacement to match your brand typeface.</li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  
+
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.5/dist/tesseract.min.js"></script>
+  <script>
+    const footerYearEl = document.getElementById('year');
+    if (footerYearEl) {
+      footerYearEl.textContent = new Date().getFullYear();
+    }
+    (function(){
+      const dropzone = document.getElementById('dropzone');
+      const fileInput = document.getElementById('pdf-input');
+      const statusMessage = document.getElementById('statusMessage');
+      const fileInfo = document.getElementById('fileInfo');
+      const convertBtn = document.getElementById('convertBtn');
+      const clearBtn = document.getElementById('clearBtn');
+      const previewCanvas = document.getElementById('previewCanvas');
+      const pageCountBadge = document.getElementById('pageCount');
+      const modeBadge = document.getElementById('modeBadge');
+      const progressWrapper = document.getElementById('progressWrapper');
+      const progressBar = document.getElementById('progressBar');
+      const progressPercent = document.getElementById('progressPercent');
+      const progressLabel = document.getElementById('progressLabel');
+      const modeRadios = document.querySelectorAll('input[name="exportMode"]');
+      const pageRadios = document.querySelectorAll('input[name="pageMode"]');
+      const pageRangeInput = document.getElementById('pageRange');
+      const pageSlider = document.getElementById('pageSlider');
+      const ocrBtn = document.getElementById('ocrBtn');
+      const ocrResults = document.getElementById('ocrResults');
+      const ocrStatus = document.getElementById('ocrStatus');
+      const ocrText = document.getElementById('ocrText');
+      const downloadOcrDocx = document.getElementById('downloadOcrDocx');
+      const dismissOcr = document.getElementById('dismissOcr');
+
+      const pdfjsLib = window['pdfjs-dist/build/pdf'];
+      if (pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+      }
+      const DOCX_SOURCES = [
+        'https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js',
+        'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js'
+      ];
+      const loadedScripts = new Map();
+
+      function loadExternalScript(src){
+        if (loadedScripts.has(src)) {
+          return loadedScripts.get(src);
+        }
+        const promise = new Promise((resolve, reject) => {
+          const already = Array.from(document.scripts).find(s => s.src === src);
+          if (already) {
+            if (already.getAttribute('data-loaded') === '1') {
+              resolve();
+              return;
+            }
+            already.addEventListener('load', () => {
+              already.setAttribute('data-loaded', '1');
+              resolve();
+            }, { once: true });
+            already.addEventListener('error', () => reject(new Error(`Failed to load ${src}`)), { once: true });
+            return;
+          }
+          const script = document.createElement('script');
+          script.src = src;
+          script.async = true;
+          script.addEventListener('load', () => {
+            script.setAttribute('data-loaded', '1');
+            resolve();
+          }, { once: true });
+          script.addEventListener('error', () => reject(new Error(`Failed to load ${src}`)), { once: true });
+          document.head.appendChild(script);
+        });
+        loadedScripts.set(src, promise);
+        return promise;
+      }
+
+      async function ensureDocx(){
+        if (window.docx) return window.docx;
+        for (const src of DOCX_SOURCES){
+          try {
+            await loadExternalScript(src);
+          } catch (err) {
+            console.warn(err.message);
+            continue;
+          }
+          if (window.docx) return window.docx;
+        }
+        throw new Error('DOCX library not available');
+      }
+
+      function parsePageRange(input, max){
+        const clean = (input || '').trim();
+        if (!clean) return [];
+        const segments = clean.split(',');
+        const set = new Set();
+        for (const seg of segments){
+          const m = seg.trim().match(/^(\d+)(?:-(\d+))?$/);
+          if (!m) continue;
+          let start = parseInt(m[1], 10);
+          let end = m[2] ? parseInt(m[2], 10) : start;
+          if (isNaN(start) || isNaN(end)) continue;
+          if (start > end) [start, end] = [end, start];
+          start = Math.max(1, start);
+          end = Math.min(max, end);
+          for (let n = start; n <= end; n++) set.add(n);
+        }
+        return Array.from(set).sort((a,b)=>a-b);
+      }
+
+      let pdfDoc = null;
+      let pdfBytes = null;
+      let fileName = null;
+      let manualSelectedPages = new Set();
+
+      function setStatus(text, type){
+        statusMessage.textContent = text;
+        statusMessage.className = 'status-message' + (type ? ' ' + type : '');
+      }
+
+      function resetUI(){
+        pdfDoc = null;
+        pdfBytes = null;
+        fileName = null;
+        convertBtn.disabled = true;
+        clearBtn.disabled = true;
+        ocrBtn.disabled = true;
+        dropzone.classList.remove('has-file');
+        fileInfo.style.display = 'none';
+        fileInfo.innerHTML = '';
+        previewCanvas.height = 0;
+        previewCanvas.width = 0;
+        pageCountBadge.style.display = 'none';
+        modeBadge.style.display = 'none';
+        document.querySelector('input[name="pageMode"][value="all"]').checked = true;
+        pageRangeInput.value = '';
+        pageRangeInput.disabled = true;
+        manualSelectedPages = new Set();
+        pageSlider.innerHTML = '';
+        ocrResults.style.display = 'none';
+        ocrText.value = '';
+        downloadOcrDocx.disabled = true;
+        ocrStatus.textContent = 'Ready';
+        setProgress(null);
+        setStatus('No file selected. Drop a PDF or browse to begin.');
+      }
+
+      function setProgress(value, label){
+        if (value === null) {
+          progressWrapper.style.display = 'none';
+          return;
+        }
+        progressWrapper.style.display = 'block';
+        const safeValue = Math.min(100, Math.max(0, value));
+        progressBar.style.width = safeValue + '%';
+        progressPercent.textContent = safeValue.toFixed(0) + '%';
+        if (label) progressLabel.textContent = label;
+      }
+
+      function formatBytes(size){
+        const units = ['bytes','KB','MB','GB'];
+        let idx = 0;
+        let num = size;
+        while (num >= 1024 && idx < units.length - 1){
+          num /= 1024;
+          idx++;
+        }
+        return num.toFixed(idx === 0 ? 0 : 2) + ' ' + units[idx];
+      }
+
+      function targetDimensions(){
+        const DPI = 96; // CSS pixel approximation for cm conversion
+        const widthPx = 4.9 * 0.3937007874 * DPI * 2; // double resolution for clarity
+        const heightPx = 6.5 * 0.3937007874 * DPI * 2;
+        return { widthPx: Math.round(widthPx), heightPx: Math.round(heightPx) };
+      }
+
+      async function renderPreview(){
+        const firstPage = await pdfDoc.getPage(1);
+        const { widthPx, heightPx } = targetDimensions();
+        const viewport = firstPage.getViewport({ scale: 1 });
+        const aspect = viewport.width / viewport.height;
+        let canvasWidth = widthPx;
+        let canvasHeight = Math.round(widthPx / aspect);
+        if (canvasHeight > heightPx){
+          canvasHeight = heightPx;
+          canvasWidth = Math.round(heightPx * aspect);
+        }
+        const ctx = previewCanvas.getContext('2d');
+        previewCanvas.width = canvasWidth;
+        previewCanvas.height = canvasHeight;
+        const scale = canvasWidth / viewport.width;
+        const scaledViewport = firstPage.getViewport({ scale });
+        await firstPage.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
+      }
+
+      function updateBadges(){
+        pageCountBadge.textContent = `${pdfDoc.numPages} page${pdfDoc.numPages > 1 ? 's' : ''}`;
+        pageCountBadge.style.display = 'inline-flex';
+        const mode = document.querySelector('input[name="exportMode"]:checked').value;
+        const modeText = mode === 'smart' ? 'Smart extraction' : mode === 'text' ? 'Text only' : 'Image pages';
+        modeBadge.textContent = modeText;
+        modeBadge.style.display = 'inline-flex';
+      }
+
+      function toggleSelectedPage(pageNumber, checked){
+        if (checked) manualSelectedPages.add(pageNumber);
+        else manualSelectedPages.delete(pageNumber);
+        const selectedRadio = document.querySelector('input[name="pageMode"][value="selected"]');
+        if (selectedRadio){
+          selectedRadio.checked = true;
+          pageRangeInput.disabled = true;
+        }
+        const thumb = pageSlider.querySelector(`[data-page="${pageNumber}"]`);
+        if (thumb){
+          thumb.classList.toggle('selected', checked);
+          const checkbox = thumb.querySelector('input[type="checkbox"]');
+          if (checkbox && checkbox.checked !== checked) checkbox.checked = checked;
+        }
+      }
+
+      async function renderPageThumbnail(pageNumber){
+        const page = await pdfDoc.getPage(pageNumber);
+        const viewport = page.getViewport({ scale: 0.28 });
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = Math.ceil(viewport.width);
+        canvas.height = Math.ceil(viewport.height);
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        return canvas;
+      }
+
+      async function renderThumbnails(){
+        pageSlider.innerHTML = '';
+        manualSelectedPages = new Set();
+        for (let i = 1; i <= pdfDoc.numPages; i++){
+          const thumb = document.createElement('div');
+          thumb.className = 'page-thumb selected';
+          thumb.dataset.page = String(i);
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.checked = true;
+          const label = document.createElement('div');
+          label.textContent = `Page ${i}`;
+          label.style.fontWeight = '600';
+          label.style.fontSize = '0.9rem';
+          label.style.color = 'var(--dark)';
+          const canvas = await renderPageThumbnail(i);
+          thumb.appendChild(checkbox);
+          thumb.appendChild(canvas);
+          thumb.appendChild(label);
+          pageSlider.appendChild(thumb);
+          manualSelectedPages.add(i);
+          const handler = (checked)=>toggleSelectedPage(i, checked);
+          checkbox.addEventListener('click', (e)=>{
+            e.stopPropagation();
+            handler(checkbox.checked);
+          });
+          thumb.addEventListener('click', ()=>{
+            checkbox.checked = !checkbox.checked;
+            handler(checkbox.checked);
+          });
+        }
+      }
+
+      async function loadPdf(file){
+        setProgress(5, 'Loading PDFâ€¦');
+        const arrayBuffer = await file.arrayBuffer();
+        pdfBytes = arrayBuffer;
+        pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        setProgress(30, 'Rendering previewâ€¦');
+        await renderPreview();
+        await renderThumbnails();
+        updateBadges();
+        setProgress(null);
+        convertBtn.disabled = false;
+        clearBtn.disabled = false;
+        ocrBtn.disabled = false;
+        dropzone.classList.add('has-file');
+        setStatus('Ready to convert. Choose an export mode and click Convert to DOCX.', 'success');
+      }
+
+      function getPagesForOcr(){
+        const allSelected = Array.from(document.querySelectorAll('.page-thumb input[type="checkbox"]')).map(input => ({ page: parseInt(input.closest('.page-thumb').dataset.page, 10), checked: input.checked }));
+        return allSelected.filter(item => item.checked).map(item => item.page);
+      }
+
+      function updateOcrStatus(text, type='info'){
+        ocrStatus.textContent = text;
+        ocrStatus.style.background = type === 'error' ? 'rgba(239,68,68,0.15)' : 'rgba(67,97,238,0.12)';
+        ocrStatus.style.color = type === 'error' ? '#b91c1c' : '#4338ca';
+      }
+
+      async function runOcr(){
+        if (!pdfDoc) {
+          setStatus('Upload a PDF first to continue with OCR.', 'error');
+          return;
+        }
+        const selected = getPagesForOcr();
+        if (!selected.length){
+          setStatus('Please tick at least one page before running OCR.', 'error');
+          return;
+        }
+        ocrResults.style.display = 'flex';
+        ocrText.value = '';
+        downloadOcrDocx.disabled = true;
+        updateOcrStatus('Running OCR...', 'info');
+        setProgress(5, 'Preparing OCRâ€¦');
+        try {
+          const worker = await Tesseract.createWorker('eng+hin+ara+ben+kan+tel+tam+mal+mar+pan+guj', 1, {
+            logger: m => {
+              if (m.status === 'recognizing text' && m.progress){
+                const pct = Math.round(m.progress * 100);
+                setProgress(Math.min(95, pct), 'OCR Progressâ€¦');
+              }
+            }
+          });
+          const parts = [];
+          for (let i = 0; i < selected.length; i++){
+            const pageNumber = selected[i];
+            setProgress((i / selected.length) * 90 + 5, `OCR page ${pageNumber}â€¦`);
+            const page = await pdfDoc.getPage(pageNumber);
+            const viewport = page.getViewport({ scale: 2 });
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.ceil(viewport.width);
+            canvas.height = Math.ceil(viewport.height);
+            const ctx = canvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport }).promise;
+            const dataUrl = canvas.toDataURL('image/png');
+            const { data: { text } } = await worker.recognize(dataUrl);
+            const cleaned = sanitizeText(text);
+            parts.push(`Page ${pageNumber}\n${cleaned}\n`);
+          }
+          await worker.terminate();
+          ocrText.value = parts.join('\n').trim();
+          downloadOcrDocx.disabled = !ocrText.value;
+          updateOcrStatus('OCR complete', 'success');
+          setProgress(null);
+          setStatus('OCR extraction ready. Review and download.', 'success');
+        } catch (err){
+          console.error('OCR error', err);
+          updateOcrStatus('OCR failed', 'error');
+          setStatus('OCR failed. Please try again.', 'error');
+          setProgress(null);
+        }
+      }
+
+      function buildLineGroups(textContent){
+        const lineMap = new Map();
+        for (const item of textContent.items || []){
+          const transform = item.transform;
+          const x = transform[4];
+          const y = transform[5];
+          const key = Math.round(y * 100) / 100;
+          if (!lineMap.has(key)) lineMap.set(key, []);
+          lineMap.get(key).push({ x, str: item.str });
+        }
+        const keys = Array.from(lineMap.keys()).sort((a,b)=>b-a);
+        const lines = [];
+        for (const key of keys){
+          const parts = lineMap.get(key).sort((a,b)=>a.x-b.x);
+          const text = parts.map(p => p.str).join('').trim();
+          if (text) lines.push(text);
+        }
+        return lines;
+      }
+
+      function sanitizeText(value){
+        if (!value) return '';
+        return value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').trim();
+      }
+
+      function dataUrlToUint8Array(dataUrl){
+        const base64 = dataUrl.split(',')[1] || '';
+        const binary = atob(base64);
+        const length = binary.length;
+        const bytes = new Uint8Array(length);
+        for (let i = 0; i < length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes;
+      }
+
+      async function pageToImageRun(page, scale, docxLib){
+        const viewport = page.getViewport({ scale });
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.ceil(viewport.width);
+        canvas.height = Math.ceil(viewport.height);
+        const ctx = canvas.getContext('2d');
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        const dataUrl = canvas.toDataURL('image/png');
+        const bytes = dataUrlToUint8Array(dataUrl);
+        const widthIn = viewport.width / 96;
+        const heightIn = viewport.height / 96;
+        return new docxLib.ImageRun({
+          data: bytes,
+          transformation: {
+            width: widthIn * 96,
+            height: heightIn * 96
+          }
+        });
+      }
+
+      async function convertPdfToDocx(){
+        if (!pdfDoc) return;
+        const docxLib = await ensureDocx();
+        const mode = document.querySelector('input[name="exportMode"]:checked').value;
+        modeBadge.textContent = mode === 'smart' ? 'Smart extraction' : mode === 'text' ? 'Text only' : 'Image pages';
+        const children = [];
+        const totalPages = pdfDoc.numPages;
+        let selectedPages = [];
+        const pageMode = document.querySelector('input[name="pageMode"]:checked').value;
+        if (pageMode === 'all'){
+          selectedPages = Array.from({ length: totalPages }, (_, idx) => idx + 1);
+        } else if (pageMode === 'range') {
+          const parsed = parsePageRange(pageRangeInput.value, totalPages);
+          if (!parsed.length){
+            throw new Error('Invalid page range');
+          }
+          selectedPages = parsed;
+        } else {
+          selectedPages = Array.from(manualSelectedPages).sort((a,b)=>a-b);
+          if (!selectedPages.length){
+            throw new Error('No selected pages');
+          }
+        }
+        const total = selectedPages.length;
+        if (!total){
+          setProgress(null);
+          setStatus('Please enter a valid page range (e.g. 1-3,5).', 'error');
+          return;
+        }
+        for (let idx = 0; idx < total; idx++){
+          const pageNumber = selectedPages[idx];
+          setProgress((idx / total) * 100, `Processing page ${idx + 1} of ${total}â€¦`);
+          const page = await pdfDoc.getPage(pageNumber);
+          const textContent = await page.getTextContent({ includeMarkedContent: true });
+          const lines = buildLineGroups(textContent);
+          const sanitizedLines = lines.map(sanitizeText).filter(Boolean);
+          const shouldUseText = mode !== 'image' && sanitizedLines.length > 0;
+          if (shouldUseText){
+            children.push(new docxLib.Paragraph({ text: `Page ${pageNumber}`, heading: docxLib.HeadingLevel.HEADING_2 }));
+            sanitizedLines.forEach(cleanLine => {
+              children.push(new docxLib.Paragraph({
+                children: [new docxLib.TextRun({ text: cleanLine })]
+              }));
+            });
+          } else if (mode === 'text') {
+            children.push(new docxLib.Paragraph({
+              text: `Page ${pageNumber}: (no selectable text detected)`
+            }));
+          } else {
+            const imageRun = await pageToImageRun(page, 2, docxLib);
+            children.push(new docxLib.Paragraph({ children: [imageRun] }));
+          }
+        }
+        setProgress(95, 'Packaging DOCXâ€¦');
+        const doc = new docxLib.Document({
+          creator: 'easyjpgtopdf',
+          description: 'Converted with Unicode-aware extractor',
+          sections: [{ properties: {}, children }]
+        });
+        const blob = await docxLib.Packer.toBlob(doc);
+        const safeName = (fileName || 'converted').replace(/\.pdf$/i, '');
+        saveAs(blob, safeName + '.docx');
+        setProgress(null);
+        setStatus('DOCX ready! Open in Word to edit the content.', 'success');
+      }
+
+      function handleFile(file){
+        if (!file) return;
+        if (!file.type || !/pdf$/i.test(file.type)){ setStatus('Please select a valid PDF file.', 'error'); return; }
+        if (file.size > 50 * 1024 * 1024){ setStatus('File too large. Please choose a PDF under 50 MB.', 'error'); return; }
+        fileName = file.name;
+        fileInfo.style.display = 'flex';
+        fileInfo.innerHTML = `<span class="badge"><i class="fas fa-file-pdf"></i> ${file.name}</span><span class="badge">${formatBytes(file.size)}</span>`;
+        setStatus('Loading PDFâ€¦');
+        loadPdf(file).catch(err => {
+          console.error('PDF load failed', err);
+          setStatus('Unable to read this PDF. It may be encrypted or corrupted.', 'error');
+          resetUI();
+        });
+      }
+
+      dropzone.addEventListener('click', () => fileInput.click());
+      dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+      dropzone.addEventListener('dragleave', (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); });
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        const file = e.dataTransfer?.files?.[0];
+        handleFile(file);
+      });
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        handleFile(file);
+      });
+
+      pageRadios.forEach(radio => radio.addEventListener('change', () => {
+        const mode = document.querySelector('input[name="pageMode"]:checked').value;
+        if (mode === 'range'){
+          pageRangeInput.disabled = false;
+          pageRangeInput.focus();
+        } else {
+          pageRangeInput.disabled = true;
+        }
+      }));
+
+      convertBtn.addEventListener('click', async () => {
+        if (!pdfDoc) return;
+        convertBtn.disabled = true;
+        clearBtn.disabled = true;
+        setStatus('Convertingâ€¦ please wait. Large documents may take a moment.');
+        try {
+          await convertPdfToDocx();
+        } catch (err) {
+          console.error('Conversion failed', err);
+          setProgress(null);
+          let message = 'Conversion failed. Please try Image mode or another file.';
+          if (err && err.message){
+            if (err.message === 'Invalid page range') message = 'Please enter a valid page range, e.g. 1-3,5.';
+            else if (err.message === 'No selected pages') message = 'Please tick at least one page in the slider to convert.';
+            else if (err.message === 'DOCX library not available') message = 'DOCX library failed to load. Please check your internet connection and try again.';
+            else message = `Conversion failed: ${err.message}`;
+          }
+          setStatus(message, 'error');
+        } finally {
+          convertBtn.disabled = false;
+          clearBtn.disabled = false;
+        }
+      });
+
+      ocrBtn.addEventListener('click', runOcr);
+
+      downloadOcrDocx.addEventListener('click', async () => {
+        const docxLib = await ensureDocx();
+        const text = ocrText.value.trim();
+        if (!text){
+          setStatus('Nothing to download. Run OCR first.', 'error');
+          return;
+        }
+        const paragraphs = text.split(/\n+/).map(line => new docxLib.Paragraph(line));
+        const doc = new docxLib.Document({ sections: [{ children: paragraphs }] });
+        const blob = await docxLib.Packer.toBlob(doc);
+        const safeName = (fileName || 'ocr-output').replace(/\.pdf$/i, '');
+        saveAs(blob, `${safeName}-ocr.docx`);
+        setStatus('OCR DOCX downloaded.', 'success');
+      });
+
+      dismissOcr.addEventListener('click', () => {
+        ocrResults.style.display = 'none';
+      });
+
+      clearBtn.addEventListener('click', () => {
+        fileInput.value = '';
+        resetUI();
+      });
+
+      modeRadios.forEach(radio => radio.addEventListener('change', updateBadges));
+
+      resetUI();
+    })();
+  </script>
+</body>
+</html>
+
+
+
+
+
+<footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>easyjpgtopdf</h3>
+                    <p>Your all-in-one PDF solution for converting, editing, and managing documents with ease.</p>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert to PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="jpg-to-pdf.html">JPG to PDF</a></li>
+                        <li><a href="word-to-pdf.html">Word to PDF</a></li>
+                        <li><a href="excel-to-pdf.html">Excel to PDF</a></li>
+                        <li><a href="ppt-to-pdf.html">PowerPoint to PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert from PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="pdf-to-jpg.html">PDF to JPG</a></li>
+                        <li><a href="pdf-to-word.html">PDF to Word</a></li>
+                        <li><a href="pdf-to-excel.html">PDF to Excel</a></li>
+                        <li><a href="pdf-to-ppt.html">PDF to PowerPoint</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Pdf Editor</h3>
+                    <ul class="footer-links">
+                        <li><a href="merge-pdf.html">Merge PDF</a></li>
+                        <li><a href="split-pdf.html">Split PDF</a></li>
+                        <li><a href="compress-pdf.html">Compress PDF</a></li>
+                        <li><a href="edit-pdf.html">Pdf Editor</a></li>
+                        <li><a href="protect-pdf.html">Protect PDF</a></li>
+                        <li><a href="unlock-pdf.html">Unlock PDF</a></li>
+                        <li><a href="watermark-pdf.html">Watermark PDF</a></li>
+                        <li><a href="crop-pdf.html">Crop PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Image Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="image-compressor.html">Image Compressor</a></li>
+                        <li><a href="image-resizer.html">Image Resizer</a></li>
+                        <li><a href="image-editor.html">Image Editor</a></li>
+                        <li><a href="background-remover.html">Image Background Remover</a></li>
+                        <li><a href="ocr-image.html">OCR Image</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Design Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="resume-maker.html">Resume Maker</a></li>
+                        <li><a href="biodata-maker.html">Marrige Biodata-Data Maker</a></li>
+                        <li><a href="ai-image-generator.html">AI Image Generator</a></li>
+                        <li><a href="marriage-card.html">Marriage Card</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Company</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html#about">About Us</a></li>
+                        <li><a href="index.html#contact">Contact</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Connect With Us</h3>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fab fa-twitter"></i> Twitter</a></li>
+                        <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
+                        <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
+                        <li><a href="#"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+                <p class="attribution">Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site. <a href="attributions.html">See full acknowledgements</a>.</p>
+            </div>
+        </div>
+    </footer>
+
+

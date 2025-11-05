@@ -1,0 +1,264 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Resized Image â€” Result | easyjpgtopdf</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}
+    :root{--primary:#4361ee;--secondary:#3a0ca3;--light:#f8f9fa;--dark:#212529;--gray:#6c757d;--border:#e5e7eb}
+    body{background:#f5f7ff;color:var(--dark);min-height:100vh;display:flex;flex-direction:column}
+    .container{max-width:1200px;margin:0 auto;padding:0 20px}
+    header{background:#fff;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+    .navbar{display:flex;justify-content:space-between;align-items:center;padding:15px 0}
+    .logo{display:flex;gap:10px;align-items:center;font-size:24px;font-weight:700;color:var(--primary);text-decoration:none}
+    .logo i{color:var(--secondary)}
+    .nav-links{display:flex;gap:25px}
+    .nav-links a{text-decoration:none;color:var(--dark);font-weight:500}
+    .nav-links a:hover,.nav-links a.active{color:var(--primary)}
+    .dropdown{position:relative}
+    .dropdown-content{display:none;position:absolute;background:#fff;min-width:200px;box-shadow:0 8px 16px rgba(0,0,0,.1);z-index:1;border-radius:8px;padding:10px 0;top:100%;left:0}
+    .dropdown:hover .dropdown-content{display:block}
+    .dropdown-content a{display:block;padding:10px 20px;text-decoration:none;color:var(--dark)}
+    .dropdown-content a:hover{background:#f8f9fa}
+
+    main{padding:30px 0}
+    .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:0 6px 24px rgba(0,0,0,.06)}
+    .row{display:flex;gap:18px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+    .btn{display:inline-flex;align-items:center;gap:8px;background:var(--primary);color:#fff;border:none;border-radius:40px;padding:12px 18px;cursor:pointer;text-decoration:none}
+    .btn.secondary{background:#fff;color:var(--primary);border:1px solid var(--primary)}
+    .meta{color:#6c757d;margin-top:8px}
+    .preview{display:flex;justify-content:center;align-items:center;margin:16px 0}
+    .preview img{max-width:100%;max-height:70vh;border:1px solid var(--border);border-radius:12px;background:#fff}
+    .info{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;color:#6c757d;margin-bottom:8px}
+    .share{display:none;margin-top:16px;padding:12px;background:#f8f9fa;border:1px solid #e5e7eb;border-radius:10px}
+    .share .btn{padding:10px 12px}
+
+    footer{background:#212529;color:#fff;padding:60px 0 30px;margin-top:auto}
+    .footer-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:40px;margin-bottom:40px}
+    .footer-links{list-style:none}
+    .footer-links a{color:#aaa;text-decoration:none}
+    .footer-links a:hover{color:#fff}
+    .copyright{text-align:center;padding-top:30px;border-top:1px solid #444;color:#aaa;font-size:.9rem}
+  </style>
+</head>
+<body>
+  <header><div class="container"><nav class="navbar"><a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a><div class="nav-links"><a href="index.html" class="active">Home</a><div class="dropdown"><a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="jpg-to-pdf.html">JPG to PDF</a><a href="word-to-pdf.html">Word to PDF</a><a href="excel-to-pdf.html">Excel to PDF</a><a href="ppt-to-pdf.html">PowerPoint to PDF</a></div></div><div class="dropdown"><a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="pdf-to-jpg.html">PDF to JPG</a><a href="pdf-to-word.html">PDF to Word</a><a href="pdf-to-excel.html">PDF to Excel</a><a href="pdf-to-ppt.html">PDF to PowerPoint</a></div></div><div class="dropdown"><a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="merge-pdf.html">Merge PDF</a><a href="split-pdf.html">Split PDF</a><a href="compress-pdf.html">Compress PDF</a><a href="edit-pdf.html">Pdf Editor</a><a href="protect-pdf.html">Protect PDF</a><a href="unlock-pdf.html">Unlock PDF</a><a href="watermark-pdf.html">Watermark PDF</a><a href="crop-pdf.html">Crop PDF</a></div></div>          <div class="dropdown"><a href="#">Image Tools <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="image-compressor.html">Image Compressor</a><a href="image-resizer.html">Image Resizer</a><a href="image-editor.html">Image Editor</a><a href="background-remover.html">Image Background Remover</a><a href="ocr-image.html">OCR Image</a><a href="image-watermark.html">Image Watermark Tool</a></div></div>
+<div class="dropdown"><a href="#">Design Tools <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="resume-maker.html">Resume Maker</a><a href="biodata-maker.html">Marrige Biodata-Data Maker</a><a href="ai-image-generator.html">AI Image Generator</a><a href="marriage-card.html">Marriage Card</a></div></div></div><div class="auth-buttons"><a href="#" class="au
+th-btn login" onclick="showModal('login-modal')">Login</a><a href="#" class="auth-btn signup" onclick="showModal('signup-modal')">Sign Up</a></div></nav></div></header>
+
+  <main class="container">
+    <div class="card">
+      <div class="row">
+        <h2>Your image is ready</h2>
+        <div style="display:flex;gap:10px;align-items:center">
+          <a id="backBtn" class="btn secondary"><i class="fas fa-arrow-left"></i> Back</a>
+          <a id="downloadBtn" class="btn"><i class="fas fa-download"></i> Download</a>
+        </div>
+      </div>
+      <div class="info"><span id="dim"></span><span id="filesize"></span></div>
+      <div id="status" class="meta">You can download and share the resized image.</div>
+      <div class="preview"><img id="imgOut" alt="Preview"></div>
+      <div id="shareSection" class="share">
+        <div style="text-align:center;margin-bottom:8px;font-weight:600;color:#333">Share</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+          <button id="shareWhatsApp" class="btn secondary" disabled><i class="fab fa-whatsapp"></i> WhatsApp</button>
+          <button id="shareWeb" class="btn secondary" disabled><i class="fas fa-share-alt"></i> Local Share</button>
+          <button id="shareGmail" class="btn secondary" disabled><i class="far fa-envelope"></i> Gmail</button>
+          <button id="shareEmail" class="btn secondary" disabled><i class="fas fa-envelope"></i> Email</button>
+          <button id="shareTelegram" class="btn secondary" disabled><i class="fab fa-telegram-plane"></i> Telegram</button>
+          <button id="sharePrint" class="btn secondary" disabled><i class="fas fa-print"></i> Print</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <section class="comments">
+    <div class="container">
+      <h2 class="section-title" style="margin:0 0 20px">User Comments</h2>
+      <div class="comment-form">
+        <div class="form-group"><label for="page-comment-name">Your Name</label><input id="page-comment-name" class="form-control" type="text" placeholder="Enter your name"></div>
+        <div class="form-group"><label for="page-comment-email">Email Address</label><input id="page-comment-email" class="form-control" type="email" placeholder="Enter your email"></div>
+        <div class="form-group"><label for="page-comment">Your Comment</label><textarea id="page-comment" class="form-control" placeholder="Share your experience with this tool"></textarea></div>
+        <button class="btn" style="background:#4361ee;color:#fff">Submit Comment</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="features" style="background-color:#fff;padding:80px 0;border-radius:20px;margin-bottom:50px;">
+  <div class="container">
+    <h2 class="section-title">Why Choose easyjpgtopdf?</h2>
+    <div class="features-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:40px;">
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Secure & Private</h3>
+          <p style="color:#6c757d;">All files are processed securely and automatically deleted after 1 hour.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-bolt"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Fast Processing</h3>
+          <p style="color:#6c757d;">Our optimized algorithms process your files in seconds.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-desktop"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Works Everywhere</h3>
+          <p style="color:#6c757d;">Use easyjpgtopdf on any device with a modern web browser.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-euro-sign"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Completely Free</h3>
+          <p style="color:#6c757d;">All our basic tools are free to use with no hidden costs.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <script>
+    (function(){
+      try{document.getElementById('y').textContent=new Date().getFullYear()}catch(_){ }
+      const dataUrl = sessionStorage.getItem('img_result_dataurl');
+      const name = sessionStorage.getItem('img_result_name') || 'resized-image.jpg';
+      const mime = sessionStorage.getItem('img_result_mime') || 'image/jpeg';
+      const width = sessionStorage.getItem('img_result_width');
+      const height = sessionStorage.getItem('img_result_height');
+      const img = document.getElementById('imgOut');
+      const dl = document.getElementById('downloadBtn');
+      const shareSection = document.getElementById('shareSection');
+      const dim = document.getElementById('dim');
+      const sizeEl = document.getElementById('filesize');
+      const backBtn = document.getElementById('backBtn');
+      backBtn.addEventListener('click',(e)=>{ e.preventDefault(); history.length>1?history.back():location.href='image-resizer.html'; });
+      if(!dataUrl){ document.getElementById('status').textContent='Missing image data. Please resize again.'; return; }
+      img.src = dataUrl; dl.href = dataUrl; dl.download = name;
+      dim.textContent = (width&&height)? `${width} Ã— ${height}` : '';
+      try{ const bytes = atob(dataUrl.split(',')[1]).length; sizeEl.textContent = `~ ${ (bytes/1024).toFixed(1) } KB`; }catch(_){ }
+      enableShare(true);
+      function enableShare(on){ shareSection.style.display = on?'block':'none'; ['shareWhatsApp','shareWeb','shareGmail','shareEmail','shareTelegram','sharePrint'].forEach(id=>{const el=document.getElementById(id); if(el) el.disabled=!on;}); }
+      function getBlob(){ const arr = dataUrl.split(','); const bstr = atob(arr[1]); const len=bstr.length; const u8=new Uint8Array(len); for(let i=0;i<len;i++) u8[i]=bstr.charCodeAt(i); return new Blob([u8],{type:mime}); }
+      function getUrl(){ return dataUrl; }
+      function getFile(){ try{ return new File([getBlob()], name, { type: mime }); }catch(_){ return null; } }
+      document.getElementById('shareWhatsApp').addEventListener('click',()=>{ const url=getUrl(); const text=encodeURIComponent(`Image: ${name}\nDownload: ${url}`); window.open(`https://wa.me/?text=${text}`,'_blank'); });
+      document.getElementById('shareWeb').addEventListener('click', async ()=>{ const file=getFile(); try{ if(navigator.canShare && file && navigator.canShare({ files:[file] })) await navigator.share({ title:name, files:[file] }); else if(navigator.share) await navigator.share({ title:name, url:getUrl() }); else alert('Web Share not supported.'); }catch(e){} });
+      document.getElementById('shareGmail').addEventListener('click',()=>{ const url=getUrl(); const subject=encodeURIComponent('Image'); const body=encodeURIComponent(`Download: ${url}`); window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${subject}&body=${body}`,'_blank'); });
+      document.getElementById('shareEmail').addEventListener('click',()=>{ const url=getUrl(); const subject=encodeURIComponent('Image'); const body=encodeURIComponent(`Download: ${url}`); location.href = `mailto:?subject=${subject}&body=${body}`; });
+      document.getElementById('shareTelegram').addEventListener('click',()=>{ const url=getUrl(); const text=encodeURIComponent('Image'); window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${text}`,'_blank'); });
+      document.getElementById('sharePrint').addEventListener('click',()=>{ const w=window.open(getUrl(),'_blank'); const t=setInterval(()=>{ try{ if(w.document.readyState==='complete'){ clearInterval(t); w.focus(); w.print(); } }catch(_){ } },400); });
+    })();
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>easyjpgtopdf</h3>
+                    <p>Your all-in-one PDF solution for converting, editing, and managing documents with ease.</p>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert to PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="jpg-to-pdf.html">JPG to PDF</a></li>
+                        <li><a href="word-to-pdf.html">Word to PDF</a></li>
+                        <li><a href="excel-to-pdf.html">Excel to PDF</a></li>
+                        <li><a href="ppt-to-pdf.html">PowerPoint to PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert from PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="pdf-to-jpg.html">PDF to JPG</a></li>
+                        <li><a href="pdf-to-word.html">PDF to Word</a></li>
+                        <li><a href="pdf-to-excel.html">PDF to Excel</a></li>
+                        <li><a href="pdf-to-ppt.html">PDF to PowerPoint</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Pdf Editor</h3>
+                    <ul class="footer-links">
+                        <li><a href="merge-pdf.html">Merge PDF</a></li>
+                        <li><a href="split-pdf.html">Split PDF</a></li>
+                        <li><a href="compress-pdf.html">Compress PDF</a></li>
+                        <li><a href="edit-pdf.html">Pdf Editor</a></li>
+                        <li><a href="protect-pdf.html">Protect PDF</a></li>
+                        <li><a href="unlock-pdf.html">Unlock PDF</a></li>
+                        <li><a href="watermark-pdf.html">Watermark PDF</a></li>
+                        <li><a href="crop-pdf.html">Crop PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Image Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="image-compressor.html">Image Compressor</a></li>
+                        <li><a href="image-resizer.html">Image Resizer</a></li>
+                        <li><a href="image-editor.html">Image Editor</a></li>
+                        <li><a href="background-remover.html">Image Background Remover</a></li>
+                        <li><a href="ocr-image.html">OCR Image</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Design Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="resume-maker.html">Resume Maker</a></li>
+                        <li><a href="biodata-maker.html">Marrige Biodata-Data Maker</a></li>
+                        <li><a href="ai-image-generator.html">AI Image Generator</a></li>
+                        <li><a href="marriage-card.html">Marriage Card</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Company</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html#about">About Us</a></li>
+                        <li><a href="index.html#contact">Contact</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Connect With Us</h3>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fab fa-twitter"></i> Twitter</a></li>
+                        <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
+                        <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
+                        <li><a href="#"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+                <p class="attribution">Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site. <a href="attributions.html">See full acknowledgements</a>.</p>
+            </div>
+        </div>
+    </footer>
+
+

@@ -1,0 +1,614 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merge PDF - Combine PDF Files Online for Free | easyjpgtopdf</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <style>
+        /* Copied from index.html to match site UI */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        :root { --primary: #4361ee; --secondary: #3a0ca3; --accent: #4cc9f0; --light: #f8f9fa; --dark: #212529; --success: #4bb543; --danger: #dc3545; --warning: #ffc107; --gray: #6c757d; --light-gray: #e9ecef; }
+        body { background-color: #f5f7ff; color: var(--dark); line-height: 1.6; min-height: 100vh; display: flex; flex-direction: column; }
+        .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        header { background-color: white; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); position: sticky; top: 0; z-index: 100; }
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; }
+        .logo { display: flex; align-items: center; gap: 10px; font-size: 24px; font-weight: 700; color: var(--primary); text-decoration: none; }
+        .logo i { color: var(--secondary); }
+        .nav-links { display: flex; gap: 25px; }
+        .nav-links a { text-decoration: none; color: var(--dark); font-weight: 500; transition: color 0.3s; }
+        .nav-links a:hover { color: var(--primary); }
+        .nav-links a.active { color: var(--primary); font-weight: 600; }
+        .dropdown { position: relative; }
+        .dropdown-content { display: none; position: absolute; background-color: white; min-width: 200px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); z-index: 1; border-radius: 8px; padding: 10px 0; top: 100%; left: 0; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .dropdown-content a { display: block; padding: 10px 20px; text-decoration: none; color: var(--dark); }
+        .dropdown-content a:hover { background-color: var(--light); }
+        .auth-buttons { display: flex; gap: 10px; }
+        .auth-btn { padding: 6px 15px; border-radius: 50px; text-decoration: none; font-weight: 500; transition: all 0.3s; font-size: 0.9rem; }
+        .auth-btn.login { background-color: transparent; color: var(--primary); border: 1px solid var(--primary); }
+        .auth-btn.signup { background-color: var(--primary); color: white; border: 1px solid var(--primary); }
+        .auth-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1); }
+        .btn { display: inline-block; background-color: white; color: var(--primary); padding: 12px 30px; border-radius: 50px; text-decoration: none; font-weight: 600; transition: all 0.3s; border: none; cursor: pointer; }
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .tool-page { background-color: white; border-radius: 12px; padding: 40px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05); margin: 30px 0; }
+        .section-title { text-align: center; margin-bottom: 20px; font-size: 2.2rem; color: var(--dark); }
+        /* Comment Section */
+        .comments { padding: 40px 0; background-color: white; border-radius: 20px; margin: 20px 0; }
+        .comment-form { max-width: 600px; margin: 0 auto; background-color: var(--light); padding: 30px; border-radius: 12px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; }
+        .form-control { width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; }
+        textarea.form-control { min-height: 48px; resize: vertical; }
+        /* Footer */
+        footer { background-color: var(--dark); color: white; padding: 60px 0 30px; margin-top: auto; }
+        .footer-content { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px; margin-bottom: 40px; }
+        .footer-column h3 { margin-bottom: 20px; font-size: 1.2rem; }
+        .footer-links { list-style: none; }
+        .footer-links li { margin-bottom: 10px; }
+        .footer-links a { color: #aaa; text-decoration: none; transition: color 0.3s; }
+        .footer-links a:hover { color: white; }
+        .copyright { text-align: center; padding-top: 30px; border-top: 1px solid #444; color: #aaa; font-size: 0.9rem; }
+
+        /* Merge PDF specific styles (enhancements on top of site UI) */
+        .upload-area { border: 2px dashed #ddd; border-radius: 8px; padding: 40px; text-align: center; margin-bottom: 20px; transition: border-color 0.3s, background 0.3s; cursor: pointer; }
+        .upload-area:hover { border-color: var(--primary); background: rgba(67,97,238,0.05); }
+        .upload-area.dragover { border-color: var(--primary); background: rgba(67,97,238,0.1); }
+        .file-list { margin: 20px 0; max-height: 300px; overflow-y: auto; }
+        .file-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f8f9fa; border-radius: 8px; margin-bottom: 8px; }
+        .file-info { display: flex; align-items: center; gap: 12px; }
+        .file-icon { color: var(--primary); font-size: 20px; }
+        .file-name { font-weight: 500; }
+        .file-size { color: #666; font-size: 14px; }
+        .file-actions { display: flex; gap: 8px; }
+        .file-action-btn { background: none; border: none; cursor: pointer; color: #666; transition: color 0.3s; }
+        .file-action-btn:hover { color: var(--primary); }
+        .file-action-btn.delete:hover { color: #e74c3c; }
+        .progress-container { margin: 20px 0; display: none; }
+        .progress-bar { width: 100%; height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden; }
+        .progress { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
+        .progress-text { text-align: center; margin-top: 8px; color: #666; font-size: 14px; }
+        .loading { display: none; text-align: center; padding: 20px; }
+        .loading-spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .success-message { background: #d4edda; color: #155724; padding: 12px; border-radius: 8px; margin: 16px 0; display: none; }
+        .error-message { background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; margin: 16px 0; display: none; }
+        .limits-note { background: var(--light); border-left: 4px solid var(--primary); padding: 12px 14px; border-radius: 8px; color: #444; margin: 12px 0 8px; }
+        .limits-note ul { margin-left: 18px; margin-top: 6px; }
+        .limits-note li { margin: 4px 0; }
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .file-item { flex-direction: column; align-items: flex-start; gap: 8px; }
+            .file-actions { align-self: flex-end; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header (from index.html) -->
+    <header><div class="container"><nav class="navbar"><a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a><div class="nav-links"><a href="index.html" class="active">Home</a><div class="dropdown"><a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="jpg-to-pdf.html">JPG to PDF</a><a href="word-to-pdf.html">Word to PDF</a><a href="excel-to-pdf.html">Excel to PDF</a><a href="ppt-to-pdf.html">PowerPoint to PDF</a></div></div><div class="dropdown"><a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="pdf-to-jpg.html">PDF to JPG</a><a href="pdf-to-word.html">PDF to Word</a><a href="pdf-to-excel.html">PDF to Excel</a><a href="pdf-to-ppt.html">PDF to PowerPoint</a></div></div><div class="dropdown"><a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="merge-pdf.html">Merge PDF</a><a href="split-pdf.html">Split PDF</a><a href="compress-pdf.html">Compress PDF</a><a href="edit-pdf.html">Pdf Editor</a><a href="protect-pdf.html">Protect PDF</a><a href="unlock-pdf.html">Unlock PDF</a><a href="watermark-pdf.html">Watermark PDF</a><a href="crop-pdf.html">Crop PDF</a></div></div>          <div class="dropdown"><a href="#">Image Tools <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="image-compressor.html">Image Compressor</a><a href="image-resizer.html">Image Resizer</a><a href="image-editor.html">Image Editor</a><a href="background-remover.html">Image Background Remover</a><a href="ocr-image.html">OCR Image</a><a href="image-watermark.html">Image Watermark Tool</a></div></div>
+<div class="dropdown"><a href="#">Design Tools <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="resume-maker.html">Resume Maker</a><a href="biodata-maker.html">Marrige Biodata-Data Maker</a><a href="ai-image-generator.html">AI Image Generator</a><a href="marriage-card.html">Marriage Card</a></div></div></div><div class="auth-buttons"><a href="#" class="au
+th-btn login" onclick="showModal('login-modal')">Login</a><a href="#" class="auth-btn signup" onclick="showModal('signup-modal')">Sign Up</a></div></nav></div></header>
+
+    <!-- Word to PDF Tool Content -->
+    <div class="container">
+        <div class="tool-page">
+            <h2>Merge PDF Files</h2>
+            <div class="upload-area" id="upload-area">
+                <i class="fas fa-file-pdf" style="font-size:48px;color:var(--primary);"></i>
+                <h3>Drag & drop your PDF files or click to browse</h3>
+                <p>Supported format: .pdf (max 50MB per file)</p>
+                <input id="merge-input" type="file" accept=".pdf" multiple style="display:none">
+            </div>
+
+            <div class="limits-note">
+                <i class="fas fa-info-circle"></i> Important Notes
+                <ul>
+                    <li>Maximum file size: 50MB per file</li>
+                    <li>Maximum 100 files can be merged at once</li>
+                    <li>All processing happens in your browser (free, no upload)</li>
+                    <li>Uses PDF-lib for processing</li>
+                    <li>Preserves all content including text, images, and formatting</li>
+                </ul>
+            </div>
+
+            <div class="file-list" id="file-list"></div>
+
+            <div class="progress-container" id="progress-container">
+                <div class="progress-bar">
+                    <div class="progress" id="progress-bar"></div>
+                </div>
+                <div class="progress-text" id="progress-text">Converting to PDF...</div>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="loading-spinner"></div>
+                <p>Converting document to PDF...</p>
+            </div>
+
+            <div class="success-message" id="success-message">
+                <i class="fas fa-check-circle"></i> Document converted successfully!
+            </div>
+
+            <div class="error-message" id="error-message">
+                <i class="fas fa-exclamation-circle"></i> <span id="error-text">An error occurred during conversion</span>
+            </div>
+
+            <div>
+                <button class="btn btn-primary" id="merge-btn" disabled>Merge PDFs</button>
+                <button class="btn" style="background:transparent;border:1px solid var(--primary);color:var(--primary);" id="clear-btn">Clear All</button>
+            </div>
+        </div>
+
+        <!-- Comment Section (styled like index.html) -->
+    </div>
+
+    <!-- Footer (from index.html) -->
+    <div class="features" style="background-color:#fff;padding:80px 0;border-radius:20px;margin-bottom:50px;">
+  <div class="container">
+    <h2 class="section-title">Why Choose easyjpgtopdf?</h2>
+    <div class="features-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:40px;">
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Secure & Private</h3>
+          <p style="color:#6c757d;">All files are processed securely and automatically deleted after 1 hour.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-bolt"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Fast Processing</h3>
+          <p style="color:#6c757d;">Our optimized algorithms process your files in seconds.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-desktop"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Works Everywhere</h3>
+          <p style="color:#6c757d;">Use easyjpgtopdf on any device with a modern web browser.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-euro-sign"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Completely Free</h3>
+          <p style="color:#6c757d;">All our basic tools are free to use with no hidden costs.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script>
+        // PDF Merger Functionality
+        const pdfFiles = [];
+        const MAX_FILES = 100;
+        const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
+        // DOM Elements
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('merge-input');
+        const fileList = document.getElementById('file-list');
+        const mergeBtn = document.getElementById('merge-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const loading = document.getElementById('loading');
+        const successMessage = document.getElementById('success-message');
+        const errorMessage = document.getElementById('error-message');
+        const errorText = document.getElementById('error-text');
+
+        // Event Listeners
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => { 
+            e.preventDefault(); 
+            uploadArea.classList.add('dragover'); 
+        });
+        uploadArea.addEventListener('dragleave', () => { 
+            uploadArea.classList.remove('dragover'); 
+        });
+        uploadArea.addEventListener('drop', (e) => { 
+            e.preventDefault(); 
+            uploadArea.classList.remove('dragover'); 
+            handleFiles(e.dataTransfer.files); 
+        });
+        fileInput.addEventListener('change', (e) => { 
+            handleFiles(e.target.files);
+            e.target.value = ''; // Reset input to allow selecting same file again
+        });
+        mergeBtn.addEventListener('click', () => {
+            // Perform merge first, then the function will redirect with data
+            mergePDFs();
+        });
+        clearBtn.addEventListener('click', clearFiles);
+
+        // Handle file selection
+        function handleFiles(files) {
+            hideMessages();
+            
+            if (!files || files.length === 0) return;
+            
+            if (pdfFiles.length + files.length > MAX_FILES) { 
+                showError(`You can only merge up to ${MAX_FILES} files`); 
+                return; 
+            }
+            
+            let validFilesAdded = false;
+            
+            Array.from(files).forEach((file) => {
+                if (file.type !== 'application/pdf') {
+                    showError(`Skipping ${file.name}: Not a PDF file`);
+                    return;
+                }
+                
+                if (file.size > MAX_FILE_SIZE) {
+                    showError(`Skipping ${file.name}: File size exceeds 50MB`);
+                    return;
+                }
+                
+                // Check for duplicate files
+                const isDuplicate = pdfFiles.some(pdfFile => 
+                    pdfFile.file.name === file.name && 
+                    pdfFile.file.size === file.size
+                );
+                
+                if (!isDuplicate) {
+                    pdfFiles.push({ 
+                        file, 
+                        id: Date.now() + Math.random().toString(36).substr(2, 9) 
+                    });
+                    validFilesAdded = true;
+                }
+            });
+            
+            if (validFilesAdded) {
+                updateFileList();
+                updateMergeButton();
+            }
+        }
+
+        // Update the file list UI
+        function updateFileList() {
+            fileList.innerHTML = '';
+            
+            if (pdfFiles.length === 0) {
+                fileList.style.display = 'none';
+                return;
+            }
+            
+            fileList.style.display = 'block';
+            
+            pdfFiles.forEach((pdfFile, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.dataset.id = pdfFile.id;
+                
+                fileItem.innerHTML = `
+                    <div class="file-info">
+                        <i class="fas fa-file-pdf file-icon"></i>
+                        <div>
+                            <div class="file-name">${escapeHtml(pdfFile.file.name)}</div>
+                            <div class="file-size">${formatFileSize(pdfFile.file.size)}</div>
+                        </div>
+                    </div>
+                    <div class="file-actions">
+                        <button class="file-action-btn" ${index === 0 ? 'disabled' : ''} data-action="up" data-id="${pdfFile.id}">
+                            <i class="fas fa-arrow-up"></i>
+                        </button>
+                        <button class="file-action-btn" ${index === pdfFiles.length - 1 ? 'disabled' : ''} data-action="down" data-id="${pdfFile.id}">
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                        <button class="file-action-btn delete" data-action="delete" data-id="${pdfFile.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>`;
+                
+                fileList.appendChild(fileItem);
+            });
+            
+            // Delegate actions
+            fileList.addEventListener('click', (e) => {
+                const actionBtn = e.target.closest('.file-action-btn');
+                if (!actionBtn) return;
+                
+                const action = actionBtn.dataset.action;
+                const fileId = actionBtn.dataset.id;
+                const fileIndex = pdfFiles.findIndex(f => f.id === fileId);
+                
+                if (fileIndex === -1) return;
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                switch (action) {
+                    case 'delete':
+                        removeFile(fileIndex);
+                        break;
+                    case 'up':
+                        if (fileIndex > 0) moveFile(fileIndex, -1);
+                        break;
+                    case 'down':
+                        if (fileIndex < pdfFiles.length - 1) moveFile(fileIndex, 1);
+                        break;
+                }
+            });
+        }
+
+        // Update merge button state
+        function updateMergeButton() { 
+            mergeBtn.disabled = pdfFiles.length < 2; 
+        }
+        
+        // Remove a file from the list
+        function removeFile(index) { 
+            pdfFiles.splice(index, 1); 
+            updateFileList(); 
+            updateMergeButton(); 
+            hideMessages();
+        }
+        
+        // Move a file up or down in the list
+        function moveFile(index, direction) {
+            if ((index === 0 && direction < 0) || (index === pdfFiles.length - 1 && direction > 0)) {
+                return;
+            }
+            
+            const newIndex = index + direction;
+            [pdfFiles[index], pdfFiles[newIndex]] = [pdfFiles[newIndex], pdfFiles[index]];
+            updateFileList();
+        }
+        
+        // Clear all files
+        function clearFiles() { 
+            pdfFiles.length = 0; 
+            updateFileList(); 
+            updateMergeButton(); 
+            hideMessages(); 
+        }
+        
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // Escape HTML special characters
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Merge PDFs function
+        async function mergePDFs() {
+            if (pdfFiles.length < 2) { 
+                showError('Please select at least 2 PDF files to merge'); 
+                return; 
+            }
+            
+            // Show loading state
+            hideMessages();
+            loading.style.display = 'block';
+            progressContainer.style.display = 'block';
+            mergeBtn.disabled = true;
+            
+            try {
+                const { PDFDocument } = PDFLib;
+                const mergedPdf = await PDFDocument.create();
+                
+                // Process each PDF file
+                for (let i = 0; i < pdfFiles.length; i++) {
+                    const progress = Math.round(((i + 1) / pdfFiles.length) * 100);
+                    progressBar.style.width = `${progress}%`; 
+                    progressText.textContent = `Processing file ${i + 1} of ${pdfFiles.length}`;
+                    
+                    const pdfFile = pdfFiles[i];
+                    
+                    try {
+                        // Read the file as ArrayBuffer
+                        const arrayBuffer = await readFileAsArrayBuffer(pdfFile.file);
+                        
+                        // Load the PDF document
+                        const pdfDoc = await PDFDocument.load(arrayBuffer);
+                        
+                        // Copy all pages to the merged document
+                        const pages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
+                        pages.forEach(page => mergedPdf.addPage(page));
+                        
+                    } catch (error) {
+                        console.error(`Error processing ${pdfFile.file.name}:`, error);
+                        showError(`Error processing "${pdfFile.file.name}". The file may be corrupted or encrypted.`);
+                        throw error;
+                    }
+                }
+                
+                // Save the merged PDF
+                const mergedPdfBytes = await mergedPdf.save();
+                const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+                
+                // Save the merged PDF to localStorage temporarily
+                await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = function() {
+                        const base64data = reader.result;
+                        localStorage.setItem('mergedPdfData', base64data);
+                        resolve();
+                    };
+                    reader.readAsDataURL(blob);
+                });
+                
+                // Calculate file size in MB
+                const fileSizeMB = (blob.size / (1024 * 1024)).toFixed(2);
+                const pageCount = mergedPdf.getPageCount();
+                
+                // Generate a timestamp for the filename
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                
+                // Redirect to download page with file info
+                window.location.href = `merge-pdf-convert.html?filename=merge-pdf-convert-${timestamp}.pdf&size=${fileSizeMB}&pages=${pageCount}`;
+                
+            } catch (error) {
+                console.error('Error merging PDFs:', error);
+                if (!errorMessage.style.display || errorMessage.style.display === 'none') {
+                    showError('An error occurred while merging the PDF files. Please try again.');
+                }
+            } finally { 
+                loading.style.display = 'none'; 
+                progressContainer.style.display = 'none'; 
+                progressBar.style.width = '0%'; 
+                mergeBtn.disabled = false; 
+            }
+        }
+
+        // Helper function to read file as ArrayBuffer
+        function readFileAsArrayBuffer(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+        
+        // Show error message
+        function showError(message) { 
+            errorText.textContent = message; 
+            errorMessage.style.display = 'block'; 
+            errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        // Hide all messages
+        function hideMessages() { 
+            successMessage.style.display = 'none'; 
+            errorMessage.style.display = 'none'; 
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            updateFileList();
+            updateMergeButton();
+            
+            // Clear any old merged data from localStorage
+            localStorage.removeItem('mergedPdfData');
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>easyjpgtopdf</h3>
+                    <p>Your all-in-one PDF solution for converting, editing, and managing documents with ease.</p>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert to PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="jpg-to-pdf.html">JPG to PDF</a></li>
+                        <li><a href="word-to-pdf.html">Word to PDF</a></li>
+                        <li><a href="excel-to-pdf.html">Excel to PDF</a></li>
+                        <li><a href="ppt-to-pdf.html">PowerPoint to PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert from PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="pdf-to-jpg.html">PDF to JPG</a></li>
+                        <li><a href="pdf-to-word.html">PDF to Word</a></li>
+                        <li><a href="pdf-to-excel.html">PDF to Excel</a></li>
+                        <li><a href="pdf-to-ppt.html">PDF to PowerPoint</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Pdf Editor</h3>
+                    <ul class="footer-links">
+                        <li><a href="merge-pdf.html">Merge PDF</a></li>
+                        <li><a href="split-pdf.html">Split PDF</a></li>
+                        <li><a href="compress-pdf.html">Compress PDF</a></li>
+                        <li><a href="edit-pdf.html">Pdf Editor</a></li>
+                        <li><a href="protect-pdf.html">Protect PDF</a></li>
+                        <li><a href="unlock-pdf.html">Unlock PDF</a></li>
+                        <li><a href="watermark-pdf.html">Watermark PDF</a></li>
+                        <li><a href="crop-pdf.html">Crop PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Image Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="image-compressor.html">Image Compressor</a></li>
+                        <li><a href="image-resizer.html">Image Resizer</a></li>
+                        <li><a href="image-editor.html">Image Editor</a></li>
+                        <li><a href="background-remover.html">Image Background Remover</a></li>
+                        <li><a href="ocr-image.html">OCR Image</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Design Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="resume-maker.html">Resume Maker</a></li>
+                        <li><a href="biodata-maker.html">Marrige Biodata-Data Maker</a></li>
+                        <li><a href="ai-image-generator.html">AI Image Generator</a></li>
+                        <li><a href="marriage-card.html">Marriage Card</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Company</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html#about">About Us</a></li>
+                        <li><a href="index.html#contact">Contact</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Connect With Us</h3>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fab fa-twitter"></i> Twitter</a></li>
+                        <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
+                        <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
+                        <li><a href="#"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+                <p class="attribution">Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site. <a href="attributions.html">See full acknowledgements</a>.</p>
+            </div>
+        </div>
+    </footer>
+
+

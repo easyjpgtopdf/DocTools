@@ -1,0 +1,1156 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OCR Image to Text | easyjpgtopdf</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    :root {
+      --primary: #4361ee;
+      --secondary: #3a0ca3;
+      --accent: #4cc9f0;
+      --dark: #1b255b;
+      --muted: #667085;
+      --surface: #ffffff;
+      --background: #f5f7ff;
+    }
+
+    body {
+      background: var(--background);
+      color: var(--dark);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.6;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    header {
+      background: var(--surface);
+      box-shadow: 0 2px 12px rgba(15, 23, 42, 0.08);
+      position: sticky;
+      top: 0;
+      z-index: 80;
+    }
+
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 0;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 22px;
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .logo i {
+      color: var(--secondary);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 22px;
+      align-items: center;
+    }
+
+    .nav-links > a,
+    .dropdown > a {
+      text-decoration: none;
+      color: var(--dark);
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-links a.active,
+    .nav-links a:hover {
+      color: var(--primary);
+    }
+
+    .dropdown {
+      position: relative;
+    }
+
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      min-width: 210px;
+      background: var(--surface);
+      border-radius: 10px;
+      box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+      padding: 12px 0;
+      z-index: 60;
+    }
+
+    .dropdown-content a {
+      display: block;
+      padding: 10px 18px;
+      color: var(--dark);
+      text-decoration: none;
+    }
+
+    .dropdown-content a:hover {
+      background: rgba(67, 97, 238, 0.08);
+    }
+
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+
+    .auth-buttons {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .auth-btn {
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: 1px solid var(--primary);
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .auth-btn.login {
+      background: transparent;
+      color: var(--primary);
+    }
+
+    .auth-btn.signup {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .auth-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(67, 97, 238, 0.18);
+    }
+
+    .hero {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff;
+      padding: 64px 0;
+      text-align: center;
+      border-radius: 0 0 24px 24px;
+      margin-bottom: 48px;
+    }
+
+    .hero h1 {
+      font-size: 2.9rem;
+      margin-bottom: 14px;
+    }
+
+    .hero p {
+      max-width: 620px;
+      margin: 0 auto;
+      font-size: 1.1rem;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .workspace {
+      flex: 1;
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto 60px;
+      padding: 0 20px;
+      display: grid;
+      gap: 28px;
+      align-items: start;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    }
+
+    .panel {
+      background: var(--surface);
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: 0 22px 45px rgba(15, 23, 42, 0.08);
+      border: 1px solid rgba(67, 97, 238, 0.08);
+    }
+
+    .panel h2 {
+      font-size: 1.35rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #111b4a;
+      margin-bottom: 18px;
+    }
+
+    .dropzone {
+      border: 2px dashed rgba(67, 97, 238, 0.35);
+      border-radius: 18px;
+      padding: 36px;
+      background: rgba(67, 97, 238, 0.05);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.2s, background 0.2s;
+      cursor: pointer;
+    }
+
+    .dropzone i {
+      font-size: 42px;
+      color: var(--primary);
+    }
+
+    .dropzone p {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .dropzone.dragover {
+      border-color: var(--primary);
+      background: rgba(67, 97, 238, 0.12);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 10px 20px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff;
+      box-shadow: 0 16px 32px rgba(67, 97, 238, 0.22);
+    }
+
+    .btn-outline {
+      background: #fff;
+      border: 1px solid rgba(67, 97, 238, 0.35);
+      color: var(--primary);
+    }
+
+    .btn-neutral {
+      background: rgba(67, 97, 238, 0.1);
+      color: #1f2559;
+    }
+
+    .btn[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .control-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .control-row input,
+    .control-row select {
+      flex: 1;
+      min-width: 180px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(15, 23, 42, 0.16);
+      font-size: 0.95rem;
+    }
+
+    .preview-card {
+      background: rgba(15, 23, 42, 0.02);
+      border: 1px dashed rgba(15, 23, 42, 0.14);
+      border-radius: 16px;
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+      margin-top: 22px;
+    }
+
+    .preview-wrapper {
+      position: relative;
+      width: 100%;
+      padding-top: 60%;
+      border-radius: 14px;
+      overflow: hidden;
+      background: repeating-conic-gradient(#eef2ff 0deg 25deg, #dfe6ff 25deg 50deg);
+    }
+
+    #previewImage {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    #previewPlaceholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(30, 41, 59, 0.65);
+      font-weight: 600;
+    }
+
+    .meta-list {
+      display: grid;
+      gap: 6px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(67, 97, 238, 0.12);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #1f2559;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      background: rgba(15, 23, 42, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      transition: width 0.2s ease;
+    }
+
+    .editor-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .toolbar-btn {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      background: #f1f4ff;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #1f2559;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+
+    .toolbar-btn:hover {
+      background: rgba(67, 97, 238, 0.2);
+    }
+
+    #ocrOutput {
+      min-height: 320px;
+      border: 1px solid rgba(15, 23, 42, 0.16);
+      border-radius: 16px;
+      padding: 18px;
+      background: #fff;
+      line-height: 1.6;
+      font-size: 1rem;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    #ocrOutput:focus {
+      outline: 3px solid rgba(67, 97, 238, 0.22);
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .result-summary {
+      margin-top: 18px;
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .comments {
+      background: var(--surface);
+      margin: 0 auto 60px;
+      padding: 60px 20px;
+      border-radius: 24px;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+      width: calc(100% - 40px);
+      max-width: 1200px;
+    }
+
+    .comments .section-title {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 24px;
+      color: #1b255b;
+    }
+
+    .comment-form {
+      max-width: 680px;
+      margin: 0 auto;
+      background: #f2f4ff;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 12px 32px rgba(67, 97, 238, 0.08);
+    }
+
+    .comment-form .form-group {
+      margin-bottom: 18px;
+    }
+
+    .comment-form label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #1f2559;
+    }
+
+    .comment-form .form-control {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(15, 23, 42, 0.16);
+      font-size: 0.95rem;
+      background: #fff;
+    }
+
+    .comment-form textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    footer {
+      background: #0d1530;
+      color: #e8ecff;
+      padding: 60px 0 32px;
+      margin-top: auto;
+    }
+
+    .footer-content {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 32px;
+      margin-bottom: 36px;
+    }
+
+    .footer-column h3 {
+      margin-bottom: 14px;
+      font-size: 1.05rem;
+    }
+
+    .footer-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .footer-links a {
+      color: rgba(232, 236, 255, 0.75);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
+      color: #fff;
+    }
+
+    .copyright {
+      text-align: center;
+      border-top: 1px solid rgba(232, 236, 255, 0.15);
+      padding-top: 20px;
+      font-size: 0.88rem;
+      color: rgba(232, 236, 255, 0.72);
+    }
+
+    @media (max-width: 920px) {
+      .nav-links {
+        display: none;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .hero h1 {
+        font-size: 2.2rem;
+      }
+
+      .dropzone {
+        padding: 28px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="container">
+      <nav class="navbar">
+        <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
+        <div class="nav-links">
+          <a href="index.html" class="active">Home</a>
+          <div class="dropdown">
+            <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="jpg-to-pdf.html">JPG to PDF</a>
+              <a href="word-to-pdf.html">Word to PDF</a>
+              <a href="excel-to-pdf.html">Excel to PDF</a>
+              <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="pdf-to-jpg.html">PDF to JPG</a>
+              <a href="pdf-to-word.html">PDF to Word</a>
+              <a href="pdf-to-excel.html">PDF to Excel</a>
+              <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="merge-pdf.html">Merge PDF</a>
+              <a href="split-pdf.html">Split PDF</a>
+              <a href="compress-pdf.html">Compress PDF</a>
+              <a href="edit-pdf.html">Pdf Editor</a>
+              <a href="protect-pdf.html">Protect PDF</a>
+              <a href="unlock-pdf.html">Unlock PDF</a>
+              <a href="watermark-pdf.html">Watermark PDF</a>
+              <a href="crop-pdf.html">Crop PDF</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="image-compressor.html">Image Compressor</a>
+              <a href="image-resizer.html">Image Resizer</a>
+              <a href="image-editor.html">Image Editor</a>
+              <a href="background-remover.html">Image Background Remover</a>
+              <a href="ocr-image.html">OCR Image</a>
+              <a href="image-watermark.html">Image Watermark Tool</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="resume-maker.html">Resume Maker</a>
+              <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+              <a href="ai-image-generator.html">AI Image Generator</a>
+              <a href="marriage-card.html">Marriage Card</a>
+            </div>
+          </div>
+        </div>
+        <div class="auth-buttons">
+          <a href="#" class="auth-btn login" onclick="showModal('login-modal');return false;">Login</a>
+          <a href="#" class="auth-btn signup" onclick="showModal('signup-modal');return false;">Sign Up</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container">
+      <h1>OCR Image to Text</h1>
+      <p>Extract, clean, and edit text from images right in your browser. No uploads, no limits, just instant results.</p>
+    </div>
+  </section>
+
+  <main class="workspace">
+    <section class="panel">
+      <h2><i class="fas fa-cloud-upload-alt"></i> Upload &amp; Preview</h2>
+      <div id="uploadDropzone" class="dropzone" role="button" tabindex="0" aria-label="Upload image dropzone">
+        <i class="fas fa-file-arrow-up"></i>
+        <div><strong>Drag &amp; drop your image</strong></div>
+        <p>Supports PNG, JPG, WEBP â€¢ Max 10 MB â€¢ Works offline after first load</p>
+        <button type="button" class="btn btn-outline" id="browseBtn"><i class="fas fa-folder-open"></i> Browse Files</button>
+        <input type="file" id="imageInput" accept="image/*" hidden>
+      </div>
+
+      <div class="control-row">
+        <input type="url" id="imageUrl" placeholder="Paste image URL (https://...)" aria-label="Image URL">
+        <button type="button" class="btn btn-primary" id="loadUrlBtn"><i class="fas fa-link"></i> Load URL</button>
+      </div>
+
+      <div class="preview-card" aria-live="polite">
+        <div class="preview-wrapper">
+          <img id="previewImage" alt="Image preview" hidden>
+          <span id="previewPlaceholder">No image selected yet</span>
+        </div>
+        <div class="meta-list">
+          <span><strong>File:</strong> <span id="fileName">â€”</span></span>
+          <span><strong>Resolution:</strong> <span id="fileResolution">â€”</span></span>
+          <span><strong>Size:</strong> <span id="fileSize">â€”</span></span>
+        </div>
+        <div class="status-chip" id="statusChip"><i class="fas fa-info-circle"></i> Waiting for imageâ€¦</div>
+        <div class="progress-track">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <select id="languageSelect" aria-label="OCR language">
+          <option value="eng" selected>English (eng)</option>
+          <option value="hin">Hindi (hin)</option>
+          <option value="ara">Arabic (ara)</option>
+          <option value="ben">Bengali (ben)</option>
+          <option value="tam">Tamil (tam)</option>
+          <option value="tel">Telugu (tel)</option>
+          <option value="kan">Kannada (kan)</option>
+          <option value="mal">Malayalam (mal)</option>
+          <option value="guj">Gujarati (guj)</option>
+          <option value="mar">Marathi (mar)</option>
+          <option value="pan">Punjabi (pan)</option>
+          <option value="urd">Urdu (urd)</option>
+          <option value="fra">French (fra)</option>
+          <option value="deu">German (deu)</option>
+          <option value="spa">Spanish (spa)</option>
+          <option value="ita">Italian (ita)</option>
+          <option value="por">Portuguese (por)</option>
+          <option value="tur">Turkish (tur)</option>
+          <option value="ind">Indonesian (ind)</option>
+          <option value="tha">Thai (tha)</option>
+          <option value="vie">Vietnamese (vie)</option>
+          <option value="rus">Russian (rus)</option>
+          <option value="jpn">Japanese (jpn)</option>
+          <option value="kor">Korean (kor)</option>
+          <option value="chi_sim">Chinese Simplified (chi_sim)</option>
+          <option value="chi_tra">Chinese Traditional (chi_tra)</option>
+          <option value="amh">Amharic (amh)</option>
+          <option value="nep">Nepali (nep)</option>
+        </select>
+        <button type="button" class="btn btn-primary" id="extractBtn"><i class="fas fa-magic"></i> Extract Text</button>
+        <button type="button" class="btn btn-neutral" id="clearWorkspaceBtn"><i class="fas fa-broom"></i> Clear</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><i class="fas fa-pen-to-square"></i> Editable Result</h2>
+      <div class="editor-toolbar" aria-label="Text formatting toolbar">
+        <button type="button" class="toolbar-btn" data-command="bold"><i class="fas fa-bold"></i> Bold</button>
+        <button type="button" class="toolbar-btn" data-command="italic"><i class="fas fa-italic"></i> Italic</button>
+        <button type="button" class="toolbar-btn" data-command="underline"><i class="fas fa-underline"></i> Underline</button>
+        <button type="button" class="toolbar-btn" data-command="insertUnorderedList"><i class="fas fa-list-ul"></i> Bullets</button>
+        <button type="button" class="toolbar-btn" data-command="insertOrderedList"><i class="fas fa-list-ol"></i> Numbering</button>
+        <button type="button" class="toolbar-btn" id="clearFormattingBtn"><i class="fas fa-eraser"></i> Clear Style</button>
+      </div>
+
+      <div id="ocrOutput" contenteditable="true" spellcheck="true" aria-label="Recognized text output"></div>
+
+      <div class="result-actions">
+        <button type="button" class="btn btn-primary" id="copyBtn"><i class="fas fa-copy"></i> Copy Text</button>
+        <button type="button" class="btn btn-outline" id="downloadBtn"><i class="fas fa-download"></i> Download TXT</button>
+        <button type="button" class="btn btn-neutral" id="clearTextBtn"><i class="fas fa-trash"></i> Clear Text</button>
+      </div>
+
+      <div class="result-summary">
+        <span><strong>Words:</strong> <span id="wordCount">0</span></span>
+        <span><strong>Characters:</strong> <span id="charCount">0</span></span>
+        <span><strong>Last updated:</strong> <span id="lastUpdated">â€”</span></span>
+      </div>
+    </section>
+  </main>
+
+  <section class="comments">
+    <div class="container">
+      <h2 class="section-title">User Comments</h2>
+      <div class="comment-form">
+        <div class="form-group">
+          <label for="ocr-name">Your Name</label>
+          <input type="text" id="ocr-name" class="form-control" placeholder="Enter your name">
+        </div>
+        <div class="form-group">
+          <label for="ocr-email">Email Address</label>
+          <input type="email" id="ocr-email" class="form-control" placeholder="Enter your email">
+        </div>
+        <div class="form-group">
+          <label for="ocr-comment">Your Comment</label>
+          <textarea id="ocr-comment" class="form-control" placeholder="Share your experience with this tool"></textarea>
+        </div>
+        <button type="button" class="btn btn-primary">Submit Comment</button>
+      </div>
+    </div>
+  </section>
+
+  
+
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script>
+    window.showModal = window.showModal || function () {
+      alert('Authentication modals are coming soon.');
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const dropzone = document.getElementById('uploadDropzone');
+      const fileInput = document.getElementById('imageInput');
+      const imagePreview = document.getElementById('previewImage');
+      const previewPlaceholder = document.getElementById('previewPlaceholder');
+      const fileNameEl = document.getElementById('fileName');
+      const fileSizeEl = document.getElementById('fileSize');
+      const fileResolutionEl = document.getElementById('fileResolution');
+      const statusChip = document.getElementById('statusChip');
+      const progressBar = document.getElementById('progressBar');
+      const languageSelect = document.getElementById('languageSelect');
+      const extractBtn = document.getElementById('extractBtn');
+      const clearWorkspaceBtn = document.getElementById('clearWorkspaceBtn');
+      const copyBtn = document.getElementById('copyBtn');
+      const downloadBtn = document.getElementById('downloadBtn');
+      const clearTextBtn = document.getElementById('clearTextBtn');
+      const ocrOutput = document.getElementById('ocrOutput');
+      const wordCountEl = document.getElementById('wordCount');
+      const charCountEl = document.getElementById('charCount');
+      const lastUpdatedEl = document.getElementById('lastUpdated');
+      const browseBtn = document.getElementById('browseBtn');
+      const imageUrlInput = document.getElementById('imageUrl');
+      const loadUrlBtn = document.getElementById('loadUrlBtn');
+      const toolbarButtons = document.querySelectorAll('.toolbar-btn[data-command]');
+      const clearFormattingBtn = document.getElementById('clearFormattingBtn');
+
+      let currentFile = null;
+      let objectUrl = null;
+      let isProcessing = false;
+
+      const iconMap = {
+        info: 'fa-info-circle',
+        success: 'fa-circle-check',
+        error: 'fa-circle-exclamation'
+      };
+
+      function setStatus(message, mode = 'info') {
+        const icon = iconMap[mode] || iconMap.info;
+        statusChip.innerHTML = `<i class="fas ${icon}"></i> ${message}`;
+      }
+
+      function resetProgress() {
+        progressBar.style.width = '0%';
+      }
+
+      function updateCounts() {
+        const text = (ocrOutput.innerText || '').trim();
+        wordCountEl.textContent = text ? text.split(/\s+/).length : 0;
+        charCountEl.textContent = (ocrOutput.innerText || '').length;
+      }
+
+      function resetPreview() {
+        if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+          objectUrl = null;
+        }
+        currentFile = null;
+        imagePreview.hidden = true;
+        previewPlaceholder.hidden = false;
+        imagePreview.src = '';
+        fileNameEl.textContent = 'â€”';
+        fileSizeEl.textContent = 'â€”';
+        fileResolutionEl.textContent = 'â€”';
+        resetProgress();
+        setStatus('Waiting for imageâ€¦');
+      }
+
+      function resetWorkspace(clearText = true) {
+        fileInput.value = '';
+        imageUrlInput.value = '';
+        resetPreview();
+        if (clearText) {
+          ocrOutput.innerHTML = '';
+          updateCounts();
+          lastUpdatedEl.textContent = 'â€”';
+        }
+      }
+
+      async function analyseImage(file) {
+        const bitmap = await createImageBitmap(file);
+        const { width, height } = bitmap;
+        bitmap.close();
+        return { width, height };
+      }
+
+      function formatBytes(bytes) {
+        if (!bytes && bytes !== 0) return 'â€”';
+        if (bytes === 0) return '0 B';
+        const units = ['B', 'KB', 'MB', 'GB'];
+        const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+        const value = bytes / Math.pow(1024, exponent);
+        return `${value.toFixed(exponent === 0 ? 0 : 1)} ${units[exponent]}`;
+      }
+
+      async function displayFile(file, label) {
+        const { width, height } = await analyseImage(file);
+        if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+        }
+        objectUrl = URL.createObjectURL(file);
+        imagePreview.src = objectUrl;
+        imagePreview.hidden = false;
+        previewPlaceholder.hidden = true;
+        fileNameEl.textContent = label || file.name || 'Untitled';
+        fileSizeEl.textContent = formatBytes(file.size);
+        fileResolutionEl.textContent = `${width}Ã—${height}px`;
+        currentFile = file;
+        setStatus('Image ready for OCR', 'success');
+        resetProgress();
+      }
+
+      async function handleFile(file) {
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+          alert('Please choose an image file.');
+          return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+          alert('Please select an image smaller than 10 MB.');
+          return;
+        }
+
+        setStatus('Loading imageâ€¦');
+        try {
+          await displayFile(file);
+        } catch (error) {
+          console.error('Preview error', error);
+          setStatus('Could not preview the image', 'error');
+        }
+      }
+
+      async function handleUrlLoad() {
+        const url = imageUrlInput.value.trim();
+        if (!url) {
+          alert('Please paste an image URL first.');
+          return;
+        }
+        try {
+          setStatus('Fetching remote imageâ€¦');
+          const response = await fetch(url, { mode: 'cors' });
+          if (!response.ok) throw new Error('Network response was not ok');
+          const blob = await response.blob();
+          if (!blob.type.startsWith('image/')) throw new Error('Not an image');
+          const extension = blob.type.split('/')[1] || 'png';
+          const nameFromUrl = url.split('/').pop()?.split('?')[0] || `remote-image.${extension}`;
+          const file = new File([blob], nameFromUrl, { type: blob.type });
+          await displayFile(file, url);
+        } catch (error) {
+          console.error('URL load error', error);
+          setStatus('Failed to load image from URL', 'error');
+          alert('Unable to load that image. Make sure the URL is correct and allows cross-origin access.');
+        }
+      }
+
+      async function runOCR() {
+        if (!currentFile) {
+          alert('Please select an image first.');
+          return;
+        }
+        if (isProcessing) {
+          return;
+        }
+        if (typeof Tesseract === 'undefined') {
+          alert('The OCR engine is still loading. Please wait a moment and try again.');
+          return;
+        }
+
+        isProcessing = true;
+        extractBtn.disabled = true;
+        setStatus('Initializing OCR engineâ€¦');
+        progressBar.style.width = '8%';
+
+        try {
+          const language = languageSelect.value || 'eng';
+          const worker = await Tesseract.createWorker({
+            logger: (message) => {
+              if (message.status === 'recognizing text' && typeof message.progress === 'number') {
+                const percent = Math.max(8, Math.round(message.progress * 100));
+                progressBar.style.width = `${percent}%`;
+                setStatus(`Recognizing textâ€¦ ${percent}%`);
+              }
+            }
+          });
+
+          await worker.loadLanguage(language);
+          await worker.initialize(language);
+          const { data } = await worker.recognize(currentFile);
+          await worker.terminate();
+
+          const text = (data.text || '').trim();
+          ocrOutput.innerText = text;
+          updateCounts();
+          lastUpdatedEl.textContent = new Date().toLocaleString();
+          progressBar.style.width = '100%';
+          setStatus('OCR completed successfully!', 'success');
+        } catch (error) {
+          console.error('OCR error', error);
+          resetProgress();
+          setStatus('OCR failed. Please try a clearer image.', 'error');
+          alert('We were unable to extract text from this image. Try a higher quality scan or a different language.');
+        } finally {
+          isProcessing = false;
+          extractBtn.disabled = false;
+        }
+      }
+
+      function copyToClipboard() {
+        const text = ocrOutput.innerText;
+        if (!text) {
+          alert('Nothing to copy yet.');
+          return;
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(() => {
+            setStatus('Copied recognized text to clipboard', 'success');
+          }).catch(() => {
+            alert('Clipboard copy failed. Please select the text and copy manually.');
+          });
+        } else {
+          const range = document.createRange();
+          range.selectNodeContents(ocrOutput);
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+          try {
+            document.execCommand('copy');
+            setStatus('Copied recognized text to clipboard', 'success');
+          } catch (err) {
+            alert('Clipboard copy failed. Please copy manually.');
+          }
+          selection.removeAllRanges();
+        }
+      }
+
+      function downloadText() {
+        const text = ocrOutput.innerText;
+        if (!text) {
+          alert('Nothing to download yet.');
+          return;
+        }
+        const blob = new Blob([text], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'ocr-result.txt';
+        link.click();
+        URL.revokeObjectURL(url);
+        setStatus('TXT download started', 'success');
+      }
+
+      function clearText() {
+        ocrOutput.innerHTML = '';
+        updateCounts();
+        lastUpdatedEl.textContent = 'â€”';
+        setStatus('Text cleared');
+      }
+
+      browseBtn.addEventListener('click', () => fileInput.click());
+      dropzone.addEventListener('click', () => fileInput.click());
+
+      fileInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        handleFile(file);
+      });
+
+      dropzone.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        dropzone.classList.add('dragover');
+      });
+
+      dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('dragover');
+      });
+
+      dropzone.addEventListener('drop', (event) => {
+        event.preventDefault();
+        dropzone.classList.remove('dragover');
+        const file = event.dataTransfer.files[0];
+        handleFile(file);
+      });
+
+      dropzone.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          fileInput.click();
+        }
+      });
+
+      extractBtn.addEventListener('click', runOCR);
+      copyBtn.addEventListener('click', copyToClipboard);
+      downloadBtn.addEventListener('click', downloadText);
+      clearTextBtn.addEventListener('click', clearText);
+      clearWorkspaceBtn.addEventListener('click', () => resetWorkspace());
+      loadUrlBtn.addEventListener('click', handleUrlLoad);
+
+      toolbarButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const command = button.dataset.command;
+          document.execCommand(command, false, null);
+          updateCounts();
+          lastUpdatedEl.textContent = new Date().toLocaleString();
+        });
+      });
+
+      clearFormattingBtn.addEventListener('click', () => {
+        document.execCommand('removeFormat');
+        updateCounts();
+        lastUpdatedEl.textContent = new Date().toLocaleString();
+      });
+
+      ocrOutput.addEventListener('input', () => {
+        updateCounts();
+        lastUpdatedEl.textContent = new Date().toLocaleString();
+      });
+
+      imageUrlInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          handleUrlLoad();
+        }
+      });
+
+      document.getElementById('footerYear').textContent = new Date().getFullYear();
+      updateCounts();
+      setStatus('Waiting for imageâ€¦');
+    });
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>easyjpgtopdf</h3>
+                    <p>Your all-in-one PDF solution for converting, editing, and managing documents with ease.</p>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert to PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="jpg-to-pdf.html">JPG to PDF</a></li>
+                        <li><a href="word-to-pdf.html">Word to PDF</a></li>
+                        <li><a href="excel-to-pdf.html">Excel to PDF</a></li>
+                        <li><a href="ppt-to-pdf.html">PowerPoint to PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert from PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="pdf-to-jpg.html">PDF to JPG</a></li>
+                        <li><a href="pdf-to-word.html">PDF to Word</a></li>
+                        <li><a href="pdf-to-excel.html">PDF to Excel</a></li>
+                        <li><a href="pdf-to-ppt.html">PDF to PowerPoint</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Pdf Editor</h3>
+                    <ul class="footer-links">
+                        <li><a href="merge-pdf.html">Merge PDF</a></li>
+                        <li><a href="split-pdf.html">Split PDF</a></li>
+                        <li><a href="compress-pdf.html">Compress PDF</a></li>
+                        <li><a href="edit-pdf.html">Pdf Editor</a></li>
+                        <li><a href="protect-pdf.html">Protect PDF</a></li>
+                        <li><a href="unlock-pdf.html">Unlock PDF</a></li>
+                        <li><a href="watermark-pdf.html">Watermark PDF</a></li>
+                        <li><a href="crop-pdf.html">Crop PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Image Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="image-compressor.html">Image Compressor</a></li>
+                        <li><a href="image-resizer.html">Image Resizer</a></li>
+                        <li><a href="image-editor.html">Image Editor</a></li>
+                        <li><a href="background-remover.html">Image Background Remover</a></li>
+                        <li><a href="ocr-image.html">OCR Image</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Design Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="resume-maker.html">Resume Maker</a></li>
+                        <li><a href="biodata-maker.html">Marrige Biodata-Data Maker</a></li>
+                        <li><a href="ai-image-generator.html">AI Image Generator</a></li>
+                        <li><a href="marriage-card.html">Marriage Card</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Company</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html#about">About Us</a></li>
+                        <li><a href="index.html#contact">Contact</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Connect With Us</h3>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fab fa-twitter"></i> Twitter</a></li>
+                        <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
+                        <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
+                        <li><a href="#"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+                <p class="attribution">Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site. <a href="attributions.html">See full acknowledgements</a>.</p>
+            </div>
+        </div>
+    </footer>
+
+

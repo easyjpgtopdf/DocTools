@@ -1,0 +1,361 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image Watermark | easyjpgtopdf</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif}
+    :root{--primary:#4361ee;--secondary:#3a0ca3;--accent:#4cc9f0;--light:#f8f9fa;--dark:#212529;--gray:#6c757d}
+    body{background:#f5f7ff;color:var(--dark);min-height:100vh;display:flex;flex-direction:column;line-height:1.6}
+    .container{max-width:1200px;margin:0 auto;padding:0 20px}
+    header{background:#fff;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+    .navbar{display:flex;justify-content:space-between;align-items:center;padding:14px 0}
+    .logo{display:flex;gap:10px;align-items:center;font-size:22px;font-weight:700;color:var(--primary);text-decoration:none}
+    .logo i{color:var(--secondary)}
+    .nav-links{display:flex;gap:22px}
+    .nav-links a{text-decoration:none;color:var(--dark);font-weight:500}
+    .nav-links a:hover,.nav-links a.active{color:var(--primary)}
+    .dropdown{position:relative}
+    .dropdown-content{display:none;position:absolute;background:#fff;min-width:200px;box-shadow:0 8px 16px rgba(0,0,0,.1);border-radius:8px;padding:10px 0;top:100%;left:0}
+    .dropdown:hover .dropdown-content{display:block}
+    .dropdown-content a{display:block;padding:10px 20px;text-decoration:none;color:var(--dark)}
+    .dropdown-content a:hover{background:var(--light)}
+    .auth-buttons{display:flex;gap:10px}
+    .auth-btn{padding:6px 15px;border-radius:50px;text-decoration:none;font-weight:500;transition:.3s;font-size:.9rem}
+    .auth-btn.login{background:transparent;color:var(--primary);border:1px solid var(--primary)}
+    .auth-btn.signup{background:var(--primary);color:#fff;border:1px solid var(--primary)}
+
+    .page-wrap{padding:20px 0}
+    .converter-header{text-align:center;margin:30px 0;padding:20px}
+    .converter-header h1{font-size:2.2rem;color:var(--primary);margin-bottom:10px}
+    .converter-header p{font-size:1.05rem;color:var(--gray);max-width:700px;margin:0 auto}
+    .tool-card{background:#fff;border-radius:12px;padding:24px;box-shadow:0 5px 15px rgba(0,0,0,.05);margin-bottom:24px}
+
+    .upload-area{border:3px dashed #ddd;border-radius:12px;padding:30px;text-align:center;cursor:pointer;margin-bottom:16px;transition:.2s}
+    .upload-area:hover{border-color:var(--primary);background:rgba(67,97,238,.04)}
+    .upload-area i{font-size:56px;color:var(--primary);margin-bottom:10px}
+    .file-input{display:none}
+
+    .options{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:16px 0}
+    .option{display:flex;flex-direction:column;gap:6px}
+    .option input,.option select{padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff}
+
+    .canvas-wrap{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .preview-box{background:#fff;border:1px solid #ddd;border-radius:12px;box-shadow:0 3px 10px rgba(0,0,0,.04);padding:12px;display:flex;flex-direction:column}
+    .preview-title{color:var(--primary);font-weight:600;margin-bottom:8px}
+    .canvas-holder{flex:1;display:flex;align-items:center;justify-content:center;min-height:300px;background:#fff}
+    canvas{max-width:100%;height:auto}
+
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:8px;border:1px solid var(--primary);background:#fff;color:var(--primary);font-weight:600;cursor:pointer}
+    .btn-primary{background:var(--primary);color:#fff;border:none}
+
+    footer{background:#212529;color:#fff;margin-top:auto;padding:60px 0 30px}
+    .footer-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:40px;margin-bottom:40px}
+    .footer-links{list-style:none}
+    .footer-links a{color:#aaa;text-decoration:none}
+    .footer-links a:hover{color:#fff}
+    .copyright{text-align:center;color:#aaa;border-top:1px solid #444;padding-top:16px;font-size:.9rem}
+
+    @media(max-width:900px){.canvas-wrap{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <header><div class="container"><nav class="navbar"><a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a><div class="nav-links"><a href="index.html" class="active">Home</a><div class="dropdown"><a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="jpg-to-pdf.html">JPG to PDF</a><a href="word-to-pdf.html">Word to PDF</a><a href="excel-to-pdf.html">Excel to PDF</a><a href="ppt-to-pdf.html">PowerPoint to PDF</a></div></div><div class="dropdown"><a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="pdf-to-jpg.html">PDF to JPG</a><a href="pdf-to-word.html">PDF to Word</a><a href="pdf-to-excel.html">PDF to Excel</a><a href="pdf-to-ppt.html">PDF to PowerPoint</a></div></div><div class="dropdown"><a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="merge-pdf.html">Merge PDF</a><a href="split-pdf.html">Split PDF</a><a href="compress-pdf.html">Compress PDF</a><a href="edit-pdf.html">Pdf Editor</a><a href="protect-pdf.html">Protect PDF</a><a href="unlock-pdf.html">Unlock PDF</a><a href="watermark-pdf.html">Watermark PDF</a><a href="crop-pdf.html">Crop PDF</a></div></div>          <div class="dropdown"><a href="#">Image Tools <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="image-compressor.html">Image Compressor</a><a href="image-resizer.html">Image Resizer</a><a href="image-editor.html">Image Editor</a><a href="background-remover.html">Image Background Remover</a><a href="ocr-image.html">OCR Image</a><a href="image-watermark.html">Image Watermark Tool</a></div></div>
+<div class="dropdown"><a href="#">Design Tools <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="resume-maker.html">Resume Maker</a><a href="biodata-maker.html">Marrige Biodata-Data Maker</a><a href="ai-image-generator.html">AI Image Generator</a><a href="marriage-card.html">Marriage Card</a></div></div></div><div class="auth-buttons"><a href="#" class="au
+th-btn login" onclick="showModal('login-modal')">Login</a><a href="#" class="auth-btn signup" onclick="showModal('signup-modal')">Sign Up</a></div></nav></div></header>
+
+  <div class="container page-wrap">
+    <div class="converter-header">
+      <h1>Image Watermark</h1>
+      <p>Add text and/or your logo as a watermark to images in your browser.</p>
+    </div>
+
+    <div class="tool-card">
+      <div class="upload-area" id="drop">
+        <i class="fas fa-image"></i>
+        <h3>Upload Your Image</h3>
+        <p>Drag & drop or click to browse (PNG, JPG)</p>
+        <input id="imgFile" class="file-input" type="file" accept="image/png,image/jpeg" />
+      </div>
+
+      <div class="options">
+        <div class="option"><label for="wmText">Watermark Text</label><input id="wmText" placeholder="CONFIDENTIAL" value="CONFIDENTIAL"></div>
+        <div class="option"><label for="textSize">Text Size (px)</label><input id="textSize" type="number" min="8" max="300" value="42"></div>
+        <div class="option"><label for="textColor">Text Color</label><input id="textColor" type="color" value="#ff0000"></div>
+        <div class="option"><label for="textOpacity">Text Opacity <span id="textOpacityVal">0.3</span></label><input id="textOpacity" type="range" min="0.05" max="1" step="0.05" value="0.3"></div>
+        <div class="option"><label for="textRotation">Text Rotation (deg)</label><input id="textRotation" type="number" min="-180" max="180" value="-30"></div>
+        <div class="option"><label for="position">Position</label><select id="position"><option value="center">Center</option><option value="center-diagonal" selected>Center (Diagonal)</option><option value="top-left">Top Left</option><option value="top-right">Top Right</option><option value="bottom-left">Bottom Left</option><option value="bottom-right">Bottom Right</option></select></div>
+        <div class="option"><label for="logoFile">Logo (PNG/JPG)</label><input id="logoFile" type="file" accept="image/png,image/jpeg"></div>
+        <div class="option"><label for="logoScale">Logo Size (% of image width)</label><input id="logoScale" type="number" min="5" max="100" value="25"></div>
+        <div class="option"><label for="logoOpacity">Logo Opacity <span id="logoOpacityVal">0.3</span></label><input id="logoOpacity" type="range" min="0.05" max="1" step="0.05" value="0.3"></div>
+        <div class="option"><label for="logoRotation">Logo Rotation (deg)</label><input id="logoRotation" type="number" min="-180" max="180" value="0"></div>
+      </div>
+
+      <div class="canvas-wrap">
+        <div class="preview-box">
+          <div class="preview-title">Preview</div>
+          <div class="canvas-holder"><canvas id="canvas"></canvas></div>
+        </div>
+        <div class="preview-box">
+          <div class="preview-title">Controls</div>
+          <div class="actions">
+            <button id="applyBtn" class="btn btn-primary"><i class="fas fa-water"></i> Apply Watermark</button>
+            <button id="downloadBtn" class="btn"><i class="fas fa-download"></i> Download</button>
+            <a href="index.html" class="btn"><i class="fas fa-home"></i> Home</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="features" style="background-color:#fff;padding:80px 0;border-radius:20px;margin-bottom:50px;">
+  <div class="container">
+    <h2 class="section-title">Why Choose easyjpgtopdf?</h2>
+    <div class="features-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:40px;">
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Secure & Private</h3>
+          <p style="color:#6c757d;">All files are processed securely and automatically deleted after 1 hour.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-bolt"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Fast Processing</h3>
+          <p style="color:#6c757d;">Our optimized algorithms process your files in seconds.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-desktop"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Works Everywhere</h3>
+          <p style="color:#6c757d;">Use easyjpgtopdf on any device with a modern web browser.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-euro-sign"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Completely Free</h3>
+          <p style="color:#6c757d;">All our basic tools are free to use with no hidden costs.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <script>
+    const drop = document.getElementById('drop');
+    const fileInput = document.getElementById('imgFile');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const wmText = document.getElementById('wmText');
+    const textSize = document.getElementById('textSize');
+    const textColor = document.getElementById('textColor');
+    const textOpacity = document.getElementById('textOpacity');
+    const textOpacityVal = document.getElementById('textOpacityVal');
+    const textRotation = document.getElementById('textRotation');
+    const position = document.getElementById('position');
+    const logoFile = document.getElementById('logoFile');
+    const logoScale = document.getElementById('logoScale');
+    const logoOpacity = document.getElementById('logoOpacity');
+    const logoOpacityVal = document.getElementById('logoOpacityVal');
+    const logoRotation = document.getElementById('logoRotation');
+    const applyBtn = document.getElementById('applyBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    let baseImage = null; let logoImage = null;
+
+    function setOpacityVal(){ textOpacityVal.textContent = textOpacity.value; logoOpacityVal.textContent = logoOpacity.value; }
+    textOpacity.addEventListener('input', setOpacityVal); logoOpacity.addEventListener('input', setOpacityVal); setOpacityVal();
+
+    drop.addEventListener('click', ()=> fileInput.click());
+    drop.addEventListener('dragover', (e)=>{ e.preventDefault(); drop.classList.add('dragover'); });
+    drop.addEventListener('dragleave', ()=> drop.classList.remove('dragover'));
+    drop.addEventListener('drop', (e)=>{ e.preventDefault(); drop.classList.remove('dragover'); if(e.dataTransfer.files.length){ loadBaseImage(e.dataTransfer.files[0]); }});
+    fileInput.addEventListener('change', (e)=>{ if(e.target.files.length) loadBaseImage(e.target.files[0]); });
+    logoFile.addEventListener('change', (e)=>{ if(e.target.files.length) loadLogo(e.target.files[0]); });
+
+    function loadBaseImage(file){ if(!/\.(png|jpg|jpeg)$/i.test(file.name)) return; const fr = new FileReader(); fr.onload = ()=>{ baseImage = new Image(); baseImage.onload = ()=>{ fitCanvasToImage(); render(); }; baseImage.src = fr.result; }; fr.readAsDataURL(file); }
+    function loadLogo(file){ if(!/\.(png|jpg|jpeg)$/i.test(file.name)) return; const fr = new FileReader(); fr.onload = ()=>{ logoImage = new Image(); logoImage.onload = ()=> render(); logoImage.src = fr.result; }; fr.readAsDataURL(file); }
+
+    function fitCanvasToImage(){ if(!baseImage) return; const maxW = 1000; const scale = Math.min(1, maxW / baseImage.width); canvas.width = Math.round(baseImage.width * scale); canvas.height = Math.round(baseImage.height * scale); }
+
+    function drawPositioned(drawWidth, drawHeight){
+      const w = canvas.width, h = canvas.height; let x=0,y=0;
+      switch(position.value){
+        case 'center': case 'center-diagonal': x = (w-drawWidth)/2; y = (h-drawHeight)/2; break;
+        case 'top-left': x = 24; y = 24; break;
+        case 'top-right': x = w - drawWidth - 24; y = 24; break;
+        case 'bottom-left': x = 24; y = h - drawHeight - 24; break;
+        case 'bottom-right': x = w - drawWidth - 24; y = h - drawHeight - 24; break;
+      }
+      return {x,y};
+    }
+
+    function render(){ if(!baseImage){ ctx.clearRect(0,0,canvas.width,canvas.height); return; }
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(baseImage,0,0,canvas.width,canvas.height);
+
+      // Draw logo if any
+      if(logoImage){
+        const drawW = (canvas.width * Math.max(5, Math.min(100, parseFloat(logoScale.value)||25))) / 100;
+        const aspect = logoImage.width / Math.max(1, logoImage.height);
+        const drawH = drawW / aspect;
+        const {x,y} = drawPositioned(drawW, drawH);
+        ctx.save();
+        ctx.globalAlpha = Math.max(0.05, Math.min(1, parseFloat(logoOpacity.value)||0.3));
+        const cx = x + drawW/2, cy = y + drawH/2; ctx.translate(cx,cy); ctx.rotate((parseFloat(logoRotation.value)||0)*Math.PI/180); ctx.translate(-cx,-cy);
+        ctx.drawImage(logoImage, x, y, drawW, drawH);
+        ctx.restore();
+      }
+
+      // Draw text
+      const txt = wmText.value.trim();
+      if(txt){
+        ctx.save();
+        const size = Math.max(8, Math.min(300, parseFloat(textSize.value)||42));
+        ctx.font = `${size}px Segoe UI, Arial, sans-serif`;
+        ctx.fillStyle = textColor.value;
+        ctx.globalAlpha = Math.max(0.05, Math.min(1, parseFloat(textOpacity.value)||0.3));
+        const metrics = ctx.measureText(txt); const textW = metrics.width; const textH = size;
+        const {x,y} = drawPositioned(textW, textH);
+        const tx = x, ty = y + textH;
+        const angle = position.value==='center-diagonal' ? -45 : (parseFloat(textRotation.value)||0);
+        const cx = tx + textW/2, cy = ty - textH/2;
+        ctx.translate(cx,cy); ctx.rotate(angle*Math.PI/180); ctx.translate(-cx,-cy);
+        ctx.fillText(txt, tx, ty);
+        ctx.restore();
+      }
+    }
+
+    ['input','change'].forEach(ev=>{
+      [wmText,textSize,textColor,textOpacity,textRotation,position,logoScale,logoOpacity,logoRotation].forEach(el=> el.addEventListener(ev, render));
+    });
+
+    applyBtn.addEventListener('click', render);
+    downloadBtn.addEventListener('click', ()=>{
+      if(!canvas.width || !canvas.height) return;
+      const dataUrl = canvas.toDataURL('image/png');
+      const outName = 'image-watermarked.png';
+      try{
+        sessionStorage.setItem('iw_img_dataurl', dataUrl);
+        sessionStorage.setItem('iw_filename', outName);
+        sessionStorage.setItem('iw_dims', `${canvas.width}x${canvas.height}`);
+      }catch(e){
+        try{ window.name = JSON.stringify({ tag:'IW', iw_img_dataurl:dataUrl, iw_filename:outName, iw_dims:`${canvas.width}x${canvas.height}` }); }catch(_){ }
+      }
+      window.location.href = 'image-watermark-convert.html';
+    });
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>easyjpgtopdf</h3>
+                    <p>Your all-in-one PDF solution for converting, editing, and managing documents with ease.</p>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert to PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="jpg-to-pdf.html">JPG to PDF</a></li>
+                        <li><a href="word-to-pdf.html">Word to PDF</a></li>
+                        <li><a href="excel-to-pdf.html">Excel to PDF</a></li>
+                        <li><a href="ppt-to-pdf.html">PowerPoint to PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert from PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="pdf-to-jpg.html">PDF to JPG</a></li>
+                        <li><a href="pdf-to-word.html">PDF to Word</a></li>
+                        <li><a href="pdf-to-excel.html">PDF to Excel</a></li>
+                        <li><a href="pdf-to-ppt.html">PDF to PowerPoint</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Pdf Editor</h3>
+                    <ul class="footer-links">
+                        <li><a href="merge-pdf.html">Merge PDF</a></li>
+                        <li><a href="split-pdf.html">Split PDF</a></li>
+                        <li><a href="compress-pdf.html">Compress PDF</a></li>
+                        <li><a href="edit-pdf.html">Pdf Editor</a></li>
+                        <li><a href="protect-pdf.html">Protect PDF</a></li>
+                        <li><a href="unlock-pdf.html">Unlock PDF</a></li>
+                        <li><a href="watermark-pdf.html">Watermark PDF</a></li>
+                        <li><a href="crop-pdf.html">Crop PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Image Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="image-compressor.html">Image Compressor</a></li>
+                        <li><a href="image-resizer.html">Image Resizer</a></li>
+                        <li><a href="image-editor.html">Image Editor</a></li>
+                        <li><a href="background-remover.html">Image Background Remover</a></li>
+                        <li><a href="ocr-image.html">OCR Image</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Design Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="resume-maker.html">Resume Maker</a></li>
+                        <li><a href="biodata-maker.html">Marrige Biodata-Data Maker</a></li>
+                        <li><a href="ai-image-generator.html">AI Image Generator</a></li>
+                        <li><a href="marriage-card.html">Marriage Card</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Company</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html#about">About Us</a></li>
+                        <li><a href="index.html#contact">Contact</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Connect With Us</h3>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fab fa-twitter"></i> Twitter</a></li>
+                        <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
+                        <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
+                        <li><a href="#"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+                <p class="attribution">Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site. <a href="attributions.html">See full acknowledgements</a>.</p>
+            </div>
+        </div>
+    </footer>
+
+

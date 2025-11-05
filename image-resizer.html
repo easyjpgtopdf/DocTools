@@ -1,0 +1,523 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Resizer | easyjpgtopdf</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* Base + index header/footer styles */
+    *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif}
+    :root{--primary:#4361ee;--secondary:#3a0ca3;--accent:#4cc9f0;--light:#f8f9fa;--dark:#212529;--gray:#6c757d}
+    body{background:#f5f7ff;color:var(--dark);line-height:1.6;min-height:100vh;display:flex;flex-direction:column}
+    .container{width:100%;max-width:1200px;margin:0 auto;padding:0 20px}
+    header{background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.1);position:sticky;top:0;z-index:100}
+    .navbar{display:flex;justify-content:space-between;align-items:center;padding:15px 0}
+    .logo{display:flex;align-items:center;gap:10px;font-size:24px;font-weight:700;color:var(--primary);text-decoration:none}
+    .logo i{color:var(--secondary)}
+    .nav-links{display:flex;gap:25px}
+    .nav-links a{text-decoration:none;color:var(--dark);font-weight:500}
+    .nav-links a:hover,.nav-links a.active{color:var(--primary)}
+    .dropdown{position:relative}
+    .dropdown-content{display:none;position:absolute;background:#fff;min-width:200px;box-shadow:0 8px 16px rgba(0,0,0,.1);z-index:1;border-radius:8px;padding:10px 0;top:100%;left:0}
+    .dropdown:hover .dropdown-content{display:block}
+    .dropdown-content a{display:block;padding:10px 20px;text-decoration:none;color:var(--dark)}
+    .dropdown-content a:hover{background:#f8f9fa}
+    .auth-buttons{display:flex;gap:10px}
+    .auth-btn{padding:6px 15px;border-radius:50px;text-decoration:none;font-weight:500;transition:all .3s;font-size:.9rem}
+    .auth-btn.login{background:transparent;color:var(--primary);border:1px solid var(--primary)}
+    .auth-btn.signup{background:var(--primary);color:#fff;border:1px solid var(--primary)}
+    .auth-btn:hover{transform:translateY(-2px);box-shadow:0 5px 10px rgba(0,0,0,.1)}
+
+    /* Tool styles aligned with index palette */
+    :root{--primary:#4361ee;--primary-dark:#3a0ca3;--secondary:#3a0ca3;--accent:#4cc9f0;--light:#f8f9fa;--dark:#212529;--success:#059669;--warning:#d97706;--danger:#dc2626;--gray:#6c757d;--border-radius:10px;--box-shadow:0 4px 12px rgba(0,0,0,0.08);--transition:all .3s ease}
+    .section-title{text-align:center;margin:24px 0}
+    .section-title h2{font-size:1.8rem;margin-bottom:.5rem;color:var(--dark)}
+    .section-title p{color:var(--gray);font-size:1rem}
+    .upload-area{border:2px dashed var(--gray);border-radius:var(--border-radius);padding:2rem 1.5rem;text-align:center;margin-bottom:1.2rem;transition:var(--transition);cursor:pointer;background:#eef6ff}
+    .upload-area:hover{border-color:var(--accent);background-color:rgba(16,185,129,0.05)}
+    .upload-area i{font-size:2.5rem;color:var(--accent);margin-bottom:.8rem}
+    .upload-area h3{margin-bottom:.5rem;font-size:1.2rem}
+    .upload-area p{color:var(--gray);font-size:.9rem}
+    .file-input{display:none}
+    .image-editor{display:flex;flex-direction:column;gap:1.2rem}
+    .editor-container{display:flex;flex-wrap:wrap;gap:1.2rem}
+    .image-preview{flex:1;min-width:280px;border:1px solid #ddd;border-radius:var(--border-radius);overflow:hidden;background:#f9f9f9;display:flex;align-items:center;justify-content:center;padding:1rem;height:300px}
+    .image-preview img{max-width:100%;max-height:100%;display:block}
+    .editor-controls{flex:1;min-width:280px}
+    .slider-container{margin-bottom:1.2rem}
+    .slider-container label{display:block;margin-bottom:.5rem;font-weight:500;font-size:.9rem}
+    .slider{width:100%;margin-bottom:.5rem}
+    .slider-value{text-align:right;color:var(--gray);font-size:.85rem}
+    .resize-controls{display:flex;gap:.8rem;margin-bottom:1.2rem}
+    .resize-controls input{flex:1;padding:.7rem;border:1px solid #ddd;border-radius:var(--border-radius);font-size:.9rem}
+    .size-info{background:#f8f9fa;padding:.7rem;border-radius:var(--border-radius);margin-top:.5rem;font-size:.85rem}
+    .file-info{background:#f8f9fa;padding:.7rem;border-radius:var(--border-radius);margin-bottom:1.2rem;font-size:.85rem}
+    .btn{padding:.7rem 1.2rem;border:none;border-radius:var(--border-radius);font-size:.9rem;font-weight:500;cursor:pointer;transition:var(--transition);display:inline-flex;align-items:center;justify-content:center;gap:.5rem}
+    .btn-primary{background-color:var(--primary);color:#fff}
+    .btn-primary:hover{background-color:var(--primary-dark)}
+    .btn-success{background-color:var(--success);color:#fff}
+    .btn-success:hover{background-color:#047857}
+    .btn-secondary{background-color:var(--secondary);color:#fff}
+    .btn-secondary:hover{background-color:#e58e0b}
+    .action-buttons{display:flex;gap:.8rem;margin-top:1.2rem;flex-wrap:wrap}
+    .controls{display:flex;flex-wrap:wrap;gap:1rem;margin-bottom:1.2rem}
+    .control-group{flex:1;min-width:180px}
+    .control-group label{display:block;margin-bottom:.5rem;font-weight:500;font-size:.9rem}
+    .control-group input,.control-group select{width:100%;padding:.7rem;border:1px solid #ddd;border-radius:var(--border-radius);font-size:.9rem}
+    .resize-settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem;margin-bottom:1.5rem}
+    .settings-group{background:#f8f9fa;padding:1.2rem;border-radius:var(--border-radius)}
+    .settings-group h3{margin-bottom:1rem;font-size:1.1rem;color:var(--dark);border-bottom:1px solid #ddd;padding-bottom:.5rem}
+    .dimension-inputs{display:flex;gap:.8rem;margin-bottom:1rem}
+    .dimension-inputs .control-group{flex:1}
+    .preset-sizes{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:.5rem;margin-bottom:1rem}
+    .preset-size{padding:.5rem;background:#fff;border:1px solid #ddd;border-radius:var(--border-radius);text-align:center;cursor:pointer;transition:var(--transition);font-size:.85rem}
+    .preset-size:hover{border-color:var(--accent);background-color:rgba(16,185,129,0.05)}
+    .preset-size.active{background-color:var(--accent);color:#fff;border-color:var(--accent)}
+    .quality-slider{margin-bottom:1rem}
+    .quality-labels{display:flex;justify-content:space-between;font-size:.8rem;color:var(--gray);margin-top:-.5rem}
+    .format-options{display:flex;gap:.8rem;flex-wrap:wrap}
+    .format-option{padding:.5rem 1rem;background:#fff;border:1px solid #ddd;border-radius:var(--border-radius);cursor:pointer;transition:var(--transition);font-size:.85rem}
+    .format-option:hover{border-color:var(--accent);background-color:rgba(16,185,129,0.05)}
+    .format-option.active{background-color:var(--accent);color:#fff;border-color:var(--accent)}
+    @media(max-width:768px){
+      .editor-container{flex-direction:column}
+      .image-preview{height:260px}
+      .editor-controls{max-height:none;overflow:visible;position:static}
+      .resize-settings{grid-template-columns:1fr}
+      .dimension-inputs{flex-direction:column}
+    }
+
+    /* Comments + footer like index */
+    .comments{padding:80px 0;background:#fff;border-radius:20px;margin:50px 0}
+    .comment-form{max-width:600px;margin:0 auto;background:#f8f9fa;padding:30px;border-radius:12px}
+    .form-group{margin-bottom:20px}
+    .form-group label{display:block;margin-bottom:8px;font-weight:500}
+    .form-control{width:100%;padding:12px 15px;border:1px solid #ddd;border-radius:8px;font-size:1rem}
+    footer{background:#212529;color:#fff;padding:60px 0 30px;margin-top:auto}
+    .footer-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:40px;margin-bottom:40px}
+    .footer-links{list-style:none}
+    .footer-links a{color:#aaa;text-decoration:none}
+    .footer-links a:hover{color:#fff}
+    .copyright{text-align:center;padding-top:30px;border-top:1px solid #444;color:#aaa;font-size:.9rem}
+  </style>
+</head>
+<body>
+  <!-- Header from index -->
+  <header><div class="container"><nav class="navbar"><a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a><div class="nav-links"><a href="index.html" class="active">Home</a><div class="dropdown"><a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="jpg-to-pdf.html">JPG to PDF</a><a href="word-to-pdf.html">Word to PDF</a><a href="excel-to-pdf.html">Excel to PDF</a><a href="ppt-to-pdf.html">PowerPoint to PDF</a></div></div><div class="dropdown"><a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="pdf-to-jpg.html">PDF to JPG</a><a href="pdf-to-word.html">PDF to Word</a><a href="pdf-to-excel.html">PDF to Excel</a><a href="pdf-to-ppt.html">PDF to PowerPoint</a></div></div><div class="dropdown"><a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="merge-pdf.html">Merge PDF</a><a href="split-pdf.html">Split PDF</a><a href="compress-pdf.html">Compress PDF</a><a href="edit-pdf.html">Pdf Editor</a><a href="protect-pdf.html">Protect PDF</a><a href="unlock-pdf.html">Unlock PDF</a><a href="watermark-pdf.html">Watermark PDF</a><a href="crop-pdf.html">Crop PDF</a></div></div>          <div class="dropdown"><a href="#">Image Tools <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="image-compressor.html">Image Compressor</a><a href="image-resizer.html">Image Resizer</a><a href="image-editor.html">Image Editor</a><a href="background-remover.html">Image Background Remover</a><a href="ocr-image.html">OCR Image</a><a href="image-watermark.html">Image Watermark Tool</a></div></div>
+<div class="dropdown"><a href="#">Design Tools <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="resume-maker.html">Resume Maker</a><a href="biodata-maker.html">Marrige Biodata-Data Maker</a><a href="ai-image-generator.html">AI Image Generator</a><a href="marriage-card.html">Marriage Card</a></div></div></div><div class="auth-buttons"><a href="#" class="au
+th-btn login" onclick="showModal('login-modal')">Login</a><a href="#" class="auth-btn signup" onclick="showModal('signup-modal')">Sign Up</a></div></nav></div></header>
+
+  <!-- Main tool -->
+  <main class="container">
+    <div class="section-title">
+      <h2>Image Resizer</h2>
+      <p>Resize your images to specific dimensions or target file size. Perfect for social media, websites, or reducing file size.</p>
+    </div>
+
+    <div class="tool-content active" id="image-resizer">
+      <div class="upload-area" id="resize-upload-area">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <h3>Drag & Drop your image here</h3>
+        <p>or click to browse files</p>
+        <input type="file" class="file-input" id="resize-file-input" accept="image/*">
+      </div>
+      <div class="image-editor">
+        <div class="editor-container">
+          <div class="image-preview" id="resize-preview"><p>Your image will appear here</p></div>
+          <div class="editor-controls">
+            <div class="resize-settings">
+              <div class="settings-group">
+                <h3>Resize Settings</h3>
+                <div class="dimension-inputs">
+                  <div class="control-group"><label for="resize-width">Width (px)</label><input type="number" id="resize-width" min="1" value="1024"></div>
+                  <div class="control-group"><label for="resize-height">Height (px)</label><input type="number" id="resize-height" min="1" value="768"></div>
+                </div>
+                <div class="control-group"><label for="resize-maintain-aspect"><input type="checkbox" id="resize-maintain-aspect" checked> Maintain aspect ratio</label></div>
+              </div>
+              <div class="settings-group">
+                <h3>Preset Sizes</h3>
+                <div class="preset-sizes">
+                  <div class="preset-size" data-width="800" data-height="600">800Ã—600</div>
+                  <div class="preset-size" data-width="1024" data-height="768">1024Ã—768</div>
+                  <div class="preset-size" data-width="1920" data-height="1080">1920Ã—1080</div>
+                  <div class="preset-size" data-width="1280" data-height="720">1280Ã—720</div>
+                  <div class="preset-size" data-width="640" data-height="480">640Ã—480</div>
+                </div>
+              </div>
+              <div class="settings-group">
+                <h3>Quality</h3>
+                <div class="quality-slider">
+                  <input type="range" class="slider" id="resize-quality" min="10" max="100" value="85">
+                  <div class="slider-value" id="resize-quality-value">85%</div>
+                  <div class="quality-labels"><span>Smaller Size</span><span>Better Quality</span></div>
+                </div>
+              </div>
+              <div class="settings-group">
+                <h3>Target File Size</h3>
+                <div class="dimension-inputs">
+                  <div class="control-group">
+                    <label for="target-size">Size</label>
+                    <input type="number" id="target-size" min="0" placeholder="e.g. 300">
+                  </div>
+                  <div class="control-group">
+                    <label for="target-unit">Unit</label>
+                    <select id="target-unit">
+                      <option value="KB">KB</option>
+                      <option value="MB">MB</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="settings-group">
+                <h3>Output Format</h3>
+                <div class="format-options">
+                  <div class="format-option active" data-format="jpeg">JPEG</div>
+                  <div class="format-option" data-format="png">PNG</div>
+                  <div class="format-option" data-format="webp">WebP</div>
+                </div>
+              </div>
+            </div>
+            <div class="size-info" id="resize-size-info">
+              <p>Original Size: <span id="original-size-display">-</span></p>
+              <p>New Size: <span id="new-size-display">-</span></p>
+              <p>File Size: <span id="file-size-display">-</span></p>
+              <p id="target-note" style="color:#64748b;display:none">Target: -</p>
+            </div>
+            <div class="action-buttons">
+              <button class="btn btn-primary" id="apply-resize"><i class="fas fa-sliders-h"></i> Apply Resize</button>
+              <button class="btn btn-secondary" id="reset-resize"><i class="fas fa-undo"></i> Reset</button>
+              <button class="btn btn-success" id="download-resized"><i class="fas fa-download"></i> Download Image</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Comments (index-like) -->
+  <section class="comments">
+    <div class="container">
+      <h2 class="section-title" style="margin:0 0 20px">User Comments</h2>
+      <div class="comment-form">
+        <div class="form-group"><label for="page-comment-name">Your Name</label><input id="page-comment-name" class="form-control" type="text" placeholder="Enter your name"></div>
+        <div class="form-group"><label for="page-comment-email">Email Address</label><input id="page-comment-email" class="form-control" type="email" placeholder="Enter your email"></div>
+        <div class="form-group"><label for="page-comment">Your Comment</label><textarea id="page-comment" class="form-control" placeholder="Share your experience with this tool"></textarea></div>
+        <button class="btn" style="background:#4361ee;color:#fff">Submit Comment</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer from index -->
+  <div class="features" style="background-color:#fff;padding:80px 0;border-radius:20px;margin-bottom:50px;">
+  <div class="container">
+    <h2 class="section-title">Why Choose easyjpgtopdf?</h2>
+    <div class="features-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:40px;">
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Secure & Private</h3>
+          <p style="color:#6c757d;">All files are processed securely and automatically deleted after 1 hour.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-bolt"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Fast Processing</h3>
+          <p style="color:#6c757d;">Our optimized algorithms process your files in seconds.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-desktop"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Works Everywhere</h3>
+          <p style="color:#6c757d;">Use easyjpgtopdf on any device with a modern web browser.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-euro-sign"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Completely Free</h3>
+          <p style="color:#6c757d;">All our basic tools are free to use with no hidden costs.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <script>
+    // Year
+    try{document.getElementById('y').textContent=new Date().getFullYear()}catch(_){ }
+
+    // Image Resizer functionality (inline preview + direct download)
+    const resizeFileInput = document.getElementById('resize-file-input');
+    const resizeUploadArea = document.getElementById('resize-upload-area');
+    const resizePreview = document.getElementById('resize-preview');
+    const resizeWidth = document.getElementById('resize-width');
+    const resizeHeight = document.getElementById('resize-height');
+    const resizeMaintainAspect = document.getElementById('resize-maintain-aspect');
+    const resizeQuality = document.getElementById('resize-quality');
+    const resizeQualityValue = document.getElementById('resize-quality-value');
+    const applyResizeBtn = document.getElementById('apply-resize');
+    const resetResizeBtn = document.getElementById('reset-resize');
+    const downloadResizedBtn = document.getElementById('download-resized');
+    const originalSizeDisplay = document.getElementById('original-size-display');
+    const newSizeDisplay = document.getElementById('new-size-display');
+    const fileSizeDisplay = document.getElementById('file-size-display');
+    const targetSizeInput = document.getElementById('target-size');
+    const targetUnitSelect = document.getElementById('target-unit');
+    const targetNote = document.getElementById('target-note');
+
+    const presetSizes = document.querySelectorAll('.preset-size');
+    const formatOptions = document.querySelectorAll('.format-option');
+
+    let originalResizeImage = null;
+    let currentResizeImage = null;
+    let originalResizeFile = null;
+    let currentFormat = 'jpeg';
+    let lastAppliedDataUrl = null;
+    
+
+    resizeQuality.addEventListener('input', () => { resizeQualityValue.textContent = `${resizeQuality.value}%`; });
+
+    presetSizes.forEach(preset => {
+      preset.addEventListener('click', () => {
+        const width = preset.getAttribute('data-width');
+        const height = preset.getAttribute('data-height');
+        resizeWidth.value = width; resizeHeight.value = height;
+        presetSizes.forEach(p => p.classList.remove('active')); preset.classList.add('active');
+        updateSizeInfo();
+      });
+    });
+
+    formatOptions.forEach(option => {
+      option.addEventListener('click', () => {
+        formatOptions.forEach(o => o.classList.remove('active'));
+        option.classList.add('active');
+        currentFormat = option.getAttribute('data-format');
+        updateSizeInfo();
+      });
+    });
+
+    let aspectRatio = 1;
+    resizeWidth.addEventListener('input', () => { if (resizeMaintainAspect.checked && originalResizeImage) resizeHeight.value = Math.round(resizeWidth.value / aspectRatio); updateSizeInfo(); });
+    resizeHeight.addEventListener('input', () => { if (resizeMaintainAspect.checked && originalResizeImage) resizeWidth.value = Math.round(resizeHeight.value * aspectRatio); updateSizeInfo(); });
+    resizeMaintainAspect.addEventListener('change', () => { if (resizeMaintainAspect.checked && originalResizeImage) { aspectRatio = originalResizeImage.width / originalResizeImage.height; resizeHeight.value = Math.round(resizeWidth.value / aspectRatio); } });
+
+    resizeUploadArea.addEventListener('click', () => resizeFileInput.click());
+    resizeUploadArea.addEventListener('dragover', (e) => { e.preventDefault(); resizeUploadArea.style.borderColor = '#10b981'; resizeUploadArea.style.backgroundColor = 'rgba(16, 185, 129, 0.05)'; });
+    resizeUploadArea.addEventListener('dragleave', () => { resizeUploadArea.style.borderColor = ''; resizeUploadArea.style.backgroundColor = ''; });
+    resizeUploadArea.addEventListener('drop', (e) => { e.preventDefault(); resizeUploadArea.style.borderColor = ''; resizeUploadArea.style.backgroundColor = ''; if (e.dataTransfer.files.length) handleResizeFile(e.dataTransfer.files[0]); });
+    resizeFileInput.addEventListener('change', (e) => { if (e.target.files.length) handleResizeFile(e.target.files[0]); });
+
+    function handleResizeFile(file) {
+      if (!file.type.match('image.*')) { alert('Please select an image file'); return; }
+      originalResizeFile = file;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        originalResizeImage = new Image();
+        originalResizeImage.onload = () => {
+          resizeWidth.value = originalResizeImage.width;
+          resizeHeight.value = originalResizeImage.height;
+          aspectRatio = originalResizeImage.width / originalResizeImage.height;
+          currentResizeImage = originalResizeImage;
+          updateResizePreview();
+          updateSizeInfo();
+          presetSizes.forEach(preset => { const w = preset.getAttribute('data-width'); const h = preset.getAttribute('data-height'); if (w == resizeWidth.value && h == resizeHeight.value) preset.classList.add('active'); else preset.classList.remove('active'); });
+        };
+        originalResizeImage.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function resetAll(){
+      // reset quality and target
+      resizeQuality.value = 85; resizeQualityValue.textContent = '85%';
+      targetSizeInput.value = ''; targetUnitSelect.value = 'KB';
+      targetNote.style.display='none'; lastAppliedDataUrl=null;
+      // revert preview to original if available
+      if(originalResizeImage){ currentResizeImage = originalResizeImage; updateResizePreview(); }
+      updateSizeInfo();
+    }
+
+    function updateResizePreview() {
+      if (!currentResizeImage) return;
+      resizePreview.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = currentResizeImage.src;
+      resizePreview.appendChild(img);
+    }
+
+    function updateSizeInfo() {
+      if (!originalResizeImage) return;
+      originalSizeDisplay.textContent = `${originalResizeImage.width} Ã— ${originalResizeImage.height}`;
+      newSizeDisplay.textContent = `${resizeWidth.value} Ã— ${resizeHeight.value}`;
+      if (originalResizeFile) {
+        const quality = parseInt(resizeQuality.value) / 100;
+        const sizeFactor = (resizeWidth.value * resizeHeight.value) / (originalResizeImage.width * originalResizeImage.height);
+        const newSizeBytes = originalResizeFile.size * sizeFactor * quality;
+        fileSizeDisplay.textContent = `${formatFileSize(newSizeBytes)} (approx)`;
+      }
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' bytes';
+      else if (bytes < 1048576) return (bytes / 1024).toFixed(2) + ' KB';
+      else return (bytes / 1048576).toFixed(2) + ' MB';
+    }
+    function dataUrlBytes(d){ try{ return atob(d.split(',')[1]).length; }catch(_){ return 0; } }
+    function targetBytes(){ const v=parseFloat(targetSizeInput.value||'0'); if(!v||isNaN(v)) return 0; return targetUnitSelect.value==='MB'? Math.round(v*1024*1024) : Math.round(v*1024); }
+    function encodeAtQuality(canvas, q){ return canvas.toDataURL(`image/${currentFormat}`, Math.min(Math.max(q,0.05),1)); }
+    async function findQualityForTarget(canvas, tBytes){ if(tBytes<=0) return encodeAtQuality(canvas, parseInt(resizeQuality.value)/100); if(currentFormat==='png'){ return encodeAtQuality(canvas, 1); } let lo=0.05, hi=1.0, best=encodeAtQuality(canvas, parseInt(resizeQuality.value)/100), bestDiff=Infinity; for(let i=0;i<9;i++){ const mid=(lo+hi)/2; const d=encodeAtQuality(canvas, mid); const b=dataUrlBytes(d); const diff=Math.abs(b - tBytes); if(diff<bestDiff){ best=d; bestDiff=diff; } if(b>tBytes) { hi=mid; } else { lo=mid; } } return best; }
+    function updateTargetNote(actualBytes){ const t=targetBytes(); if(!t){ targetNote.style.display='none'; return; } targetNote.style.display='block'; if(actualBytes){ const diff=actualBytes-t; const sign=diff>0?'+':''; const pct=Math.abs(diff)/t*100; targetNote.textContent=`Target: ${formatFileSize(t)} Ã¢â‚¬Â¢ Actual: ${formatFileSize(actualBytes)} (${sign}${pct.toFixed(1)}%)`; } else { targetNote.textContent=`Target: ${formatFileSize(t)} (will try to match on Apply)`; } }
+    function resetAll(){ resizeQuality.value=85; resizeQualityValue.textContent='85%'; targetSizeInput.value=''; targetUnitSelect.value='KB'; targetNote.style.display='none'; lastAppliedDataUrl=null; if(originalResizeImage){ currentResizeImage=originalResizeImage; updateResizePreview(); } updateSizeInfo(); }
+
+    
+
+    applyResizeBtn.addEventListener('click', async () => {
+      if (!originalResizeImage) { alert('Please upload an image first'); return; }
+      const canvas = document.createElement('canvas');
+      canvas.width = parseInt(resizeWidth.value);
+      canvas.height = parseInt(resizeHeight.value);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(originalResizeImage, 0, 0, canvas.width, canvas.height);
+      const dataUrl = await findQualityForTarget(canvas, targetBytes());
+      lastAppliedDataUrl = dataUrl;
+      const img = new Image(); img.onload = ()=>{ currentResizeImage = img; updateResizePreview(); };
+      img.src = dataUrl;
+      try{ const bytes = atob(dataUrl.split(',')[1]).length; fileSizeDisplay.textContent = `${formatFileSize(bytes)} (actual)`; updateTargetNote(bytes); }catch(_){ }
+    });
+
+    downloadResizedBtn.addEventListener('click', () => {
+      if (!originalResizeImage) { alert('Please upload an image first'); return; }
+      let dataUrl = lastAppliedDataUrl;
+      if(!dataUrl){
+        const canvas = document.createElement('canvas');
+        canvas.width = parseInt(resizeWidth.value);
+        canvas.height = parseInt(resizeHeight.value);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(originalResizeImage, 0, 0, canvas.width, canvas.height);
+        dataUrl = canvas.toDataURL(`image/${currentFormat}`, parseInt(resizeQuality.value)/100);
+      }
+      try{
+        sessionStorage.setItem('img_result_dataurl', dataUrl);
+        sessionStorage.setItem('img_result_name', `resized-image.${currentFormat}`);
+        sessionStorage.setItem('img_result_mime', `image/${currentFormat}`);
+        sessionStorage.setItem('img_result_width', String(resizeWidth.value));
+        sessionStorage.setItem('img_result_height', String(resizeHeight.value));
+      }catch(_){ }
+      location.href='image-resizer-result.html';
+    });
+
+    resetResizeBtn.addEventListener('click', resetAll);
+
+    updateSizeInfo();
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>easyjpgtopdf</h3>
+                    <p>Your all-in-one PDF solution for converting, editing, and managing documents with ease.</p>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert to PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="jpg-to-pdf.html">JPG to PDF</a></li>
+                        <li><a href="word-to-pdf.html">Word to PDF</a></li>
+                        <li><a href="excel-to-pdf.html">Excel to PDF</a></li>
+                        <li><a href="ppt-to-pdf.html">PowerPoint to PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert from PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="pdf-to-jpg.html">PDF to JPG</a></li>
+                        <li><a href="pdf-to-word.html">PDF to Word</a></li>
+                        <li><a href="pdf-to-excel.html">PDF to Excel</a></li>
+                        <li><a href="pdf-to-ppt.html">PDF to PowerPoint</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Pdf Editor</h3>
+                    <ul class="footer-links">
+                        <li><a href="merge-pdf.html">Merge PDF</a></li>
+                        <li><a href="split-pdf.html">Split PDF</a></li>
+                        <li><a href="compress-pdf.html">Compress PDF</a></li>
+                        <li><a href="edit-pdf.html">Pdf Editor</a></li>
+                        <li><a href="protect-pdf.html">Protect PDF</a></li>
+                        <li><a href="unlock-pdf.html">Unlock PDF</a></li>
+                        <li><a href="watermark-pdf.html">Watermark PDF</a></li>
+                        <li><a href="crop-pdf.html">Crop PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Image Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="image-compressor.html">Image Compressor</a></li>
+                        <li><a href="image-resizer.html">Image Resizer</a></li>
+                        <li><a href="image-editor.html">Image Editor</a></li>
+                        <li><a href="background-remover.html">Image Background Remover</a></li>
+                        <li><a href="ocr-image.html">OCR Image</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Design Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="resume-maker.html">Resume Maker</a></li>
+                        <li><a href="biodata-maker.html">Marrige Biodata-Data Maker</a></li>
+                        <li><a href="ai-image-generator.html">AI Image Generator</a></li>
+                        <li><a href="marriage-card.html">Marriage Card</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Company</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html#about">About Us</a></li>
+                        <li><a href="index.html#contact">Contact</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Connect With Us</h3>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fab fa-twitter"></i> Twitter</a></li>
+                        <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
+                        <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
+                        <li><a href="#"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+                <p class="attribution">Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site. <a href="attributions.html">See full acknowledgements</a>.</p>
+            </div>
+        </div>
+    </footer>
+
+

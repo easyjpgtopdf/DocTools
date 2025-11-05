@@ -1,0 +1,231 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Attributions and Licenses | easyjpgtopdf</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif}
+    :root{--primary:#4361ee;--secondary:#3a0ca3;--accent:#4cc9f0;--light:#f8f9fa;--dark:#212529;--gray:#6c757d}
+    body{background:#f5f7ff;color:var(--dark);min-height:100vh;display:flex;flex-direction:column;line-height:1.6}
+    .container{max-width:1200px;margin:0 auto;padding:0 20px}
+    header{background:#fff;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+    .navbar{display:flex;justify-content:space-between;align-items:center;padding:14px 0}
+    .logo{display:flex;gap:10px;align-items:center;font-size:22px;font-weight:700;color:var(--primary);text-decoration:none}
+    .logo i{color:var(--secondary)}
+    .nav-links{display:flex;gap:22px}
+    .nav-links a{text-decoration:none;color:var(--dark);font-weight:500}
+    .nav-links a:hover,.nav-links a.active{color:var(--primary)}
+    .dropdown{position:relative}
+    .dropdown-content{display:none;position:absolute;background:#fff;min-width:200px;box-shadow:0 8px 16px rgba(0,0,0,.1);border-radius:8px;padding:10px 0;top:100%;left:0}
+    .dropdown:hover .dropdown-content{display:block}
+    .dropdown-content a{display:block;padding:10px 20px;text-decoration:none;color:var(--dark)}
+    .dropdown-content a:hover{background:var(--light)}
+    .auth-buttons{display:flex;gap:10px}
+    .auth-btn{padding:6px 15px;border-radius:50px;text-decoration:none;font-weight:500;transition:.3s;font-size:.9rem}
+    .auth-btn.login{background:transparent;color:var(--primary);border:1px solid var(--primary)}
+    .auth-btn.signup{background:var(--primary);color:#fff;border:1px solid var(--primary)}
+
+    .page{padding:24px 0}
+    .card{background:#fff;border-radius:12px;padding:24px;box-shadow:0 5px 15px rgba(0,0,0,.05);margin:24px 0}
+    h1{color:var(--primary);margin-bottom:8px}
+    p,li{color:#444}
+    ul{margin-left:18px}
+    .license-list li{margin:8px 0}
+
+    footer{background:#212529;color:#fff;margin-top:auto;padding:60px 0 30px}
+    .footer-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:40px;margin-bottom:40px}
+    .footer-links{list-style:none}
+    .footer-links a{color:#aaa;text-decoration:none}
+    .footer-links a:hover{color:#fff}
+    .copyright{text-align:center;color:#aaa;border-top:1px solid #444;padding-top:16px;font-size:.9rem}
+  </style>
+</head>
+<body>
+  <header><div class="container"><nav class="navbar"><a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a><div class="nav-links"><a href="index.html" class="active">Home</a><div class="dropdown"><a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="jpg-to-pdf.html">JPG to PDF</a><a href="word-to-pdf.html">Word to PDF</a><a href="excel-to-pdf.html">Excel to PDF</a><a href="ppt-to-pdf.html">PowerPoint to PDF</a></div></div><div class="dropdown"><a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="pdf-to-jpg.html">PDF to JPG</a><a href="pdf-to-word.html">PDF to Word</a><a href="pdf-to-excel.html">PDF to Excel</a><a href="pdf-to-ppt.html">PDF to PowerPoint</a></div></div><div class="dropdown"><a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="merge-pdf.html">Merge PDF</a><a href="split-pdf.html">Split PDF</a><a href="compress-pdf.html">Compress PDF</a><a href="edit-pdf.html">Pdf Editor</a><a href="protect-pdf.html">Protect PDF</a><a href="unlock-pdf.html">Unlock PDF</a><a href="watermark-pdf.html">Watermark PDF</a><a href="crop-pdf.html">Crop PDF</a></div></div>          <div class="dropdown"><a href="#">Image Tools <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="image-compressor.html">Image Compressor</a><a href="image-resizer.html">Image Resizer</a><a href="image-editor.html">Image Editor</a><a href="background-remover.html">Image Background Remover</a><a href="ocr-image.html">OCR Image</a><a href="image-watermark.html">Image Watermark Tool</a></div></div>
+<div class="dropdown"><a href="#">Design Tools <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="resume-maker.html">Resume Maker</a><a href="biodata-maker.html">Marrige Biodata-Data Maker</a><a href="ai-image-generator.html">AI Image Generator</a><a href="marriage-card.html">Marriage Card</a></div></div></div><div class="auth-buttons"><a href="#" class="au
+th-btn login" onclick="showModal('login-modal')">Login</a><a href="#" class="auth-btn signup" onclick="showModal('signup-modal')">Sign Up</a></div></nav></div></header>
+
+  <div class="container page">
+    <div class="card">
+      <h1>Attributions and Open-Source Licenses</h1>
+      <p>easyjpgtopdf is proudly built on top of generous open-source communities, free CDNs, and talented creators offering their work for everyone to use.</p>
+
+      <h2 style="margin-top:18px;color:var(--primary);">Core UI &amp; Iconography</h2>
+      <ul class="license-list">
+        <li><strong>Font Awesome Free 6.4.0</strong> â€” CC&nbsp;BY&nbsp;4.0 (icons) &amp; MIT (code). <a href="https://fontawesome.com" target="_blank" rel="noopener">fontawesome.com</a></li>
+        <li><strong>Google Fonts</strong> (Inter, Poppins, Montserrat, Noto Sans families and more) â€” SIL Open Font License. <a href="https://fonts.google.com" target="_blank" rel="noopener">fonts.google.com</a></li>
+      </ul>
+
+      <h2 style="margin-top:18px;color:var(--primary);">Document &amp; PDF Tooling</h2>
+      <ul class="license-list">
+        <li><strong>jsPDF 2.5.1</strong> â€” MIT. <a href="https://github.com/parallax/jsPDF" target="_blank" rel="noopener">github.com/parallax/jsPDF</a></li>
+        <li><strong>jsPDF-AutoTable 3.5.28</strong> â€” MIT. <a href="https://github.com/simonbengtsson/jsPDF-AutoTable" target="_blank" rel="noopener">github.com/simonbengtsson/jsPDF-AutoTable</a></li>
+        <li><strong>jsPDF Custom Fonts Support 1.0.2</strong> â€” MIT. <a href="https://github.com/MrRio/jsPDF-CustomFonts-support" target="_blank" rel="noopener">github.com/MrRio/jsPDF-CustomFonts-support</a></li>
+        <li><strong>Mammoth.js 1.6.0</strong> â€” BSD-2-Clause. <a href="https://github.com/mwilliamson/mammoth.js" target="_blank" rel="noopener">github.com/mwilliamson/mammoth.js</a></li>
+        <li><strong>Docx.js 8.5.0</strong> â€” MIT. <a href="https://github.com/dolanmiu/docx" target="_blank" rel="noopener">github.com/dolanmiu/docx</a></li>
+        <li><strong>FileSaver.js 2.0.5</strong> â€” MIT. <a href="https://github.com/eligrey/FileSaver.js" target="_blank" rel="noopener">github.com/eligrey/FileSaver.js</a></li>
+        <li><strong>JSZip 3.10.1</strong> â€” MIT. <a href="https://stuk.github.io/jszip/" target="_blank" rel="noopener">stuk.github.io/jszip</a></li>
+        <li><strong>pdf.js / pdfjs-dist 3.11.174</strong> â€” Apache&nbsp;2.0. <a href="https://github.com/mozilla/pdf.js" target="_blank" rel="noopener">github.com/mozilla/pdf.js</a></li>
+        <li><strong>pdf-lib 1.17.1</strong> â€” MIT. <a href="https://github.com/Hopding/pdf-lib" target="_blank" rel="noopener">github.com/Hopding/pdf-lib</a></li>
+        <li><strong>html2canvas 1.4.1</strong> â€” MIT. <a href="https://github.com/niklasvh/html2canvas" target="_blank" rel="noopener">github.com/niklasvh/html2canvas</a></li>
+      </ul>
+
+      <h2 style="margin-top:18px;color:var(--primary);">AI, Vision &amp; Utilities</h2>
+      <ul class="license-list">
+        <li><strong>Tesseract.js</strong> (v4 &amp; 5 builds) â€” Apache&nbsp;2.0. <a href="https://github.com/naptha/tesseract.js" target="_blank" rel="noopener">github.com/naptha/tesseract.js</a></li>
+        <li><strong>ONNX Runtime Web 1.21.0</strong> â€” MIT. <a href="https://github.com/microsoft/onnxruntime" target="_blank" rel="noopener">github.com/microsoft/onnxruntime</a></li>
+        <li><strong>IMG.LY Background Removal</strong> (background-removal&nbsp;JS&nbsp;1.7.0 &amp; data) â€” MIT. <a href="https://github.com/imgly/background-removal-js" target="_blank" rel="noopener">github.com/imgly/background-removal-js</a></li>
+        <li><strong>Firebase Web SDK</strong> (app &amp; firestore modules) â€” Apache&nbsp;2.0. <a href="https://firebase.google.com" target="_blank" rel="noopener">firebase.google.com</a></li>
+      </ul>
+
+      <h2 style="margin-top:18px;color:var(--primary);">Media &amp; Creative Assets</h2>
+      <ul class="license-list">
+        <li><strong>Unsplash Imagery</strong> â€” freely usable photos under the Unsplash License. Huge thanks to the contributing photographers featured across our demos. <a href="https://unsplash.com/license" target="_blank" rel="noopener">unsplash.com/license</a></li>
+      </ul>
+
+      <p style="margin-top:16px;color:#555;">We are grateful to every maintainer, designer, and photographer whose work powers easyjpgtopdf. Thank you for keeping the open web amazing.</p>
+    </div>
+  </div>
+
+  <div class="features" style="background-color:#fff;padding:80px 0;border-radius:20px;margin-bottom:50px;">
+  <div class="container">
+    <h2 class="section-title">Why Choose easyjpgtopdf?</h2>
+    <div class="features-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:40px;">
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Secure & Private</h3>
+          <p style="color:#6c757d;">All files are processed securely and automatically deleted after 1 hour.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-bolt"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Fast Processing</h3>
+          <p style="color:#6c757d;">Our optimized algorithms process your files in seconds.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-desktop"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Works Everywhere</h3>
+          <p style="color:#6c757d;">Use easyjpgtopdf on any device with a modern web browser.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-euro-sign"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Completely Free</h3>
+          <p style="color:#6c757d;">All our basic tools are free to use with no hidden costs.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+<footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>easyjpgtopdf</h3>
+                    <p>Your all-in-one PDF solution for converting, editing, and managing documents with ease.</p>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert to PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="jpg-to-pdf.html">JPG to PDF</a></li>
+                        <li><a href="word-to-pdf.html">Word to PDF</a></li>
+                        <li><a href="excel-to-pdf.html">Excel to PDF</a></li>
+                        <li><a href="ppt-to-pdf.html">PowerPoint to PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert from PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="pdf-to-jpg.html">PDF to JPG</a></li>
+                        <li><a href="pdf-to-word.html">PDF to Word</a></li>
+                        <li><a href="pdf-to-excel.html">PDF to Excel</a></li>
+                        <li><a href="pdf-to-ppt.html">PDF to PowerPoint</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Pdf Editor</h3>
+                    <ul class="footer-links">
+                        <li><a href="merge-pdf.html">Merge PDF</a></li>
+                        <li><a href="split-pdf.html">Split PDF</a></li>
+                        <li><a href="compress-pdf.html">Compress PDF</a></li>
+                        <li><a href="edit-pdf.html">Pdf Editor</a></li>
+                        <li><a href="protect-pdf.html">Protect PDF</a></li>
+                        <li><a href="unlock-pdf.html">Unlock PDF</a></li>
+                        <li><a href="watermark-pdf.html">Watermark PDF</a></li>
+                        <li><a href="crop-pdf.html">Crop PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Image Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="image-compressor.html">Image Compressor</a></li>
+                        <li><a href="image-resizer.html">Image Resizer</a></li>
+                        <li><a href="image-editor.html">Image Editor</a></li>
+                        <li><a href="background-remover.html">Image Background Remover</a></li>
+                        <li><a href="ocr-image.html">OCR Image</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Design Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="resume-maker.html">Resume Maker</a></li>
+                        <li><a href="biodata-maker.html">Marrige Biodata-Data Maker</a></li>
+                        <li><a href="ai-image-generator.html">AI Image Generator</a></li>
+                        <li><a href="marriage-card.html">Marriage Card</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Company</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html#about">About Us</a></li>
+                        <li><a href="index.html#contact">Contact</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Connect With Us</h3>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fab fa-twitter"></i> Twitter</a></li>
+                        <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
+                        <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
+                        <li><a href="#"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+                <p class="attribution">Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site. <a href="attributions.html">See full acknowledgements</a>.</p>
+            </div>
+        </div>
+    </footer>
+
+

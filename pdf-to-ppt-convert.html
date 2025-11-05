@@ -1,0 +1,798 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF to PowerPoint - Convert | easyjpgtopdf</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    :root {
+      --primary: #4361ee;
+      --secondary: #3a0ca3;
+      --accent: #4cc9f0;
+      --light: #f8f9fa;
+      --dark: #0f172a;
+      --muted: #6b7280;
+      --surface: #ffffff;
+      --border: #e5e7eb;
+      --success: #0f9d58;
+      --danger: #dc2626;
+    }
+    body {
+      background: #f5f7ff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      color: var(--dark);
+      line-height: 1.6;
+    }
+    header {
+      background: #fff;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px rgba(15,23,42,0.08);
+    }
+    .container {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 0 24px;
+      width: 100%;
+    }
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 0;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--primary);
+      text-decoration: none;
+    }
+    .nav-links {
+      display: flex;
+      gap: 22px;
+      align-items: center;
+    }
+    .nav-links > a {
+      color: var(--dark);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .nav-links > a.active,
+    .nav-links > a:hover {
+      color: var(--primary);
+    }
+    .dropdown { position: relative; }
+    .dropdown > a {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      color: var(--dark);
+      text-decoration: none;
+    }
+    .dropdown-content {
+      position: absolute;
+      background: #fff;
+      min-width: 220px;
+      border-radius: 12px;
+      box-shadow: 0 12px 32px rgba(15,23,42,0.12);
+      top: 110%;
+      left: 0;
+      display: none;
+      overflow: hidden;
+    }
+    .dropdown-content a {
+      display: block;
+      padding: 10px 18px;
+      color: var(--dark);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .dropdown-content a:hover {
+      background: #eef2ff;
+      color: var(--primary);
+    }
+    .dropdown:hover .dropdown-content { display: block; }
+    .auth-buttons { display: flex; gap: 10px; }
+    .auth-btn {
+      padding: 8px 16px;
+      border-radius: 24px;
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .auth-btn.signup { background: var(--primary); color: #fff; }
+
+    .hero {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff;
+      padding: 48px 0;
+      text-align: center;
+    }
+    .hero h1 { font-size: 2.5rem; margin-bottom: 10px; }
+    .hero p { color: rgba(255,255,255,0.86); max-width: 720px; margin: 0 auto; }
+
+    main { flex: 1; padding: 40px 0 70px; }
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+      gap: 24px;
+      align-items: flex-start;
+    }
+    .panel {
+      background: #fff;
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 16px 40px rgba(15,23,42,0.1);
+      border: 1px solid rgba(67,97,238,0.1);
+    }
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+    .preview-item {
+      position: relative;
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      aspect-ratio: 3/4;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .preview-item.selected {
+      border-color: var(--primary);
+      box-shadow: 0 12px 30px rgba(67,97,238,0.2);
+    }
+    .preview-item canvas { width: 100%; height: 100%; object-fit: contain; }
+    .check-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      box-shadow: 0 6px 18px rgba(67,97,238,0.35);
+    }
+    .right-panel { display: flex; flex-direction: column; gap: 18px; position: sticky; top: 96px; }
+    .section-title { font-size: 1.05rem; font-weight: 700; color: var(--primary); margin-bottom: 12px; }
+    .option-card {
+      border: 1px dashed rgba(67,97,238,0.25);
+      border-radius: 14px;
+      padding: 16px;
+      background: #fbfcff;
+      display: grid;
+      gap: 12px;
+    }
+    .option-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .muted { color: var(--muted); font-size: 0.92rem; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(67,97,238,0.12);
+      color: var(--primary);
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    .convert-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 28px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff;
+      box-shadow: 0 16px 32px rgba(67,97,238,0.22);
+      transition: transform 0.2s ease;
+    }
+    .btn.secondary {
+      background: #fff;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      box-shadow: none;
+    }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+    .btn:hover:not(:disabled) { transform: translateY(-2px); }
+    .slide-preview {
+      margin-top: 18px;
+      border-radius: 16px;
+      border: 1px solid rgba(15,23,42,0.08);
+      background: #fff;
+      padding: 18px;
+      min-height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .slide-preview img {
+      width: 100%;
+      border-radius: 12px;
+      box-shadow: 0 16px 30px rgba(15,23,42,0.14);
+    }
+    .preview-empty {
+      text-align: center;
+      color: var(--muted);
+      font-style: italic;
+    }
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background: var(--success);
+      color: #fff;
+      padding: 14px 20px;
+      border-radius: 12px;
+      box-shadow: 0 18px 40px rgba(15,23,42,0.18);
+      display: none;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+    }
+    .toast.error { background: var(--danger); }
+    footer {
+      background: #0f172a;
+      color: #fff;
+      padding: 60px 0 30px;
+      margin-top: auto;
+    }
+    .footer-content {
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+      gap: 24px;
+      margin-bottom: 30px;
+    }
+    .footer-links { list-style: none; padding: 0; display: grid; gap: 8px; }
+    .footer-links a { color: rgba(255,255,255,0.74); text-decoration: none; }
+    .copyright {
+      text-align: center;
+      font-size: 0.88rem;
+      color: rgba(255,255,255,0.68);
+      border-top: 1px solid rgba(255,255,255,0.18);
+      padding-top: 16px;
+    }
+    @media (max-width: 1080px) {
+      .nav-links { display: none; }
+      header { position: static; }
+      .workspace { grid-template-columns: 1fr; }
+      .right-panel { position: static; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="container">
+    <nav class="navbar">
+      <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <div class="dropdown">
+          <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+          <div class="dropdown-content">
+            <a href="jpg-to-pdf.html">JPG to PDF</a>
+            <a href="word-to-pdf.html">Word to PDF</a>
+            <a href="excel-to-pdf.html">Excel to PDF</a>
+            <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+          </div>
+        </div>
+        <div class="dropdown">
+          <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+          <div class="dropdown-content">
+            <a href="pdf-to-jpg.html">PDF to JPG</a>
+            <a href="pdf-to-word.html">PDF to Word</a>
+            <a href="pdf-to-excel.html">PDF to Excel</a>
+            <a href="pdf-to-ppt.html" class="active">PDF to PowerPoint</a>
+          </div>
+        </div>
+        <div class="dropdown">
+          <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+          <div class="dropdown-content">
+            <a href="merge-pdf.html">Merge PDF</a>
+            <a href="split-pdf.html">Split PDF</a>
+            <a href="compress-pdf.html">Compress PDF</a>
+            <a href="edit-pdf.html">Pdf Editor</a>
+            <a href="protect-pdf.html">Protect PDF</a>
+            <a href="unlock-pdf.html">Unlock PDF</a>
+            <a href="watermark-pdf.html">Watermark PDF</a>
+            <a href="crop-pdf.html">Crop PDF</a>
+          </div>
+        </div>
+        <div class="dropdown">
+          <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
+          <div class="dropdown-content">
+            <a href="image-compressor.html">Image Compressor</a>
+            <a href="image-resizer.html">Image Resizer</a>
+            <a href="image-editor.html">Image Editor</a>
+            <a href="background-remover.html">Image Background Remover</a>
+            <a href="ocr-image.html">OCR Image</a>
+            <a href="image-watermark.html">Image Watermark Tool</a>
+          </div>
+        </div>
+        <div class="dropdown">
+          <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+          <div class="dropdown-content">
+            <a href="resume-maker.html">Resume Maker</a>
+            <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+            <a href="ai-image-generator.html">AI Image Generator</a>
+            <a href="marriage-card.html">Marriage Card</a>
+          </div>
+        </div>
+      </div>
+      <div class="auth-buttons">
+        <a href="#" class="auth-btn login" onclick="showModal('login-modal');return false;">Login</a>
+        <a href="#" class="auth-btn signup" onclick="showModal('signup-modal');return false;">Sign Up</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container">
+    <span class="badge"><i class="fas fa-clone"></i> Step 2 Â· Preview & export</span>
+    <h1>Preview your PDF slides</h1>
+    <p>Select the pages you want and export crisp PPTX decks without leaving your browser.</p>
+  </div>
+</section>
+
+<main>
+  <div class="container workspace">
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <div>
+          <h2 style="font-size:1.3rem">PDF Pages</h2>
+          <p class="muted">Click a thumbnail to include or exclude it from the PowerPoint export.</p>
+        </div>
+        <div class="badge" id="currentFile">Current file: <span id="pdfName">Loadingâ€¦</span></div>
+      </div>
+      <div class="preview-grid" id="preview"></div>
+      <div class="option-row" style="justify-content:flex-end;margin-top:16px">
+        <button class="btn secondary" id="selectAll"><i class="fas fa-check-double"></i> Select all</button>
+        <button class="btn secondary" id="clearSelection"><i class="fas fa-eraser"></i> Clear</button>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <div class="panel option-card">
+        <div>
+          <h3 class="section-title"><i class="fas fa-sliders"></i> Export options</h3>
+          <p class="muted">Preview the selected slide before exporting the PPTX file.</p>
+        </div>
+        <div class="option-row">
+          <label style="font-weight:600">Range:</label>
+          <label><input type="radio" name="range" value="all" checked> All pages</label>
+          <label><input type="radio" name="range" value="custom"> Only selected</label>
+        </div>
+        <div id="slidePreview" class="slide-preview">
+          <div class="preview-empty">Select a page to inspect its slide.</div>
+        </div>
+        <div class="convert-actions">
+          <button class="btn" id="downloadPpt"><i class="fas fa-file-powerpoint"></i> Download PowerPoint</button>
+          <button class="btn secondary" id="backBtn"><i class="fas fa-arrow-left"></i> Back</button>
+          <button class="btn secondary" id="refreshBtn"><i class="fas fa-arrows-rotate"></i> Reload file</button>
+        </div>
+      </div>
+      <div class="panel option-card" style="gap:10px">
+        <h3 class="section-title"><i class="fas fa-lightbulb"></i> Tips</h3>
+        <ul style="list-style:none;display:grid;gap:8px;color:var(--muted);font-size:0.93rem;padding-left:0">
+          <li><i class="fas fa-check-circle" style="color:var(--primary);"></i> Slides are rendered locallyâ€”no uploads needed.</li>
+          <li><i class="fas fa-check-circle" style="color:var(--primary);"></i> Selected pages become individual slides in order.</li>
+          <li><i class="fas fa-check-circle" style="color:var(--primary);"></i> Use Reload to reopen the most recent PDF quickly.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <div class="footer-content">
+      <div class="footer-column">
+        <h3>easyjpgtopdf</h3>
+        <p>Your all-in-one PDF solution for converting, editing, and managing documents with ease.</p>
+      </div>
+      <div class="footer-column">
+        <h3>Convert to PDF</h3>
+        <ul class="footer-links">
+          <li><a href="jpg-to-pdf.html">JPG to PDF</a></li>
+          <li><a href="word-to-pdf.html">Word to PDF</a></li>
+          <li><a href="excel-to-pdf.html">Excel to PDF</a></li>
+          <li><a href="ppt-to-pdf.html">PowerPoint to PDF</a></li>
+        </ul>
+      </div>
+      <div class="footer-column">
+        <h3>Convert from PDF</h3>
+        <ul class="footer-links">
+          <li><a href="pdf-to-jpg.html">PDF to JPG</a></li>
+          <li><a href="pdf-to-word.html">PDF to Word</a></li>
+          <li><a href="pdf-to-excel.html">PDF to Excel</a></li>
+          <li><a href="pdf-to-ppt.html">PDF to PowerPoint</a></li>
+        </ul>
+      </div>
+      <div class="footer-column">
+        <h3>Pdf Editor</h3>
+        <ul class="footer-links">
+          <li><a href="merge-pdf.html">Merge PDF</a></li>
+          <li><a href="split-pdf.html">Split PDF</a></li>
+          <li><a href="compress-pdf.html">Compress PDF</a></li>
+          <li><a href="edit-pdf.html">Pdf Editor</a></li>
+          <li><a href="protect-pdf.html">Protect PDF</a></li>
+          <li><a href="unlock-pdf.html">Unlock PDF</a></li>
+          <li><a href="watermark-pdf.html">Watermark PDF</a></li>
+          <li><a href="crop-pdf.html">Crop PDF</a></li>
+        </ul>
+      </div>
+      <div class="footer-column">
+        <h3>Image Tools</h3>
+        <ul class="footer-links">
+          <li><a href="image-compressor.html">Image Compressor</a></li>
+          <li><a href="image-resizer.html">Image Resizer</a></li>
+          <li><a href="image-editor.html">Image Editor</a></li>
+          <li><a href="background-remover.html">Image Background Remover</a></li>
+          <li><a href="ocr-image.html">OCR Image</a></li>
+        </ul>
+      </div>
+      <div class="footer-column">
+        <h3>Design Tools</h3>
+        <ul class="footer-links">
+          <li><a href="resume-maker.html">Resume Maker</a></li>
+          <li><a href="biodata-maker.html">Marrige Biodata-Data Maker</a></li>
+          <li><a href="ai-image-generator.html">AI Image Generator</a></li>
+          <li><a href="marriage-card.html">Marriage Card</a></li>
+        </ul>
+      </div>
+      <div class="footer-column">
+        <h3>Company</h3>
+        <ul class="footer-links">
+          <li><a href="index.html#about">About Us</a></li>
+          <li><a href="index.html#contact">Contact</a></li>
+          <li><a href="privacy-policy.html">Privacy Policy</a></li>
+          <li><a href="terms-of-service.html">Terms of Service</a></li>
+        </ul>
+      </div>
+      <div class="footer-column">
+        <h3>Connect With Us</h3>
+        <ul class="footer-links">
+          <li><a href="#"><i class="fab fa-twitter"></i> Twitter</a></li>
+          <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
+          <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
+          <li><a href="#"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="copyright">
+      <p>&copy; <span id="year"></span> easyjpgtopdf â€” Free PDF &amp; Image Tools for everyone.</p>
+      <p style="margin-top:8px;">Powered by Font Awesome, pdf.js, PptxGenJS, Tesseract.js, pdf-lib, Mammoth, Firebase, Unsplash photographers and the open-source community.</p>
+    </div>
+  </div>
+</footer>
+
+<div class="toast" id="toast"><i class="fas fa-check-circle"></i><span id="toastMessage">Exported successfully</span></div>
+
+<script>
+(function(){
+  const previewEl = document.getElementById('preview');
+  const pdfNameEl = document.getElementById('pdfName');
+  const selectAllBtn = document.getElementById('selectAll');
+  const clearBtn = document.getElementById('clearSelection');
+  const downloadBtn = document.getElementById('downloadPpt');
+  const backBtn = document.getElementById('backBtn');
+  const refreshBtn = document.getElementById('refreshBtn');
+  const slidePreview = document.getElementById('slidePreview');
+  const toast = document.getElementById('toast');
+  const toastMessage = document.getElementById('toastMessage');
+  let pdfDoc = null;
+  let pageImages = new Map();
+  let selected = new Set();
+
+  function showToast(message, isError){
+    toastMessage.textContent = message;
+    toast.className = 'toast' + (isError ? ' error' : '');
+    toast.style.display = 'flex';
+    setTimeout(()=>{ toast.style.display = 'none'; }, 2600);
+  }
+
+  function renderPreviewMessage(message){
+    slidePreview.innerHTML = `<div class="preview-empty">${message}</div>`;
+  }
+
+  function renderSlideImage(page){
+    if(!page){
+      renderPreviewMessage('Select a page to inspect its slide.');
+      return;
+    }
+    const entry = pageImages.get(page);
+    if(!entry || !entry.dataUrl){
+      renderPreviewMessage('Rendering slide previewâ€¦');
+      return;
+    }
+    slidePreview.innerHTML = `<img src="${entry.dataUrl}" alt="Slide preview">`;
+  }
+
+  function idb(){
+    return new Promise((resolve,reject)=>{
+      const open = indexedDB.open('easyjpgtopdf',1);
+      open.onupgradeneeded = ()=>{
+        const db = open.result;
+        if(!db.objectStoreNames.contains('pdfstore')){
+          db.createObjectStore('pdfstore');
+        }
+      };
+      open.onsuccess = ()=>resolve(open.result);
+      open.onerror = ()=>reject(open.error);
+    });
+  }
+
+  async function getPdf(){
+    let record = null;
+    try {
+      const db = await idb();
+      record = await new Promise((res,rej)=>{
+        const tx = db.transaction('pdfstore','readonly');
+        const req = tx.objectStore('pdfstore').get('pdf2ppt');
+        req.onsuccess = ()=>res(req.result||null);
+        req.onerror = ()=>rej(req.error);
+      });
+    } catch(err){ record = null; }
+    if(record && record.blob){
+      return record;
+    }
+    try{
+      const b64 = sessionStorage.getItem('pdf2ppt_b64');
+      if(b64){
+        const resp = await fetch(b64);
+        const blob = await resp.blob();
+        const name = sessionStorage.getItem('pdf2ppt_name') || 'document.pdf';
+        try {
+          const db = await idb();
+          await new Promise((res,rej)=>{
+            const tx = db.transaction('pdfstore','readwrite');
+            tx.objectStore('pdfstore').put({blob,name,ts:Date.now()},'pdf2ppt');
+            tx.oncomplete = res; tx.onerror = ()=>rej(tx.error);
+          });
+        } catch(_){ }
+        return { blob, name };
+      }
+    }catch(err){ }
+    return null;
+  }
+
+  function clearSessionFallback(){
+    try {
+      sessionStorage.removeItem('pdf2ppt_b64');
+      sessionStorage.removeItem('pdf2ppt_name');
+    }catch(_){ }
+  }
+
+  async function ensureSlideImages(pageNumbers){
+    if(!pdfDoc) return;
+    for(const page of pageNumbers){
+      if(pageImages.has(page)) continue;
+      try {
+        const pdfPage = await pdfDoc.getPage(page);
+        const viewport = pdfPage.getViewport({ scale: 1.6 });
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = Math.ceil(viewport.width);
+        canvas.height = Math.ceil(viewport.height);
+        await pdfPage.render({ canvasContext: ctx, viewport }).promise;
+        const dataUrl = canvas.toDataURL('image/png');
+        pageImages.set(page, {
+          dataUrl,
+          width: canvas.width,
+          height: canvas.height
+        });
+      } catch(err){
+        console.error('Slide render failed', err);
+        pageImages.set(page, null);
+      }
+    }
+  }
+
+  function updateSelection(page, add){
+    if(add){ selected.add(page); }
+    else { selected.delete(page); }
+  }
+
+  async function refreshSlidePreview(){
+    if(!selected.size){
+      renderPreviewMessage('Select a page to inspect its slide.');
+      return;
+    }
+    const firstPage = Array.from(selected).sort((a,b)=>a-b)[0];
+    if(!pageImages.has(firstPage)){
+      renderPreviewMessage('Rendering slide previewâ€¦');
+      await ensureSlideImages([firstPage]);
+    }
+    renderSlideImage(firstPage);
+  }
+
+  async function renderPreview(){
+    previewEl.innerHTML = '';
+    const count = pdfDoc.numPages;
+    for(let pageNum=1; pageNum<=count; pageNum++){
+      const page = await pdfDoc.getPage(pageNum);
+      const viewport = page.getViewport({ scale: 0.35 });
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = Math.ceil(viewport.width);
+      canvas.height = Math.ceil(viewport.height);
+      await page.render({ canvasContext: ctx, viewport }).promise;
+
+      const thumb = document.createElement('div');
+      thumb.className = 'preview-item';
+      thumb.dataset.page = String(pageNum);
+      thumb.appendChild(canvas);
+      if(selected.has(pageNum)){
+        thumb.classList.add('selected');
+        const badge = document.createElement('div');
+        badge.className = 'check-badge';
+        badge.innerHTML = '<i class="fas fa-check"></i>';
+        thumb.appendChild(badge);
+      }
+      thumb.addEventListener('click', async ()=>{
+        const isSelected = selected.has(pageNum);
+        updateSelection(pageNum, !isSelected);
+        await renderPreview();
+        await refreshSlidePreview();
+      });
+      previewEl.appendChild(thumb);
+    }
+  }
+
+  async function loadPdf(){
+    const rec = await getPdf();
+    if(!rec){
+      alert('Uploaded PDF not found. Please upload again.');
+      location.href = 'pdf-to-ppt.html';
+      return;
+    }
+    pdfNameEl.textContent = rec.name || 'document.pdf';
+    clearSessionFallback();
+    const buffer = await rec.blob.arrayBuffer();
+    const loadingTask = pdfjsLib.getDocument({ data: buffer });
+    pdfDoc = await loadingTask.promise;
+    pageImages = new Map();
+    selected = new Set(Array.from({length: pdfDoc.numPages}, (_,idx)=>idx+1));
+    renderPreviewMessage('Rendering slide previewâ€¦');
+    await renderPreview();
+    await refreshSlidePreview();
+  }
+
+  async function exportPpt(){
+    if(!pdfDoc){
+      showToast('Load a PDF first.', true);
+      return;
+    }
+    if(typeof PptxGenJS === 'undefined'){
+      showToast('PPTX engine failed to load.', true);
+      return;
+    }
+    const rangeMode = (document.querySelector('input[name="range"]:checked') || {}).value;
+    let pages = [];
+    if(rangeMode === 'custom'){
+      pages = Array.from(selected).sort((a,b)=>a-b);
+      if(!pages.length){
+        showToast('Select at least one page.', true);
+        return;
+      }
+    } else {
+      pages = Array.from({length: pdfDoc.numPages}, (_,idx)=>idx+1);
+    }
+    await ensureSlideImages(pages);
+    const pptx = new PptxGenJS();
+    pptx.layout = 'LAYOUT_WIDE';
+    const slideWidth = pptx.width;
+    const slideHeight = pptx.height;
+    for(const page of pages){
+      const data = pageImages.get(page);
+      const slide = pptx.addSlide();
+      if(!data || !data.dataUrl){
+        slide.addText('Slide could not be rendered.', { x: 0.5, y: 1.5, w: slideWidth - 1, fontSize: 24, color: 'FF0000' });
+        continue;
+      }
+      const pageRatio = data.width / data.height;
+      const slideRatio = slideWidth / slideHeight;
+      let imgWidth = slideWidth;
+      let imgHeight = slideHeight;
+      if(pageRatio > slideRatio){
+        imgWidth = slideWidth;
+        imgHeight = slideWidth / pageRatio;
+      } else {
+        imgHeight = slideHeight;
+        imgWidth = slideHeight * pageRatio;
+      }
+      const offsetX = (slideWidth - imgWidth) / 2;
+      const offsetY = (slideHeight - imgHeight) / 2;
+      slide.addImage({ data: data.dataUrl, x: offsetX, y: offsetY, w: imgWidth, h: imgHeight });
+    }
+    const baseName = (pdfNameEl.textContent || 'document').replace(/\.pdf$/i, '');
+    try {
+      await pptx.writeFile({ fileName: `${baseName}-slides.pptx` });
+      showToast('PowerPoint exported successfully!');
+    } catch(err){
+      console.error(err);
+      showToast('Failed to export PowerPoint.', true);
+    }
+  }
+
+  selectAllBtn.addEventListener('click', async ()=>{
+    selected = new Set(Array.from({length: pdfDoc?.numPages||0}, (_,i)=>i+1));
+    await renderPreview();
+    await refreshSlidePreview();
+  });
+
+  clearBtn.addEventListener('click', async ()=>{
+    selected.clear();
+    await renderPreview();
+    renderPreviewMessage('Select a page to inspect its slide.');
+  });
+
+  downloadBtn.addEventListener('click', ()=>{
+    exportPpt().catch(err=>{
+      console.error(err);
+      showToast('Failed to export PowerPoint.', true);
+    });
+  });
+
+  backBtn.addEventListener('click', ()=>{
+    location.href = 'pdf-to-ppt.html';
+  });
+
+  refreshBtn.addEventListener('click', ()=>{
+    loadPdf().catch(err=>{
+      console.error(err);
+      showToast('Could not reload the PDF.', true);
+    });
+  });
+
+  document.getElementById('year').textContent = new Date().getFullYear();
+  loadPdf().catch(err=>{
+    console.error(err);
+    alert('Unable to open uploaded PDF. Please upload again.');
+    location.href = 'pdf-to-ppt.html';
+  });
+})();
+</script>
+</body>
+</html>
+
+

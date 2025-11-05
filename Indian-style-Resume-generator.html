@@ -1,0 +1,1037 @@
+﻿<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Indian Resume Maker â€” Final (Dark/Light + 10 Templates)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg: #f4f7fb;
+  --card: #ffffff;
+  --surface:#eef5ff;
+  --text:#0b2545;
+  --muted:#6b7280;
+  --accent:#ff7a00;
+  --glass: rgba(255,255,255,0.6);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:var(--bg);color:var(--text)}
+.topbar{display:flex;align-items:center;gap:12px;padding:12px 18px;background:linear-gradient(90deg,rgba(255,255,255,0.7),rgba(255,255,255,0.9));box-shadow:0 6px 20px rgba(11,25,60,0.04);position:sticky;top:0;z-index:30}
+.brand{font-family:Poppins;font-weight:800}
+.controls{margin-left:auto;display:flex;gap:8px;align-items:center}
+.select,select{padding:10px;border-radius:10px;border:1px solid rgba(11,25,60,0.06);background:white}
+.btn{padding:10px 14px;border-radius:12px;border:0;background:linear-gradient(90deg,var(--accent),#ffb86b);color:white;font-weight:700;cursor:pointer;box-shadow:0 14px 40px rgba(255,122,0,0.12)}
+.ghost{background:transparent;border:1px solid rgba(11,25,60,0.06);padding:8px 12px;border-radius:10px}
+.header-links{display:flex;align-items:center;gap:10px}
+.header-links .brand-actions{display:flex;gap:8px}
+.header-links .brand-actions a{padding:8px 14px;border-radius:999px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.link-primary{background:linear-gradient(90deg,#4f46e5,#7c3aed);color:white;box-shadow:0 16px 30px rgba(76,29,149,0.18)}
+.link-secondary{background:linear-gradient(90deg,#0ea5e9,#38bdf8);color:white;box-shadow:0 16px 30px rgba(14,165,233,0.18)}
+.share-bar{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(15,23,42,0.08)}
+.share-bar button{background:none;border:none;cursor:pointer;color:var(--muted);font-weight:600}
+.share-bar span{font-size:13px;color:var(--muted)}
+footer{background:#0b1220;color:#e6eef8;padding:50px 0 30px;margin-top:40px}
+footer .footer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:30px}
+footer h3{margin-bottom:16px;font-size:18px;color:#fff}
+footer p,footer a{font-size:14px;color:#cbd5f5;text-decoration:none}
+footer a:hover{color:#fff}
+footer .socials{display:flex;gap:10px;margin-top:12px}
+footer .socials a{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.08);color:#fff}
+footer .copyright{text-align:center;margin-top:30px;font-size:13px;color:#8a94b8}
+
+/* layout */
+.wrap{display:flex;gap:18px;padding:18px;height:calc(100vh - 68px)}
+.col{flex:1;min-width:280px;display:flex;flex-direction:column}
+.card{background:var(--card);border-radius:14px;padding:14px;box-shadow:0 12px 40px rgba(11,25,60,0.06);overflow:auto}
+label{display:block;margin-top:10px;color:var(--muted);font-size:13px}
+input,select,textarea{width:100%;padding:10px;border-radius:10px;border:1px solid #eef3fb;background:linear-gradient(180deg,#fff,#fbfdff);font-size:14px}
+textarea{min-height:90px}
+.row{display:flex;gap:8px}
+.row.tight{gap:12px;margin-top:6px}
+.small{font-size:13px;color:var(--muted)}
+
+/* preview */
+.preview-frame{width:100%;height:100%;border-radius:12px;background:linear-gradient(180deg,#ffffff,#fbfdff);border:1px solid #e8f0ff;box-shadow:0 30px 80px rgba(11,25,60,0.06);overflow:auto;display:flex;flex-direction:column}
+.preview-head{display:flex;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid rgba(11,25,60,0.03)}
+.preview-inner{padding:22px}
+
+.preview-overlay{position:fixed;inset:0;background:rgba(11,25,60,0.25);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:32px;z-index:999;overflow:auto}
+.preview-overlay.hidden{display:none!important}
+.preview-overlay-inner{background:var(--card);border-radius:16px;box-shadow:0 25px 80px rgba(11,25,60,0.25);max-width:900px;width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(11,25,60,0.08)}
+.preview-overlay-header{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid rgba(11,25,60,0.08)}
+.preview-overlay-header h3{margin:0;font-family:Poppins;font-weight:700;font-size:18px}
+.overlay-close{background:none;border:none;font-size:26px;line-height:1;color:var(--muted);cursor:pointer;padding:4px}
+.preview-overlay-body{padding:22px;overflow:auto;background:linear-gradient(180deg,#ffffff,#f6f9ff)}
+.no-scroll{overflow:hidden}
+
+.resume-header{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:14px}
+.resume{display:flex;flex-direction:column;gap:18px}
+.resume-header-info{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px}
+.resume-header-name{font-family:Poppins;font-weight:700;font-size:20px}
+.resume-header-title{color:var(--muted);font-size:14px}
+.resume-header-meta{display:flex;align-items:center;gap:16px;flex-shrink:0}
+.resume-header-contact{display:flex;flex-direction:row;gap:10px;align-items:center;font-size:13px;color:#3f4c6b;margin-top:8px;flex-wrap:wrap}
+.resume-header-contact span{display:inline-flex;align-items:center;padding:4px 12px;border-radius:999px;background:rgba(67,97,238,0.12);color:#2c3a63;font-weight:500}
+.resume-header-address{margin-top:6px;font-size:13px;color:#4a557a}
+.stacked-form{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+.stacked-row input,.stacked-row select{width:100%}
+.personal-details-grid{display:flex;flex-direction:column;gap:10px;border:1px solid rgba(11,25,60,0.06);border-radius:10px;padding:14px;background:linear-gradient(180deg,#ffffff,#f7f9ff)}
+.pd-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.pd-label{font-weight:600;color:#1f2a4d;font-size:13px}
+.pd-value{font-weight:500;color:#3f4c6b;font-size:13px;text-align:right;flex:1}
+.resume-header-photo{width:96px;height:96px;border-radius:50%;overflow:hidden;border:3px solid rgba(11,25,60,0.12);box-shadow:0 6px 20px rgba(11,25,60,0.08);background:linear-gradient(135deg,#ffffff,#eef3ff);display:flex;align-items:center;justify-content:center}
+.resume-header-photo img{width:100%;height:100%;object-fit:cover}
+
+.section-title{font-weight:600;margin-bottom:6px;color:var(--accent)}
+@media(max-width:600px){
+  .resume-header{flex-direction:column;align-items:flex-start;gap:12px}
+  .resume-header-meta{width:100%;justify-content:space-between;align-items:flex-end}
+  .resume-header-contact{text-align:left}
+}
+
+/* template classes */
+.preview-root{background:transparent}
+.tpl-1 .resume{border-left:6px solid #0b5cff;padding-left:12px}
+.tpl-2 .resume{border-left:6px solid #6c5ce7;padding-left:12px}
+.tpl-3 .resume{border-left:6px solid #00b894;padding-left:12px}
+.tpl-4 .resume{border-top:6px solid #0984e3;padding-top:10px}
+.tpl-5 .resume{background:linear-gradient(180deg,#fff8f2,#fff);padding:12px;border-radius:8px}
+.tpl-6 .resume{border-left:6px solid #fd7e14;padding-left:12px}
+.tpl-7 .resume{border-left:6px solid #f6c85f;padding-left:12px}
+.tpl-8 .resume{border-left:6px solid #2d3436;padding-left:12px;color:#222}
+.tpl-9 .resume{border-left:6px solid #16a085;padding-left:12px}
+.tpl-10 .resume{border-left:6px solid #9b59b6;padding-left:12px}
+
+/* table */
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid rgba(11,25,60,0.06);padding:8px;font-size:13px;background:linear-gradient(90deg,#fff,#fff7f0)}
+th{font-weight:700;background:linear-gradient(90deg,#fff7e6,#fff3d6)}
+
+/* buttons & effects */
+.btn-ghost{background:transparent;border:1px solid rgba(11,25,60,0.06);padding:8px 12px;border-radius:10px}
+.actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+
+/* mobile responsiveness */
+@media(max-width:900px){
+  .wrap{flex-direction:column;height:auto}
+  .preview-frame{height:calc(100vh - 340px)}
+  .mobile-only{display:inline-flex}
+}
+.mobile-only{display:none}
+
+/* dark theme */
+.dark{--bg:#0b1220;--card:#071024;--surface:#0e1724;--text:#e6eef8;--muted:#9aa6bf;--accent:#ff9f43}
+.dark body{background:var(--bg)}
+.dark .card{background:var(--card);box-shadow:0 12px 40px rgba(0,0,0,0.5)}
+.dark input, .dark textarea, .dark select{background:#07182a;color:var(--text);border:1px solid rgba(255,255,255,0.03)}
+.dark .preview-frame{background:linear-gradient(180deg,#071024,#07182a);border:1px solid rgba(255,255,255,0.03)}
+.dark th, .dark td{background:transparent;border-color:rgba(255,255,255,0.03)}
+/* glorious button */
+.glow{box-shadow:0 8px 30px rgba(255,122,0,0.14),0 0 30px rgba(255,122,0,0.06)}
+
+/* small helpers */
+.hidden{display:none!important}
+.center{text-align:center}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">Indian Resume Maker â€” Final</div>
+    <div style="margin-left:12px"><button id="themeToggle" class="ghost">Toggle Dark</button></div>
+    <div class="controls header-links">
+      <div class="brand-actions">
+        <a href="resume-maker.html" class="link-primary" target="_blank" rel="noopener">Resume/CV Maker</a>
+        <a href="online_resume_maker.html" class="link-secondary" target="_blank" rel="noopener">20+ Resume Templates</a>
+      </div>
+      <div class="share-bar">
+        <span>Share:</span>
+        <button type="button" data-action="copy-link">Link</button>
+        <button type="button" data-action="share-whatsapp">WhatsApp</button>
+      </div>
+      <button id="downloadHtmlBtn" class="ghost">Download HTML</button>
+    </div>
+  </div>
+
+  <div class="wrap" id="mainWrap">
+    <!-- LEFT: FORM -->
+    <div class="col">
+      <div class="card">
+        <h3>Fill Details</h3>
+
+        <label>Template (choose from dropdown)</label>
+        <select id="templateDropdown" class="select"></select>
+
+        <label>Photo</label>
+        <input type="file" id="photoInput" accept="image/*" />
+        <div style="margin-top:8px"><img id="photoPreview" style="width:120px;height:120px;object-fit:cover;border-radius:8px;border:1px solid #eee" alt="photo"></div>
+
+        <label>Full name</label>
+        <input id="name" placeholder="Your full name">
+
+        <label>Title / Position (comma separated)</label>
+        <input id="title" placeholder="Ex: Software Engineer, Team Lead">
+
+        <div class="row tight">
+          <div style="flex:1">
+            <label>Mobile</label>
+            <input id="mobile" placeholder="+91-1234567890">
+          </div>
+          <div style="flex:1">
+            <label>Email</label>
+            <input id="email" placeholder="you@example.com">
+          </div>
+        </div>
+
+        <label>Address</label>
+        <input id="address" placeholder="City, State, Country">
+
+        <label>Profile</label>
+        <select id="profile">
+          <option value="None">None</option>
+          <option>Student</option>
+          <option>Fresher</option>
+          <option>Supervisor</option>
+          <option>Labour</option>
+          <option>Truck Driver</option>
+          <option>Car Driver</option>
+          <option>Office Staff</option>
+          <option>Teacher</option>
+          <option>Engineer</option>
+          <option>Doctor</option>
+          <option>Sales Executive</option>
+          <option>Security Guard</option>
+          <option>Helper</option>
+          <option>Accountant</option>
+          <option>Computer Operator</option>
+          <option>Manager</option>
+          <option value="Write">âœï¸ Write My Own</option>
+        </select>
+        <div id="profileCustomWrap" style="display:none;margin-top:8px"><input id="profileCustom" placeholder="Write your profile"></div>
+
+        <label>Objective</label>
+        <select id="objective">
+          <option value="">-- Select --</option>
+          <option>To obtain a challenging position to expand my skills.</option>
+          <option>Seeking an entry-level role to build practical experience.</option>
+          <option>To secure a supervisor role and lead a team.</option>
+          <option>To work as a Driver with a reputed company.</option>
+          <option>To apply vocational skills in a stable job.</option>
+          <option>Motivated professional seeking to leverage five years of operations experience to streamline processes, reduce costs, and mentor junior teammates in a growth-focused organization.</option>
+          <option>Goal-oriented graduate aiming to contribute analytical and problem-solving abilities to a dynamic engineering team while pursuing continuous learning and certifications.</option>
+          <option>Customer-first retail associate eager to drive sales, implement visual merchandising best practices, and deliver memorable service experiences for every shopper.</option>
+          <option>Safety-conscious driver looking to join a logistics leader where adherence to compliance, preventative maintenance, and on-time deliveries are top priorities.</option>
+          <option>Dedicated educator passionate about designing inclusive lesson plans, integrating technology in classrooms, and nurturing a collaborative learning culture.</option>
+          <option>Finance enthusiast ready to support budgeting, forecasting, and audit preparation tasks while developing into a trusted advisor for senior leadership.</option>
+          <option>Healthcare professional committed to compassionate patient care, accurate record management, and coordination with multidisciplinary teams to improve outcomes.</option>
+          <option value="Write">âœï¸ Write My Own</option>
+        </select>
+        <div id="objectiveCustomWrap" style="display:none;margin-top:8px"><textarea id="objectiveCustom" placeholder="Write your objective"></textarea></div>
+
+        <label>Summary</label>
+        <textarea id="summary"></textarea>
+
+        <label>Education</label>
+        <div id="eduRows"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn glow" id="addEdu">+ Add Education Row</button>
+          <button class="ghost" id="clearEdu">Clear</button>
+        </div>
+
+        <label style="margin-top:12px">Experience</label>
+        <div id="expRows"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn glow" id="addExp">+ Add Experience</button>
+          <button class="ghost" id="clearExp">Clear</button>
+        </div>
+
+        <label style="margin-top:12px">Licence Details (Driver/Supervisor)</label>
+        <div id="licRows"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn glow" id="addLic">+ Add Licence Row</button>
+          <button class="ghost" id="clearLic">Clear</button>
+        </div>
+
+        <label style="margin-top:12px">Personal Details</label>
+        <div class="stacked-form" id="personalDetailsForm">
+          <div class="stacked-row">
+            <input id="father" placeholder="Father's name">
+          </div>
+          <div class="stacked-row">
+            <input id="dob" type="date" placeholder="Date of Birth">
+          </div>
+          <div class="stacked-row">
+            <input id="marital" placeholder="Marital Status">
+          </div>
+          <div class="stacked-row">
+            <input id="languages" placeholder="Languages known">
+          </div>
+          <div class="stacked-row">
+            <select id="idType">
+              <option value="">Identity Card Type</option>
+              <option>Aadhaar Card</option>
+              <option>PAN Card</option>
+              <option>Voter ID</option>
+              <option>Passport</option>
+              <option>Driving Licence</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="stacked-row">
+            <input id="idNo" placeholder="Identity Number">
+          </div>
+          <div class="stacked-row">
+            <input id="religion" placeholder="Religion">
+          </div>
+          <div class="stacked-row">
+            <input id="nationality" placeholder="Nationality">
+          </div>
+        </div>
+
+        <label style="margin-top:12px">Hobbies</label>
+        <input id="hobbies" placeholder="Reading, Music">
+
+        <label style="margin-top:12px">Declaration</label>
+        <input id="declaration" value="I hereby declare that the information given above is true to the best of my knowledge.">
+
+        <div class="actions">
+          <button class="btn" id="openPreview">Preview Popup</button>
+          <button class="btn glow" id="downloadPdf">Download PDF</button>
+          <button class="btn glow" id="downloadDoc">Download Word</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: PREVIEW -->
+    <div class="col">
+      <div class="preview-frame card" id="previewFrame">
+        <div class="preview-head">
+          <div>
+            <strong>LIVE PREVIEW</strong>
+            <div class="small">Template: <span id="previewTpl">1</span></div>
+          </div>
+          <div>
+            <button id="backToForm" class="ghost mobile-only">â† Back to Form</button>
+          </div>
+        </div>
+        <div class="preview-inner" id="previewInner">
+          <!-- resume content injected here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="preview-overlay hidden" id="previewOverlay" role="dialog" aria-modal="true" aria-labelledby="previewOverlayTitle">
+    <div class="preview-overlay-inner">
+      <div class="preview-overlay-header">
+        <h3 id="previewOverlayTitle">Resume Preview</h3>
+        <button class="overlay-close" id="closePreview" aria-label="Close preview">Ã—</button>
+      </div>
+      <div class="preview-overlay-body">
+        <div id="overlayPreview"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// Setup templates in dropdown
+const tplCount = 10;
+const templateDropdown = document.getElementById('templateDropdown');
+const previewTpl = document.getElementById('previewTpl');
+const overlay = document.getElementById('previewOverlay');
+const overlayPreview = document.getElementById('overlayPreview');
+const closePreviewBtn = document.getElementById('closePreview');
+const openPreviewBtn = document.getElementById('openPreview');
+const backToForm = document.getElementById('backToForm');
+const footerYear = document.getElementById('footerYear');
+const shareButtons = document.querySelectorAll('.share-bar [data-action]');
+for(let i=1;i<=tplCount;i++){
+  const names = ['Corporate','Student','Fresher','Supervisor','Labour','Truck','Car','Engineer','Doctor','Manager'];
+  const opt = document.createElement('option');
+  opt.value = i;
+  opt.textContent = `${i} â€” ${names[i-1]}`;
+  templateDropdown.appendChild(opt);
+}
+templateDropdown.value = 1;
+let currentTemplate = 1;
+function setTemplate(n){
+  currentTemplate = n;
+  templateDropdown.value = n;
+  previewTpl.textContent = n;
+  render();
+}
+templateDropdown.addEventListener('change', e=> setTemplate(parseInt(e.target.value)));
+
+function openPreviewOverlay(){
+  render();
+  const previewContent = document.getElementById('previewInner').innerHTML;
+  overlayPreview.innerHTML = previewContent;
+  overlay.classList.remove('hidden');
+  document.body.classList.add('no-scroll');
+  overlayPreview.scrollTop = 0;
+}
+
+function closePreviewOverlay(){
+  overlay.classList.add('hidden');
+  document.body.classList.remove('no-scroll');
+}
+
+if(openPreviewBtn){
+  openPreviewBtn.addEventListener('click', openPreviewOverlay);
+}
+if(closePreviewBtn){
+  closePreviewBtn.addEventListener('click', closePreviewOverlay);
+}
+overlay.addEventListener('click', e=>{
+  if(e.target === overlay){
+    closePreviewOverlay();
+  }
+});
+
+document.addEventListener('keydown', e=>{
+  if(e.key === 'Escape' && !overlay.classList.contains('hidden')){
+    closePreviewOverlay();
+  }
+});
+
+shareButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const action = btn.getAttribute('data-action');
+    if(action === 'copy-link'){
+      const link = window.location.href;
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(link).then(()=>{
+          alert('Link copied! Share it with your friends.');
+        }).catch(()=>{
+          prompt('Copy this link:', link);
+        });
+      } else {
+        prompt('Copy this link:', link);
+      }
+    }
+    if(action === 'share-whatsapp'){
+      const text = encodeURIComponent('Check out this Indian Resume Maker: ' + window.location.href);
+      window.open('https://wa.me/?text=' + text, '_blank');
+    }
+  });
+});
+
+// dark/light toggle
+const headerThemeToggle = document.getElementById('themeToggle');
+let isDark = false;
+function toggleTheme(){
+  isDark = !isDark;
+  document.documentElement.classList.toggle('dark', isDark);
+  headerThemeToggle.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+}
+headerThemeToggle.addEventListener('click', toggleTheme);
+if(footerYear) footerYear.textContent = new Date().getFullYear();
+
+// inputs
+const inputs = ['name','title','mobile','email','address','summary','hobbies','father','dob','marital','languages','idType','idNo','religion','nationality','declaration'];
+inputs.forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('input', render);
+});
+
+// profile/objective custom
+document.getElementById('profile').addEventListener('change', e=>{
+  if(e.target.value === 'Write') document.getElementById('profileCustomWrap').style.display='block';
+  else document.getElementById('profileCustomWrap').style.display='none';
+  render();
+});
+document.getElementById('objective').addEventListener('change', e=>{
+  if(e.target.value === 'Write') document.getElementById('objectiveCustomWrap').style.display='block';
+  else document.getElementById('objectiveCustomWrap').style.display='none';
+  render();
+});
+
+// photo preview
+const photoInput = document.getElementById('photoInput');
+const photoPreview = document.getElementById('photoPreview');
+let photoDataUrl = photoPreview.getAttribute('src') || '';
+if(!photoDataUrl){
+  photoPreview.style.display = 'none';
+}
+photoInput.addEventListener('change', e=>{
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    photoDataUrl = ev.target.result;
+    photoPreview.src = photoDataUrl;
+    photoPreview.style.display = 'block';
+    render();
+  };
+  r.readAsDataURL(f);
+});
+
+// add rows (education, experience, licence)
+function addEdu(row){
+  const wrap = document.getElementById('eduRows');
+  const div = document.createElement('div');
+  div.className='edu-row';
+  div.innerHTML = `<div style="display:flex;gap:8px;margin-top:8px">
+    <input class='eg' placeholder='Grade/Class'>
+    <input class='eb' placeholder='Board/University'>
+    <input class='ey' placeholder='Year' style='width:90px'>
+    <input class='es' placeholder='Subject'>
+    <input class='ep' placeholder='%' style='width:80px'>
+    <button class='ghost' onclick="this.closest('div.edu-row').remove();render();">Remove</button>
+  </div>`;
+  wrap.appendChild(div);
+  if(row){ div.querySelector('.eg').value=row.g||''; div.querySelector('.eb').value=row.b||''; div.querySelector('.ey').value=row.y||''; div.querySelector('.es').value=row.s||''; div.querySelector('.ep').value=row.p||''; }
+  div.querySelectorAll('input').forEach(inp=> inp.addEventListener('input', render));
+}
+document.getElementById('addEdu').addEventListener('click', ()=> addEdu());
+document.getElementById('clearEdu').addEventListener('click', ()=> { document.getElementById('eduRows').innerHTML=''; render(); });
+
+function addExp(row){
+  const wrap = document.getElementById('expRows');
+  const div = document.createElement('div');
+  div.className='exp-row';
+  div.innerHTML = `<div style="display:flex;gap:8px;margin-top:8px">
+    <input class='eyr' placeholder='Year(s)' style='width:120px'>
+    <input class='erole' placeholder='Role'>
+    <input class='ecomp' placeholder='Company'>
+    <input class='edes' placeholder='Short Description'>
+    <button class='ghost' onclick="this.closest('div.exp-row').remove();render();">Remove</button>
+  </div>`;
+  wrap.appendChild(div);
+  if(row){ div.querySelector('.eyr').value=row.y||''; div.querySelector('.erole').value=row.r||''; div.querySelector('.ecomp').value=row.c||''; div.querySelector('.edes').value=row.d||''; }
+  div.querySelectorAll('input').forEach(inp=> inp.addEventListener('input', render));
+}
+document.getElementById('addExp').addEventListener('click', ()=> addExp());
+document.getElementById('clearExp').addEventListener('click', ()=> { document.getElementById('expRows').innerHTML=''; render(); });
+
+function addLic(row){
+  const wrap = document.getElementById('licRows');
+  const div = document.createElement('div');
+  div.className='lic-row';
+  div.innerHTML = `<div style="display:flex;gap:8px;margin-top:8px">
+    <input class='ln' placeholder='Licence No'>
+    <input class='lc' placeholder='Class' style='width:120px'>
+    <input class='lf' type='date' placeholder='Issued From'>
+    <input class='lu' type='date' placeholder='Valid Upto'>
+    <button class='ghost' onclick="this.closest('div.lic-row').remove();render();">Remove</button>
+  </div>`;
+  wrap.appendChild(div);
+  if(row){
+    div.querySelector('.ln').value=row.no||'';
+    div.querySelector('.lc').value=row.cls||'';
+    div.querySelector('.lf').value=row.from||'';
+    div.querySelector('.lu').value=row.upto||'';
+  }
+  div.querySelectorAll('input').forEach(inp=> inp.addEventListener('input', render));
+}
+document.getElementById('addLic').addEventListener('click', ()=> addLic());
+document.getElementById('clearLic').addEventListener('click', ()=> {
+  document.getElementById('licRows').innerHTML='';
+  render();
+});
+
+// initial demo rows
+addEdu({g:'B.Tech',b:'ABC University',y:'2023',s:'CS',p:'75%'}); addEdu({g:'12th',b:'State Board',y:'2019',s:'Science',p:'82%'});
+addExp({y:'2023-2024',r:'Intern',c:'DevCorp',d:'Frontend dev'}); addLic({no:'DL-123456',cls:'LMV',from:'2019-05-10',upto:'2029-05-09'});
+
+// render preview
+function render(){
+  const name = document.getElementById('name').value.trim();
+  const title = document.getElementById('title').value.trim();
+  const mobile = document.getElementById('mobile').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const address = document.getElementById('address').value.trim();
+  let profileVal = document.getElementById('profile').value;
+  if(profileVal==='Write') profileVal = document.getElementById('profileCustom').value.trim();
+  if(profileVal==='None') profileVal = '';
+  let objectiveVal = document.getElementById('objective').value;
+  if(objectiveVal==='Write') objectiveVal = document.getElementById('objectiveCustom').value.trim();
+  const summary = document.getElementById('summary').value.trim();
+  const hobbies = document.getElementById('hobbies').value.trim();
+  const father = document.getElementById('father').value.trim();
+  const dob = document.getElementById('dob').value;
+  const marital = document.getElementById('marital').value.trim();
+  const languages = document.getElementById('languages').value.trim();
+  const idType = document.getElementById('idType').value;
+  const idNo = document.getElementById('idNo').value.trim();
+  const religion = document.getElementById('religion').value.trim();
+  const nationality = document.getElementById('nationality').value.trim();
+  const declaration = document.getElementById('declaration').value.trim();
+
+  // collect education
+  const edu=[]; document.querySelectorAll('#eduRows .edu-row').forEach(d=>{
+    const g=d.querySelector('.eg').value.trim(); const b=d.querySelector('.eb').value.trim(); const y=d.querySelector('.ey').value.trim();
+    const s=d.querySelector('.es').value.trim(); const p=d.querySelector('.ep').value.trim();
+    if(g||b||y||s||p) edu.push({g,b,y,s,p});
+  });
+
+  // experience
+  const exps=[]; document.querySelectorAll('#expRows .exp-row').forEach(d=>{
+    const y=d.querySelector('.eyr').value.trim(); const r=d.querySelector('.erole').value.trim(); const c=d.querySelector('.ecomp').value.trim(); const de=d.querySelector('.edes').value.trim();
+    if(y||r||c||de) exps.push({y,r,c,de});
+  });
+
+  // licences
+  const lics=[]; document.querySelectorAll('#licRows .lic-row').forEach(d=>{
+    const no=d.querySelector('.ln').value.trim(); const cls=d.querySelector('.lc').value.trim(); const from=d.querySelector('.lf').value; const upto=d.querySelector('.lu').value;
+    if(no||cls||from||upto) lics.push({no,cls,from,upto});
+  });
+
+  // build resume HTML with header (name, title, mobile, email)
+  let html = `<div class="preview-root tpl-${currentTemplate}"><div class="resume">`;
+
+  // header - ALWAYS include name/title/mobile/email if available
+  const fallbackInitials = (name || 'Your Name').split(' ').map(n => n.charAt(0)).join('').substring(0,2).toUpperCase();
+  html += `<div class="resume-header">`;
+  html += `<div class="resume-header-info">
+    <div class="resume-header-name">${escape(name||'Your Name')}</div>
+    <div class="resume-header-title">${escape(title||'')}</div>
+    <div class="resume-header-contact">
+      ${mobile ? `<span>${escape(mobile)}</span>` : ''}
+      ${email ? `<span>${escape(email)}</span>` : ''}
+    </div>
+    ${address ? `<div class="resume-header-address">${escape(address)}</div>` : ''}
+  </div>`;
+  html += `<div class="resume-header-meta">
+    <div class="resume-header-photo">`;
+  if(photoDataUrl){
+    html += `<img src="${photoDataUrl}" alt="Profile photo">`;
+  } else {
+    html += `<span class="small" style="font-weight:700;color:var(--muted)">${escape(fallbackInitials)}</span>`;
+  }
+  html += `</div></div></div>`;
+
+  // profile/objective/summary
+  if(profileVal) html += `<div><div class="section-title">Profile</div><div class="small">${escape(profileVal)}</div></div>`;
+  if(objectiveVal) html += `<div><div class="section-title">Objective</div><div class="small">${escape(objectiveVal)}</div></div>`;
+  if(summary) html += `<div><div class="section-title">Summary</div><div class="small">${escape(summary)}</div></div>`;
+
+  // education
+  if(edu.length){
+    html += `<div><div class="section-title">Education</div><table class="edu"><thead><tr><th>Grade/Class</th><th>Board/University</th><th>Year</th><th>Subject</th><th>%</th></tr></thead><tbody>`;
+    edu.forEach(e=> html += `<tr><td>${escape(e.g)}</td><td>${escape(e.b)}</td><td>${escape(e.y)}</td><td>${escape(e.s)}</td><td>${escape(e.p)}</td></tr>`);
+    html += `</tbody></table></div>`;
+  }
+
+  // licence table
+  if(lics.length){
+    html += `<div><div class="section-title">Licence Details</div><table class="lic"><thead><tr><th>Licence No</th><th>Class</th><th>Issued From</th><th>Valid Upto</th></tr></thead><tbody>`;
+    lics.forEach(l=> html += `<tr><td>${escape(l.no)}</td><td>${escape(l.cls)}</td><td>${escape(l.from)}</td><td>${escape(l.upto)}</td></tr>`);
+    html += `</tbody></table></div>`;
+  }
+
+  // experience
+  if(exps.length){
+    html += `<div><div class="section-title">Experience</div>`;
+    exps.forEach(e=> html += `<div style="margin-bottom:8px"><strong>${escape(e.y)}</strong> - ${escape(e.r)} at ${escape(e.c)}<div class="small">${escape(e.de)}</div></div>`);
+    html += `</div>`;
+  }
+
+  // personal details
+  const personalRows = [];
+  if(father) personalRows.push({label:'Father', value: father});
+  if(dob){
+    const dobDisplay = new Date(dob).toLocaleDateString();
+    personalRows.push({label:'D.O.B', value: dobDisplay});
+  }
+  if(marital) personalRows.push({label:'Marital Status', value: marital});
+  if(languages) personalRows.push({label:'Languages', value: languages});
+  if(idType && idNo) personalRows.push({label:idType, value: idNo});
+  if(religion) personalRows.push({label:'Religion', value: religion});
+  if(nationality) personalRows.push({label:'Nationality', value: nationality});
+  if(personalRows.length) {
+    html += `<div><div class="section-title">Personal Details</div><div class="personal-details-grid">${personalRows.map(r=>`<div class="pd-row"><span class="pd-label">${escape(r.label)}</span><span class="pd-value">${escape(r.value)}</span></div>`).join('')}</div></div>`;
+  }
+
+  // hobbies
+  if(hobbies) html += `<div><div class="section-title">Hobbies</div><div class="small">${escape(hobbies)}</div></div>`;
+
+  // declaration
+  html += `<div style="margin-top:16px;border-top:1px dashed rgba(11,25,60,0.06);padding-top:10px"><div>${escape(declaration||'I hereby declare that the information given above is true to the best of my knowledge.')}</div>`;
+  html += `<div style="display:flex;justify-content:space-between;margin-top:10px"><div>Date: ${new Date().toLocaleDateString()}</div><div>(Signature) <strong>${escape(name||'')}</strong></div></div></div>`;
+
+  html += `</div></div>`;
+  document.getElementById('previewInner').innerHTML = html;
+  // apply template class on preview frame for style differences
+  const pf = document.getElementById('previewFrame');
+  pf.className = 'preview-frame card tpl-' + currentTemplate;
+}
+
+// helper
+function escape(s){ return (s||'').toString().replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+// wire template selection
+templateDropdown.addEventListener('change', e=> { currentTemplate = parseInt(e.target.value); render(); });
+
+// auto render on many inputs
+['name','title','mobile','email','summary','hobbies','father','dob','marital','languages','idNo','religion','nationality','declaration'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('input', render);
+});
+['profile','objective'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('change', render); });
+
+// initial render & demo
+render();
+
+// export functions
+const loadedScripts = {};
+function loadScript(src, cb) {
+  if (loadedScripts[src] === 'ready') {
+    cb();
+    return;
+  }
+  if (Array.isArray(loadedScripts[src])) {
+    loadedScripts[src].push(cb);
+    return;
+  }
+  loadedScripts[src] = [cb];
+
+  const finalize = () => {
+    const callbacks = loadedScripts[src] || [];
+    loadedScripts[src] = 'ready';
+    callbacks.forEach(fn => {
+      try { fn(); } catch (err) { console.error(err); }
+    });
+  };
+
+  const handleError = () => {
+    alert('Failed to load ' + src);
+    loadedScripts[src] = null;
+  };
+
+  const existing = document.querySelector(`script[src="${src}"]`);
+  if (existing) {
+    if (existing.dataset.loaded === 'true') {
+      finalize();
+      return;
+    }
+    existing.addEventListener('load', () => {
+      existing.dataset.loaded = 'true';
+      finalize();
+    }, { once: true });
+    existing.addEventListener('error', handleError, { once: true });
+    return;
+  }
+
+  const script = document.createElement('script');
+  script.src = src;
+  script.async = true;
+  script.addEventListener('load', () => {
+    script.dataset.loaded = 'true';
+    finalize();
+  }, { once: true });
+  script.addEventListener('error', handleError, { once: true });
+  document.head.appendChild(script);
+}
+
+document.getElementById('downloadPdf').addEventListener('click', ()=> {
+  render();
+  loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js', ()=> {
+    const el = document.getElementById('previewInner').firstElementChild;
+    if(!el) return alert('Nothing to export');
+    const opt = {margin:[12,20,16,20], filename:(document.getElementById('name').value||'resume')+'.pdf', image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2}, jsPDF:{unit:'mm',format:'a4'}};
+    html2pdf().set(opt).from(el).save();
+  });
+});
+
+document.getElementById('downloadDoc').addEventListener('click', ()=> {
+  render();
+  const el = document.getElementById('previewInner').firstElementChild;
+  if(!el) return alert('Nothing to export');
+  const nameField = (document.getElementById('name').value || 'Resume').replace(/[<>]/g,'');
+  const docStyles = `
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 24mm 22mm 24mm;
+  }
+  body {
+    font-family: 'Poppins', 'Inter', 'Segoe UI', Arial, sans-serif;
+    background: #f3f5ff;
+    color: #1b2559;
+  }
+  .doc-wrapper {
+    max-width: 720px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #d8def8;
+    padding: 32px 36px 38px;
+    box-shadow: 0 18px 45px rgba(67, 97, 238, 0.08);
+  }
+  .preview-root {
+    background: transparent;
+  }
+  .resume {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .resume-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(67, 97, 238, 0.2);
+  }
+  .resume-header-info {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .resume-header-name {
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: #1b2559;
+  }
+  .resume-header-title {
+    margin-top: 4px;
+    font-size: 16px;
+    color: #546287;
+    font-weight: 500;
+  }
+  .resume-header-meta {
+    display: flex;
+    align-items: flex-end;
+    gap: 18px;
+  }
+  .resume-header-contact {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: #3f4c6b;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .resume-header-contact span {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(67, 97, 238, 0.12);
+    color: #2c3a63;
+    font-weight: 500;
+  }
+  .personal-details-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .personal-details-grid {
+    display: grid;
+    grid-template-columns: minmax(120px, 1fr) minmax(160px, 1fr);
+    gap: 8px 24px;
+    border: 1px solid rgba(11, 25, 60, 0.06);
+    border-radius: 10px;
+    padding: 14px;
+    background: linear-gradient(180deg, #ffffff, #f7f9ff);
+  }
+  .personal-details-grid .pd-label {
+    font-weight: 600;
+    color: #1f2a4d;
+    font-size: 13px;
+  }
+  .personal-details-grid .pd-value {
+    font-weight: 500;
+    color: #3f4c6b;
+    text-align: right;
+    font-size: 13px;
+  }
+  .resume-header-address {
+    margin-top: 6px;
+    font-size: 13px;
+    color: #4a557a;
+  }
+  .resume-header-photo {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    border: 4px solid rgba(67, 97, 238, 0.3);
+    overflow: hidden;
+    box-shadow: 0 12px 28px rgba(67, 97, 238, 0.18);
+    background: linear-gradient(135deg, #f6f8ff, #edf1ff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 600;
+    color: #7f8ab5;
+  }
+  .resume-header-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .section-title {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #4361ee;
+    margin-bottom: 10px;
+  }
+  .small {
+    font-size: 13px;
+    line-height: 1.55;
+    color: #3f4c6b;
+  }
+  .resume > div {
+    line-height: 1.6;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    font-size: 13px;
+  }
+  table thead th {
+    background: rgba(67, 97, 238, 0.12);
+    color: #2f3b6c;
+    font-weight: 600;
+    padding: 8px 10px;
+    border: 1px solid rgba(67, 97, 238, 0.2);
+  }
+  table tbody td {
+    padding: 8px 10px;
+    border: 1px solid rgba(67, 97, 238, 0.12);
+    color: #3a4463;
+  }
+  .resume div.info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .resume div.info-row span {
+    flex: 1;
+  }
+  .tpl-1 .resume { border-left: 6px solid #0b5cff; padding-left: 18px; }
+  .tpl-2 .resume { border-left: 6px solid #6c5ce7; padding-left: 18px; }
+  .tpl-3 .resume { border-left: 6px solid #00b894; padding-left: 18px; }
+  .tpl-4 .resume { border-top: 6px solid #0984e3; padding-top: 16px; }
+  .tpl-5 .resume { background: linear-gradient(180deg, #fff8f2, #ffffff); padding: 20px; border-radius: 12px; border: 1px solid rgba(255, 180, 130, 0.35); }
+  .tpl-6 .resume { border-left: 6px solid #fd7e14; padding-left: 18px; }
+  .tpl-7 .resume { border-left: 6px solid #f6c85f; padding-left: 18px; }
+  .tpl-8 .resume { border-left: 6px solid #2d3436; padding-left: 18px; color: #222; }
+  .tpl-9 .resume { border-left: 6px solid #16a085; padding-left: 18px; }
+  .tpl-10 .resume { border-left: 6px solid #9b59b6; padding-left: 18px; }
+  .tpl-8 .section-title { color: #2d3436; }
+  .tpl-5 .section-title { color: #ff7b54; }
+  .tpl-6 .section-title { color: #fd7e14; }
+</style>`;
+
+  const docHTML = `<!doctype html><html><head><meta charset="utf-8"><title>${nameField}</title>${docStyles}</head><body><div class="doc-wrapper">${el.outerHTML}</div></body></html>`;
+  const blob = new Blob(['\ufeff', docHTML], {type: 'application/msword'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = (nameField || 'resume') + '.doc'; a.click();
+  setTimeout(()=> URL.revokeObjectURL(url),5000);
+});
+
+// Download HTML quick
+document.getElementById('downloadHtmlBtn').addEventListener('click', ()=> {
+  const dochtml = '<!doctype html><html>' + document.documentElement.innerHTML + '</html>';
+  const blob = new Blob([dochtml], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'resume_maker_live.html'; a.click();
+  setTimeout(()=> URL.revokeObjectURL(url),5000);
+});
+
+</script>
+  
+
+</body>
+</html>
+
+
+
+
+
+
+
+<footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>easyjpgtopdf</h3>
+                    <p>Your all-in-one PDF solution for converting, editing, and managing documents with ease.</p>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert to PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="jpg-to-pdf.html">JPG to PDF</a></li>
+                        <li><a href="word-to-pdf.html">Word to PDF</a></li>
+                        <li><a href="excel-to-pdf.html">Excel to PDF</a></li>
+                        <li><a href="ppt-to-pdf.html">PowerPoint to PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert from PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="pdf-to-jpg.html">PDF to JPG</a></li>
+                        <li><a href="pdf-to-word.html">PDF to Word</a></li>
+                        <li><a href="pdf-to-excel.html">PDF to Excel</a></li>
+                        <li><a href="pdf-to-ppt.html">PDF to PowerPoint</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Pdf Editor</h3>
+                    <ul class="footer-links">
+                        <li><a href="merge-pdf.html">Merge PDF</a></li>
+                        <li><a href="split-pdf.html">Split PDF</a></li>
+                        <li><a href="compress-pdf.html">Compress PDF</a></li>
+                        <li><a href="edit-pdf.html">Pdf Editor</a></li>
+                        <li><a href="protect-pdf.html">Protect PDF</a></li>
+                        <li><a href="unlock-pdf.html">Unlock PDF</a></li>
+                        <li><a href="watermark-pdf.html">Watermark PDF</a></li>
+                        <li><a href="crop-pdf.html">Crop PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Image Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="image-compressor.html">Image Compressor</a></li>
+                        <li><a href="image-resizer.html">Image Resizer</a></li>
+                        <li><a href="image-editor.html">Image Editor</a></li>
+                        <li><a href="background-remover.html">Image Background Remover</a></li>
+                        <li><a href="ocr-image.html">OCR Image</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Design Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="resume-maker.html">Resume Maker</a></li>
+                        <li><a href="biodata-maker.html">Marrige Biodata-Data Maker</a></li>
+                        <li><a href="ai-image-generator.html">AI Image Generator</a></li>
+                        <li><a href="marriage-card.html">Marriage Card</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Company</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html#about">About Us</a></li>
+                        <li><a href="index.html#contact">Contact</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Connect With Us</h3>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fab fa-twitter"></i> Twitter</a></li>
+                        <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
+                        <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
+                        <li><a href="#"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+                <p class="attribution">Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site. <a href="attributions.html">See full acknowledgements</a>.</p>
+            </div>
+        </div>
+    </footer>

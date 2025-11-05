@@ -1,0 +1,492 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PDF to JPG - Convert | easyjpgtopdf</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}
+    :root{--primary:#4361ee;--secondary:#3a0ca3;--accent:#4cc9f0;--light:#f8f9fa;--dark:#212529;--gray:#6c757d;--card:#ffffff;--border:#e5e7eb;--brand:var(--primary);--brand-dark:var(--secondary)}
+    body{background-color:#f5f7ff;color:var(--dark);min-height:100vh;display:flex;flex-direction:column;line-height:1.6}
+    .container{max-width:1400px;margin:0 auto;padding:0 24px}
+    header{background:#fff;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+    .navbar{display:flex;justify-content:space-between;align-items:center;padding:14px 0}
+    .logo{display:flex;gap:10px;align-items:center;font-size:22px;font-weight:700;color:var(--brand);text-decoration:none}
+    .logo i{color:var(--brand-dark)}
+    nav .nav-links{display:flex;gap:22px;align-items:center}
+    nav a{color:var(--dark);text-decoration:none;font-weight:500}
+    nav a:hover,nav a.active{color:var(--brand)}
+    .dropdown{position:relative}
+    .dropdown-content{display:none;position:absolute;background:#fff;min-width:220px;border-radius:10px;box-shadow:0 8px 20px rgba(0,0,0,.12);top:100%;left:0;padding:10px 0}
+    .dropdown:hover .dropdown-content{display:block}
+    .dropdown-content a{display:block;padding:10px 18px}
+    .hero{background:linear-gradient(135deg,var(--brand),var(--brand-dark));color:#fff;padding:40px 0;text-align:center;margin-bottom:24px}
+    .workbench{display:flex;gap:22px;align-items:flex-start}
+    .panel{background:#fff;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.08);padding:20px}
+    .left{flex:0 0 70%;min-width:0}
+    .right{flex:0 0 30%;min-width:280px;display:flex;flex-direction:column;align-self:flex-start;position:sticky;top:90px}
+    .preview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin-top:16px}
+    .preview-item{position:relative;border:2px solid #e5e7eb;border-radius:10px;overflow:hidden;background:#fff;display:flex;align-items:center;justify-content:center;aspect-ratio:3/4;cursor:pointer;transition:.15s border-color,.15s box-shadow}
+    .preview-item.selected{border-color:var(--primary);box-shadow:0 8px 20px rgba(67,97,238,.15)}
+    .preview-item canvas{width:100%;height:100%;object-fit:contain;background:#fff}
+    .check-badge{position:absolute;top:8px;right:8px;background:var(--primary);color:#fff;width:22px;height:22px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+    .thumb-toolbar{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+    .toolbar-actions{display:flex;gap:8px}
+    .btn.sm{padding:6px 10px;border-radius:20px;font-size:.9rem}
+    .upload-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
+    .btn{display:inline-flex;align-items:center;gap:8px;background:var(--brand);color:#fff;border:none;border-radius:40px;padding:10px 16px;cursor:pointer;transition:.2s transform,.2s box-shadow}
+    .btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(67,97,238,.25)}
+    .btn.secondary{background:#fff;color:var(--brand);border:1px solid var(--brand)}
+    .right-sections{display:grid;grid-template-columns:1fr;gap:12px;flex:1}
+    .section{border:1px dashed #e5e7eb;border-radius:14px;padding:18px;background:#fff}
+    .section h3{font-size:18px;margin-bottom:12px;color:var(--brand);font-weight:700}
+    .convert-bar{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    .muted{color:var(--gray);font-size:.9rem}
+    #convertBtn{background:linear-gradient(135deg,#4cc9f0,#4361ee);font-size:16px;padding:12px 22px}
+    .comments{margin:40px 0}
+    .section-title{margin-bottom:14px;color:var(--brand)}
+    .comment-form{background:#fff;border-radius:12px;padding:20px;box-shadow:0 5px 15px rgba(0,0,0,.05)}
+    .comment-form .form-group{margin-bottom:14px}
+    .comment-form .form-control{padding:10px 12px;border:1px solid #ddd;border-radius:8px;outline:none;width:100%}
+    .comment-form .form-control:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(67,97,238,.08)}
+    footer{background:#212529;color:#fff;padding:40px 0 20px;margin-top:24px}
+    .footer-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:22px;margin-bottom:20px}
+    .footer-links{list-style:none}
+    .footer-links a{color:#aaa;text-decoration:none}
+    .footer-links a:hover{color:#fff}
+    .copyright{text-align:center;color:#aaa;border-top:1px solid #444;padding-top:16px;font-size:.9rem}
+    @media (max-width: 992px){
+      .left{flex:1 1 100%}
+      .right{flex:1 1 100%; position:static}
+      .workbench{flex-direction:column}
+      .preview-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+    }
+  </style>
+</head>
+<body>
+<header><div class="container"><nav class="navbar"><a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a><div class="nav-links"><a href="index.html" class="active">Home</a><div class="dropdown"><a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="jpg-to-pdf.html">JPG to PDF</a><a href="word-to-pdf.html">Word to PDF</a><a href="excel-to-pdf.html">Excel to PDF</a><a href="ppt-to-pdf.html">PowerPoint to PDF</a></div></div><div class="dropdown"><a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="pdf-to-jpg.html">PDF to JPG</a><a href="pdf-to-word.html">PDF to Word</a><a href="pdf-to-excel.html">PDF to Excel</a><a href="pdf-to-ppt.html">PDF to PowerPoint</a></div></div><div class="dropdown"><a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="merge-pdf.html">Merge PDF</a><a href="split-pdf.html">Split PDF</a><a href="compress-pdf.html">Compress PDF</a><a href="edit-pdf.html">Pdf Editor</a><a href="protect-pdf.html">Protect PDF</a><a href="unlock-pdf.html">Unlock PDF</a><a href="watermark-pdf.html">Watermark PDF</a><a href="crop-pdf.html">Crop PDF</a></div></div>          <div class="dropdown"><a href="#">Image Tools <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="image-compressor.html">Image Compressor</a><a href="image-resizer.html">Image Resizer</a><a href="image-editor.html">Image Editor</a><a href="background-remover.html">Image Background Remover</a><a href="ocr-image.html">OCR Image</a><a href="image-watermark.html">Image Watermark Tool</a></div></div>
+<div class="dropdown"><a href="#">Design Tools <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="resume-maker.html">Resume Maker</a><a href="biodata-maker.html">Marrige Biodata-Data Maker</a><a href="ai-image-generator.html">AI Image Generator</a><a href="marriage-card.html">Marriage Card</a></div></div></div><div class="auth-buttons"><a href="#" class="au
+th-btn login" onclick="showModal('login-modal')">Login</a><a href="#" class="auth-btn signup" onclick="showModal('signup-modal')">Sign Up</a></div></nav></div></header>
+<section class="hero"><div class="container"><h1>PDF to JPG</h1><p>Preview pages, choose quality/DPI, and export pages as JPG.</p></div></section>
+<main class="container">
+  <div class="workbench">
+    <div class="panel left">
+      <h2 style="font-size:18px">PDF Pages</h2>
+      <!-- Upload new PDF removed as requested -->
+      <div class="muted" id="currentFileHint" style="margin-top:6px">Current file: <span id="pdfName">Loaded from session</span>.</div>
+      <div class="thumb-toolbar">
+        <div class="muted">Tip: Click pages to select. If none selected, range applies.</div>
+        <div class="toolbar-actions">
+          <button id="selectAllBtn" class="btn sm secondary">Select All</button>
+          <button id="clearSelBtn" class="btn sm secondary">Clear</button>
+        </div>
+      </div>
+      <div id="preview" class="preview-grid"></div>
+      <!-- Share Section moved into left preview panel -->
+    </div>
+    <div class="panel right">
+      <div class="right-sections">
+        <div class="section">
+          <h3>Export Range</h3>
+          <div class="options" style="gap:12px;align-items:center">
+            <label class="opt"><input type="radio" name="range" value="all" checked> All pages</label>
+            <label class="opt"><input type="radio" name="range" value="custom"> Range</label>
+            <input id="rangeInput" class="form-control" placeholder="e.g. 1-3,5" style="width:160px">
+          </div>
+        </div>
+        <div class="section">
+          <h3>Quality</h3>
+          <div style="display:flex;gap:12px;align-items:center">
+            <input id="qualitySlider" type="range" min="0.4" max="1" step="0.05" value="0.8">
+            <span class="muted" id="qualityLabel">80%</span>
+          </div>
+        </div>
+        <div class="section">
+          <h3>DPI</h3>
+          <div class="options" style="gap:12px;align-items:center">
+            <label class="opt"><input type="radio" name="dpi" value="72"> 72</label>
+            <label class="opt"><input type="radio" name="dpi" value="150" checked> 150</label>
+            <label class="opt"><input type="radio" name="dpi" value="300"> 300</label>
+          </div>
+        </div>
+      </div>
+      <div class="convert-bar">
+        <span class="muted" id="count">0 pages</span>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <a class="btn secondary" href="pdf-to-jpg.html"><i class="fas fa-arrow-left"></i> Back</a>
+          <button class="btn" id="convertBtn"><i class="fas fa-download"></i> Download JPG(s)</button>
+          <button class="btn secondary" id="zipBtn"><i class="fas fa-file-zipper"></i> Download ZIP</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="comments">
+    <h2 class="section-title">User Comments</h2>
+    <div class="comment-form">
+      <div class="form-group"><label for="cname">Your Name</label><input id="cname" class="form-control" type="text" placeholder="Enter your name"></div>
+      <div class="form-group"><label for="cemail">Email Address</label><input id="cemail" class="form-control" type="email" placeholder="Enter your email"></div>
+      <div class="form-group"><label for="cmsg">Your Comment</label><textarea id="cmsg" class="form-control" placeholder="Share your experience"></textarea></div>
+      <button class="btn">Submit Comment</button>
+    </div>
+  </section>
+</main>
+<div class="features" style="background-color:#fff;padding:80px 0;border-radius:20px;margin-bottom:50px;">
+  <div class="container">
+    <h2 class="section-title">Why Choose easyjpgtopdf?</h2>
+    <div class="features-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:40px;">
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Secure & Private</h3>
+          <p style="color:#6c757d;">All files are processed securely and automatically deleted after 1 hour.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-bolt"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Fast Processing</h3>
+          <p style="color:#6c757d;">Our optimized algorithms process your files in seconds.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-desktop"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Works Everywhere</h3>
+          <p style="color:#6c757d;">Use easyjpgtopdf on any device with a modern web browser.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-euro-sign"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Completely Free</h3>
+          <p style="color:#6c757d;">All our basic tools are free to use with no hidden costs.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    const preview = document.getElementById('preview');
+    const count = document.getElementById('count');
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const clearSelBtn = document.getElementById('clearSelBtn');
+    const qualitySlider = document.getElementById('qualitySlider');
+    const qualityLabel = document.getElementById('qualityLabel');
+    const rangeInput = document.getElementById('rangeInput');
+    const convertBtn = document.getElementById('convertBtn');
+    const zipBtn = document.getElementById('zipBtn');
+    let pdfDoc = null;
+    let selectedPages = new Set();
+    const pdfNameEl = document.getElementById('pdfName');
+
+    // IndexedDB helpers (mirror of upload page) for large files
+    function idb(){
+      return new Promise((res,rej)=>{
+        const open = indexedDB.open('easyjpgtopdf',1);
+        open.onupgradeneeded = ()=>{
+          const db = open.result; if(!db.objectStoreNames.contains('pdfstore')) db.createObjectStore('pdfstore');
+        };
+        open.onsuccess = ()=>res(open.result);
+        open.onerror = ()=>rej(open.error);
+      });
+    }
+    async function getPdfFromIDB(){
+      const db = await idb();
+      return await new Promise((res,rej)=>{
+        const tx = db.transaction('pdfstore','readonly');
+        const req = tx.objectStore('pdfstore').get('pdf2jpg');
+        req.onsuccess = ()=>res(req.result||null);
+        req.onerror = ()=>rej(req.error);
+      });
+    }
+    async function setPdfToIDB(blob,name){
+      const db = await idb();
+      return await new Promise((res,rej)=>{
+        const tx = db.transaction('pdfstore','readwrite');
+        tx.objectStore('pdfstore').put({blob,name,ts:Date.now()}, 'pdf2jpg');
+        tx.oncomplete = res; tx.onerror = ()=>rej(tx.error);
+      });
+    }
+
+    async function loadPdfFromSession(){
+      let rec = null;
+      try{ rec = await getPdfFromIDB(); }catch(_){ rec = null; }
+      let blob = rec && rec.blob ? rec.blob : null;
+      let name = rec && rec.name ? rec.name : null;
+      if(!blob){
+        // fallback to sessionStorage dataURL
+        try{
+          const b64 = sessionStorage.getItem('pdf2jpg_b64');
+          const sname = sessionStorage.getItem('pdf2jpg_name');
+          if(b64){
+            const resp = await fetch(b64);
+            blob = await resp.blob();
+            name = name || sname || 'document.pdf';
+            // write into IDB for consistency
+            try{ await setPdfToIDB(blob, name); }catch(_){ }
+          }
+        }catch(_){ /* ignore */ }
+      }
+      if(!blob){ alert('PDF file not found. Please upload again.'); location.href = 'pdf-to-jpg.html'; return; }
+      if (pdfNameEl && name) pdfNameEl.textContent = name;
+      // clear fallback to free memory
+      try{ sessionStorage.removeItem('pdf2jpg_b64'); sessionStorage.removeItem('pdf2jpg_name'); }catch(_){ }
+      const ab = await blob.arrayBuffer();
+      const loadingTask = pdfjsLib.getDocument({data:new Uint8Array(ab)});
+      pdfDoc = await loadingTask.promise;
+      await renderThumbnails();
+    }
+
+    async function renderThumbnails(){
+      preview.innerHTML = '';
+      for(let i=1;i<=pdfDoc.numPages;i++){
+        const page = await pdfDoc.getPage(i);
+        const viewport = page.getViewport({ scale: 0.3 });
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = Math.ceil(viewport.width);
+        canvas.height = Math.ceil(viewport.height);
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        const wrap = document.createElement('div');
+        wrap.className = 'preview-item';
+        wrap.dataset.page = String(i);
+        if (selectedPages.has(i)) wrap.classList.add('selected');
+        wrap.appendChild(canvas);
+        const badge = document.createElement('div');
+        badge.className = 'check-badge';
+        badge.innerHTML = '<i class="fas fa-check"></i>';
+        if (selectedPages.has(i)) wrap.appendChild(badge);
+        wrap.addEventListener('click', ()=>{
+          const p = i;
+          if (selectedPages.has(p)){
+            selectedPages.delete(p);
+          } else {
+            selectedPages.add(p);
+          }
+          renderThumbnails();
+        });
+        preview.appendChild(wrap);
+      }
+      count.textContent = pdfDoc.numPages + (pdfDoc.numPages===1?' page':' pages');
+    }
+
+    // Upload new PDF feature removed
+
+    
+
+    selectAllBtn.addEventListener('click', ()=>{
+      selectedPages = new Set(Array.from({length: pdfDoc?.numPages||0}, (_,idx)=>idx+1));
+      renderThumbnails();
+    });
+    clearSelBtn.addEventListener('click', ()=>{
+      selectedPages.clear();
+      renderThumbnails();
+    });
+    qualitySlider.addEventListener('input', ()=>{
+      qualityLabel.textContent = Math.round(parseFloat(qualitySlider.value)*100)+'%';
+    });
+
+    function parseRange(str, max){
+      str = (str||'').trim(); if(!str) return null; // null means invalid/empty
+      const parts = str.split(','); const set = new Set();
+      for(const p of parts){
+        const m = p.match(/^(\d+)(?:-(\d+))?$/);
+        if(!m) continue; const a = parseInt(m[1],10), b = m[2]?parseInt(m[2],10):a;
+        const start = Math.max(1, Math.min(a,b)), end = Math.min(max, Math.max(a,b));
+        for(let x=start;x<=end;x++) set.add(x);
+      }
+      return Array.from(set).sort((x,y)=>x-y);
+    }
+
+    async function renderPageToJpg(pageNumber, dpi, quality){
+      const page = await pdfDoc.getPage(pageNumber);
+      const scale = dpi/72; // pdf.js default 72 DPI
+      const viewport = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = Math.ceil(viewport.width);
+      canvas.height = Math.ceil(viewport.height);
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      return await new Promise(res=>canvas.toBlob(b=>{
+        // Return raw JPEG Blob to zip directly (avoids base64 issues)
+        if (b) { res(b); return; }
+        // Fallback: some browsers may return null; use dataURL->Blob
+        try {
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          fetch(dataUrl).then(r=>r.blob()).then(res);
+        } catch (e) {
+          // Last resort: return empty blob to avoid crashes
+          res(new Blob([],{type:'image/jpeg'}));
+        }
+      }, 'image/jpeg', quality));
+    }
+
+    async function downloadPages(pages, quality, dpi){
+      const base = (pdfNameEl?.textContent?.replace(/\.pdf$/i,'')||'page');
+      for(let i=0;i<pages.length;i++){
+        const pNo = pages[i];
+        const blob = await renderPageToJpg(pNo, dpi, quality);
+        saveAs(blob, `${base}-page-${pNo}.jpg`);
+      }
+    }
+
+    function getExportConfig(){
+      if(!pdfDoc){ alert('No PDF loaded.'); return null; }
+      const quality = parseFloat(qualitySlider.value||'0.8');
+      const dpi = parseInt(document.querySelector('input[name="dpi"]:checked').value||'150',10);
+      const rangeType = (document.querySelector('input[name="range"]:checked')||{}).value;
+      const rangeRaw = rangeInput.value;
+      let pages = [];
+      if (selectedPages.size>0){
+        pages = Array.from(selectedPages).sort((a,b)=>a-b);
+      } else if(rangeType==='all'){
+        for(let i=1;i<=pdfDoc.numPages;i++) pages.push(i);
+      } else {
+        const parsed = parseRange(rangeRaw, pdfDoc.numPages);
+        if(!parsed||!parsed.length){
+          alert('Please enter a valid page range, e.g., 1-3,5 or select pages.');
+          return null;
+        }
+        pages = parsed;
+      }
+      return { quality, dpi, pages };
+    }
+
+    convertBtn.addEventListener('click', async function(){
+      const config = getExportConfig();
+      if(!config) return;
+      await downloadPages(config.pages, config.quality, config.dpi);
+    });
+
+    zipBtn.addEventListener('click', async function(){
+      const config = getExportConfig();
+      if(!config) return;
+      const zip = new JSZip();
+      const folder = zip.folder('pdf-to-jpg');
+      for(const pageNumber of config.pages){
+        const blob = await renderPageToJpg(pageNumber, config.dpi, config.quality);
+        folder.file(`page-${pageNumber}.jpg`, blob);
+      }
+      const baseName = (pdfNameEl?.textContent?.replace(/\.pdf$/i,'')||'pages');
+      const zipBlob = await zip.generateAsync({ type:'blob' });
+      saveAs(zipBlob, `${baseName}-images.zip`);
+    });
+
+    loadPdfFromSession();
+  })();
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>easyjpgtopdf</h3>
+                    <p>Your all-in-one PDF solution for converting, editing, and managing documents with ease.</p>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert to PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="jpg-to-pdf.html">JPG to PDF</a></li>
+                        <li><a href="word-to-pdf.html">Word to PDF</a></li>
+                        <li><a href="excel-to-pdf.html">Excel to PDF</a></li>
+                        <li><a href="ppt-to-pdf.html">PowerPoint to PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert from PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="pdf-to-jpg.html">PDF to JPG</a></li>
+                        <li><a href="pdf-to-word.html">PDF to Word</a></li>
+                        <li><a href="pdf-to-excel.html">PDF to Excel</a></li>
+                        <li><a href="pdf-to-ppt.html">PDF to PowerPoint</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Pdf Editor</h3>
+                    <ul class="footer-links">
+                        <li><a href="merge-pdf.html">Merge PDF</a></li>
+                        <li><a href="split-pdf.html">Split PDF</a></li>
+                        <li><a href="compress-pdf.html">Compress PDF</a></li>
+                        <li><a href="edit-pdf.html">Pdf Editor</a></li>
+                        <li><a href="protect-pdf.html">Protect PDF</a></li>
+                        <li><a href="unlock-pdf.html">Unlock PDF</a></li>
+                        <li><a href="watermark-pdf.html">Watermark PDF</a></li>
+                        <li><a href="crop-pdf.html">Crop PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Image Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="image-compressor.html">Image Compressor</a></li>
+                        <li><a href="image-resizer.html">Image Resizer</a></li>
+                        <li><a href="image-editor.html">Image Editor</a></li>
+                        <li><a href="background-remover.html">Image Background Remover</a></li>
+                        <li><a href="ocr-image.html">OCR Image</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Design Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="resume-maker.html">Resume Maker</a></li>
+                        <li><a href="biodata-maker.html">Marrige Biodata-Data Maker</a></li>
+                        <li><a href="ai-image-generator.html">AI Image Generator</a></li>
+                        <li><a href="marriage-card.html">Marriage Card</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Company</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html#about">About Us</a></li>
+                        <li><a href="index.html#contact">Contact</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Connect With Us</h3>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fab fa-twitter"></i> Twitter</a></li>
+                        <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
+                        <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
+                        <li><a href="#"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+                <p class="attribution">Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site. <a href="attributions.html">See full acknowledgements</a>.</p>
+            </div>
+        </div>
+    </footer>
+
+

@@ -1,0 +1,815 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Background Style | easyjpgtopdf</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #4361ee;
+      --secondary: #3a0ca3;
+      --accent: #4cc9f0;
+      --dark: #1a214d;
+      --muted: #6f7694;
+      --surface: #ffffff;
+      --border: rgba(20, 28, 72, 0.12);
+      --chip-bg: rgba(67, 97, 238, 0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: linear-gradient(180deg, #f3f4ff 0%, #f8f9ff 100%); color: var(--dark); min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: var(--surface); box-shadow: 0 12px 30px rgba(14, 32, 86, 0.08); position: sticky; top: 0; z-index: 40; }
+    .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    .navbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; }
+    .logo { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 700; color: var(--primary); text-decoration: none; }
+    .logo i { color: var(--secondary); }
+    .nav-links { display: flex; gap: 18px; align-items: center; flex-wrap: nowrap; }
+    .nav-links > a,
+    .dropdown-toggle { display: inline-flex; align-items: center; gap: 6px; color: var(--dark); font-weight: 500; text-decoration: none; font-size: 0.95rem; padding: 8px 0; }
+    .nav-links > a:hover,
+    .nav-links > a.active,
+    .dropdown > a:hover { color: var(--primary); }
+    .dropdown { position: relative; }
+    .dropdown-toggle::after { content: '\f107'; font-family: 'Font Awesome 6 Free'; font-weight: 900; font-size: 0.75rem; }
+    .dropdown-content { display: none; position: absolute; background: #fff; min-width: 220px; border-radius: 12px; box-shadow: 0 16px 40px rgba(14, 32, 86, 0.12); top: calc(100% + 8px); left: 0; padding: 12px 0; z-index: 30; }
+    .dropdown-content a { display: block; padding: 10px 20px; color: var(--dark); white-space: nowrap; }
+    .dropdown-content a:hover { background: rgba(67, 97, 238, 0.08); }
+    .dropdown:hover .dropdown-content { display: block; }
+    .btn-outline { background: transparent; border: 1px solid rgba(67, 97, 238, 0.35); color: var(--primary); }
+    .btn-outline:hover { background: rgba(67, 97, 238, 0.08); }
+    .auth-buttons { display: flex; gap: 10px; align-items: center; }
+    .topbar { max-width: 1200px; margin: 0 auto; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+    .topbar h1 { font-size: 1.6rem; color: #131a48; }
+    .breadcrumbs { display: flex; gap: 8px; align-items: center; font-size: 0.95rem; color: var(--muted); }
+    .breadcrumbs a { color: var(--primary); text-decoration: none; }
+    .stage { flex: 1; width: 100%; max-width: 1200px; margin: 36px auto; padding: 0 24px 60px; display: grid; grid-template-columns: minmax(320px, 1fr) minmax(360px, 420px); gap: 28px; align-items: start; }
+    .panel { background: var(--surface); border-radius: 24px; padding: 28px; box-shadow: 0 22px 45px rgba(16, 30, 70, 0.08); border: 1px solid var(--border); }
+    .panel h2 { font-size: 1.25rem; margin-bottom: 18px; color: #121a4c; display: flex; align-items: center; gap: 10px; }
+    .preview-frame { border-radius: 20px; width: 8.6cm; height: 8.6cm; max-width: 100%; max-height: 100%; overflow: hidden; position: relative; background: #f1f1ff; margin: 0 auto; display: flex; align-items: center; justify-content: center; }
+    .preview-frame canvas { width: 100%; height: 100%; object-fit: contain; }
+    .category-tabs { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+    .tab-button { border-radius: 999px; padding: 8px 18px; border: 1px solid var(--border); background: var(--chip-bg); color: #243163; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, background 0.2s; }
+    .tab-button.active { background: linear-gradient(135deg, #4361ee, #3a0ca3); color: #fff; box-shadow: 0 16px 30px rgba(67, 97, 238, 0.2); }
+    .tab-button:hover { transform: translateY(-1px); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(1.5cm, 1.5cm)); grid-auto-rows: 1.5cm; gap: 8px; width: 8.6cm; max-width: 100%; max-height: 8.6cm; margin: 0 auto 24px; padding-right: 6px; overflow-y: auto; justify-content: center; }
+    .thumb { position: relative; width: 1.5cm; height: 1.5cm; border-radius: 10px; overflow: hidden; cursor: pointer; border: 2px solid transparent; box-shadow: 0 10px 20px rgba(18, 30, 60, 0.12); transition: transform 0.2s, border-color 0.2s; }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .thumb span { position: absolute; bottom: 4px; left: 4px; right: 4px; text-align: center; background: rgba(15, 23, 42, 0.6); color: #fff; padding: 2px 4px; border-radius: 999px; font-size: 0.55rem; font-weight: 600; letter-spacing: 0.03em; line-height: 1.2; }
+    .thumb:hover { transform: translateY(-3px); }
+    .thumb.selected { border-color: var(--primary); }
+    .color-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap: 14px; }
+    .color-chip { width: 100%; padding-bottom: 100%; border-radius: 16px; position: relative; cursor: pointer; border: 2px solid transparent; box-shadow: 0 12px 25px rgba(16, 32, 70, 0.08); }
+    .color-chip .fill { position: absolute; inset: 0; border-radius: 14px; }
+    .color-chip.selected { border-color: var(--primary); }
+    .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 10px 22px; border: none; cursor: pointer; font-weight: 600; font-size: 0.95rem; transition: transform 0.2s, box-shadow 0.2s; }
+    .btn-primary { background: linear-gradient(135deg, #4361ee, #3a0ca3); color: #fff; box-shadow: 0 16px 30px rgba(67, 97, 238, 0.25); }
+    .btn-outline { background: #fff; border: 1px solid var(--border); color: #233150; }
+    .btn[disabled] { opacity: 0.5; cursor: not-allowed; box-shadow: none; transform: none; }
+    .status { font-size: 0.92rem; color: var(--muted); margin-top: 14px; min-height: 1.2rem; }
+    .overlay-deck { width: 100%; max-width: 1200px; margin: 0 auto 60px; padding: 0 24px; }
+    .overlay-panel { margin-top: 0; }
+    .overlay-controls { background: rgba(67, 97, 238, 0.08); border: 1px solid rgba(67, 97, 238, 0.15); border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+    .overlay-controls header { display: flex; justify-content: space-between; align-items: center; color: #1a214d; font-weight: 600; font-size: 0.95rem; }
+    .overlay-switch { display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; }
+    .overlay-fields { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    .overlay-fields.hidden { display: none; }
+    .overlay-fields label { display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+    .overlay-fields textarea { border: 1px solid rgba(20, 28, 72, 0.16); border-radius: 12px; padding: 10px 14px; font-size: 0.95rem; color: #1f2559; background: #fff; min-height: 90px; resize: vertical; }
+    .overlay-fields input[type="color"] { width: 100%; height: 44px; border: 1px solid rgba(20, 28, 72, 0.16); border-radius: 12px; padding: 6px; background: #fff; }
+    .overlay-fields select, .overlay-fields input[type="range"] { appearance: none; border: 1px solid rgba(20,28,72,0.16); border-radius: 12px; padding: 8px 12px; font-size: 0.95rem; color: #1f2559; background: #fff; }
+    .overlay-fields input:disabled, .overlay-fields select:disabled { opacity: 0.5; cursor: not-allowed; }
+    .overlay-range-value { font-weight: 600; color: #1f2559; font-size: 0.9rem; }
+    .overlay-manual { display: flex; flex-direction: column; gap: 6px; }
+    footer { background: #0d1530; color: #e8ecff; padding: 50px 0 30px; margin-top: auto; }
+    .footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 30px; margin-bottom: 30px; }
+    .footer-grid h3 { margin-bottom: 12px; font-size: 1rem; }
+    .footer-links { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .footer-links a { color: rgba(232, 236, 255, 0.75); text-decoration: none; font-size: 0.95rem; }
+    .footer-links a:hover { color: #fff; }
+    .footer-links i { margin-right: 6px; }
+    .copyright { text-align: center; border-top: 1px solid rgba(232, 236, 255, 0.16); padding-top: 20px; font-size: 0.85rem; color: rgba(232,236,255,0.6); }
+    @media (max-width: 980px) {
+      .stage { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <nav class="navbar">
+        <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
+        <div class="nav-links">
+          <a href="index.html" class="active">Home</a>
+          <div class="dropdown">
+            <a href="#" class="dropdown-toggle">Convert to PDF</a>
+            <div class="dropdown-content">
+              <a href="jpg-to-pdf.html">JPG to PDF</a>
+              <a href="word-to-pdf.html">Word to PDF</a>
+              <a href="excel-to-pdf.html">Excel to PDF</a>
+              <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#" class="dropdown-toggle">Convert from PDF</a>
+            <div class="dropdown-content">
+              <a href="pdf-to-jpg.html">PDF to JPG</a>
+              <a href="pdf-to-word.html">PDF to Word</a>
+              <a href="pdf-to-excel.html">PDF to Excel</a>
+              <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#" class="dropdown-toggle">Pdf Editor</a>
+            <div class="dropdown-content">
+              <a href="merge-pdf.html">Merge PDF</a>
+              <a href="split-pdf.html">Split PDF</a>
+              <a href="compress-pdf.html">Compress PDF</a>
+              <a href="edit-pdf.html">Pdf Editor</a>
+              <a href="protect-pdf.html">Protect PDF</a>
+              <a href="unlock-pdf.html">Unlock PDF</a>
+              <a href="watermark-pdf.html">Watermark PDF</a>
+              <a href="crop-pdf.html">Crop PDF</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#" class="dropdown-toggle">Image Tools</a>
+            <div class="dropdown-content">
+              <a href="image-compressor.html">Image Compressor</a>
+              <a href="image-resizer.html">Image Resizer</a>
+              <a href="image-editor.html">Image Editor</a>
+              <a href="background-remover.html">Image Background Remover</a>
+              <a href="ocr-image.html">OCR Image</a>
+              <a href="image-watermark.html">Image Watermark Tool</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#" class="dropdown-toggle">Design Tools</a>
+            <div class="dropdown-content">
+              <a href="resume-maker.html">Resume Maker</a>
+              <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+              <a href="ai-image-generator.html">AI Image Generator</a>
+              <a href="marriage-card.html">Marriage Card</a>
+            </div>
+          </div>
+        </div>
+        <div class="auth-buttons" style="display:flex;gap:10px;align-items:center;">
+          <a href="#" class="btn-outline btn" onclick="showModal && showModal('login-modal');return false;">Login</a>
+          <a href="#" class="btn btn-primary" onclick="showModal && showModal('signup-modal');return false;">Sign Up</a>
+        </div>
+      </nav>
+    </div>
+    <div class="topbar">
+      <div>
+        <h1><i class="fas fa-layer-group"></i> Background Style</h1>
+        <div class="breadcrumbs">
+          <a href="background-remover.html">Upload</a>
+          <i class="fas fa-chevron-right" style="font-size:0.8rem;"></i>
+          <a href="background-workspace.html">Preview</a>
+          <i class="fas fa-chevron-right" style="font-size:0.8rem;"></i>
+          <span>Background Style</span>
+        </div>
+      </div>
+      <button class="btn btn-outline" id="backToPreview"><i class="fas fa-arrow-left"></i> Back to Preview</button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <section class="panel">
+      <h2><i class="fas fa-eye"></i> Live Preview</h2>
+      <div class="preview-frame">
+        <canvas id="previewCanvas"></canvas>
+      </div>
+      <div class="status" id="status"></div>
+      <div class="actions">
+        <button class="btn btn-outline" id="resetBackground" disabled><i class="fas fa-undo"></i> Reset</button>
+        <button class="btn btn-primary" id="downloadImage" disabled><i class="fas fa-download"></i> Download</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><i class="fas fa-magic"></i> Pick a Background</h2>
+      <div class="category-tabs">
+        <button class="tab-button active" data-tab="magic">Magic Photos</button>
+        <button class="tab-button" data-tab="photos">Cityscapes</button>
+        <button class="tab-button" data-tab="tech">Tech & Infra</button>
+        <button class="tab-button" data-tab="colors">Solid Colours</button>
+        <button class="tab-button" data-tab="transparent">Transparent</button>
+      </div>
+
+      <div class="tab-content" data-tab="magic">
+        <div class="grid" id="magicGrid"></div>
+      </div>
+
+      <div class="tab-content" data-tab="photos" hidden>
+        <div class="grid" id="photoGrid"></div>
+      </div>
+
+      <div class="tab-content" data-tab="tech" hidden>
+        <div class="grid" id="techGrid"></div>
+      </div>
+
+      <div class="tab-content" data-tab="colors" hidden>
+        <div class="color-grid" id="colorGrid"></div>
+      </div>
+
+      <div class="tab-content" data-tab="transparent" hidden>
+        <p style="color:var(--muted);">Set background to transparent and download instantly.</p>
+      </div>
+    </section>
+  </main>
+
+  <div class="overlay-deck">
+    <section class="panel overlay-panel">
+      <div class="overlay-controls">
+        <header>
+          <span><i class="fas fa-pen"></i> Overlay Text</span>
+          <label class="overlay-switch"><input type="checkbox" id="overlayToggle"> Enable</label>
+        </header>
+        <div class="overlay-fields hidden" id="overlayFields">
+          <label>
+            Text (multiline supported)
+            <textarea id="overlayText" placeholder="Enter caption"></textarea>
+          </label>
+          <label>
+            Font Family
+            <select id="overlayFont">
+              <option value="'Segoe UI', sans-serif">Segoe UI</option>
+              <option value="'Poppins', sans-serif">Poppins</option>
+              <option value="'Roboto', sans-serif">Roboto</option>
+              <option value="'Montserrat', sans-serif">Montserrat</option>
+              <option value="'Playfair Display', serif">Playfair Display</option>
+            </select>
+          </label>
+          <label>
+            Font Weight
+            <select id="overlayWeight">
+              <option value="400">Regular</option>
+              <option value="500">Medium</option>
+              <option value="600" selected>Semi Bold</option>
+              <option value="700">Bold</option>
+              <option value="800">Extra Bold</option>
+            </select>
+          </label>
+          <label>
+            Font Size
+            <div style="display:flex;align-items:center;gap:10px;">
+              <input type="range" id="overlaySize" min="16" max="96" value="42">
+              <span class="overlay-range-value" id="overlaySizeValue">42px</span>
+            </div>
+          </label>
+          <label>
+            Position
+            <select id="overlayPosition">
+              <option value="top-left">Top Left</option>
+              <option value="top-right">Top Right</option>
+              <option value="center" selected>Center</option>
+              <option value="bottom-left">Bottom Left</option>
+              <option value="bottom-right">Bottom Right</option>
+              <option value="bottom-center">Bottom Center</option>
+              <option value="manual">Manual (use sliders)</option>
+            </select>
+          </label>
+          <label id="overlayManualX" class="overlay-manual hidden">
+            Horizontal Offset
+            <div style="display:flex;align-items:center;gap:10px;">
+              <input type="range" id="overlayOffsetX" min="-100" max="100" value="0">
+              <span class="overlay-range-value" id="overlayOffsetXValue">0%</span>
+            </div>
+          </label>
+          <label id="overlayManualY" class="overlay-manual hidden">
+            Vertical Offset
+            <div style="display:flex;align-items:center;gap:10px;">
+              <input type="range" id="overlayOffsetY" min="-100" max="100" value="0">
+              <span class="overlay-range-value" id="overlayOffsetYValue">0%</span>
+            </div>
+          </label>
+          <label>
+            Text Colour
+            <input type="color" id="overlayColor" value="#ffffff">
+          </label>
+          <label>
+            Shadow Strength
+            <div style="display:flex;align-items:center;gap:10px;">
+              <input type="range" id="overlayShadow" min="0" max="30" value="12">
+              <span class="overlay-range-value" id="overlayShadowValue">12px</span>
+            </div>
+          </label>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  
+
+  <script type="module">
+    const STORAGE_KEYS = {
+      original: 'bgRemover:original',
+      foreground: 'bgRemover:foreground',
+      filename: 'bgRemover:filename',
+      dimensions: 'bgRemover:dimensions'
+    };
+
+    const fallbackBackgrounds = {
+      magic: [
+        { label: 'Aurora Night', url: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Mountain Sunrise', url: 'https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Golden Forest', url: 'https://images.unsplash.com/photo-1470770903676-69b98201ea1c?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Desert Dream', url: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Lavender Field', url: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80&sat=-20' },
+        { label: 'Sea Mist', url: 'https://images.unsplash.com/photo-1474871256005-c5f7eb1d77f1?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Canyon Glow', url: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Foggy Pines', url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Snow Valley', url: 'https://images.unsplash.com/photo-1508261305430-1e1c5237c11f?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Moody Lake', url: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Cherry Blossoms', url: 'https://images.unsplash.com/photo-1494475673543-6a6a27143b22?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Palm Horizon', url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Beach Sunset', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Autumn Path', url: 'https://images.unsplash.com/photo-1476041800959-2f6bb412c8ce?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Starry Ridge', url: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1600&q=80&sat=-30' },
+        { label: 'Emerald Hills', url: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'River Glow', url: 'https://images.unsplash.com/photo-1477414348463-c0eb7f1359b6?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Purple Mountains', url: 'https://images.unsplash.com/photo-1500534625967-5b1fd4700f39?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Rolling Clouds', url: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1600&q=80&sat=-50' },
+        { label: 'Glacier Lagoon', url: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1600&q=80&hue=190' },
+        { label: 'Tropical Blush', url: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1600&q=80&sat=-10' },
+        { label: 'Winter Sunrise', url: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1600&q=80&hue=0' }
+      ],
+      photos: [
+        { label: 'New York Skyline', url: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'London Bridge', url: 'https://images.unsplash.com/photo-1498887960847-2a25ef84c54b?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Paris Eiffel', url: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Tokyo Lights', url: 'https://images.unsplash.com/photo-1549693578-d683be217e58?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Dubai Skyline', url: 'https://images.unsplash.com/photo-1533104816931-20fa691ff6ca?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Singapore Marina', url: 'https://images.unsplash.com/photo-1526481280695-3c469928b67b?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Sydney Opera', url: 'https://images.unsplash.com/photo-1506976785307-8732e854ad89?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Hong Kong', url: 'https://images.unsplash.com/photo-1505767641034-1b3f0a7ab1d2?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Barcelona Streets', url: 'https://images.unsplash.com/photo-1505761671935-60b3a7427bad?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'San Francisco', url: 'https://images.unsplash.com/photo-1465446751832-9c63a0470b97?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Seoul Skyline', url: 'https://images.unsplash.com/photo-1526481280695-3c469928b67b?auto=format&fit=crop&w=1600&q=80&sat=-20' },
+        { label: 'Shanghai Tower', url: 'https://images.unsplash.com/photo-1526481280695-3c469928b67b?auto=format&fit=crop&w=1600&q=80&hue=210' },
+        { label: 'Amsterdam Canals', url: 'https://images.unsplash.com/photo-1444676632488-26a136c45b9b?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Rome Sunrise', url: 'https://images.unsplash.com/photo-1526481280695-3c469928b67b?auto=format&fit=crop&w=1600&q=80&sat=-60' },
+        { label: 'Los Angeles', url: 'https://images.unsplash.com/photo-1505761671935-60b3a7427bad?auto=format&fit=crop&w=1600&q=80&hue=15' },
+        { label: 'Rio de Janeiro', url: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1600&q=80&hue=5' },
+        { label: 'Berlin Lights', url: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1600&q=80&sat=-10' },
+        { label: 'Istanbul', url: 'https://images.unsplash.com/photo-1526481280695-3c469928b67b?auto=format&fit=crop&w=1600&q=80&hue=30' },
+        { label: 'Cape Town', url: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Moscow', url: 'https://images.unsplash.com/photo-1526481280695-3c469928b67b?auto=format&fit=crop&w=1600&q=80&hue=340' },
+        { label: 'Vancouver', url: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1600&q=80&sat=-80' },
+        { label: 'Mumbai', url: 'https://images.unsplash.com/photo-1526481280695-3c469928b67b?auto=format&fit=crop&w=1600&q=80&sat=-30' }
+      ],
+      tech: [
+        { label: 'Data Center', url: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Neon Grid', url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Modern Office', url: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Blue Circuit', url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1600&q=80&sat=-60' },
+        { label: 'Server Aisle', url: 'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Drone City', url: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Futuristic Lobby', url: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80&hue=200' },
+        { label: 'Cyber Lines', url: 'https://images.unsplash.com/photo-1535223289827-42f1e9919769?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Innovation Hub', url: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1600&q=80&sat=-30' },
+        { label: 'Neon Tunnel', url: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1600&q=80&hue=280' },
+        { label: 'VR Experience', url: 'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1600&q=80&sat=-40' },
+        { label: 'Innovation Lab', url: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1600&q=80&sat=-20' },
+        { label: 'Neon Bridge', url: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1600&q=80&sat=-20' },
+        { label: 'Tech Expo', url: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1600&q=80&hue=300' },
+        { label: 'Smart City', url: 'https://images.unsplash.com/photo-1535223289827-42f1e9919769?auto=format&fit=crop&w=1600&q=80&sat=-45' },
+        { label: 'AI Circuit', url: 'https://images.unsplash.com/photo-1526481280695-3c469928b67b?auto=format&fit=crop&w=1600&q=80&sat=-70' },
+        { label: 'Digital Wave', url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1600&q=80&hue=220' },
+        { label: 'Tech Vibes', url: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1600&q=80&hue=340' },
+        { label: 'Quantum Lab', url: 'https://images.unsplash.com/photo-1526481280695-3c469928b67b?auto=format&fit=crop&w=1600&q=80&sat=-15' },
+        { label: 'Hologram Hall', url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1600&q=80&hue=180' },
+        { label: 'Innovation Bridge', url: 'https://images.unsplash.com/photo-1526481280695-3c469928b67b?auto=format&fit=crop&w=1600&q=80&sat=-5' },
+        { label: 'Satellite View', url: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=80&sat=-70' },
+        { label: 'IoT Hub', url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1600&q=80' },
+        { label: 'Digital Aurora', url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1600&q=80&sat=-5' },
+        { label: 'Smart Grid', url: 'https://images.unsplash.com/photo-1526481280695-3c469928b67b?auto=format&fit=crop&w=1600&q=80&hue=250' }
+      ]
+    };
+
+    const colorPalette = [
+      { label: 'Transparent', value: 'transparent' },
+      { label: 'Pure White', value: '#ffffff' },
+      { label: 'Charcoal', value: '#111827' },
+      { label: 'Sky Blue', value: '#bfdbfe' },
+      { label: 'Sunset', value: '#fb7185' },
+      { label: 'Mint', value: '#bbf7d0' },
+      { label: 'Lavender', value: '#c4b5fd' },
+      { label: 'Peach', value: '#fed7aa' },
+      { label: 'Slate', value: '#475569' },
+      { label: 'Golden', value: '#facc15' },
+      { label: 'Emerald', value: '#34d399' }
+    ];
+
+    const previewCanvas = document.getElementById('previewCanvas');
+    const statusEl = document.getElementById('status');
+    const resetBtn = document.getElementById('resetBackground');
+    const downloadBtn = document.getElementById('downloadImage');
+    const backToPreview = document.getElementById('backToPreview');
+
+    let previewContext = previewCanvas.getContext('2d');
+    let originalDataUrl = sessionStorage.getItem(STORAGE_KEYS.original);
+    let foregroundDataUrl = sessionStorage.getItem(STORAGE_KEYS.foreground);
+    let dimensions = sessionStorage.getItem(STORAGE_KEYS.dimensions);
+
+    if (!originalDataUrl || !foregroundDataUrl || !dimensions) {
+      statusEl.textContent = 'Missing image data. Please upload again.';
+      resetBtn.disabled = true;
+      downloadBtn.disabled = true;
+    }
+
+    if (dimensions) {
+      const { width, height } = JSON.parse(dimensions);
+      previewCanvas.width = width;
+      previewCanvas.height = height;
+    }
+
+    const backgroundImage = new Image();
+    const foregroundImage = new Image();
+    const overlayToggle = document.getElementById('overlayToggle');
+    const overlayFields = document.getElementById('overlayFields');
+    const overlayTextInput = document.getElementById('overlayText');
+    const overlayFontSelect = document.getElementById('overlayFont');
+    const overlayWeightSelect = document.getElementById('overlayWeight');
+    const overlaySizeRange = document.getElementById('overlaySize');
+    const overlaySizeValue = document.getElementById('overlaySizeValue');
+    const overlayPositionSelect = document.getElementById('overlayPosition');
+    const overlayColorInput = document.getElementById('overlayColor');
+    const overlayShadowRange = document.getElementById('overlayShadow');
+    const overlayShadowValue = document.getElementById('overlayShadowValue');
+    const overlayOffsetX = document.getElementById('overlayOffsetX');
+    const overlayOffsetY = document.getElementById('overlayOffsetY');
+    const overlayOffsetXValue = document.getElementById('overlayOffsetXValue');
+    const overlayOffsetYValue = document.getElementById('overlayOffsetYValue');
+    const overlayManualX = document.getElementById('overlayManualX');
+    const overlayManualY = document.getElementById('overlayManualY');
+    const overlayState = {
+      enabled: false,
+      text: '',
+      fontFamily: "'Segoe UI', sans-serif",
+      fontWeight: 600,
+      fontSize: 42,
+      position: 'center',
+      color: '#ffffff',
+      shadow: 12,
+      offsetX: 0,
+      offsetY: 0
+    };
+
+    function clearStatus() {
+      statusEl.textContent = '';
+    }
+
+    function setStatus(message) {
+      statusEl.textContent = message;
+    }
+
+    async function loadImage(image, src) {
+      return new Promise((resolve, reject) => {
+        image.crossOrigin = 'anonymous';
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = src;
+      });
+    }
+
+    function applyOverlay() {
+      if (!overlayState.enabled || !overlayState.text.trim()) return;
+      const ctx = previewContext;
+      ctx.save();
+      ctx.font = `${overlayState.fontWeight} ${overlayState.fontSize}px ${overlayState.fontFamily}`;
+      ctx.fillStyle = overlayState.color;
+      const lines = overlayState.text.split(/\n/).map((line) => line.trimEnd());
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const shadow = overlayState.shadow;
+      ctx.shadowColor = shadow > 0 ? 'rgba(0,0,0,0.45)' : 'transparent';
+      ctx.shadowBlur = shadow;
+      const padding = overlayState.fontSize * 0.6;
+      let x = previewCanvas.width / 2;
+      let y = previewCanvas.height / 2;
+      if (overlayState.position === 'top-left') {
+        ctx.textAlign = 'left';
+        x = padding;
+        y = padding;
+      } else if (overlayState.position === 'top-right') {
+        ctx.textAlign = 'right';
+        x = previewCanvas.width - padding;
+        y = padding;
+      } else if (overlayState.position === 'bottom-left') {
+        ctx.textAlign = 'left';
+        x = padding;
+        y = previewCanvas.height - padding;
+      } else if (overlayState.position === 'bottom-right') {
+        ctx.textAlign = 'right';
+        x = previewCanvas.width - padding;
+        y = previewCanvas.height - padding;
+      } else if (overlayState.position === 'bottom-center') {
+        ctx.textAlign = 'center';
+        x = previewCanvas.width / 2;
+        y = previewCanvas.height - padding;
+      } else if (overlayState.position === 'manual') {
+        ctx.textAlign = 'center';
+        x = previewCanvas.width / 2 + (overlayState.offsetX / 100) * (previewCanvas.width / 2);
+        y = previewCanvas.height / 2 + (overlayState.offsetY / 100) * (previewCanvas.height / 2);
+      }
+      const lineHeight = overlayState.fontSize * 1.2;
+      const startY = y - ((lines.length - 1) / 2) * lineHeight;
+      lines.forEach((line, index) => {
+        ctx.fillText(line, x, startY + index * lineHeight);
+      });
+      ctx.restore();
+    }
+
+    async function drawComposite(background) {
+      if (!foregroundDataUrl) return;
+      clearStatus();
+      if (typeof background !== 'undefined') {
+        currentBackgroundRef = background;
+      }
+      previewContext.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+      if (background === 'transparent') {
+        // draw checkerboard pattern
+        const size = 40;
+        for (let y = 0; y < previewCanvas.height; y += size) {
+          for (let x = 0; x < previewCanvas.width; x += size) {
+            previewContext.fillStyle = ((x / size + y / size) % 2 === 0) ? '#f1f5f9' : '#e2e8f0';
+            previewContext.fillRect(x, y, size, size);
+          }
+        }
+      } else if (typeof background === 'string') {
+        previewContext.fillStyle = background;
+        previewContext.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+      } else if (background instanceof HTMLImageElement) {
+        previewContext.drawImage(background, 0, 0, previewCanvas.width, previewCanvas.height);
+      }
+
+      previewContext.drawImage(foregroundImage, 0, 0, previewCanvas.width, previewCanvas.height);
+      applyOverlay();
+      downloadBtn.disabled = false;
+      resetBtn.disabled = false;
+    }
+
+    async function init() {
+      if (!foregroundDataUrl || !dimensions) return;
+      try {
+        await loadImage(foregroundImage, foregroundDataUrl);
+        await drawComposite('transparent');
+        setStatus('Background set to transparent. Choose a new style.');
+      } catch (err) {
+        console.error('Failed to load foreground', err);
+        setStatus('Failed to load the removed background. Try uploading again.');
+      }
+    }
+
+    function renderGrid(containerId, items) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      items.forEach((item) => {
+        const div = document.createElement('div');
+        div.className = 'thumb';
+        const img = document.createElement('img');
+        img.src = item.url;
+        img.alt = item.label;
+        const label = document.createElement('span');
+        label.textContent = item.label;
+        div.appendChild(img);
+        div.appendChild(label);
+        div.addEventListener('click', async () => {
+          setStatus('Applying backgroundâ€¦');
+          try {
+            await loadImage(backgroundImage, item.url + '&auto=compress&fit=crop&w=1200&q=80');
+            document.querySelectorAll('.thumb').forEach((el) => el.classList.remove('selected'));
+            div.classList.add('selected');
+            await drawComposite(backgroundImage);
+            setStatus(`Background set to ${item.label}.`);
+          } catch (err) {
+            console.error('Background load failed', err);
+            setStatus('Unable to load that background. Please try another.');
+          }
+        });
+        container.appendChild(div);
+      });
+    }
+
+    function renderColours() {
+      const container = document.getElementById('colorGrid');
+      container.innerHTML = '';
+      colorPalette.forEach((entry) => {
+        if (entry.value === 'transparent') return; // handled in transparent tab
+        const chip = document.createElement('div');
+        chip.className = 'color-chip';
+        const fill = document.createElement('div');
+        fill.className = 'fill';
+        fill.style.background = entry.value;
+        chip.appendChild(fill);
+        chip.addEventListener('click', () => {
+          document.querySelectorAll('.color-chip').forEach((el) => el.classList.remove('selected'));
+          chip.classList.add('selected');
+          drawComposite(entry.value);
+          setStatus(`Background colour set to ${entry.label}.`);
+        });
+        container.appendChild(chip);
+      });
+    }
+
+    document.querySelectorAll('.tab-button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-button').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach((panel) => {
+          panel.hidden = panel.dataset.tab !== btn.dataset.tab;
+        });
+        if (btn.dataset.tab === 'transparent') {
+          drawComposite('transparent');
+          setStatus('Background set to transparent.');
+        }
+      });
+    });
+
+    resetBtn.addEventListener('click', () => {
+      document.querySelectorAll('.thumb').forEach((el) => el.classList.remove('selected'));
+      document.querySelectorAll('.color-chip').forEach((el) => el.classList.remove('selected'));
+      drawComposite('transparent');
+      setStatus('Reset to transparent background.');
+      if (overlayToggle.checked) {
+        overlayToggle.checked = false;
+        overlayFields.classList.add('hidden');
+        Object.assign(overlayState, { enabled: false, text: '' });
+        overlayTextInput.value = '';
+      }
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      const link = document.createElement('a');
+      const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-styled.png';
+      link.href = previewCanvas.toDataURL('image/png');
+      link.download = filename.endsWith('.png') ? filename : `${filename.replace(/\.[^/.]+$/, '') || 'background-styled'}.png`;
+      link.click();
+    });
+
+    backToPreview.addEventListener('click', () => {
+      window.location.href = 'background-workspace.html';
+    });
+
+    overlayToggle.addEventListener('change', () => {
+      overlayState.enabled = overlayToggle.checked;
+      overlayFields.classList.toggle('hidden', !overlayState.enabled);
+      if (overlayState.enabled) {
+        overlayTextInput.focus();
+      } else {
+        overlayState.text = '';
+        overlayTextInput.value = '';
+      }
+      drawComposite(currentBackgroundRef ?? 'transparent');
+    });
+
+    function updateOverlayAndRender() {
+      overlayState.text = overlayTextInput.value;
+      overlayState.fontFamily = overlayFontSelect.value;
+      overlayState.fontWeight = Number(overlayWeightSelect.value);
+      overlayState.fontSize = Number(overlaySizeRange.value);
+      overlayState.position = overlayPositionSelect.value;
+      overlayState.offsetX = Number(overlayOffsetX.value);
+      overlayState.offsetY = Number(overlayOffsetY.value);
+      overlayState.color = overlayColorInput.value;
+      overlayState.shadow = Number(overlayShadowRange.value);
+      overlaySizeValue.textContent = `${overlayState.fontSize}px`;
+      overlayShadowValue.textContent = `${overlayState.shadow}px`;
+      overlayOffsetXValue.textContent = `${overlayState.offsetX}%`;
+      overlayOffsetYValue.textContent = `${overlayState.offsetY}%`;
+      drawComposite(currentBackgroundRef ?? 'transparent');
+    }
+
+    overlayTextInput.addEventListener('input', updateOverlayAndRender);
+    overlayFontSelect.addEventListener('change', updateOverlayAndRender);
+    overlayWeightSelect.addEventListener('change', updateOverlayAndRender);
+    overlaySizeRange.addEventListener('input', updateOverlayAndRender);
+    overlayPositionSelect.addEventListener('change', updateOverlayAndRender);
+    overlayOffsetX.addEventListener('input', updateOverlayAndRender);
+    overlayOffsetY.addEventListener('input', updateOverlayAndRender);
+    overlayColorInput.addEventListener('input', updateOverlayAndRender);
+    overlayShadowRange.addEventListener('input', updateOverlayAndRender);
+
+    let currentBackgroundRef = 'transparent';
+
+    function toggleManualControls() {
+      const isManual = overlayState.position === 'manual';
+      overlayManualX.classList.toggle('hidden', !isManual);
+      overlayManualY.classList.toggle('hidden', !isManual);
+    }
+
+    overlayPositionSelect.addEventListener('change', () => {
+      overlayState.position = overlayPositionSelect.value;
+      toggleManualControls();
+    });
+
+    overlayOffsetX.addEventListener('input', () => {
+      overlayOffsetXValue.textContent = `${overlayOffsetX.value}%`;
+    });
+    overlayOffsetY.addEventListener('input', () => {
+      overlayOffsetYValue.textContent = `${overlayOffsetY.value}%`;
+    });
+
+    toggleManualControls();
+
+    renderGrid('magicGrid', fallbackBackgrounds.magic);
+    renderGrid('photoGrid', fallbackBackgrounds.photos);
+    renderGrid('techGrid', fallbackBackgrounds.tech);
+    renderColours();
+    init();
+
+    document.getElementById('footerYear').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
+
+
+
+
+<footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>easyjpgtopdf</h3>
+                    <p>Your all-in-one PDF solution for converting, editing, and managing documents with ease.</p>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert to PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="jpg-to-pdf.html">JPG to PDF</a></li>
+                        <li><a href="word-to-pdf.html">Word to PDF</a></li>
+                        <li><a href="excel-to-pdf.html">Excel to PDF</a></li>
+                        <li><a href="ppt-to-pdf.html">PowerPoint to PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert from PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="pdf-to-jpg.html">PDF to JPG</a></li>
+                        <li><a href="pdf-to-word.html">PDF to Word</a></li>
+                        <li><a href="pdf-to-excel.html">PDF to Excel</a></li>
+                        <li><a href="pdf-to-ppt.html">PDF to PowerPoint</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Pdf Editor</h3>
+                    <ul class="footer-links">
+                        <li><a href="merge-pdf.html">Merge PDF</a></li>
+                        <li><a href="split-pdf.html">Split PDF</a></li>
+                        <li><a href="compress-pdf.html">Compress PDF</a></li>
+                        <li><a href="edit-pdf.html">Pdf Editor</a></li>
+                        <li><a href="protect-pdf.html">Protect PDF</a></li>
+                        <li><a href="unlock-pdf.html">Unlock PDF</a></li>
+                        <li><a href="watermark-pdf.html">Watermark PDF</a></li>
+                        <li><a href="crop-pdf.html">Crop PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Image Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="image-compressor.html">Image Compressor</a></li>
+                        <li><a href="image-resizer.html">Image Resizer</a></li>
+                        <li><a href="image-editor.html">Image Editor</a></li>
+                        <li><a href="background-remover.html">Image Background Remover</a></li>
+                        <li><a href="ocr-image.html">OCR Image</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Design Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="resume-maker.html">Resume Maker</a></li>
+                        <li><a href="biodata-maker.html">Marrige Biodata-Data Maker</a></li>
+                        <li><a href="ai-image-generator.html">AI Image Generator</a></li>
+                        <li><a href="marriage-card.html">Marriage Card</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Company</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html#about">About Us</a></li>
+                        <li><a href="index.html#contact">Contact</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Connect With Us</h3>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fab fa-twitter"></i> Twitter</a></li>
+                        <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
+                        <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
+                        <li><a href="#"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+                <p class="attribution">Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site. <a href="attributions.html">See full acknowledgements</a>.</p>
+            </div>
+        </div>
+    </footer>
+
+

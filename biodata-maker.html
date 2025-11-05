@@ -1,0 +1,1542 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Marrige Biodata-Data Maker | easyjpgtopdf</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', 'Noto Sans', 'Noto Sans Devanagari', 'Noto Sans Gurmukhi', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Malayalam', 'Noto Sans Arabic', sans-serif;
+    }
+
+    :root {
+      --primary: #4361ee;
+      --secondary: #3a0ca3;
+      --accent: #4cc9f0;
+      --dark: #1a1f36;
+      --muted: #667085;
+      --surface: #ffffff;
+      --background: #f5f7ff;
+      --border: #dee4ff;
+      --highlight: #eef2ff;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    body {
+      background: var(--background);
+      color: var(--dark);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.6;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    header {
+      background: var(--surface);
+      box-shadow: 0 2px 12px rgba(15, 23, 42, 0.08);
+      position: sticky;
+      top: 0;
+      z-index: 80;
+    }
+
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 0;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .logo i {
+      color: var(--secondary);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 22px;
+      align-items: center;
+    }
+
+    .nav-links > a,
+    .dropdown > a {
+      text-decoration: none;
+      color: var(--dark);
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-links a.active,
+    .nav-links a:hover {
+      color: var(--primary);
+    }
+
+    .dropdown {
+      position: relative;
+    }
+
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      min-width: 210px;
+      background: var(--surface);
+      border-radius: 10px;
+      box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+      padding: 12px 0;
+      z-index: 60;
+    }
+
+    .dropdown-content a {
+      display: block;
+      padding: 10px 18px;
+      color: var(--dark);
+      text-decoration: none;
+    }
+
+    .dropdown-content a:hover {
+      background: rgba(67, 97, 238, 0.08);
+    }
+
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+
+    .auth-buttons {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .auth-btn {
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: 1px solid var(--primary);
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .auth-btn.login {
+      background: transparent;
+      color: var(--primary);
+    }
+
+    .auth-btn.signup {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .auth-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(67, 97, 238, 0.18);
+    }
+
+    .hero {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff;
+      padding: 64px 0;
+      text-align: center;
+      border-radius: 0 0 24px 24px;
+      margin-bottom: 48px;
+    }
+
+    .hero h1 {
+      font-size: 2.9rem;
+      margin-bottom: 14px;
+    }
+
+    .hero p {
+      max-width: 640px;
+      margin: 0 auto;
+      font-size: 1.1rem;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    main {
+      flex: 1;
+      width: 100%;
+      margin-bottom: 60px;
+    }
+
+    .biodata-app {
+      background: var(--surface);
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: 0 22px 50px rgba(15, 23, 42, 0.08);
+      display: grid;
+      gap: 28px;
+      grid-template-columns: minmax(320px, 1.1fr) minmax(280px, 0.9fr);
+      align-items: flex-start;
+    }
+
+    .panel-header h2 {
+      font-size: 1.55rem;
+      color: var(--primary);
+    }
+
+    .panel-header p {
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .form-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .form-section {
+      background: var(--highlight);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .form-section h3 {
+      font-size: 1.05rem;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .field-grid {
+      display: grid;
+      gap: 14px 18px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--dark);
+    }
+
+    .form-control {
+      width: 100%;
+      border: 1px solid rgba(67, 97, 238, 0.3);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.95rem;
+      background: #fff;
+      transition: border 0.2s, box-shadow 0.2s;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.18);
+    }
+
+    textarea.form-control {
+      resize: vertical;
+      min-height: 90px;
+    }
+
+    .helper-text {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .inline-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 20px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--primary);
+      color: var(--primary);
+    }
+
+    .btn-neutral {
+      background: rgba(67, 97, 238, 0.12);
+      color: var(--primary);
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 22px rgba(67, 97, 238, 0.14);
+    }
+
+    .preview-panel {
+      position: sticky;
+      top: 110px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .preview-card {
+      background: var(--surface);
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .preview-header {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 18px;
+      align-items: center;
+    }
+
+    .photo-shell {
+      width: 120px;
+      height: 150px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 2px dashed rgba(67, 97, 238, 0.35);
+      background: var(--highlight);
+      display: grid;
+      place-items: center;
+    }
+
+    .photo-shell img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .preview-title h2 {
+      font-size: 1.8rem;
+      color: var(--primary);
+      line-height: 1.2;
+    }
+
+    .preview-title p {
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .info-grid {
+      display: grid;
+      list-style: none;
+      gap: 14px;
+      padding: 0;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    .info-item {
+      border: 1px dashed rgba(67, 97, 238, 0.25);
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: rgba(67, 97, 238, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .info-item .label {
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .info-item .value {
+      font-size: 0.96rem;
+      color: var(--dark);
+      word-break: break-word;
+    }
+
+    .preview-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .preview-section h3 {
+      font-size: 1.02rem;
+      color: var(--primary);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    [data-preview-wrapper].hidden,
+    [data-preview-section].hidden {
+      display: none !important;
+    }
+
+    .chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      background: rgba(67, 97, 238, 0.18);
+      color: var(--primary);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    .paragraph-block p {
+      margin-bottom: 8px;
+      background: rgba(67, 97, 238, 0.06);
+      padding: 10px 12px;
+      border-radius: 10px;
+      color: var(--dark);
+    }
+
+    .contact-card {
+      border: 1px dashed rgba(67, 97, 238, 0.25);
+      border-radius: 16px;
+      padding: 16px;
+      background: rgba(67, 97, 238, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .contact-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--dark);
+    }
+
+    .contact-row i {
+      color: var(--primary);
+    }
+
+    .preview-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .preview-hint {
+      font-size: 0.9rem;
+      color: var(--muted);
+      background: rgba(67, 97, 238, 0.08);
+      padding: 10px 12px;
+      border-radius: 12px;
+    }
+
+    .preview-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 12px;
+      z-index: 100;
+    }
+
+    .preview-overlay.visible {
+      display: flex;
+    }
+
+    .preview-modal {
+      background: #fff;
+      max-width: 900px;
+      width: 100%;
+      max-height: 95vh;
+      overflow-y: auto;
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: 0 40px 80px rgba(15, 23, 42, 0.25);
+      position: relative;
+    }
+
+    .close-overlay {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(67, 97, 238, 0.15);
+      color: var(--primary);
+      display: grid;
+      place-items: center;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    .comments {
+      margin: 60px 0 50px;
+      background: #fff;
+      border-radius: 20px;
+      padding: 40px 0;
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      color: var(--primary);
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .comment-form {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    footer {
+      background: #0f172a;
+      color: #fff;
+      padding: 60px 0 30px;
+    }
+
+    .footer-content {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 28px;
+    }
+
+    .footer-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .footer-links a {
+      text-decoration: none;
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 0.95rem;
+    }
+
+    .footer-links a:hover {
+      color: #fff;
+    }
+
+    .attribution {
+      margin-top: 30px;
+      text-align: center;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.65);
+    }
+
+    @media (max-width: 1080px) {
+      .biodata-app {
+        grid-template-columns: 1fr;
+      }
+
+      .preview-panel {
+        position: static;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .preview-card {
+        padding: 18px;
+      }
+
+      .preview-header {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="container">
+      <nav class="navbar">
+        <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
+        <div class="nav-links">
+          <a href="index.html">Home</a>
+          <div class="dropdown">
+            <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="jpg-to-pdf.html">JPG to PDF</a>
+              <a href="word-to-pdf.html">Word to PDF</a>
+              <a href="excel-to-pdf.html">Excel to PDF</a>
+              <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="pdf-to-jpg.html">PDF to JPG</a>
+              <a href="pdf-to-word.html">PDF to Word</a>
+              <a href="pdf-to-excel.html">PDF to Excel</a>
+              <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="merge-pdf.html">Merge PDF</a>
+              <a href="split-pdf.html">Split PDF</a>
+              <a href="compress-pdf.html">Compress PDF</a>
+              <a href="edit-pdf.html">Pdf Editor</a>
+              <a href="protect-pdf.html">Protect PDF</a>
+              <a href="unlock-pdf.html">Unlock PDF</a>
+              <a href="watermark-pdf.html">Watermark PDF</a>
+              <a href="crop-pdf.html">Crop PDF</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="image-compressor.html">Image Compressor</a>
+              <a href="image-resizer.html">Image Resizer</a>
+              <a href="image-editor.html">Image Editor</a>
+              <a href="background-remover.html">Image Background Remover</a>
+              <a href="ocr-image.html">OCR Image</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="resume-maker.html">Resume Maker</a>
+              <a href="biodata-maker.html" class="active">Marrige Biodata-Data Maker</a>
+              <a href="ai-image-generator.html">AI Image Generator</a>
+              <a href="marriage-card.html">Marriage Card</a>
+            </div>
+          </div>
+        </div>
+        <div class="auth-buttons">
+          <a href="#" class="auth-btn login" onclick="showModal('login-modal');return false;">Login</a>
+          <a href="#" class="auth-btn signup" onclick="showModal('signup-modal');return false;">Sign Up</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container">
+      <h1>Indian Marriage Biodata Builder</h1>
+      <p>Fill in your details on the left, see a live preview on the right, and export a clean biodata that supports any Indian language.</p>
+    </div>
+  </section>
+
+  <main>
+    <div class="container">
+      <div class="biodata-app" id="biodataApp">
+        <section class="form-panel" aria-label="Biodata form inputs">
+          <div class="panel-header">
+            <h2><i class="fas fa-id-card"></i> Candidate Details</h2>
+            <p>Only the information you fill appears in the preview and export. Leave a field empty to hide it. Use the â€œFull Screen Previewâ€ button to review and download without reloading the page.</p>
+          </div>
+
+          <div class="form-section" aria-labelledby="basic-info">
+            <h3 id="basic-info"><i class="fas fa-user"></i> Personal Information</h3>
+            <div class="field-grid">
+              <div class="form-group">
+                <label for="fullName">Full Name</label>
+                <input id="fullName" class="form-control" placeholder="à¤…à¤®à¤¿à¤¤ à¤¶à¤°à¥à¤®à¤¾ / Aditi Singh" data-preview-target="fullName" required>
+              </div>
+              <div class="form-group">
+                <label for="gender">Gender</label>
+                <select id="gender" class="form-control" data-preview-target="gender">
+                  <option value="">Select</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="dob">Date of Birth</label>
+                <input type="date" id="dob" class="form-control" data-preview-target="dob" data-preview-format="date">
+              </div>
+              <div class="form-group">
+                <label for="age">Age</label>
+                <input id="age" class="form-control" placeholder="28" data-preview-target="age" data-preview-format="age">
+              </div>
+              <div class="form-group">
+                <label for="height">Height</label>
+                <input id="height" class="form-control" placeholder="5'6&quot; / 168 cm" data-preview-target="height">
+              </div>
+              <div class="form-group">
+                <label for="religion">Religion</label>
+                <input id="religion" class="form-control" placeholder="Hindu" data-preview-target="religion">
+              </div>
+              <div class="form-group">
+                <label for="caste">Caste / Community</label>
+                <input id="caste" class="form-control" placeholder="Brahmin" data-preview-target="caste">
+              </div>
+              <div class="form-group">
+                <label for="motherTongue">Mother Tongue</label>
+                <input id="motherTongue" class="form-control" placeholder="Hindi" data-preview-target="motherTongue">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section" aria-labelledby="contact-info">
+            <h3 id="contact-info"><i class="fas fa-phone"></i> Contact Details</h3>
+            <div class="field-grid">
+              <div class="form-group">
+                <label for="phone">Contact Number</label>
+                <input id="phone" class="form-control" placeholder="+91 98765 43210" data-preview-target="phone">
+              </div>
+              <div class="form-group">
+                <label for="email">Email ID</label>
+                <input id="email" type="email" class="form-control" placeholder="name@example.com" data-preview-target="email">
+              </div>
+              <div class="form-group">
+                <label for="address">Current Address</label>
+                <textarea id="address" class="form-control" rows="3" data-preview-target="address" data-preview-format="multiline" placeholder="House No., Street, City, State"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section" aria-labelledby="education-career">
+            <h3 id="education-career"><i class="fas fa-graduation-cap"></i> Education &amp; Career</h3>
+            <div class="field-grid">
+              <div class="form-group">
+                <label for="education">Highest Education</label>
+                <input id="education" class="form-control" placeholder="MBA (Finance)" data-preview-target="education">
+              </div>
+              <div class="form-group">
+                <label for="occupation">Occupation</label>
+                <input id="occupation" class="form-control" placeholder="Senior Analyst" data-preview-target="occupation">
+              </div>
+              <div class="form-group">
+                <label for="company">Company / Organization</label>
+                <input id="company" class="form-control" placeholder="Infosys" data-preview-target="company">
+              </div>
+              <div class="form-group">
+                <label for="income">Annual Income</label>
+                <input id="income" class="form-control" placeholder="â‚¹12 LPA" data-preview-target="income">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="careerHighlights">Career Highlights</label>
+              <textarea id="careerHighlights" class="form-control" rows="3" data-preview-target="careerHighlights" data-preview-format="multiline" placeholder="Awards, promotions, international experience..."></textarea>
+            </div>
+          </div>
+
+          <div class="form-section" aria-labelledby="family-info">
+            <h3 id="family-info"><i class="fas fa-people-group"></i> Family Background</h3>
+            <div class="form-group">
+              <label for="familyDetails">Family Details</label>
+              <textarea id="familyDetails" class="form-control" rows="4" data-preview-target="familyDetails" data-preview-format="multiline" placeholder="Father: Businessman, Mother: Homemaker, Siblings..."></textarea>
+              <p class="helper-text">Mention parents' occupation, siblings, cultural values, etc.</p>
+            </div>
+            <div class="form-group">
+              <label for="familyValues">Family Values</label>
+              <input id="familyValues" class="form-control" placeholder="Traditional yet progressive" data-preview-target="familyValues">
+            </div>
+          </div>
+
+          <div class="form-section" aria-labelledby="about-partner">
+            <h3 id="about-partner"><i class="fas fa-heart"></i> About Candidate &amp; Partner Preference</h3>
+            <div class="form-group">
+              <label for="about">About Me</label>
+              <textarea id="about" class="form-control" rows="4" data-preview-target="about" data-preview-format="multiline" placeholder="Describe personality, hobbies, lifestyle..."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="expectations">Partner Expectations</label>
+              <textarea id="expectations" class="form-control" rows="4" data-preview-target="expectations" data-preview-format="multiline" placeholder="Education, profession, values, family preferences..."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="languagesKnown">Languages Known (comma separated)</label>
+              <input id="languagesKnown" class="form-control" placeholder="Hindi, English, Marathi" data-preview-target="languagesKnown" data-preview-format="chips">
+            </div>
+            <div class="form-group">
+              <label for="hobbies">Hobbies / Interests (comma separated)</label>
+              <input id="hobbies" class="form-control" placeholder="Classical music, Travel, Photography" data-preview-target="hobbies" data-preview-format="chips">
+            </div>
+          </div>
+
+          <div class="form-section" aria-labelledby="extras">
+            <h3 id="extras"><i class="fas fa-star"></i> Optional Sections</h3>
+            <div class="field-grid">
+              <div class="form-group">
+                <label for="horoscope">Horoscope Details</label>
+                <textarea id="horoscope" class="form-control" rows="3" data-preview-target="horoscope" data-preview-format="multiline" placeholder="Nakshatra, Rashi, Manglik status..."></textarea>
+              </div>
+              <div class="form-group">
+                <label for="birthPlace">Birth Place</label>
+                <input id="birthPlace" class="form-control" placeholder="Mumbai, Maharashtra" data-preview-target="birthPlace">
+              </div>
+              <div class="form-group">
+                <label for="timeOfBirth">Time of Birth</label>
+                <input id="timeOfBirth" class="form-control" placeholder="06:45 AM" data-preview-target="timeOfBirth">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="customNotes">Additional Notes</label>
+              <textarea id="customNotes" class="form-control" rows="3" data-preview-target="customNotes" data-preview-format="multiline" placeholder="Any other important information..."></textarea>
+            </div>
+          </div>
+
+          <div class="form-section" aria-labelledby="photo-section">
+            <h3 id="photo-section"><i class="fas fa-camera"></i> Upload Photo</h3>
+            <div class="inline-actions">
+              <button type="button" class="btn btn-outline" id="photoUploadBtn"><i class="fas fa-image"></i> Choose Photo</button>
+              <button type="button" class="btn btn-neutral" id="clearPhotoBtn"><i class="fas fa-ban"></i> Remove Photo</button>
+            </div>
+            <p class="helper-text">Best results with a clear portrait JPG/PNG under 2 MB. Unicode text is fully supported across the biodata.</p>
+            <input type="file" id="photoInput" accept="image/*" hidden>
+          </div>
+        </section>
+
+        <aside class="preview-panel" aria-label="Live biodata preview">
+          <div class="preview-card" id="previewCard">
+            <div class="preview-header">
+              <div class="photo-shell" id="previewPhotoShell">
+                <span class="helper-text">Photo Preview</span>
+                <img id="previewPhoto" alt="Biodata photo" hidden>
+              </div>
+              <div class="preview-title">
+                <h2 data-preview-field="fullName">Your Name</h2>
+                <p data-preview-field="tagline">Update your information to personalise this biodata.</p>
+              </div>
+            </div>
+            <ul class="info-grid" aria-label="Quick facts">
+              <li class="info-item" data-preview-wrapper="gender">
+                <span class="label">Gender</span>
+                <span class="value" data-preview-field="gender">â€”</span>
+              </li>
+              <li class="info-item" data-preview-wrapper="dob">
+                <span class="label">Date of Birth</span>
+                <span class="value" data-preview-field="dob">â€”</span>
+              </li>
+              <li class="info-item" data-preview-wrapper="age">
+                <span class="label">Age</span>
+                <span class="value" data-preview-field="age">â€”</span>
+              </li>
+              <li class="info-item" data-preview-wrapper="height">
+                <span class="label">Height</span>
+                <span class="value" data-preview-field="height">â€”</span>
+              </li>
+              <li class="info-item" data-preview-wrapper="motherTongue">
+                <span class="label">Mother Tongue</span>
+                <span class="value" data-preview-field="motherTongue">â€”</span>
+              </li>
+              <li class="info-item" data-preview-wrapper="religion">
+                <span class="label">Religion</span>
+                <span class="value" data-preview-field="religion">â€”</span>
+              </li>
+              <li class="info-item" data-preview-wrapper="caste">
+                <span class="label">Caste / Community</span>
+                <span class="value" data-preview-field="caste">â€”</span>
+              </li>
+              <li class="info-item" data-preview-wrapper="birthPlace">
+                <span class="label">Birth Place</span>
+                <span class="value" data-preview-field="birthPlace">â€”</span>
+              </li>
+              <li class="info-item" data-preview-wrapper="timeOfBirth">
+                <span class="label">Time of Birth</span>
+                <span class="value" data-preview-field="timeOfBirth">â€”</span>
+              </li>
+            </ul>
+
+            <section class="preview-section" data-preview-section="contact">
+              <h3><i class="fas fa-phone"></i> Contact</h3>
+              <div class="contact-card">
+                <div class="contact-row" data-preview-wrapper="phone">
+                  <i class="fas fa-mobile-alt"></i>
+                  <span data-preview-field="phone">â€”</span>
+                </div>
+                <div class="contact-row" data-preview-wrapper="email">
+                  <i class="fas fa-envelope"></i>
+                  <span data-preview-field="email">â€”</span>
+                </div>
+                <div class="contact-row" data-preview-wrapper="address">
+                  <i class="fas fa-map-marker-alt"></i>
+                  <span data-preview-field="address">â€”</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="preview-section" data-preview-section="education">
+              <h3><i class="fas fa-graduation-cap"></i> Education &amp; Career</h3>
+              <div class="info-item" data-preview-wrapper="education">
+                <span class="label">Education</span>
+                <span class="value" data-preview-field="education">â€”</span>
+              </div>
+              <div class="info-item" data-preview-wrapper="occupation">
+                <span class="label">Occupation</span>
+                <span class="value" data-preview-field="occupation">â€”</span>
+              </div>
+              <div class="info-item" data-preview-wrapper="company">
+                <span class="label">Company</span>
+                <span class="value" data-preview-field="company">â€”</span>
+              </div>
+              <div class="info-item" data-preview-wrapper="income">
+                <span class="label">Annual Income</span>
+                <span class="value" data-preview-field="income">â€”</span>
+              </div>
+              <div class="paragraph-block" data-preview-wrapper="careerHighlights">
+                <p data-preview-field="careerHighlights"></p>
+              </div>
+            </section>
+
+            <section class="preview-section" data-preview-section="family">
+              <h3><i class="fas fa-people-group"></i> Family Background</h3>
+              <div class="paragraph-block" data-preview-wrapper="familyDetails">
+                <p data-preview-field="familyDetails"></p>
+              </div>
+              <div class="info-item" data-preview-wrapper="familyValues">
+                <span class="label">Family Values</span>
+                <span class="value" data-preview-field="familyValues">â€”</span>
+              </div>
+            </section>
+
+            <section class="preview-section" data-preview-section="about">
+              <h3><i class="fas fa-user-check"></i> About Me</h3>
+              <div class="paragraph-block" data-preview-wrapper="about">
+                <p data-preview-field="about"></p>
+              </div>
+            </section>
+
+            <section class="preview-section" data-preview-section="preferences">
+              <h3><i class="fas fa-ring"></i> Partner Expectations</h3>
+              <div class="paragraph-block" data-preview-wrapper="expectations">
+                <p data-preview-field="expectations"></p>
+              </div>
+            </section>
+
+            <section class="preview-section" data-preview-section="languages">
+              <h3><i class="fas fa-language"></i> Languages Known</h3>
+              <div class="chip-list" data-preview-wrapper="languagesKnown" data-chip-container="languagesKnown"></div>
+            </section>
+
+            <section class="preview-section" data-preview-section="hobbies">
+              <h3><i class="fas fa-music"></i> Hobbies &amp; Interests</h3>
+              <div class="chip-list" data-preview-wrapper="hobbies" data-chip-container="hobbies"></div>
+            </section>
+
+            <section class="preview-section" data-preview-section="horoscope">
+              <h3><i class="fas fa-sun"></i> Horoscope Details</h3>
+              <div class="paragraph-block" data-preview-wrapper="horoscope">
+                <p data-preview-field="horoscope"></p>
+              </div>
+            </section>
+
+            <section class="preview-section" data-preview-section="notes">
+              <h3><i class="fas fa-note-sticky"></i> Additional Notes</h3>
+              <div class="paragraph-block" data-preview-wrapper="customNotes">
+                <p data-preview-field="customNotes"></p>
+              </div>
+            </section>
+
+            <div class="preview-actions">
+              <button type="button" class="btn btn-primary" id="openPreviewBtn"><i class="fas fa-expand"></i> Full Screen Preview</button>
+              <button type="button" class="btn btn-outline" id="downloadPdfBtn"><i class="fas fa-download"></i> Download PDF</button>
+              <button type="button" class="btn btn-neutral" id="copyTextBtn"><i class="fas fa-copy"></i> Copy as Text</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <section class="preview-overlay" id="previewOverlay" aria-hidden="true">
+    <div class="preview-modal" role="dialog" aria-modal="true" aria-label="Full biodata preview">
+      <button class="close-overlay" id="closeOverlayBtn" aria-label="Close preview">&times;</button>
+      <div id="overlayContent"></div>
+    </div>
+  </section>
+
+  <section class="comments" aria-label="User feedback">
+    <div class="container">
+      <h2 class="section-title">User Comments</h2>
+      <form class="comment-form">
+        <div class="form-group">
+          <label for="comment-name">Your Name</label>
+          <input type="text" id="comment-name" class="form-control" placeholder="Enter your name">
+        </div>
+        <div class="form-group">
+          <label for="comment-email">Email Address</label>
+          <input type="email" id="comment-email" class="form-control" placeholder="Enter your email">
+        </div>
+        <div class="form-group">
+          <label for="comment-message">Your Comment</label>
+          <textarea id="comment-message" class="form-control" placeholder="Share your thoughts about this Marrige Biodata-Data Maker"></textarea>
+        </div>
+        <button type="button" class="btn btn-primary">Submit Comment</button>
+      </form>
+    </div>
+  </section>
+
+  
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-/rQSxSX9+Kh4n1tldb9/QTCAbC+eZCr6O/oFzeB9kRU0Mf3n8clF4Uhe82c0mj3XH3hVYGIPVo52Tf5ZNVu+ig==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNa5Gd+9Nfp503uVFiStpjXc1O4UNmd8nHweOZxF/2xYF9d70KX7O9fBIEMwRlC1mAHLWtyO6wlvpcBX13/tHQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>
+    (function () {
+      const formInputs = document.querySelectorAll('[data-preview-target]');
+      const previewFields = /** @type {Record<string, HTMLElement>} */ ({});
+      const previewSections = document.querySelectorAll('[data-preview-section]');
+      const taglineField = document.querySelector('[data-preview-field="tagline"]');
+      const overlay = document.getElementById('previewOverlay');
+      const overlayContent = document.getElementById('overlayContent');
+      const previewCard = document.getElementById('previewCard');
+      const openPreviewBtn = document.getElementById('openPreviewBtn');
+      const closeOverlayBtn = document.getElementById('closeOverlayBtn');
+      const copyTextBtn = document.getElementById('copyTextBtn');
+      const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+      const photoInput = document.getElementById('photoInput');
+      const photoUploadBtn = document.getElementById('photoUploadBtn');
+      const clearPhotoBtn = document.getElementById('clearPhotoBtn');
+      const previewPhoto = document.getElementById('previewPhoto');
+      const previewPhotoShell = document.getElementById('previewPhotoShell');
+      const wrapperMap = /** @type {Record<string, HTMLElement>} */ ({});
+      const chipContainerMap = /** @type {Record<string, HTMLElement>} */ ({});
+
+      function loadScript(src) {
+        return new Promise((resolve, reject) => {
+          if (!src) {
+            reject(new Error('Missing script source'));
+            return;
+          }
+          const existing = Array.from(document.scripts).find((script) => script.src === src);
+          if (existing) {
+            if (existing.hasAttribute('data-loaded')) {
+              resolve();
+              return;
+            }
+            existing.addEventListener('load', () => resolve());
+            existing.addEventListener('error', () => reject(new Error(`Failed loading ${src}`)));
+            return;
+          }
+          const script = document.createElement('script');
+          script.src = src;
+          script.async = true;
+          script.onload = () => {
+            script.setAttribute('data-loaded', 'true');
+            resolve();
+          };
+          script.onerror = () => reject(new Error(`Failed loading ${src}`));
+          document.head.appendChild(script);
+        });
+      }
+
+      async function ensureJsPdf() {
+        if (window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
+        try {
+          await loadScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js');
+        } catch (err) {
+          console.warn('Primary jsPDF CDN failed, attempting fallback.', err);
+          await loadScript('https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js');
+        }
+        if (window.jspdf && window.jspdf.jsPDF) {
+          return window.jspdf.jsPDF;
+        }
+        throw new Error('jsPDF failed to load');
+      }
+
+      async function ensureHtml2Canvas() {
+        if (typeof window.html2canvas === 'function') return window.html2canvas;
+        try {
+          await loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
+        } catch (err) {
+          console.warn('Primary html2canvas CDN failed, attempting fallback.', err);
+          await loadScript('https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js');
+        }
+        if (typeof window.html2canvas === 'function') {
+          return window.html2canvas;
+        }
+        throw new Error('html2canvas failed to load');
+      }
+
+      // Map preview fields
+      document.querySelectorAll('[data-preview-field]').forEach((el) => {
+        const key = el.getAttribute('data-preview-field');
+        if (key) previewFields[key] = el;
+      });
+
+      document.querySelectorAll('[data-preview-wrapper]').forEach((el) => {
+        const key = el.getAttribute('data-preview-wrapper');
+        if (key) wrapperMap[key] = el;
+      });
+
+      document.querySelectorAll('[data-chip-container]').forEach((el) => {
+        const key = el.getAttribute('data-chip-container');
+        if (key) chipContainerMap[key] = el;
+      });
+
+      // Helper to toggle visibility if empty
+      function toggleVisibility(element, isVisible) {
+        if (!element) return;
+        element.classList.toggle('hidden', !isVisible);
+      }
+
+      // Update tagline based on required fields
+      function updateTagline() {
+        const nameValue = previewFields.fullName?.textContent?.trim();
+        if (nameValue) {
+          taglineField.textContent = 'Preview and download your marriage biodata instantly.';
+        } else {
+          taglineField.textContent = 'Update your information to personalise this biodata.';
+        }
+      }
+
+      function formatValue(value, formatType) {
+        if (!value) return '';
+        switch (formatType) {
+          case 'date':
+            try {
+              const d = new Date(value);
+              if (!Number.isNaN(d.getTime())) {
+                return d.toLocaleDateString(undefined, {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric'
+                });
+              }
+            } catch (err) {
+              return value;
+            }
+            return value;
+          case 'age':
+            if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+              const birth = new Date(value);
+              const now = new Date();
+              let years = now.getFullYear() - birth.getFullYear();
+              const m = now.getMonth() - birth.getMonth();
+              if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
+                years--;
+              }
+              return years > 0 ? `${years} Years` : '';
+            }
+            return value;
+          case 'multiline':
+            return value
+              .split(/\r?\n/)
+              .filter(Boolean)
+              .map((line) => line.trim())
+              .join('\n');
+          case 'chips':
+            return value
+              .split(',')
+              .map((item) => item.trim())
+              .filter(Boolean);
+          default:
+            return value;
+        }
+      }
+
+      function updateSectionVisibility() {
+        previewSections.forEach((section) => {
+          const wrappers = section.querySelectorAll('[data-preview-wrapper]');
+          const hasVisibleChild = Array.from(wrappers).some((wrapper) => !wrapper.classList.contains('hidden'));
+          toggleVisibility(section, hasVisibleChild);
+        });
+      }
+
+      function updatePreview(evt) {
+        const input = evt.target;
+        const targetKey = input.getAttribute('data-preview-target');
+        if (!targetKey) return;
+
+        const formatType = input.getAttribute('data-preview-format');
+        const rawValue = input.value.trim();
+        const formattedValue = formatValue(rawValue, formatType);
+
+        const previewField = previewFields[targetKey];
+        const wrapper = wrapperMap[targetKey];
+
+        if (Array.isArray(formattedValue)) {
+          const container = chipContainerMap[targetKey];
+          if (container) {
+            container.innerHTML = '';
+            formattedValue.forEach((chipText) => {
+              const chip = document.createElement('span');
+              chip.className = 'chip';
+              chip.textContent = chipText;
+              container.appendChild(chip);
+            });
+            const chipWrapper = wrapperMap[targetKey] ?? container.closest('[data-preview-wrapper]');
+            toggleVisibility(chipWrapper, formattedValue.length > 0);
+          }
+        } else if (formatType === 'multiline') {
+          if (previewField) {
+            previewField.textContent = formattedValue;
+          }
+          toggleVisibility(wrapper, Boolean(formattedValue));
+        } else {
+          if (previewField) {
+            previewField.textContent = formattedValue || 'â€”';
+          }
+          toggleVisibility(wrapper, Boolean(formattedValue));
+        }
+
+        if (targetKey === 'fullName' && previewFields.fullName) {
+          const nameHeading = previewFields.fullName;
+          nameHeading.textContent = formattedValue || 'Your Name';
+        }
+
+        updateSectionVisibility();
+        updateTagline();
+      }
+
+      formInputs.forEach((input) => {
+        input.addEventListener('input', updatePreview);
+        if (input.type === 'date') {
+          input.addEventListener('change', updatePreview);
+        }
+      });
+
+      // photo upload
+      function resetPhoto() {
+        previewPhoto.src = '';
+        previewPhoto.hidden = true;
+        previewPhotoShell.classList.remove('has-image');
+      }
+
+      photoUploadBtn?.addEventListener('click', () => photoInput?.click());
+
+      clearPhotoBtn?.addEventListener('click', () => {
+        resetPhoto();
+        if (photoInput) photoInput.value = '';
+      });
+
+      photoInput?.addEventListener('change', () => {
+        const file = photoInput.files?.[0];
+        if (!file) {
+          resetPhoto();
+          return;
+        }
+        if (!file.type.startsWith('image/')) {
+          alert('Please select a valid image file.');
+          resetPhoto();
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          previewPhoto.src = reader.result;
+          previewPhoto.hidden = false;
+          previewPhotoShell.classList.add('has-image');
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // Overlay controls
+      function openOverlay() {
+        overlay.classList.add('visible');
+        overlay.setAttribute('aria-hidden', 'false');
+        overlayContent.innerHTML = '';
+        overlayContent.appendChild(previewCard.cloneNode(true));
+      }
+
+      function closeOverlay() {
+        overlay.classList.remove('visible');
+        overlay.setAttribute('aria-hidden', 'true');
+        overlayContent.innerHTML = '';
+      }
+
+      openPreviewBtn?.addEventListener('click', openOverlay);
+      closeOverlayBtn?.addEventListener('click', closeOverlay);
+      overlay?.addEventListener('click', (evt) => {
+        if (evt.target === overlay) {
+          closeOverlay();
+        }
+      });
+
+      document.addEventListener('keydown', (evt) => {
+        if (evt.key === 'Escape' && overlay.classList.contains('visible')) {
+          closeOverlay();
+        }
+      });
+
+      // Copy as text
+      function collectTextData() {
+        const sections = [
+          { label: 'Personal Information', keys: ['fullName', 'gender', 'dob', 'age', 'height', 'motherTongue', 'religion', 'caste', 'birthPlace', 'timeOfBirth'] },
+          { label: 'Contact', keys: ['phone', 'email', 'address'] },
+          { label: 'Education & Career', keys: ['education', 'occupation', 'company', 'income', 'careerHighlights'] },
+          { label: 'Family Background', keys: ['familyDetails', 'familyValues'] },
+          { label: 'About Me', keys: ['about'] },
+          { label: 'Partner Expectations', keys: ['expectations'] },
+          { label: 'Languages Known', keys: ['languagesKnown'] },
+          { label: 'Hobbies & Interests', keys: ['hobbies'] },
+          { label: 'Horoscope', keys: ['horoscope'] },
+          { label: 'Additional Notes', keys: ['customNotes'] }
+        ];
+
+        const lines = [];
+        sections.forEach((section) => {
+          const sectionLines = [];
+          section.keys.forEach((key) => {
+            const input = document.querySelector(`[data-preview-target="${key}"]`);
+            if (!input) return;
+            const value = input.value.trim();
+            if (!value) return;
+            if (['languagesKnown', 'hobbies'].includes(key)) {
+              sectionLines.push(`${key.replace(/([A-Z])/g, ' $1')}: ${value}`);
+            } else {
+              sectionLines.push(`${key.replace(/([A-Z])/g, ' $1')}: ${value}`);
+            }
+          });
+          if (sectionLines.length) {
+            lines.push(section.label + ':');
+            lines.push(...sectionLines.map((item) => `  ${item}`));
+            lines.push('');
+          }
+        });
+
+        return lines.join('\n');
+      }
+
+      copyTextBtn?.addEventListener('click', async () => {
+        const text = collectTextData();
+        if (!text.trim()) {
+          alert('Please fill some fields before copying.');
+          return;
+        }
+        try {
+          await navigator.clipboard.writeText(text);
+          copyTextBtn.textContent = 'Copied!';
+          setTimeout(() => {
+            copyTextBtn.innerHTML = '<i class="fas fa-copy"></i> Copy as Text';
+          }, 2000);
+        } catch (err) {
+          console.error(err);
+          alert('Copy failed. Please copy manually.');
+        }
+      });
+
+      downloadPdfBtn?.addEventListener('click', async () => {
+        let jsPDFConstructor;
+        let html2canvasFn;
+        try {
+          jsPDFConstructor = await ensureJsPdf();
+        } catch (err) {
+          console.error(err);
+          alert('PDF library failed to load. Please check your internet connection and try again.');
+          return;
+        }
+        try {
+          html2canvasFn = await ensureHtml2Canvas();
+        } catch (err) {
+          console.error(err);
+          alert('Preview renderer failed to load. Please check your internet connection and try again.');
+          return;
+        }
+
+        const clone = previewCard.cloneNode(true);
+        const actions = clone.querySelector('.preview-actions');
+        if (actions) actions.remove();
+
+        clone.classList.remove('preview-card');
+        clone.style.width = '794px';
+        clone.style.maxWidth = '794px';
+        clone.style.padding = '24px';
+        clone.style.border = '1px solid #d7d9e8';
+        clone.style.background = '#ffffff';
+
+        const tempWrapper = document.createElement('div');
+        tempWrapper.style.position = 'fixed';
+        tempWrapper.style.left = '-9999px';
+        tempWrapper.style.top = '0';
+        tempWrapper.style.zIndex = '-1';
+        tempWrapper.appendChild(clone);
+        document.body.appendChild(tempWrapper);
+
+        try {
+          const canvas = await html2canvasFn(clone, {
+            scale: 2,
+            backgroundColor: '#ffffff',
+            useCORS: true
+          });
+
+          const imgData = canvas.toDataURL('image/png');
+          const pdf = new jsPDFConstructor('p', 'pt', 'a4');
+          const pageWidth = pdf.internal.pageSize.getWidth();
+          const pageHeight = pdf.internal.pageSize.getHeight();
+          const margin = 32;
+          const renderWidth = pageWidth - margin * 2;
+          let renderHeight = (canvas.height * renderWidth) / canvas.width;
+
+          if (renderHeight > pageHeight - margin * 2) {
+            const scale = (pageHeight - margin * 2) / renderHeight;
+            renderHeight = renderHeight * scale;
+          }
+
+          pdf.addImage(imgData, 'PNG', margin, margin, renderWidth, renderHeight);
+
+          const rawName = previewFields.fullName?.textContent?.trim() || 'Marriage Biodata';
+          const safeName = rawName
+            .toLowerCase()
+            .replace(/[^\p{L}\p{N}\s-]/gu, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-');
+
+          pdf.save(`${safeName || 'marriage-biodata'}.pdf`);
+        } catch (err) {
+          console.error('PDF generation failed:', err);
+          alert('Unable to generate PDF. Please check the console for details.');
+        } finally {
+          tempWrapper.remove();
+        }
+      });
+
+      // Initialize visibility based on default values
+      formInputs.forEach((input) => {
+        if (input.value) {
+          const event = new Event('input');
+          input.dispatchEvent(event);
+        } else {
+          const key = input.getAttribute('data-preview-target');
+          const wrapper = wrapperMap[key];
+          toggleVisibility(wrapper, false);
+        }
+      });
+
+      // Also hide sections initially
+      updateSectionVisibility();
+    })();
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+<footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>easyjpgtopdf</h3>
+                    <p>Your all-in-one PDF solution for converting, editing, and managing documents with ease.</p>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert to PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="jpg-to-pdf.html">JPG to PDF</a></li>
+                        <li><a href="word-to-pdf.html">Word to PDF</a></li>
+                        <li><a href="excel-to-pdf.html">Excel to PDF</a></li>
+                        <li><a href="ppt-to-pdf.html">PowerPoint to PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert from PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="pdf-to-jpg.html">PDF to JPG</a></li>
+                        <li><a href="pdf-to-word.html">PDF to Word</a></li>
+                        <li><a href="pdf-to-excel.html">PDF to Excel</a></li>
+                        <li><a href="pdf-to-ppt.html">PDF to PowerPoint</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Pdf Editor</h3>
+                    <ul class="footer-links">
+                        <li><a href="merge-pdf.html">Merge PDF</a></li>
+                        <li><a href="split-pdf.html">Split PDF</a></li>
+                        <li><a href="compress-pdf.html">Compress PDF</a></li>
+                        <li><a href="edit-pdf.html">Pdf Editor</a></li>
+                        <li><a href="protect-pdf.html">Protect PDF</a></li>
+                        <li><a href="unlock-pdf.html">Unlock PDF</a></li>
+                        <li><a href="watermark-pdf.html">Watermark PDF</a></li>
+                        <li><a href="crop-pdf.html">Crop PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Image Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="image-compressor.html">Image Compressor</a></li>
+                        <li><a href="image-resizer.html">Image Resizer</a></li>
+                        <li><a href="image-editor.html">Image Editor</a></li>
+                        <li><a href="background-remover.html">Image Background Remover</a></li>
+                        <li><a href="ocr-image.html">OCR Image</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Design Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="resume-maker.html">Resume Maker</a></li>
+                        <li><a href="biodata-maker.html">Marrige Biodata-Data Maker</a></li>
+                        <li><a href="ai-image-generator.html">AI Image Generator</a></li>
+                        <li><a href="marriage-card.html">Marriage Card</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Company</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html#about">About Us</a></li>
+                        <li><a href="index.html#contact">Contact</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Connect With Us</h3>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fab fa-twitter"></i> Twitter</a></li>
+                        <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
+                        <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
+                        <li><a href="#"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+                <p class="attribution">Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site. <a href="attributions.html">See full acknowledgements</a>.</p>
+            </div>
+        </div>
+    </footer>
+
+

@@ -1,0 +1,387 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Background Workspace | easyjpgtopdf</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort.min.mjs"
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --primary: #4361ee;
+      --secondary: #3a0ca3;
+      --accent: #4cc9f0;
+      --dark: #212529;
+      --muted: #7a7f8c;
+      --surface: #ffffff;
+      --border: rgba(18, 20, 58, 0.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: linear-gradient(180deg, #f3f4ff 0%, #f8f9ff 100%); color: var(--dark); min-height: 100vh; display: flex; flex-direction: column; }
+    .topbar { background: var(--surface); box-shadow: 0 12px 30px rgba(14, 32, 86, 0.1); position: sticky; top: 0; z-index: 20; }
+    .topbar .inner { max-width: 1200px; margin: 0 auto; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; gap: 18px; }
+    .brand { display: flex; gap: 10px; align-items: center; font-weight: 700; font-size: 20px; color: var(--primary); text-decoration: none; }
+    .quick-links { display: flex; gap: 10px; flex-wrap: wrap; }
+    .quick-links a { text-decoration: none; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); color: #253156; font-weight: 600; background: rgba(67, 97, 238, 0.08); transition: transform 0.2s, box-shadow 0.2s, background 0.2s; }
+    .quick-links a:hover { background: linear-gradient(135deg, #4361ee, #3a0ca3); color: #fff; transform: translateY(-1px); box-shadow: 0 12px 24px rgba(67, 97, 238, 0.2); }
+    main { flex: 1; width: 100%; max-width: 1200px; margin: 36px auto; padding: 0 24px 48px; display: grid; grid-template-columns: minmax(320px, 500px) 1fr; gap: 32px; align-items: start; }
+    .panel { background: var(--surface); border-radius: 24px; padding: 28px; box-shadow: 0 20px 45px rgba(15, 30, 70, 0.08); }
+    .panel h2 { font-size: 1.35rem; margin-bottom: 18px; display: flex; gap: 12px; align-items: center; color: #171f4d; }
+    .preview-stage { position: relative; width: 8.5cm; height: 6cm; max-width: 100%; max-height: 100%; margin: 0 auto; border-radius: 18px; background: repeating-conic-gradient(#e5e9ff 0deg 25deg, #f8f9ff 25deg 50deg); overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    .preview-original, .preview-result { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transition: opacity 0.6s ease; }
+    .preview-result { opacity: 0; }
+    .preview-stage.revealed .preview-result { opacity: 1; }
+    .preview-stage.revealed .preview-original { opacity: 0; }
+    .preview-overlay { position: absolute; inset: 0; background: rgba(17, 24, 39, 0.55); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #fff; font-weight: 600; letter-spacing: 0.03em; transition: opacity 0.4s ease; }
+    .preview-stage.revealed .preview-overlay { opacity: 0; pointer-events: none; }
+    .preview-stage.empty .preview-overlay { display: none; }
+    .preview-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; color: var(--muted); font-weight: 600; letter-spacing: 0.03em; }
+    .preview-placeholder.hidden { display: none; }
+    .preview-spinner { width: 34px; height: 34px; border: 3px solid rgba(255, 255, 255, 0.4); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; }
+    .actions { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 14px; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 22px; border-radius: 999px; border: none; cursor: pointer; font-weight: 600; font-size: 0.95rem; transition: transform 0.2s, box-shadow 0.2s; }
+    .btn-primary { background: linear-gradient(135deg, #4361ee, #3a0ca3); color: #fff; box-shadow: 0 16px 30px rgba(67, 97, 238, 0.25); }
+    .btn-outline { background: #fff; border: 1px solid var(--border); color: #233050; }
+    .btn[disabled] { opacity: 0.5; cursor: not-allowed; box-shadow: none; transform: none; }
+    .status-card { display: flex; flex-direction: column; gap: 18px; color: var(--muted); font-size: 0.95rem; line-height: 1.6; }
+    .status-card strong { color: #1e254d; font-size: 1.05rem; }
+    footer { text-align: center; padding: 24px 16px 40px; font-size: 0.85rem; color: var(--muted); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 960px) {
+      main { grid-template-columns: 1fr; }
+      .actions { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="inner">
+      <a href="background-remover.html" class="brand"><i class="fas fa-wand-magic-sparkles"></i> easyjpgtopdf Backgrounds</a>
+      <nav class="quick-links">
+        <a href="background-remover.html"><i class="fas fa-upload"></i> Upload New</a>
+        <a href="background-workspace.html"><i class="fas fa-house"></i> Background Home</a>
+        <a href="ai-image-generator.html"><i class="fas fa-wand-magic"></i> AI Image</a>
+        <a href="image-editor.html"><i class="fas fa-sparkles"></i> Cleaner Image</a>
+        <a href="image-compressor.html"><i class="fas fa-star"></i> Image Beauty</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2><i class="fas fa-eye"></i> Preview</h2>
+      <div class="preview-stage empty" id="previewStage">
+        <img id="previewOriginal" class="preview-original" alt="Original preview" hidden>
+        <img id="previewResult" class="preview-result" alt="Background removed preview" hidden>
+        <div class="preview-overlay" id="previewOverlay">
+          <div class="preview-spinner"></div>
+          <span>Preparing magicâ€¦</span>
+        </div>
+      </div>
+      <div class="preview-placeholder" id="previewPlaceholder">
+        <i class="fas fa-image" style="font-size:42px; opacity:0.75;"></i>
+        <p>Upload an image first to start removing the background.</p>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" id="backgroundChange" disabled><i class="fas fa-layer-group"></i> Background Change</button>
+        <button class="btn btn-outline" id="downloadPng" disabled><i class="fas fa-download"></i> Download PNG</button>
+      </div>
+    </section>
+
+    <section class="panel status-card" id="statusCard">
+      <div>
+        <strong>How it works</strong>
+        <p>We process everything inside your browser. The first run may take a little longer while the AI model loads. Afterwards it becomes instant.</p>
+      </div>
+      <div>
+        <strong>Tips</strong>
+        <ul style="list-style: disc; padding-left: 20px; margin-top: 8px;">
+          <li>Use high-quality PNG or JPG files under 10 MB.</li>
+          <li>For hair or fur, ensure good contrast with the background.</li>
+          <li>Switch to <em>Background Change</em> to add professional scenes or solid colours.</li>
+        </ul>
+      </div>
+      <div id="statusMessage"></div>
+    </section>
+  </main>
+
+  
+
+  <script type="module">
+    const STORAGE_KEYS = {
+      original: 'bgRemover:original',
+      filename: 'bgRemover:filename',
+      foreground: 'bgRemover:foreground',
+      dimensions: 'bgRemover:dimensions'
+    };
+
+    const previewStage = document.getElementById('previewStage');
+    const previewOriginal = document.getElementById('previewOriginal');
+    const previewResult = document.getElementById('previewResult');
+    const previewOverlay = document.getElementById('previewOverlay');
+    const previewPlaceholder = document.getElementById('previewPlaceholder');
+    const backgroundChangeBtn = document.getElementById('backgroundChange');
+    const downloadBtn = document.getElementById('downloadPng');
+    const statusMessage = document.getElementById('statusMessage');
+
+    let resultCanvas = null;
+    let resultContext = null;
+    let resultDataURL = null;
+    let removeBackgroundFn = null;
+    let preloadFn = null;
+
+    try {
+      ({ removeBackground: removeBackgroundFn, preload: preloadFn } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/index.mjs'));
+    } catch (err) {
+      showError('AI library failed to load. Please check your connection and refresh.');
+      console.error(err);
+    }
+
+    function dataURLToBlob(dataURL) {
+      const [meta, encoded] = dataURL.split(',');
+      const mimeMatch = meta.match(/data:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : 'image/png';
+      const binary = atob(encoded);
+      const len = binary.length;
+      const buffer = new Uint8Array(len);
+      for (let i = 0; i < len; i++) buffer[i] = binary.charCodeAt(i);
+      return new Blob([buffer], { type: mime });
+    }
+
+    async function blobFromSource(source, meta) {
+      if (!source) return null;
+      if (source.startsWith('data:')) {
+        return dataURLToBlob(source);
+      }
+      if (source.startsWith('blob:')) {
+        return await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('GET', source);
+          xhr.responseType = 'blob';
+          xhr.onload = () => {
+            const responseBlob = xhr.response;
+            if (responseBlob && meta?.type && responseBlob.type !== meta.type) {
+              resolve(responseBlob.slice(0, responseBlob.size, meta.type));
+            } else {
+              resolve(responseBlob);
+            }
+          };
+          xhr.onerror = () => reject(new Error('Failed to read blob URL.'));
+          xhr.send();
+        });
+      }
+      const response = await fetch(source);
+      return await response.blob();
+    }
+
+    function blobToDataURL(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    function showError(message) {
+      statusMessage.innerHTML = `<div style="padding:16px;border-radius:14px;background:rgba(220,38,38,0.12);color:#7f1d1d;font-weight:600;">${message}</div>`;
+    }
+
+    function clearStatus() {
+      statusMessage.innerHTML = '';
+    }
+
+    function ensureCanvas(width, height) {
+      if (!resultCanvas) {
+        resultCanvas = document.createElement('canvas');
+        resultContext = resultCanvas.getContext('2d');
+      }
+      resultCanvas.width = width;
+      resultCanvas.height = height;
+    }
+
+    async function processImage(dataURL) {
+      if (!removeBackgroundFn) return;
+      clearStatus();
+      previewPlaceholder.classList.add('hidden');
+      previewStage.classList.remove('revealed');
+      previewStage.classList.remove('empty');
+      previewOverlay.style.opacity = 1;
+      statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">Processing imageâ€¦</div>';
+
+      try {
+        if (typeof preloadFn === 'function') {
+          await preloadFn({ publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/' });
+        }
+      } catch (err) {
+        console.warn('Preload failed, continuing lazily.', err);
+      }
+
+      try {
+        const blob = await blobFromSource(dataURL, {
+          type: sessionStorage.getItem('bgRemover:originalType') || 'image/png',
+          size: Number(sessionStorage.getItem('bgRemover:originalSize') || 0)
+        });
+        if (!blob) throw new Error('Unable to read uploaded image.');
+        const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'photo.png';
+        const fileForProcessing = new File([blob], filename, { type: blob.type || 'image/png' });
+        previewOriginal.hidden = false;
+        previewOriginal.src = dataURL;
+
+        const result = await removeBackgroundFn(fileForProcessing, {
+          publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
+          output: { format: 'image/png', quality: 1, type: 'foreground' }
+        });
+
+        const resultBlob = result instanceof Blob ? result : await result.blob();
+        const resultUrl = await blobToDataURL(resultBlob);
+        sessionStorage.setItem(STORAGE_KEYS.foreground, resultUrl);
+
+        const foregroundImage = new Image();
+        foregroundImage.crossOrigin = 'anonymous';
+        foregroundImage.src = resultUrl;
+        await foregroundImage.decode();
+
+        previewResult.hidden = false;
+        previewResult.src = resultUrl;
+
+        ensureCanvas(foregroundImage.width, foregroundImage.height);
+        resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+        resultContext.drawImage(foregroundImage, 0, 0, resultCanvas.width, resultCanvas.height);
+        resultDataURL = resultCanvas.toDataURL('image/png');
+
+        sessionStorage.setItem(STORAGE_KEYS.dimensions, JSON.stringify({ width: resultCanvas.width, height: resultCanvas.height }));
+        previewOverlay.style.opacity = 0;
+        requestAnimationFrame(() => previewStage.classList.add('revealed'));
+        backgroundChangeBtn.disabled = false;
+        downloadBtn.disabled = false;
+        clearStatus();
+      } catch (error) {
+        console.error('Background removal failed', error);
+        showError('Failed to remove background. Please try uploading a different image.');
+        previewStage.classList.add('empty');
+        previewOverlay.style.opacity = 0;
+        previewPlaceholder.classList.remove('hidden');
+      }
+    }
+
+    const storedOriginal = sessionStorage.getItem(STORAGE_KEYS.original);
+    if (!storedOriginal) {
+      previewStage.classList.add('empty');
+      previewPlaceholder.classList.remove('hidden');
+      showError('No image found. Please upload a file first.');
+      backgroundChangeBtn.disabled = true;
+      downloadBtn.disabled = true;
+    } else {
+      processImage(storedOriginal);
+    }
+
+    backgroundChangeBtn.addEventListener('click', () => {
+      if (backgroundChangeBtn.disabled) return;
+      window.location.href = 'background-style.html';
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      if (!resultDataURL) return;
+      const link = document.createElement('a');
+      const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-removed.png';
+      link.href = resultDataURL;
+      link.download = filename.endsWith('.png') ? filename : `${filename.replace(/\.[^/.]+$/, '') || 'background-removed'}.png`;
+      link.click();
+    });
+
+    document.getElementById('footerYear').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
+
+
+
+<footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>easyjpgtopdf</h3>
+                    <p>Your all-in-one PDF solution for converting, editing, and managing documents with ease.</p>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert to PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="jpg-to-pdf.html">JPG to PDF</a></li>
+                        <li><a href="word-to-pdf.html">Word to PDF</a></li>
+                        <li><a href="excel-to-pdf.html">Excel to PDF</a></li>
+                        <li><a href="ppt-to-pdf.html">PowerPoint to PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert from PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="pdf-to-jpg.html">PDF to JPG</a></li>
+                        <li><a href="pdf-to-word.html">PDF to Word</a></li>
+                        <li><a href="pdf-to-excel.html">PDF to Excel</a></li>
+                        <li><a href="pdf-to-ppt.html">PDF to PowerPoint</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Pdf Editor</h3>
+                    <ul class="footer-links">
+                        <li><a href="merge-pdf.html">Merge PDF</a></li>
+                        <li><a href="split-pdf.html">Split PDF</a></li>
+                        <li><a href="compress-pdf.html">Compress PDF</a></li>
+                        <li><a href="edit-pdf.html">Pdf Editor</a></li>
+                        <li><a href="protect-pdf.html">Protect PDF</a></li>
+                        <li><a href="unlock-pdf.html">Unlock PDF</a></li>
+                        <li><a href="watermark-pdf.html">Watermark PDF</a></li>
+                        <li><a href="crop-pdf.html">Crop PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Image Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="image-compressor.html">Image Compressor</a></li>
+                        <li><a href="image-resizer.html">Image Resizer</a></li>
+                        <li><a href="image-editor.html">Image Editor</a></li>
+                        <li><a href="background-remover.html">Image Background Remover</a></li>
+                        <li><a href="ocr-image.html">OCR Image</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Design Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="resume-maker.html">Resume Maker</a></li>
+                        <li><a href="biodata-maker.html">Marrige Biodata-Data Maker</a></li>
+                        <li><a href="ai-image-generator.html">AI Image Generator</a></li>
+                        <li><a href="marriage-card.html">Marriage Card</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Company</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html#about">About Us</a></li>
+                        <li><a href="index.html#contact">Contact</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Connect With Us</h3>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fab fa-twitter"></i> Twitter</a></li>
+                        <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
+                        <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
+                        <li><a href="#"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+                <p class="attribution">Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site. <a href="attributions.html">See full acknowledgements</a>.</p>
+            </div>
+        </div>
+    </footer>

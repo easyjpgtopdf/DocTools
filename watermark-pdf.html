@@ -1,0 +1,519 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Watermark PDF | easyjpgtopdf</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    :root { --primary: #4361ee; --primary-dark: #3a0ca3; --secondary: #f72585; --success: #4cc9f0; --light: #f8f9fa; --dark: #212529; --gray: #6c757d; --border-radius: 12px; --box-shadow: 0 5px 15px rgba(0,0,0,0.08); --transition: all 0.3s ease; }
+    body { background: linear-gradient(135deg, #f5f7ff 0%, #e9ecef 100%); color: var(--dark); min-height: 100vh; line-height: 1.6; display: flex; flex-direction: column; }
+    .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+    /* Header (same as word-to-pdf.html) */
+    header { background: #fff; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+    .navbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; }
+    .logo { display: flex; gap: 10px; align-items: center; font-size: 22px; font-weight: 700; color: var(--primary); text-decoration: none; }
+    .logo i { color: var(--primary-dark); }
+    .nav-links { display: flex; gap: 22px; }
+    .nav-links a { text-decoration: none; color: var(--dark); font-weight: 500; }
+    .nav-links a.active, .nav-links a:hover { color: var(--primary); }
+    .dropdown { position: relative; }
+    .dropdown-content { display: none; position: absolute; background: #fff; min-width: 200px; box-shadow: 0 8px 16px rgba(0,0,0,.1); border-radius: 8px; padding: 10px 0; top: 100%; left: 0; }
+    .dropdown:hover .dropdown-content { display: block; }
+    .dropdown-content a { display: block; padding: 10px 20px; text-decoration: none; color: var(--dark); }
+    .dropdown-content a:hover { background: var(--light); }
+    .auth-buttons { display:flex; gap:10px; }
+    .auth-btn { padding:6px 15px; border-radius:50px; text-decoration:none; font-weight:500; transition:.3s; font-size:.9rem; }
+    .auth-btn.login { background: transparent; color: var(--primary); border:1px solid var(--primary); }
+    .auth-btn.signup { background: var(--primary); color:#fff; border:1px solid var(--primary); }
+    /* Page specific */
+    .page-wrap { padding: 20px 0; }
+    .converter-header { text-align: center; margin-bottom: 30px; padding: 20px; }
+    .converter-header h1 { font-size: 2.2rem; color: var(--primary); margin-bottom: 10px; }
+    .converter-header p { font-size: 1.05rem; color: var(--gray); max-width: 700px; margin: 0 auto; }
+    .converter-card { background: #fff; border-radius: var(--border-radius); padding: 30px; box-shadow: var(--box-shadow); margin-bottom: 30px; }
+    .upload-area { border: 3px dashed #ddd; border-radius: var(--border-radius); padding: 40px 20px; text-align: center; cursor: pointer; margin-bottom: 20px; transition: var(--transition); position: relative; }
+    .upload-area:hover { border-color: var(--primary); background: rgba(67, 97, 238, 0.03); }
+    .upload-area.dragover { border-color: var(--primary); background: rgba(67, 97, 238, 0.08); }
+    .upload-icon { font-size: 64px; color: var(--primary); margin-bottom: 15px; }
+    .upload-area h3 { font-size: 1.5rem; margin-bottom: 10px; color: var(--dark); }
+    .upload-area p { color: var(--gray); margin-bottom: 5px; }
+    .file-input { display: none; }
+    .file-info { background: var(--light); border-radius: var(--border-radius); padding: 20px; margin: 20px 0; display: none; }
+    .file-details { display: flex; align-items: center; gap: 15px; }
+    .file-icon { font-size: 40px; color: var(--primary); }
+    .file-text h4 { font-size: 1.2rem; margin-bottom: 5px; }
+    .file-text p { color: var(--gray); font-size: 0.9rem; }
+    .options-section { margin: 25px 0; padding: 20px; background: var(--light); border-radius: var(--border-radius); }
+    .options-section h3 { margin-bottom: 15px; color: var(--primary); }
+    .option-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+    .option-group { display: flex; flex-direction: column; gap: 8px; }
+    .option-group label { font-weight: 500; }
+    .option-select, .option-input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; background: white; font-size: 1rem; }
+    .range { width: 100%; }
+    .inline { display: flex; gap: 10px; align-items: center; }
+    .action-buttons { display: flex; gap: 15px; margin-top: 25px; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: var(--transition); text-decoration: none; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+    .btn-secondary { background: white; color: var(--primary); border: 2px solid var(--primary); }
+    .btn-secondary:hover { background: var(--light); }
+    .btn:disabled { background: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
+    .progress-container { margin: 20px 0; display: none; }
+    .progress-bar { width: 100%; height: 10px; background: #e9ecef; border-radius: 5px; overflow: hidden; }
+    .progress { height: 100%; background: linear-gradient(90deg, var(--primary), var(--success)); width: 0%; transition: width 0.4s ease; }
+    .progress-text { text-align: center; margin-top: 10px; color: var(--gray); font-size: 0.9rem; }
+    .loading { display: none; text-align: center; padding: 30px; }
+    .loading-spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .message { padding: 15px; border-radius: 8px; margin: 20px 0; display: none; }
+    .success-message { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .error-message { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .preview-section { margin-top: 30px; display:none; }
+    .preview-container { border: 1px solid #ddd; border-radius: var(--border-radius); padding: 20px; background: white; max-height: 400px; overflow-y: auto; }
+    /* Footer */
+    footer { background: #212529; color: #fff; margin-top: auto; padding: 60px 0 30px; }
+    .footer-content { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px; margin-bottom: 40px; }
+    .footer-links { list-style: none; }
+    .footer-links a { color: #aaa; text-decoration: none; }
+    .footer-links a:hover { color: #fff; }
+    .copyright { text-align: center; color: #aaa; border-top: 1px solid #444; padding-top: 16px; font-size: .9rem; }
+    @media (max-width: 768px) { .nav-links { display: none; } .action-buttons { flex-direction: column; } .btn { width: 100%; justify-content: center; } }
+  </style>
+</head>
+<body>
+  <!-- Header from index.html -->
+  <header><div class="container"><nav class="navbar"><a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a><div class="nav-links"><a href="index.html" class="active">Home</a><div class="dropdown"><a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="jpg-to-pdf.html">JPG to PDF</a><a href="word-to-pdf.html">Word to PDF</a><a href="excel-to-pdf.html">Excel to PDF</a><a href="ppt-to-pdf.html">PowerPoint to PDF</a></div></div><div class="dropdown"><a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="pdf-to-jpg.html">PDF to JPG</a><a href="pdf-to-word.html">PDF to Word</a><a href="pdf-to-excel.html">PDF to Excel</a><a href="pdf-to-ppt.html">PDF to PowerPoint</a></div></div><div class="dropdown"><a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="merge-pdf.html">Merge PDF</a><a href="split-pdf.html">Split PDF</a><a href="compress-pdf.html">Compress PDF</a><a href="edit-pdf.html">Pdf Editor</a><a href="protect-pdf.html">Protect PDF</a><a href="unlock-pdf.html">Unlock PDF</a><a href="watermark-pdf.html">Watermark PDF</a><a href="crop-pdf.html">Crop PDF</a></div></div>          <div class="dropdown"><a href="#">Image Tools <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="image-compressor.html">Image Compressor</a><a href="image-resizer.html">Image Resizer</a><a href="image-editor.html">Image Editor</a><a href="background-remover.html">Image Background Remover</a><a href="ocr-image.html">OCR Image</a><a href="image-watermark.html">Image Watermark Tool</a></div></div>
+<div class="dropdown"><a href="#">Design Tools <i class="fas fa-chevron-down"></i></a><div class="dropdown-content"><a href="resume-maker.html">Resume Maker</a><a href="biodata-maker.html">Marrige Biodata-Data Maker</a><a href="ai-image-generator.html">AI Image Generator</a><a href="marriage-card.html">Marriage Card</a></div></div></div><div class="auth-buttons"><a href="#" class="au
+th-btn login" onclick="showModal('login-modal')">Login</a><a href="#" class="auth-btn signup" onclick="showModal('signup-modal')">Sign Up</a></div></nav></div></header>
+
+  <div class="container page-wrap">
+    <div class="converter-header">
+      <h1>Watermark PDF</h1>
+      <p>Add custom watermark text to your PDF. Fast, secure, and works in your browser.</p>
+    </div>
+
+    <div class="converter-card">
+      <div class="upload-area" id="upload-area">
+        <div class="upload-icon"><i class="fas fa-file-pdf"></i></div>
+        <h3>Upload Your PDF</h3>
+        <p>Drag & drop your .pdf file here</p>
+        <p>or click to browse files</p>
+        <input type="file" id="file-input" class="file-input" accept="application/pdf,.pdf" />
+      </div>
+
+      <div class="file-info" id="file-info">
+        <div class="file-details">
+          <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+          <div class="file-text">
+            <h4 id="file-name">Document.pdf</h4>
+            <p id="file-size">0 KB</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="options-section">
+        <h3>Watermark Options</h3>
+        <div class="option-grid">
+          <div class="option-group">
+            <label for="wm-text">Watermark Text</label>
+            <input id="wm-text" class="option-input" type="text" placeholder="CONFIDENTIAL" value="CONFIDENTIAL" />
+          </div>
+          <div class="option-group">
+            <label for="wm-size">Font Size (pt)</label>
+            <input id="wm-size" class="option-input" type="number" min="8" max="200" step="1" value="48" />
+          </div>
+          <div class="option-group">
+            <label for="wm-color">Color</label>
+            <input id="wm-color" class="option-input" type="color" value="#ff0000" />
+          </div>
+          <div class="option-group">
+            <label for="wm-opacity">Opacity: <span id="wm-opacity-val">0.2</span></label>
+            <input id="wm-opacity" class="range" type="range" min="0.05" max="1" step="0.05" value="0.2" />
+          </div>
+          <div class="option-group">
+            <label for="wm-rotation">Rotation (deg)</label>
+            <input id="wm-rotation" class="option-input" type="number" min="-180" max="180" step="1" value="45" />
+          </div>
+          <div class="option-group">
+            <label for="wm-position">Position</label>
+            <select id="wm-position" class="option-select">
+              <option value="center-diagonal" selected>Center (Diagonal)</option>
+              <option value="center">Center</option>
+              <option value="top-left">Top Left</option>
+              <option value="top-right">Top Right</option>
+              <option value="bottom-left">Bottom Left</option>
+              <option value="bottom-right">Bottom Right</option>
+            </select>
+          </div>
+          <div class="option-group">
+            <label>Apply To</label>
+            <div class="inline"><input type="checkbox" id="all-pages" checked /><label for="all-pages">All Pages</label></div>
+            <small style="color:var(--gray)">If off, watermark only first page</small>
+          </div>
+
+          <!-- Logo watermark options -->
+          <div class="option-group">
+            <label class="inline" for="enable-logo"><input type="checkbox" id="enable-logo" style="margin-right:8px;"> Add Logo Watermark</label>
+            <input id="wm-logo-file" class="option-input" type="file" accept="image/png,image/jpeg" />
+          </div>
+          <div class="option-group">
+            <label for="wm-logo-scale">Logo Size (% of page width)</label>
+            <input id="wm-logo-scale" class="option-input" type="number" min="5" max="100" step="1" value="30" />
+          </div>
+          <div class="option-group">
+            <label for="wm-logo-rotation">Logo Rotation (deg)</label>
+            <input id="wm-logo-rotation" class="option-input" type="number" min="-180" max="180" step="1" value="0" />
+          </div>
+          <div class="option-group">
+            <label for="wm-logo-opacity">Logo Opacity: <span id="wm-logo-opacity-val">0.3</span></label>
+            <input id="wm-logo-opacity" class="range" type="range" min="0.05" max="1" step="0.05" value="0.3" />
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-container" id="progress-container">
+        <div class="progress-bar"><div class="progress" id="progress-bar"></div></div>
+        <div class="progress-text" id="progress-text">Initializing...</div>
+      </div>
+
+      <div class="loading" id="loading">
+        <div class="loading-spinner"></div>
+        <p>Applying watermark to your PDF...</p>
+      </div>
+
+      <div class="success-message message" id="success-message"><i class="fas fa-check-circle"></i> Watermark added successfully!</div>
+      <div class="error-message message" id="error-message"><i class="fas fa-exclamation-circle"></i> <span id="error-text">An error occurred</span></div>
+
+      <div class="action-buttons">
+        <button class="btn btn-primary" id="convert-btn" disabled><i class="fas fa-water"></i> Add Watermark</button>
+        <button class="btn btn-secondary" id="clear-btn"><i class="fas fa-trash"></i> Clear File</button>
+      </div>
+
+      <div class="preview-section" id="preview-section"></div>
+    </div>
+
+    <!-- Comments (same style as word-to-pdf.html) -->
+  </div>
+
+  <!-- Footer (same as word-to-pdf.html) -->
+  <div class="features" style="background-color:#fff;padding:80px 0;border-radius:20px;margin-bottom:50px;">
+  <div class="container">
+    <h2 class="section-title">Why Choose easyjpgtopdf?</h2>
+    <div class="features-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:40px;">
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Secure & Private</h3>
+          <p style="color:#6c757d;">All files are processed securely and automatically deleted after 1 hour.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-bolt"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Fast Processing</h3>
+          <p style="color:#6c757d;">Our optimized algorithms process your files in seconds.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-desktop"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Works Everywhere</h3>
+          <p style="color:#6c757d;">Use easyjpgtopdf on any device with a modern web browser.</p>
+        </div>
+      </div>
+      <div class="feature" style="display:flex;gap:20px;">
+        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+          <i class="fas fa-euro-sign"></i>
+        </div>
+        <div class="feature-content">
+          <h3 style="margin-bottom:10px;font-size:1.3rem;">Completely Free</h3>
+          <p style="color:#6c757d;">All our basic tools are free to use with no hidden costs.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <script>
+    let currentFile = null; let originalPdfBytes = null;
+    const uploadArea = document.getElementById('upload-area');
+    const fileInput = document.getElementById('file-input');
+    const fileInfo = document.getElementById('file-info');
+    const fileName = document.getElementById('file-name');
+    const fileSize = document.getElementById('file-size');
+    const convertBtn = document.getElementById('convert-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const progressContainer = document.getElementById('progress-container');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const loading = document.getElementById('loading');
+    const successMessage = document.getElementById('success-message');
+    const errorMessage = document.getElementById('error-message');
+    const errorText = document.getElementById('error-text');
+
+    const wmText = document.getElementById('wm-text');
+    const wmSize = document.getElementById('wm-size');
+    const wmColor = document.getElementById('wm-color');
+    const wmOpacity = document.getElementById('wm-opacity');
+    const wmOpacityVal = document.getElementById('wm-opacity-val');
+    const wmRotation = document.getElementById('wm-rotation');
+    const wmPosition = document.getElementById('wm-position');
+    const allPages = document.getElementById('all-pages');
+
+    // Logo controls
+    const enableLogo = document.getElementById('enable-logo');
+    const wmLogoFile = document.getElementById('wm-logo-file');
+    const wmLogoScale = document.getElementById('wm-logo-scale');
+    const wmLogoRotation = document.getElementById('wm-logo-rotation');
+    const wmLogoOpacity = document.getElementById('wm-logo-opacity');
+    const wmLogoOpacityVal = document.getElementById('wm-logo-opacity-val');
+
+    wmOpacity.addEventListener('input', () => wmOpacityVal.textContent = wmOpacity.value);
+    wmLogoOpacity.addEventListener('input', () => wmLogoOpacityVal.textContent = wmLogoOpacity.value);
+
+    uploadArea.addEventListener('click', () => fileInput.click());
+    uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+    uploadArea.addEventListener('dragleave', () => { uploadArea.classList.remove('dragover'); });
+    uploadArea.addEventListener('drop', (e) => { e.preventDefault(); uploadArea.classList.remove('dragover'); if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
+    fileInput.addEventListener('change', (e) => { if (e.target.files.length > 0) handleFile(e.target.files[0]); });
+    convertBtn.addEventListener('click', addWatermark);
+    clearBtn.addEventListener('click', clearFile);
+
+    function handleFile(file){
+      if (!file || !/\.pdf$/i.test(file.name)) { showError('Please select a valid PDF file (.pdf)'); return; }
+      if (file.size > 50 * 1024 * 1024) { showError('File size exceeds 50MB limit. Please choose a smaller file.'); return; }
+      currentFile = file; fileName.textContent = file.name; fileSize.textContent = formatFileSize(file.size);
+      const reader = new FileReader(); reader.onload = () => { originalPdfBytes = new Uint8Array(reader.result); convertBtn.disabled = false; fileInfo.style.display = 'block'; hideMessages(); }; reader.onerror = () => showError('Failed to read PDF file'); reader.readAsArrayBuffer(file);
+    }
+
+    function hexToRgb01(hex){
+      const h = hex.replace('#',''); const bigint = parseInt(h, 16);
+      const r = (bigint >> 16) & 255; const g = (bigint >> 8) & 255; const b = bigint & 255;
+      return { r: r/255, g: g/255, b: b/255 };
+    }
+
+    function centerPosition(page, textWidth, textHeight){
+      const { width, height } = page.getSize();
+      return { x: (width - textWidth)/2, y: (height - textHeight)/2 };
+    }
+
+    function readFileAsArrayBuffer(file){
+      return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(new Uint8Array(r.result));
+        r.onerror = reject;
+        r.readAsArrayBuffer(file);
+      });
+    }
+
+    async function addWatermark(){
+      if (!currentFile || !originalPdfBytes) { showError('Please upload a PDF first'); return; }
+      hideMessages(); loading.style.display='block'; progressContainer.style.display='block'; convertBtn.disabled=true;
+      try{
+        updateProgress(10, 'Loading PDF...');
+        const { PDFDocument, StandardFonts, rgb, degrees } = PDFLib;
+        const pdfDoc = await PDFDocument.load(originalPdfBytes, { ignoreEncryption: true });
+        const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        const color = hexToRgb01(wmColor.value);
+        const opacity = Math.max(0.05, Math.min(1, parseFloat(wmOpacity.value) || 0.2));
+        const text = wmText.value || 'CONFIDENTIAL';
+        const size = Math.max(8, Math.min(200, parseFloat(wmSize.value) || 48));
+        const angle = parseFloat(wmRotation.value) || 0;
+
+        // Prepare optional logo
+        let logoImage = null;
+        let logoDims = null;
+        const logoEnabled = enableLogo && enableLogo.checked && wmLogoFile && wmLogoFile.files && wmLogoFile.files[0];
+        if (logoEnabled){
+          try{
+            const logoBytes = await readFileAsArrayBuffer(wmLogoFile.files[0]);
+            const isPng = /\.png$/i.test(wmLogoFile.files[0].name);
+            logoImage = isPng ? await pdfDoc.embedPng(logoBytes) : await pdfDoc.embedJpg(logoBytes);
+            logoDims = logoImage.scale(1);
+          }catch(e){ console.warn('Failed to embed logo image', e); }
+        }
+
+        const pages = pdfDoc.getPages();
+        const applyAll = allPages.checked;
+        const targetPages = applyAll ? pages : [pages[0]];
+
+        for (let i=0;i<targetPages.length;i++){
+          const page = targetPages[i];
+          const { width, height } = page.getSize();
+          const textWidth = font.widthOfTextAtSize(text, size);
+          const textHeight = font.heightAtSize(size);
+
+          let x = 0, y = 0, rotateDeg = angle;
+          const pos = wmPosition.value;
+          if (pos === 'center-diagonal'){ const c = centerPosition(page, textWidth, textHeight); x = c.x; y = c.y; if (!wmRotation.value) rotateDeg = 45; }
+          else if (pos === 'center'){ const c = centerPosition(page, textWidth, textHeight); x = c.x; y = c.y; }
+          else if (pos === 'top-left'){ x = 36; y = height - textHeight - 36; rotateDeg = angle; }
+          else if (pos === 'top-right'){ x = width - textWidth - 36; y = height - textHeight - 36; }
+          else if (pos === 'bottom-left'){ x = 36; y = 36; }
+          else if (pos === 'bottom-right'){ x = width - textWidth - 36; y = 36; }
+
+          page.drawText(text, {
+            x, y,
+            size,
+            font,
+            color: rgb(color.r, color.g, color.b),
+            rotate: degrees(rotateDeg),
+            opacity
+          });
+
+          // Draw logo if provided
+          if (logoImage){
+            const scalePct = Math.max(5, Math.min(100, parseFloat(wmLogoScale.value) || 30));
+            const logoRotate = parseFloat(wmLogoRotation.value) || 0;
+            const logoOpacity = Math.max(0.05, Math.min(1, parseFloat(wmLogoOpacity.value) || 0.3));
+            const drawWidth = (width * scalePct) / 100;
+            const aspect = logoDims.width / logoDims.height;
+            const drawHeight = drawWidth / Math.max(0.01, aspect);
+            let lx = 0, ly = 0;
+            if (pos === 'center' || pos === 'center-diagonal'){
+              const c = centerPosition(page, drawWidth, drawHeight); lx = c.x; ly = c.y;
+            } else if (pos === 'top-left'){ lx = 36; ly = height - drawHeight - 36; }
+            else if (pos === 'top-right'){ lx = width - drawWidth - 36; ly = height - drawHeight - 36; }
+            else if (pos === 'bottom-left'){ lx = 36; ly = 36; }
+            else if (pos === 'bottom-right'){ lx = width - drawWidth - 36; ly = 36; }
+
+            page.drawImage(logoImage, {
+              x: lx,
+              y: ly,
+              width: drawWidth,
+              height: drawHeight,
+              rotate: degrees(logoRotate),
+              opacity: logoOpacity
+            });
+          }
+        }
+
+        updateProgress(90, 'Preparing preview...');
+        const dataUrl = await pdfDoc.saveAsBase64({ dataUri: true });
+        const outName = currentFile.name.replace(/\.[^/.]+$/, '') + '-watermarked.pdf';
+        try {
+          sessionStorage.setItem('wm_pdf_dataurl', dataUrl);
+          sessionStorage.setItem('wm_filename', outName);
+          sessionStorage.setItem('wm_pages', String(pdfDoc.getPages().length));
+        } catch(e) { console.warn('sessionStorage write failed', e); try { window.name = JSON.stringify({ tag:'WM', wm_pdf_dataurl:dataUrl, wm_filename:outName, wm_pages:String(pdfDoc.getPages().length) }); } catch(err){} }
+        updateProgress(100, 'Redirecting...');
+        window.location.href = 'watermark-pdf-convert.html';
+      }catch(err){ console.error(err); showError('Failed to add watermark. Please try another file.'); }
+      finally{ loading.style.display='none'; progressContainer.style.display='none'; progressBar.style.width='0%'; convertBtn.disabled=false; }
+    }
+
+    function clearFile(){ currentFile=null; originalPdfBytes=null; fileInput.value=''; fileInfo.style.display='none'; convertBtn.disabled=true; hideMessages(); }
+    function updateProgress(percent, text){ progressBar.style.width = `${percent}%`; progressText.textContent = text; }
+    function formatFileSize(bytes){ if (bytes < 1024) return bytes + ' bytes'; else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB'; else return (bytes / 1048576).toFixed(1) + ' MB'; }
+    function showError(message){ errorText.textContent = message; errorMessage.style.display='block'; }
+    function hideMessages(){ successMessage.style.display='none'; errorMessage.style.display='none'; }
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>easyjpgtopdf</h3>
+                    <p>Your all-in-one PDF solution for converting, editing, and managing documents with ease.</p>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert to PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="jpg-to-pdf.html">JPG to PDF</a></li>
+                        <li><a href="word-to-pdf.html">Word to PDF</a></li>
+                        <li><a href="excel-to-pdf.html">Excel to PDF</a></li>
+                        <li><a href="ppt-to-pdf.html">PowerPoint to PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert from PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="pdf-to-jpg.html">PDF to JPG</a></li>
+                        <li><a href="pdf-to-word.html">PDF to Word</a></li>
+                        <li><a href="pdf-to-excel.html">PDF to Excel</a></li>
+                        <li><a href="pdf-to-ppt.html">PDF to PowerPoint</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Pdf Editor</h3>
+                    <ul class="footer-links">
+                        <li><a href="merge-pdf.html">Merge PDF</a></li>
+                        <li><a href="split-pdf.html">Split PDF</a></li>
+                        <li><a href="compress-pdf.html">Compress PDF</a></li>
+                        <li><a href="edit-pdf.html">Pdf Editor</a></li>
+                        <li><a href="protect-pdf.html">Protect PDF</a></li>
+                        <li><a href="unlock-pdf.html">Unlock PDF</a></li>
+                        <li><a href="watermark-pdf.html">Watermark PDF</a></li>
+                        <li><a href="crop-pdf.html">Crop PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Image Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="image-compressor.html">Image Compressor</a></li>
+                        <li><a href="image-resizer.html">Image Resizer</a></li>
+                        <li><a href="image-editor.html">Image Editor</a></li>
+                        <li><a href="background-remover.html">Image Background Remover</a></li>
+                        <li><a href="ocr-image.html">OCR Image</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Design Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="resume-maker.html">Resume Maker</a></li>
+                        <li><a href="biodata-maker.html">Marrige Biodata-Data Maker</a></li>
+                        <li><a href="ai-image-generator.html">AI Image Generator</a></li>
+                        <li><a href="marriage-card.html">Marriage Card</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Company</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html#about">About Us</a></li>
+                        <li><a href="index.html#contact">Contact</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Connect With Us</h3>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fab fa-twitter"></i> Twitter</a></li>
+                        <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
+                        <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
+                        <li><a href="#"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+                <p class="attribution">Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site. <a href="attributions.html">See full acknowledgements</a>.</p>
+            </div>
+        </div>
+    </footer>
+
+

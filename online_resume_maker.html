@@ -1,0 +1,519 @@
+﻿<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Resume/CV Maker - Free Templates (Locked)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Roboto+Slab:wght@400;700&family=Montserrat:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --panel-w:15cm; /* preview panel width */
+      --panel-h:20cm; /* preview panel height */
+      --thumb-w:4.5cm; /* template thumb */
+      --thumb-h:6cm;
+      --gap:12px;
+      --accent:#0b5cff;
+      --muted:#666;
+      --bg:#f6f8fb;
+      --card-bg:#fff;
+    }
+    *{box-sizing:border-box}
+    body{font-family:Inter,system-ui,Arial;background:var(--bg);color:#222;margin:0}
+    .app{display:flex;gap:16px;padding:18px}
+    .left{width:460px;max-height:calc(100vh - 36px);overflow:auto;padding:18px;background:var(--card-bg);border-radius:12px;box-shadow:0 8px 30px rgba(10,20,40,.06)}
+    .right{flex:1;display:flex;flex-direction:column;align-items:center;gap:12px}
+    h2{margin:6px 0 14px 0;font-family:Montserrat, sans-serif}
+    .section{margin-bottom:14px}
+    label{display:block;font-size:13px;margin-bottom:6px;color:var(--muted)}
+    input[type=text],input[type=date],select,textarea{width:100%;padding:9px;border:1px solid #e6e9ef;border-radius:8px;font-size:14px;background:linear-gradient(180deg,#fff,#fbfdff)}
+    textarea{min-height:72px}
+    .row{display:flex;gap:8px}
+    .col{flex:1}
+    .btn{display:inline-block;padding:8px 12px;border-radius:10px;border:0;background:var(--accent);color:white;cursor:pointer;font-weight:600}
+    .btn.secondary{background:#444}
+    .template-grid{display:flex;flex-wrap:wrap;gap:10px}
+    .thumb{width:var(--thumb-w);height:var(--thumb-h);background:linear-gradient(180deg,#fff,#fafcff);border-radius:8px;box-shadow:0 8px 22px rgba(10,20,40,.06);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;border:3px solid transparent;position:relative}
+    .thumb.active{border-color:var(--accent)}
+    .thumb .label{position:absolute;bottom:6px;left:6px;font-size:11px;background:rgba(255,255,255,0.92);padding:4px 6px;border-radius:6px}
+
+    .preview-wrapper{width:calc(var(--panel-w) + 40px);padding:16px;background:#fff;border-radius:12px;box-shadow:0 10px 40px rgba(10,20,40,.08);display:flex;flex-direction:column;align-items:center}
+    .preview-frame{width:var(--panel-w);height:var(--panel-h);border:1px solid #e8ecf8;overflow:hidden;background:white;position:relative;border-radius:8px}
+    .preview-inner{padding:20px;height:100%;overflow:auto}
+
+    .declaration{font-size:13px;color:var(--muted);padding:10px;border-top:1px dashed #eee;margin-top:10px;width:100%;text-align:left}
+    .decl-row{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+    .decl-text{font-size:13px}
+
+    /* Template styles */
+    .resume-root{font-family:Inter, sans-serif;color:#111}
+    .resume{background:white;padding:14px;border-radius:6px}
+    .r-header{display:flex;align-items:center;gap:12px}
+    .r-photo{width:88px;height:88px;border-radius:8px;overflow:hidden;background:#eee;flex:0 0 88px}
+    .r-name{font-size:20px;font-weight:800;font-family:Montserrat}
+    .r-title{font-size:13px;color:var(--muted);margin-top:4px}
+    .r-sections{display:flex;gap:12px;margin-top:12px}
+    .r-left{flex:1}
+    .r-right{flex:1}
+    .label-strong{font-weight:700;font-size:12px;margin-bottom:6px}
+    .meta{font-size:13px;color:var(--muted)}
+
+    /* Variations: 20 templates improved visually */
+    .tpl-1 .r-sections{flex-direction:row}
+    .tpl-2 .r-header{flex-direction:row-reverse}
+    .tpl-3 .resume{display:flex}
+    .tpl-3 .sidebar{width:36%;background:#f7f9fc;padding:12px;border-radius:8px}
+    .tpl-4 .r-header{flex-direction:column;align-items:center;text-align:center}
+    .tpl-5 .r-header{background:#0b5cff;color:white;padding:12px;border-radius:8px}
+    .tpl-6 .r-photo{width:72px;height:72px;border-radius:50%}
+    .tpl-7 .r-name{font-family:Roboto Slab, serif}
+    .tpl-8 .resume{border-left:6px solid var(--accent);padding-left:10px}
+    .tpl-9 .sidebar{background:#fff;border:1px solid #eee}
+    .tpl-10 .r-header{gap:20px}
+    .tpl-11 .r-title{color:var(--accent);font-weight:600}
+    .tpl-12 .r-name{font-size:22px}
+    .tpl-13 .r-photo{float:right;margin-left:12px}
+    .tpl-14 .r-sections{flex-direction:column}
+    .tpl-15 .resume{background:linear-gradient(180deg,#fff,#fbfdff)}
+    .tpl-16 .sidebar{background:#f0fff4}
+    .tpl-17 .r-header{border-bottom:1px dashed #eee;padding-bottom:8px}
+    .tpl-18 .r-left{font-size:13px}
+    .tpl-19 .r-right{background:#fafafa;padding:10px;border-radius:6px}
+    .tpl-20 .r-name{letter-spacing:1px}
+
+    /* Driver specific templates: tpl-21..tpl-25 (we will create driver-specific layouts) */
+    .tpl-21 .resume{display:block}
+    .tpl-21 .lic-table,.tpl-22 .lic-table,.tpl-23 .lic-table,.tpl-24 .lic-table,.tpl-25 .lic-table{width:100%;border-collapse:collapse;margin-top:8px}
+    .lic-table th, .lic-table td{border:1px solid #e7ecf7;padding:6px;font-size:12px}
+
+    /* responsive */
+    @media(max-width:1100px){.left{width:360px}}
+    @media(max-width:860px){.app{flex-direction:column}.right{align-items:stretch}}
+
+    .muted{color:var(--muted)}
+    .small{font-size:12px}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    .img-preview{width:120px;height:120px;object-fit:cover;border-radius:8px;border:1px dashed #ddd}
+
+    /* lock badge */
+    .locked{display:inline-block;padding:6px 10px;background:#0b5cff;color:white;border-radius:999px;font-size:12px;font-weight:700}
+
+    /* template strip under preview */
+    .template-strip{display:flex;gap:10px;overflow:auto;padding:8px;margin-top:12px;width:100%;background:#fbfdff;border-radius:8px}
+    .template-strip .thumb{width:90px;height:120px}
+
+    .dropdown-template{width:100%;padding:10px;border-radius:8px;border:1px solid #e6e9ef;background:#fff}
+
+    /* improved buttons */
+    .btn-row{display:flex;gap:8px;align-items:center}
+
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="left">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h2>Resume/CV Maker</h2>
+        <div class="locked">LOCKED</div>
+      </div>
+
+      <div class="section">
+        <label>Choose Template (Dropdown quick select)</label>
+        <select id="templateSelect" class="dropdown-template"></select>
+      </div>
+
+      <div class="section">
+        <label>Photo</label>
+        <input type="file" accept="image/*" id="photoInput">
+        <div style="margin-top:8px"><img id="photoPreview" class="img-preview" alt="photo preview"></div>
+      </div>
+
+      <div class="section">
+        <label>Full Name</label>
+        <input id="name" type="text" placeholder="Your name">
+      </div>
+
+      <div class="section">
+        <label>Title / Position (add multiple - comma separated OR type custom)</label>
+        <input id="title" type="text" placeholder="e.g. Software Developer, Team Lead, Frontend Engineer">
+      </div>
+
+      <div class="section">
+        <label>Profile (choose)</label>
+        <select id="profileSelect">
+          <option value="Student">Student - Seeking internships/entry roles</option>
+          <option value="Supervisor">Supervisor - Experienced in team management</option>
+          <option value="Labor">Labor - Skilled labor positions</option>
+          <option value="Driver">Driver - Truck/Car driver with licence details</option>
+          <option value="Fresher">Fresher - Recent graduate</option>
+        </select>
+      </div>
+
+      <div class="section">
+        <label>Choose Objective (select one)</label>
+        <select id="objectiveSelect"></select>
+      </div>
+
+      <div class="section">
+        <label>Summary / Professional Objective</label>
+        <textarea id="summary" placeholder="Short professional summary"></textarea>
+      </div>
+
+      <div class="section">
+        <label>Education (Add entries)</label>
+        <div id="educationList"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" id="addEdu">Add Education</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <label>Experience (Add entries)</label>
+        <div id="expList"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" id="addExp">Add Experience</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <label>Hobbies (comma separated)</label>
+        <input id="hobbies" type="text" placeholder="Reading, Coding, Football">
+      </div>
+
+      <div class="section">
+        <label>Personal Details</label>
+        <div class="row">
+          <div class="col"><input id="father" type="text" placeholder="Father's Name"></div>
+          <div class="col"><input id="dob" type="date" placeholder="D.O.B"></div>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <div class="col"><input id="marital" type="text" placeholder="Marital Status"></div>
+          <div class="col"><input id="languages" type="text" placeholder="Languages Known (comma)"></div>
+        </div>
+
+        <div style="margin-top:8px">
+          <label>ID Card Details (dropdown - select type to add)</label>
+          <select id="idType"><option value="">Select ID Type</option><option>Aadhar Card</option><option>Pan Card</option><option>Voter Id Card</option><option>Passport</option><option>Driver License</option><option>Green Card</option><option>Yellow Card</option><option>Other</option></select>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input id="idNo" type="text" placeholder="ID Number">
+            <input id="idValid" type="date" placeholder="Validity (if any)">
+            <button class="btn secondary" id="addIdBtn">Add</button>
+          </div>
+          <div id="idList" class="small muted" style="margin-top:8px"></div>
+        </div>
+      </div>
+
+      <div class="section" id="driverExtras" style="display:none">
+        <label>Driver Details (License Table)</label>
+        <div id="licTableWrap"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" id="addLicense">Add Licence</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <label>Footer Declaration (will appear above footer bar)</label>
+        <input id="declarationText" type="text" placeholder="I hereby declare that...">
+      </div>
+
+      <div class="section btn-row">
+        <button class="btn" id="updateBtn">Update Preview</button>
+        <button class="btn" id="downloadPdf">Download PDF</button>
+        <button class="btn" id="downloadImg">Download Image</button>
+        <button class="btn" id="downloadDoc">Download Word</button>
+        <button class="btn secondary" id="downloadHtml">Download HTML</button>
+      </div>
+
+    </div>
+
+    <div class="right">
+      <div class="preview-wrapper">
+        <div class="preview-frame" id="previewFrame">
+          <div class="preview-inner" id="previewInner">
+            <!-- dynamic resume goes here -->
+          </div>
+        </div>
+
+        <div class="declaration small muted" id="declarationPreview">
+          <div class="decl-text">I hereby declare that the information given above is true to the best of my knowledge.</div>
+          <div class="decl-row" style="margin-top:8px">
+            <div id="declDate">Date: __________</div>
+            <div id="declName">(Signature) <strong id="declNameValue">Your Name</strong></div>
+          </div>
+        </div>
+
+        <div class="template-strip" id="templateStrip"></div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <small class="muted">Preview frame: <strong>15cm x 20cm</strong> | Template thumb: 4.5cm x 6cm</small>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Enhanced JS
+    const objectives = [
+      'To obtain a challenging position in a reputable organization to expand my learning and skills.',
+      'Seeking a responsible career opportunity to fully utilize my training and skills.',
+      'To work as a Software Engineer in a dynamic organization and grow professionally.',
+      'To secure an entry-level position to begin my career in IT and leverage academic knowledge.',
+      'To join an innovative organization and contribute to impactful projects in data science.',
+      'To work as a Supervisor and utilize leadership and organizational skills.',
+      'To obtain a position as a Driver with a reputed logistics company.',
+      'Looking for a role in skilled labor where I can apply practical experience.',
+      'To develop professionally while contributing to the companyâ€™s success.',
+      'To secure a position with opportunities for advancement and skill development.'
+    ];
+
+    const templateCount = 25; // 1..20 general, 21..25 drivers
+    const templateSelect = document.getElementById('templateSelect');
+    const templateStrip = document.getElementById('templateStrip');
+    const previewInner = document.getElementById('previewInner');
+    const photoInput = document.getElementById('photoInput');
+    const photoPreview = document.getElementById('photoPreview');
+    const profileSelect = document.getElementById('profileSelect');
+
+    let selectedTemplate = 1;
+    let idRecords = [];
+    let licenses = [];
+
+    // populate objectives
+    const objectiveSelect = document.getElementById('objectiveSelect');
+    objectives.forEach(o=>{ const opt=document.createElement('option'); opt.textContent=o; opt.value=o; objectiveSelect.appendChild(opt); });
+
+    // populate template dropdown & strip
+    function makeTemplates(){
+      for(let i=1;i<=templateCount;i++){
+        const opt=document.createElement('option'); opt.value=i; opt.textContent = (i<=20)?`Template ${i}`:`Driver Template ${i-20}`; templateSelect.appendChild(opt);
+        // strip thumb
+        const t=document.createElement('div'); t.className='thumb'; t.id='tpl_'+i; t.innerHTML=`<div style="padding:8px;text-align:center"><strong>${i<=20?('Template '+i):('Driver '+(i-20))}</strong><div style=\"margin-top:6px;font-size:10px;color:#666\">Preview</div></div>`;
+        t.addEventListener('click',()=>{selectTemplate(i);});
+        templateStrip.appendChild(t);
+      }
+      selectTemplate(1);
+    }
+
+    function selectTemplate(i){ selectedTemplate=i; document.querySelectorAll('.thumb').forEach(x=>x.classList.remove('active')); const sel=document.getElementById('tpl_'+i); if(sel) sel.classList.add('active'); templateSelect.value=i; renderPreview(); }
+    templateSelect.addEventListener('change',e=>{ selectTemplate(parseInt(e.target.value)); });
+
+    // photo upload
+    photoInput.addEventListener('change',e=>{ const f = e.target.files && e.target.files[0]; if(!f) return; const reader=new FileReader(); reader.onload=ev=>{ photoPreview.src=ev.target.result; renderPreview(); }; reader.readAsDataURL(f); });
+
+    // ID records
+    const addIdBtn = document.getElementById('addIdBtn'); const idListEl = document.getElementById('idList');
+    addIdBtn.addEventListener('click',()=>{ const type=document.getElementById('idType').value; const no=document.getElementById('idNo').value.trim(); const valid=document.getElementById('idValid').value; if(!type||!no) return alert('Please select ID type and number'); idRecords.push({type,no,valid}); document.getElementById('idNo').value=''; document.getElementById('idValid').value=''; document.getElementById('idType').value=''; refreshIdList(); renderPreview(); });
+    function refreshIdList(){ idListEl.innerHTML = idRecords.map((r,i)=>`<div>${r.type}: ${r.no}${r.valid?(' (valid till '+r.valid+')'):''} <button style="margin-left:6px" onclick="removeId(${i})">Remove</button></div>`).join(''); }
+    window.removeId=function(i){ idRecords.splice(i,1); refreshIdList(); renderPreview(); }
+
+    // license handling for drivers
+    const addLicenseBtn = document.getElementById('addLicense'); const licTableWrap = document.getElementById('licTableWrap');
+    addLicenseBtn.addEventListener('click',()=>{ const no=prompt('Licence No:'); if(!no) return; const cls=prompt('Licence Class:'); const from=prompt('Valid From (YYYY-MM-DD):'); const upto=prompt('Valid Upto (YYYY-MM-DD):'); licenses.push({no,cls,from,upto}); renderLicTable(); renderPreview(); });
+    function renderLicTable(){ if(!licenses.length) licTableWrap.innerHTML='<div class="muted small">No licences added</div>'; else{ let html='<table class="lic-table"><thead><tr><th>Licence No</th><th>Class</th><th>Valid From</th><th>Valid Upto</th></tr></thead><tbody>'; html+=licenses.map(l=>`<tr><td>${escapeHtml(l.no)}</td><td>${escapeHtml(l.cls)}</td><td>${escapeHtml(l.from)}</td><td>${escapeHtml(l.upto)}</td></tr>`).join(''); html+='</tbody></table>'; licTableWrap.innerHTML=html; } }
+
+    // show driver extras if profile == Driver
+    profileSelect.addEventListener('change',e=>{ if(e.target.value==='Driver'){ document.getElementById('driverExtras').style.display='block'; } else { document.getElementById('driverExtras').style.display='none'; } renderPreview(); });
+
+    // education/experience lists with add-more
+    const educationList = document.getElementById('educationList'); const expList = document.getElementById('expList');
+    function addEducation(entry){ const idx = document.querySelectorAll('.edu-item').length; const div=document.createElement('div'); div.className='edu-item'; div.innerHTML = `<div style="display:flex;gap:8px;margin-bottom:8px"><input placeholder="Grade/Class" class="edu-grade"><input placeholder="Board/University" class="edu-board"><input placeholder="Passing Year" class="edu-year" style="width:90px"><input placeholder="Subject" class="edu-sub"><input placeholder="%" class="edu-per" style="width:80px"><button class=\"btn secondary\" onclick=\"this.closest('div.edu-item').remove();renderPreview();\">Remove</button></div>`; educationList.appendChild(div); if(entry){ const els = div.querySelectorAll('input'); els[0].value=entry.grade||''; els[1].value=entry.board||''; els[2].value=entry.year||''; els[3].value=entry.sub||''; els[4].value=entry.per||'';} }
+    document.getElementById('addEdu').addEventListener('click',()=>{ addEducation(); });
+
+    function addExperience(entry){ const div=document.createElement('div'); div.className='exp-item'; div.innerHTML = `<div style="display:flex;gap:8px;margin-bottom:8px"><input placeholder="Year (e.g. 2020-2022)" class="exp-year"><input placeholder="Role" class="exp-role"><input placeholder="Company" class="exp-company"><input placeholder="Short Description" class="exp-desc"><button class=\"btn secondary\" onclick=\"this.closest('div.exp-item').remove();renderPreview();\">Remove</button></div>`; expList.appendChild(div); if(entry){ const els=div.querySelectorAll('input'); els[0].value=entry.year||''; els[1].value=entry.role||''; els[2].value=entry.company||''; els[3].value=entry.desc||'';} }
+    document.getElementById('addExp').addEventListener('click',()=>{ addExperience(); });
+
+    // initial demo entries
+    for(let i=0;i<2;i++) addEducation();
+    for(let i=0;i<2;i++) addExperience();
+
+    // render preview
+    function renderPreview(){
+      const name = document.getElementById('name').value.trim() || 'Your Name';
+      const title = document.getElementById('title').value.trim() || 'Professional Title';
+      const profile = document.getElementById('profileSelect').value;
+      const obj = document.getElementById('objectiveSelect').value || '';
+      const summary = document.getElementById('summary').value.trim();
+
+      // collect education
+      const eduEls = document.querySelectorAll('.edu-item');
+      const education = [];
+      eduEls.forEach(el=>{ const g=el.querySelector('.edu-grade').value.trim(); const b=el.querySelector('.edu-board').value.trim(); const y=el.querySelector('.edu-year').value.trim(); const s=el.querySelector('.edu-sub').value.trim(); const p=el.querySelector('.edu-per').value.trim(); if(g||b||y||s||p) education.push({grade:g,board:b,year:y,sub:s,per:p}); });
+
+      // experience
+      const expEls = document.querySelectorAll('.exp-item'); const experience=[];
+      expEls.forEach(el=>{ const y=el.querySelector('.exp-year').value.trim(); const r=el.querySelector('.exp-role').value.trim(); const c=el.querySelector('.exp-company').value.trim(); const d=el.querySelector('.exp-desc').value.trim(); if(y||r||c||d) experience.push({year:y,role:r,company:c,desc:d}); });
+
+      const hobbies = document.getElementById('hobbies').value.trim();
+      const father = document.getElementById('father').value.trim();
+      const dob = document.getElementById('dob').value;
+      const marital = document.getElementById('marital').value.trim();
+      const languages = document.getElementById('languages').value.trim();
+      const declaration = document.getElementById('declarationText').value.trim();
+
+      const photoSrc = photoPreview.src || '';
+
+      // build HTML depending on template type
+      let tplClass = 'tpl-' + selectedTemplate;
+      let html = `<div class="resume-root ${tplClass}"><div class="resume">`;
+
+      // header variations
+      html += `<div class="r-header">`;
+      html += `<div class="r-photo">${photoSrc?`<img src="${photoSrc}" style="width:100%;height:100%;object-fit:cover">`:'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#aaa">Photo</div>'}</div>`;
+      html += `<div><div class="r-name">${escapeHtml(name)}</div><div class="r-title">${escapeHtml(title)}</div>`;
+      if(obj) html += `<div style="margin-top:8px" class="meta"><strong>Objective:</strong> ${escapeHtml(obj)}</div>`;
+      html += `</div></div>`;
+
+      // sections
+      html += `<div class="r-sections">`;
+      html += `<div class="r-left">`;
+      if(summary) html += `<div><div class="label-strong">Summary</div><div class="meta">${escapeHtml(summary)}</div></div>`;
+
+      if(education.length){ html += `<div style="margin-top:10px"><div class="label-strong">Education</div>`; education.forEach(e=>{ html += `<div class="small">${escapeHtml(e.grade?e.grade+' | ':'')}${escapeHtml(e.board?e.board+' | ':'')}${escapeHtml(e.year?e.year+' | ':'')}${escapeHtml(e.sub?e.sub+' | ':'')}${escapeHtml(e.per?e.per:'')}</div>`; }); html += `</div>`; }
+
+      if(experience.length){ html += `<div style="margin-top:10px"><div class="label-strong">Experience</div>`; experience.forEach(ex=>{ html += `<div style="margin-bottom:6px"><strong>${escapeHtml(ex.year||'')}</strong><div class="small">${escapeHtml(ex.role||'')} - ${escapeHtml(ex.company||'')}<div style="color:#444">${escapeHtml(ex.desc||'')}</div></div></div>`; }); html += `</div>`; }
+
+      if(hobbies) html += `<div style="margin-top:10px"><div class="label-strong">Hobbies</div><div class="small">${escapeHtml(hobbies)}</div></div>`;
+
+      html += `</div>`; // r-left
+
+      html += `<div class="r-right">`;
+      html += `<div class="label-strong">Personal Details</div><div class="meta">`;
+      if(father) html += `<div>Father's Name: ${escapeHtml(father)}</div>`;
+      if(dob) html += `<div>D.O.B: ${escapeHtml(dob)}</div>`;
+      if(marital) html += `<div>Marital Status: ${escapeHtml(marital)}</div>`;
+      if(languages) html += `<div>Languages: ${escapeHtml(languages)}</div>`;
+      if(idRecords.length) html += `<div style="margin-top:6px"><strong>ID Details:</strong>${idRecords.map(r=>`<div>${escapeHtml(r.type)} - ${escapeHtml(r.no)} ${r.valid?(' (valid till '+escapeHtml(r.valid)+')'):''}</div>`).join('')}</div>`;
+
+      // driver specific
+      if(profile==='Driver' && licenses.length){ html += `<div style="margin-top:10px"><div class="label-strong">Licence Details</div><table class="lic-table"><thead><tr><th>Licence No</th><th>Class</th><th>Valid From</th><th>Valid Upto</th></tr></thead><tbody>`; licenses.forEach(l=>{ html += `<tr><td>${escapeHtml(l.no)}</td><td>${escapeHtml(l.cls)}</td><td>${escapeHtml(l.from)}</td><td>${escapeHtml(l.upto)}</td></tr>`; }); html += `</tbody></table></div>`; }
+
+      html += `</div>`; // meta
+      html += `</div>`; // r-right
+
+      html += `</div>`; // r-sections
+
+      html += `</div>`; // resume
+      html += `</div>`; // resume-root
+
+      previewInner.innerHTML = html;
+
+      // declaration updates
+      document.getElementById('declarationPreview').querySelector('.decl-text').textContent = declaration || 'I hereby declare that the information given above is true to the best of my knowledge.';
+      const d = new Date(); document.getElementById('declDate').textContent = 'Date: '+d.toLocaleDateString(); document.getElementById('declNameValue').textContent = name;
+    }
+
+    // escape helper
+    function escapeHtml(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+    // exports (same as before)
+    function loadScript(src,cb){ if(document.querySelector(`script[src="${src}"]`)) return cb(); const s=document.createElement('script'); s.src=src; s.onload=cb; s.onerror=()=>alert('Failed to load '+src); document.head.appendChild(s); }
+
+    document.getElementById('downloadPdf').addEventListener('click',()=>{ renderPreview(); loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',()=>{ const element = document.getElementById('previewInner').firstElementChild; if(!element) return alert('Nothing to export'); const opt = {margin:10, filename: (document.getElementById('name').value || 'resume') + '.pdf', image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2}, jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}; html2pdf().set(opt).from(element).save(); }); });
+
+    document.getElementById('downloadImg').addEventListener('click',()=>{ renderPreview(); loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',()=>{ const el = document.getElementById('previewInner').firstElementChild; if(!el) return alert('Nothing to export'); html2canvas(el, {scale:2}).then(canvas=>{ const url = canvas.toDataURL('image/png'); const a = document.createElement('a'); a.href=url; a.download=(document.getElementById('name').value||'resume')+'.png'; a.click(); }).catch(e=>console.error(e)); }); });
+
+    document.getElementById('downloadDoc').addEventListener('click',()=>{ renderPreview(); const el = document.getElementById('previewInner').firstElementChild; if(!el) return alert('Nothing to export'); const html = `<!doctype html><html><head><meta charset="utf-8"><title>${document.getElementById('name').value||'Resume'}</title></head><body>${el.outerHTML}</body></html>`; const blob = new Blob(['ï»¿', html], {type: 'application/msword'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download=(document.getElementById('name').value||'resume')+'.doc'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),5000); });
+
+    document.getElementById('downloadHtml').addEventListener('click',()=>{ renderPreview(); const el = document.documentElement.outerHTML; const blob = new Blob([el], {type:'text/html'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='resume_maker_export.html'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),5000); });
+
+    // auto-update on input
+    ['name','title','summary','hobbies','father','dob','marital','languages','declarationText','objectiveSelect'].forEach(id=>{ const el=document.getElementById(id); if(!el) return; el.addEventListener('input',()=>{ renderPreview(); }); });
+
+    // on page load
+    document.getElementById('name').value='Amit Kumar'; document.getElementById('title').value='Software Engineer'; document.getElementById('objectiveSelect').value=objectives[0]; document.getElementById('summary').value='Energetic software engineer with experience in building web applications and APIs.'; document.getElementById('hobbies').value='Reading, Cricket, Music'; document.getElementById('father').value='Rajesh Kumar'; document.getElementById('dob').value='1998-05-12'; document.getElementById('marital').value='Single'; document.getElementById('languages').value='Hindi, English'; document.getElementById('declarationText').value='I hereby declare that the information given above is true to the best of my knowledge.';
+
+    makeTemplates(); renderLicTable(); renderPreview();
+
+    // double click preview to open large
+    document.getElementById('previewFrame').addEventListener('dblclick',()=>{ const clone=document.getElementById('previewInner').firstElementChild; if(!clone) return; const w=window.open('about:blank','_blank'); w.document.write('<html><head><title>Preview</title><meta charset="utf-8"></head><body style="margin:20px;">'+clone.outerHTML+'</body></html>'); w.document.close(); });
+
+  </script>
+</body>
+</html>
+
+
+
+
+
+<footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>easyjpgtopdf</h3>
+                    <p>Your all-in-one PDF solution for converting, editing, and managing documents with ease.</p>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert to PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="jpg-to-pdf.html">JPG to PDF</a></li>
+                        <li><a href="word-to-pdf.html">Word to PDF</a></li>
+                        <li><a href="excel-to-pdf.html">Excel to PDF</a></li>
+                        <li><a href="ppt-to-pdf.html">PowerPoint to PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert from PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="pdf-to-jpg.html">PDF to JPG</a></li>
+                        <li><a href="pdf-to-word.html">PDF to Word</a></li>
+                        <li><a href="pdf-to-excel.html">PDF to Excel</a></li>
+                        <li><a href="pdf-to-ppt.html">PDF to PowerPoint</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Pdf Editor</h3>
+                    <ul class="footer-links">
+                        <li><a href="merge-pdf.html">Merge PDF</a></li>
+                        <li><a href="split-pdf.html">Split PDF</a></li>
+                        <li><a href="compress-pdf.html">Compress PDF</a></li>
+                        <li><a href="edit-pdf.html">Pdf Editor</a></li>
+                        <li><a href="protect-pdf.html">Protect PDF</a></li>
+                        <li><a href="unlock-pdf.html">Unlock PDF</a></li>
+                        <li><a href="watermark-pdf.html">Watermark PDF</a></li>
+                        <li><a href="crop-pdf.html">Crop PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Image Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="image-compressor.html">Image Compressor</a></li>
+                        <li><a href="image-resizer.html">Image Resizer</a></li>
+                        <li><a href="image-editor.html">Image Editor</a></li>
+                        <li><a href="background-remover.html">Image Background Remover</a></li>
+                        <li><a href="ocr-image.html">OCR Image</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Design Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="resume-maker.html">Resume Maker</a></li>
+                        <li><a href="biodata-maker.html">Marrige Biodata-Data Maker</a></li>
+                        <li><a href="ai-image-generator.html">AI Image Generator</a></li>
+                        <li><a href="marriage-card.html">Marriage Card</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Company</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html#about">About Us</a></li>
+                        <li><a href="index.html#contact">Contact</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Connect With Us</h3>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fab fa-twitter"></i> Twitter</a></li>
+                        <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
+                        <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
+                        <li><a href="#"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+                <p class="attribution">Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site. <a href="attributions.html">See full acknowledgements</a>.</p>
+            </div>
+        </div>
+    </footer>
