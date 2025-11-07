@@ -1,7 +1,7 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
 import { getMessaging, isSupported } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-messaging.js";
 
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyBch3tJoeFqio3IA4MbPoh2GHZE2qKVzGc",
   authDomain: "easyjpgtopdf-de346.firebaseapp.com",
   projectId: "easyjpgtopdf-de346",
@@ -10,7 +10,7 @@ const firebaseConfig = {
   appId: "1:564572183797:web:9c204df018c150f02f79bc"
 };
 
-const app = initializeApp(firebaseConfig);
+export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 async function initMessaging() {
   if (!(await isSupported())) {

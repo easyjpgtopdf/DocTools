@@ -79,5 +79,13 @@ services:
 | `PORT` | HTTP port (Render defaults to 10000) |
 | `MAX_UPLOAD_MB` | Limit user upload size |
 | `LIBREOFFICE_PATH` | Override libreoffice binary if needed |
+| `FIREBASE_SERVICE_ACCOUNT` | JSON string for Firebase Admin credentials |
+| `STRIPE_SECRET_KEY` | Stripe secret (test/live) for Checkout sessions |
+| `STRIPE_SUCCESS_URL` | Redirect URL after successful Stripe payment |
+| `STRIPE_CANCEL_URL` | Redirect URL when Stripe payment is cancelled |
+| `RAZORPAY_KEY_ID` | Razorpay public key for checkout |
+| `RAZORPAY_KEY_SECRET` | Razorpay secret key for order creation |
+| `RAZORPAY_WEBHOOK_SECRET` | Secret used to verify Razorpay webhook signatures |
+| `RAZORPAY_RECEIPT_PREFIX` | Optional prefix for Razorpay order receipts |
 
 All secrets should be configured in Render dashboard (or `.env` for local). Never commit secrets to Git.

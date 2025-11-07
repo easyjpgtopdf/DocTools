@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Access | easyjpgtopdf</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --accent: #4cc9f0;
+            --light: #f5f7ff;
+            --dark: #1b1b2f;
+            --gray: #6c757d;
+            --surface: #ffffff;
+            --border: rgba(67, 97, 238, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(140deg, rgba(67, 97, 238, 0.12), rgba(76, 201, 240, 0.08));
+            color: var(--dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: #fff;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,.08);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+        }
+
+        .logo {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .logo img {
+            height: 54px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 22px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--dark);
+            font-weight: 500;
+            position: relative;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--primary);
+        }
+
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background: #fff;
+            min-width: 220px;
+            border-radius: 10px;
+            box-shadow: 0 8px 20px rgba(0,0,0,.12);
+            top: 100%;
+            left: 0;
+            padding: 10px 0;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .dropdown-content a {
+            display: block;
+            padding: 10px 18px;
+            color: var(--dark);
+            text-decoration: none;
+        }
+
+        .dropdown-content a:hover {
+            background: rgba(67,97,238,0.08);
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .auth-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 20px;
+            border-radius: 999px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #fff;
+            background: linear-gradient(135deg, #ff5a5f, #ff8a5c);
+            border: 1px solid rgba(255, 90, 95, 0.35);
+            box-shadow: 0 10px 22px rgba(255, 90, 95, 0.3);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .auth-btn::before {
+            content: '\f015';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            font-size: 0.85rem;
+        }
+
+        .auth-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 14px 26px rgba(255, 90, 95, 0.35);
+        }
+
+        main {
+            flex: 1;
+            padding: 40px 0 60px;
+        }
+
+        .auth-wrapper {
+            display: grid;
+            grid-template-columns: minmax(0, 520px);
+            justify-content: center;
+            gap: 32px;
+            margin-top: 40px;
+        }
+
+        .auth-card {
+            background: var(--surface);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 28px 60px rgba(22, 33, 62, 0.12);
+            border: 1px solid rgba(67, 97, 238, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(76, 201, 240, 0.15), transparent 45%),
+                        radial-gradient(circle at bottom left, rgba(67, 97, 238, 0.1), transparent 40%);
+            opacity: 0.8;
+            pointer-events: none;
+        }
+
+        .auth-card-header {
+            text-align: center;
+            margin-bottom: 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .auth-card-header h1 {
+            margin: 0;
+            font-size: 1.9rem;
+            color: var(--dark);
+        }
+
+        .auth-card-header p {
+            color: var(--gray);
+            margin-top: 8px;
+        }
+
+        .auth-tabs {
+            display: flex;
+            background: rgba(67, 97, 238, 0.08);
+            border-radius: 999px;
+            padding: 6px;
+            gap: 6px;
+            margin-bottom: 26px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .auth-tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px 16px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--gray);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .auth-tab.active {
+            background: #fff;
+            color: var(--primary);
+            box-shadow: 0 10px 25px rgba(67, 97, 238, 0.15);
+        }
+
+        .auth-forms {
+            position: relative;
+            z-index: 1;
+        }
+
+        form[data-auth-form] {
+            display: none;
+        }
+
+        form[data-auth-form].active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--dark);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: rgba(67, 97, 238, 0.04);
+            font-size: 0.95rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .form-control:focus {
+            border-color: rgba(67, 97, 238, 0.6);
+            box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.15);
+            outline: none;
+        }
+
+        .auth-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .remember-me label {
+            margin: 0;
+            font-weight: 500;
+            color: var(--gray);
+        }
+
+        .forgot-password {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .forgot-password:hover {
+            text-decoration: underline;
+        }
+
+        .btn {
+            display: inline-block;
+            width: 100%;
+            padding: 12px 18px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #fff;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(67, 97, 238, 0.22);
+        }
+
+        .auth-divider {
+            position: relative;
+            text-align: center;
+            margin: 24px 0;
+            color: var(--gray);
+            font-weight: 500;
+        }
+
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 40%;
+            height: 1px;
+            background: rgba(67, 97, 238, 0.25);
+        }
+
+        .auth-divider::before {
+            left: 0;
+        }
+
+        .auth-divider::after {
+            right: 0;
+        }
+
+        .social-auth {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .social-btn {
+            flex: 1;
+            min-width: calc(50% - 6px);
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(67, 97, 238, 0.15);
+            background: rgba(255, 255, 255, 0.92);
+            font-weight: 600;
+            color: var(--dark);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .social-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 22px rgba(67, 97, 238, 0.12);
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 24px;
+            color: var(--gray);
+        }
+
+        .auth-footer a {
+            color: var(--primary);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+
+        footer {
+            margin-top: auto;
+            background: #10121f;
+            color: #f1f2fb;
+            padding: 36px 0 44px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .footer-inner {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+            text-align: center;
+        }
+
+        .footer-company-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+            font-size: 0.95rem;
+            color: #d0d2ff;
+            justify-content: center;
+        }
+
+        .footer-company-links span {
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
+        .footer-company-links a {
+            color: #d0d2ff;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .footer-company-links a:hover {
+            color: #ffffff;
+        }
+
+        .footer-brand-line {
+            font-size: 0.96rem;
+            font-weight: 500;
+        }
+
+        .footer-credits {
+            max-width: 720px;
+            font-size: 0.9rem;
+            color: #b8bbff;
+        }
+
+        .footer-credits a {
+            color: #9aa5ff;
+            text-decoration: underline;
+        }
+
+        .footer-credits a:hover {
+            color: #ffffff;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .auth-wrapper {
+                padding: 0 12px;
+            }
+
+            .auth-card {
+                padding: 28px 22px;
+            }
+
+            .auth-options {
+                flex-direction: column;
+                gap: 12px;
+                align-items: flex-start;
+            }
+
+            .social-btn {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo"></a>
+                <div class="nav-links">
+                    <a href="index.html">Home</a>
+                    <div class="dropdown">
+                        <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="jpg-to-pdf.html">JPG to PDF</a>
+                            <a href="word-to-pdf.html">Word to PDF</a>
+                            <a href="excel-to-pdf.html">Excel to PDF</a>
+                            <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="pdf-to-jpg.html">PDF to JPG</a>
+                            <a href="pdf-to-word.html">PDF to Word</a>
+                            <a href="pdf-to-excel.html">PDF to Excel</a>
+                            <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">PDF Editor <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="merge-pdf.html">Merge PDF</a>
+                            <a href="split-pdf.html">Split PDF</a>
+                            <a href="compress-pdf.html">Compress PDF</a>
+                            <a href="edit-pdf.html">PDF Editor</a>
+                            <a href="protect-pdf.html">Protect PDF</a>
+                            <a href="unlock-pdf.html">Unlock PDF</a>
+                            <a href="watermark-pdf.html">Watermark PDF</a>
+                            <a href="crop-pdf.html">Crop PDF</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="image-compressor.html">Image Compressor</a>
+                            <a href="image-resizer.html">Image Resizer</a>
+                            <a href="image-editor.html">Image Editor</a>
+                            <a href="background-remover.html">Image Background Remover</a>
+                            <a href="ocr-image.html">OCR Image</a>
+                            <a href="image-watermark.html">Image Watermark Tool</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="resume-maker.html">Resume Maker</a>
+                            <a href="biodata-maker.html">Marriage Biodata Maker</a>
+                            <a href="ai-image-generator.html">AI Image Generator</a>
+                            <a href="marriage-card.html">Marriage Card</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="auth-buttons">
+                    <a href="index.html" class="auth-btn">Home</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="auth-wrapper">
+                <div class="auth-card">
+                    <div class="auth-card-header">
+                        <h1>Access your easyjpgtopdf account</h1>
+                        <p>Sign in or create a new account to continue your workflow.</p>
+                    </div>
+
+                    <div class="auth-tabs" role="tablist">
+                        <button class="auth-tab active" data-tab="login" id="tab-login" aria-controls="panel-login" aria-selected="true">Sign In</button>
+                        <button class="auth-tab" data-tab="signup" id="tab-signup" aria-controls="panel-signup" aria-selected="false">Create Account</button>
+                        <button class="auth-tab" data-tab="reset" id="tab-reset" aria-controls="panel-reset" aria-selected="false">Reset Password</button>
+                    </div>
+
+                    <div class="auth-forms">
+                        <form class="auth-form active" data-auth-form="login" id="panel-login" aria-labelledby="tab-login">
+                            <div class="form-group">
+                                <label for="accounts-login-email">Email Address</label>
+                                <input type="email" id="accounts-login-email" name="login-email" class="form-control" placeholder="Enter your email" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="accounts-login-password">Password</label>
+                                <input type="password" id="accounts-login-password" name="login-password" class="form-control" placeholder="Enter your password" required>
+                            </div>
+                            <div class="auth-options">
+                                <div class="remember-me">
+                                    <input type="checkbox" id="accounts-remember-me">
+                                    <label for="accounts-remember-me">Remember me</label>
+                                </div>
+                                <a href="#reset" class="forgot-password" data-auth-action="open-reset">Forgot Password?</a>
+                            </div>
+                            <button type="submit" class="btn">Sign In</button>
+                            <div class="auth-divider"><span>Or continue with</span></div>
+                            <div class="social-auth">
+                                <button class="social-btn" type="button"><i class="fab fa-google"></i> Google</button>
+                                <button class="social-btn" type="button"><i class="fab fa-facebook"></i> Facebook</button>
+                            </div>
+                            <div class="auth-footer">
+                                <p>Don't have an account? <a href="#signup" data-auth-action="open-signup">Create one now</a></p>
+                            </div>
+                        </form>
+
+                        <form class="auth-form" data-auth-form="signup" id="panel-signup" aria-labelledby="tab-signup">
+                            <div class="form-group">
+                                <label for="accounts-signup-name">Full Name</label>
+                                <input type="text" id="accounts-signup-name" name="signup-name" class="form-control" placeholder="Enter your full name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="accounts-signup-email">Email Address</label>
+                                <input type="email" id="accounts-signup-email" name="signup-email" class="form-control" placeholder="Enter your email" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="accounts-signup-password">Password</label>
+                                <input type="password" id="accounts-signup-password" name="signup-password" class="form-control" placeholder="Create a password" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="accounts-signup-confirm-password">Confirm Password</label>
+                                <input type="password" id="accounts-signup-confirm-password" name="signup-confirm-password" class="form-control" placeholder="Confirm your password" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="accounts-signup-dob">Date of Birth</label>
+                                <input type="date" id="accounts-signup-dob" name="signup-dob" class="form-control" required>
+                                <p style="margin-top: 6px; color: var(--gray); font-size: 0.86rem;">You must be at least 13 years old to create an account.</p>
+                            </div>
+                            <div class="form-group">
+                                <div class="remember-me">
+                                    <input type="checkbox" id="accounts-confirm-age" name="confirm-age" required>
+                                    <label for="accounts-confirm-age">I confirm that I am 13 years of age or older.</label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="remember-me">
+                                    <input type="checkbox" id="accounts-agree-terms" name="agree-terms" required>
+                                    <label for="accounts-agree-terms">I agree to the <a href="terms-of-service.html" target="_blank">Terms of Service</a> and <a href="privacy-policy.html" target="_blank">Privacy Policy</a></label>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn">Create Account</button>
+                            <div class="auth-divider"><span>Or continue with</span></div>
+                            <div class="social-auth">
+                                <button class="social-btn" type="button"><i class="fab fa-google"></i> Google</button>
+                                <button class="social-btn" type="button"><i class="fab fa-facebook"></i> Facebook</button>
+                            </div>
+                            <div class="auth-footer">
+                                <p>Already have an account? <a href="#login" data-auth-action="open-login">Sign in instead</a></p>
+                            </div>
+                        </form>
+
+                        <form class="auth-form" data-auth-form="reset" id="panel-reset" aria-labelledby="tab-reset">
+                            <div class="form-group">
+                                <label for="accounts-reset-email">Email Address</label>
+                                <input type="email" id="accounts-reset-email" name="reset-email" class="form-control" placeholder="Enter your email" required>
+                            </div>
+                            <p style="margin-bottom: 20px; color: var(--gray);">We'll send you a link to reset your password.</p>
+                            <button type="submit" class="btn">Send Reset Link</button>
+                            <div class="auth-footer">
+                                <p>Remembered your password? <a href="#login" data-auth-action="open-login">Back to sign in</a></p>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+            <p class="footer-credits">
+                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+                <a href="attributions.html">See full acknowledgements</a>.
+            </p>
+        </div>
+    </footer>
+
+    <script type="module" src="js/firebase-init.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module">
+        const tabButtons = Array.from(document.querySelectorAll('.auth-tab'));
+        const forms = Array.from(document.querySelectorAll('form[data-auth-form]'));
+
+        function activateTab(target) {
+            tabButtons.forEach((button) => {
+                const isActive = button.dataset.tab === target;
+                button.classList.toggle('active', isActive);
+                button.setAttribute('aria-selected', isActive);
+            });
+
+            forms.forEach((form) => {
+                form.classList.toggle('active', form.dataset.authForm === target);
+            });
+        }
+
+        function syncForms() {
+            const modalForms = document.querySelectorAll('#login-modal form[data-auth-form], #signup-modal form[data-auth-form], #forgot-password-modal form[data-auth-form]');
+            if (!modalForms.length) return;
+
+            forms.forEach((pageForm) => {
+                const matchingModalForm = Array.from(modalForms).find((modalForm) => modalForm.dataset.authForm === pageForm.dataset.authForm);
+                if (!matchingModalForm) return;
+
+                const pageInputs = pageForm.querySelectorAll('input[name]');
+                const modalInputs = matchingModalForm.querySelectorAll('input[name]');
+
+                pageInputs.forEach((input) => {
+                    const modalInput = matchingModalForm.querySelector(`[name="${input.name}"]`);
+                    if (modalInput) {
+                        modalInput.value = input.value;
+                    }
+                });
+
+                modalInputs.forEach((input) => {
+                    const pageInput = pageForm.querySelector(`[name="${input.name}"]`);
+                    if (pageInput) {
+                        pageInput.value = input.value;
+                    }
+                });
+            });
+        }
+
+        tabButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const target = button.dataset.tab;
+                if (!target) return;
+                activateTab(target);
+                history.replaceState(null, '', `#${target}`);
+                syncForms();
+            });
+        });
+
+        function handleHashChange() {
+            const hash = window.location.hash.replace('#', '') || 'login';
+            const valid = ['login', 'signup', 'reset'];
+            const target = valid.includes(hash) ? hash : 'login';
+            activateTab(target);
+            syncForms();
+        }
+
+        document.querySelectorAll('[data-auth-action]').forEach((link) => {
+            link.addEventListener('click', (event) => {
+                const target = link.dataset.authAction?.replace('open-', '') || link.getAttribute('href')?.replace('#', '');
+                if (!target) return;
+                activateTab(target);
+                syncForms();
+
+                const tabButton = tabButtons.find((btn) => btn.dataset.tab === target);
+                const targetForm = forms.find((form) => form.dataset.authForm === target);
+
+                if (tabButton) {
+                    tabButton.focus({ preventScroll: true });
+                }
+
+                if (targetForm) {
+                    const firstInput = targetForm.querySelector('input, select, textarea, button');
+                    if (firstInput instanceof HTMLElement) {
+                        firstInput.focus({ preventScroll: true });
+                    }
+                    targetForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        forms.forEach((form) => {
+            form.addEventListener('input', () => {
+                syncForms();
+            });
+        });
+
+        window.addEventListener('hashchange', handleHashChange);
+        document.addEventListener('DOMContentLoaded', () => {
+            handleHashChange();
+            syncForms();
+        });
+    </script>
+</body>
+</html>

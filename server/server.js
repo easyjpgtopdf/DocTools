@@ -1,21 +1,254 @@
-﻿const express = require('express');
+const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const os = require('os');
 const path = require('path');
 const fs = require('fs');
 const { exec, execSync } = require('child_process');
+const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
+const admin = require('firebase-admin');
+const Stripe = require('stripe');
+const Razorpay = require('razorpay');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors({ exposedHeaders: ['Content-Length', 'Content-Disposition'] }));
+
+app.post('/api/payments/razorpay/webhook', express.raw({ type: 'application/json' }), handleRazorpayWebhook);
+
 app.use(express.json());
 app.use(express.static('public'));
 app.use('/previews', express.static('previews'));
 app.use('/converted', express.static('converted'));
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
+
+// --- Firebase Admin initialisation ---
+if (!admin.apps.length) {
+  try {
+    const serviceAccountRaw = process.env.FIREBASE_SERVICE_ACCOUNT;
+    if (serviceAccountRaw) {
+      const serviceAccount = JSON.parse(serviceAccountRaw);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+    } else {
+      admin.initializeApp();
+    }
+  } catch (error) {
+    console.error('Failed to initialise Firebase Admin SDK:', error);
+  }
+}
+
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
+const stripeSuccessUrl = process.env.STRIPE_SUCCESS_URL || 'https://easyjpgtopdf.com/donate-success?session_id={CHECKOUT_SESSION_ID}';
+const stripeCancelUrl = process.env.STRIPE_CANCEL_URL || 'https://easyjpgtopdf.com/donate-cancelled';
+
+const razorpayKeyId = process.env.RAZORPAY_KEY_ID;
+const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET;
+const razorpayWebhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+const razorpayReceiptPrefix = process.env.RAZORPAY_RECEIPT_PREFIX || 'easyjpgtopdf';
+let razorpay = null;
+
+if (razorpayKeyId && razorpayKeySecret) {
+  try {
+    razorpay = new Razorpay({ key_id: razorpayKeyId, key_secret: razorpayKeySecret });
+  } catch (error) {
+    console.error('Failed to initialise Razorpay client:', error);
+  }
+}
+
+const payuKey = process.env.PAYU_KEY;
+const payuSalt = process.env.PAYU_SALT;
+const payuEnv = (process.env.PAYU_ENV || 'test').toLowerCase();
+const payuBaseUrl = process.env.PAYU_BASE_URL || ((payuEnv === 'production' || payuEnv === 'prod' || payuEnv === 'live') ? 'https://secure.payu.in' : 'https://test.payu.in');
+const payuSuccessUrl = process.env.PAYU_SUCCESS_URL || 'https://easyjpgtopdf.com/payu-success';
+const payuFailureUrl = process.env.PAYU_FAILURE_URL || 'https://easyjpgtopdf.com/payu-failure';
+const payuNotifyUrl = process.env.PAYU_NOTIFY_URL || '';
+const payuReceiptPrefix = process.env.PAYU_RECEIPT_PREFIX || 'EJP2PDF';
+
+function generatePayuTxnId() {
+  const raw = `${payuReceiptPrefix}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+  return raw.substring(0, 25);
+}
+
+function buildPayuHash(params = {}) {
+  if (!payuKey || !payuSalt) {
+    return '';
+  }
+
+  const sequence = [
+    payuKey,
+    params.txnid || '',
+    params.amount || '',
+    params.productinfo || '',
+    params.firstname || '',
+    params.email || '',
+  ];
+
+  for (let i = 1; i <= 10; i += 1) {
+    sequence.push(params[`udf${i}`] || '');
+  }
+
+  sequence.push(payuSalt);
+
+  return crypto.createHash('sha512').update(sequence.join('|')).digest('hex');
+}
+
+function verifyPayuResponseHash(data = {}) {
+  if (!payuKey || !payuSalt) {
+    return false;
+  }
+
+  const sequence = [
+    payuSalt,
+    data.status || '',
+  ];
+
+  for (let i = 10; i >= 1; i -= 1) {
+    sequence.push(data[`udf${i}`] || '');
+  }
+
+  sequence.push(
+    data.email || '',
+    data.firstname || '',
+    data.productinfo || '',
+    data.amount || '',
+    data.txnid || '',
+    data.key || ''
+  );
+
+  const calculated = crypto.createHash('sha512').update(sequence.join('|')).digest('hex');
+  const provided = (data.hash || '').toLowerCase();
+  return calculated === provided;
+}
+
+const ZERO_DECIMAL_CURRENCIES = new Set(['BIF', 'CLP', 'DJF', 'GNF', 'JPY', 'KMF', 'KRW', 'MGA', 'PYG', 'RWF', 'UGX', 'VND', 'VUV', 'XAF', 'XOF', 'XPF']);
+
+function getMinorUnitAmount(amount, currency) {
+  const normalizedCurrency = (currency || '').toUpperCase();
+  if (ZERO_DECIMAL_CURRENCIES.has(normalizedCurrency)) {
+    return Math.round(amount);
+  }
+  return Math.round(amount * 100);
+}
+
+function getPaiseAmount(amount) {
+  return Math.round(Number(amount) * 100);
+}
+
+function handleRazorpayWebhook(req, res) {
+  if (!razorpayWebhookSecret) {
+    return res.status(503).json({ error: 'Webhook secret not configured.' });
+  }
+
+  const signature = req.headers['x-razorpay-signature'];
+  const body = req.body; // raw buffer because express.raw earlier
+
+  if (!signature || !body) {
+    return res.status(400).json({ error: 'Invalid webhook payload.' });
+  }
+
+  const generatedSignature = crypto
+    .createHmac('sha256', razorpayWebhookSecret)
+    .update(body)
+    .digest('hex');
+
+  if (generatedSignature !== signature) {
+    return res.status(400).json({ error: 'Signature verification failed.' });
+  }
+
+  let event;
+  try {
+    event = JSON.parse(body.toString());
+  } catch (error) {
+    console.error('Razorpay webhook JSON parse failed:', error);
+    return res.status(400).json({ error: 'Invalid payload JSON.' });
+  }
+
+  if (!event || !event.event) {
+    return res.status(200).json({ received: true });
+  }
+
+  const eventType = event.event;
+  const payload = event.payload || {};
+  const payment = payload.payment?.entity;
+  const order = payload.order?.entity;
+
+  const orderId = payment?.order_id || order?.id;
+  const paymentId = payment?.id || null;
+  const status = payment?.status || order?.status;
+
+  if (!orderId) {
+    console.warn('Razorpay webhook missing order id', eventType);
+    return res.status(200).json({ received: true });
+  }
+
+  if (!admin.apps.length || !admin.firestore) {
+    console.warn('Firestore not initialised, skipping Razorpay webhook persistence.');
+    return res.status(200).json({ received: true });
+  }
+
+  const updates = {
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    webhookEvent: eventType,
+    paymentId,
+    paymentStatus: status,
+    razorpayPayload: event,
+  };
+
+  if (status === 'captured') {
+    updates.status = 'succeeded';
+  } else if (status === 'failed') {
+    updates.status = 'failed';
+  }
+
+  const metadata = order?.notes || payment?.notes || {};
+  const firebaseUid = metadata.firebaseUid;
+
+  const targetDoc = firebaseUid
+    ? admin.firestore().collection('payments').doc(firebaseUid).collection('records').doc(orderId)
+    : null;
+
+  if (!targetDoc) {
+    console.warn('Razorpay webhook missing firebase UID in notes.');
+    return res.status(200).json({ received: true });
+  }
+
+  targetDoc
+    .set(updates, { merge: true })
+    .then(() => {
+      res.status(200).json({ received: true });
+    })
+    .catch((error) => {
+      console.error('Failed to update Razorpay payment record:', error);
+      res.status(500).json({ error: 'Failed to persist webhook event.' });
+    });
+}
+
+async function verifyFirebaseIdToken(req, res, next) {
+  try {
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
+
+    if (!token) {
+      return res.status(401).json({ error: 'Missing Authorization header' });
+    }
+
+    if (!admin.apps.length) {
+      return res.status(500).json({ error: 'Firebase Admin SDK not initialised' });
+    }
+
+    const decoded = await admin.auth().verifyIdToken(token);
+    req.user = decoded;
+    return next();
+  } catch (error) {
+    console.error('Firebase token verification failed:', error);
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+}
 
 // Multer storage to OS temp directory
 const upload = multer({ storage: multer.diskStorage({
@@ -35,6 +268,349 @@ app.get('/', (req, res) => {
 // HEALTH ROUTE  
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date() });
+});
+
+app.post('/api/payments/razorpay/order', verifyFirebaseIdToken, async (req, res) => {
+  if (!razorpay) {
+    return res.status(503).json({ error: 'Razorpay is not configured on the server.' });
+  }
+
+  const { amount, currency, motive, donationType } = req.body || {};
+  const numericAmount = Number(amount);
+
+  if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+    return res.status(400).json({ error: 'Invalid donation amount.' });
+  }
+
+  const normalizedCurrency = (currency || 'INR').toUpperCase();
+  if (normalizedCurrency !== 'INR') {
+    return res.status(400).json({ error: 'Razorpay currently supports INR only for this donation.' });
+  }
+
+  const amountInPaise = getPaiseAmount(numericAmount);
+  if (!Number.isInteger(amountInPaise) || amountInPaise <= 0) {
+    return res.status(400).json({ error: 'Unable to process the donation amount for Razorpay.' });
+  }
+
+  const user = req.user || {};
+  const uid = user.uid;
+
+  if (!uid) {
+    return res.status(401).json({ error: 'Unable to verify authenticated user.' });
+  }
+
+  const receiptId = `${razorpayReceiptPrefix}_${uuidv4()}`;
+
+  try {
+    const order = await razorpay.orders.create({
+      amount: amountInPaise,
+      currency: normalizedCurrency,
+      receipt: receiptId,
+      notes: {
+        firebaseUid: uid,
+        motive: motive || 'donation',
+        donationType: donationType || 'project',
+      },
+    });
+
+    if (admin.apps.length && admin.firestore) {
+      try {
+        await admin
+          .firestore()
+          .collection('payments')
+          .doc(uid)
+          .collection('records')
+          .doc(order.id)
+          .set({
+            gateway: 'razorpay',
+            amount: numericAmount,
+            amountInMinor: amountInPaise,
+            currency: normalizedCurrency,
+            status: 'pending',
+            type: 'donation',
+            motive: motive || 'donation',
+            donationType: donationType || 'project',
+            orderId: order.id,
+            receipt: receiptId,
+            rawOrder: order,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          }, { merge: true });
+      } catch (firestoreError) {
+        console.warn('Failed to record Razorpay order in Firestore:', firestoreError);
+      }
+    }
+
+    return res.json({
+      orderId: order.id,
+      amount: numericAmount,
+      amountInPaise,
+      currency: normalizedCurrency,
+      razorpayKeyId,
+      receipt: receiptId,
+      prefill: {
+        name: user.name || user.displayName || '',
+        email: user.email || '',
+      },
+      notes: order.notes,
+      donationType: donationType || 'project',
+    });
+  } catch (error) {
+    console.error('Failed to create Razorpay order:', error);
+    return res.status(500).json({ error: 'Unable to create Razorpay order.' });
+  }
+});
+
+app.post('/api/payments/payu/order', verifyFirebaseIdToken, async (req, res) => {
+  if (!payuKey || !payuSalt) {
+    return res.status(503).json({ error: 'PayU is not configured on the server.' });
+  }
+
+  const { amount, currency, donationType, motive } = req.body || {};
+  const numericAmount = Number(amount);
+
+  if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+    return res.status(400).json({ error: 'Invalid contribution amount.' });
+  }
+
+  const normalizedCurrency = (currency || 'INR').toUpperCase();
+  if (normalizedCurrency !== 'INR') {
+    return res.status(400).json({ error: 'PayU donations currently support INR only.' });
+  }
+
+  const amountStr = numericAmount.toFixed(2);
+  const user = req.user || {};
+  const uid = user.uid;
+
+  if (!uid) {
+    return res.status(401).json({ error: 'Unable to verify authenticated user.' });
+  }
+
+  const txnid = generatePayuTxnId();
+  const focus = donationType || 'project';
+  const motiveValue = motive || 'donation';
+
+  const productInfo = focus === 'premium'
+    ? 'easyjpgtopdf Premium Access'
+    : focus === 'humanity'
+      ? 'Humanity Outreach Support'
+      : 'Project Development Support';
+
+  const params = {
+    key: payuKey,
+    txnid,
+    amount: amountStr,
+    productinfo: productInfo,
+    firstname: user.name || user.displayName || 'Donor',
+    email: user.email || '',
+    phone: user.phone_number || '',
+    surl: payuSuccessUrl,
+    furl: payuFailureUrl,
+    curl: payuFailureUrl,
+    udf1: uid,
+    udf2: focus,
+    udf3: motiveValue,
+    udf4: normalizedCurrency,
+    udf5: '',
+    udf6: '',
+    udf7: '',
+    udf8: '',
+    udf9: '',
+    udf10: '',
+  };
+
+  if (payuNotifyUrl) {
+    params.notify_url = payuNotifyUrl;
+  }
+
+  const hash = buildPayuHash(params);
+  if (!hash) {
+    return res.status(500).json({ error: 'Unable to sign PayU request.' });
+  }
+
+  params.hash = hash;
+
+  if (admin.apps.length && admin.firestore) {
+    try {
+      await admin
+        .firestore()
+        .collection('payments')
+        .doc(uid)
+        .collection('records')
+        .doc(txnid)
+        .set({
+          gateway: 'payu',
+          amount: numericAmount,
+          amountFormatted: amountStr,
+          currency: normalizedCurrency,
+          status: 'pending',
+          type: 'donation',
+          motive: motiveValue,
+          donationType: focus,
+          txnid,
+          payuEnv,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+    } catch (firestoreError) {
+      console.warn('Failed to record PayU initiation in Firestore:', firestoreError);
+    }
+  }
+
+  return res.json({
+    actionUrl: `${payuBaseUrl}/_payment`,
+    params,
+  });
+});
+
+app.post('/api/payments/create-donation-session', verifyFirebaseIdToken, async (req, res) => {
+  if (!stripe) {
+    return res.status(503).json({ error: 'Stripe is not configured on the server.' });
+  }
+
+  const { amount, currency, motive } = req.body || {};
+  const numericAmount = Number(amount);
+
+  if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+    return res.status(400).json({ error: 'Invalid donation amount.' });
+  }
+
+  if (numericAmount > 1000000) {
+    return res.status(400).json({ error: 'Donation amount is too large.' });
+  }
+
+  const normalizedCurrency = (currency || 'INR').toUpperCase();
+  const unitAmount = getMinorUnitAmount(numericAmount, normalizedCurrency);
+
+  if (!unitAmount || unitAmount <= 0) {
+    return res.status(400).json({ error: 'Unable to process the donation amount for the selected currency.' });
+  }
+
+  const user = req.user || {};
+  const uid = user.uid;
+
+  if (!uid) {
+    return res.status(401).json({ error: 'Unable to verify authenticated user.' });
+  }
+
+  const sessionConfig = {
+    mode: 'payment',
+    success_url: stripeSuccessUrl,
+    cancel_url: stripeCancelUrl,
+    line_items: [
+      {
+        price_data: {
+          currency: normalizedCurrency,
+          unit_amount: unitAmount,
+          product_data: {
+            name: 'easyjpgtopdf Donation',
+            description: 'Support the easyjpgtopdf toolset',
+          },
+        },
+        quantity: 1,
+      },
+    ],
+    metadata: {
+      firebaseUid: uid,
+      motive: motive || 'donation',
+      source: 'easyjpgtopdf',
+    },
+    automatic_payment_methods: { enabled: true },
+  };
+
+  if (user.email) {
+    sessionConfig.customer_email = user.email;
+  }
+
+  try {
+    const session = await stripe.checkout.sessions.create(sessionConfig);
+
+    if (admin.apps.length && admin.firestore) {
+      try {
+        await admin
+          .firestore()
+          .collection('payments')
+          .doc(uid)
+          .collection('records')
+          .doc(session.id)
+          .set({
+            amount: numericAmount,
+            currency: normalizedCurrency,
+            status: 'pending',
+            type: 'donation',
+            checkoutSessionId: session.id,
+            motive: motive || 'donation',
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          }, { merge: true });
+      } catch (firestoreError) {
+        console.warn('Failed to record pending donation in Firestore:', firestoreError);
+      }
+    }
+
+    return res.json({ checkoutUrl: session.url });
+  } catch (error) {
+    console.error('Failed to create donation checkout session:', error);
+    return res.status(500).json({ error: 'Unable to create donation checkout session.' });
+  }
+});
+
+app.post('/api/payments/payu/callback', express.urlencoded({ extended: false }), (req, res) => {
+  const data = req.body || {};
+
+  if (!Object.keys(data).length) {
+    return res.status(400).send('Invalid PayU payload.');
+  }
+
+  if (!verifyPayuResponseHash(data)) {
+    console.warn('PayU hash verification failed:', data);
+    return res.status(400).send('Hash verification failed.');
+  }
+
+  if (!admin.apps.length || !admin.firestore) {
+    console.warn('Firestore not initialised, cannot persist PayU callback.');
+    return res.status(200).send('OK');
+  }
+
+  const uid = data.udf1;
+  const txnid = data.txnid;
+  const payuStatus = (data.status || '').toLowerCase();
+
+  if (!uid || !txnid) {
+    console.warn('PayU callback missing UID or txnid.', data);
+    return res.status(200).send('OK');
+  }
+
+  let status = 'pending';
+  if (payuStatus === 'success') {
+    status = 'succeeded';
+  } else if (payuStatus === 'failure' || payuStatus === 'failed') {
+    status = 'failed';
+  }
+
+  const updates = {
+    status,
+    payuStatus,
+    paymentId: data.mihpayid || null,
+    mihpayid: data.mihpayid || null,
+    bankRefNum: data.bank_ref_num || null,
+    payuResponse: data,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+
+  admin
+    .firestore()
+    .collection('payments')
+    .doc(uid)
+    .collection('records')
+    .doc(txnid)
+    .set(updates, { merge: true })
+    .then(() => {
+      res.status(200).send('OK');
+    })
+    .catch((error) => {
+      console.error('Failed to persist PayU callback:', error);
+      res.status(500).send('Failed to persist callback.');
+    });
 });
 
 function findGhostscriptCmd() {
