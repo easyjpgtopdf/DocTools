@@ -1,12 +1,159 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crop PDF Pages | easyjpgtopdf</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crop PDF Pages | easyjpgtopdf</title>
   <meta name="description" content="Trim unwanted margins from any PDF page with easyjpgtopdf's free Crop PDF tool. Upload, preview, adjust, and download a perfectly cropped document in seconds.">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-pb3VM1f/9Lhb4a2kY2nUu6cRgu47RD2gY7Ciqn+EuKXXFaV4GrfZ2D8ApXNk5lH5w7p6mZMZ1QPNvJHr3w2l8w==" crossorigin="anonymous" referrerpolicy="no-referrer">
-  <style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/header.css">
+    <style>
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --accent: #4cc9f0;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --success: #4bb543;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --gray: #6c757d;
+            --light-gray: #e9ecef;
+        }
+
+        body {
+            background-color: #f5f7ff;
+            color: var(--dark);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 200px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            z-index: 1;
+            border-radius: 8px;
+            padding: 10px 0;
+            top: 100%;
+            left: 0;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .dropdown-content a {
+            display: block;
+            padding: 10px 20px;
+            text-decoration: none;
+            color: var(--dark);
+        }
+
+        .dropdown-content a:hover {
+            background-color: var(--light);
+        }
+
+        .auth-buttons {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .auth-link {
+            display: inline-flex;
+            align-items: center;
+            padding: 10px 18px;
+            border-radius: 999px;
+            border: 1px solid rgba(67, 97, 238, 0.28);
+            color: var(--primary);
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .auth-link:hover {
+            background: rgba(67, 97, 238, 0.1);
+            color: var(--secondary);
+            box-shadow: 0 8px 18px rgba(67, 97, 238, 0.15);
+        }
+
+        /* Footer Styles */
+        footer {
+            background-color: #fff;
+            padding: 40px 0;
+            margin-top: auto;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .footer-inner {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .footer-company-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+
+        .footer-company-links span {
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .footer-company-links a {
+            color: var(--gray);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-company-links a:hover {
+            color: var(--primary);
+        }
+
+        .footer-brand-line {
+            color: var(--gray);
+            font-size: 0.95rem;
+            margin: 5px 0;
+        }
+
+        .footer-credits {
+            color: var(--gray);
+            font-size: 0.85rem;
+            line-height: 1.6;
+            max-width: 800px;
+        }
+
+        .footer-credits a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .footer-credits a:hover {
+            text-decoration: underline;
+        }
     :root {
       --primary: #4361ee;
       --secondary: #3a0ca3;
@@ -595,21 +742,11 @@
       }
     }
   </style>
-    
-
-    
-    
-    
-
-    
-
-    <link rel="stylesheet" href="css/header.css">
-
-    <link rel="stylesheet" href="css/footer.css">
 </head>
 
 <body>
-<header>
+    <!-- Header -->
+    <header>
         <div class="container">
             <nav class="navbar">
                 <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
@@ -688,22 +825,13 @@
         </div>
     </header>
 
-
-
-
-  
-
-  <section class="hero">
-    <div class="container">
-      <h1>Crop PDF Pages Precisely</h1>
-      <p>Trim PDF margins uniformly across every page. Upload, preview the crop in real-time, and download a perfectly framed document.</p>
-    </div>
-  </section>
-
-  <main>
+    <main>
     <div class="container crop-app">
       <section class="panel-card" aria-label="PDF upload and crop controls">
-        
+        <header>
+          <h2><i class="fas fa-crop"></i> Crop Settings</h2>
+          <p>Adjust the margins to keep only the content you need. Changes apply to every page in the file.</p>
+        </header>
 
         <div class="drop-zone" id="dropZone" role="button" tabindex="0">
           <input type="file" id="pdfInput" accept="application/pdf" hidden>
@@ -755,7 +883,13 @@
       </section>
 
       <aside class="preview-card" aria-label="Live crop preview">
-        
+        <header>
+          <div class="preview-header-text">
+            <h2><i class="fas fa-eye"></i> Live Preview</h2>
+            <span id="previewStatus" class="helper-text">Upload a PDF to begin.</span>
+          </div>
+          <button type="button" class="reupload-btn" id="reuploadButton"><i class="fas fa-undo"></i> Reupload PDF</button>
+        </header>
 
         <div class="canvas-shell" id="canvasShell">
           <canvas id="previewCanvas" aria-label="PDF page preview"></canvas>
@@ -773,9 +907,48 @@
         </section>
       </aside>
     </div>
-  </main>
+    </main>
 
-  <script>
+    <!-- Modal Dialogs Removed as per user request -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Modal functions
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target.className === 'modal') {
+                event.target.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // Form submissions
+        document.getElementById('login-form')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            // Add login logic here
+            closeModal('login-modal');
+        });
+
+        document.getElementById('signup-form')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            // Add signup logic here
+            closeModal('signup-modal');
+        });
+    </script>
+
+    <script>
     (async function () {
       const dropZone = document.getElementById('dropZone');
       const fileInput = document.getElementById('pdfInput');
@@ -1360,51 +1533,8 @@
       document.getElementById('currentYear').textContent = new Date().getFullYear();
     })();
   </script>
-
-
-
-
-<footer>
-        <div class="container footer-inner">
-            <div class="footer-company-links">
-                <span>Company</span>
-                <a href="index.html#about">About Us</a>
-                <a href="index.html#contact">Contact</a>
-                <a href="privacy-policy.html">Privacy Policy</a>
-                <a href="terms-of-service.html">Terms of Service</a>
-            </div>
-            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
-            <p class="footer-credits">
-                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
-                <a href="attributions.html">See full acknowledgements</a>.
-            </p>
-        </div>
-    </footer>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

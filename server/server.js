@@ -260,6 +260,45 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Create Razorpay Order
+app.post('/api/create-order', async (req, res) => {
+  try {
+    const { amount, name, email } = req.body;
+    
+    if (!amount || !name || !email) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const orderOptions = {
+      amount: amount * 100, // Convert to paise
+      currency: 'INR',
+      receipt: 'order_' + Date.now(),
+      payment_capture: 1,
+      notes: {
+        name: name,
+        email: email,
+        purpose: 'Donation to easyjpgtopdf'
+      }
+    };
+
+    const order = await razorpay.orders.create(orderOptions);
+    
+    res.json({
+      id: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      receipt: order.receipt
+    });
+    
+  } catch (error) {
+    console.error('Error creating Razorpay order:', error);
+    res.status(500).json({ 
+      error: 'Failed to create order',
+      details: error.message 
+    });
+  }
+});
+
 // ROOT ROUTE
 app.get('/', (req, res) => {
   res.json({ message: 'Word to PDF API is running!' });
