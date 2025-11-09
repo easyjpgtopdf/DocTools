@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -128,13 +128,133 @@
 
         .auth-buttons {
             display: flex;
-            gap: 10px;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .auth-link {
+            display: inline-flex;
+            align-items: center;
+            padding: 10px 18px;
+            border-radius: 999px;
+            border: 1px solid rgba(67, 97, 238, 0.28);
+            color: var(--primary);
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .auth-link:hover {
+            background: rgba(67, 97, 238, 0.1);
+            color: var(--secondary);
+            box-shadow: 0 8px 18px rgba(67, 97, 238, 0.15);
         }
 
         .user-menu {
             display: none;
             align-items: center;
-            gap: 12px;
+            position: relative;
+        }
+
+        .user-menu-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            border: 1px solid rgba(67, 97, 238, 0.22);
+            background: white;
+            color: var(--dark);
+            font-weight: 600;
+            cursor: pointer;
+            transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .user-menu-toggle:hover,
+        .user-menu[data-open="true"] .user-menu-toggle {
+            border-color: rgba(67, 97, 238, 0.42);
+            box-shadow: 0 10px 24px rgba(67, 97, 238, 0.18);
+        }
+
+        .user-menu-toggle i {
+            transition: transform 0.2s ease;
+        }
+
+        .user-menu[data-open="true"] .user-menu-toggle i {
+            transform: rotate(180deg);
+        }
+
+        .user-initial {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: calc(100% + 12px);
+            right: 0;
+            min-width: 240px;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 18px 42px rgba(15, 23, 42, 0.18);
+            border: 1px solid rgba(67, 97, 238, 0.08);
+            padding: 12px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            z-index: 1000;
+        }
+
+        .user-dropdown a,
+        .user-dropdown button {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 18px;
+            background: transparent;
+            border: none;
+            width: 100%;
+            text-align: left;
+            color: var(--dark);
+            font-weight: 500;
+            font-size: 0.95rem;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease, padding-left 0.2s ease;
+        }
+
+        .user-dropdown a:hover,
+        .user-dropdown button:hover {
+            background: rgba(67, 97, 238, 0.08);
+            color: var(--primary);
+            padding-left: 22px;
+        }
+
+        .dropdown-logout {
+            color: #c92a2a;
+        }
+
+        .dropdown-logout:hover {
+            background: rgba(201, 42, 42, 0.12);
+            color: #c92a2a;
+        }
+
+        @media (max-width: 768px) {
+            .auth-buttons {
+                display: none;
+            }
+
+            .user-menu {
+                margin-left: auto;
+            }
         }
 
         .sr-only {
@@ -147,136 +267,6 @@
             clip: rect(0, 0, 0, 0);
             white-space: nowrap;
             border: 0;
-        }
-
-        .user-greeting {
-            font-weight: 600;
-            color: var(--dark);
-        }
-
-        .user-dashboard {
-            display: none;
-            margin-top: 60px;
-        }
-
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 24px;
-            margin-top: 24px;
-        }
-
-        .dashboard-card {
-            background-color: white;
-            padding: 24px;
-            border-radius: 16px;
-            box-shadow: 0 12px 24px rgba(67, 97, 238, 0.07);
-        }
-
-        .notification-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            display: grid;
-            gap: 14px;
-        }
-
-        .notification-item {
-            display: flex;
-            gap: 12px;
-            align-items: flex-start;
-            padding: 12px 14px;
-            border: 1px solid rgba(67, 97, 238, 0.12);
-            border-radius: 12px;
-            background: rgba(67, 97, 238, 0.04);
-        }
-
-        .notification-item i {
-            color: var(--primary);
-            margin-top: 2px;
-        }
-
-        .notification-item strong {
-            display: block;
-            margin-bottom: 4px;
-        }
-
-        .notification-help-links {
-            margin-top: 18px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .notification-help-links a {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 14px;
-            border-radius: 999px;
-            text-decoration: none;
-            border: 1px solid rgba(67, 97, 238, 0.2);
-            color: var(--primary);
-            background: white;
-            transition: background 0.2s ease;
-        }
-
-        .notification-help-links a:hover {
-            background: rgba(67, 97, 238, 0.12);
-        }
-
-        .order-list,
-        .cancellation-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            display: grid;
-            gap: 12px;
-        }
-
-        .order-item,
-        .cancellation-item {
-            padding: 12px 14px;
-            border-radius: 12px;
-            border: 1px solid rgba(33, 37, 41, 0.08);
-            background: #f8f9ff;
-        }
-
-        .order-item strong,
-        .cancellation-item strong {
-            display: block;
-            margin-bottom: 4px;
-            color: var(--secondary);
-        }
-
-        .inline-link-btn {
-            margin-top: 16px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 14px;
-            border-radius: 999px;
-            border: 1px solid rgba(67, 97, 238, 0.28);
-            background: white;
-            color: var(--primary);
-            font-weight: 600;
-            text-decoration: none;
-        }
-
-        .inline-link-btn:hover {
-            background: rgba(67, 97, 238, 0.12);
-        }
-
-        .dashboard-subtext {
-            color: var(--gray);
-            margin-bottom: 16px;
-            font-size: 0.95rem;
-        }
-
-        .user-billing-address {
-            display: block;
-            margin-top: 6px;
-            color: var(--gray);
         }
 
         .billing-form {
@@ -1416,6 +1406,17 @@
             }
         }
     </style>
+    
+    
+
+    
+    
+
+    
+
+    <link rel="stylesheet" href="css/header.css">
+
+    <link rel="stylesheet" href="css/footer.css">
 </head>
 <body>
     <!-- Header -->
@@ -1424,7 +1425,6 @@
             <nav class="navbar">
                 <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
                 <div class="nav-links">
-                    <a href="index.html" class="active">Home</a>
                     <div class="dropdown">
                         <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
@@ -1478,11 +1478,22 @@
                     </div>
                 </div>
                 <div class="auth-buttons">
-                    <a href="accounts.html" class="auth-btn signup">Accounts</a>
+                    <a href="login.html" class="auth-link">Sign In</a>
+                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Create Account</span></a>
                 </div>
-                <div id="user-menu" class="user-menu">
-                    <span class="user-greeting">Hi, <span class="user-name">User</span></span>
-                    <button id="logout-button" class="btn btn-primary">Logout</button>
+                <div id="user-menu" class="user-menu" data-open="false">
+                    <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
+                        <span class="user-initial" aria-hidden="true">U</span>
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                    </button>
+                    <div class="user-dropdown" id="user-dropdown" hidden>
+                        <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+                        <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+                        <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+                        <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
+                        <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
+                        <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+                    </div>
                 </div>
             </nav>
         </div>
@@ -1750,7 +1761,7 @@
 
             <section class="donate-section" id="donate">
                 <h2>Support easyjpgtopdf</h2>
-                <p>Your contribution keeps our PDF tools fast, secure, and free for everyone. You’ll soon see a full story board of how donations fuel new features.</p>
+                <p>Your contribution keeps our PDF tools fast, secure, and free for everyone. YouÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ll soon see a full story board of how donations fuel new features.</p>
                 <form id="donate-form" class="donate-form">
                     <label for="donate-amount" class="sr-only">Donation amount</label>
                     <input type="number" id="donate-amount" class="form-control" min="1" step="0.01" placeholder="Enter amount" required>
@@ -1802,144 +1813,6 @@
                 </form>
                 <p class="donate-message" id="donate-message" hidden>Processing your donation...</p>
                 <p class="feedback-hint">Pick your contribution focus, choose a gateway, and complete the secure checkout. Global currencies are accepted &mdash; settlements arrive to us in INR automatically.</p>
-            </section>
-
-            <section id="user-dashboard" class="user-dashboard">
-                <h2 class="section-title">Your Account</h2>
-                <div class="dashboard-card">
-                    <h3>Profile Overview</h3>
-                    <p><strong>Name:</strong> <span class="user-name">—</span></p>
-                    <p><strong>Email:</strong> <span class="user-email">—</span></p>
-                    <p><strong>Plan:</strong> <span class="user-plan">Free</span></p>
-                    <p><strong>Total Conversions:</strong> <span class="user-conversions">0</span></p>
-                    <p><strong>Billing Address:</strong> <span class="user-billing-address">Not added yet.</span></p>
-                </div>
-                <div class="dashboard-grid">
-                    <div class="dashboard-card" id="billing-card">
-                        <h3>Billing Address</h3>
-                        <p class="dashboard-subtext">Provide your address for invoices and optional gateway KYC. This stays private between you and easyjpgtopdf.</p>
-                        <form id="billing-form" class="billing-form">
-                            <div class="form-grid">
-                                <div class="form-field">
-                                    <label for="billing-name">Full Name</label>
-                                    <input type="text" id="billing-name" name="billing-name" placeholder="Enter full legal name">
-                                </div>
-                                <div class="form-field">
-                                    <label for="billing-phone">Phone (optional)</label>
-                                    <input type="tel" id="billing-phone" name="billing-phone" placeholder="e.g. +91-9876543210">
-                                </div>
-                                <div class="form-field">
-                                    <label for="billing-line1">Address Line 1</label>
-                                    <input type="text" id="billing-line1" name="billing-line1" placeholder="House / Street">
-                                </div>
-                                <div class="form-field">
-                                    <label for="billing-line2">Address Line 2</label>
-                                    <input type="text" id="billing-line2" name="billing-line2" placeholder="Area / Landmark (optional)">
-                                </div>
-                                <div class="form-field">
-                                    <label for="billing-city">City</label>
-                                    <input type="text" id="billing-city" name="billing-city" placeholder="City">
-                                </div>
-                                <div class="form-field">
-                                    <label for="billing-state">State</label>
-                                    <input type="text" id="billing-state" name="billing-state" placeholder="State / Province">
-                                </div>
-                                <div class="form-field">
-                                    <label for="billing-postal">Postal Code</label>
-                                    <input type="text" id="billing-postal" name="billing-postal" placeholder="PIN / ZIP">
-                                </div>
-                                <div class="form-field">
-                                    <label for="billing-country">Country</label>
-                                    <input type="text" id="billing-country" name="billing-country" placeholder="Country" value="India">
-                                </div>
-                            </div>
-                            <div class="form-field">
-                                <label for="billing-notes">Additional Notes (optional)</label>
-                                <textarea id="billing-notes" name="billing-notes" placeholder="Apartment, floor, GSTIN or anything we should mention on invoices."></textarea>
-                            </div>
-                            <div class="form-actions">
-                                <button type="submit" class="btn btn-primary" id="billing-save-button">Save Address</button>
-                                <p class="form-feedback" id="billing-message" hidden></p>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="dashboard-card">
-                        <h3>Recent Tool Usage</h3>
-                        <ul class="usage-list">
-                            <li>No activity recorded yet.</li>
-                        </ul>
-                    </div>
-                    <div class="dashboard-card">
-                        <h3>Payment History</h3>
-                        <ul class="payment-list">
-                            <li>No payments found.</li>
-                        </ul>
-                    </div>
-                    <div class="dashboard-card">
-                        <h3>Orders &amp; Subscriptions</h3>
-                        <ul class="order-list">
-                            <li class="order-item">
-                                <strong>Digital products activate instantly</strong>
-                                Upcoming purchases will appear here with invoice IDs once you complete a donation or premium upgrade.
-                            </li>
-                            <li class="order-item">
-                                <strong>Download receipts anytime</strong>
-                                After a payment succeeds, use the link sent to your email or contact support for PDF invoices.
-                            </li>
-                        </ul>
-                        <a class="inline-link-btn" href="refund-policy.html" target="_blank" rel="noopener">
-                            <i class="fas fa-receipt"></i>
-                            View refund timelines
-                        </a>
-                    </div>
-                    <div class="dashboard-card">
-                        <h3>Cancellation &amp; Support</h3>
-                        <ul class="cancellation-list">
-                            <li class="cancellation-item">
-                                <strong>Pause auto-renewal anytime</strong>
-                                If you upgrade to premium later, visit your plan summary to cancel before the next billing date.
-                            </li>
-                            <li class="cancellation-item">
-                                <strong>Raise refund requests within 7 days</strong>
-                                Email support@easyjpgtopdf.com with payment reference and reason for faster resolution.
-                            </li>
-                        </ul>
-                        <a class="inline-link-btn" href="mailto:support@easyjpgtopdf.com">
-                            <i class="fas fa-headset"></i>
-                            Contact support desk
-                        </a>
-                    </div>
-                    <div class="dashboard-card">
-                        <h3>Help &amp; Notifications</h3>
-                        <ul class="notification-list">
-                            <li class="notification-item">
-                                <i class="fas fa-shield-alt"></i>
-                                <div>
-                                    <strong>KYC &amp; Compliance Reminder</strong>
-                                    Keep your Razorpay and PayU documents updated. Settlement alerts and compliance notices will appear here after you activate the gateways.
-                                </div>
-                            </li>
-                            <li class="notification-item">
-                                <i class="fas fa-bell"></i>
-                                <div>
-                                    <strong>Payment Status Updates</strong>
-                                    Successful donations and premium purchases will show up under Payment History within a few minutes of gateway confirmation.
-                                </div>
-                            </li>
-                            <li class="notification-item">
-                                <i class="fas fa-life-ring"></i>
-                                <div>
-                                    <strong>Need Assistance?</strong>
-                                    Reach our support team within 24 hours for billing disputes or urgent refunds. We reply from support@easyjpgtopdf.com.
-                                </div>
-                            </a>
-                            <a href="mailto:support@easyjpgtopdf.com">
-                                <i class="fas fa-envelope"></i>
-                                Contact Support
-                            </a>
-                        </div>
-                    </div>
-                </div>
             </section>
 
             <div class="testimonials">
@@ -2026,11 +1899,11 @@
                                 <label for="feedback-rating">Rating</label>
                                 <select id="feedback-rating" class="form-control" required>
                                     <option value="">Select rating</option>
-                                    <option value="5">â˜…â˜…â˜…â˜…â˜… â€“ Loved it</option>
-                                    <option value="4">â˜…â˜…â˜…â˜…â˜† â€“ Pretty good</option>
-                                    <option value="3">â˜…â˜…â˜…â˜†â˜† â€“ It works</option>
-                                    <option value="2">â˜…â˜…â˜†â˜†â˜† â€“ Needs improvements</option>
-                                    <option value="1">â˜…â˜†â˜†â˜†â˜† â€“ Not great</option>
+                                    <option value="5">ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ Loved it</option>
+                                    <option value="4">ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â  ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ Pretty good</option>
+                                    <option value="3">ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â  ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ It works</option>
+                                    <option value="2">ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â  ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ Needs improvements</option>
+                                    <option value="1">ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â  ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ Not great</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -4017,12 +3890,8 @@
                     <button class="btn" onclick="showPage('home', this)">Back to Home</button>
                 </div>
             </div>
-            <div class="copyright">
-                <p>&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
-                <p class="attribution">Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site. <a href="attributions.html">See full acknowledgements</a>.</p>
-            </div>
         </div>
-    </footer>
+    </section>
 
 
     <!-- Login Modal -->
@@ -4054,10 +3923,10 @@
                 <span>Or continue with</span>
             </div>
             <div class="social-auth">
-                <button class="social-btn">
+                <button class="social-btn" data-provider="google">
                     <i class="fab fa-google"></i> Google
                 </button>
-                <button class="social-btn">
+                <button class="social-btn" data-provider="facebook">
                     <i class="fab fa-facebook"></i> Facebook
                 </button>
             </div>
@@ -4114,10 +3983,10 @@
                 <span>Or continue with</span>
             </div>
             <div class="social-auth">
-                <button class="social-btn">
+                <button class="social-btn" data-provider="google">
                     <i class="fab fa-google"></i> Google
                 </button>
-                <button class="social-btn">
+                <button class="social-btn" data-provider="facebook">
                     <i class="fab fa-facebook"></i> Facebook
                 </button>
             </div>
@@ -4207,7 +4076,7 @@
 
         if (!hasValidConfig) {
             if (ui.status) {
-                ui.status.textContent = 'Preview mode active â€” data saved locally in this browser.';
+                ui.status.textContent = 'Preview mode active ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â data saved locally in this browser.';
             }
             if (ui.formMessage) {
                 ui.formMessage.textContent = 'Comments will stay on this device until Firebase credentials are added.';
@@ -4354,7 +4223,7 @@
             }
 
             if (ui.status) {
-                ui.status.textContent = 'Connected â€” updates arrive in real time.';
+                ui.status.textContent = 'Connected ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â updates arrive in real time.';
             }
         }
 
@@ -4443,8 +4312,8 @@
 
         function renderStars(rating) {
             const max = 5;
-            const filled = 'â˜…'.repeat(Math.max(0, Math.min(max, Math.round(rating))));
-            const empty = 'â˜†'.repeat(Math.max(0, max - filled.length));
+            const filled = 'ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦'.repeat(Math.max(0, Math.min(max, Math.round(rating))));
+            const empty = 'ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â '.repeat(Math.max(0, max - filled.length));
             return `${filled}${empty}`;
         }
 
@@ -4586,41 +4455,41 @@
     <script>
         // Function to show the selected page and hide others
         function showPage(pageId, clickedElement) {
-            // Avoid redirect/reload loop when asked to show 'home' on index page
-            if (pageId === 'home') {
-                return;
-            }
-            // Hide all pages
             const pages = document.querySelectorAll('.page');
             pages.forEach(page => {
                 page.classList.remove('active');
             });
-            
-            // Show the selected page
-            const targetPage = document.getElementById(pageId);
+
+            const isHome = pageId === 'home';
+            const targetPage = isHome ? document.getElementById('home') : document.getElementById(pageId);
+
             if (targetPage) {
                 targetPage.classList.add('active');
-            } else {
+            } else if (!isHome) {
                 console.error('Page not found:', pageId);
                 return;
             }
-            
-            // Update active nav link
+
             const navLinks = document.querySelectorAll('.nav-links a');
-            navLinks.forEach(link => {
-                link.classList.remove('active');
-            });
-            
-            // Set the clicked link as active
+            navLinks.forEach(link => link.classList.remove('active'));
+
             if (clickedElement) {
                 clickedElement.classList.add('active');
+            } else if (isHome) {
+                const homeLink = document.querySelector('.nav-links a[data-nav="home"], .nav-links a[href="index.html"]');
+                if (homeLink) {
+                    homeLink.classList.add('active');
+                }
             }
-            
-            // Scroll to top
-            window.scrollTo(0, 0);
-            
-            // Add to browser history
-            history.pushState({page: pageId}, '', `#${pageId}`);
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            if (isHome) {
+                const cleanUrl = `${window.location.pathname}${window.location.search}`;
+                history.pushState({ page: pageId }, '', cleanUrl);
+            } else {
+                history.pushState({ page: pageId }, '', `#${pageId}`);
+            }
         }
 
         // Function to show modal
@@ -4663,7 +4532,7 @@
                         fileItem.className = 'file-item';
                         fileItem.innerHTML = `
                             <span>${this.files[i].name}</span>
-                            <span class="file-remove" onclick="removeFile(this)">Ãƒâ€”</span>
+                            <span class="file-remove" onclick="removeFile(this)">ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â</span>
                         `;
                         fileItems.appendChild(fileItem);
                     }
@@ -4718,17 +4587,30 @@
         <div class="container footer-inner">
             <div class="footer-company-links">
                 <span>Company</span>
-                <a href="#about">About Us</a>
-                <a href="#contact">Contact</a>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
                 <a href="privacy-policy.html">Privacy Policy</a>
                 <a href="terms-of-service.html">Terms of Service</a>
             </div>
             <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
-            <p class="footer-credits">Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site. <a href="attributions.html">See full acknowledgements</a>.</p>
+            <p class="footer-credits">
+                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+                <a href="attributions.html">See full acknowledgements</a>.
+            </p>
         </div>
     </footer>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
 
 
 

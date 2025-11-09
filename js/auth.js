@@ -7,6 +7,11 @@ import {
   sendPasswordResetEmail,
   updateProfile,
   onAuthStateChanged,
+  GoogleAuthProvider,
+  FacebookAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
 } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
 import {
   getFirestore,
@@ -18,7 +23,22 @@ import {
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+const facebookProvider = new FacebookAuthProvider();
+facebookProvider.setCustomParameters({ display: 'popup' });
+
+const SOCIAL_PROVIDER_KEY = 'easyjpgtopdf.socialProvider';
 const PENDING_ACTION_KEY = 'easyjpgtopdf.pendingAction';
+const DASHBOARD_NAV_KEY = 'easyjpgtopdf.dashboardTarget';
+
+const socialProviders = {
+  google: googleProvider,
+  facebook: facebookProvider,
+};
+
+const userMenuPointerListenerOptions = { capture: true };
 
 function normalizeUrl(url) {
   try {
@@ -27,6 +47,169 @@ function normalizeUrl(url) {
   } catch (error) {
     console.warn('Unable to normalise URL for pending action redirect:', error);
     return url;
+  }
+}
+
+function cancelUserMenuHoverClose() {
+  if (userMenuHoverCloseTimeout !== null) {
+    clearTimeout(userMenuHoverCloseTimeout);
+    userMenuHoverCloseTimeout = null;
+  }
+}
+
+function scheduleUserMenuHoverClose() {
+  if (userMenuHoverCloseTimeout !== null) {
+    return;
+  }
+  userMenuHoverCloseTimeout = window.setTimeout(() => {
+    if (userMenu?.dataset.open === 'true') {
+      closeUserDropdown();
+    }
+    userMenuHoverCloseTimeout = null;
+  }, 150);
+}
+
+function handleGlobalPointerMove(event) {
+  if (!userMenu || userMenu.dataset.open !== 'true') {
+    return;
+  }
+  const target = event.target;
+  if (target instanceof Node && userMenu.contains(target)) {
+    cancelUserMenuHoverClose();
+  } else {
+    scheduleUserMenuHoverClose();
+  }
+}
+
+function handleWindowBlur() {
+  if (userMenu?.dataset.open === 'true') {
+    closeUserDropdown();
+  }
+}
+
+function getProviderFriendlyName(providerKey = '') {
+  const normalized = providerKey.toLowerCase();
+  const mapping = {
+    google: 'Google',
+    'google.com': 'Google',
+    facebook: 'Facebook',
+    'facebook.com': 'Facebook',
+  };
+  return mapping[normalized] || providerKey || 'Social Provider';
+}
+
+async function ensureUserProfile(user, defaults = {}) {
+  if (!user) return;
+  try {
+    const userDocRef = doc(db, 'users', user.uid);
+    const snapshot = await getDoc(userDocRef);
+    if (snapshot.exists()) {
+      if (Object.keys(defaults).length) {
+        await setDoc(
+          userDocRef,
+          {
+            displayName: user.displayName || defaults.displayName || '',
+            email: user.email || defaults.email || '',
+            lastLogin: new Date().toISOString(),
+          },
+          { merge: true }
+        );
+      }
+      return;
+    }
+
+    await setDoc(userDocRef, {
+      displayName: user.displayName || defaults.displayName || '',
+      email: user.email || defaults.email || '',
+      dob: defaults.dob || '',
+      ageVerified: Boolean(defaults.ageVerified),
+      createdAt: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
+      plan: 'free',
+      totalConversions: 0,
+    });
+  } catch (error) {
+    console.error('Failed to ensure user profile:', error);
+  }
+}
+
+function getAuthErrorMessage(error, fallbackMessage) {
+  const code = error?.code;
+  switch (code) {
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address.';
+    case 'auth/email-already-in-use':
+      return 'That email is already registered. Try signing in instead.';
+    case 'auth/weak-password':
+      return 'Password should be at least 6 characters long.';
+    case 'auth/popup-closed-by-user':
+      return 'Sign-in was cancelled before completion.';
+    case 'auth/user-disabled':
+      return 'This account has been disabled. Contact support for help.';
+    case 'auth/user-not-found':
+      return 'No account found with that email address.';
+    case 'auth/wrong-password':
+      return 'Incorrect password. Please try again.';
+    default:
+      return error?.message || fallbackMessage;
+  }
+}
+
+function shouldUseRedirect() {
+  const isSmallViewport = window.matchMedia('(max-width: 768px)').matches;
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  return isSmallViewport || isStandalone || isIOS;
+}
+
+async function restoreRedirectResult() {
+  try {
+    const result = await getRedirectResult(auth);
+    if (result && result.user) {
+      const providerId = result.providerId || result._tokenResponse?.providerId;
+      const providerKey = sessionStorage.getItem(SOCIAL_PROVIDER_KEY) || providerId || '';
+      sessionStorage.removeItem(SOCIAL_PROVIDER_KEY);
+      const friendlyName = getProviderFriendlyName(providerKey);
+      showAlert(`Signed in with ${friendlyName} successfully!`);
+      await ensureUserProfile(result.user, { email: result.user.email || '' });
+      dispatchPendingAction(result.user);
+    }
+  } catch (error) {
+    sessionStorage.removeItem(SOCIAL_PROVIDER_KEY);
+    console.error('Social login redirect failed:', error);
+    showAlert(error.message || 'Unable to complete social sign-in.');
+  }
+}
+
+async function signInWithProvider(providerKey) {
+  const provider = socialProviders[providerKey];
+  if (!provider) {
+    console.warn('Unknown social provider:', providerKey);
+    return;
+  }
+
+  try {
+    if (shouldUseRedirect()) {
+      sessionStorage.setItem(SOCIAL_PROVIDER_KEY, providerKey);
+      await signInWithRedirect(auth, provider);
+      return;
+    }
+
+    const result = await signInWithPopup(auth, provider);
+    if (result?.user) {
+      const friendlyName = getProviderFriendlyName(providerKey);
+      showAlert(`Signed in with ${friendlyName} successfully!`);
+      await ensureUserProfile(result.user, {
+        email: result.user.email || '',
+        displayName: result.user.displayName || '',
+        ageVerified: true,
+      });
+      dispatchPendingAction(result.user);
+      window.location.href = 'dashboard.html#dashboard-overview';
+    }
+  } catch (error) {
+    console.error(`Social login with ${providerKey} failed:`, error);
+    showAlert(getAuthErrorMessage(error, `Unable to sign in with ${getProviderFriendlyName(providerKey)}.`));
   }
 }
 
@@ -65,6 +248,31 @@ function clearPendingActionStorage() {
 
 let pendingAction = loadPendingAction();
 
+function setDashboardNavTarget(targetId) {
+  try {
+    if (targetId) {
+      sessionStorage.setItem(DASHBOARD_NAV_KEY, targetId);
+    } else {
+      sessionStorage.removeItem(DASHBOARD_NAV_KEY);
+    }
+  } catch (error) {
+    console.warn('Failed to persist dashboard navigation target:', error);
+  }
+}
+
+function consumeDashboardNavTarget() {
+  try {
+    const target = sessionStorage.getItem(DASHBOARD_NAV_KEY);
+    if (target) {
+      sessionStorage.removeItem(DASHBOARD_NAV_KEY);
+    }
+    return target || '';
+  } catch (error) {
+    console.warn('Failed to read dashboard navigation target:', error);
+    return '';
+  }
+}
+
 export function setPendingAction(action) {
   if (!action || typeof action !== 'object') {
     pendingAction = null;
@@ -87,6 +295,10 @@ export function clearPendingAction() {
 function getCurrentPendingAction() {
   pendingAction = pendingAction || loadPendingAction();
   return pendingAction;
+}
+
+function hasPendingAction() {
+  return Boolean(getCurrentPendingAction());
 }
 
 function dispatchPendingAction(user) {
@@ -121,25 +333,170 @@ function dispatchPendingAction(user) {
   savePendingAction(updated);
 }
 
-const loginForms = Array.from(document.querySelectorAll('form[data-auth-form="login"]'));
-const signupForms = Array.from(document.querySelectorAll('form[data-auth-form="signup"]'));
-const forgotPasswordForms = Array.from(document.querySelectorAll('form[data-auth-form="reset"]'));
-const authButtons = document.querySelector('.auth-buttons');
-const userMenu = document.querySelector('#user-menu');
-const billingForm = document.getElementById('billing-form');
-const billingMessage = document.getElementById('billing-message');
-const billingSaveButton = document.getElementById('billing-save-button');
-const billingSummaryEl = document.querySelector('.user-billing-address');
-const billingNameInput = document.getElementById('billing-name');
-const billingPhoneInput = document.getElementById('billing-phone');
-const billingLine1Input = document.getElementById('billing-line1');
-const billingLine2Input = document.getElementById('billing-line2');
-const billingCityInput = document.getElementById('billing-city');
-const billingStateInput = document.getElementById('billing-state');
-const billingPostalInput = document.getElementById('billing-postal');
-const billingCountryInput = document.getElementById('billing-country');
-const billingNotesInput = document.getElementById('billing-notes');
+let loginForms = [];
+let signupForms = [];
+let forgotPasswordForms = [];
+let authButtons = null;
+let loginButtons = [];
+let signupButtons = [];
+let socialButtons = [];
+let userMenu = null;
+let userMenuToggle = null;
+let userDropdown = null;
+let dropdownNavLinks = [];
+let dashboardNavButtons = [];
+let dashboardGuest = null;
+let userMenuHoverCloseTimeout = null;
+let userMenuPointerHandlersBound = false;
+let billingForm = null;
+let billingMessage = null;
+let billingSaveButton = null;
+let billingSummaryEl = null;
+let billingNameInput = null;
+let billingPhoneInput = null;
+let billingLine1Input = null;
+let billingLine2Input = null;
+let billingCityInput = null;
+let billingStateInput = null;
+let billingPostalInput = null;
+let billingCountryInput = null;
+let billingNotesInput = null;
 const defaultBillingSummary = 'Not added yet.';
+
+let logoutButton = null;
+let authUiInitialized = false;
+let documentClickHandlerBound = false;
+
+function initializeAuthUI() {
+  if (authUiInitialized) {
+    updateUI(auth.currentUser || null);
+    return;
+  }
+
+  loginForms = Array.from(document.querySelectorAll('form[data-auth-form="login"]'));
+  signupForms = Array.from(document.querySelectorAll('form[data-auth-form="signup"]'));
+  forgotPasswordForms = Array.from(document.querySelectorAll('form[data-auth-form="reset"]'));
+  authButtons = document.querySelector('.auth-buttons');
+  loginButtons = [];
+  signupButtons = [];
+  socialButtons = Array.from(document.querySelectorAll('[data-provider]'));
+  userMenu = document.getElementById('user-menu');
+  userMenuToggle = document.getElementById('user-menu-toggle');
+  userDropdown = document.getElementById('user-dropdown');
+  dropdownNavLinks = Array.from(document.querySelectorAll('[data-user-nav]'));
+  dashboardNavButtons = Array.from(document.querySelectorAll('.dashboard-nav-btn[data-dashboard-target]'));
+  dashboardGuest = document.getElementById('dashboard-guest');
+  billingForm = document.getElementById('billing-form');
+  billingMessage = document.getElementById('billing-message');
+  billingSaveButton = document.getElementById('billing-save-button');
+  billingSummaryEl = document.querySelector('.user-billing-address');
+  billingNameInput = document.getElementById('billing-name');
+  billingPhoneInput = document.getElementById('billing-phone');
+  billingLine1Input = document.getElementById('billing-line1');
+  billingLine2Input = document.getElementById('billing-line2');
+  billingCityInput = document.getElementById('billing-city');
+  billingStateInput = document.getElementById('billing-state');
+  billingPostalInput = document.getElementById('billing-postal');
+  billingCountryInput = document.getElementById('billing-country');
+  billingNotesInput = document.getElementById('billing-notes');
+  logoutButton = document.getElementById('logout-button');
+
+  signupForms.forEach((form) => form.addEventListener('submit', handleSignup));
+  loginForms.forEach((form) => form.addEventListener('submit', handleLogin));
+  forgotPasswordForms.forEach((form) => form.addEventListener('submit', handlePasswordReset));
+  if (billingForm) {
+    billingForm.addEventListener('submit', handleBillingFormSubmit);
+  }
+
+  socialButtons.forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      const providerKey = button.dataset.provider;
+      if (!providerKey) return;
+      signInWithProvider(providerKey.toLowerCase());
+    });
+  });
+
+  dropdownNavLinks.forEach((link) => {
+    link.addEventListener('click', (event) => {
+      const rawHref = link.getAttribute('href') || '';
+      const targetId = link.dataset.userNav || rawHref.replace('#', '');
+
+      if (!targetId) {
+        closeUserDropdown();
+        return;
+      }
+
+      const hrefUrl = rawHref ? new URL(rawHref, window.location.href) : null;
+      const isSamePageHash = hrefUrl && normalizeUrl(hrefUrl.href) === normalizeUrl(window.location.href);
+
+      if (hrefUrl && !isSamePageHash && hrefUrl.origin === window.location.origin && !rawHref.startsWith('#')) {
+        setDashboardNavTarget(targetId);
+        closeUserDropdown();
+        window.location.href = hrefUrl.href;
+        return;
+      }
+
+      event.preventDefault();
+      closeUserDropdown();
+      revealDashboardSection(targetId);
+    });
+  });
+
+  dashboardNavButtons.forEach((button) => {
+    const targetId = button.dataset.dashboardTarget;
+    if (!targetId) return;
+    button.addEventListener('click', () => {
+      revealDashboardSection(targetId, { trigger: 'sidebar' });
+    });
+  });
+
+  if (userMenuToggle) {
+    userMenuToggle.addEventListener('click', (event) => {
+      event.preventDefault();
+      toggleUserDropdown();
+    });
+  }
+
+  if (userMenu) {
+    const hoverTargets = [userMenu, userMenuToggle, userDropdown];
+    hoverTargets.forEach((element) => {
+      if (!element) return;
+      element.addEventListener('mouseenter', cancelUserMenuHoverClose);
+      element.addEventListener('pointerenter', cancelUserMenuHoverClose);
+      element.addEventListener('mouseleave', scheduleUserMenuHoverClose);
+      element.addEventListener('pointerleave', scheduleUserMenuHoverClose);
+    });
+  }
+
+  if (!documentClickHandlerBound) {
+    document.addEventListener('click', (event) => {
+      if (!userMenu || userMenu.dataset.open !== 'true') return;
+      if (userMenu.contains(event.target)) return;
+      closeUserDropdown();
+    });
+
+    document.addEventListener('focusin', (event) => {
+      if (!userMenu || userMenu.dataset.open !== 'true') return;
+      if (userMenu.contains(event.target)) return;
+      closeUserDropdown();
+    });
+
+    document.addEventListener('keyup', (event) => {
+      if (event.key !== 'Escape') return;
+      if (!userMenu || userMenu.dataset.open !== 'true') return;
+      closeUserDropdown();
+    });
+    documentClickHandlerBound = true;
+  }
+
+  if (logoutButton) {
+    logoutButton.addEventListener('click', handleLogout);
+  }
+
+  authUiInitialized = true;
+  updateUI(auth.currentUser || null);
+}
 
 function showAlert(message) {
   alert(message);
@@ -297,6 +654,18 @@ function calculateAge(dobValue) {
   return age;
 }
 
+function isValidEmail(value) {
+  if (typeof value !== 'string') {
+    return false;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return false;
+  }
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailPattern.test(trimmed);
+}
+
 function resetPeerForms(group, sourceForm) {
   const collections = {
     signup: signupForms,
@@ -318,6 +687,7 @@ async function handleSignup(event) {
     return;
   }
 
+  const hadPendingAction = hasPendingAction();
   const formData = new FormData(form);
   const name = (formData.get('signup-name') ?? '').toString().trim();
   const email = (formData.get('signup-email') ?? '').toString().trim();
@@ -326,6 +696,15 @@ async function handleSignup(event) {
   const dob = (formData.get('signup-dob') ?? '').toString();
   const ageCheckbox = form.querySelector('input[name="confirm-age"]');
   const termsCheckbox = form.querySelector('input[name="agree-terms"]');
+
+  if (!isValidEmail(email)) {
+    showAlert('Please enter a valid email address.');
+    const emailInput = form.querySelector('input[name="signup-email"]');
+    if (emailInput instanceof HTMLElement) {
+      emailInput.focus({ preventScroll: false });
+    }
+    return;
+  }
 
   if (password !== confirmPassword) {
     showAlert('Passwords do not match.');
@@ -372,9 +751,12 @@ async function handleSignup(event) {
       window.closeModal('signup-modal');
     }
     dispatchPendingAction(userCredential.user);
+    if (!hadPendingAction) {
+      window.location.href = 'dashboard.html#dashboard-overview';
+    }
   } catch (error) {
     console.error('Signup failed:', error);
-    showAlert(error.message || 'Unable to create account.');
+    showAlert(getAuthErrorMessage(error, 'Unable to create account.'));
   }
 }
 
@@ -385,9 +767,19 @@ async function handleLogin(event) {
     return;
   }
 
+  const hadPendingAction = hasPendingAction();
   const formData = new FormData(form);
   const email = (formData.get('login-email') ?? '').toString().trim();
   const password = (formData.get('login-password') ?? '').toString();
+
+  if (!isValidEmail(email)) {
+    showAlert('Please enter a valid email address.');
+    const emailInput = form.querySelector('input[name="login-email"]');
+    if (emailInput instanceof HTMLElement) {
+      emailInput.focus({ preventScroll: false });
+    }
+    return;
+  }
 
   try {
     await signInWithEmailAndPassword(auth, email, password);
@@ -398,9 +790,12 @@ async function handleLogin(event) {
       window.closeModal('login-modal');
     }
     dispatchPendingAction(auth.currentUser);
+    if (!hadPendingAction) {
+      window.location.href = 'dashboard.html#dashboard-overview';
+    }
   } catch (error) {
     console.error('Login failed:', error);
-    showAlert(error.message || 'Unable to log in.');
+    showAlert(getAuthErrorMessage(error, 'Unable to log in.'));
   }
 }
 
@@ -429,7 +824,7 @@ async function handlePasswordReset(event) {
     }
   } catch (error) {
     console.error('Password reset failed:', error);
-    showAlert(error.message || 'Unable to send password reset email.');
+    showAlert(getAuthErrorMessage(error, 'Unable to send password reset email.'));
   }
 }
 
@@ -440,7 +835,7 @@ async function handleLogout() {
     clearPendingAction();
   } catch (error) {
     console.error('Logout failed:', error);
-    showAlert('Unable to sign out. Please try again.');
+    showAlert(getAuthErrorMessage(error, 'Unable to sign out. Please try again.'));
   }
 }
 
@@ -456,12 +851,21 @@ function updateUI(user) {
       if (nameEl) nameEl.textContent = user.displayName || user.email;
       if (emailEl) emailEl.textContent = user.email;
     }
+    if (dashboardGuest) {
+      dashboardGuest.style.display = 'none';
+    }
+    updateSidebarAvatar(user);
+    updateUserMenuBadge(user);
   } else {
     if (authButtons) authButtons.style.display = 'flex';
     if (userMenu) userMenu.style.display = 'none';
     if (dashboard) {
       dashboard.style.display = 'none';
     }
+    if (dashboardGuest) {
+      dashboardGuest.style.display = 'flex';
+    }
+    closeUserDropdown();
   }
 }
 
@@ -470,19 +874,132 @@ onAuthStateChanged(auth, (user) => {
   if (user) {
     loadBillingAddress(user);
     dispatchPendingAction(user);
+    const pendingDashboardTarget = consumeDashboardNavTarget();
+    if (pendingDashboardTarget) {
+      revealDashboardSection(pendingDashboardTarget, { skipStore: true });
+    }
   } else {
     resetBillingUI();
   }
 });
 
-signupForms.forEach((form) => form.addEventListener('submit', handleSignup));
-loginForms.forEach((form) => form.addEventListener('submit', handleLogin));
-forgotPasswordForms.forEach((form) => form.addEventListener('submit', handlePasswordReset));
-if (billingForm) billingForm.addEventListener('submit', handleBillingFormSubmit);
-
-const logoutButton = document.getElementById('logout-button');
-if (logoutButton) {
-  logoutButton.addEventListener('click', handleLogout);
+function updateUserMenuBadge(user) {
+  if (!userMenuToggle) return;
+  const initialEl = userMenuToggle.querySelector('.user-initial');
+  if (initialEl) {
+    const name = user.displayName || user.email || '';
+    initialEl.textContent = name.trim().charAt(0).toUpperCase() || 'U';
+  }
 }
+
+function updateSidebarAvatar(user) {
+  const sidebarInitial = document.querySelector('.sidebar-user-initial');
+  const sidebarName = document.querySelector('.dashboard-sidebar .user-name');
+  const sidebarEmail = document.querySelector('.dashboard-sidebar .user-email');
+  const nameSource = user.displayName || user.email || '';
+  const initial = nameSource.trim().charAt(0).toUpperCase() || 'U';
+  if (sidebarInitial) {
+    sidebarInitial.textContent = initial;
+  }
+  if (sidebarName) {
+    sidebarName.textContent = user.displayName || user.email || '—';
+  }
+  if (sidebarEmail) {
+    sidebarEmail.textContent = user.email || ''; // email already shown in menu
+  }
+}
+
+function toggleUserDropdown(forceState) {
+  if (!userMenu || !userDropdown || !userMenuToggle) return;
+  const isOpen = typeof forceState === 'boolean' ? forceState : userMenu.dataset.open !== 'true';
+  userMenu.dataset.open = isOpen ? 'true' : 'false';
+  userMenuToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  userDropdown.hidden = !isOpen;
+  if (isOpen) {
+    cancelUserMenuHoverClose();
+    if (!userMenuPointerHandlersBound) {
+      window.addEventListener('pointermove', handleGlobalPointerMove, userMenuPointerListenerOptions);
+      window.addEventListener('blur', handleWindowBlur, userMenuPointerListenerOptions);
+      userMenuPointerHandlersBound = true;
+    }
+  } else if (userMenuPointerHandlersBound) {
+    window.removeEventListener('pointermove', handleGlobalPointerMove, userMenuPointerListenerOptions);
+    window.removeEventListener('blur', handleWindowBlur, userMenuPointerListenerOptions);
+    userMenuPointerHandlersBound = false;
+    cancelUserMenuHoverClose();
+  }
+}
+
+function closeUserDropdown() {
+  cancelUserMenuHoverClose();
+  toggleUserDropdown(false);
+  if (userMenuPointerHandlersBound) {
+    window.removeEventListener('pointermove', handleGlobalPointerMove, userMenuPointerListenerOptions);
+    window.removeEventListener('blur', handleWindowBlur, userMenuPointerListenerOptions);
+    userMenuPointerHandlersBound = false;
+  }
+}
+
+function revealDashboardSection(targetId, options = {}) {
+  const { skipStore = false, trigger = '' } = options;
+
+  const targetFragment = (targetId || 'dashboard-overview').trim();
+  const dashboardSection = document.getElementById('user-dashboard');
+
+  if (!dashboardSection) {
+    if (!skipStore) {
+      setDashboardNavTarget(targetFragment);
+    }
+    const destination = new URL(`dashboard.html#${targetFragment}`, window.location.href);
+    if (normalizeUrl(window.location.href) !== normalizeUrl(destination.toString())) {
+      window.location.href = destination.toString();
+    } else {
+      window.location.hash = `#${targetFragment}`;
+    }
+    return;
+  }
+
+  if (typeof window.showPage === 'function') {
+    window.showPage('home');
+  }
+
+  const panels = Array.from(dashboardSection.querySelectorAll('.dashboard-panel'));
+  const navButtons = dashboardNavButtons;
+  let targetPanel = null;
+
+  panels.forEach((panel) => {
+    const isMatch = panel.id === targetFragment;
+    panel.classList.toggle('active', isMatch);
+    if (isMatch) {
+      targetPanel = panel;
+    }
+  });
+
+  navButtons.forEach((button) => {
+    button.classList.toggle('active', button.dataset.dashboardTarget === targetFragment);
+  });
+
+  requestAnimationFrame(() => {
+    dashboardSection.classList.add('active');
+    if (targetPanel) {
+      targetPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      dashboardSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+}
+
+function bootstrapAuthUI() {
+  document.removeEventListener('DOMContentLoaded', bootstrapAuthUI);
+  initializeAuthUI();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrapAuthUI);
+} else {
+  initializeAuthUI();
+}
+
+restoreRedirectResult();
 
 export { auth };

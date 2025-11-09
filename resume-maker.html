@@ -1,11 +1,84 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resume Maker - Create Professional Resumes for Free</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/footer.css">
     <style>
+        /* Template Buttons Styles */
+        .template-buttons-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px 0;
+            background: linear-gradient(135deg, #f5f7ff 0%, #e8ecff 100%);
+            border-bottom: 1px solid rgba(67, 97, 238, 0.1);
+        }
+        
+        .template-button {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 28px;
+            background: white;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            text-decoration: none;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.15);
+            z-index: 1;
+        }
+        
+        .template-button i {
+            font-size: 1.4rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .template-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(67, 97, 238, 0.25);
+            color: white;
+            background: var(--primary);
+        }
+        
+        .template-button:hover i {
+            transform: scale(1.2);
+        }
+        
+        .button-hover-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, var(--primary), var(--accent));
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .template-button:hover .button-hover-effect {
+            opacity: 1;
+        }
+        
+        /* Blinking Animation */
+        @keyframes blink {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(67, 97, 238, 0); }
+        }
+        
+        .blink {
+            animation: blink 2s infinite;
+        }
+        
         :root {
             --primary: #4361ee;
             --secondary: #3a0ca3;
@@ -43,120 +116,6 @@
             padding: 0 20px;
         }
         
-        /* Header Styles */
-        header {
-            background-color: white;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 0;
-        }
-        
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--primary);
-            text-decoration: none;
-        }
-        
-        .logo i {
-            color: var(--secondary);
-        }
-        
-        .nav-links {
-            display: flex;
-            gap: 25px;
-        }
-        
-        .nav-links a {
-            text-decoration: none;
-            color: var(--dark);
-            font-weight: 500;
-            transition: color 0.3s;
-        }
-        
-        .nav-links a:hover {
-            color: var(--primary);
-        }
-        
-        .nav-links a.active {
-            color: var(--primary);
-            font-weight: 600;
-        }
-        
-        .dropdown {
-            position: relative;
-        }
-        
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            background-color: white;
-            min-width: 200px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-            z-index: 1;
-            border-radius: 8px;
-            padding: 10px 0;
-            top: 100%;
-            left: 0;
-        }
-        
-        .dropdown:hover .dropdown-content {
-            display: block;
-        }
-        
-        .dropdown-content a {
-            display: block;
-            padding: 10px 20px;
-            text-decoration: none;
-            color: var(--dark);
-        }
-        
-        .dropdown-content a:hover {
-            background-color: var(--light);
-        }
-        
-        .auth-buttons {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .auth-btn {
-            padding: 6px 15px;
-            border-radius: 50px;
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s;
-            font-size: 0.9rem;
-        }
-        
-        .auth-btn.login {
-            background-color: transparent;
-            color: var(--primary);
-            border: 1px solid var(--primary);
-        }
-        
-        .auth-btn.signup {
-            background-color: var(--primary);
-            color: white;
-            border: 1px solid var(--primary);
-        }
-        
-        .auth-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
-        }
-
         .personal-info-grid {
             display: flex;
             gap: 24px;
@@ -1359,6 +1318,77 @@
             background: #f8f9fa;
         }
 
+        /* Template Buttons Styles */
+        .template-buttons-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px 0;
+            background: linear-gradient(135deg, #f5f7ff 0%, #e8ecff 100%);
+            border-bottom: 1px solid rgba(67, 97, 238, 0.1);
+        }
+        
+        .template-button {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 28px;
+            background: white;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            text-decoration: none;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.15);
+            z-index: 1;
+        }
+        
+        .template-button i {
+            font-size: 1.4rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .template-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(67, 97, 238, 0.25);
+            color: white;
+            background: var(--primary);
+        }
+        
+        .template-button:hover i {
+            transform: scale(1.2);
+        }
+        
+        .button-hover-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, var(--primary), var(--accent));
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .template-button:hover .button-hover-effect {
+            opacity: 1;
+        }
+        
+        /* Blinking Animation */
+        @keyframes blink {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(67, 97, 238, 0); }
+        }
+        
+        .blink {
+            animation: blink 2s infinite;
+        }
+        
         /* Responsive */
         @media (max-width: 992px) {
             .app-container {
@@ -1378,18 +1408,18 @@
             }
         }
     </style>
+    
+
+    
+    
+
 </head>
 <body>
-    <!-- Header -->
-    <header>
+<header>
         <div class="container">
             <nav class="navbar">
-                <a href="index.html" class="logo">
-                    <i class="fas fa-file-pdf"></i>
-                    <span>easyjpgtopdf</span>
-                </a>
+                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
                 <div class="nav-links">
-                    <a href="index.html">Home</a>
                     <div class="dropdown">
                         <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
@@ -1433,9 +1463,9 @@
                         </div>
                     </div>
                     <div class="dropdown">
-                        <a href="#" class="active">Design Tools <i class="fas fa-chevron-down"></i></a>
+                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
-                            <a href="resume-maker.html" class="active">Resume Maker</a>
+                            <a href="resume-maker.html">Resume Maker</a>
                             <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
                             <a href="ai-image-generator.html">AI Image Generator</a>
                             <a href="marriage-card.html">Marriage Card</a>
@@ -1443,20 +1473,40 @@
                     </div>
                 </div>
                 <div class="auth-buttons">
-                    <a href="#" class="auth-btn login" onclick="showModal('login-modal')">Login</a>
-                    <a href="#" class="auth-btn signup" onclick="showModal('signup-modal')">Sign Up</a>
+                    <a href="login.html" class="auth-link">Sign In</a>
+                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Create Account</span></a>
+                </div>
+                <div id="user-menu" class="user-menu" data-open="false">
+                    <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
+                        <span class="user-initial" aria-hidden="true">U</span>
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                    </button>
+                    <div class="user-dropdown" id="user-dropdown" hidden>
+                        <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+                        <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+                        <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+                        <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
+                        <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
+                        <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+                    </div>
                 </div>
             </nav>
         </div>
-        <div class="quick-links-bar">
-            <div class="container quick-links-container">
-                <a class="quick-link-btn" href="online_resume_maker.html">20+ More Resume Formats</a>
-                <a class="quick-link-btn" href="Indian-style-Resume-generator.html">Indian Style Resume</a>
-                <a class="quick-link-btn" href="biodata-maker.html">Marriage Biodata</a>
-                <a class="quick-link-btn" href="marriage-card.html">Marriage Card Design</a>
-            </div>
-        </div>
     </header>
+
+    <!-- Template Buttons Section -->
+    <div class="template-buttons-container">
+        <a href="online_resume_maker.html" class="template-button blink">
+            <i class="fas fa-file-alt"></i>
+            <span>20+ More Templates</span>
+            <div class="button-hover-effect"></div>
+        </a>
+        <a href="Indian-style-Resume-generator.html" class="template-button blink">
+            <i class="fas fa-file-invoice"></i>
+            <span>Indian Style CV/Resume Maker</span>
+            <div class="button-hover-effect"></div>
+        </a>
+    </div>
 
     <div class="container">
         <div class="app-container">
@@ -2091,7 +2141,9 @@
                 <html>
                     <head>
                         <title>Resume Preview</title>
-                        ${styles}
+                        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+                        <link rel="stylesheet" href="css/header.css">
+                        <link rel="stylesheet" href="css/footer.css">
                         <style>
                             @page {
                                 size: A4;
@@ -2190,10 +2242,35 @@
                                 text-align: right;
                             }
                         </style>
-                    </head>
+    
+
+    
+    <link rel="stylesheet" href="css/header.css">
+
+</head>
                     <body>
                         <div class="print-wrapper">${preview.outerHTML}</div>
-                    </body>
+                    
+
+
+
+<footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+            <p class="footer-credits">
+                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+                <a href="attributions.html">See full acknowledgements</a>.
+            </p>
+        </div>
+    </footer>
+</body>
                 </html>
             `);
             printWindow.document.close();
@@ -2436,8 +2513,32 @@
 
             const content = `
                 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-                    <head><meta charset="utf-8"><title>Resume</title>${styles}</head>
-                    <body>${preview.outerHTML}</body>
+                    <head><meta charset="utf-8"><title>Resume</title>${styles}    
+
+    
+    <link rel="stylesheet" href="css/footer.css">
+</head>
+                    <body>${preview.outerHTML}
+
+
+
+<footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+            <p class="footer-credits">
+                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+                <a href="attributions.html">See full acknowledgements</a>.
+            </p>
+        </div>
+    </footer>
+</body>
                 </html>
             `;
 
@@ -2778,6 +2879,26 @@
             updatePreview();
         });
     </script>
+
+
+
+
+<footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+            <p class="footer-credits">
+                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+                <a href="attributions.html">See full acknowledgements</a>.
+            </p>
+        </div>
+    </footer>
 </body>
 </html>
 
@@ -2787,85 +2908,23 @@
 
 
 
-<footer>
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-column">
-                    <h3>easyjpgtopdf</h3>
-                    <p>Your all-in-one PDF solution for converting, editing, and managing documents with ease.</p>
-                </div>
-                <div class="footer-column">
-                    <h3>Convert to PDF</h3>
-                    <ul class="footer-links">
-                        <li><a href="jpg-to-pdf.html">JPG to PDF</a></li>
-                        <li><a href="word-to-pdf.html">Word to PDF</a></li>
-                        <li><a href="excel-to-pdf.html">Excel to PDF</a></li>
-                        <li><a href="ppt-to-pdf.html">PowerPoint to PDF</a></li>
-                    </ul>
-                </div>
-                <div class="footer-column">
-                    <h3>Convert from PDF</h3>
-                    <ul class="footer-links">
-                        <li><a href="pdf-to-jpg.html">PDF to JPG</a></li>
-                        <li><a href="pdf-to-word.html">PDF to Word</a></li>
-                        <li><a href="pdf-to-excel.html">PDF to Excel</a></li>
-                        <li><a href="pdf-to-ppt.html">PDF to PowerPoint</a></li>
-                    </ul>
-                </div>
-                <div class="footer-column">
-                    <h3>Pdf Editor</h3>
-                    <ul class="footer-links">
-                        <li><a href="merge-pdf.html">Merge PDF</a></li>
-                        <li><a href="split-pdf.html">Split PDF</a></li>
-                        <li><a href="compress-pdf.html">Compress PDF</a></li>
-                        <li><a href="edit-pdf.html">Pdf Editor</a></li>
-                        <li><a href="protect-pdf.html">Protect PDF</a></li>
-                        <li><a href="unlock-pdf.html">Unlock PDF</a></li>
-                        <li><a href="watermark-pdf.html">Watermark PDF</a></li>
-                        <li><a href="crop-pdf.html">Crop PDF</a></li>
-                    </ul>
-                </div>
-                <div class="footer-column">
-                    <h3>Image Tools</h3>
-                    <ul class="footer-links">
-                        <li><a href="image-compressor.html">Image Compressor</a></li>
-                        <li><a href="image-resizer.html">Image Resizer</a></li>
-                        <li><a href="image-editor.html">Image Editor</a></li>
-                        <li><a href="background-remover.html">Image Background Remover</a></li>
-                        <li><a href="ocr-image.html">OCR Image</a></li>
-                    </ul>
-                </div>
-                <div class="footer-column">
-                    <h3>Design Tools</h3>
-                    <ul class="footer-links">
-                        <li><a href="resume-maker.html">Resume Maker</a></li>
-                        <li><a href="biodata-maker.html">Marrige Biodata-Data Maker</a></li>
-                        <li><a href="ai-image-generator.html">AI Image Generator</a></li>
-                        <li><a href="marriage-card.html">Marriage Card</a></li>
-                    </ul>
-                </div>
-                <div class="footer-column">
-                    <h3>Company</h3>
-                    <ul class="footer-links">
-                        <li><a href="index.html#about">About Us</a></li>
-                        <li><a href="index.html#contact">Contact</a></li>
-                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
-                        <li><a href="terms-of-service.html">Terms of Service</a></li>
-                    </ul>
-                </div>
-                <div class="footer-column">
-                    <h3>Connect With Us</h3>
-                    <ul class="footer-links">
-                        <li><a href="#"><i class="fab fa-twitter"></i> Twitter</a></li>
-                        <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
-                        <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
-                        <li><a href="#"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="copyright">
-                <p>&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
-                <p class="attribution">Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site. <a href="attributions.html">See full acknowledgements</a>.</p>
-            </div>
-        </div>
-    </footer>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
