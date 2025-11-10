@@ -1,12 +1,69 @@
-# Environment Variables
+# Environment Variables (NEVER commit these files - they contain secrets)
 .env
+.env.local
+.env.*.local
+.env.prod
+.env.dev
+.env.test
+server/.env
+server/.env.local
+server/.env.*.local
+firebase-key.json
+server/firebase-key.json
+*.serviceAccountKey.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Excel Unlocker specific
+/excel-unlocker/uploads/*
+!/excel-unlocker/uploads/.gitkeep
+/excel-unlocker/logs/*
+!/excel-unlocker/logs/.gitkeep
+/excel-unlocker/instance/
 
 # Node modules
 node_modules/
+server/node_modules/
 
 # Logs
 logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # OS generated files
 .DS_Store
@@ -16,3 +73,9 @@ logs
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Local development
+.local/
+
+# Testing
+/coverage

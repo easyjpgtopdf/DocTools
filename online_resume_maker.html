@@ -1,12 +1,14 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resume/CV Maker - Free Templates</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/footer.css">
+    
+    
+    
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Roboto+Slab:wght@400;700&family=Montserrat:wght@500;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -371,7 +373,7 @@
       'To work as a Supervisor and utilize leadership and organizational skills.',
       'To obtain a position as a Driver with a reputed logistics company.',
       'Looking for a role in skilled labor where I can apply practical experience.',
-      'To develop professionally while contributing to the companyâ€™s success.',
+      'To develop professionally while contributing to the companyÃ¢â‚¬â„¢s success.',
       'To secure a position with opportunities for advancement and skill development.'
     ];
 
@@ -583,13 +585,13 @@
     document.getElementById('downloadDoc').addEventListener('click',()=>{ renderPreview(); const el = document.getElementById('previewInner').firstElementChild; if(!el) return alert('Nothing to export'); const html = `<!doctype html><html><head><meta charset="utf-8"><title>${document.getElementById('name').value||'Resume'}</title>    
 
     
-    <link rel="stylesheet" href="css/header.css">
+    
 
 </head><body>${el.outerHTML}
 
 
 
-</body></html>`; const blob = new Blob(['ï»¿', html], {type: 'application/msword'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download=(document.getElementById('name').value||'resume')+'.doc'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),5000); });
+</body></html>`; const blob = new Blob(['Ã¯Â»Â¿', html], {type: 'application/msword'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download=(document.getElementById('name').value||'resume')+'.doc'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),5000); });
 
     document.getElementById('downloadHtml').addEventListener('click',()=>{ renderPreview(); const el = document.documentElement.outerHTML; const blob = new Blob([el], {type:'text/html'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='resume_maker_export.html'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),5000); });
 
@@ -689,7 +691,9 @@
           <head>
             <title>Preview</title>
             <meta charset="utf-8">
-            <link rel="stylesheet" href="css/footer.css">
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/theme-modern.css">
+
             <style>
               body { 
                 margin: 20px; 
@@ -724,6 +728,8 @@
 
 </body>
 </html>
+
+
 
 
 

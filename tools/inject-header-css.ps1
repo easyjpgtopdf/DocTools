@@ -3,6 +3,7 @@ param(
 )
 
 $headerLink = '    <link rel="stylesheet" href="css/header.css">'
+$themeLink = '    <link rel="stylesheet" href="css/theme-modern.css">'
 $footerLinkRegex = [regex]'([ \t]*<link rel="stylesheet" href="css/footer\.css">)'
 
 $files = Get-ChildItem -Path $Root -Filter '*.html' -File -Recurse
@@ -10,21 +11,22 @@ $files = Get-ChildItem -Path $Root -Filter '*.html' -File -Recurse
 foreach ($file in $files) {
     $content = Get-Content -LiteralPath $file.FullName -Raw
 
-    $updated = [regex]::Replace($content, '<link rel="stylesheet" href="css/header\.css">', '', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    # remove existing header / theme links to avoid duplicates
+    $updated = [regex]::Replace($content, '<link rel="stylesheet" href="css/(header|theme-modern)\.css">', '', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
 
     if ($footerLinkRegex.IsMatch($updated)) {
-        $updated = $footerLinkRegex.Replace($updated, "$headerLink`r`n$1", 1)
+        $updated = $footerLinkRegex.Replace($updated, "$headerLink`r`n$themeLink`r`n$1", 1)
     }
     elseif ($updated -match '</head\s*>') {
         $updated = [regex]::Replace(
             $updated,
             '</head\s*>',
-            "$headerLink`r`n</head>",
+            "$headerLink`r`n$themeLink`r`n</head>",
             [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
         )
     }
     else {
-        $updated = $headerLink + "`r`n" + $updated
+        $updated = $headerLink + "`r`n" + $themeLink + "`r`n" + $updated
     }
 
     if ($updated -ne $content) {

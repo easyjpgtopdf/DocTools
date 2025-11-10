@@ -56,14 +56,15 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px 0;
+            padding: 10px 0;
+            font-size: 0.9em;
         }
 
         .logo {
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 24px;
+            gap: 8px;
+            font-size: 20px;
             font-weight: 700;
             color: var(--primary);
             text-decoration: none;
@@ -75,7 +76,8 @@
 
         .nav-links {
             display: flex;
-            gap: 25px;
+            gap: 15px;
+            align-items: center;
         }
 
         .nav-links a {
@@ -102,13 +104,14 @@
             display: none;
             position: absolute;
             background-color: white;
-            min-width: 200px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            min-width: 180px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             z-index: 1;
-            border-radius: 8px;
-            padding: 10px 0;
+            border-radius: 6px;
+            padding: 6px 0;
             top: 100%;
             left: 0;
+            font-size: 0.9em;
         }
 
         .dropdown:hover .dropdown-content {
@@ -117,9 +120,10 @@
 
         .dropdown-content a {
             display: block;
-            padding: 10px 20px;
+            padding: 8px 16px;
             text-decoration: none;
             color: var(--dark);
+            font-size: 0.95em;
         }
 
         .dropdown-content a:hover {
@@ -129,18 +133,20 @@
         .auth-buttons {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 10px;
+            font-size: 0.9em;
         }
 
         .auth-link {
             display: inline-flex;
             align-items: center;
-            padding: 10px 18px;
+            padding: 8px 14px;
             border-radius: 999px;
             border: 1px solid rgba(67, 97, 238, 0.28);
             color: var(--primary);
             font-weight: 600;
             text-decoration: none;
+            font-size: 0.9em;
             transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
         }
 
@@ -574,8 +580,9 @@
         }
 
         .feature-icon {
-            width: 60px;
-            height: 60px;
+            .logo img {
+                height: 34px;
+            }
             background-color: var(--light);
             border-radius: 12px;
             display: flex;
@@ -1426,9 +1433,13 @@
 
     
 
-    <link rel="stylesheet" href="css/header.css">
+    
 
-    <link rel="stylesheet" href="css/footer.css">
+    
+    
+
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/theme-modern.css">
 </head>
 <body>
     <!-- Header -->
@@ -1486,6 +1497,12 @@
                             <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
                             <a href="ai-image-generator.html">AI Image Generator</a>
                             <a href="marriage-card.html">Marriage Card</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="excel-unlocker/" target="_blank">Excel Unlocker</a>
                         </div>
                     </div>
                 </div>
@@ -1727,6 +1744,13 @@
                     <h3>Marriage Card</h3>
                     <p>Design beautiful marriage invitation cards.</p>
                 </div>
+                <div class="tool-card" onclick="window.open('excel-unlocker/', '_blank')">
+                    <div class="tool-icon">
+                        <i class="fas fa-unlock-alt"></i>
+                    </div>
+                    <h3>Excel Unlocker</h3>
+                    <p>Remove password protection from Excel files.</p>
+                </div>
             </div>
 
             <div class="features">
@@ -1784,7 +1808,7 @@
                         <input type="email" id="email" class="form-control" placeholder="Enter your email" required>
                     </div>
                     <div class="form-group">
-                        <label for="amount">Donation Amount (₹)</label>
+                        <label for="amount">Donation Amount (â‚¹)</label>
                         <input type="number" id="amount" class="form-control" min="10" value="100" required>
                     </div>
                     <button type="submit" class="btn btn-primary btn-block">
@@ -1894,11 +1918,11 @@
                                 <label for="feedback-rating">Rating</label>
                                 <select id="feedback-rating" class="form-control" required>
                                     <option value="">Select rating</option>
-                                    <option value="5">★★★★★ Loved it</option>
-                                    <option value="4">★★★★☆ Pretty good</option>
-                                    <option value="3">★★★☆☆ It works</option>
-                                    <option value="2">★★☆☆☆ Needs improvements</option>
-                                    <option value="1">★☆☆☆☆ Not great</option>
+                                    <option value="5">â˜…â˜…â˜…â˜…â˜… Loved it</option>
+                                    <option value="4">â˜…â˜…â˜…â˜…â˜† Pretty good</option>
+                                    <option value="3">â˜…â˜…â˜…â˜†â˜† It works</option>
+                                    <option value="2">â˜…â˜…â˜†â˜†â˜† Needs improvements</option>
+                                    <option value="1">â˜…â˜†â˜†â˜†â˜† Not great</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -4071,7 +4095,7 @@
 
         if (!hasValidConfig) {
             if (ui.status) {
-                ui.status.textContent = 'Preview mode active — data saved locally in this browser.';
+                ui.status.textContent = 'Preview mode active â€” data saved locally in this browser.';
             }
             if (ui.formMessage) {
                 ui.formMessage.textContent = 'Comments will stay on this device until Firebase credentials are added.';
@@ -4218,7 +4242,7 @@
             }
 
             if (ui.status) {
-                ui.status.textContent = 'Connected — updates arrive in real time.';
+                ui.status.textContent = 'Connected â€” updates arrive in real time.';
             }
         }
 
@@ -4307,8 +4331,8 @@
 
         function renderStars(rating) {
             const max = 5;
-            const filled = '★'.repeat(Math.max(0, Math.min(max, Math.round(rating))));
-            const empty = '☆'.repeat(Math.max(0, max - filled.length));
+            const filled = 'â˜…'.repeat(Math.max(0, Math.min(max, Math.round(rating))));
+            const empty = 'â˜†'.repeat(Math.max(0, max - filled.length));
             return `${filled}${empty}`;
         }
 
@@ -4458,16 +4482,16 @@
                 const amount = document.getElementById('amount').value;
                 
                 if (!name || !email || !amount) {
-                    showStatus('कृपया सभी फ़ील्ड भरें', 'error');
+                    showStatus('à¤•à¥ƒà¤ªà¤¯à¤¾ à¤¸à¤­à¥€ à¤«à¤¼à¥€à¤²à¥à¤¡ à¤­à¤°à¥‡à¤‚', 'error');
                     return;
                 }
                 
                 if (amount < 10) {
-                    showStatus('कृपया कम से कम ₹10 का दान करें', 'error');
+                    showStatus('à¤•à¥ƒà¤ªà¤¯à¤¾ à¤•à¤® à¤¸à¥‡ à¤•à¤® â‚¹10 à¤•à¤¾ à¤¦à¤¾à¤¨ à¤•à¤°à¥‡à¤‚', 'error');
                     return;
                 }
                 
-                showStatus('प्रोसेसिंग...', 'info');
+                showStatus('à¤ªà¥à¤°à¥‹à¤¸à¥‡à¤¸à¤¿à¤‚à¤—...', 'info');
                 
                 try {
                     // Create order on your server
@@ -4491,14 +4515,15 @@
                     
                     // Open Razorpay checkout
                     const options = {
-                        key: 'rzp_live_RcythAErO5iFwt',
+                        // use key returned by server if available, otherwise keep existing fallback
+                        key: order.key || 'rzp_live_RcythAErO5iFwt',
                         amount: order.amount,
                         currency: 'INR',
                         name: 'easyjpgtopdf',
                         description: 'Donation',
                         order_id: order.id,
                         handler: function(response) {
-                            showStatus('धन्यवाद! आपका दान सफलतापूर्वक प्राप्त हो गया है।', 'success');
+                            showStatus('à¤§à¤¨à¥à¤¯à¤µà¤¾à¤¦! à¤†à¤ªà¤•à¤¾ à¤¦à¤¾à¤¨ à¤¸à¤«à¤²à¤¤à¤¾à¤ªà¥‚à¤°à¥à¤µà¤• à¤ªà¥à¤°à¤¾à¤ªà¥à¤¤ à¤¹à¥‹ à¤—à¤¯à¤¾ à¤¹à¥ˆà¥¤', 'success');
                             donateForm.reset();
                         },
                         prefill: {
@@ -4512,14 +4537,14 @@
                     
                     const rzp = new Razorpay(options);
                     rzp.on('payment.failed', function(response) {
-                        showStatus('भुगतान विफल हुआ। कृपया पुनः प्रयास करें।', 'error');
+                        showStatus('à¤­à¥à¤—à¤¤à¤¾à¤¨ à¤µà¤¿à¤«à¤² à¤¹à¥à¤†à¥¤ à¤•à¥ƒà¤ªà¤¯à¤¾ à¤ªà¥à¤¨à¤ƒ à¤ªà¥à¤°à¤¯à¤¾à¤¸ à¤•à¤°à¥‡à¤‚à¥¤', 'error');
                     });
                     
                     rzp.open();
                     
                 } catch (error) {
                     console.error('Donation error:', error);
-                    showStatus('त्रुटि हुई। कृपया बाद में पुनः प्रयास करें।', 'error');
+                    showStatus('à¤¤à¥à¤°à¥à¤Ÿà¤¿ à¤¹à¥à¤ˆà¥¤ à¤•à¥ƒà¤ªà¤¯à¤¾ à¤¬à¤¾à¤¦ à¤®à¥‡à¤‚ à¤ªà¥à¤¨à¤ƒ à¤ªà¥à¤°à¤¯à¤¾à¤¸ à¤•à¤°à¥‡à¤‚à¥¤', 'error');
                 }
             });
         }
@@ -4551,13 +4576,13 @@
                 const message = document.getElementById('donate-message');
                 
                 if (!amount || isNaN(amount) || amount < 10) {
-                    message.textContent = 'कृपया 10 रुपये या अधिक की राशि दर्ज करें';
+                    message.textContent = 'à¤•à¥ƒà¤ªà¤¯à¤¾ 10 à¤°à¥à¤ªà¤¯à¥‡ à¤¯à¤¾ à¤…à¤§à¤¿à¤• à¤•à¥€ à¤°à¤¾à¤¶à¤¿ à¤¦à¤°à¥à¤œ à¤•à¤°à¥‡à¤‚';
                     message.style.color = 'red';
                     return;
                 }
                 
                 // Show thank you message
-                message.textContent = `धन्यवाद! आपके ₹${amount} के दान के लिए। हम जल्द ही भुगतान विकल्प जोड़ेंगे।`;
+                message.textContent = `à¤§à¤¨à¥à¤¯à¤µà¤¾à¤¦! à¤†à¤ªà¤•à¥‡ â‚¹${amount} à¤•à¥‡ à¤¦à¤¾à¤¨ à¤•à¥‡ à¤²à¤¿à¤à¥¤ à¤¹à¤® à¤œà¤²à¥à¤¦ à¤¹à¥€ à¤­à¥à¤—à¤¤à¤¾à¤¨ à¤µà¤¿à¤•à¤²à¥à¤ª à¤œà¥‹à¤¡à¤¼à¥‡à¤‚à¤—à¥‡à¥¤`;
                 message.style.color = 'green';
                 
                 // Reset form
@@ -4652,7 +4677,7 @@
                         fileItem.className = 'file-item';
                         fileItem.innerHTML = `
                             <span>${this.files[i].name}</span>
-                            <span class="file-remove" onclick="removeFile(this)">ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â</span>
+                            <span class="file-remove" onclick="removeFile(this)">ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â</span>
                         `;
                         fileItems.appendChild(fileItem);
                     }
@@ -4721,6 +4746,8 @@
     </footer>
 </body>
 </html>
+
+
 
 
 

@@ -1,0 +1,56 @@
+# .gitignore for server folder
+# This file adds extra protection on top of root .gitignore
+# Making sure no secrets are accidentally committed
+
+# Environment variables (DO NOT COMMIT - contains API keys and secrets)
+.env
+.env.local
+.env.*.local
+.env.prod
+.env.dev
+.env.test
+.env.staging
+
+# Firebase service account keys (DO NOT COMMIT - contains private keys)
+firebase-key.json
+firebase-*.json
+*.serviceAccountKey.json
+firebase-credentials.json
+
+# Node modules
+node_modules/
+
+# npm lockfile (optional, can be committed)
+package-lock.json
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Uploads and converted files (can be cleaned)
+uploads/
+converted/
+previews/

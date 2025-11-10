@@ -1,0 +1,9 @@
+<IfModule mod_wsgi.c>
+    WSGIDaemonProcess excel_unlocker python-path=c:/Users/apnao/Downloads/DocTools/excel-unlocker
+    WSGIProcessGroup excel_unlocker
+    WSGIScriptAlias /excel-unlocker c:/Users/apnao/Downloads/DocTools/excel-unlocker/wsgi.py
+    
+    <Directory "c:/Users/apnao/Downloads/DocTools/excel-unlocker">
+        Require all granted
+    </Directory>
+</IfModule>

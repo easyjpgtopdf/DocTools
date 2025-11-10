@@ -101,9 +101,13 @@
 
     
 
-    <link rel="stylesheet" href="css/header.css">
+    
 
-    <link rel="stylesheet" href="css/footer.css">
+    
+    
+
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/theme-modern.css">
 </head>
 <body>
 <header>
@@ -197,10 +201,11 @@
         <canvas id="previewCanvas"></canvas>
       </div>
       <div class="status" id="status"></div>
-      <div class="actions">
-        <button class="btn btn-outline" id="resetBackground" disabled><i class="fas fa-undo"></i> Reset</button>
-        <button class="btn btn-primary" id="downloadImage" disabled><i class="fas fa-download"></i> Download</button>
-      </div>
+        <div class="actions">
+          <button class="btn btn-outline" id="backToPreview"><i class="fas fa-arrow-left"></i> Back to Workspace</button>
+          <button class="btn btn-outline" id="resetBackground" disabled><i class="fas fa-undo"></i> Reset</button>
+          <button class="btn btn-primary" id="downloadImage" disabled><i class="fas fa-download"></i> Download</button>
+        </div>
     </section>
 
     <section class="panel">
@@ -238,6 +243,13 @@
   <div class="overlay-deck">
     <section class="panel overlay-panel">
       <div class="overlay-controls">
+        <header>
+          <div>Overlay Controls
+            <label style="float:right; font-weight:600;">
+              <input type="checkbox" id="overlayToggle" style="margin-right:8px; vertical-align:middle;"> Enable Overlay
+            </label>
+          </div>
+        </header>
         
         <div class="overlay-fields hidden" id="overlayFields">
           <label>
@@ -734,7 +746,8 @@
     renderColours();
     init();
 
-    document.getElementById('footerYear').textContent = new Date().getFullYear();
+  const footerYearEl = document.getElementById('footerYear');
+  if (footerYearEl) footerYearEl.textContent = new Date().getFullYear();
   </script>
 
 
@@ -758,6 +771,8 @@
     </footer>
 </body>
 </html>
+
+
 
 
 

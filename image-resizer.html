@@ -109,9 +109,13 @@
 
     
 
-    <link rel="stylesheet" href="css/header.css">
+    
 
-    <link rel="stylesheet" href="css/footer.css">
+    
+    
+
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/theme-modern.css">
 </head>
 <body>
 <header>
@@ -264,6 +268,7 @@
                 <h3>Output Format</h3>
                 <div class="format-options">
                   <div class="format-option active" data-format="jpeg">JPEG</div>
+                  <div class="format-option" data-format="jpg">JPG</div>
                   <div class="format-option" data-format="png">PNG</div>
                   <div class="format-option" data-format="webp">WebP</div>
                 </div>
@@ -464,10 +469,13 @@
       else if (bytes < 1048576) return (bytes / 1024).toFixed(2) + ' KB';
       else return (bytes / 1048576).toFixed(2) + ' MB';
     }
-    function dataUrlBytes(d){ try{ return atob(d.split(',')[1]).length; }catch(_){ return 0; } }
+  function dataUrlBytes(d){ try{ return atob(d.split(',')[1]).length; }catch(_){ return 0; } }
     function targetBytes(){ const v=parseFloat(targetSizeInput.value||'0'); if(!v||isNaN(v)) return 0; return targetUnitSelect.value==='MB'? Math.round(v*1024*1024) : Math.round(v*1024); }
-    function encodeAtQuality(canvas, q){ return canvas.toDataURL(`image/${currentFormat}`, Math.min(Math.max(q,0.05),1)); }
-    async function findQualityForTarget(canvas, tBytes){ if(tBytes<=0) return encodeAtQuality(canvas, parseInt(resizeQuality.value)/100); if(currentFormat==='png'){ return encodeAtQuality(canvas, 1); } let lo=0.05, hi=1.0, best=encodeAtQuality(canvas, parseInt(resizeQuality.value)/100), bestDiff=Infinity; for(let i=0;i<9;i++){ const mid=(lo+hi)/2; const d=encodeAtQuality(canvas, mid); const b=dataUrlBytes(d); const diff=Math.abs(b - tBytes); if(diff<bestDiff){ best=d; bestDiff=diff; } if(b>tBytes) { hi=mid; } else { lo=mid; } } return best; }
+  // Normalize format values and map to proper mime types
+  function canonicalFormat(fmt){ if(!fmt) return 'jpeg'; fmt = String(fmt).toLowerCase(); if(fmt === 'jpg') return 'jpeg'; return fmt; }
+  function mimeForFormat(fmt){ const f = canonicalFormat(fmt); if(f === 'jpeg') return 'image/jpeg'; if(f === 'png') return 'image/png'; if(f === 'webp') return 'image/webp'; return `image/${f}`; }
+  function encodeAtQuality(canvas, q){ const mime = mimeForFormat(currentFormat); return canvas.toDataURL(mime, Math.min(Math.max(q,0.05),1)); }
+  async function findQualityForTarget(canvas, tBytes){ if(tBytes<=0) return encodeAtQuality(canvas, parseInt(resizeQuality.value)/100); if(canonicalFormat(currentFormat)==='png'){ return encodeAtQuality(canvas, 1); } let lo=0.05, hi=1.0, best=encodeAtQuality(canvas, parseInt(resizeQuality.value)/100), bestDiff=Infinity; for(let i=0;i<9;i++){ const mid=(lo+hi)/2; const d=encodeAtQuality(canvas, mid); const b=dataUrlBytes(d); const diff=Math.abs(b - tBytes); if(diff<bestDiff){ best=d; bestDiff=diff; } if(b>tBytes) { hi=mid; } else { lo=mid; } } return best; }
     function updateTargetNote(actualBytes){ const t=targetBytes(); if(!t){ targetNote.style.display='none'; return; } targetNote.style.display='block'; if(actualBytes){ const diff=actualBytes-t; const sign=diff>0?'+':''; const pct=Math.abs(diff)/t*100; targetNote.textContent=`Target: ${formatFileSize(t)} Ã¢â‚¬Â¢ Actual: ${formatFileSize(actualBytes)} (${sign}${pct.toFixed(1)}%)`; } else { targetNote.textContent=`Target: ${formatFileSize(t)} (will try to match on Apply)`; } }
     function resetAll(){ resizeQuality.value=85; resizeQualityValue.textContent='85%'; targetSizeInput.value=''; targetUnitSelect.value='KB'; targetNote.style.display='none'; lastAppliedDataUrl=null; if(originalResizeImage){ currentResizeImage=originalResizeImage; updateResizePreview(); } updateSizeInfo(); }
 
@@ -496,12 +504,14 @@
         canvas.height = parseInt(resizeHeight.value);
         const ctx = canvas.getContext('2d');
         ctx.drawImage(originalResizeImage, 0, 0, canvas.width, canvas.height);
-        dataUrl = canvas.toDataURL(`image/${currentFormat}`, parseInt(resizeQuality.value)/100);
+        dataUrl = canvas.toDataURL(mimeForFormat(currentFormat), parseInt(resizeQuality.value)/100);
       }
       try{
         sessionStorage.setItem('img_result_dataurl', dataUrl);
-        sessionStorage.setItem('img_result_name', `resized-image.${currentFormat}`);
-        sessionStorage.setItem('img_result_mime', `image/${currentFormat}`);
+        // Use chosen format in filename, but store correct mime
+        const ext = String(currentFormat).toLowerCase();
+        sessionStorage.setItem('img_result_name', `resized-image.${ext}`);
+        sessionStorage.setItem('img_result_mime', mimeForFormat(currentFormat));
         sessionStorage.setItem('img_result_width', String(resizeWidth.value));
         sessionStorage.setItem('img_result_height', String(resizeHeight.value));
       }catch(_){ }
@@ -534,6 +544,8 @@
     </footer>
 </body>
 </html>
+
+
 
 
 

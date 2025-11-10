@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
@@ -256,6 +257,67 @@ const upload = multer({ storage: multer.diskStorage({
   filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
 })});
 
+// Simple in-process job queue to simulate cloud processing for large files.
+const BG_JOB_DIR = path.join(__dirname, 'uploads', 'bg-jobs');
+const BG_OUTPUT_DIR = path.join(__dirname, 'previews');
+if (!fs.existsSync(BG_JOB_DIR)) fs.mkdirSync(BG_JOB_DIR, { recursive: true });
+if (!fs.existsSync(BG_OUTPUT_DIR)) fs.mkdirSync(BG_OUTPUT_DIR, { recursive: true });
+
+const bgJobs = new Map(); // jobId -> { status, inputPath, outputPath, error }
+const bgQueue = [];
+let bgProcessing = false;
+
+function enqueueBgJob(job) {
+  bgJobs.set(job.id, { status: 'queued', inputPath: job.inputPath, outputPath: job.outputPath, error: null });
+  bgQueue.push(job.id);
+  processBgQueue();
+}
+
+async function runRembg(inputPath, outputPath) {
+  return new Promise((resolve, reject) => {
+    // Try python3 -m rembg i <in> <out> then fallback to rembg CLI
+    const tryCmds = [
+      `python3 -m rembg i "${inputPath}" "${outputPath}"`,
+      `rembg i "${inputPath}" "${outputPath}"`,
+      `rembg -o "${outputPath}" "${inputPath}"`
+    ];
+
+    let lastErr = null;
+    const tryNext = (idx) => {
+      if (idx >= tryCmds.length) return reject(lastErr || new Error('rembg failed'));
+      const cmd = tryCmds[idx];
+      exec(cmd, { maxBuffer: 1024 * 1024 * 500 }, (err, stdout, stderr) => {
+        if (err) {
+          lastErr = err;
+          return tryNext(idx + 1);
+        }
+        resolve();
+      });
+    };
+    tryNext(0);
+  });
+}
+
+async function processBgQueue() {
+  if (bgProcessing) return;
+  bgProcessing = true;
+  while (bgQueue.length) {
+    const jobId = bgQueue.shift();
+    const job = bgJobs.get(jobId);
+    if (!job) continue;
+    bgJobs.set(jobId, { ...job, status: 'processing' });
+    try {
+      await runRembg(job.inputPath, job.outputPath);
+      bgJobs.set(jobId, { ...job, status: 'done' });
+    } catch (err) {
+      console.error('Background job failed', jobId, err);
+      bgJobs.set(jobId, { ...job, status: 'error', error: (err && err.message) || String(err) });
+    }
+  }
+  bgProcessing = false;
+}
+
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
@@ -287,7 +349,8 @@ app.post('/api/create-order', async (req, res) => {
       id: order.id,
       amount: order.amount,
       currency: order.currency,
-      receipt: order.receipt
+      receipt: order.receipt,
+      key: razorpayKeyId || ''
     });
     
   } catch (error) {
@@ -297,6 +360,61 @@ app.post('/api/create-order', async (req, res) => {
       details: error.message 
     });
   }
+});
+
+// Background remover endpoint: small files processed locally, large files queued for "cloud" processing.
+// Accepts multipart form field 'image'.
+app.post('/api/background/remove', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file || !req.file.path) return res.status(400).json({ error: 'No file uploaded' });
+
+    const filePath = req.file.path;
+    const stats = fs.statSync(filePath);
+    const sizeBytes = stats.size || 0;
+    const threshold = (process.env.BG_LOCAL_THRESHOLD_MB ? Number(process.env.BG_LOCAL_THRESHOLD_MB) : 50) * 1024 * 1024;
+
+    if (sizeBytes <= threshold) {
+      // Process locally and return result URL
+      const outName = `bg-${uuidv4()}.png`;
+      const outPath = path.join(BG_OUTPUT_DIR, outName);
+      try {
+        await runRembg(filePath, outPath);
+        // cleanup uploaded temp
+        try { fs.unlinkSync(filePath); } catch (_) {}
+        return res.json({ success: true, url: `/previews/${outName}`, size: sizeBytes, method: 'local' });
+      } catch (err) {
+        console.error('Local rembg failed:', err);
+        return res.status(500).json({ error: 'Local processing failed', details: err && err.message });
+      }
+    }
+
+    // For large files: move to jobs folder and enqueue for async processing (simulating cloud)
+    const jobId = uuidv4();
+    const ext = path.extname(req.file.originalname) || '.png';
+    const dest = path.join(BG_JOB_DIR, `${jobId}${ext}`);
+    fs.renameSync(filePath, dest);
+    const outputFile = path.join(BG_OUTPUT_DIR, `bg-${jobId}.png`);
+    enqueueBgJob({ id: jobId, inputPath: dest, outputPath: outputFile });
+    return res.json({ queued: true, jobId, statusUrl: `/api/background/status/${jobId}`, size: sizeBytes, method: 'cloud' });
+  } catch (err) {
+    console.error('Background remove API error:', err);
+    return res.status(500).json({ error: 'Server error', details: err && err.message });
+  }
+});
+
+// Status endpoint for background jobs
+app.get('/api/background/status/:jobId', (req, res) => {
+  const jobId = req.params.jobId;
+  if (!jobId) return res.status(400).json({ error: 'Missing jobId' });
+  const job = bgJobs.get(jobId);
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+  const resp = { status: job.status };
+  if (job.status === 'done') {
+    const outName = path.basename(job.outputPath);
+    resp.url = `/previews/${outName}`;
+  }
+  if (job.status === 'error') resp.error = job.error || 'Processing failed';
+  return res.json(resp);
 });
 
 // ROOT ROUTE

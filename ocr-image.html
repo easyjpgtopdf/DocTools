@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -534,9 +534,13 @@
 
     
 
-    <link rel="stylesheet" href="css/header.css">
+    
 
-    <link rel="stylesheet" href="css/footer.css">
+    
+    
+
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/theme-modern.css">
 </head>
 
 <body>
@@ -637,7 +641,7 @@
       <div id="uploadDropzone" class="dropzone" role="button" tabindex="0" aria-label="Upload image dropzone">
         <i class="fas fa-file-arrow-up"></i>
         <div><strong>Drag &amp; drop your image</strong></div>
-        <p>Supports PNG, JPG, WEBP â€¢ Max 10 MB â€¢ Works offline after first load</p>
+        <p>Supports PNG, JPG, WEBP Ã¢â‚¬Â¢ Max 10 MB Ã¢â‚¬Â¢ Works offline after first load</p>
         <button type="button" class="btn btn-outline" id="browseBtn"><i class="fas fa-folder-open"></i> Browse Files</button>
         <input type="file" id="imageInput" accept="image/*" hidden>
       </div>
@@ -653,11 +657,11 @@
           <span id="previewPlaceholder">No image selected yet</span>
         </div>
         <div class="meta-list">
-          <span><strong>File:</strong> <span id="fileName">â€”</span></span>
-          <span><strong>Resolution:</strong> <span id="fileResolution">â€”</span></span>
-          <span><strong>Size:</strong> <span id="fileSize">â€”</span></span>
+          <span><strong>File:</strong> <span id="fileName">Ã¢â‚¬â€</span></span>
+          <span><strong>Resolution:</strong> <span id="fileResolution">Ã¢â‚¬â€</span></span>
+          <span><strong>Size:</strong> <span id="fileSize">Ã¢â‚¬â€</span></span>
         </div>
-        <div class="status-chip" id="statusChip"><i class="fas fa-info-circle"></i> Waiting for imageâ€¦</div>
+        <div class="status-chip" id="statusChip"><i class="fas fa-info-circle"></i> Waiting for imageÃ¢â‚¬Â¦</div>
         <div class="progress-track">
           <div class="progress-bar" id="progressBar"></div>
         </div>
@@ -721,7 +725,7 @@
       <div class="result-summary">
         <span><strong>Words:</strong> <span id="wordCount">0</span></span>
         <span><strong>Characters:</strong> <span id="charCount">0</span></span>
-        <span><strong>Last updated:</strong> <span id="lastUpdated">â€”</span></span>
+        <span><strong>Last updated:</strong> <span id="lastUpdated">Ã¢â‚¬â€</span></span>
       </div>
     </section>
   </main>
@@ -793,11 +797,11 @@
         imagePreview.hidden = true;
         previewPlaceholder.hidden = false;
         imagePreview.src = '';
-        fileNameEl.textContent = 'â€”';
-        fileSizeEl.textContent = 'â€”';
-        fileResolutionEl.textContent = 'â€”';
+        fileNameEl.textContent = 'Ã¢â‚¬â€';
+        fileSizeEl.textContent = 'Ã¢â‚¬â€';
+        fileResolutionEl.textContent = 'Ã¢â‚¬â€';
         resetProgress();
-        setStatus('Waiting for imageâ€¦');
+        setStatus('Waiting for imageÃ¢â‚¬Â¦');
       }
 
       function resetWorkspace(clearText = true) {
@@ -807,7 +811,7 @@
         if (clearText) {
           ocrOutput.innerHTML = '';
           updateCounts();
-          lastUpdatedEl.textContent = 'â€”';
+          lastUpdatedEl.textContent = 'Ã¢â‚¬â€';
         }
       }
 
@@ -819,7 +823,7 @@
       }
 
       function formatBytes(bytes) {
-        if (!bytes && bytes !== 0) return 'â€”';
+        if (!bytes && bytes !== 0) return 'Ã¢â‚¬â€';
         if (bytes === 0) return '0 B';
         const units = ['B', 'KB', 'MB', 'GB'];
         const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
@@ -838,7 +842,7 @@
         previewPlaceholder.hidden = true;
         fileNameEl.textContent = label || file.name || 'Untitled';
         fileSizeEl.textContent = formatBytes(file.size);
-        fileResolutionEl.textContent = `${width}Ã—${height}px`;
+        fileResolutionEl.textContent = `${width}Ãƒâ€”${height}px`;
         currentFile = file;
         setStatus('Image ready for OCR', 'success');
         resetProgress();
@@ -855,7 +859,7 @@
           return;
         }
 
-        setStatus('Loading imageâ€¦');
+        setStatus('Loading imageÃ¢â‚¬Â¦');
         try {
           await displayFile(file);
         } catch (error) {
@@ -871,7 +875,7 @@
           return;
         }
         try {
-          setStatus('Fetching remote imageâ€¦');
+          setStatus('Fetching remote imageÃ¢â‚¬Â¦');
           const response = await fetch(url, { mode: 'cors' });
           if (!response.ok) throw new Error('Network response was not ok');
           const blob = await response.blob();
@@ -902,7 +906,7 @@
 
         isProcessing = true;
         extractBtn.disabled = true;
-        setStatus('Initializing OCR engineâ€¦');
+        setStatus('Initializing OCR engineÃ¢â‚¬Â¦');
         progressBar.style.width = '8%';
 
         try {
@@ -912,7 +916,7 @@
               if (message.status === 'recognizing text' && typeof message.progress === 'number') {
                 const percent = Math.max(8, Math.round(message.progress * 100));
                 progressBar.style.width = `${percent}%`;
-                setStatus(`Recognizing textâ€¦ ${percent}%`);
+                setStatus(`Recognizing textÃ¢â‚¬Â¦ ${percent}%`);
               }
             }
           });
@@ -986,7 +990,7 @@
       function clearText() {
         ocrOutput.innerHTML = '';
         updateCounts();
-        lastUpdatedEl.textContent = 'â€”';
+        lastUpdatedEl.textContent = 'Ã¢â‚¬â€';
         setStatus('Text cleared');
       }
 
@@ -1057,7 +1061,7 @@
 
       document.getElementById('footerYear').textContent = new Date().getFullYear();
       updateCounts();
-      setStatus('Waiting for imageâ€¦');
+      setStatus('Waiting for imageÃ¢â‚¬Â¦');
     });
   </script>
 
@@ -1082,6 +1086,8 @@
     </footer>
 </body>
 </html>
+
+
 
 
 

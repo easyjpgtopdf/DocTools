@@ -843,7 +843,14 @@ function updateUI(user) {
   const dashboard = document.getElementById('user-dashboard');
   if (user) {
     if (authButtons) authButtons.style.display = 'none';
-    if (userMenu) userMenu.style.display = 'flex';
+    if (userMenu) {
+      // ensure the menu is in a closed state when switching to an authenticated UI
+      try { closeUserDropdown(); } catch (e) {}
+      userMenu.style.display = 'flex';
+      // also ensure ARIA state is consistent
+      if (userMenuToggle) userMenuToggle.setAttribute('aria-expanded', 'false');
+      if (userDropdown) userDropdown.hidden = true;
+    }
     if (dashboard) {
       dashboard.style.display = 'block';
       const nameEl = dashboard.querySelector('.user-name');

@@ -135,6 +135,10 @@ th{font-weight:700;background:linear-gradient(90deg,#fff7e6,#fff3d6)}
 .hidden{display:none!important}
 .center{text-align:center}
 </style>
+    
+    
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/theme-modern.css">
 </head>
 <body>
   <div class="topbar">
@@ -925,7 +929,11 @@ document.getElementById('downloadDoc').addEventListener('click', ()=> {
   .tpl-6 .section-title { color: #fd7e14; }
 </style>`;
 
-  const docHTML = `<!doctype html><html><head><meta charset="utf-8"><title>${nameField}</title>${docStyles}</head><body><div class="doc-wrapper">${el.outerHTML}</div></body></html>`;
+  const docHTML = `<!doctype html><html><head><meta charset="utf-8"><title>${nameField}</title>${docStyles}    
+    
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/theme-modern.css">
+</head><body><div class="doc-wrapper">${el.outerHTML}</div></body></html>`;
   const blob = new Blob(['\ufeff', docHTML], {type: 'application/msword'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download = (nameField || 'resume') + '.doc'; a.click();
@@ -1035,3 +1043,5 @@ document.getElementById('downloadHtmlBtn').addEventListener('click', ()=> {
             </div>
         </div>
     </footer>
+
+

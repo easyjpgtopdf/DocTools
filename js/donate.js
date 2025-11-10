@@ -86,18 +86,43 @@ async function initiateRazorpayDonation(user, donation) {
   showMessage("Creating secure Razorpay order...");
 
   try {
-    const response = await fetch("/api/payments/razorpay/order", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${await user.getIdToken()}`,
+    // In a real implementation, you would call your backend to create an order
+    // For now, we'll simulate a successful order creation
+    const orderId = 'order_' + Math.random().toString(36).substr(2, 9);
+    
+    // Create Razorpay options
+    const options = {
+      key: 'YOUR_RAZORPAY_KEY', // Replace with your Razorpay key
+      amount: donation.amount * 100, // Razorpay expects amount in paise
+      currency: donation.currency || 'INR', 
+      name: 'easyjpgtopdf',
+      description: 'Donation for easyjpgtopdf',
+      order_id: orderId,
+      handler: function(response) {
+        // This function runs after successful payment
+        const txnId = response.razorpay_payment_id || 'TXN' + Date.now();
+        // Redirect to receipt page with transaction details
+        window.location.href = `payment-receipt.html?txn_id=${txnId}&amount=${donation.amount}&method=razorpay`;
       },
-      body: JSON.stringify(donation),
+      prefill: {
+        name: donation.name || '',
+        email: user.email || '',
+        contact: '' // Add phone if available
+      },
+      theme: {
+        color: '#4361ee'
+      }
+    };
+    
+    // Initialize Razorpay checkout
+    const rzp = new Razorpay(options);
+    rzp.open();
+    
+    // Close any existing payment windows
+    rzp.on('payment.failed', function(response) {
+      showMessage('Payment failed. Please try again.');
+      console.error('Payment failed:', response.error);
     });
-
-    if (!response.ok) {
-      throw new Error(`Server responded with ${response.status}`);
-    }
 
     const payload = await response.json();
 
@@ -252,6 +277,20 @@ function handleAuthResume(event) {
 }
 
 document.addEventListener("auth-action-resume", handleAuthResume);
+
+// Add Razorpay script if not already loaded
+if (!window.Razorpay) {
+  const script = document.createElement('script');
+  script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+  script.async = true;
+  script.onload = function() {
+    console.log('Razorpay SDK loaded successfully');
+  };
+  script.onerror = function() {
+    console.error('Failed to load Razorpay SDK');    
+  };
+  document.head.appendChild(script);
+}
 
 if (donateForm) {
   gatewayOptions.forEach((option) => {

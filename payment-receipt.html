@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="hi" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>भुगतान रसीद - easyjpgtopdf</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Reset and Base Styles */
+        @font-face {
+            font-family: 'Hind';
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: local('Hind'), local('Hind-Regular'), 
+                 url('https://fonts.gstatic.com/s/hind/v16/5aU69_a8oxmIdGl4AA.woff2') format('woff2');
+            unicode-range: U+0900-097F, U+1CD0-1CF6, U+1CF8-1CF9, U+200C-200D, U+20A8, U+20B9, U+25CC, U+A830-A839, U+A8E0-A8FB;
+        }
+
+        @font-face {
+            font-family: 'Poppins';
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: local('Poppins'), local('Poppins-Regular'), 
+                 url('https://fonts.gstatic.com/s/poppins/v15/pxiEyp8kv8JHgFVrJJfecg.woff2') format('woff2');
+            unicode-range: U+0900-097F, U+1CD0-1CF6, U+1CF8-1CF9, U+200C-200D, U+20A8, U+20B9, U+25CC, U+A830-A839, U+A8E0-A8FB;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Hind', 'Poppins', 'Arial Unicode MS', 'Nirmala UI', 'Mangal', 'Arial', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --accent: #4cc9f0;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --success: #4bb543;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --gray: #6c757d;
+            --light-gray: #e9ecef;
+        }
+
+        body {
+            background-color: #f5f7ff;
+            color: var(--dark);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header Styles */
+        header {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+        }
+
+        .logo img {
+            height: 40px;
+        }
+
+        /* Receipt Styles */
+        .receipt-container {
+            max-width: 800px;
+            margin: 40px auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+        }
+
+        .receipt-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .receipt-header i {
+            font-size: 48px;
+            color: var(--success);
+            margin-bottom: 15px;
+        }
+
+        .receipt-header h1 {
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .receipt-details {
+            margin: 30px 0;
+        }
+
+        .receipt-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .receipt-row:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+        }
+
+        .receipt-label {
+            color: var(--gray);
+        }
+
+        .receipt-value {
+            font-weight: 500;
+            text-align: right;
+        }
+
+        .receipt-actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 40px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 25px;
+            border-radius: 5px;
+            font-weight: 600;
+            text-decoration: none;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            border: 2px solid var(--primary);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary);
+            border-color: var(--secondary);
+        }
+
+        .btn-outline {
+            background-color: white;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--light);
+        }
+
+        /* Footer Styles */
+        footer {
+            background-color: #1a1a2e;
+            color: white;
+            padding: 40px 0 20px;
+            margin-top: auto;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .footer-section h3 {
+            color: var(--accent);
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+        }
+
+        .footer-section p, .footer-section a {
+            color: #b8c1ec;
+            margin-bottom: 10px;
+            display: block;
+            text-decoration: none;
+        }
+
+        .footer-section a:hover {
+            color: white;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .social-links a {
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+            color: #b8c1ec;
+        }
+
+        @media print {
+            @page {
+                size: A4;
+                margin: 15mm 10mm;
+                font-family: 'Hind', 'Poppins', 'Arial Unicode MS', 'Nirmala UI', 'Mangal', 'Arial', sans-serif !important;
+            }
+            
+            body {
+                background: white !important;
+                font-family: 'Hind', 'Poppins', 'Arial Unicode MS', 'Nirmala UI', 'Mangal', 'Arial', sans-serif !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color: #000 !important;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+            
+            .receipt-container {
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                max-width: 100% !important;
+                width: 100% !important;
+            }
+            
+            .receipt-header {
+                text-align: center !important;
+                margin-bottom: 20px !important;
+                padding-bottom: 15px !important;
+                border-bottom: 1px solid #eee !important;
+            }
+            
+            .receipt-row {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+    
+    
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/theme-modern.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="no-print">
+        <div class="container">
+            <nav class="navbar">
+                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:40px;"></a>
+                <div class="nav-links">
+                    <a href="index.html" class="nav-link">Home</a>
+                    <a href="#tools" class="nav-link">Tools</a>
+                    <a href="#about" class="nav-link">About</a>
+                    <a href="#contact" class="nav-link">Contact</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Receipt Content -->
+    <div class="container" style="padding: 40px 20px;">
+        <div class="receipt-container" style="background: white; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); padding: 40px; max-width: 800px; margin: 0 auto;">
+            <div class="receipt-header" style="text-align: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #eee;">
+                <div style="width: 80px; height: 80px; background: #e8f5e9; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                    <i class="fas fa-check-circle" style="font-size: 48px; color: #4CAF50;"></i>
+                </div>
+                <h1 style="color: #333; margin-bottom: 10px; font-size: 28px;">पेमेंट सफल!</h1>
+                <p style="color: #666; font-size: 16px;">आपके दान के लिए धन्यवाद</p>
+                <p style="color: #666; font-size: 14px; margin-top: 5px;">आपका भुगतान सफलतापूर्वक प्राप्त कर लिया गया है</p>
+            </div>
+
+            <div class="receipt-details" style="margin: 30px 0;">
+                <div class="receipt-row" style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
+                    <span class="receipt-label" style="color: #666; font-weight: 500;">ट्रांजैक्शन आईडी:</span>
+                    <span class="receipt-value" id="transaction-id" style="font-weight: 500; color: #333;">-</span>
+                </div>
+                <div class="receipt-row" style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
+                    <span class="receipt-label" style="color: #666; font-weight: 500;">तारीख और समय:</span>
+                    <span class="receipt-value" id="transaction-date" style="font-weight: 500; color: #333;">-</span>
+                </div>
+                <div class="receipt-row" style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
+                    <span class="receipt-label" style="color: #666; font-weight: 500;">भुगतान विधि:</span>
+                    <span class="receipt-value" id="payment-method" style="font-weight: 500; color: #333;">-</span>
+                </div>
+                <div class="receipt-row" style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
+                    <span class="receipt-label" style="color: #666; font-weight: 500;">राशि:</span>
+                    <span class="receipt-value" id="amount" style="font-weight: 700; color: #2196F3; font-size: 18px;">-</span>
+                </div>
+                <div class="receipt-row" style="display: flex; justify-content: space-between; padding: 12px 0; margin-top: 20px; border-top: 2px solid #f0f0f0;">
+                    <span class="receipt-label" style="color: #666; font-weight: 600; font-size: 16px;">स्थिति:</span>
+                    <span class="receipt-value" id="status" style="font-weight: 600; color: #4CAF50; font-size: 16px;">
+                        <i class="fas fa-check-circle"></i> सफल
+                    </span>
+                </div>
+            </div>
+
+            <div class="receipt-actions no-print" style="display: flex; justify-content: center; gap: 15px; margin-top: 40px;">
+                <button id="print-receipt" class="btn btn-primary" style="background-color: #4361ee; color: white; border: none; padding: 12px 25px; border-radius: 5px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s ease;">
+                    <i class="fas fa-print"></i> रसीद प्रिंट करें
+                </button>
+                <a href="index.html" class="btn btn-outline" style="background: white; color: #4361ee; border: 1px solid #4361ee; padding: 12px 25px; border-radius: 5px; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s ease;">
+                    <i class="fas fa-home"></i> होम पेज पर वापस जाएं
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="no-print">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Us</h3>
+                    <p>easyjpgtopdf offers a complete suite of PDF tools to convert, edit, and manage your documents with ease.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <a href="#tools">Our Tools</a>
+                    <a href="#about">About Us</a>
+                    <a href="#contact">Contact</a>
+                    <a href="privacy-policy.html">Privacy Policy</a>
+                    <a href="terms-of-service.html">Terms of Service</a>
+                </div>
+                <div class="footer-section">
+                    <h3>Contact Us</h3>
+                    <p><i class="fas fa-envelope"></i> support@easyjpgtopdf.com</p>
+                    <p><i class="fas fa-phone"></i> +91 1234567890</p>
+                    <p><i class="fas fa-map-marker-alt"></i> 123 Tech Park, Bangalore, India</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; <span id="current-year">2024</span> easyjpgtopdf. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // URL पैरामीटर्स से डेटा निकालें
+            const urlParams = new URLSearchParams(window.location.search);
+            const txnId = urlParams.get('txn_id');
+            const amount = urlParams.get('amount');
+            const method = urlParams.get('method');
+            const orderId = urlParams.get('order_id');
+
+            // वर्तमान तारीख और समय सेट करें
+            const now = new Date();
+            const options = { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            };
+            
+            // डिफ़ॉल्ट मान सेट करें
+            document.getElementById('transaction-date').textContent = now.toLocaleDateString('hi-IN', options);
+            document.getElementById('current-year').textContent = now.getFullYear();
+
+            // URL से मिले डेटा के आधार पर फॉर्म भरें
+            if (txnId) {
+                document.getElementById('transaction-id').textContent = txnId;
+            }
+            
+            if (amount) {
+                document.getElementById('amount').textContent = '₹' + parseFloat(amount).toFixed(2);
+            }
+
+            // भुगतान विधि सेट करें
+            if (method) {
+                const methodMap = {
+                    'razorpay': 'Razorpay',
+                    'payu': 'PayU Money',
+                    'card': 'क्रेडिट/डेबिट कार्ड',
+                    'netbanking': 'नेट बैंकिंग',
+                    'upi': 'UPI',
+                    'wallet': 'मोबाइल वॉलेट'
+                };
+                document.getElementById('payment-method').textContent = methodMap[method] || method;
+            }
+
+            // प्रिंट बटन के लिए इवेंट लिसनर
+            document.getElementById('print-receipt').addEventListener('click', function() {
+                window.print();
+            });
+
+            // डीबगिंग के लिए कंसोल में पैरामीटर्स दिखाएं
+            console.log('Payment Receipt Params:', { txnId, amount, method, orderId });
+
+            // अगर कोई ट्रांजैक्शन आईडी नहीं है तो 3 सेकंड बाद होम पेज पर रीडायरेक्ट करें
+            if (!txnId) {
+                console.log('No transaction ID found, redirecting to home page in 5 seconds...');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 5000);
+            }
+        });
+    </script>
+</body>
+</html>
