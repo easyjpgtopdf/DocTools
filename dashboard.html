@@ -740,6 +740,10 @@
                                 <i class="fas fa-file-invoice" aria-hidden="true"></i>
                                 Billing Details
                             </button>
+                            <button type="button" class="dashboard-nav-btn" data-dashboard-target="dashboard-donation">
+                                <i class="fas fa-heart" aria-hidden="true"></i>
+                                Make a Donation
+                            </button>
                             <button type="button" class="dashboard-nav-btn" data-dashboard-target="dashboard-payments">
                                 <i class="fas fa-wallet" aria-hidden="true"></i>
                                 Payment History
@@ -822,6 +826,16 @@
                                         <p class="form-feedback" id="billing-message" hidden></p>
                                     </div>
                                 </form>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-panel" id="dashboard-donation">
+                            <div class="dashboard-card">
+                                <h3><i class="fas fa-heart"></i> Support easyjpgtopdf</h3>
+                                <p style="color: #6c757d; margin: 12px 0;">Your donation helps us maintain free PDF and image tools for everyone.</p>
+                                <a href="index.html#donation-section" class="inline-link-btn" style="background: linear-gradient(135deg, #4361ee, #f72585); color: white; display: inline-block; padding: 10px 20px; border-radius: 6px; text-decoration: none;">
+                                    <i class="fas fa-heart"></i> Make a Donation
+                                </a>
                             </div>
                         </div>
 
@@ -918,6 +932,74 @@
     <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
     <script type="module" src="js/firebase-init.js"></script>
     <script type="module" src="js/auth.js"></script>
+    <script type="module">
+        import { auth } from './js/firebase-init.js';
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { getFirestore, collection, query, where, getDocs, orderBy } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        // Load payment history when user is logged in
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) return;
+
+            try {
+                const firestore = getFirestore();
+                const paymentsRef = collection(firestore, 'payments', user.uid, 'records');
+                const q = query(paymentsRef, orderBy('createdAt', 'desc'));
+                const querySnapshot = await getDocs(q);
+
+                const paymentList = document.querySelector('.payment-list');
+                if (!paymentList) return;
+
+                if (querySnapshot.empty) {
+                    paymentList.innerHTML = '<li>No donations found yet.</li>';
+                    return;
+                }
+
+                let html = '';
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const date = data.createdAt?.toDate?.() || new Date(data.createdAt);
+                    const dateStr = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                    const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                    
+                    const amount = data.amount || 0;
+                    const currency = data.currency || 'INR';
+                    const status = data.status || data.paymentStatus || 'pending';
+                    const paymentMethod = data.method || 'razorpay';
+                    const orderId = data.orderId || doc.id;
+
+                    const statusClass = status === 'succeeded' ? 'success' : status === 'failed' ? 'failed' : 'pending';
+                    const statusText = status === 'succeeded' ? '✓ Completed' : status === 'failed' ? '✗ Failed' : '⏳ Pending';
+
+                    html += `
+                        <li class="payment-item" style="border-left: 4px solid ${status === 'succeeded' ? '#28a745' : status === 'failed' ? '#dc3545' : '#ffc107'}; padding-left: 12px; margin: 12px 0; padding: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: start;">
+                                <div>
+                                    <strong style="color: #333;">${currency} ${amount}</strong>
+                                    <p style="margin: 4px 0; font-size: 13px; color: #666;">
+                                        <span class="status-badge" style="background: ${status === 'succeeded' ? '#d4edda' : status === 'failed' ? '#f8d7da' : '#fff3cd'}; color: ${status === 'succeeded' ? '#155724' : status === 'failed' ? '#721c24' : '#856404'}; padding: 2px 8px; border-radius: 4px; font-size: 12px;">
+                                            ${statusText}
+                                        </span>
+                                    </p>
+                                    <p style="margin: 4px 0; font-size: 12px; color: #999;">${dateStr} at ${timeStr}</p>
+                                    <p style="margin: 4px 0; font-size: 11px; color: #ccc;">Order ID: ${orderId.substring(0, 12)}...</p>
+                                </div>
+                                ${status === 'succeeded' ? `
+                                    <a href="payment-receipt.html?txn_id=${data.paymentId || orderId}&amount=${amount}&currency=${currency}&method=${paymentMethod}" style="font-size: 12px; color: #4361ee; text-decoration: none; font-weight: 500;">
+                                        View Receipt →
+                                    </a>
+                                ` : ''}
+                            </div>
+                        </li>
+                    `;
+                });
+
+                paymentList.innerHTML = html;
+            } catch (error) {
+                console.error('Failed to load payment history:', error);
+            }
+        });
+    </script>
 
 
 

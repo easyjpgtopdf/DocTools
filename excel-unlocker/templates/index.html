@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h4 class="mb-0 text-center">Excel File Unlocker</h4>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <i class="fas fa-file-excel fa-4x text-primary mb-3"></i>
+                    <p class="text-muted">Remove password protection from your Excel files easily and securely.</p>
+                </div>
+
+                <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" id="uploadForm">
+                    <div class="mb-4 text-center">
+                        <div class="upload-area p-5 border rounded" id="dropZone">
+                            <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                            <h5>Drag & Drop your Excel file here</h5>
+                            <p class="text-muted">or</p>
+                            <input type="file" name="file" id="fileInput" class="d-none" accept=".xlsx,.xls" required>
+                            <button type="button" class="btn btn-outline-primary" id="browseBtn">
+                                <i class="fas fa-folder-open me-2"></i>Browse Files
+                            </button>
+                            <div class="mt-2">
+                                <small class="text-muted">Supports: .xlsx, .xls (Max 16MB)</small>
+                            </div>
+                            <div id="fileInfo" class="mt-3 d-none">
+                                <div class="alert alert-info p-2 mb-2">
+                                    <i class="fas fa-file me-2"></i>
+                                    <span id="fileName"></span>
+                                    <button type="button" class="btn-close float-end" id="removeFile"></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="password" class="form-label">Password (if known):</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="password" name="password" 
+                                   placeholder="Leave blank if unknown">
+                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">If you know the password, enter it for faster processing.</div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" disabled>
+                            <i class="fas fa-unlock me-2"></i>Unlock File
+                        </button>
+                    </div>
+                </form>
+
+                <div class="mt-4">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <i class="fas fa-info-circle me-2"></i>Important Information
+                        </div>
+                        <div class="card-body">
+                            <ul class="mb-0">
+                                <li>This tool works only with password-protected Excel files (.xlsx, .xls)</li>
+                                <li>For encrypted files, knowing the password significantly speeds up the process</li>
+                                <li>Your files are processed securely and never stored on our servers</li>
+                                <li>For legal use only. Ensure you have the right to modify the files</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

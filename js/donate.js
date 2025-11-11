@@ -44,7 +44,8 @@ async function initiateStripeDonation(user, donation) {
   showMessage("Preparing secure checkout...");
 
   try {
-    const response = await fetch("/api/payments/create-donation-session", {
+    const apiUrl = `${window.location.origin}/api/payments/create-donation-session`;
+    const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -87,7 +88,8 @@ async function initiateRazorpayDonation(user, donation) {
 
   try {
     // Call backend to create Razorpay order
-    const response = await fetch("/api/create-order", {
+    const apiUrl = `${window.location.origin}/api/create-order`;
+    const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -1,0 +1,173 @@
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,.1);
+}
+
+.card {
+    border: none;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    border-bottom: 1px solid rgba(0,0,0,.05);
+    font-weight: 600;
+    background-color: #fff;
+    padding: 1.25rem 1.5rem;
+}
+
+.upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 2.5rem 1rem;
+}
+
+.upload-area:hover {
+    border-color: #0d6efd;
+    background-color: #f1f7ff;
+}
+
+.upload-area.dragover {
+    background-color: #e7f1ff;
+    border-color: #0d6efd;
+    transform: translateY(-2px);
+}
+
+.btn-primary {
+    padding: 0.6rem 1.5rem;
+    font-weight: 500;
+    background-color: #4361ee;
+    border-color: #4361ee;
+}
+
+.btn-primary:hover {
+    background-color: #3a56d4;
+    border-color: #3a56d4;
+}
+
+.btn-outline-primary {
+    color: #4361ee;
+    border-color: #4361ee;
+}
+
+.btn-outline-primary:hover {
+    background-color: #4361ee;
+    border-color: #4361ee;
+}
+
+#fileInfo {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.progress {
+    height: 10px;
+    margin-top: 10px;
+    border-radius: 5px;
+}
+
+.progress-bar {
+    background-color: #4361ee;
+}
+
+.alert {
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+/* Animation for file upload */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+.uploading {
+    animation: pulse 1.5s infinite;
+    opacity: 0.8;
+}
+
+/* Password toggle */
+#togglePassword {
+    cursor: pointer;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+/* Footer styles */
+footer {
+    margin-top: auto;
+    padding: 1.5rem 0;
+    background-color: #f8f9fa;
+    border-top: 1px solid #eee;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .card {
+        margin: 0 -15px;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    
+    .upload-area {
+        padding: 1.5rem 0.5rem;
+    }
+    
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Loading spinner */
+.spinner-border {
+    width: 1.2rem;
+    height: 1.2rem;
+    border-width: 0.15em;
+}
+
+/* File info box */
+.file-info-box {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 10px;
+    margin-top: 10px;
+}
+
+/* Print styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    body {
+        padding: 0;
+        background: white;
+    }
+    
+    .container {
+        width: 100%;
+        max-width: 100%;
+        padding: 0;
+    }
+    
+    .card {
+        border: none;
+        box-shadow: none;
+    }
+}
