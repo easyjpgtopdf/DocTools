@@ -1337,14 +1337,40 @@
 
         .donate-form {
             display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
+            flex-direction: column;
             gap: 16px;
-            align-items: center;
+            align-items: stretch;
+        }
+
+        .donate-form .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .donate-form .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .donate-form .form-group label {
+            font-weight: 600;
+            font-size: 0.95rem;
         }
 
         .donate-form .form-control {
-            max-width: 200px;
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(67, 97, 238, 0.2);
+            font-size: 0.95rem;
+        }
+
+        .donate-form .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.18);
         }
 
         .donate-types {
@@ -1807,14 +1833,31 @@
                         <label for="email">Email</label>
                         <input type="email" id="email" class="form-control" placeholder="Enter your email" required>
                     </div>
-                    <div class="form-group">
-                        <label for="amount">Donation Amount (â‚¹)</label>
-                        <input type="number" id="amount" class="form-control" min="10" value="100" required>
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 1;">
+                            <label for="donate-currency">Currency</label>
+                            <select id="donate-currency" class="form-control">
+                                <option value="INR">🇮🇳 Indian Rupee (₹)</option>
+                                <option value="USD">🇺🇸 US Dollar ($)</option>
+                                <option value="EUR">🇪🇺 Euro (€)</option>
+                                <option value="GBP">🇬🇧 British Pound (£)</option>
+                                <option value="AUD">🇦🇺 Australian Dollar (A$)</option>
+                                <option value="CAD">🇨🇦 Canadian Dollar (C$)</option>
+                                <option value="SGD">🇸🇬 Singapore Dollar (S$)</option>
+                                <option value="AED">🇦🇪 UAE Dirham (د.إ)</option>
+                                <option value="JPY">🇯🇵 Japanese Yen (¥)</option>
+                                <option value="CHF">🇨🇭 Swiss Franc (CHF)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="donate-amount">Amount</label>
+                            <input type="number" id="donate-amount" class="form-control" min="10" value="100" required>
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary btn-block">
                         <i class="fas fa-heart"></i> Donate Now
                     </button>
-                    <p id="donation-status" class="mt-3 text-center"></p>
+                    <p id="donate-message" class="mt-3 text-center"></p>
                 </form>
                 <div class="donate-features mt-4">
                     <div class="donate-feature">
@@ -3945,9 +3988,6 @@
                 <button class="social-btn" data-provider="google">
                     <i class="fab fa-google"></i> Google
                 </button>
-                <button class="social-btn" data-provider="facebook">
-                    <i class="fab fa-facebook"></i> Facebook
-                </button>
             </div>
             <div class="auth-footer">
                 <p>Don't have an account? <a href="accounts.html#signup" data-auth-action="open-signup">Sign up</a></p>
@@ -4004,9 +4044,6 @@
             <div class="social-auth">
                 <button class="social-btn" data-provider="google">
                     <i class="fab fa-google"></i> Google
-                </button>
-                <button class="social-btn" data-provider="facebook">
-                    <i class="fab fa-facebook"></i> Facebook
                 </button>
             </div>
             <div class="auth-footer">

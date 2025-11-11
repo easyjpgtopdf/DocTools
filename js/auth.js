@@ -8,7 +8,6 @@ import {
   updateProfile,
   onAuthStateChanged,
   GoogleAuthProvider,
-  FacebookAuthProvider,
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
@@ -26,17 +25,14 @@ const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-const facebookProvider = new FacebookAuthProvider();
-facebookProvider.setCustomParameters({ display: 'popup' });
-
 const SOCIAL_PROVIDER_KEY = 'easyjpgtopdf.socialProvider';
 const PENDING_ACTION_KEY = 'easyjpgtopdf.pendingAction';
 const DASHBOARD_NAV_KEY = 'easyjpgtopdf.dashboardTarget';
 
 const socialProviders = {
   google: googleProvider,
-  facebook: facebookProvider,
 };
+
 
 const userMenuPointerListenerOptions = { capture: true };
 
@@ -92,8 +88,6 @@ function getProviderFriendlyName(providerKey = '') {
   const mapping = {
     google: 'Google',
     'google.com': 'Google',
-    facebook: 'Facebook',
-    'facebook.com': 'Facebook',
   };
   return mapping[normalized] || providerKey || 'Social Provider';
 }
