@@ -38,11 +38,12 @@ LOGS_FOLDER = os.path.join(BASE_DIR, 'logs')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(LOGS_FOLDER, exist_ok=True)
 
+# Configuration
 app.config.update(
-    UPLOAD_FOLDER=UPLOAD_FOLDER,
-    MAX_CONTENT_LENGTH=106 * 1024 * 1024,  # 106MB max file size
-    SECRET_KEY='EasyJpgtoPdf',
-    DEBUG=True
+    UPLOAD_FOLDER=os.environ.get('UPLOAD_FOLDER', UPLOAD_FOLDER),
+    MAX_CONTENT_LENGTH=500 * 1024 * 1024,  # 500MB max file size
+    SECRET_KEY=os.environ.get('SECRET_KEY', 'dev-key-change-in-production'),
+    DEBUG=os.environ.get('FLASK_ENV') == 'development'
 )
 
 # Log app configuration
@@ -176,4 +177,5 @@ def download_file(filename):
                              as_attachment=True)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=os.environ.get('FLASK_ENV') == 'development')

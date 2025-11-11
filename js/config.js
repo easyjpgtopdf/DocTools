@@ -5,21 +5,26 @@
 
 // Detect environment and set API base URL
 function getApiBaseUrl() {
-  // Check if we're in development (localhost)
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return `http://localhost:3000`;
+  // Check if we're in development (localhost or 127.0.0.1)
+  const hostname = window.location.hostname;
+  const isDevelopment = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
+  
+  if (isDevelopment) {
+    // For local development, always use localhost:3000
+    return 'http://localhost:3000';
   }
   
-  // For production, try to use the same origin first
-  // If the server is served from a different domain, you can add a check here
+  // For production (easyjpgtopdf.com, Vercel, etc.)
+  // Use the same origin where the frontend is served
   const origin = window.location.origin;
   
-  // If on Vercel or production domain, try the same origin
-  // The server should be served on the same origin (easyjpgtopdf.com)
+  console.log(`🔧 API Base URL configured: ${origin}`);
   return origin;
 }
 
 export const API_BASE_URL = getApiBaseUrl();
+
+console.log(`✅ API Base URL: ${API_BASE_URL}`);
 
 /**
  * Make API request with proper base URL

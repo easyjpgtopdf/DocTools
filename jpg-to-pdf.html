@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -124,10 +124,24 @@
       </div>
       <div class="muted" id="count" style="color:var(--gray)">0 images</div>
     </div>
-    <div class="action-buttons" style="margin-top:14px">
-      <button id="continueBtn" class="btn">Continue</button>
-      <a class="btn secondary" href="index.html">Back to Home</a>
+    <div class="action-buttons" style="margin-top:14px; display: flex; gap: 10px; align-items: center; justify-content: center; padding: 15px; background: linear-gradient(90deg, #f8f9fa 50%, #ffffff 50%); background-size: 200% 100%; animation: blink 1.5s infinite; border-radius: 8px; border: 1px solid #e5e7eb;">
+      <button id="continueBtn" class="btn" style="margin: 0;">Continue</button>
+      <a class="btn secondary" href="index.html" style="margin: 0;">Back to Home</a>
+      <button id="addMoreBtn" class="btn secondary" style="margin: 0;">
+        <i class="fas fa-plus"></i> Add More
+      </button>
     </div>
+    <style>
+      @keyframes blink {
+        0% { background-position: 100% 0; }
+        50% { background-position: 0 0; }
+        100% { background-position: 100% 0; }
+      }
+      .action-buttons:hover {
+        animation: none;
+        background: #f8f9fa;
+      }
+    </style>
   </div>
   <script>
     (function(){
@@ -185,10 +199,35 @@
         render();
       });
 
+      // Make the Add More button functional
+      document.getElementById('addMoreBtn').addEventListener('click', function() {
+        document.getElementById('more-input').click();
+      });
+
+      // Update the original Add More label to be hidden
+      document.querySelector('label[for="more-input"]').style.display = 'none';
+
+      // Continue button functionality
       document.getElementById('continueBtn').addEventListener('click', function(){
-        if (!images.length) { alert('Please add at least one JPG image.'); return; }
+        if (!images.length) { 
+          alert('Please add at least one JPG image.'); 
+          return; 
+        }
         sessionStorage.setItem('jpg2pdf_images', JSON.stringify(images));
         location.href = 'jpg-to-pdf-convert.html';
+      });
+
+      // Add hover effect for buttons
+      const buttons = document.querySelectorAll('.btn');
+      buttons.forEach(btn => {
+        btn.addEventListener('mouseover', function() {
+          this.style.transform = 'translateY(-2px)';
+          this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+        });
+        btn.addEventListener('mouseout', function() {
+          this.style.transform = 'translateY(0)';
+          this.style.boxShadow = 'none';
+        });
       });
 
     })();

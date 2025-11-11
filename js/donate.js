@@ -90,6 +90,17 @@ async function initiateRazorpayDonation(user, donation) {
   try {
     // Call backend to create Razorpay order
     const apiUrl = `${API_BASE_URL}/api/create-order`;
+    
+    console.log('🔍 Donation API Debug:', {
+      API_BASE_URL,
+      endpoint: '/api/create-order',
+      fullUrl: apiUrl,
+      amount: donation.amount,
+      currency: donation.currency || "INR"
+    });
+    
+    showMessage("Creating secure Razorpay order...");
+
     const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
@@ -104,11 +115,21 @@ async function initiateRazorpayDonation(user, donation) {
       }),
     });
 
+    console.log('📊 API Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+
     if (!response.ok) {
-      throw new Error(`Server error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('❌ API Error Response:', errorText);
+      throw new Error(`Server error: ${response.status} - ${response.statusText}`);
     }
 
     const payload = await response.json();
+
+    console.log('✅ Order Created:', payload);
 
     if (!payload?.id || !payload?.key) {
       throw new Error("Incomplete Razorpay order payload.");
