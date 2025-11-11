@@ -1,4 +1,5 @@
 import { auth, setPendingAction } from "./auth.js";
+import { API_BASE_URL } from "./config.js";
 
 const donateForm = document.getElementById("donate-form");
 const amountInput = document.getElementById("donate-amount");
@@ -44,7 +45,7 @@ async function initiateStripeDonation(user, donation) {
   showMessage("Preparing secure checkout...");
 
   try {
-    const apiUrl = `${window.location.origin}/api/payments/create-donation-session`;
+    const apiUrl = `${API_BASE_URL}/api/payments/create-donation-session`;
     const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
@@ -88,7 +89,7 @@ async function initiateRazorpayDonation(user, donation) {
 
   try {
     // Call backend to create Razorpay order
-    const apiUrl = `${window.location.origin}/api/create-order`;
+    const apiUrl = `${API_BASE_URL}/api/create-order`;
     const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
@@ -204,7 +205,7 @@ async function initiatePayuDonation(user, donation) {
   showMessage('Creating PayU request...');
 
   try {
-    const response = await fetch('/api/payments/payu/order', {
+    const response = await fetch(`${API_BASE_URL}/api/payments/payu/order`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

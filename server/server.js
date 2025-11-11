@@ -30,12 +30,19 @@ if (!admin.apps.length) {
   try {
     const serviceAccountRaw = process.env.FIREBASE_SERVICE_ACCOUNT;
     if (serviceAccountRaw) {
-      const serviceAccount = JSON.parse(serviceAccountRaw);
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-      });
+      try {
+        const serviceAccount = JSON.parse(serviceAccountRaw);
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount)
+        });
+        console.log('Firebase Admin SDK initialized with service account');
+      } catch (parseError) {
+        console.warn('Failed to parse FIREBASE_SERVICE_ACCOUNT JSON, initializing with default credentials');
+        admin.initializeApp();
+      }
     } else {
       admin.initializeApp();
+      console.log('Firebase Admin SDK initialized with default credentials');
     }
   } catch (error) {
     console.error('Failed to initialise Firebase Admin SDK:', error);
