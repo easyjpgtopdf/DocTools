@@ -1373,6 +1373,44 @@
             box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.18);
         }
 
+        .donate-form .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .donate-gateway-option,
+        .donate-type-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(67, 97, 238, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .donate-gateway-option input[type="radio"],
+        .donate-type-option input[type="radio"] {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+        }
+
+        .donate-gateway-option.selected,
+        .donate-type-option.selected {
+            background-color: rgba(67, 97, 238, 0.1);
+            border-color: var(--primary);
+        }
+
+        .donate-gateway-option:hover,
+        .donate-type-option:hover {
+            border-color: var(--primary);
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+
         .donate-types {
             display: flex;
             gap: 12px;
@@ -1854,6 +1892,40 @@
                             <input type="number" id="donate-amount" class="form-control" min="10" value="100" required>
                         </div>
                     </div>
+                    <div class="form-group">
+                        <label>Payment Gateway</label>
+                        <div class="radio-group">
+                            <label class="donate-gateway-option">
+                                <input type="radio" name="donate-gateway" value="razorpay" checked>
+                                <span>Razorpay (Recommended)</span>
+                            </label>
+                            <label class="donate-gateway-option">
+                                <input type="radio" name="donate-gateway" value="stripe">
+                                <span>Stripe</span>
+                            </label>
+                            <label class="donate-gateway-option">
+                                <input type="radio" name="donate-gateway" value="payU">
+                                <span>PayU</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Donation Type</label>
+                        <div class="radio-group">
+                            <label class="donate-type-option">
+                                <input type="radio" name="donate-type" value="project" checked>
+                                <span>Project Support</span>
+                            </label>
+                            <label class="donate-type-option">
+                                <input type="radio" name="donate-type" value="school">
+                                <span>Support a School</span>
+                            </label>
+                            <label class="donate-type-option">
+                                <input type="radio" name="donate-type" value="other">
+                                <span>Other</span>
+                            </label>
+                        </div>
+                    </div>
                     <button type="submit" class="btn btn-primary btn-block">
                         <i class="fas fa-heart"></i> Donate Now
                     </button>
@@ -1875,6 +1947,42 @@
                 </div>
                 <!-- Add Razorpay Script -->
                 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+                <script>
+                    // Handle gateway and type radio button selection highlighting
+                    document.querySelectorAll('input[name="donate-gateway"]').forEach(input => {
+                        input.addEventListener('change', function() {
+                            document.querySelectorAll('.donate-gateway-option').forEach(label => {
+                                const radio = label.querySelector('input[type="radio"]');
+                                if (radio && radio.checked) {
+                                    label.classList.add('selected');
+                                } else {
+                                    label.classList.remove('selected');
+                                }
+                            });
+                        });
+                    });
+
+                    document.querySelectorAll('input[name="donate-type"]').forEach(input => {
+                        input.addEventListener('change', function() {
+                            document.querySelectorAll('.donate-type-option').forEach(label => {
+                                const radio = label.querySelector('input[type="radio"]');
+                                if (radio && radio.checked) {
+                                    label.classList.add('selected');
+                                } else {
+                                    label.classList.remove('selected');
+                                }
+                            });
+                        });
+                    });
+
+                    // Initial highlighting for checked items
+                    document.querySelectorAll('.donate-gateway-option input[type="radio"]:checked').forEach(input => {
+                        input.closest('.donate-gateway-option').classList.add('selected');
+                    });
+                    document.querySelectorAll('.donate-type-option input[type="radio"]:checked').forEach(input => {
+                        input.closest('.donate-type-option').classList.add('selected');
+                    });
+                </script>
             </section>
 
             <div class="testimonials">

@@ -1330,77 +1330,106 @@
 
         .donate-form {
             display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
+            flex-direction: column;
             gap: 16px;
-            align-items: center;
+            align-items: stretch;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .donate-form .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .donate-form .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .donate-form .form-group label {
+            font-weight: 600;
+            font-size: 0.95rem;
         }
 
         .donate-form .form-control {
-            max-width: 200px;
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(67, 97, 238, 0.2);
+            font-size: 0.95rem;
         }
 
-        .donate-types {
+        .donate-form .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.18);
+        }
+
+        .donate-form .radio-group {
             display: flex;
-            gap: 12px;
-            align-items: center;
-            flex-wrap: wrap;
-            justify-content: center;
+            flex-direction: column;
+            gap: 10px;
         }
 
         .donate-type-option {
             display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 8px 14px;
-            border-radius: 12px;
-            background: rgba(67, 97, 238, 0.06);
-            border: 1px solid transparent;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(67, 97, 238, 0.2);
             cursor: pointer;
-            transition: all 0.2s ease-in-out;
-            max-width: 260px;
-            text-align: left;
+            transition: all 0.3s ease;
         }
 
         .donate-type-option input[type="radio"] {
             accent-color: var(--primary);
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
         }
 
         .donate-type-option.selected {
+            background-color: rgba(67, 97, 238, 0.1);
             border-color: var(--primary);
-            background: rgba(67, 97, 238, 0.18);
-            box-shadow: 0 6px 16px rgba(67, 97, 238, 0.12);
         }
 
-        .donate-gateways {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            flex-wrap: wrap;
-            justify-content: center;
+        .donate-type-option:hover {
+            border-color: var(--primary);
+            background-color: rgba(67, 97, 238, 0.05);
         }
 
         .donate-gateway-option {
             display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 999px;
-            background: rgba(67, 97, 238, 0.08);
-            border: 1px solid transparent;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(67, 97, 238, 0.2);
             cursor: pointer;
-            transition: all 0.2s ease-in-out;
+            transition: all 0.3s ease;
         }
 
         .donate-gateway-option input[type="radio"] {
             accent-color: var(--primary);
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
         }
 
         .donate-gateway-option.selected {
+            background-color: rgba(67, 97, 238, 0.1);
             border-color: var(--primary);
-            background: rgba(67, 97, 238, 0.15);
-            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.12);
         }
+
+        .donate-gateway-option:hover {
+            border-color: var(--primary);
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+
 
         .donate-message {
             margin-top: 16px;
@@ -1787,14 +1816,65 @@
                         <label for="email">Email</label>
                         <input type="email" id="email" class="form-control" placeholder="Enter your email" required>
                     </div>
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 1;">
+                            <label for="donate-currency">Currency</label>
+                            <select id="donate-currency" class="form-control">
+                                <option value="INR">🇮🇳 Indian Rupee (₹)</option>
+                                <option value="USD">🇺🇸 US Dollar ($)</option>
+                                <option value="EUR">🇪🇺 Euro (€)</option>
+                                <option value="GBP">🇬🇧 British Pound (£)</option>
+                                <option value="AUD">🇦🇺 Australian Dollar (A$)</option>
+                                <option value="CAD">🇨🇦 Canadian Dollar (C$)</option>
+                                <option value="SGD">🇸🇬 Singapore Dollar (S$)</option>
+                                <option value="AED">🇦🇪 UAE Dirham (د.إ)</option>
+                                <option value="JPY">🇯🇵 Japanese Yen (¥)</option>
+                                <option value="CHF">🇨🇭 Swiss Franc (CHF)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="donate-amount">Amount</label>
+                            <input type="number" id="donate-amount" class="form-control" min="10" value="100" required>
+                        </div>
+                    </div>
                     <div class="form-group">
-                        <label for="amount">Donation Amount (â‚¹)</label>
-                        <input type="number" id="amount" class="form-control" min="10" value="100" required>
+                        <label>Payment Gateway</label>
+                        <div class="radio-group">
+                            <label class="donate-gateway-option">
+                                <input type="radio" name="donate-gateway" value="razorpay" checked>
+                                <span>Razorpay (Recommended)</span>
+                            </label>
+                            <label class="donate-gateway-option">
+                                <input type="radio" name="donate-gateway" value="stripe">
+                                <span>Stripe</span>
+                            </label>
+                            <label class="donate-gateway-option">
+                                <input type="radio" name="donate-gateway" value="payU">
+                                <span>PayU</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Donation Type</label>
+                        <div class="radio-group">
+                            <label class="donate-type-option">
+                                <input type="radio" name="donate-type" value="project" checked>
+                                <span>Project Support</span>
+                            </label>
+                            <label class="donate-type-option">
+                                <input type="radio" name="donate-type" value="school">
+                                <span>Support a School</span>
+                            </label>
+                            <label class="donate-type-option">
+                                <input type="radio" name="donate-type" value="other">
+                                <span>Other</span>
+                            </label>
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary btn-block">
                         <i class="fas fa-heart"></i> Donate Now
                     </button>
-                    <p id="donation-status" class="mt-3 text-center"></p>
+                    <p id="donate-message" class="mt-3 text-center"></p>
                 </form>
                 <div class="donate-features mt-4">
                     <div class="donate-feature">
@@ -1812,6 +1892,42 @@
                 </div>
                 <!-- Add Razorpay Script -->
                 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+                <script>
+                    // Handle gateway and type radio button selection highlighting
+                    document.querySelectorAll('input[name="donate-gateway"]').forEach(input => {
+                        input.addEventListener('change', function() {
+                            document.querySelectorAll('.donate-gateway-option').forEach(label => {
+                                const radio = label.querySelector('input[type="radio"]');
+                                if (radio && radio.checked) {
+                                    label.classList.add('selected');
+                                } else {
+                                    label.classList.remove('selected');
+                                }
+                            });
+                        });
+                    });
+
+                    document.querySelectorAll('input[name="donate-type"]').forEach(input => {
+                        input.addEventListener('change', function() {
+                            document.querySelectorAll('.donate-type-option').forEach(label => {
+                                const radio = label.querySelector('input[type="radio"]');
+                                if (radio && radio.checked) {
+                                    label.classList.add('selected');
+                                } else {
+                                    label.classList.remove('selected');
+                                }
+                            });
+                        });
+                    });
+
+                    // Initial highlighting for checked items
+                    document.querySelectorAll('.donate-gateway-option input[type="radio"]:checked').forEach(input => {
+                        input.closest('.donate-gateway-option').classList.add('selected');
+                    });
+                    document.querySelectorAll('.donate-type-option input[type="radio"]:checked').forEach(input => {
+                        input.closest('.donate-type-option').classList.add('selected');
+                    });
+                </script>
             </section>
 
             <div class="testimonials">
