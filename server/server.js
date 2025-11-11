@@ -336,20 +336,21 @@ app.post('/api/create-order', async (req, res) => {
       });
     }
 
-    const { amount, name, email } = req.body;
+    const { amount, name, email, firebaseUid, currency = 'INR' } = req.body;
     
     if (!amount || !name || !email) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res.status(400).json({ error: 'Missing required fields: amount, name, email' });
     }
 
     const orderOptions = {
-      amount: amount * 100, // Convert to paise
-      currency: 'INR',
-      receipt: 'order_' + Date.now(),
+      amount: Math.round(amount * 100), // Convert to paise
+      currency: currency,
+      receipt: `${razorpayReceiptPrefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       payment_capture: 1,
       notes: {
         name: name,
         email: email,
+        firebaseUid: firebaseUid || 'anonymous',
         purpose: 'Donation to easyjpgtopdf'
       }
     };
@@ -361,7 +362,8 @@ app.post('/api/create-order', async (req, res) => {
       amount: order.amount,
       currency: order.currency,
       receipt: order.receipt,
-      key: razorpayKeyId || ''
+      key: razorpayKeyId || '',
+      amountInPaise: order.amount
     });
     
   } catch (error) {

@@ -94,8 +94,10 @@ async function initiateRazorpayDonation(user, donation) {
       },
       body: JSON.stringify({
         amount: donation.amount,
-        name: donation.name || user.displayName || "Donor",
+        currency: donation.currency || "INR",
+        name: user.displayName || "Donor",
         email: user.email || "",
+        firebaseUid: user.uid || ""
       }),
     });
 
@@ -116,23 +118,36 @@ async function initiateRazorpayDonation(user, donation) {
       amount: payload.amountInPaise || payload.amount,
       currency: payload.currency || "INR",
       name: "easyjpgtopdf",
-      description: "Support easyjpgtopdf",
+      description: `Donation - ${donation.donationType}`,
+      receipt: payload.receipt,
       prefill: {
-        name: donation.name || user.displayName || "",
+        name: user.displayName || "",
         email: user.email || "",
       },
-      notes: payload.notes || {},
+      notes: {
+        donationType: donation.donationType,
+        motive: donation.motive
+      },
       handler: (razorpayResponse) => {
         console.log("Razorpay success", razorpayResponse);
-        showMessage("Payment processing... Razorpay will confirm shortly.");
-        // Optionally redirect to success page
+        showMessage("Payment successful! Generating receipt...", { hidden: true });
+        // Redirect to receipt page with payment details
         setTimeout(() => {
-          window.location.href = `payment-receipt.html?txn_id=${razorpayResponse.razorpay_payment_id}&amount=${donation.amount}&method=razorpay`;
-        }, 2000);
+          const params = new URLSearchParams({
+            txn_id: razorpayResponse.razorpay_payment_id || "",
+            order_id: razorpayResponse.razorpay_order_id || payload.id,
+            amount: donation.amount,
+            currency: donation.currency || "INR",
+            method: "razorpay",
+            email: user.email || "",
+            name: user.displayName || "Donor"
+          });
+          window.location.href = `payment-receipt.html?${params.toString()}`;
+        }, 1500);
       },
       modal: {
         ondismiss: () => {
-          showMessage("Donation checkout closed.", { hidden: false });
+          showMessage("Donation checkout closed. Your order was not completed.", { hidden: false });
         },
       },
       theme: {
@@ -144,14 +159,14 @@ async function initiateRazorpayDonation(user, donation) {
     const rzp = new window.Razorpay(options);
     rzp.on("payment.failed", (response) => {
       console.warn("Razorpay failed", response);
-      showMessage("Payment failed or was cancelled. Please try again.");
+      showMessage("Payment failed. Error: " + (response.error?.description || "Unknown error"));
     });
 
     showMessage("Launching Razorpay checkout...", { hidden: true });
     rzp.open();
   } catch (error) {
     console.error("Razorpay donation failed:", error);
-    showMessage("Unable to start Razorpay checkout right now. Please try again in a moment.");
+    showMessage("Unable to start Razorpay checkout: " + error.message);
   }
 }
 
