@@ -4235,7 +4235,7 @@
                     
                     <div class="contact-form">
                         <h3>Send us a Message</h3>
-                        <form action="mailto:easyjpgtopdf@gmail.com" method="post" enctype="text/plain">
+                        <form id="contact-form" method="post">
                             <div class="form-group">
                                 <label for="contact-name">Your Name</label>
                                 <input type="text" id="contact-name" name="name" class="form-control" placeholder="Enter your name" required>
@@ -4814,134 +4814,7 @@
 
     <script type="module" src="js/firebase-init.js"></script>
     <script type="module" src="js/auth.js"></script>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const donateForm = document.getElementById('donate-form');
-        const statusElement = document.getElementById('donation-status');
-
-        if (donateForm) {
-            donateForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                const name = document.getElementById('name').value.trim();
-                const email = document.getElementById('email').value.trim();
-                const amount = document.getElementById('amount').value;
-                
-                if (!name || !email || !amount) {
-                    showStatus('à¤•à¥ƒà¤ªà¤¯à¤¾ à¤¸à¤­à¥€ à¤«à¤¼à¥€à¤²à¥à¤¡ à¤­à¤°à¥‡à¤‚', 'error');
-                    return;
-                }
-                
-                if (amount < 10) {
-                    showStatus('à¤•à¥ƒà¤ªà¤¯à¤¾ à¤•à¤® à¤¸à¥‡ à¤•à¤® â‚¹10 à¤•à¤¾ à¤¦à¤¾à¤¨ à¤•à¤°à¥‡à¤‚', 'error');
-                    return;
-                }
-                
-                showStatus('à¤ªà¥à¤°à¥‹à¤¸à¥‡à¤¸à¤¿à¤‚à¤—...', 'info');
-                
-                try {
-                    // Create order on your server
-                    const response = await fetch('/api/create-order', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            amount: amount,
-                            name: name,
-                            email: email
-                        })
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error('Server error');
-                    }
-                    
-                    const order = await response.json();
-                    
-                    // Open Razorpay checkout
-                    const options = {
-                        // use key returned by server if available, otherwise keep existing fallback
-                        key: order.key || 'rzp_live_RcythAErO5iFwt',
-                        amount: order.amount,
-                        currency: 'INR',
-                        name: 'easyjpgtopdf',
-                        description: 'Donation',
-                        order_id: order.id,
-                        handler: function(response) {
-                            showStatus('à¤§à¤¨à¥à¤¯à¤µà¤¾à¤¦! à¤†à¤ªà¤•à¤¾ à¤¦à¤¾à¤¨ à¤¸à¤«à¤²à¤¤à¤¾à¤ªà¥‚à¤°à¥à¤µà¤• à¤ªà¥à¤°à¤¾à¤ªà¥à¤¤ à¤¹à¥‹ à¤—à¤¯à¤¾ à¤¹à¥ˆà¥¤', 'success');
-                            donateForm.reset();
-                        },
-                        prefill: {
-                            name: name,
-                            email: email
-                        },
-                        theme: {
-                            color: '#4361ee'
-                        }
-                    };
-                    
-                    const rzp = new Razorpay(options);
-                    rzp.on('payment.failed', function(response) {
-                        showStatus('à¤­à¥à¤—à¤¤à¤¾à¤¨ à¤µà¤¿à¤«à¤² à¤¹à¥à¤†à¥¤ à¤•à¥ƒà¤ªà¤¯à¤¾ à¤ªà¥à¤¨à¤ƒ à¤ªà¥à¤°à¤¯à¤¾à¤¸ à¤•à¤°à¥‡à¤‚à¥¤', 'error');
-                    });
-                    
-                    rzp.open();
-                    
-                } catch (error) {
-                    console.error('Donation error:', error);
-                    showStatus('à¤¤à¥à¤°à¥à¤Ÿà¤¿ à¤¹à¥à¤ˆà¥¤ à¤•à¥ƒà¤ªà¤¯à¤¾ à¤¬à¤¾à¤¦ à¤®à¥‡à¤‚ à¤ªà¥à¤¨à¤ƒ à¤ªà¥à¤°à¤¯à¤¾à¤¸ à¤•à¤°à¥‡à¤‚à¥¤', 'error');
-                }
-            });
-        }
-        
-        function showStatus(message, type = 'info') {
-            if (!statusElement) return;
-            
-            statusElement.textContent = message;
-            statusElement.className = 'mt-3 text-center';
-            
-            if (type === 'error') {
-                statusElement.classList.add('text-danger');
-            } else if (type === 'success') {
-                statusElement.classList.add('text-success');
-            } else {
-                statusElement.classList.add('text-info');
-            }
-        }
-    });
-    </script>
-    <script>
-    // Simple donation handler
-    document.addEventListener('DOMContentLoaded', function() {
-        const donateForm = document.getElementById('donate-form');
-        if (donateForm) {
-            donateForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const amount = document.getElementById('donate-amount').value;
-                const message = document.getElementById('donate-message');
-                
-                if (!amount || isNaN(amount) || amount < 10) {
-                    message.textContent = 'à¤•à¥ƒà¤ªà¤¯à¤¾ 10 à¤°à¥à¤ªà¤¯à¥‡ à¤¯à¤¾ à¤…à¤§à¤¿à¤• à¤•à¥€ à¤°à¤¾à¤¶à¤¿ à¤¦à¤°à¥à¤œ à¤•à¤°à¥‡à¤‚';
-                    message.style.color = 'red';
-                    return;
-                }
-                
-                // Show thank you message
-                message.textContent = `à¤§à¤¨à¥à¤¯à¤µà¤¾à¤¦! à¤†à¤ªà¤•à¥‡ â‚¹${amount} à¤•à¥‡ à¤¦à¤¾à¤¨ à¤•à¥‡ à¤²à¤¿à¤à¥¤ à¤¹à¤® à¤œà¤²à¥à¤¦ à¤¹à¥€ à¤­à¥à¤—à¤¤à¤¾à¤¨ à¤µà¤¿à¤•à¤²à¥à¤ª à¤œà¥‹à¤¡à¤¼à¥‡à¤‚à¤—à¥‡à¥¤`;
-                message.style.color = 'green';
-                
-                // Reset form
-                donateForm.reset();
-                
-                // Hide message after 5 seconds
-                setTimeout(() => {
-                    message.textContent = '';
-                }, 5000);
-            });
-        }
-    });
-    </script>
+    <script type="module" src="js/donate.js"></script>
 
     <script>
         // Function to show the selected page and hide others
