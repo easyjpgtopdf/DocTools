@@ -56,9 +56,12 @@ let razorpay = null;
 if (razorpayKeyId && razorpayKeySecret) {
   try {
     razorpay = new Razorpay({ key_id: razorpayKeyId, key_secret: razorpayKeySecret });
+    console.log('✓ Razorpay client initialized successfully');
   } catch (error) {
-    console.error('Failed to initialise Razorpay client:', error);
+    console.error('✗ Failed to initialise Razorpay client:', error);
   }
+} else {
+  console.warn('⚠ Razorpay keys not found in environment. RAZORPAY_KEY_ID:', razorpayKeyId ? '✓ set' : '✗ missing', 'RAZORPAY_KEY_SECRET:', razorpayKeySecret ? '✓ set' : '✗ missing');
 }
 
 const payuKey = process.env.PAYU_KEY;
@@ -325,6 +328,14 @@ app.get('/health', (req, res) => {
 // Create Razorpay Order
 app.post('/api/create-order', async (req, res) => {
   try {
+    // Check if Razorpay is configured
+    if (!razorpay) {
+      return res.status(503).json({ 
+        error: 'Razorpay is not configured on the server.',
+        details: 'Missing RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET in environment variables'
+      });
+    }
+
     const { amount, name, email } = req.body;
     
     if (!amount || !name || !email) {
