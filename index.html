@@ -1431,6 +1431,12 @@
             object-fit: contain;
         }
 
+        .gateway-logo .gateway-name {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #2e3436;
+        }
+
         .gateway-logo.selected {
             background-color: rgba(67, 97, 238, 0.1);
             border-color: var(--primary);
@@ -1450,6 +1456,13 @@
             padding: 12px 16px;
             font-size: 1rem;
             height: 48px;
+        }
+
+        .btn-donate-sm {
+            width: 100%;
+            padding: 10px 14px;
+            font-size: 0.9rem;
+            height: 40px;
         }
 
         .donate-form .radio-group {
@@ -1736,7 +1749,7 @@
                 </div>
                 <div class="auth-buttons">
                     <a href="login.html" class="auth-link">Sign In</a>
-                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Create Account</span></a>
+                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Signup</span></a>
                 </div>
                 <div id="user-menu" class="user-menu" data-open="false">
                     <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
@@ -2058,22 +2071,22 @@
                                 <div class="gateway-options">
                                     <label class="donate-gateway-option gateway-logo">
                                         <input type="radio" name="donate-gateway" value="razorpay" checked>
-                                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='10' y='40' font-size='28' font-weight='bold' fill='%232e3436'%3ERazorpay%3C/text%3E%3C/svg%3E" alt="Razorpay" class="gateway-icon">
+                                        <span class="gateway-name">Razorpay</span>
                                     </label>
                                     <label class="donate-gateway-option gateway-logo">
                                         <input type="radio" name="donate-gateway" value="stripe">
-                                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='10' y='40' font-size='28' font-weight='bold' fill='%235469D4'%3EStripe%3C/text%3E%3C/svg%3E" alt="Stripe" class="gateway-icon">
+                                        <span class="gateway-name">Stripe</span>
                                     </label>
                                     <label class="donate-gateway-option gateway-logo">
                                         <input type="radio" name="donate-gateway" value="payU">
-                                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='10' y='40' font-size='28' font-weight='bold' fill='%23FF6B35'%3EPayU%3C/text%3E%3C/svg%3E" alt="PayU" class="gateway-icon">
+                                        <span class="gateway-name">PayU</span>
                                     </label>
                                 </div>
                             </div>
                             <div class="form-group button-group">
                                 <label>&nbsp;</label>
-                                <button type="submit" class="btn btn-primary btn-donate-lg">
-                                    <i class="fas fa-heart"></i> Donate Now
+                                <button type="submit" class="btn btn-primary btn-donate-sm">
+                                    <i class="fas fa-heart"></i> Donate
                                 </button>
                             </div>
                         </div>
@@ -4332,7 +4345,7 @@
                         <label for="agree-terms">I agree to the <a href="terms-of-service.html">Terms of Service</a> and <a href="privacy-policy.html">Privacy Policy</a></label>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Create Account</button>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Signup</button>
             </form>
             <div class="auth-divider">
                 <span>Or continue with</span>
