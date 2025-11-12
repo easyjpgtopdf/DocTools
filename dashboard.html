@@ -1000,6 +1000,59 @@
                 console.error('Failed to load payment history:', error);
             }
         });
+
+        // Handle dashboard navigation on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const hash = window.location.hash.substring(1); // Remove #
+            if (hash && hash.startsWith('dashboard-')) {
+                // Find the button with matching target
+                const targetButton = document.querySelector(`.dashboard-nav-btn[data-dashboard-target="${hash}"]`);
+                if (targetButton) {
+                    // Remove active from all buttons
+                    document.querySelectorAll('.dashboard-nav-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    // Add active to target button
+                    targetButton.classList.add('active');
+                    
+                    // Show target panel
+                    document.querySelectorAll('.dashboard-panel').forEach(panel => {
+                        panel.classList.remove('active');
+                    });
+                    const targetPanel = document.getElementById(hash);
+                    if (targetPanel) {
+                        targetPanel.classList.add('active');
+                        // Scroll to panel
+                        setTimeout(() => {
+                            targetPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 100);
+                    }
+                }
+            }
+        });
+
+        // Handle hash changes (when clicking links)
+        window.addEventListener('hashchange', () => {
+            const hash = window.location.hash.substring(1);
+            if (hash && hash.startsWith('dashboard-')) {
+                const targetButton = document.querySelector(`.dashboard-nav-btn[data-dashboard-target="${hash}"]`);
+                if (targetButton) {
+                    document.querySelectorAll('.dashboard-nav-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    targetButton.classList.add('active');
+                    
+                    document.querySelectorAll('.dashboard-panel').forEach(panel => {
+                        panel.classList.remove('active');
+                    });
+                    const targetPanel = document.getElementById(hash);
+                    if (targetPanel) {
+                        targetPanel.classList.add('active');
+                        targetPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }
+            }
+        });
     </script>
 
 
