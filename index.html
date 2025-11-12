@@ -1341,11 +1341,8 @@
         }
 
         .donate-container {
-            display: grid;
-            grid-template-columns: 1fr 280px;
-            gap: 30px;
-            align-items: start;
-            max-width: 1000px;
+            display: block;
+            max-width: 800px;
             margin: 25px auto;
         }
 
@@ -1518,44 +1515,12 @@
             background-color: rgba(67, 97, 238, 0.05);
         }
 
-        .donate-features {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .donate-feature {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            padding: 16px;
-            background: rgba(67, 97, 238, 0.06);
-            border-radius: 10px;
-            text-align: center;
-            border: 1px solid rgba(67, 97, 238, 0.2);
-        }
-
-        .donate-feature .feature-icon {
-            font-size: 24px;
-            color: var(--primary);
-        }
-
-        .donate-feature .feature-text h4 {
-            margin: 0;
-            font-size: 0.9rem;
-            color: #2e3436;
-        }
-
-        .donate-feature .feature-text p {
-            margin: 4px 0 0;
-            font-size: 0.8rem;
-            color: #666;
-        }
+        /* Removed donate-features styles */
 
         @media (max-width: 768px) {
             .donate-container {
-                grid-template-columns: 1fr;
-                gap: 30px;
+                max-width: 100%;
+                padding: 0 15px;
             }
 
             .donate-form {
@@ -2138,36 +2103,6 @@
                         <p id="donate-message" class="mt-3 text-center"></p>
                     </form>
 
-                    <!-- Features Sidebar -->
-                    <div class="donate-features">
-                        <div class="donate-feature">
-                            <div class="feature-icon">
-                                <i class="fas fa-lock"></i>
-                            </div>
-                            <div class="feature-text">
-                                <h4>Secure Payments</h4>
-                                <p>Your payment information is encrypted</p>
-                            </div>
-                        </div>
-                        <div class="donate-feature">
-                            <div class="feature-icon">
-                                <i class="fas fa-shield-alt"></i>
-                            </div>
-                            <div class="feature-text">
-                                <h4>SSL Encrypted</h4>
-                                <p>256-bit SSL security for your safety</p>
-                            </div>
-                        </div>
-                        <div class="donate-feature">
-                            <div class="feature-icon">
-                                <i class="fas fa-receipt"></i>
-                            </div>
-                            <div class="feature-text">
-                                <h4>Instant Receipt</h4>
-                                <p>Receive confirmation email immediately</p>
-                            </div>
-                        </div>
-                    </div>
                 </div>
                 <!-- Add Razorpay Script -->
                 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
