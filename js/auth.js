@@ -419,10 +419,25 @@ function initializeAuthUI() {
   dropdownNavLinks.forEach((link) => {
     link.addEventListener('click', (event) => {
       const rawHref = link.getAttribute('href') || '';
-      const targetId = link.dataset.userNav || rawHref.replace('#', '');
+      const targetId = link.dataset.userNav || rawHref.replace(/^[^#]*#/, '');
 
       if (!targetId) {
         closeUserDropdown();
+        return;
+      }
+
+      // Check if we're on the dashboard page
+      const currentPage = window.location.pathname.split('/').pop();
+      const isDashboardPage = currentPage === 'dashboard.html' || currentPage === '';
+      
+      // Check if link points to dashboard
+      const isDashboardLink = rawHref.includes('dashboard.html') || rawHref.startsWith('#dashboard');
+
+      // If we're on dashboard page AND link is for dashboard, prevent navigation
+      if (isDashboardPage && isDashboardLink) {
+        event.preventDefault();
+        closeUserDropdown();
+        revealDashboardSection(targetId);
         return;
       }
 
