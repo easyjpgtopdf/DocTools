@@ -1,21 +1,12 @@
-/**
- * Global Header & Footer Component Loader
- * Dynamically loads header and footer across all pages
- * Auto-updates all pages when header/footer changes
- */
-
-// Prevent multiple executions
-if (window.globalComponentsLoaded) {
-    console.warn('Global components already loaded, skipping duplicate execution');
-} else {
-    window.globalComponentsLoaded = true;
-}
-
-// Get current page filename for active link highlighting
-const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-
-// Global Header HTML
-const globalHeaderHTML = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Header Footer</title>
+    <link rel="stylesheet" href="css/footer.css">
+    <link rel="stylesheet" href="css/header.css"></head>
+<body>
 <header>
     <div class="container">
         <nav class="navbar">
@@ -102,10 +93,21 @@ const globalHeaderHTML = `
         </nav>
     </div>
 </header>
-`;
 
-// Global Footer HTML
-const globalFooterHTML = `
+    <main style="padding: 50px; text-align: center;">
+        <h1>Header Footer Test Page</h1>
+        <p>Agar header upar aur footer neeche dikh raha hai, to sab kuch kaam kar raha hai!</p>
+    </main><script>
+        // Debug logging
+        console.log('Test page loaded');
+        console.log('Header placeholder:', document.getElementById('global-header-placeholder'));
+        console.log('Footer placeholder:', document.getElementById('global-footer-placeholder'));
+        setTimeout(() => {
+            console.log('After 1 second - Header exists:', document.querySelector('header'));
+            console.log('After 1 second - Footer exists:', document.querySelector('footer'));
+        }, 1000);
+    </script>
+
 <footer>
     <div class="container footer-inner">
         <div class="footer-company-links">
@@ -122,51 +124,6 @@ const globalFooterHTML = `
         </p>
     </div>
 </footer>
-`;
-
-// Function to load header
-function loadGlobalHeader() {
-    const headerPlaceholder = document.getElementById('global-header-placeholder');
-    if (headerPlaceholder) {
-        headerPlaceholder.outerHTML = globalHeaderHTML;
-        highlightActiveLink();
-    }
-}
-
-// Function to load footer
-function loadGlobalFooter() {
-    const footerPlaceholder = document.getElementById('global-footer-placeholder');
-    if (footerPlaceholder) {
-        footerPlaceholder.outerHTML = globalFooterHTML;
-    }
-}
-
-// Function to highlight active navigation link
-function highlightActiveLink() {
-    const navLinks = document.querySelectorAll('.navbar a[href]');
-    navLinks.forEach(link => {
-        const linkHref = link.getAttribute('href');
-        if (linkHref === currentPage || (currentPage === '' && linkHref === 'index.html')) {
-            link.classList.add('active');
-        }
-    });
-}
-
-// Auto-initialize when DOM is ready (only if not already loaded)
-if (!window.globalComponentsInitialized) {
-    window.globalComponentsInitialized = true;
-    
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            loadGlobalHeader();
-            loadGlobalFooter();
-        });
-    } else {
-        loadGlobalHeader();
-        loadGlobalFooter();
-    }
-}
-
-// Export functions for manual use if needed
-window.loadGlobalHeader = loadGlobalHeader;
-window.loadGlobalFooter = loadGlobalFooter;
+    <script src="js/auth.js"></script>
+</body>
+</html>

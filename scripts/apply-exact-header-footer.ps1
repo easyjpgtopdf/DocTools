@@ -1,21 +1,11 @@
-/**
- * Global Header & Footer Component Loader
- * Dynamically loads header and footer across all pages
- * Auto-updates all pages when header/footer changes
- */
+# Apply Exact Header & Footer from Index to All Pages
+$rootPath = "C:\Users\apnao\Downloads\DocTools"
 
-// Prevent multiple executions
-if (window.globalComponentsLoaded) {
-    console.warn('Global components already loaded, skipping duplicate execution');
-} else {
-    window.globalComponentsLoaded = true;
-}
+Write-Host "=== Applying Index Page Header & Footer to All Pages ===" -ForegroundColor Cyan
+Write-Host ""
 
-// Get current page filename for active link highlighting
-const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-
-// Global Header HTML
-const globalHeaderHTML = `
+# Exact header HTML from index page (via global-components.js)
+$headerHTML = @'
 <header>
     <div class="container">
         <nav class="navbar">
@@ -102,10 +92,10 @@ const globalHeaderHTML = `
         </nav>
     </div>
 </header>
-`;
+'@
 
-// Global Footer HTML
-const globalFooterHTML = `
+# Exact footer HTML from index page (via global-components.js)
+$footerHTML = @'
 <footer>
     <div class="container footer-inner">
         <div class="footer-company-links">
@@ -122,51 +112,61 @@ const globalFooterHTML = `
         </p>
     </div>
 </footer>
-`;
+'@
 
-// Function to load header
-function loadGlobalHeader() {
-    const headerPlaceholder = document.getElementById('global-header-placeholder');
-    if (headerPlaceholder) {
-        headerPlaceholder.outerHTML = globalHeaderHTML;
-        highlightActiveLink();
-    }
+# Get all HTML files except index.html
+$htmlFiles = Get-ChildItem -Path $rootPath -Filter "*.html" -File | Where-Object {
+    $_.Name -ne "index.html" -and
+    $_.FullName -notmatch "\\backups\\" -and 
+    $_.FullName -notmatch "\\node_modules\\" -and
+    $_.FullName -notmatch "\\server\\"
 }
 
-// Function to load footer
-function loadGlobalFooter() {
-    const footerPlaceholder = document.getElementById('global-footer-placeholder');
-    if (footerPlaceholder) {
-        footerPlaceholder.outerHTML = globalFooterHTML;
-    }
-}
+Write-Host "Found $($htmlFiles.Count) files to update" -ForegroundColor Yellow
+Write-Host ""
 
-// Function to highlight active navigation link
-function highlightActiveLink() {
-    const navLinks = document.querySelectorAll('.navbar a[href]');
-    navLinks.forEach(link => {
-        const linkHref = link.getAttribute('href');
-        if (linkHref === currentPage || (currentPage === '' && linkHref === 'index.html')) {
-            link.classList.add('active');
-        }
-    });
-}
+$processedCount = 0
 
-// Auto-initialize when DOM is ready (only if not already loaded)
-if (!window.globalComponentsInitialized) {
-    window.globalComponentsInitialized = true;
+foreach ($file in $htmlFiles) {
+    Write-Host "Processing: $($file.Name)..." -NoNewline
     
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            loadGlobalHeader();
-            loadGlobalFooter();
-        });
-    } else {
-        loadGlobalHeader();
-        loadGlobalFooter();
+    $content = [System.IO.File]::ReadAllText($file.FullName, [System.Text.UTF8Encoding]::new($false))
+    
+    # Add header after <body> tag
+    if ($content -match '<body[^>]*>') {
+        $content = $content -replace '(<body[^>]*>)', "`$1`n$headerHTML`n"
     }
+    
+    # Add footer before </body> tag
+    if ($content -match '</body>') {
+        $content = $content -replace '(</body>)', "`n$footerHTML`n`$1"
+    }
+    
+    # Ensure CSS links are present
+    if ($content -notmatch 'href="css/header\.css"') {
+        $content = $content -replace '(</title>)', "`$1`n    <link rel=`"stylesheet`" href=`"css/header.css`">"
+    }
+    if ($content -notmatch 'href="css/footer\.css"') {
+        $content = $content -replace '(</title>)', "`$1`n    <link rel=`"stylesheet`" href=`"css/footer.css`">"
+    }
+    
+    # Add auth.js script if not present (for user menu functionality)
+    if ($content -notmatch 'src="js/auth\.js"' -and $content -match '</body>') {
+        $content = $content -replace '(</body>)', "    <script src=`"js/auth.js`"></script>`n`$1"
+    }
+    
+    [System.IO.File]::WriteAllText($file.FullName, $content, [System.Text.UTF8Encoding]::new($false))
+    Write-Host " DONE" -ForegroundColor Green
+    $processedCount++
 }
 
-// Export functions for manual use if needed
-window.loadGlobalHeader = loadGlobalHeader;
-window.loadGlobalFooter = loadGlobalFooter;
+Write-Host ""
+Write-Host "=== Complete ===" -ForegroundColor Cyan
+Write-Host "Processed: $processedCount files" -ForegroundColor Green
+Write-Host ""
+Write-Host "All pages now have:" -ForegroundColor Green
+Write-Host "  - Exact same header as index.html" -ForegroundColor White
+Write-Host "  - Exact same footer as index.html" -ForegroundColor White
+Write-Host "  - Same fonts, spacing, alignment" -ForegroundColor White
+Write-Host "  - header.css & footer.css linked" -ForegroundColor White
+Write-Host "  - auth.js for user menu functionality" -ForegroundColor White
