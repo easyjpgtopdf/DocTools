@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protect Excel - Password Protect Excel Files Online | easyjpgtopdf</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --accent: #4cc9f0;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --success: #4bb543;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --gray: #6c757d;
+            --light-gray: #e9ecef;
+        }
+
+        body {
+            background-color: #f5f7ff;
+            color: var(--dark);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header Styles */
+        header {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo i {
+            margin-right: 10px;
+        }
+
+        /* Main Content */
+        main {
+            flex: 1;
+            padding: 40px 0;
+        }
+
+        .tool-page {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-top: 20px;
+        }
+
+        .tool-page h2 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            font-size: 28px;
+        }
+
+        .tool-page p {
+            color: var(--gray);
+            margin-bottom: 25px;
+            font-size: 16px;
+        }
+
+        /* Upload Area */
+        .upload-area {
+            border: 2px dashed var(--primary);
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+            background-color: #f8f9ff;
+        }
+
+        .upload-area:hover {
+            background-color: #f0f2ff;
+            border-color: var(--secondary);
+        }
+
+        .upload-area i {
+            font-size: 48px;
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+
+        .upload-area h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: var(--dark);
+        }
+
+        .upload-area p {
+            color: var(--gray);
+            margin: 0;
+            font-size: 14px;
+        }
+
+        /* File List */
+        .file-list {
+            display: none;
+            margin: 20px 0;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: white;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-remove {
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 20px;
+            padding: 0 5px;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-block {
+            display: block;
+            width: 100%;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            display: none;
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress {
+            height: 100%;
+            background: var(--primary);
+            width: 0;
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            text-align: center;
+            color: var(--gray);
+            font-size: 14px;
+        }
+
+        /* Success Message */
+        .success-message {
+            display: none;
+            background: #d4edda;
+            color: #155724;
+            padding: 12px 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .success-message i {
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+
+        .success-message button {
+            background: none;
+            border: none;
+            color: #155724;
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 0 5px;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--dark);
+            color: white;
+            padding: 30px 0;
+            margin-top: 40px;
+        }
+
+        .footer-inner {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        .footer-section {
+            flex: 1;
+            min-width: 200px;
+            margin-bottom: 20px;
+        }
+
+        .footer-section h3 {
+            color: white;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .footer-section ul {
+            list-style: none;
+        }
+
+        .footer-section ul li {
+            margin-bottom: 8px;
+        }
+
+        .footer-section ul li a {
+            color: #adb5bd;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .footer-section ul li a:hover {
+            color: white;
+        }
+
+        .copyright {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #495057;
+            color: #adb5bd;
+            font-size: 14px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 15px;
+            }
+
+            .tool-page {
+                padding: 20px 15px;
+            }
+
+            .upload-area {
+                padding: 30px 15px;
+            }
+
+            .upload-area i {
+                font-size: 36px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <a href="#" class="logo">
+                    <i class="fas fa-lock"></i>
+                    <span>Excel Protector</span>
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <div class="container">
+            <div class="tool-page">
+                <h2>Excel फ़ाइल को पासवर्ड से सुरक्षित करें</h2>
+                <p>अपनी एक्सेल फ़ाइलों को पासवर्ड से सुरक्षित करें और अपने डेटा को सुरक्षित रखें।</p>
+                
+                <div class="upload-area" id="dropZone">
+                    <i class="fas fa-file-excel"></i>
+                    <h3>अपनी Excel फ़ाइल यहां अपलोड करें</h3>
+                    <p>या फ़ाइल चुनने के लिए क्लिक करें</p>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls,.xlsm,.xlsb,.csv,.ods" style="display: none;">
+                </div>
+                
+                <!-- File List -->
+                <div class="file-list" id="fileList">
+                    <div id="fileItems"></div>
+                </div>
+                
+                <!-- Password Form -->
+                <div class="form-group">
+                    <label for="password">पासवर्ड (कम से कम 4 अक्षर)</label>
+                    <input type="password" id="password" class="form-control" placeholder="पासवर्ड दर्ज करें">
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirmPassword">पासवर्ड की पुष्टि करें</label>
+                    <input type="password" id="confirmPassword" class="form-control" placeholder="पासवर्ड दोबारा दर्ज करें">
+                </div>
+                
+                <!-- Protection Options -->
+                <div class="form-group">
+                    <label>सुरक्षा विकल्प:</label>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="protectStructure" checked>
+                        <label for="protectStructure">वर्कबुक संरचना को सुरक्षित रखें</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="protectWindows" checked>
+                        <label for="protectWindows">विंडो लेआउट को सुरक्षित रखें</label>
+                    </div>
+                </div>
+                
+                <!-- File Format -->
+                <div class="form-group">
+                    <label for="fileFormat">आउटपुट प्रारूप:</label>
+                    <select id="fileFormat" class="form-control">
+                        <option value="xlsx">XLSX (Excel Workbook)</option>
+                        <option value="xls">XLS (Excel 97-2003)</option>
+                    </select>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar">
+                        <div class="progress" id="progressBar"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">प्रोसेसिंग...</div>
+                </div>
+                
+                <!-- Success Message -->
+                <div class="success-message" id="successMessage">
+                    <div>
+                        <i class="fas fa-check-circle"></i>
+                        <span>फ़ाइल सफलतापूर्वक डाउनलोड हो गई!</span>
+                    </div>
+                    <button onclick="this.parentElement.style.display='none'">×</button>
+                </div>
+                
+                <!-- Protect Button -->
+                <button id="protectBtn" class="btn btn-block" onclick="protectExcel()" disabled>
+                    <i class="fas fa-lock"></i> एक्सेल फ़ाइल सुरक्षित करें
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-inner">
+                <div class="footer-section">
+                    <h3>Excel Protector</h3>
+                    <p>आपकी एक्सेल फ़ाइलों को सुरक्षित रखने के लिए सरल और प्रभावी उपकरण।</p>
+                </div>
+                <div class="footer-section">
+                    <h3>लिंक</h3>
+                    <ul>
+                        <li><a href="#">होम</a></li>
+                        <li><a href="#">हमारे बारे में</a></li>
+                        <li><a href="#">संपर्क करें</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                &copy; 2023 Excel Protector. सर्वाधिकार सुरक्षित।
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            const fileList = document.getElementById('fileList');
+            const fileItems = document.getElementById('fileItems');
+            const protectBtn = document.getElementById('protectBtn');
+            const passwordInput = document.getElementById('password');
+            const confirmPasswordInput = document.getElementById('confirmPassword');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            
+            let selectedFile = null;
+            
+            // Prevent default drag behaviors
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            // Highlight drop zone when item is dragged over it
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, highlight, false);
+            });
+            
+            // Unhighlight drop zone when item is dragged out of it
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, unhighlight, false);
+            });
+            
+            function highlight() {
+                dropZone.classList.add('highlight');
+            }
+            
+            function unhighlight() {
+                dropZone.classList.remove('highlight');
+            }
+            
+            // Handle dropped files
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                handleFiles(files);
+            }
+            
+            // Super simple file handling
+            function handleFiles(files) {
+                // Reset UI
+                fileItems.innerHTML = '<div style="padding:10px;background:#e8f4ff;border-radius:5px;">फ़ाइल चेक की जा रही है...</div>';
+                
+                // Basic check
+                if (!files || !files.length) {
+                    fileItems.innerHTML = '<div style="color:red;">कोई फ़ाइल नहीं मिली</div>';
+                    return;
+                }
+                
+                const file = files[0];
+                
+                // Show file info
+                fileItems.innerHTML = `
+                    <div style="padding:10px;background:#e8f4ff;border-radius:5px;margin:10px 0;">
+                        <div><strong>फ़ाइल:</strong> ${file.name}</div>
+                        <div><strong>आकार:</strong> ${(file.size/1024).toFixed(2)} KB</div>
+                        <div style="color:green;margin-top:5px;">✓ फ़ाइल चयनित है</div>
+                    </div>
+                `;
+                
+                // Store file
+                selectedFile = file;
+                updateProtectButton();
+            }
+            
+            // Simple remove file function
+            window.removeFile = function() {
+                console.log('Removing file...');
+                selectedFile = null;
+                fileInput.value = '';
+                fileItems.innerHTML = '';
+                fileList.style.display = 'none';
+                updateProtectButton();
+            };
+            
+            // Simple protect button state update
+            function updateProtectButton() {
+                const hasFile = !!selectedFile;
+                const password = passwordInput.value.trim();
+                const confirmPassword = confirmPasswordInput.value.trim();
+                
+                // Enable button only if all conditions are met
+                const shouldEnable = hasFile && 
+                                  password.length >= 4 && 
+                                  password === confirmPassword;
+                
+                protectBtn.disabled = !shouldEnable;
+                
+                // Log the state for debugging
+                console.log('Update protect button:', {
+                    hasFile,
+                    passwordLength: password.length,
+                    passwordsMatch: password === confirmPassword,
+                    buttonEnabled: shouldEnable
+                });
+            }
+            
+            // Show/hide progress bar
+            function showProgress(show, message = '') {
+                if (show) {
+                    progressContainer.style.display = 'block';
+                    progressText.textContent = message;
+                } else {
+                    progressContainer.style.display = 'none';
+                }
+            }
+            
+            // Update progress bar
+            function updateProgress(percent) {
+                progressBar.style.width = percent + '%';
+            }
+            
+            // Show success message with download button
+            function showSuccessMessage() {
+                const successMessage = document.getElementById('successMessage');
+                if (successMessage) {
+                    successMessage.style.display = 'flex';
+                    
+                    // Add click handler for download again button
+                    const downloadAgainBtn = successMessage.querySelector('button');
+                    if (downloadAgainBtn) {
+                        downloadAgainBtn.onclick = function() {
+                            console.log('Download again button clicked');
+                            if (window.lastDownloadUrl) {
+                                const a = document.createElement('a');
+                                a.href = window.lastDownloadUrl.url;
+                                a.download = window.lastDownloadUrl.filename;
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                            } else {
+                                alert('डाउनलोड लिंक उपलब्ध नहीं है। कृपया पुनः प्रयास करें।');
+                            }
+                        };
+                    }
+                }
+            }
+            
+            // Simple and reliable event listeners
+            dropZone.addEventListener('click', () => {
+                console.log('Drop zone clicked');
+                fileInput.click();
+            });
+            
+            // Simple file input handler
+            fileInput.addEventListener('change', function() {
+                // Show loading
+                fileItems.innerHTML = '<div style="padding:10px;color:#666;">फ़ाइल लोड हो रही है...</div>';
+                
+                // Process file
+                if (this.files && this.files.length > 0) {
+                    handleFiles(this.files);
+                } else {
+                    fileItems.innerHTML = '<div style="color:red;">कोई फ़ाइल नहीं चुनी गई</div>';
+                }
+            });
+            
+            // Handle drag and drop
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            // Highlight drop zone when item is dragged over it
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, unhighlight, false);
+            });
+            
+            // Handle dropped files
+            dropZone.addEventListener('drop', function(e) {
+                console.log('File dropped');
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length) {
+                    handleFiles(files);
+                }
+            });
+            
+            passwordInput.addEventListener('input', updateProtectButton);
+            confirmPasswordInput.addEventListener('input', updateProtectButton);
+            
+            // Make functions globally available
+            window.removeFile = removeFile;
+            
+            // Protect Excel file with enhanced download functionality
+            window.protectExcel = async function() {
+                console.log('protectExcel called');
+                console.log('Selected file:', selectedFile);
+                
+                if (!selectedFile) {
+                    const errorMsg = 'कृपया एक एक्सेल फ़ाइल चुनें';
+                    console.error(errorMsg);
+                    alert(errorMsg);
+                    return;
+                }
+
+                const password = passwordInput.value.trim();
+                const confirmPassword = confirmPasswordInput.value.trim();
+                const protectStructure = document.getElementById('protectStructure').checked;
+                const protectWindows = document.getElementById('protectWindows').checked;
+                const outputFormat = document.getElementById('fileFormat').value;
+                
+                // Validation
+                if (password.length < 4) {
+                    alert('पासवर्ड कम से कम 4 अक्षरों का होना चाहिए');
+                    return;
+                }
+                
+                if (password !== confirmPassword) {
+                    alert('पासवर्ड मेल नहीं खाते');
+                    return;
+                }
+
+                // Show loading state
+                protectBtn.disabled = true;
+                protectBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> प्रोसेस किया जा रहा है...';
+                
+                // Show progress
+                showProgress(true, 'फ़ाइल पढ़ी जा रही है...');
+                updateProgress(10);
+
+                try {
+                    // Validate file type
+                    const validExtensions = ['.xlsx', '.xls', '.xlsb', '.xlsm', '.csv', '.ods'];
+                    const fileExt = selectedFile.name.split('.').pop().toLowerCase();
+                    
+                    if (!validExtensions.some(ext => selectedFile.name.toLowerCase().endsWith(ext))) {
+                        throw new Error('अमान्य फ़ाइल प्रकार। कृपया एक वैध एक्सेल फ़ाइल अपलोड करें।');
+                    }
+                    
+                    // Check file size (increased to 50MB)
+                    const maxSize = 50 * 1024 * 1024; // 50MB
+                    if (selectedFile.size > maxSize) {
+                        throw new Error(`फ़ाइल का आकार बहुत बड़ा है। अधिकतम आकार ${formatFileSize(maxSize)} है।`);
+                    }
+                    
+                    updateProgress(20);
+                    showProgress(true, 'फ़ाइल प्रोसेस की जा रही है...');
+                    
+                    // Read file as array buffer
+                    const arrayBuffer = await readFileAsArrayBuffer(selectedFile);
+                    if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+                        throw new Error('फ़ाइल खाली है या पढ़ी नहीं जा सकी');
+                    }
+                    
+                    updateProgress(40);
+                    showProgress(true, 'फ़ाइल सुरक्षित की जा रही है...');
+                    
+                    // Process the Excel file
+                    const excelBuffer = await processExcelFile(
+                        arrayBuffer, 
+                        password, 
+                        protectStructure, 
+                        protectWindows, 
+                        outputFormat
+                    );
+                    
+                    if (!excelBuffer || excelBuffer.byteLength === 0) {
+                        throw new Error('फ़ाइल बनाने में त्रुटि हुई');
+                    }
+                    
+                    updateProgress(80);
+                    showProgress(true, 'डाउनलोड तैयार किया जा रहा है...');
+                    
+                    // Prepare download
+                    const fileExtension = outputFormat === 'xls' ? 'xls' : 'xlsx';
+                    const mimeType = outputFormat === 'xls' 
+                        ? 'application/vnd.ms-excel' 
+                        : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                    
+                    const originalName = selectedFile.name.replace(/[^\w\d\.\-]/g, '_');
+                    const outputFilename = originalName.replace(
+                        /\.(xlsx?|xlsm?|xlsb?|xml|ods|fods|csv)$/i, 
+                        ''
+                    ) + `_protected.${fileExtension}`;
+                    
+                    // Create blob and download using a more reliable method
+                    try {
+                        console.log('Creating blob for download...');
+                        
+                        // Create a Blob from the Excel buffer
+                        const blob = new Blob([excelBuffer], { type: mimeType });
+                        console.log('Blob created successfully');
+                        
+                        // Create a URL for the blob
+                        const url = window.URL.createObjectURL(blob);
+                        console.log('Blob URL created:', url);
+                        
+                        // Create a temporary anchor element
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = url;
+                        a.download = outputFilename;
+                        a.textContent = 'Download';
+                        
+                        // Add click event listener for better error handling
+                        a.onclick = function() {
+                            console.log('Download link clicked');
+                            // This will be triggered before the actual download starts
+                            setTimeout(() => {
+                                console.log('Download should have started');
+                                // Cleanup after a short delay
+                                setTimeout(() => {
+                                    document.body.removeChild(a);
+                                    window.URL.revokeObjectURL(url);
+                                    console.log('Cleanup complete');
+                                }, 1000);
+                            }, 100);
+                        };
+                        
+                        // Append to body and trigger download
+                        console.log('Appending link to body and triggering download...');
+                        document.body.appendChild(a);
+                        a.click();
+                        
+                        // Show success message
+                        updateProgress(100);
+                        showSuccessMessage();
+                        
+                        // Set up download again button
+                        const downloadAgainBtn = document.getElementById('downloadAgain');
+                        if (downloadAgainBtn) {
+                            downloadAgainBtn.onclick = function() {
+                                console.log('Download again clicked');
+                                const newA = document.createElement('a');
+                                newA.href = url;
+                                newA.download = outputFilename;
+                                document.body.appendChild(newA);
+                                newA.click();
+                                document.body.removeChild(newA);
+                            };
+                        }
+                        
+                    } catch (error) {
+                        console.error('Download error:', error);
+                        throw new Error('फ़ाइल डाउनलोड करने में विफल: ' + (error.message || 'कृपया पुनः प्रयास करें'));
+                    }
+                    
+                    // Hide success message after 10 seconds
+                    setTimeout(() => {
+                        const successMessage = document.getElementById('successMessage');
+                        if (successMessage) {
+                            successMessage.style.display = 'none';
+                        }
+                    }, 10000);
+                    
+                } catch (error) {
+                    console.error('Error in protectExcel:', error);
+                    alert('त्रुटि: ' + (error.message || 'फ़ाइल को सुरक्षित करने में विफल। कृपया पुनः प्रयास करें।'));
+                } finally {
+                    // Reset button state
+                    showProgress(false);
+                    protectBtn.disabled = false;
+                    protectBtn.innerHTML = '<i class="fas fa-lock"></i> एक्सेल फ़ाइल सुरक्षित करें';
+                }
+            };
+            
+            // Improved Excel file processing with better error handling and memory management
+            async function processExcelFile(arrayBuffer, password, protectStructure, protectWindows, outputFormat) {
+                console.log('Starting to process Excel file...');
+                
+                if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+                    throw new Error('खाली फ़ाइल अपलोड की गई है');
+                }
+                
+                // Read the workbook with error handling
+                console.log('Reading workbook...');
+                let workbook;
+                try {
+                    // Optimize read options for better performance
+                    workbook = XLSX.read(arrayBuffer, { 
+                        type: 'array',
+                        cellStyles: false, // Disable cell styles for better performance
+                        cellDates: true,
+                        dense: true,
+                        cellFormula: false, // Disable formula parsing for better performance
+                        cellHTML: false,    // Disable HTML parsing for better performance
+                        sheetStubs: false   // Disable stubs for better performance
+                    });
+                    console.log('Workbook read successfully');
+                } catch (readError) {
+                    console.error('Excel फ़ाइल पढ़ने में त्रुटि:', readError);
+                    throw new Error('अमान्य Excel फ़ाइल। कृपया एक वैध Excel फ़ाइल (XLSX, XLS, आदि) अपलोड करें');
+                }
+                
+                if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+                    throw new Error('Excel फ़ाइल में कोई वर्कशीट नहीं मिली');
+                }
+                
+                console.log('Creating new workbook...');
+                const wb = XLSX.utils.book_new();
+                
+                // Process each worksheet with memory management
+                console.log('Processing worksheets...');
+                const totalSheets = workbook.SheetNames.length;
+                
+                for (let i = 0; i < totalSheets; i++) {
+                    const sheetName = workbook.SheetNames[i];
+                    try {
+                        console.log(`Processing sheet ${i+1} of ${totalSheets}: ${sheetName}`);
+                        
+                        // Update progress
+                        const progress = 20 + Math.floor((i / totalSheets) * 60);
+                        updateProgress(progress);
+                        showProgress(true, `शीट प्रोसेस की जा रही है: ${i+1}/${totalSheets} (${sheetName})`);
+                        
+                        const ws = workbook.Sheets[sheetName];
+                        
+                        // Process in chunks to reduce memory usage
+                        const chunkSize = 1000; // Process 1000 rows at a time
+                        const jsonData = [];
+                        const range = XLSX.utils.decode_range(ws['!ref']);
+                        
+                        // Process rows in chunks
+                        for (let R = range.s.r; R <= range.e.r; R += chunkSize) {
+                            const endRow = Math.min(R + chunkSize - 1, range.e.r);
+                            const chunkRange = XLSX.utils.encode_range({
+                                s: {r: R, c: range.s.c},
+                                e: {r: endRow, c: range.e.c}
+                            });
+                            
+                            // Process this chunk
+                            const chunkWs = XLSX.utils.sheet_to_json(ws, {
+                                header: 1,
+                                range: chunkRange,
+                                defval: "",
+                                raw: true,
+                                skipHidden: false
+                            });
+                            
+                            // Add to our data
+                            jsonData.push(...chunkWs);
+                            
+                            // Allow UI to update
+                            await new Promise(resolve => setTimeout(resolve, 0));
+                        }
+                        
+                        // Create new worksheet from processed data
+                        const newWs = XLSX.utils.aoa_to_sheet(jsonData);
+                        
+                        // Copy column widths if available
+                        if (ws['!cols']) {
+                            newWs['!cols'] = JSON.parse(JSON.stringify(ws['!cols']));
+                        }
+                        
+                        // Apply sheet protection with optimized settings
+                        if (password) {
+                            newWs['!protect'] = {
+                                selectLockedCells: true,
+                                selectUnlockedCells: true,
+                                formatCells: true,
+                                formatColumns: true,
+                                formatRows: true,
+                                insertColumns: false,
+                                insertRows: false,
+                                insertHyperlinks: false,
+                                deleteColumns: false,
+                                deleteRows: false,
+                                sort: false,
+                                autoFilter: false,
+                                pivotTables: false,
+                                objects: true,
+                                scenarios: true,
+                                password: password
+                            };
+                            
+                            // Only lock non-empty cells to save memory
+                            const range = XLSX.utils.decode_range(newWs['!ref']);
+                            const totalCells = (range.e.r - range.s.r + 1) * (range.e.c - range.s.c + 1);
+                            let processedCells = 0;
+                            
+                            for (let R = range.s.r; R <= range.e.r; R++) {
+                                for (let C = range.s.c; C <= range.e.c; C++) {
+                                    const cellRef = XLSX.utils.encode_cell({r: R, c: C});
+                                    if (newWs[cellRef]) {
+                                        if (!newWs[cellRef].s) newWs[cellRef].s = {};
+                                        if (!newWs[cellRef].s.protection) newWs[cellRef].s.protection = {};
+                                        newWs[cellRef].s.protection.locked = true;
+                                    }
+                                    
+                                    // Update progress every 1000 cells
+                                    processedCells++;
+                                    if (processedCells % 1000 === 0) {
+                                        const cellProgress = Math.floor((processedCells / totalCells) * 20);
+                                        updateProgress(progress + cellProgress);
+                                        await new Promise(resolve => setTimeout(resolve, 0));
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Add worksheet to workbook
+                        XLSX.utils.book_append_sheet(wb, newWs, sheetName);
+                        console.log(`Sheet ${sheetName} processed successfully`);
+                        
+                        // Force garbage collection
+                        if (typeof window.gc === 'function') {
+                            window.gc();
+                        }
+                        
+                    } catch (sheetError) {
+                        console.error(`शीट ${sheetName} को प्रोसेस करने में त्रुटि:`, sheetError);
+                        throw new Error(`शीट '${sheetName}' को प्रोसेस करने में विफल: ${sheetError.message}`);
+                    }
+                }
+                
+                // Set workbook protection if password is provided
+                if (password) {
+                    console.log('Applying workbook protection...');
+                    wb.Workbook = wb.Workbook || {};
+                    wb.Workbook.WorkbookProtection = {
+                        workbookPassword: password,
+                        lockStructure: protectStructure,
+                        lockWindows: protectWindows,
+                        lockRevision: true
+                    };
+                }
+                
+                // Determine output format
+                const bookType = outputFormat || 'xlsx';
+                console.log(`Writing workbook as ${bookType}...`);
+                showProgress(true, 'फ़ाइल सेव की जा रही है...');
+                updateProgress(90);
+                
+                // Write options with optimization
+                const writeOpts = {
+                    bookType: bookType,
+                    type: 'array',
+                    bookSST: true,          // Use shared string table
+                    compression: true,       // Enable compression
+                    ignoreEC: false,         // Don't ignore Excel compatibility
+                    cellStyles: false,       // Disable cell styles for better performance
+                    sheetStubs: false,       // Disable stubs for better performance
+                    cellFormula: false,      // Disable formula parsing for better performance
+                    cellHTML: false          // Disable HTML parsing for better performance
+                };
+                
+                if (password) {
+                    writeOpts.password = password;
+                }
+                
+                try {
+                    // Write in chunks if the file is large
+                    const chunkSize = 1000; // Rows per chunk
+                    let result;
+                    
+                    if (bookType === 'xlsx') {
+                        // For XLSX, we can write directly
+                        result = XLSX.write(wb, writeOpts);
+                    } else {
+                        // For other formats, process in chunks
+                        const tempWb = XLSX.utils.book_new();
+                        const sheetNames = wb.SheetNames;
+                        
+                        for (const sheetName of sheetNames) {
+                            const ws = wb.Sheets[sheetName];
+                            const range = XLSX.utils.decode_range(ws['!ref']);
+                            const totalRows = range.e.r - range.s.r + 1;
+                            
+                            // Process in chunks
+                            for (let R = range.s.r; R <= range.e.r; R += chunkSize) {
+                                const endRow = Math.min(R + chunkSize - 1, range.e.r);
+                                const chunkRange = XLSX.utils.encode_range({
+                                    s: {r: R, c: range.s.c},
+                                    e: {r: endRow, c: range.e.c}
+                                });
+                                
+                                // Process this chunk
+                                const chunkWs = XLSX.utils.sheet_to_json(ws, {
+                                    header: 1,
+                                    range: chunkRange,
+                                    defval: "",
+                                    raw: true,
+                                    skipHidden: false
+                                });
+                                
+                                // Add to temp worksheet
+                                const tempWs = XLSX.utils.aoa_to_sheet(chunkWs);
+                                XLSX.utils.book_append_sheet(tempWb, tempWs, sheetName);
+                                
+                                // Update progress
+                                const progress = 90 + Math.floor(((R - range.s.r) / totalRows) * 10);
+                                updateProgress(progress);
+                                await new Promise(resolve => setTimeout(resolve, 0));
+                            }
+                        }
+                        
+                        // Write the final workbook
+                        result = XLSX.write(tempWb, writeOpts);
+                    }
+                    
+                    console.log('Workbook written successfully');
+                    return result;
+                } catch (writeError) {
+                    console.error('Excel फ़ाइल लिखने में त्रुटि:', writeError);
+                    throw new Error('सुरक्षित फ़ाइल बनाने में विफल। फ़ाइल बहुत बड़ी हो सकती है या खराब हो सकती है।');
+                }
+                } catch (error) {
+                    console.error('Excel प्रोसेसिंग में त्रुटि:', error);
+                    throw error instanceof Error ? error : new Error('Excel फ़ाइल को प्रोसेस करने में विफल: ' + (error.message || ''));
+                }
+            }
+            
+            // Read file as array buffer with better error handling
+            function readFileAsArrayBuffer(file) {
+                return new Promise((resolve, reject) => {
+                    console.log('Reading file:', file.name, 'Size:', file.size, 'bytes');
+                    
+                    if (!file) {
+                        const error = new Error('कोई फ़ाइल नहीं चुनी गई है');
+                        console.error(error);
+                        return reject(error);
+                    }
+                    
+                    // Check file size
+                    const maxSize = 50 * 1024 * 1024; // 50MB
+                    if (file.size > maxSize) {
+                        const error = new Error(`फ़ाइल का आकार बहुत बड़ा है। अधिकतम आकार ${formatFileSize(maxSize)} है।`);
+                        console.error(error);
+                        return reject(error);
+                    }
+                    
+                    const reader = new FileReader();
+                    
+                    reader.onload = (event) => {
+                        console.log('File read successfully, size:', event.total, 'bytes');
+                        if (!event.target || !event.target.result) {
+                            const error = new Error('फ़ाइल पढ़ने में विफल: कोई डेटा नहीं मिला');
+                            console.error(error);
+                            return reject(error);
+                        }
+                        resolve(event.target.result);
+                    };
+                    
+                    reader.onerror = (error) => {
+                        console.error('फ़ाइल पढ़ने में त्रुटि:', error);
+                        reject(new Error(`फ़ाइल पढ़ने में विफल: ${error.message || 'अज्ञात त्रुटि'}`));
+                    };
+                    
+                    reader.onabort = () => {
+                        const error = new Error('फ़ाइल पढ़ना रद्द कर दिया गया');
+                        console.error(error);
+                        reject(error);
+                    };
+                    
+                    // Start reading the file
+                    try {
+                        reader.readAsArrayBuffer(file);
+                    } catch (error) {
+                        console.error('फ़ाइल पढ़ने में अपवाद:', error);
+                        reject(new Error(`फ़ाइल पढ़ने में त्रुटि: ${error.message}`));
+                    }
+                });
+            }
+            
+            // Make utility functions available globally
+            window.formatFileSize = formatFileSize;
+        });
+    </script>
+</body>
+</html>
