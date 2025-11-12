@@ -419,10 +419,25 @@ function initializeAuthUI() {
   dropdownNavLinks.forEach((link) => {
     link.addEventListener('click', (event) => {
       const rawHref = link.getAttribute('href') || '';
-      const targetId = link.dataset.userNav || rawHref.replace('#', '');
+      const targetId = link.dataset.userNav || rawHref.replace(/^[^#]*#/, '');
 
       if (!targetId) {
         closeUserDropdown();
+        return;
+      }
+
+      // Check if we're on the dashboard page
+      const currentPage = window.location.pathname.split('/').pop();
+      const isDashboardPage = currentPage === 'dashboard.html' || currentPage === '';
+      
+      // Check if link points to dashboard
+      const isDashboardLink = rawHref.includes('dashboard.html') || rawHref.startsWith('#dashboard');
+
+      // If we're on dashboard page AND link is for dashboard, prevent navigation
+      if (isDashboardPage && isDashboardLink) {
+        event.preventDefault();
+        closeUserDropdown();
+        revealDashboardSection(targetId);
         return;
       }
 
@@ -456,14 +471,26 @@ function initializeAuthUI() {
   }
 
   if (userMenu) {
-    const hoverTargets = [userMenu, userMenuToggle, userDropdown];
-    hoverTargets.forEach((element) => {
-      if (!element) return;
-      element.addEventListener('mouseenter', cancelUserMenuHoverClose);
-      element.addEventListener('pointerenter', cancelUserMenuHoverClose);
-      element.addEventListener('mouseleave', scheduleUserMenuHoverClose);
-      element.addEventListener('pointerleave', scheduleUserMenuHoverClose);
-    });
+    // Add hover functionality to user menu
+    if (userMenuToggle) {
+      userMenuToggle.addEventListener('mouseenter', () => {
+        cancelUserMenuHoverClose();
+        if (userMenu.dataset.open !== 'true') {
+          toggleUserDropdown(true);
+        }
+      });
+      userMenuToggle.addEventListener('mouseleave', scheduleUserMenuHoverClose);
+    }
+    
+    if (userDropdown) {
+      userDropdown.addEventListener('mouseenter', cancelUserMenuHoverClose);
+      userDropdown.addEventListener('mouseleave', scheduleUserMenuHoverClose);
+    }
+    
+    if (userMenu) {
+      userMenu.addEventListener('mouseenter', cancelUserMenuHoverClose);
+      userMenu.addEventListener('mouseleave', scheduleUserMenuHoverClose);
+    }
   }
 
   if (!documentClickHandlerBound) {
@@ -828,8 +855,13 @@ async function handlePasswordReset(event) {
 async function handleLogout() {
   try {
     await signOut(auth);
-    showAlert('You have been signed out.');
     clearPendingAction();
+    showAlert('You have been signed out.');
+    
+    // Redirect to home page after logout
+    setTimeout(() => {
+      window.location.href = 'index.html';
+    }, 500);
   } catch (error) {
     console.error('Logout failed:', error);
     showAlert(getAuthErrorMessage(error, 'Unable to sign out. Please try again.'));

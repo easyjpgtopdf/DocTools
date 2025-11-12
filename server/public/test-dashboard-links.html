@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Debug - User Dashboard Links Test</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/footer.css">
+    
+    <!-- Firebase -->
+    <script type="module" src="js/firebase-init.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 30px;
+        }
+        .test-section {
+            background: white;
+            border: 2px solid #4361ee;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        .test-section h2 {
+            color: #4361ee;
+            margin-top: 0;
+        }
+        .test-button {
+            padding: 12px 24px;
+            background: #4361ee;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #3651d4;
+        }
+        .test-button.success {
+            background: #28a745;
+        }
+        .test-button.danger {
+            background: #dc3545;
+        }
+        .log-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            margin-top: 15px;
+        }
+        .log-item {
+            margin: 5px 0;
+            padding: 5px;
+        }
+        .log-success {
+            color: green;
+        }
+        .log-error {
+            color: red;
+        }
+        .log-info {
+            color: blue;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
+                <div class="nav-links">
+                    <div class="dropdown">
+                        <a href="#">Tools <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="jpg-to-pdf.html">JPG to PDF</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="auth-buttons">
+                    <a href="login.html" class="auth-link">Sign In</a>
+                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus"></i><span>Signup</span></a>
+                </div>
+                <div id="user-menu" class="user-menu" data-open="false" style="display: none;">
+                    <button id="user-menu-toggle" class="user-menu-toggle" type="button">
+                        <span class="user-initial">T</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="user-dropdown" id="user-dropdown" hidden>
+                        <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+                        <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+                        <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+                        <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders & Subscriptions</a>
+                        <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
+                        <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <div class="test-container">
+        <div class="test-section">
+            <h2><i class="fas fa-bug"></i> User Dashboard Debug Tool</h2>
+            <p>Test user menu functionality without Firebase authentication.</p>
+            
+            <div>
+                <button class="test-button" onclick="simulateLogin()">
+                    <i class="fas fa-sign-in-alt"></i> Simulate Login
+                </button>
+                <button class="test-button" onclick="toggleMenu()">
+                    <i class="fas fa-bars"></i> Toggle Menu
+                </button>
+                <button class="test-button success" onclick="testAllLinks()">
+                    <i class="fas fa-check"></i> Test All Links
+                </button>
+                <button class="test-button danger" onclick="testLogout()">
+                    <i class="fas fa-sign-out-alt"></i> Test Logout
+                </button>
+                <button class="test-button" onclick="clearLog()">
+                    <i class="fas fa-trash"></i> Clear Log
+                </button>
+            </div>
+
+            <div class="log-box" id="logBox"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>How to Use:</h3>
+            <ol>
+                <li><strong>Simulate Login:</strong> Shows user menu (hides auth buttons)</li>
+                <li><strong>Toggle Menu:</strong> Opens/closes the dropdown</li>
+                <li><strong>Test All Links:</strong> Checks if dropdown links are clickable</li>
+                <li><strong>Test Logout:</strong> Tests logout button functionality</li>
+            </ol>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF & Image Tools</p>
+        </div>
+    </footer>
+
+    <script>
+        const logBox = document.getElementById('logBox');
+        const userMenu = document.getElementById('user-menu');
+        const userMenuToggle = document.getElementById('user-menu-toggle');
+        const userDropdown = document.getElementById('user-dropdown');
+        const authButtons = document.querySelector('.auth-buttons');
+        const dropdownLinks = document.querySelectorAll('[data-user-nav]');
+        const logoutButton = document.getElementById('logout-button');
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `log-item log-${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logBox.appendChild(div);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        function clearLog() {
+            logBox.innerHTML = '';
+            log('Log cleared', 'info');
+        }
+
+        function simulateLogin() {
+            // Show user menu and hide auth buttons
+            userMenu.style.display = 'flex';
+            authButtons.style.display = 'none';
+            
+            // Ensure menu is in closed state initially
+            userMenu.dataset.open = 'false';
+            userMenuToggle.setAttribute('aria-expanded', 'false');
+            userDropdown.hidden = true;
+            
+            log('✓ User logged in (simulated)', 'success');
+            log(`User menu display: ${window.getComputedStyle(userMenu).display}`, 'info');
+            log('Now hover over the user avatar (circle with "T") to test hover functionality', 'info');
+        }
+
+        function toggleMenu() {
+            const isOpen = userMenu.dataset.open === 'true';
+            const newState = !isOpen;
+            
+            userMenu.dataset.open = newState ? 'true' : 'false';
+            userMenuToggle.setAttribute('aria-expanded', newState ? 'true' : 'false');
+            userDropdown.hidden = !newState;
+            
+            log(`Menu ${newState ? 'OPENED' : 'CLOSED'}`, newState ? 'success' : 'info');
+        }
+
+        function testAllLinks() {
+            log('Testing dropdown links...', 'info');
+            let clickableCount = 0;
+            
+            // First open the menu if it's closed
+            if (userMenu.dataset.open !== 'true') {
+                log('Opening menu first...', 'info');
+                toggleMenu();
+            }
+            
+            setTimeout(() => {
+                dropdownLinks.forEach((link, index) => {
+                    const href = link.getAttribute('href');
+                    const nav = link.dataset.userNav;
+                    const isClickable = window.getComputedStyle(link).pointerEvents !== 'none';
+                    
+                    if (isClickable) {
+                        clickableCount++;
+                        log(`✓ Link ${index + 1}: ${nav} (${href}) - CLICKABLE`, 'success');
+                    } else {
+                        log(`✗ Link ${index + 1}: ${nav} (${href}) - NOT CLICKABLE`, 'error');
+                    }
+                });
+                
+                log(`Total: ${clickableCount}/${dropdownLinks.length} links are clickable`, 
+                    clickableCount === dropdownLinks.length ? 'success' : 'error');
+            }, 300);
+        }
+
+        function testLogout() {
+            if (logoutButton) {
+                log('Testing logout button...', 'info');
+                const isClickable = window.getComputedStyle(logoutButton).pointerEvents !== 'none';
+                log(`Logout button clickable: ${isClickable}`, isClickable ? 'success' : 'error');
+                
+                // Simulate click
+                log('Simulating logout button click...', 'info');
+                logoutButton.click();
+            } else {
+                log('✗ Logout button not found!', 'error');
+            }
+        }
+
+        // Attach click handlers
+        if (userMenuToggle) {
+            // Auth.js already handles click events, this is just for logging
+            userMenuToggle.addEventListener('click', (e) => {
+                log('[TEST] Click detected on user menu toggle', 'info');
+                // Auth.js will handle the actual toggle
+            });
+            
+            // Track hover events (auth.js handles the actual functionality)
+            userMenuToggle.addEventListener('mouseenter', () => {
+                log('[HOVER] Mouse entered user menu toggle', 'info');
+                // Auth.js will handle the actual hover open
+            });
+            
+            userMenuToggle.addEventListener('mouseleave', () => {
+                log('[HOVER] Mouse left user menu toggle', 'info');
+                // Auth.js will handle the delayed close
+            });
+            
+            log('✓ Menu toggle handler attached', 'success');
+            log('Note: Actual hover/click logic is handled by auth.js', 'info');
+        }
+
+        if (userDropdown) {
+            userDropdown.addEventListener('mouseenter', () => {
+                log('[HOVER] Mouse entered dropdown', 'info');
+            });
+            
+            userDropdown.addEventListener('mouseleave', () => {
+                log('[HOVER] Mouse left dropdown', 'info');
+                // Auth.js will handle the delayed close
+            });
+        }
+
+        dropdownLinks.forEach((link, index) => {
+            link.addEventListener('click', (e) => {
+                const href = link.getAttribute('href');
+                const nav = link.dataset.userNav;
+                log(`Dropdown link ${index + 1} clicked: ${nav}`, 'info');
+                log(`→ Would navigate to: ${href}`, 'info');
+                
+                // For testing, prevent actual navigation
+                // e.preventDefault();
+            });
+        });
+        log(`✓ ${dropdownLinks.length} dropdown link handlers attached`, 'success');
+
+        if (logoutButton) {
+            logoutButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                log('✓ Logout button clicked!', 'success');
+                log('In production, this would sign user out and redirect', 'info');
+                
+                // Simulate logout
+                setTimeout(() => {
+                    userMenu.style.display = 'none';
+                    authButtons.style.display = 'flex';
+                    log('✓ User logged out (simulated)', 'success');
+                }, 500);
+            });
+            log('✓ Logout button handler attached', 'success');
+        }
+
+        log('Debug tool initialized', 'success');
+        log('Click "Simulate Login" to start testing', 'info');
+        
+        // Add MutationObserver to track menu state changes
+        if (userMenu) {
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes') {
+                        if (mutation.attributeName === 'data-open') {
+                            const isOpen = userMenu.dataset.open === 'true';
+                            log(`[STATE] Menu state changed to: ${isOpen ? 'OPEN' : 'CLOSED'}`, isOpen ? 'success' : 'info');
+                        }
+                    }
+                });
+            });
+            
+            observer.observe(userMenu, {
+                attributes: true,
+                attributeFilter: ['data-open']
+            });
+            
+            log('✓ Menu state observer attached', 'success');
+        }
+        
+        // Also observe dropdown hidden attribute
+        if (userDropdown) {
+            const dropdownObserver = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'hidden') {
+                        const isHidden = userDropdown.hidden;
+                        log(`[STATE] Dropdown visibility: ${isHidden ? 'HIDDEN' : 'VISIBLE'}`, isHidden ? 'info' : 'success');
+                    }
+                });
+            });
+            
+            dropdownObserver.observe(userDropdown, {
+                attributes: true,
+                attributeFilter: ['hidden']
+            });
+            
+            log('✓ Dropdown visibility observer attached', 'success');
+        }
+    </script>
+</body>
+</html>

@@ -142,6 +142,21 @@ header .user-menu {
     position: relative;
 }
 
+/* Show user menu when user is logged in */
+header .user-menu[style*="display: flex"] {
+    display: flex !important;
+}
+
+/* Hide dropdown by default */
+header .user-dropdown[hidden] {
+    display: none !important;
+}
+
+/* Show dropdown when menu is open */
+header .user-menu[data-open="true"] .user-dropdown:not([hidden]) {
+    display: flex !important;
+}
+
 header .user-menu-toggle {
     display: inline-flex;
     align-items: center;
