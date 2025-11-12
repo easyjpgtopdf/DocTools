@@ -365,7 +365,16 @@ if (donateForm) {
 
     if (!user) {
       pendingDonation = donation;
-      setPendingAction({ type: "donate", payload: donation });
+      // Set pending action with redirect URL to come back to donation page
+      const currentPage = window.location.pathname === '/dashboard.html' || window.location.pathname.endsWith('/dashboard.html')
+        ? window.location.origin + '/index.html#donate'
+        : window.location.href.split('#')[0] + '#donate';
+      
+      setPendingAction({ 
+        type: "donate", 
+        payload: donation,
+        redirectTo: currentPage
+      });
       showMessage("Please log in or sign up to continue with your donation.");
       if (typeof window.showModal === "function") {
         window.showModal("login-modal");
