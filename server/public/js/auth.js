@@ -426,16 +426,14 @@ function initializeAuthUI() {
         return;
       }
 
-      const hrefUrl = rawHref ? new URL(rawHref, window.location.href) : null;
-      const isSamePageHash = hrefUrl && normalizeUrl(hrefUrl.href) === normalizeUrl(window.location.href);
-
-      if (hrefUrl && !isSamePageHash && hrefUrl.origin === window.location.origin && !rawHref.startsWith('#')) {
-        setDashboardNavTarget(targetId);
+      // If link has href and it's not just a hash, navigate to that page
+      if (rawHref && !rawHref.startsWith('#')) {
+        // Let the browser handle the navigation naturally
         closeUserDropdown();
-        window.location.href = hrefUrl.href;
-        return;
+        return; // Don't preventDefault - allow normal link behavior
       }
 
+      // Only preventDefault for hash-only links on same page
       event.preventDefault();
       closeUserDropdown();
       revealDashboardSection(targetId);
