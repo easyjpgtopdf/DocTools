@@ -7,6 +7,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/header.css">
     <link rel="stylesheet" href="css/footer.css">
+    
+    <!-- Firebase -->
+    <script type="module" src="js/firebase-init.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    
     <style>
         body {
             margin: 0;
@@ -179,10 +184,18 @@
         }
 
         function simulateLogin() {
+            // Show user menu and hide auth buttons
             userMenu.style.display = 'flex';
             authButtons.style.display = 'none';
+            
+            // Ensure menu is in closed state initially
+            userMenu.dataset.open = 'false';
+            userMenuToggle.setAttribute('aria-expanded', 'false');
+            userDropdown.hidden = true;
+            
             log('✓ User logged in (simulated)', 'success');
             log(`User menu display: ${window.getComputedStyle(userMenu).display}`, 'info');
+            log('Now hover over the user avatar (circle with "T") to test hover functionality', 'info');
         }
 
         function toggleMenu() {
@@ -200,21 +213,29 @@
             log('Testing dropdown links...', 'info');
             let clickableCount = 0;
             
-            dropdownLinks.forEach((link, index) => {
-                const href = link.getAttribute('href');
-                const nav = link.dataset.userNav;
-                const isClickable = window.getComputedStyle(link).pointerEvents !== 'none';
-                
-                if (isClickable) {
-                    clickableCount++;
-                    log(`✓ Link ${index + 1}: ${nav} (${href}) - CLICKABLE`, 'success');
-                } else {
-                    log(`✗ Link ${index + 1}: ${nav} (${href}) - NOT CLICKABLE`, 'error');
-                }
-            });
+            // First open the menu if it's closed
+            if (userMenu.dataset.open !== 'true') {
+                log('Opening menu first...', 'info');
+                toggleMenu();
+            }
             
-            log(`Total: ${clickableCount}/${dropdownLinks.length} links are clickable`, 
-                clickableCount === dropdownLinks.length ? 'success' : 'error');
+            setTimeout(() => {
+                dropdownLinks.forEach((link, index) => {
+                    const href = link.getAttribute('href');
+                    const nav = link.dataset.userNav;
+                    const isClickable = window.getComputedStyle(link).pointerEvents !== 'none';
+                    
+                    if (isClickable) {
+                        clickableCount++;
+                        log(`✓ Link ${index + 1}: ${nav} (${href}) - CLICKABLE`, 'success');
+                    } else {
+                        log(`✗ Link ${index + 1}: ${nav} (${href}) - NOT CLICKABLE`, 'error');
+                    }
+                });
+                
+                log(`Total: ${clickableCount}/${dropdownLinks.length} links are clickable`, 
+                    clickableCount === dropdownLinks.length ? 'success' : 'error');
+            }, 300);
         }
 
         function testLogout() {
@@ -233,11 +254,36 @@
 
         // Attach click handlers
         if (userMenuToggle) {
+            // Auth.js already handles click events, this is just for logging
             userMenuToggle.addEventListener('click', (e) => {
-                e.preventDefault();
-                toggleMenu();
+                log('[TEST] Click detected on user menu toggle', 'info');
+                // Auth.js will handle the actual toggle
             });
+            
+            // Track hover events (auth.js handles the actual functionality)
+            userMenuToggle.addEventListener('mouseenter', () => {
+                log('[HOVER] Mouse entered user menu toggle', 'info');
+                // Auth.js will handle the actual hover open
+            });
+            
+            userMenuToggle.addEventListener('mouseleave', () => {
+                log('[HOVER] Mouse left user menu toggle', 'info');
+                // Auth.js will handle the delayed close
+            });
+            
             log('✓ Menu toggle handler attached', 'success');
+            log('Note: Actual hover/click logic is handled by auth.js', 'info');
+        }
+
+        if (userDropdown) {
+            userDropdown.addEventListener('mouseenter', () => {
+                log('[HOVER] Mouse entered dropdown', 'info');
+            });
+            
+            userDropdown.addEventListener('mouseleave', () => {
+                log('[HOVER] Mouse left dropdown', 'info');
+                // Auth.js will handle the delayed close
+            });
         }
 
         dropdownLinks.forEach((link, index) => {
@@ -271,6 +317,46 @@
 
         log('Debug tool initialized', 'success');
         log('Click "Simulate Login" to start testing', 'info');
+        
+        // Add MutationObserver to track menu state changes
+        if (userMenu) {
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes') {
+                        if (mutation.attributeName === 'data-open') {
+                            const isOpen = userMenu.dataset.open === 'true';
+                            log(`[STATE] Menu state changed to: ${isOpen ? 'OPEN' : 'CLOSED'}`, isOpen ? 'success' : 'info');
+                        }
+                    }
+                });
+            });
+            
+            observer.observe(userMenu, {
+                attributes: true,
+                attributeFilter: ['data-open']
+            });
+            
+            log('✓ Menu state observer attached', 'success');
+        }
+        
+        // Also observe dropdown hidden attribute
+        if (userDropdown) {
+            const dropdownObserver = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'hidden') {
+                        const isHidden = userDropdown.hidden;
+                        log(`[STATE] Dropdown visibility: ${isHidden ? 'HIDDEN' : 'VISIBLE'}`, isHidden ? 'info' : 'success');
+                    }
+                });
+            });
+            
+            dropdownObserver.observe(userDropdown, {
+                attributes: true,
+                attributeFilter: ['hidden']
+            });
+            
+            log('✓ Dropdown visibility observer attached', 'success');
+        }
     </script>
 </body>
 </html>
