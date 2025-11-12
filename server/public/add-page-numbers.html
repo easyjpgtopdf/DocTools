@@ -1,848 +1,123 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Page Numbers to PDF - easyjpgtopdf</title>
-    <meta name="description" content="Add page numbers to your PDF documents easily. Customize position, format, and style of page numbers for professional-looking documents.">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/footer.css">
-    <link rel="stylesheet" href="css/theme-modern.css">
-    <style>
-        /* Additional styles specific to this tool */
-        .numbering-options {
-            background: #fff;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .option-group {
-            margin-bottom: 20px;
-        }
-        
-        .option-group h3 {
-            margin-top: 0;
-            color: #333;
-            font-size: 18px;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .radio-group, .checkbox-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        
-        .radio-option, .checkbox-option {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            padding: 8px 15px;
-            background: #f8f9fa;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-            transition: all 0.3s ease;
-        }
-        
-        .radio-option:hover, .checkbox-option:hover {
-            background: #e9ecef;
-            border-color: #adb5bd;
-        }
-        
-        .radio-option input[type="radio"],
-        .checkbox-option input[type="checkbox"] {
-            margin-right: 8px;
-        }
-        
-        .color-picker {
-            display: flex;
-            align-items: center;
-            margin-top: 10px;
-        }
-        
-        .color-preview {
-            width: 30px;
-            height: 30px;
-            border-radius: 4px;
-            margin-right: 10px;
-            border: 1px solid #ddd;
-            cursor: pointer;
-        }
-        
-        .number-preview {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            padding: 20px;
-            margin-top: 20px;
-            text-align: center;
-            min-height: 200px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-        
-        .page-number {
-            position: absolute;
-            font-size: 14px;
-            color: #333;
-            background: rgba(255,255,255,0.9);
-            padding: 5px 10px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-        }
-        
-        .page-number.top-left { top: 10px; left: 10px; }
-        .page-number.top-center { top: 10px; left: 50%; transform: translateX(-50%); }
-        .page-number.top-right { top: 10px; right: 10px; }
-        .page-number.bottom-left { bottom: 10px; left: 10px; }
-        .page-number.bottom-center { bottom: 10px; left: 50%; transform: translateX(-50%); }
-        .page-number.bottom-right { bottom: 10px; right: 10px; }
-        
-        .format-preview {
-            font-size: 16px;
-            margin-top: 10px;
-            padding: 8px 12px;
-            background: #f8f9fa;
-            border-radius: 4px;
-            display: inline-block;
-        }
-        
-        @media (max-width: 768px) {
-            .radio-group, .checkbox-group {
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            .radio-option, .checkbox-option {
-                width: 100%;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Page Numbers to PDF - easyjpgtopdf</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="css/header.css">
+<link rel="stylesheet" href="css/footer.css">
+<link rel="stylesheet" href="css/theme-modern.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}
+:root{--primary:#4361ee;--primary-dark:#3a0ca3;--light:#f8f9fa;--dark:#212529;--gray:#6c757d}
+body{background:linear-gradient(135deg,#f5f7ff 0%,#e9ecef 100%);min-height:100vh;display:flex;flex-direction:column}
+.container{max-width:1200px;margin:0 auto;padding:0 20px}
+.page-wrap{padding:20px 0}
+.converter-header{text-align:center;margin-bottom:30px;padding:20px}
+.converter-header h1{font-size:2.2rem;color:var(--primary);margin-bottom:10px}
+.converter-header p{font-size:1.05rem;color:var(--gray)}
+.converter-card{background:#fff;border-radius:12px;padding:30px;box-shadow:0 5px 15px rgba(0,0,0,0.08);margin-bottom:30px}
+.upload-area{border:3px dashed #ddd;border-radius:12px;padding:60px 20px;text-align:center;cursor:pointer;margin-bottom:20px;transition:all 0.3s ease}
+.upload-area:hover,.upload-area.dragover{border-color:var(--primary);background:rgba(67,97,238,0.05)}
+.upload-icon{font-size:64px;color:var(--primary);margin-bottom:15px}
+.upload-area h3{font-size:1.5rem;margin-bottom:10px}
+.upload-area p{color:var(--gray);margin-bottom:5px}
+.file-input{display:none}
+.file-info{background:var(--light);border-radius:12px;padding:20px;margin:20px 0;display:none}
+.file-details{display:flex;align-items:center;gap:15px}
+.file-icon{font-size:40px;color:var(--primary)}
+.file-text h4{font-size:1.2rem;margin-bottom:5px}
+.file-text p{color:var(--gray);font-size:0.9rem}
+.action-buttons{display:flex;gap:15px;margin-top:25px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;transition:all 0.3s ease;text-decoration:none}
+.btn-primary{background:var(--primary);color:white}
+.btn-primary:hover{background:var(--primary-dark);transform:translateY(-2px);box-shadow:0 5px 15px rgba(0,0,0,0.1)}
+.btn-secondary{background:white;color:var(--primary);border:2px solid var(--primary)}
+.btn-secondary:hover{background:var(--light)}
+.btn:disabled{background:#ccc;cursor:not-allowed;transform:none}
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;margin-top:40px}
+.feature-card{background:white;border-radius:12px;padding:25px;box-shadow:0 5px 15px rgba(0,0,0,0.08);text-align:center;transition:all 0.3s ease}
+.feature-card:hover{transform:translateY(-5px)}
+.feature-icon{font-size:40px;color:var(--primary);margin-bottom:15px}
+.feature-card h3{margin-bottom:10px}
+.feature-card p{color:var(--gray);font-size:0.9rem}
+@media(max-width:768px){.action-buttons{flex-direction:column}.btn{width:100%}.features{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-    <!-- Header -->
-    <header>
-        <div class="container">
-            <nav class="navbar">
-                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
-                <div class="nav-links">
-                    <div class="dropdown">
-                        <a href="jpg-to-pdf.html">Convert to PDF <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="jpg-to-pdf.html">JPG to PDF</a>
-                            <a href="word-to-pdf.html">Word to PDF</a>
-                            <a href="excel-to-pdf.html">Excel to PDF</a>
-                            <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="pdf-to-jpg.html">Convert from PDF <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="pdf-to-jpg.html">PDF to JPG</a>
-                            <a href="pdf-to-word.html">PDF to Word</a>
-                            <a href="pdf-to-excel.html">PDF to Excel</a>
-                            <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="merge-pdf.html">Pdf Editor <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="merge-pdf.html">Merge PDF</a>
-                            <a href="split-pdf.html">Split PDF</a>
-                            <a href="compress-pdf.html">Compress PDF</a>
-                            <a href="edit-pdf.html">Pdf Editor</a>
-                            <a href="protect-pdf.html">Protect PDF</a>
-                            <a href="unlock-pdf.html">Unlock PDF</a>
-                            <a href="watermark-pdf.html">Watermark PDF</a>
-                            <a href="crop-pdf.html">Crop PDF</a>
-                            <a href="add-page-numbers.html">Add Page Numbers</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="image-compressor.html">Image Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="image-compressor.html">Image Compressor</a>
-                            <a href="image-resizer.html">Image Resizer</a>
-                            <a href="image-editor.html">Image Editor</a>
-                            <a href="background-remover.html">Image Background Remover</a>
-                            <a href="ocr-image.html">OCR Image</a>
-                            <a href="image-watermark.html">Image Watermark Tool</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="resume-maker.html">Design Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="resume-maker.html">Resume Maker</a>
-                            <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
-                            <a href="ai-image-generator.html">AI Image Generator</a>
-                            <a href="marriage-card.html">Marriage Card</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="protect-excel.html">Other Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="excel-unlocker/" target="_blank">Excel Unlocker</a>
-                            <a href="protect-excel.html">Protect Excel Sheet</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="auth-buttons">
-                    <a href="login.html" class="auth-link">Sign In</a>
-                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Signup</span></a>
-                </div>
-                <div id="user-menu" class="user-menu" data-open="false">
-                    <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
-                        <span class="user-initial" aria-hidden="true">U</span>
-                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                    </button>
-                    <div class="user-dropdown" id="user-dropdown" hidden>
-                        <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
-                        <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
-                        <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
-                        <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
-                        <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
-                        <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
-                    </div>
-                </div>
-            </nav>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="container">
-        <div class="tool-header">
-            <h1>Add Page Numbers to PDF</h1>
-            <p>Easily add customizable page numbers to your PDF documents. Choose position, format, and style to match your needs.</p>
-        </div>
-
-        <div class="tool-container">
-            <div class="upload-area" id="dropArea">
-                <i class="fas fa-cloud-upload-alt"></i>
-                <h3>Drag & Drop your PDF here</h3>
-                <p>or</p>
-                <label for="fileInput" class="btn">Select PDF File</label>
-                <input type="file" id="fileInput" accept=".pdf" style="display: none;">
-                <p class="file-info">Max file size: 500MB</p>
-            </div>
-
-            <div class="numbering-options" style="display: none;" id="optionsSection">
-                <h2>Page Numbering Options</h2>
-                
-                <div class="option-group">
-                    <h3>Position</h3>
-                    <div class="radio-group" id="positionGroup">
-                        <label class="radio-option">
-                            <input type="radio" name="position" value="top-left" checked>
-                            Top Left
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="position" value="top-center">
-                            Top Center
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="position" value="top-right">
-                            Top Right
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="position" value="bottom-left">
-                            Bottom Left
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="position" value="bottom-center">
-                            Bottom Center
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="position" value="bottom-right">
-                            Bottom Right
-                        </label>
-                    </div>
-                </div>
-                
-                <div class="option-group">
-                    <h3>Page Number Format</h3>
-                    <div class="radio-group" id="formatGroup">
-                        <label class="radio-option">
-                            <input type="radio" name="format" value="1" checked>
-                            1, 2, 3, ...
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="format" value="i">
-                            i, ii, iii, ...
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="format" value="I">
-                            I, II, III, ...
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="format" value="a">
-                            a, b, c, ...
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="format" value="A">
-                            A, B, C, ...
-                        </label>
-                    </div>
-                    
-                    <div class="format-preview" id="formatPreview">
-                        Preview: Page <span id="pageNumberPreview">1</span>
-                    </div>
-                </div>
-                
-                <div class="option-group">
-                    <h3>Starting Number</h3>
-                    <input type="number" id="startNumber" min="1" value="1" class="form-control" style="width: 100px; display: inline-block;">
-                </div>
-                
-                <div class="option-group">
-                    <h3>Text</h3>
-                    <input type="text" id="pageText" class="form-control" placeholder="e.g., Page {n} of {total}" style="max-width: 400px;">
-                    <p class="help-text">Use {n} for page number, {total} for total pages</p>
-                </div>
-                
-                <div class="option-group">
-                    <h3>Font & Style</h3>
-                    <div class="form-row">
-                        <div class="form-group" style="margin-right: 20px;">
-                            <label>Font Size</label>
-                            <select id="fontSize" class="form-control">
-                                <option value="8">8pt</option>
-                                <option value="9">9pt</option>
-                                <option value="10">10pt</option>
-                                <option value="11">11pt</option>
-                                <option value="12" selected>12pt</option>
-                                <option value="14">14pt</option>
-                                <option value="16">16pt</option>
-                                <option value="18">18pt</option>
-                                <option value="20">20pt</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Font Color</label>
-                            <div class="color-picker">
-                                <div class="color-preview" id="fontColorPreview" style="background-color: #000000;"></div>
-                                <input type="color" id="fontColor" value="#000000" style="width: 50px;">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="option-group">
-                    <h3>Preview</h3>
-                    <div class="number-preview">
-                        <div class="page-number bottom-right" id="previewNumber">1</div>
-                        <p>This is a preview of how your page numbers will appear.</p>
-                    </div>
-                </div>
-                
-                <div class="form-actions" style="margin-top: 30px;">
-                    <button class="btn btn-primary" id="addNumbersBtn" disabled>
-                        <i class="fas fa-plus-circle"></i> Add Page Numbers
-                    </button>
-                    <button class="btn btn-secondary" id="resetBtn">
-                        <i class="fas fa-redo"></i> Reset
-                    </button>
-                </div>
-            </div>
-            
-            <div id="progressSection" style="display: none; margin-top: 20px;">
-                <div class="progress-container">
-                    <div class="progress-bar" id="progressBar" style="width: 0%;"></div>
-                </div>
-                <p class="progress-text" id="progressText">Processing your document...</p>
-            </div>
-            
-            <div id="resultSection" style="display: none; text-align: center; margin-top: 30px;">
-                <div class="success-message">
-                    <i class="fas fa-check-circle" style="color: #28a745; font-size: 48px; margin-bottom: 15px;"></i>
-                    <h3>Page Numbers Added Successfully!</h3>
-                    <p>Your PDF with page numbers is ready to download.</p>
-                    <a href="#" class="btn btn-primary" id="downloadBtn">
-                        <i class="fas fa-download"></i> Download PDF
-                    </a>
-                    <button class="btn btn-secondary" id="newFileBtn" style="margin-left: 10px;">
-                        <i class="fas fa-file"></i> Process Another File
-                    </button>
-                </div>
-            </div>
-        </div>
-        
-        <div class="info-section" style="margin-top: 50px;">
-            <h2>How to Add Page Numbers to PDF</h2>
-            <div class="info-steps">
-                <div class="info-step">
-                    <div class="step-number">1</div>
-                    <div class="step-content">
-                        <h3>Upload your PDF</h3>
-                        <p>Drag and drop your PDF file or click to browse and select it from your computer. Maximum file size is 500MB.</p>
-                    </div>
-                </div>
-                <div class="info-step">
-                    <div class="step-number">2</div>
-                    <div class="step-content">
-                        <h3>Customize page numbers</h3>
-                        <p>Choose the position, format, and style of your page numbers. You can preview how they will look before processing.</p>
-                    </div>
-                </div>
-                <div class="info-step">
-                    <div class="step-number">3</div>
-                    <div class="step-content">
-                        <h3>Download your file</h3>
-                        <p>Click the "Add Page Numbers" button and download your PDF with the new page numbers added.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- Footer -->
-    <footer>
-        <div class="container footer-inner">
-            <div class="footer-company-links">
-                <span>Company</span>
-                <a href="index.html#about">About Us</a>
-                <a href="index.html#contact">Contact</a>
-                <a href="privacy-policy.html">Privacy Policy</a>
-                <a href="terms-of-service.html">Terms of Service</a>
-            </div>
-            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
-            <p class="footer-credits">
-                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
-                <a href="attributions.html">See full acknowledgements</a>.
-            </p>
-        </div>
-    </footer>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <script src="js/global-components.js"></script>
-    <script>
-        // Initialize variables
-        const { PDFDocument, rgb, StandardFonts } = PDFLib;
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            const dropArea = document.getElementById('dropArea');
-            const fileInput = document.getElementById('fileInput');
-            const optionsSection = document.getElementById('optionsSection');
-            const progressSection = document.getElementById('progressSection');
-            const resultSection = document.getElementById('resultSection');
-            const addNumbersBtn = document.getElementById('addNumbersBtn');
-            const resetBtn = document.getElementById('resetBtn');
-            const downloadBtn = document.getElementById('downloadBtn');
-            const newFileBtn = document.getElementById('newFileBtn');
-            const progressBar = document.getElementById('progressBar');
-            const progressText = document.getElementById('progressText');
-            
-            let selectedFile = null;
-            let processedPdfBlob = null;
-            
-            // Prevent default drag behaviors
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                dropArea.addEventListener(eventName, preventDefaults, false);
-                document.body.addEventListener(eventName, preventDefaults, false);
-            });
-            
-            // Highlight drop area when item is dragged over it
-            ['dragenter', 'dragover'].forEach(eventName => {
-                dropArea.addEventListener(eventName, highlight, false);
-            });
-            
-            ['dragleave', 'drop'].forEach(eventName => {
-                dropArea.addEventListener(eventName, unhighlight, false);
-            });
-            
-            // Handle dropped files
-            dropArea.addEventListener('drop', handleDrop, false);
-            
-            // Handle file selection via file input
-            fileInput.addEventListener('change', function() {
-                if (this.files.length) {
-                    handleFiles(this.files);
-                }
-            });
-            
-            // Update preview when options change
-            document.querySelectorAll('input[name="position"]').forEach(radio => {
-                radio.addEventListener('change', updatePreview);
-            });
-            
-            document.querySelectorAll('input[name="format"]').forEach(radio => {
-                radio.addEventListener('change', updatePreview);
-            });
-            
-            document.getElementById('startNumber').addEventListener('input', updatePreview);
-            document.getElementById('pageText').addEventListener('input', updatePreview);
-            document.getElementById('fontSize').addEventListener('change', updatePreview);
-            document.getElementById('fontColor').addEventListener('input', function() {
-                document.getElementById('fontColorPreview').style.backgroundColor = this.value;
-                updatePreview();
-            });
-            
-            // Add page numbers button click
-            addNumbersBtn.addEventListener('click', processFile);
-            
-            // Reset button click
-            resetBtn.addEventListener('click', resetForm);
-            
-            // New file button click
-            newFileBtn.addEventListener('click', resetForm);
-            
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-            
-            function highlight() {
-                dropArea.classList.add('highlight');
-            }
-            
-            function unhighlight() {
-                dropArea.classList.remove('highlight');
-            }
-            
-            function handleDrop(e) {
-                const dt = e.dataTransfer;
-                const files = dt.files;
-                handleFiles(files);
-            }
-            
-            async function handleFiles(files) {
-                const file = files[0];
-                
-                // Check if file is a PDF
-                if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
-                    alert('Please upload a valid PDF file.');
-                    return;
-                }
-                
-                // Check file size (500MB limit)
-                const maxSize = 500 * 1024 * 1024; // 500MB in bytes
-                if (file.size > maxSize) {
-                    alert('File size exceeds the 500MB limit. Please choose a smaller file.');
-                    return;
-                }
-                
-                selectedFile = file;
-                
-                // Show file info
-                const fileInfo = dropArea.querySelector('.file-info');
-                if (fileInfo) {
-                    fileInfo.textContent = `Selected: ${file.name} (${formatFileSize(file.size)})`;
-                }
-                
-                // Show options section
-                if (optionsSection) {
-                    optionsSection.style.display = 'block';
-                }
-                
-                if (progressSection) {
-                    progressSection.style.display = 'none';
-                }
-                
-                if (resultSection) {
-                    resultSection.style.display = 'none';
-                }
-                
-                // Enable add numbers button
-                if (addNumbersBtn) {
-                    addNumbersBtn.disabled = false;
-                }
-                
-                // Update preview
-                updatePreview();
-                
-                // Verify PDF can be loaded
-                const reader = new FileReader();
-                reader.onload = async function(e) {
-                    try {
-                        const arrayBuffer = e.target.result;
-                        const pdfDoc = await PDFDocument.load(arrayBuffer);
-                        console.log(`PDF loaded successfully with ${pdfDoc.getPageCount()} pages`);
-                    } catch (error) {
-                        console.error('Error loading PDF:', error);
-                        alert('Error loading PDF. The file may be corrupted or encrypted.');
-                        selectedFile = null;
-                        if (addNumbersBtn) addNumbersBtn.disabled = true;
-                    }
-                };
-                reader.readAsArrayBuffer(file);
-            }
-            
-            function updatePreview() {
-                const position = document.querySelector('input[name="position"]:checked').value;
-                const format = document.querySelector('input[name="format"]:checked').value;
-                const startNumber = parseInt(document.getElementById('startNumber').value) || 1;
-                const pageText = document.getElementById('pageText').value || '{n}';
-                const fontSize = document.getElementById('fontSize').value + 'px';
-                const fontColor = document.getElementById('fontColor').value;
-                
-                // Update preview number
-                const previewNumber = document.getElementById('previewNumber');
-                
-                // Remove all position classes
-                previewNumber.className = 'page-number';
-                // Add selected position class
-                previewNumber.classList.add(position);
-                
-                // Format the page number based on the selected format
-                let formattedNumber = startNumber;
-                if (format === 'i') formattedNumber = toRoman(startNumber).toLowerCase();
-                else if (format === 'I') formattedNumber = toRoman(startNumber);
-                else if (format === 'a') formattedNumber = toAlpha(startNumber - 1).toLowerCase();
-                else if (format === 'A') formattedNumber = toAlpha(startNumber - 1);
-                
-                // Apply the text with placeholders replaced
-                let displayText = pageText
-                    .replace('{n}', formattedNumber)
-                    .replace('{total}', '10'); // Example total pages
-                
-                // Update the preview
-                previewNumber.textContent = displayText;
-                previewNumber.style.fontSize = fontSize;
-                previewNumber.style.color = fontColor;
-                
-                // Update format preview
-                document.getElementById('pageNumberPreview').textContent = formattedNumber;
-            }
-            
-            async function processFile() {
-                if (!selectedFile) {
-                    alert('Please select a PDF file first.');
-                    return;
-                }
-                
-                // Show progress section
-                if (optionsSection) optionsSection.style.display = 'none';
-                if (progressSection) progressSection.style.display = 'block';
-                if (resultSection) resultSection.style.display = 'none';
-                
-                // Disable add numbers button during processing
-                if (addNumbersBtn) addNumbersBtn.disabled = true;
-                
-                try {
-                    updateProgress(10, 'Loading PDF...');
-                    
-                    // Read the file as array buffer
-                    const arrayBuffer = await new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onload = () => resolve(reader.result);
-                        reader.onerror = reject;
-                        reader.readAsArrayBuffer(selectedFile);
-                    });
-                    
-                    updateProgress(30, 'Processing PDF with pdf-lib...');
-                    
-                    // Load the PDF with pdf-lib
-                    const pdfDoc = await PDFDocument.load(arrayBuffer);
-                    const pages = pdfDoc.getPages();
-                    const totalPages = pages.length;
-                    
-                    updateProgress(40, 'Adding page numbers...');
-                    
-                    // Get user options
-                    const position = document.querySelector('input[name="position"]:checked').value;
-                    const format = document.querySelector('input[name="format"]:checked').value;
-                    const startNumber = parseInt(document.getElementById('startNumber').value) || 1;
-                    const pageText = document.getElementById('pageText').value || '{n}';
-                    const fontSize = parseInt(document.getElementById('fontSize').value);
-                    const fontColorHex = document.getElementById('fontColor').value;
-                    
-                    // Convert hex color to RGB
-                    const r = parseInt(fontColorHex.substr(1, 2), 16) / 255;
-                    const g = parseInt(fontColorHex.substr(3, 2), 16) / 255;
-                    const b = parseInt(fontColorHex.substr(5, 2), 16) / 255;
-                    
-                    // Embed standard font
-                    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-                    
-                    // Process each page
-                    for (let i = 0; i < totalPages; i++) {
-                        const progress = 40 + ((i + 1) / totalPages * 50);
-                        updateProgress(progress, `Processing page ${i + 1} of ${totalPages}...`);
-                        
-                        const page = pages[i];
-                        const { width, height } = page.getSize();
-                        
-                        // Calculate page number based on format
-                        const currentPageNum = startNumber + i;
-                        let formattedNumber = currentPageNum.toString();
-                        
-                        if (format === 'i') formattedNumber = toRoman(currentPageNum).toLowerCase();
-                        else if (format === 'I') formattedNumber = toRoman(currentPageNum);
-                        else if (format === 'a') formattedNumber = toAlpha(currentPageNum - 1).toLowerCase();
-                        else if (format === 'A') formattedNumber = toAlpha(currentPageNum - 1);
-                        
-                        // Replace placeholders in text
-                        let displayText = pageText
-                            .replace('{n}', formattedNumber)
-                            .replace('{total}', totalPages.toString());
-                        
-                        if (!displayText.trim()) {
-                            displayText = formattedNumber;
-                        }
-                        
-                        // Calculate text width for positioning
-                        const textWidth = font.widthOfTextAtSize(displayText, fontSize);
-                        const margin = 30;
-                        
-                        // Determine x and y coordinates based on position
-                        let x, y;
-                        switch(position) {
-                            case 'top-left':
-                                x = margin;
-                                y = height - margin;
-                                break;
-                            case 'top-center':
-                                x = (width - textWidth) / 2;
-                                y = height - margin;
-                                break;
-                            case 'top-right':
-                                x = width - textWidth - margin;
-                                y = height - margin;
-                                break;
-                            case 'bottom-left':
-                                x = margin;
-                                y = margin;
-                                break;
-                            case 'bottom-center':
-                                x = (width - textWidth) / 2;
-                                y = margin;
-                                break;
-                            case 'bottom-right':
-                            default:
-                                x = width - textWidth - margin;
-                                y = margin;
-                                break;
-                        }
-                        
-                        // Draw text on page
-                        page.drawText(displayText, {
-                            x: x,
-                            y: y,
-                            size: fontSize,
-                            font: font,
-                            color: rgb(r, g, b),
-                        });
-                    }
-                    
-                    updateProgress(95, 'Finalizing PDF...');
-                    
-                    // Save the PDF
-                    const pdfBytes = await pdfDoc.save();
-                    processedPdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
-                    
-                    const outputFilename = selectedFile.name.replace(/\.pdf$/i, '') + '_numbered.pdf';
-                    
-                    updateProgress(100, 'Complete!');
-                    
-                    // Show success message
-                    if (progressSection) progressSection.style.display = 'none';
-                    if (resultSection) {
-                        resultSection.style.display = 'block';
-                        resultSection.scrollIntoView({ behavior: 'smooth' });
-                    }
-                    
-                    // Update download button
-                    downloadBtn.onclick = function(e) {
-                        e.preventDefault();
-                        saveAs(processedPdfBlob, outputFilename);
-                    };
-                    
-                } catch (error) {
-                    console.error('Error processing PDF:', error);
-                    alert('An error occurred while processing the PDF: ' + error.message);
-                    if (progressSection) progressSection.style.display = 'none';
-                    if (optionsSection) optionsSection.style.display = 'block';
-                } finally {
-                    // Re-enable add numbers button
-                    if (addNumbersBtn) addNumbersBtn.disabled = false;
-                }
-            }
-            
-            function updateProgress(percent, message) {
-                progressBar.style.width = percent + '%';
-                progressText.textContent = message || `Processing: ${percent}%`;
-            }
-            
-            function resetForm() {
-                // Reset file input
-                fileInput.value = '';
-                selectedFile = null;
-                
-                // Reset file info
-                const fileInfo = dropArea.querySelector('.file-info');
-                fileInfo.textContent = 'Max file size: 500MB';
-                
-                // Hide sections
-                optionsSection.style.display = 'none';
-                progressSection.style.display = 'none';
-                resultSection.style.display = 'none';
-                
-                // Reset form values to defaults
-                document.querySelector('input[name="position"][value="bottom-right"]').checked = true;
-                document.querySelector('input[name="format"][value="1"]').checked = true;
-                document.getElementById('startNumber').value = '1';
-                document.getElementById('pageText').value = '';
-                document.getElementById('fontSize').value = '12';
-                document.getElementById('fontColor').value = '#000000';
-                document.getElementById('fontColorPreview').style.backgroundColor = '#000000';
-                
-                // Disable add numbers button
-                addNumbersBtn.disabled = true;
-                
-                // Reset progress
-                updateProgress(0, 'Ready to process');
-            }
-            
-            // Helper function to format file size
-            function formatFileSize(bytes) {
-                if (bytes === 0) return '0 Bytes';
-                const k = 1024;
-                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-                const i = Math.floor(Math.log(bytes) / Math.log(k));
-                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-            }
-            
-            // Helper function to convert number to Roman numerals
-            function toRoman(num) {
-                const roman = {
-                    M: 1000, CM: 900, D: 500, CD: 400,
-                    C: 100, XC: 90, L: 50, XL: 40,
-                    X: 10, IX: 9, V: 5, IV: 4, I: 1
-                };
-                let str = '';
-                
-                for (let i of Object.keys(roman)) {
-                    const q = Math.floor(num / roman[i]);
-                    num -= q * roman[i];
-                    str += i.repeat(q);
-                }
-                
-                return str;
-            }
-            
-            // Helper function to convert number to alphabet (A, B, ..., Z, AA, AB, ...)
-            function toAlpha(num) {
-                let s = '';
-                while (num >= 0) {
-                    s = String.fromCharCode(65 + (num % 26)) + s;
-                    num = Math.floor(num / 26) - 1;
-                }
-                return s || 'A';
-            }
-            
-            // Initialize
-            updatePreview();
-        });
-    </script>
-    <script type="module" src="js/auth.js"></script>
+<header>
+<div class="container">
+<nav class="navbar">
+<a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
+<div class="nav-links">
+<div class="dropdown"><a href="jpg-to-pdf.html">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content"><a href="jpg-to-pdf.html">JPG to PDF</a><a href="word-to-pdf.html">Word to PDF</a><a href="excel-to-pdf.html">Excel to PDF</a><a href="ppt-to-pdf.html">PowerPoint to PDF</a></div></div>
+<div class="dropdown"><a href="pdf-to-jpg.html">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content"><a href="pdf-to-jpg.html">PDF to JPG</a><a href="pdf-to-word.html">PDF to Word</a><a href="pdf-to-excel.html">PDF to Excel</a><a href="pdf-to-ppt.html">PDF to PowerPoint</a></div></div>
+<div class="dropdown"><a href="merge-pdf.html">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content"><a href="merge-pdf.html">Merge PDF</a><a href="split-pdf.html">Split PDF</a><a href="compress-pdf.html">Compress PDF</a><a href="edit-pdf.html">Pdf Editor</a><a href="protect-pdf.html">Protect PDF</a><a href="unlock-pdf.html">Unlock PDF</a><a href="watermark-pdf.html">Watermark PDF</a><a href="crop-pdf.html">Crop PDF</a><a href="add-page-numbers.html">Add Page Numbers</a></div></div>
+<div class="dropdown"><a href="image-compressor.html">Image Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content"><a href="image-compressor.html">Image Compressor</a><a href="image-resizer.html">Image Resizer</a><a href="image-editor.html">Image Editor</a><a href="background-remover.html">Image Background Remover</a><a href="ocr-image.html">OCR Image</a><a href="image-watermark.html">Image Watermark Tool</a></div></div>
+<div class="dropdown"><a href="resume-maker.html">Design Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content"><a href="resume-maker.html">Resume Maker</a><a href="biodata-maker.html">Marrige Biodata-Data Maker</a><a href="ai-image-generator.html">AI Image Generator</a><a href="marriage-card.html">Marriage Card</a></div></div>
+<div class="dropdown"><a href="protect-excel.html">Other Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content"><a href="excel-unlocker/" target="_blank">Excel Unlocker</a><a href="protect-excel.html">Protect Excel Sheet</a></div></div>
+</div>
+<div class="auth-buttons"><a href="login.html" class="auth-link">Sign In</a><a href="signup.html" class="auth-btn"><i class="fas fa-user-plus"></i><span>Signup</span></a></div>
+<div id="user-menu" class="user-menu" data-open="false">
+<button id="user-menu-toggle" class="user-menu-toggle" type="button"><span class="user-initial">U</span><i class="fas fa-chevron-down"></i></button>
+<div class="user-dropdown" id="user-dropdown" hidden>
+<a href="dashboard.html#dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+<a href="dashboard.html#dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+<a href="dashboard.html#dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+<a href="dashboard.html#dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders & Subscriptions</a>
+<a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
+<button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+</div></div>
+</nav></div>
+</header>
+<div class="container page-wrap">
+<div class="converter-header">
+<h1>Add Page Numbers to PDF</h1>
+<p>Upload your PDF and add customizable page numbers. Free, secure, and easy to use.</p>
+</div>
+<div class="converter-card">
+<div class="upload-area" id="upload-area">
+<div class="upload-icon"><i class="fas fa-file-pdf"></i></div>
+<h3>Upload Your PDF Document</h3>
+<p>Drag & drop your PDF file here</p>
+<p>or click to browse files</p>
+<input type="file" id="file-input" class="file-input" accept=".pdf,application/pdf">
+</div>
+<div class="file-info" id="file-info">
+<div class="file-details">
+<div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+<div class="file-text">
+<h4 id="file-name">Document.pdf</h4>
+<p id="file-size">0 KB</p>
+</div></div></div>
+<div class="action-buttons">
+<button class="btn btn-primary" id="next-btn" disabled><i class="fas fa-arrow-right"></i> Next: Add Page Numbers</button>
+<button class="btn btn-secondary" id="clear-btn"><i class="fas fa-trash"></i> Clear File</button>
+</div></div>
+<div class="features">
+<div class="feature-card"><div class="feature-icon"><i class="fas fa-sliders-h"></i></div><h3>Customizable Options</h3><p>Choose position, format, style, and color of page numbers</p></div>
+<div class="feature-card"><div class="feature-icon"><i class="fas fa-eye"></i></div><h3>Live Preview</h3><p>Preview how page numbers will look before applying them</p></div>
+<div class="feature-card"><div class="feature-icon"><i class="fas fa-list-ol"></i></div><h3>Multiple Formats</h3><p>Numbers, Roman numerals, or alphabets - your choice</p></div>
+<div class="feature-card"><div class="feature-icon"><i class="fas fa-shield-alt"></i></div><h3>Secure & Private</h3><p>Your files are processed securely in your browser</p></div>
+</div></div>
+<footer>
+<div class="container footer-inner">
+<div class="footer-company-links"><span>Company</span><a href="index.html#about">About Us</a><a href="index.html#contact">Contact</a><a href="privacy-policy.html">Privacy Policy</a><a href="terms-of-service.html">Terms of Service</a></div>
+<p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF & Image Tools for everyone.</p>
+<p class="footer-credits">Thanks to Font Awesome, Google Fonts, pdf-lib, FileSaver.js, Firebase, and every open-source contributor. <a href="attributions.html">See full acknowledgements</a>.</p>
+</div>
+</footer>
+<script src="js/global-components.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded',function(){const a=document.getElementById('upload-area'),b=document.getElementById('file-input'),c=document.getElementById('file-info'),d=document.getElementById('file-name'),e=document.getElementById('file-size'),f=document.getElementById('next-btn'),g=document.getElementById('clear-btn');let h=null;['dragenter','dragover','dragleave','drop'].forEach(i=>{a.addEventListener(i,j=>{ j.preventDefault();j.stopPropagation()},false)});['dragenter','dragover'].forEach(i=>{a.addEventListener(i,()=>a.classList.add('dragover'),false)});['dragleave','drop'].forEach(i=>{a.addEventListener(i,()=>a.classList.remove('dragover'),false)});a.addEventListener('drop',j=>{const k=j.dataTransfer.files;l(k)});a.addEventListener('click',()=>b.click());b.addEventListener('change',()=>{if(b.files.length)l(b.files)});g.addEventListener('click',()=>{h=null;b.value='';c.style.display='none';f.disabled=true});f.addEventListener('click',()=>{if(h){const m=new FileReader();m.onload=function(n){try{sessionStorage.setItem('pdfFile',n.target.result);sessionStorage.setItem('pdfFileName',h.name);window.location.href='add-page-numbers-convert.html'}catch(o){alert('File too large. Try a smaller file.')}};m.readAsDataURL(h)}});function l(p){const q=p[0];if(!q.type.includes('pdf')&&!q.name.toLowerCase().endsWith('.pdf')){alert('Please upload a valid PDF file.');return}if(q.size>500*1024*1024){alert('File size exceeds 500MB limit.');return}h=q;d.textContent=q.name;e.textContent=r(q.size);c.style.display='block';f.disabled=false}function r(s){if(s===0)return'0 Bytes';const t=1024,u=['Bytes','KB','MB','GB'],v=Math.floor(Math.log(s)/Math.log(t));return parseFloat((s/Math.pow(t,v)).toFixed(2))+' '+u[v]}});
+</script>
+<script type="module" src="js/auth.js"></script>
 </body>
 </html>
