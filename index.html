@@ -681,16 +681,18 @@
 
         .feedback-card {
             background-color: #f4f5ff;
-            padding: 24px;
+            padding: 16px;
             border-radius: 16px;
             box-shadow: 0 10px 24px rgba(67, 97, 238, 0.07);
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 12px;
+            max-height: 400px;
         }
 
         #feedback-thread-card {
-            gap: 18px;
+            gap: 12px;
+            overflow-y: auto;
         }
 
         #feedback-reply-panel {
@@ -699,8 +701,9 @@
         }
 
         .feedback-card h3 {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             color: var(--primary);
+            margin: 0;
         }
 
         .feedback-card p {
@@ -711,7 +714,7 @@
             width: 100%;
             margin: 0;
             background-color: white;
-            padding: 20px;
+            padding: 12px;
             border-radius: 12px;
             border: 1px solid #e2e6ff;
         }
@@ -743,10 +746,10 @@
             list-style: none;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
             margin: 0;
             padding: 0;
-            max-height: 220px;
+            max-height: 130px;
             overflow-y: auto;
             padding-right: 6px;
             scrollbar-width: thin;
@@ -819,6 +822,20 @@
 
         .feedback-reply-trigger:hover {
             text-decoration: underline;
+        }
+
+        .comment-form .form-group {
+            margin-bottom: 12px;
+        }
+
+        .comment-form .form-group label {
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+
+        .comment-form .form-control {
+            padding: 10px 12px;
+            font-size: 0.95rem;
         }
 
         .form-group {
