@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Donation Test</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
+</head>
+<body>
+    <h1>🧪 Donation API Test</h1>
+    <button onclick="testAPI()">Test API Call</button>
+    <button onclick="testConfig()">Test Config</button>
+    <pre id="output"></pre>
+
+    <script type="module">
+        import { API_BASE_URL } from './js/config.js';
+        
+        window.testConfig = function() {
+            const output = document.getElementById('output');
+            output.textContent = `API_BASE_URL: ${API_BASE_URL}\nwindow.location.origin: ${window.location.origin}\nwindow.location.hostname: ${window.location.hostname}`;
+        };
+
+        window.testAPI = async function() {
+            const output = document.getElementById('output');
+            try {
+                output.textContent = 'Testing API...\n';
+                
+                const url = `${API_BASE_URL}/api/create-order`;
+                console.log('Calling:', url);
+                output.textContent += `URL: ${url}\n`;
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount: 100,
+                        currency: 'INR',
+                        name: 'Test',
+                        email: 'test@test.com',
+                        firebaseUid: 'test123'
+                    })
+                });
+                
+                output.textContent += `Status: ${response.status}\n`;
+                const data = await response.json();
+                output.textContent += `Response: ${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                output.textContent = `ERROR: ${error.message}\n${error.stack}`;
+            }
+        };
+    </script>
+</body>
+</html>

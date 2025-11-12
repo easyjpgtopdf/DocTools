@@ -527,29 +527,29 @@
                 handleFiles(files);
             }
             
-            // Super simple file handling
+            // Minimal file handling
             function handleFiles(files) {
-                // Reset UI
-                fileItems.innerHTML = '<div style="padding:10px;background:#e8f4ff;border-radius:5px;">फ़ाइल चेक की जा रही है...</div>';
+                const resultDiv = document.createElement('div');
+                resultDiv.style.padding = '10px';
+                resultDiv.style.margin = '10px 0';
+                resultDiv.style.border = '2px solid #4CAF50';
+                resultDiv.style.borderRadius = '5px';
                 
-                // Basic check
                 if (!files || !files.length) {
-                    fileItems.innerHTML = '<div style="color:red;">कोई फ़ाइल नहीं मिली</div>';
+                    resultDiv.innerHTML = '❌ कोई फ़ाइल नहीं चुनी गई';
+                    resultDiv.style.borderColor = '#f44336';
+                    fileItems.appendChild(resultDiv);
                     return;
                 }
                 
                 const file = files[0];
-                
-                // Show file info
-                fileItems.innerHTML = `
-                    <div style="padding:10px;background:#e8f4ff;border-radius:5px;margin:10px 0;">
-                        <div><strong>फ़ाइल:</strong> ${file.name}</div>
-                        <div><strong>आकार:</strong> ${(file.size/1024).toFixed(2)} KB</div>
-                        <div style="color:green;margin-top:5px;">✓ फ़ाइल चयनित है</div>
-                    </div>
+                resultDiv.innerHTML = `
+                    <div>✅ <strong>फ़ाइल चुनी गई:</strong> ${file.name}</div>
+                    <div>📏 <strong>आकार:</strong> ${(file.size/1024).toFixed(2)} KB</div>
                 `;
                 
-                // Store file
+                fileItems.innerHTML = '';
+                fileItems.appendChild(resultDiv);
                 selectedFile = file;
                 updateProtectButton();
             }
@@ -633,17 +633,23 @@
                 fileInput.click();
             });
             
-            // Simple file input handler
+            // Basic file input handler
             fileInput.addEventListener('change', function() {
-                // Show loading
-                fileItems.innerHTML = '<div style="padding:10px;color:#666;">फ़ाइल लोड हो रही है...</div>';
+                const status = document.createElement('div');
+                status.textContent = '⏳ फ़ाइल जाँची जा रही है...';
+                status.style.padding = '10px';
+                status.style.color = '#2196F3';
+                fileItems.innerHTML = '';
+                fileItems.appendChild(status);
                 
-                // Process file
-                if (this.files && this.files.length > 0) {
-                    handleFiles(this.files);
-                } else {
-                    fileItems.innerHTML = '<div style="color:red;">कोई फ़ाइल नहीं चुनी गई</div>';
-                }
+                setTimeout(() => {
+                    if (this.files && this.files.length > 0) {
+                        handleFiles(this.files);
+                    } else {
+                        status.textContent = '❌ कोई फ़ाइल नहीं मिली';
+                        status.style.color = '#f44336';
+                    }
+                }, 100);
             });
             
             // Handle drag and drop
