@@ -1,9 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PowerPoint to Word Converter</title>
+    <link rel="stylesheet" href="css/footer.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -401,7 +402,8 @@
                 const includeNotes = document.getElementById('include-notes').checked;
                 const includeImages = document.getElementById('include-images').checked;
                 const preserveFormatting = document.getElementById('preserve-formatting').checked;
-                let documentContent = `<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>${currentFile.name.replace(/\.[^/.]+$/, '')}</title><style>body{font-family:Arial, sans-serif; line-height:1.6; margin:40px}.slide{margin-bottom:30px; padding-bottom:20px; border-bottom:1px solid #eee}.slide-title{font-size:24px; font-weight:bold; color:#d35400; margin-bottom:15px}.notes{background:#f9f9f9; padding:15px; border-left:4px solid #d35400; margin-top:15px; font-style:italic}ul,ol{margin-left:20px}</style>    
+                let documentContent = `<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>${currentFile.name.replace(/\.[^/.]+$/, '')}</title>
+    <link rel="stylesheet" href="css/footer.css"><style>body{font-family:Arial, sans-serif; line-height:1.6; margin:40px}.slide{margin-bottom:30px; padding-bottom:20px; border-bottom:1px solid #eee}.slide-title{font-size:24px; font-weight:bold; color:#d35400; margin-bottom:15px}.notes{background:#f9f9f9; padding:15px; border-left:4px solid #d35400; margin-top:15px; font-style:italic}ul,ol{margin-left:20px}</style>    
 
     
     

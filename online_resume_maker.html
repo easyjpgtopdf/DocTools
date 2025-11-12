@@ -1,9 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resume/CV Maker - Free Templates</title>
+    <link rel="stylesheet" href="css/footer.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     
@@ -582,7 +583,8 @@
 
     document.getElementById('downloadImg').addEventListener('click',()=>{ renderPreview(); loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',()=>{ const el = document.getElementById('previewInner').firstElementChild; if(!el) return alert('Nothing to export'); html2canvas(el, {scale:2}).then(canvas=>{ const url = canvas.toDataURL('image/png'); const a = document.createElement('a'); a.href=url; a.download=(document.getElementById('name').value||'resume')+'.png'; a.click(); }).catch(e=>console.error(e)); }); });
 
-    document.getElementById('downloadDoc').addEventListener('click',()=>{ renderPreview(); const el = document.getElementById('previewInner').firstElementChild; if(!el) return alert('Nothing to export'); const html = `<!doctype html><html><head><meta charset="utf-8"><title>${document.getElementById('name').value||'Resume'}</title>    
+    document.getElementById('downloadDoc').addEventListener('click',()=>{ renderPreview(); const el = document.getElementById('previewInner').firstElementChild; if(!el) return alert('Nothing to export'); const html = `<!doctype html><html><head><meta charset="utf-8"><title>${document.getElementById('name').value||'Resume'}</title>
+    <link rel="stylesheet" href="css/footer.css">    
 
     
     
@@ -690,6 +692,7 @@
           <html>
           <head>
             <title>Preview</title>
+    <link rel="stylesheet" href="css/footer.css">
             <meta charset="utf-8">
     <link rel="stylesheet" href="css/header.css">
     <link rel="stylesheet" href="css/theme-modern.css">
