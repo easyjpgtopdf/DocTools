@@ -44,6 +44,14 @@ service cloud.firestore {
       }
     }
 
+    // Feedback collection - Public read, authenticated write
+    match /feedback/{feedbackId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if isSignedIn();
+      allow delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
