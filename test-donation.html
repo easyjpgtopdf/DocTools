@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Donation API - EasyJpgToPdf</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        input {
+            padding: 10px;
+            margin: 5px 0;
+            width: 200px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Donation API Test Page</h1>
+        
+        <div class="info">
+            <strong>API Base URL:</strong> <span id="api-base-url">Loading...</span><br>
+            <strong>Test Endpoint:</strong> <span id="test-endpoint">Loading...</span>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 1: Check API Endpoint</h2>
+            <p>This will verify that the API endpoint is accessible</p>
+            <button onclick="testEndpointAccess()">Test API Access</button>
+            <div id="result1" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 2: Create Test Order</h2>
+            <p>This will attempt to create a Razorpay order</p>
+            <div>
+                <label>Amount (INR): <input type="number" id="test-amount" value="100" min="1"></label><br>
+                <label>Name: <input type="text" id="test-name" value="Test User"></label><br>
+                <label>Email: <input type="email" id="test-email" value="test@example.com"></label>
+            </div>
+            <button onclick="testCreateOrder()">Create Test Order</button>
+            <div id="result2" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 3: Full Donation Flow</h2>
+            <p>This will test the complete donation flow with Razorpay checkout</p>
+            <button onclick="testFullDonation()">Test Full Flow</button>
+            <div id="result3" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+        // Get API base URL
+        const API_BASE_URL = window.location.origin;
+        const CREATE_ORDER_URL = `${API_BASE_URL}/api/create-order`;
+
+        // Display URLs
+        document.getElementById('api-base-url').textContent = API_BASE_URL;
+        document.getElementById('test-endpoint').textContent = CREATE_ORDER_URL;
+
+        function showResult(resultId, message, type = 'info') {
+            const resultEl = document.getElementById(resultId);
+            resultEl.style.display = 'block';
+            resultEl.className = `result ${type}`;
+            resultEl.textContent = message;
+        }
+
+        async function testEndpointAccess() {
+            showResult('result1', 'Testing API endpoint access...', 'info');
+            
+            try {
+                const response = await fetch(CREATE_ORDER_URL, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': window.location.origin
+                    }
+                });
+                
+                const message = `✅ API Endpoint Accessible!\n\nStatus: ${response.status}\nHeaders:\n${JSON.stringify(Object.fromEntries(response.headers), null, 2)}`;
+                showResult('result1', message, 'success');
+            } catch (error) {
+                const message = `❌ API Endpoint NOT Accessible\n\nError: ${error.message}\n\nThis means the API is not deployed or not reachable.`;
+                showResult('result1', message, 'error');
+            }
+        }
+
+        async function testCreateOrder() {
+            showResult('result2', 'Creating test order...', 'info');
+            
+            try {
+                const amount = document.getElementById('test-amount').value;
+                const name = document.getElementById('test-name').value;
+                const email = document.getElementById('test-email').value;
+
+                const response = await fetch(CREATE_ORDER_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        amount: parseInt(amount),
+                        name: name,
+                        email: email,
+                        firebaseUid: 'test_user_123',
+                        currency: 'INR'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const message = `✅ Order Created Successfully!\n\n${JSON.stringify(data, null, 2)}`;
+                    showResult('result2', message, 'success');
+                } else {
+                    const message = `❌ Order Creation Failed\n\nStatus: ${response.status}\nResponse:\n${JSON.stringify(data, null, 2)}`;
+                    showResult('result2', message, 'error');
+                }
+            } catch (error) {
+                const message = `❌ Request Failed\n\nError: ${error.message}\n\nCheck console for details.`;
+                showResult('result2', message, 'error');
+                console.error('Test order error:', error);
+            }
+        }
+
+        async function testFullDonation() {
+            showResult('result3', 'Testing full donation flow...', 'info');
+            
+            try {
+                // Step 1: Create order
+                const amount = 100;
+                const response = await fetch(CREATE_ORDER_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        amount: amount,
+                        name: 'Test User',
+                        email: 'test@example.com',
+                        firebaseUid: 'test_user_123',
+                        currency: 'INR'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(`Order creation failed: ${JSON.stringify(data)}`);
+                }
+
+                showResult('result3', `✅ Order created! Opening Razorpay checkout...\n\nOrder ID: ${data.id}\nAmount: ₹${amount}`, 'success');
+
+                // Step 2: Open Razorpay checkout
+                const options = {
+                    key: data.key,
+                    amount: data.amountInPaise,
+                    currency: data.currency,
+                    name: 'EasyJpgToPdf',
+                    description: 'Test Donation',
+                    order_id: data.id,
+                    handler: function(response) {
+                        const message = `✅ Payment Successful!\n\nPayment ID: ${response.razorpay_payment_id}\nOrder ID: ${response.razorpay_order_id}\nSignature: ${response.razorpay_signature}`;
+                        showResult('result3', message, 'success');
+                    },
+                    modal: {
+                        ondismiss: function() {
+                            showResult('result3', '⚠️ Payment cancelled by user', 'error');
+                        }
+                    },
+                    prefill: {
+                        name: 'Test User',
+                        email: 'test@example.com'
+                    },
+                    theme: {
+                        color: '#007bff'
+                    }
+                };
+
+                const rzp = new Razorpay(options);
+                rzp.open();
+            } catch (error) {
+                const message = `❌ Full flow test failed\n\nError: ${error.message}\n\nCheck console for details.`;
+                showResult('result3', message, 'error');
+                console.error('Full flow error:', error);
+            }
+        }
+
+        // Auto-test on load
+        window.addEventListener('load', () => {
+            console.log('Test page loaded');
+            console.log('API Base URL:', API_BASE_URL);
+            console.log('Create Order URL:', CREATE_ORDER_URL);
+        });
+    </script>
+</body>
+</html>
