@@ -73,6 +73,15 @@ const globalHeaderHTML = `
                         <a href="protect-excel.html">Protect Excel Sheet</a>
                     </div>
                 </div>
+                <div class="dropdown">
+                    <a href="#">Contact & Support <i class="fas fa-chevron-down"></i></a>
+                    <div class="dropdown-content">
+                        <a href="kyc-support.html"><i class="fas fa-headset"></i> KYC Support</a>
+                        <a href="shipping-billing.html"><i class="fas fa-shipping-fast"></i> Shipping & Billing</a>
+                        <a href="index.html#donation-section"><i class="fas fa-heart"></i> Support Us</a>
+                        <a href="mailto:support@easyjpgtopdf.com"><i class="fas fa-envelope"></i> Email Support</a>
+                    </div>
+                </div>
             </div>
             <div class="auth-buttons">
                 <a href="login.html" class="auth-link">Sign In</a>
