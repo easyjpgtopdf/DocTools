@@ -2,13 +2,15 @@
   "version": 2,
   "buildCommand": "npm install",
   "outputDirectory": "server/public",
-  "functions": {
-    "api/**/*.js": {
-      "runtime": "nodejs18.x",
-      "memory": 1024,
-      "maxDuration": 60
+  "builds": [
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node",
+      "config": {
+        "maxLambdaSize": "50mb"
+      }
     }
-  },
+  ],
   "rewrites": [
     {
       "source": "/api/:path*",
