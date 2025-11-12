@@ -1,7 +1,5 @@
-import crypto from 'crypto';
-import { v4 as uuidv4 } from 'uuid';
-import Razorpay from 'razorpay';
-import admin from 'firebase-admin';
+const Razorpay = require('razorpay');
+const admin = require('firebase-admin');
 
 // Initialize Firebase if not already done
 if (!admin.apps.length) {
@@ -33,7 +31,7 @@ const razorpay = razorpayKeyId && razorpayKeySecret
   ? new Razorpay({ key_id: razorpayKeyId, key_secret: razorpayKeySecret })
   : null;
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
