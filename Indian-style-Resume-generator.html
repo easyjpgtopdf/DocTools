@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="hi">
 <head>
 <meta charset="utf-8" />
@@ -935,7 +935,8 @@ document.getElementById('downloadDoc').addEventListener('click', ()=> {
     
     <link rel="stylesheet" href="css/header.css">
     <link rel="stylesheet" href="css/theme-modern.css">
-</head><body><div class="doc-wrapper">${el.outerHTML}</div></body></html>`;
+</head><body><div class="doc-wrapper">${el.outerHTML}</div>    <script type="module" src="js/auth.js"></script>
+</body></html>`;
   const blob = new Blob(['\ufeff', docHTML], {type: 'application/msword'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download = (nameField || 'resume') + '.doc'; a.click();
@@ -954,6 +955,7 @@ document.getElementById('downloadHtmlBtn').addEventListener('click', ()=> {
 </script>
   
 
+    <script type="module" src="js/auth.js"></script>
 </body>
 </html>
 

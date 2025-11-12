@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -593,6 +593,7 @@
 
 
 
+    <script type="module" src="js/auth.js"></script>
 </body></html>`; const blob = new Blob(['Ã¯Â»Â¿', html], {type: 'application/msword'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download=(document.getElementById('name').value||'resume')+'.doc'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),5000); });
 
     document.getElementById('downloadHtml').addEventListener('click',()=>{ renderPreview(); const el = document.documentElement.outerHTML; const blob = new Blob([el], {type:'text/html'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='resume_maker_export.html'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),5000); });
@@ -717,7 +718,8 @@
             <div class="preview-container">
               ${clone.outerHTML}
             </div>
-          </body>
+              <script type="module" src="js/auth.js"></script>
+</body>
           </html>
         `);
         w.document.close();
@@ -729,6 +731,7 @@
 
 
 
+    <script type="module" src="js/auth.js"></script>
 </body>
 </html>
 
