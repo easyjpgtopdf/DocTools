@@ -879,12 +879,33 @@
             async function downloadFile(data, filename, mimeType) {
                 return new Promise((resolve, reject) => {
                     try {
+                        console.log('Downloading file:', filename, 'Size:', data.byteLength || data.length, 'bytes');
+                        
+                        if (!data || (data.byteLength === 0 && data.length === 0)) {
+                            throw new Error('No data to download');
+                        }
+                        
                         const blob = new Blob([data], { type: mimeType });
+                        
+                        if (blob.size === 0) {
+                            throw new Error('Created blob is empty');
+                        }
+                        
+                        console.log('Blob created successfully, size:', blob.size, 'bytes');
+                        
+                        // Use FileSaver.js saveAs
                         saveAs(blob, filename);
-                        resolve();
+                        
+                        console.log('Download initiated successfully');
+                        
+                        // Wait a bit to ensure download starts
+                        setTimeout(() => {
+                            resolve();
+                        }, 500);
+                        
                     } catch (error) {
                         console.error('Download error:', error);
-                        reject(error);
+                        reject(new Error('डाउनलोड त्रुटि: ' + (error.message || 'फ़ाइल डाउनलोड करने में विफल')));
                     }
                 });
             }
@@ -976,26 +997,46 @@
                     ) + `_protected.${fileExtension}`;
                     
                     // Download the file
+                    console.log('Starting file download...');
                     await downloadFile(excelBuffer, outputFilename, mimeType);
+                    console.log('File download completed successfully');
                     
                     // Show success message
                     updateProgress(100);
-                    showSuccessMessage();
+                    showProgress(true, 'फ़ाइल सफलतापूर्वक डाउनलोड हो गई!');
                     
-                    // Hide success message after 10 seconds
+                    // Wait a bit before showing success message
                     setTimeout(() => {
-                        const successMessage = document.getElementById('successMessage');
-                        if (successMessage) {
-                            successMessage.style.display = 'none';
-                        }
-                    }, 10000);
+                        showSuccessMessage();
+                        showProgress(false);
+                        
+                        // Hide success message after 10 seconds
+                        setTimeout(() => {
+                            const successMessage = document.getElementById('successMessage');
+                            if (successMessage) {
+                                successMessage.style.display = 'none';
+                            }
+                        }, 10000);
+                    }, 1000);
                     
                 } catch (error) {
                     console.error('Error in protectExcel:', error);
-                    alert('त्रुटि: ' + (error.message || 'फ़ाइल को सुरक्षित करने में विफल। कृपया पुनः प्रयास करें।'));
+                    showProgress(false);
+                    
+                    // More detailed error messages
+                    let errorMessage = 'फ़ाइल को सुरक्षित करने में विफल।';
+                    
+                    if (error.message) {
+                        errorMessage += '\n\nविवरण: ' + error.message;
+                    }
+                    
+                    if (error.message && error.message.includes('download')) {
+                        errorMessage += '\n\nसुझाव: कृपया अपने ब्राउज़र की डाउनलोड सेटिंग्स जांचें और पॉप-अप ब्लॉकर अक्षम करें।';
+                    }
+                    
+                    alert(errorMessage);
                 } finally {
                     // Reset button state
-                    showProgress(false);
                     protectBtn.disabled = false;
                     protectBtn.innerHTML = '<i class="fas fa-lock"></i> एक्सेल फ़ाइल सुरक्षित करें';
                 }    
@@ -1055,47 +1096,49 @@
                                 newWs['!cols'] = JSON.parse(JSON.stringify(ws['!cols']));
                             }
                             
-                            // Apply sheet protection
+                            // Apply sheet protection - IMPROVED
                             if (password) {
+                                console.log(`Applying protection to sheet: ${sheetName}`);
+                                
+                                // Set sheet protection with all permissions disabled
                                 newWs['!protect'] = {
-                                    selectLockedCells: true,
-                                    selectUnlockedCells: true,
-                                    formatCells: true,
-                                    formatColumns: true,
-                                    formatRows: true,
-                                    insertColumns: true,
-                                    insertRows: true,
-                                    insertHyperlinks: true,
-                                    deleteColumns: true,
-                                    deleteRows: true,
-                                    sort: true,
-                                    autoFilter: true,
-                                    pivotTables: true,
-                                    objects: true,
-                                    scenarios: true,
-                                    password: password
+                                    password: password,
+                                    sheet: true,
+                                    selectLockedCells: false,
+                                    selectUnlockedCells: false,
+                                    formatCells: false,
+                                    formatColumns: false,
+                                    formatRows: false,
+                                    insertColumns: false,
+                                    insertRows: false,
+                                    insertHyperlinks: false,
+                                    deleteColumns: false,
+                                    deleteRows: false,
+                                    sort: false,
+                                    autoFilter: false,
+                                    pivotTables: false,
+                                    objects: false,
+                                    scenarios: false
                                 };
                                 
-                                // Make all cells locked by default
-                                const range = XLSX.utils.decode_range(newWs['!ref']);
-                                for (let R = range.s.r; R <= range.e.r; ++R) {
-                                    for (let C = range.s.c; C <= range.e.c; ++C) {
-                                        const cell_address = {c:C, r:R};
-                                        const cell_ref = XLSX.utils.encode_cell(cell_address);
-                                        
-                                        if (!newWs[cell_ref]) continue;
-                                        
-                                        // Ensure cell has style
-                                        if (!newWs[cell_ref].s) {
-                                            newWs[cell_ref].s = {};
+                                // Lock all cells
+                                if (newWs['!ref']) {
+                                    const range = XLSX.utils.decode_range(newWs['!ref']);
+                                    for (let R = range.s.r; R <= range.e.r; ++R) {
+                                        for (let C = range.s.c; C <= range.e.c; ++C) {
+                                            const cell_address = {c:C, r:R};
+                                            const cell_ref = XLSX.utils.encode_cell(cell_address);
+                                            
+                                            if (newWs[cell_ref]) {
+                                                if (!newWs[cell_ref].s) newWs[cell_ref].s = {};
+                                                if (!newWs[cell_ref].s.protection) newWs[cell_ref].s.protection = {};
+                                                newWs[cell_ref].s.protection.locked = true;
+                                            }
                                         }
-                                        
-                                        // Set locked property
-                                        if (!newWs[cell_ref].s) newWs[cell_ref].s = {};
-                                        if (!newWs[cell_ref].s.protection) newWs[cell_ref].s.protection = {};
-                                        newWs[cell_ref].s.protection.locked = true;
                                     }
                                 }
+                                
+                                console.log(`Sheet ${sheetName} protection applied successfully`);
                             }
                             
                             XLSX.utils.book_append_sheet(wb, newWs, sheetName);
@@ -1123,28 +1166,29 @@
                     const bookType = outputFormat || 'xlsx';
                     console.log(`Writing workbook as ${bookType}...`);
                     
-                    // Write options
+                    // Write options - FIXED: Removed password from write options
+                    // XLSX.js doesn't support password protection during write
+                    // Protection is applied at sheet level
                     const writeOpts = {
                         bookType: bookType,
                         type: 'array',
                         bookSST: true,
                         cellStyles: true,
-                        compression: true,
-                        ignoreEC: false
+                        compression: true
                     };
-                    
-                    if (password) {
-                        writeOpts.password = password;
-                        writeOpts.bookSST = true;
-                    }
                     
                     try {
                         const result = XLSX.write(wb, writeOpts);
                         console.log('Workbook written successfully');
+                        
+                        if (!result || result.byteLength === 0) {
+                            throw new Error('Generated file is empty');
+                        }
+                        
                         return result;
                     } catch (writeError) {
                         console.error('Excel फ़ाइल लिखने में त्रुटि:', writeError);
-                        throw new Error('सुरक्षित फ़ाइल बनाने में विफल। फ़ाइल बहुत बड़ी हो सकती है या खराब हो सकती है।');
+                        throw new Error('सुरक्षित फ़ाइल बनाने में विफल: ' + (writeError.message || 'अज्ञात त्रुटि'));
                     }
                 } catch (error) {
                     console.error('Excel प्रोसेसिंग में त्रुटि:', error);
