@@ -87,6 +87,11 @@ module.exports = async function handler(req, res) {
       webhookEvent: eventType,
       paymentId,
       paymentStatus: status,
+      orderId: orderId,
+      amount: payment?.amount ? payment.amount / 100 : (order?.amount ? order.amount / 100 : 0),
+      currency: payment?.currency || order?.currency || 'INR',
+      method: payment?.method || 'razorpay',
+      createdAt: payment?.created_at ? admin.firestore.Timestamp.fromMillis(payment.created_at * 1000) : admin.firestore.FieldValue.serverTimestamp(),
       razorpayPayload: event,
     };
 
@@ -94,6 +99,8 @@ module.exports = async function handler(req, res) {
       updates.status = 'succeeded';
     } else if (status === 'failed') {
       updates.status = 'failed';
+    } else {
+      updates.status = 'pending';
     }
 
     const metadata = order?.notes || payment?.notes || {};

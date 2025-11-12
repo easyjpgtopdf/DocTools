@@ -304,8 +304,22 @@ function handleAuthResume(event) {
     return;
   }
 
-  pendingDonation = null;
-  initiateDonation(user, donation);
+  console.log('🔄 Resuming donation after login:', donation);
+  
+  // Scroll to donation section if not visible
+  const donateSection = document.getElementById('donation-section') || document.getElementById('donate');
+  if (donateSection) {
+    donateSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  
+  // Show a brief message
+  showMessage("Continuing with your donation...");
+  
+  // Small delay to ensure UI is ready, then initiate donation
+  setTimeout(() => {
+    pendingDonation = null;
+    initiateDonation(user, donation);
+  }, 500);
 }
 
 document.addEventListener("auth-action-resume", handleAuthResume);

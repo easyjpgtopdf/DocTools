@@ -75,6 +75,33 @@ module.exports = async function handler(req, res) {
 
     const order = await razorpay.orders.create(orderOptions);
     
+    // Save initial order record to Firestore if user is logged in
+    if (firebaseUid && firebaseUid !== 'anonymous' && admin.apps.length) {
+      try {
+        const db = admin.firestore();
+        await db.collection('payments')
+          .doc(firebaseUid)
+          .collection('records')
+          .doc(order.id)
+          .set({
+            orderId: order.id,
+            amount: amount,
+            currency: currency,
+            status: 'pending',
+            paymentStatus: 'created',
+            method: 'razorpay',
+            name: name,
+            email: email,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+        console.log(`Order ${order.id} saved to Firestore for user ${firebaseUid}`);
+      } catch (firestoreError) {
+        console.error('Failed to save order to Firestore:', firestoreError);
+        // Continue anyway - webhook will handle it
+      }
+    }
+    
     res.json({
       id: order.id,
       amount: order.amount,
