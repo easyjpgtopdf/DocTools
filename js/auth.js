@@ -199,7 +199,12 @@ async function signInWithProvider(providerKey) {
         ageVerified: true,
       });
       dispatchPendingAction(result.user);
-      window.location.href = 'dashboard.html#dashboard-overview';
+      
+      // Only redirect to dashboard if no pending action
+      const pending = getCurrentPendingAction();
+      if (!pending || !pending.redirectTo) {
+        window.location.href = 'dashboard.html#dashboard-overview';
+      }
     }
   } catch (error) {
     console.error(`Social login with ${providerKey} failed:`, error);
