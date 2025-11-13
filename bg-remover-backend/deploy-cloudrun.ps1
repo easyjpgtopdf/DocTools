@@ -2,7 +2,7 @@
 # For 100% Professional Quality Background Removal
 
 # Configuration
-$PROJECT_ID = "doctools-bg-remover"
+$PROJECT_ID = "easyjpgtopdf-de346"
 $SERVICE_NAME = "bg-remover-api"
 $REGION = "us-central1"
 
