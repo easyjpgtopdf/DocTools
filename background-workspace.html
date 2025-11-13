@@ -179,27 +179,33 @@
     let removeBackgroundFn = null;
     let preloadFn = null;
     let modelPreloaded = false;
+    let libraryLoading = false;
 
-    // Load IMG.LY library and preload model immediately
-    (async function initializeAI() {
-      try {
-        ({ removeBackground: removeBackgroundFn, preload: preloadFn } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/index.mjs'));
-        
-        // Preload model in background for instant processing
-        console.log('🚀 Preloading AI model in background...');
-        if (preloadFn) {
-          await preloadFn({ 
-            publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
-            model: 'medium'
-          });
-          modelPreloaded = true;
-          console.log('✅ AI model ready! Processing will be instant.');
+    // Load IMG.LY library (wait for user action instead of auto-preload)
+    async function ensureLibraryLoaded() {
+      if (removeBackgroundFn) return true; // Already loaded
+      if (libraryLoading) {
+        // Wait for ongoing load
+        while (libraryLoading) {
+          await new Promise(r => setTimeout(r, 100));
         }
-      } catch (err) {
-        showError('AI library failed to load. Please check your connection and refresh.');
-        console.error(err);
+        return !!removeBackgroundFn;
       }
-    })();
+
+      try {
+        libraryLoading = true;
+        console.log('🚀 Loading AI library...');
+        ({ removeBackground: removeBackgroundFn, preload: preloadFn } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/index.mjs'));
+        console.log('✅ AI library loaded successfully!');
+        libraryLoading = false;
+        return true;
+      } catch (err) {
+        libraryLoading = false;
+        console.error('❌ Failed to load AI library:', err);
+        showError('AI library failed to load. Please check your internet connection and refresh the page.');
+        return false;
+      }
+    }
 
     function dataURLToBlob(dataURL) {
       const [meta, encoded] = dataURL.split(',');
@@ -442,22 +448,26 @@
 
         // Route 2: Use browser processing for small/medium files (0-15 MB)
         if (!config.useBackend && !resultUrl) {
-          if (!removeBackgroundFn) {
-            showError('AI library not loaded. Please refresh the page.');
+          // Ensure library is loaded
+          const libraryReady = await ensureLibraryLoaded();
+          if (!libraryReady || !removeBackgroundFn) {
+            showError('AI library not loaded. Please refresh the page and try again.');
             return;
           }
 
-          // Use preloaded model (already cached)
+          // Preload model if not already done
           if (!modelPreloaded && typeof preloadFn === 'function') {
-            console.log('⏳ Loading AI model...');
+            console.log('⏳ Preloading AI model for faster processing...');
+            statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⏳ Loading AI model (one-time, 30-45 sec)...</div>';
             try {
               await preloadFn({ 
                 publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
                 model: config.model
               });
               modelPreloaded = true;
+              console.log('✅ AI model preloaded and cached!');
             } catch (err) {
-              console.warn('Preload failed, continuing:', err);
+              console.warn('⚠️ Preload failed, will load during processing:', err);
             }
           }
 
