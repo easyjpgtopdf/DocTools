@@ -400,3 +400,52 @@ if (donateForm) {
     await initiateDonation(user, donation);
   });
 }
+
+// Auto-trigger donation form when coming from dashboard
+document.addEventListener('DOMContentLoaded', () => {
+  // Check if URL has #donation-section or #donate hash
+  const hash = window.location.hash;
+  if (hash === '#donation-section' || hash === '#donate') {
+    // Scroll to donation section
+    const donateSection = document.getElementById('donation-section') || document.getElementById('donate');
+    if (donateSection) {
+      donateSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      // Check if user is logged in
+      const checkUserAndProceed = () => {
+        const user = auth.currentUser;
+        if (user) {
+          // User is logged in, proceed to click donate button after a brief moment
+          setTimeout(() => {
+            const donateBtn = donateForm?.querySelector('button[type="submit"]');
+            if (donateBtn && amountInput?.value) {
+              // Highlight the form briefly to show it's active
+              if (donateForm) {
+                donateForm.style.boxShadow = '0 0 20px rgba(67, 97, 238, 0.4)';
+                donateForm.style.transition = 'box-shadow 0.5s ease';
+                setTimeout(() => {
+                  donateForm.style.boxShadow = '';
+                }, 2000);
+              }
+              // Show message
+              showMessage("Ready to donate! Click the Donate button or adjust the amount.");
+            }
+          }, 800);
+        }
+      };
+      
+      // Wait for auth to be ready
+      if (auth.currentUser) {
+        checkUserAndProceed();
+      } else {
+        // Listen for auth state change
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+          if (user) {
+            checkUserAndProceed();
+          }
+          unsubscribe();
+        });
+      }
+    }
+  }
+});
