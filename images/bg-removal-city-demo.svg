@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 200" width="440" height="200">
+  <defs>
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#87CEEB;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E0F6FF;stop-opacity:1" />
+    </linearGradient>
+    
+    <clipPath id="wipeClip">
+      <rect x="0" y="0" width="0" height="200">
+        <animate attributeName="width" from="0" to="440" dur="3s" repeatCount="indefinite" />
+      </rect>
+    </clipPath>
+  </defs>
+  
+  <!-- Original Background with City -->
+  <rect width="440" height="200" fill="url(#skyGrad)"/>
+  
+  <!-- City Buildings -->
+  <rect x="20" y="120" width="60" height="80" fill="#555"/>
+  <rect x="90" y="100" width="50" height="100" fill="#666"/>
+  <rect x="150" y="110" width="70" height="90" fill="#555"/>
+  <rect x="230" y="90" width="55" height="110" fill="#666"/>
+  <rect x="295" y="105" width="65" height="95" fill="#555"/>
+  <rect x="370" y="95" width="50" height="105" fill="#666"/>
+  
+  <!-- Building Windows -->
+  <g fill="#FFD700">
+    <rect x="25" y="125" width="5" height="8"/>
+    <rect x="35" y="125" width="5" height="8"/>
+    <rect x="45" y="125" width="5" height="8"/>
+    <rect x="55" y="125" width="5" height="8"/>
+    <rect x="25" y="145" width="5" height="8"/>
+    <rect x="35" y="145" width="5" height="8"/>
+    <rect x="95" y="105" width="4" height="7"/>
+    <rect x="103" y="105" width="4" height="7"/>
+    <rect x="111" y="105" width="4" height="7"/>
+    <rect x="95" y="125" width="4" height="7"/>
+    <rect x="103" y="125" width="4" height="7"/>
+  </g>
+  
+  <!-- Girl Silhouette -->
+  <g fill="#FF6B9D">
+    <circle cx="220" cy="80" r="25"/>
+    <rect x="205" y="105" width="30" height="50" rx="5"/>
+    <rect x="185" y="110" width="20" height="10" rx="3"/>
+    <rect x="235" y="110" width="20" height="10" rx="3"/>
+    <rect x="205" y="155" width="12" height="45" rx="3"/>
+    <rect x="223" y="155" width="12" height="45" rx="3"/>
+  </g>
+  
+  <!-- White Background Wipe (Animated) -->
+  <rect x="0" y="0" width="440" height="200" fill="white" clip-path="url(#wipeClip)"/>
+  
+  <!-- Girl stays visible (on white bg) -->
+  <g fill="#FF6B9D" clip-path="url(#wipeClip)">
+    <circle cx="220" cy="80" r="25"/>
+    <rect x="205" y="105" width="30" height="50" rx="5"/>
+    <rect x="185" y="110" width="20" height="10" rx="3"/>
+    <rect x="235" y="110" width="20" height="10" rx="3"/>
+    <rect x="205" y="155" width="12" height="45" rx="3"/>
+    <rect x="223" y="155" width="12" height="45" rx="3"/>
+  </g>
+  
+  <!-- Removal Line -->
+  <line x1="0" y1="0" x2="0" y2="200" stroke="#4361ee" stroke-width="3">
+    <animate attributeName="x1" from="0" to="440" dur="3s" repeatCount="indefinite"/>
+    <animate attributeName="x2" from="0" to="440" dur="3s" repeatCount="indefinite"/>
+  </line>
+  
+  <!-- Sparkles -->
+  <g fill="#FFD700">
+    <circle cx="0" cy="40" r="3">
+      <animate attributeName="cx" from="0" to="440" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;0" dur="0.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="0" cy="100" r="3">
+      <animate attributeName="cx" from="0" to="440" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;0" dur="0.5s" begin="0.2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="0" cy="160" r="3">
+      <animate attributeName="cx" from="0" to="440" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;0" dur="0.5s" begin="0.4s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  
+  <!-- Text Animation -->
+  <text x="10" y="25" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#333">
+    <tspan>
+      Original Image
+      <animate attributeName="opacity" values="1;1;0;0;0;0" dur="3s" repeatCount="indefinite"/>
+    </tspan>
+  </text>
+  <text x="10" y="25" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#333">
+    <tspan>
+      Removing Background...
+      <animate attributeName="opacity" values="0;0;1;1;0;0" dur="3s" repeatCount="indefinite"/>
+    </tspan>
+  </text>
+  <text x="10" y="25" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#333">
+    <tspan>
+      Background Removed! ✨
+      <animate attributeName="opacity" values="0;0;0;0;1;1" dur="3s" repeatCount="indefinite"/>
+    </tspan>
+  </text>
+</svg>

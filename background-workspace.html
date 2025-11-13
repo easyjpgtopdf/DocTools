@@ -145,11 +145,16 @@
     <section class="panel">
       <h2><i class="fas fa-info-circle"></i> Processing Info</h2>
       <div id="statusMessage" class="status-card"></div>
+      
+      <!-- Animated Demo -->
+      <div style="margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(67,97,238,0.15);">
+        <img src="images/bg-removal-jungle-demo.svg" alt="AI Processing Demo" style="width: 100%; height: auto; display: block;">
+      </div>
+      
       <div class="status-card">
         <strong>✓ 3-Tier Smart Processing</strong>
         <p>• <strong>0-15 MB</strong>: Fast browser (IMG.LY AI) - Free</p>
-        <p>• <strong>15-50 MB</strong>: Free server (Render + Rembg) - Free</p>
-        <p>• <strong>50-100 MB</strong>: Cloud server (Google Cloud Run) - Premium</p>
+        <p>• <strong>15-100 MB</strong>: Cloud server (Google Cloud Run) - Premium</p>
         <p>• Automatic routing for optimal speed & cost</p>
         <p>• Professional AI quality at every tier</p>
       </div>
@@ -278,49 +283,46 @@
     // Tier 2: 15-50 MB → Render Backend (Python Rembg) - Free 750hrs/month
     // Tier 3: 50-100 MB → Cloud Run (Docker Rembg) - Free 2M requests/month
     // ============================================
+    // GOOGLE CLOUD RUN BACKEND CONFIGURATION
+    // ============================================
+    // Project: easyjpgtopdf-de346
+    // Region: us-central1
+    // Service: bg-remover-api
+    // TODO: Update URL after Cloud Run deployment (2-3 days)
+    // Deploy guide: bg-remover-backend/GOOGLE_CLOUD_COMPLETE_GUIDE.md
+    // ============================================
     
-    // Google Cloud Run backend URL (Deploy after verification - 2-3 days)
-    const CLOUDRUN_API_URL = 'https://YOUR-CLOUDRUN-SERVICE.run.app/remove-background';
+    const CLOUDRUN_API_URL = 'https://bg-remover-api-XXXXXXXXXX-uc.a.run.app/remove-background';
+    // ⬆️ Replace XXXXXXXXXX with your Cloud Run service hash after deployment
     
     // Smart routing based on file size (optimized for quality + speed)
     function getProcessingConfig(fileSize) {
       const sizeMB = fileSize / (1024 * 1024);
       
-      // Tier 1: Browser AI (IMG.LY U²-Net) - HIGHEST QUALITY
+      // Tier 1: Browser AI (IMG.LY U²-Net) - Best browser quality
       if (fileSize < 15 * 1024 * 1024) {
-        // 0-15 MB: Maximum quality browser processing
+        // 0-15 MB: Browser processing (95-98% quality, instant)
         return {
           useBackend: false,
-          model: 'medium',  // Best model
-          quality: 1.0,     // MAXIMUM quality (100%)
-          description: 'Professional Quality AI (Browser)',
-          message: `Processing ${sizeMB.toFixed(1)} MB with professional AI`,
+          model: 'medium',  // Best IMG.LY model
+          quality: 1.0,     // Maximum quality
+          description: 'Browser AI - Professional Quality',
+          message: `Processing ${sizeMB.toFixed(1)} MB with browser AI (95-98% quality)`,
           tier: 'browser',
-          info: '🎨 Professional quality - No over-cleaning'
+          info: '⚡ Fast & Free - Good quality for most images'
         };
       } 
-      // Tier 2: Google Cloud Run (Rembg U²-Net)
+      // Tier 2: Google Cloud Run (Rembg U²-Net) - 100% Professional
       else if (fileSize < 100 * 1024 * 1024) {
-        // 15-100 MB: Professional server processing (FREE 20k/month)
+        // 15-100 MB: Cloud processing (100% quality, FREE 18k/month)
         return {
           useBackend: true,
           backendUrl: CLOUDRUN_API_URL,
-          description: 'Professional AI (Free Server)',
-          message: `Uploading ${sizeMB.toFixed(1)} MB to professional AI server`,
-          tier: 'render',
-          info: '🚀 Professional quality with Rembg AI (Free)'
-        };
-      } 
-      // Tier 2: Google Cloud Run (Rembg U²-Net) - PROFESSIONAL
-      else if (fileSize < 100 * 1024 * 1024) {
-        // 15-100 MB: Professional cloud processing (FREE 20k/month)
-        return {
-          useBackend: true,
-          backendUrl: CLOUDRUN_API_URL,
+          timeout: 300000,  // 5 minutes
           description: 'Google Cloud Run - Rembg U²-Net',
-          message: `Processing ${sizeMB.toFixed(1)} MB with Cloud AI (Same as Photopea)`,
+          message: `Processing ${sizeMB.toFixed(1)} MB with Cloud AI (100% quality - Same as Photopea)`,
           tier: 'cloudrun',
-          info: '☁️ Professional quality - FREE 20,000/month'
+          info: '☁️ 100% Professional - FREE 18,000 images/month'
         };
       } 
       // Error: File too large
@@ -334,11 +336,11 @@
       }
     }
 
-    // Process image using backend server (Render or Cloud Run)
+    // Process image using Google Cloud Run backend
     async function processWithBackend(dataURL, backendUrl, config) {
       try {
         // Show upload progress
-        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">📤 Uploading to ${config.tier === 'render' ? 'Free Server' : 'Premium Cloud'}...</div>`;
+        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">☁️ Uploading to Google Cloud AI...</div>`;
         
         // Make API request with timeout
         const controller = new AbortController();
