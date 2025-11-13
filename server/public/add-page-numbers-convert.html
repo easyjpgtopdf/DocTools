@@ -74,15 +74,6 @@
     .radio-option input[type="radio"]{margin:0}
     .color-picker{display:flex;align-items:center;gap:10px;margin-top:8px}
     .color-preview{width:40px;height:40px;border:2px solid #ddd;border-radius:6px;cursor:pointer}
-    .preview-sample{background:#f8f9fa;border:1px solid #dee2e6;border-radius:8px;padding:15px;margin-top:12px;min-height:120px;position:relative;display:flex;align-items:center;justify-content:center}
-    .preview-sample p{position:absolute;top:8px;left:8px;right:8px;margin:0;font-size:.85rem}
-    .sample-page-number{position:absolute;font-size:14px;padding:5px 10px;background:rgba(255,255,255,0.9);border:1px solid #ddd;border-radius:4px}
-    .sample-page-number.top-left{top:30px;left:10px}
-    .sample-page-number.top-center{top:30px;left:50%;transform:translateX(-50%)}
-    .sample-page-number.top-right{top:30px;right:10px}
-    .sample-page-number.bottom-left{bottom:10px;left:10px}
-    .sample-page-number.bottom-center{bottom:10px;left:50%;transform:translateX(-50%)}
-    .sample-page-number.bottom-right{bottom:10px;right:10px}
     
     /* Preview Panel */
     .preview-panel-header{margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid var(--light)}
@@ -282,11 +273,6 @@
               <label for="pageText">Page Text Template (use {n} for number, {total} for total pages)</label>
               <input type="text" id="pageText" class="form-control" placeholder="e.g., Page {n} of {total}">
             </div>
-            
-            <div class="preview-sample">
-              <p style="color:var(--gray)">Preview: This is how your page numbers will appear</p>
-              <div class="sample-page-number bottom-right" id="previewNumber">1</div>
-            </div>
           </div>
           
           <!-- Progress Section -->
@@ -433,27 +419,9 @@
       }
     }
     
-    // Update preview when options change
+    // Update color preview when color changes
     function updatePreview(){
-      const position = document.querySelector('input[name="position"]:checked').value;
-      const format = document.querySelector('input[name="format"]:checked').value;
-      const startNum = parseInt(document.getElementById('startNumber').value) || 1;
-      const fontSize = document.getElementById('fontSize').value + 'px';
       const fontColor = document.getElementById('fontColor').value;
-      const pageText = document.getElementById('pageText').value || '{n}';
-      
-      const preview = document.getElementById('previewNumber');
-      preview.className = 'sample-page-number ' + position;
-      preview.style.fontSize = fontSize;
-      preview.style.color = fontColor;
-      
-      let num = startNum;
-      if(format==='i') num = toRoman(num).toLowerCase();
-      else if(format==='I') num = toRoman(num);
-      else if(format==='a') num = toAlpha(num-1).toLowerCase();
-      else if(format==='A') num = toAlpha(num-1);
-      
-      preview.textContent = pageText.replace('{n}',num).replace('{total}','10');
       document.getElementById('colorPreview').style.backgroundColor = fontColor;
     }
     
@@ -694,12 +662,6 @@
       document.getElementById('applyBtn').addEventListener('click',applyPageNumbers);
       document.getElementById('downloadBtn').addEventListener('click',downloadPdf);
       document.getElementById('fontColor').addEventListener('input',updatePreview);
-      document.querySelectorAll('input[name="position"],input[name="format"]').forEach(el=>{
-        el.addEventListener('change',updatePreview);
-      });
-      document.getElementById('startNumber').addEventListener('input',updatePreview);
-      document.getElementById('pageText').addEventListener('input',updatePreview);
-      document.getElementById('fontSize').addEventListener('change',updatePreview);
       updatePreview();
     });
   </script>
