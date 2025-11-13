@@ -146,13 +146,12 @@
       <h2><i class="fas fa-info-circle"></i> Processing Info</h2>
       <div id="statusMessage" class="status-card"></div>
       <div class="status-card">
-        <strong>✓ 100% Free Solution</strong>
-        <p>• Upload limit: Up to 50 MB</p>
-        <p>• Smart processing: Automatic quality optimization based on file size</p>
-        <p>• Fast mode (0-20 MB): Quick results with small AI model</p>
-        <p>• Balanced mode (20-50 MB): Better quality with medium AI model</p>
-        <p>• Professional quality: Powered by IMG.LY AI technology</p>
-        <p>• No API keys or paid services required!</p>
+        <strong>✓ 3-Tier Smart Processing</strong>
+        <p>• <strong>0-15 MB</strong>: Fast browser (IMG.LY AI) - Free</p>
+        <p>• <strong>15-50 MB</strong>: Free server (Render + Rembg) - Free</p>
+        <p>• <strong>50-100 MB</strong>: Cloud server (Google Cloud Run) - Premium</p>
+        <p>• Automatic routing for optimal speed & cost</p>
+        <p>• Professional AI quality at every tier</p>
       </div>
     </section>
   </main>
@@ -250,49 +249,98 @@
       resultCanvas.height = height;
     }
 
-    // Smart size-based configuration (100% FREE!)
+    // Triple-tier hybrid processing
+    // 0-15 MB: IMG.LY (Browser) - Free, Fast
+    // 15-50 MB: Render (Python) - Free tier
+    // 50-100 MB: Google Cloud Run (Docker) - Paid but scalable
+    
+    const RENDER_API_URL = 'https://YOUR-RENDER-SERVICE.onrender.com'; // Update after Render deployment
+    const CLOUDRUN_API_URL = 'https://YOUR-CLOUDRUN-SERVICE.run.app'; // Update after Cloud Run deployment
+    
     function getProcessingConfig(fileSize) {
+      const sizeMB = fileSize / (1024 * 1024);
+      
       if (fileSize < 5 * 1024 * 1024) {
-        // 0-5 MB: Super fast processing
+        // 0-5 MB: Super fast browser processing
         return {
+          useBackend: false,
           model: 'small',
           quality: 0.8,
-          description: 'Fast Processing Mode',
-          message: 'Using fast AI model for quick results'
+          description: 'Fast Mode (Browser)',
+          message: 'Processing in your browser with fast AI',
+          tier: 'browser'
         };
-      } else if (fileSize < 20 * 1024 * 1024) {
-        // 5-20 MB: Balanced
+      } else if (fileSize < 15 * 1024 * 1024) {
+        // 5-15 MB: Browser with medium quality
         return {
+          useBackend: false,
           model: 'medium',
-          quality: 0.85,
-          description: 'Balanced Mode',
-          message: 'Using medium AI model for balanced speed and quality'
+          quality: 0.9,
+          description: 'Balanced Mode (Browser)',
+          message: 'Processing in your browser with medium AI',
+          tier: 'browser'
         };
       } else if (fileSize < 50 * 1024 * 1024) {
-        // 20-50 MB: Best quality
+        // 15-50 MB: Use Render backend (Free)
         return {
-          model: 'medium',
-          quality: 1.0,
-          description: 'High Quality Mode',
-          message: 'Using medium AI model with maximum quality'
+          useBackend: true,
+          backendUrl: RENDER_API_URL,
+          description: 'High Quality (Free Server)',
+          message: `Processing ${sizeMB.toFixed(1)} MB file on free server`,
+          tier: 'render'
+        };
+      } else if (fileSize < 100 * 1024 * 1024) {
+        // 50-100 MB: Use Cloud Run backend (Paid)
+        return {
+          useBackend: true,
+          backendUrl: CLOUDRUN_API_URL,
+          description: 'Premium Quality (Cloud)',
+          message: `Processing ${sizeMB.toFixed(1)} MB file on Google Cloud`,
+          tier: 'cloudrun'
         };
       } else {
-        // 50+ MB: Premium (future upgrade path)
+        // 100+ MB: Too large
         return {
-          model: 'medium',
-          quality: 1.0,
-          description: 'Maximum Quality Mode',
-          message: 'Processing large file with best quality settings'
+          useBackend: false,
+          error: true,
+          message: 'File too large. Maximum: 100 MB. Please compress first.'
         };
       }
     }
 
-    async function processImage(dataURL) {
-      if (!removeBackgroundFn) {
-        showError('AI library not loaded. Please refresh the page.');
-        return;
+    // Process image using backend (Render or Cloud Run)
+    async function processWithBackend(dataURL, backendUrl) {
+      try {
+        statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">Uploading to server...</div>';
+        
+        const response = await fetch(`${backendUrl}/remove-background`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageData: dataURL })
+        });
+
+        if (!response.ok) {
+          throw new Error('Backend processing failed');
+        }
+
+        const result = await response.json();
+        
+        if (result.success && result.resultImage) {
+          return { 
+            success: true, 
+            dataUrl: result.resultImage, 
+            processedWith: result.processedWith || 'Server'
+          };
+        } else {
+          throw new Error(result.error || 'Processing failed');
+        }
+      } catch (error) {
+        console.error('Backend processing failed:', error);
+        return { success: false, error: error.message };
       }
-      
+    }
+
+    async function processImage(dataURL) {
       clearStatus();
       previewPlaceholder.classList.add('hidden');
       previewStage.classList.remove('revealed');
@@ -300,54 +348,99 @@
       previewOverlay.style.opacity = 1;
 
       try {
+        previewOriginal.hidden = false;
+        previewOriginal.src = dataURL;
+        
         // Get file size and optimal config
         const fileSize = Number(sessionStorage.getItem('bgRemover:originalSize') || 0);
         const config = getProcessingConfig(fileSize);
         
+        // Check for error (file too large)
+        if (config.error) {
+          showError(config.message);
+          previewStage.classList.add('empty');
+          previewOverlay.style.opacity = 0;
+          previewPlaceholder.classList.remove('hidden');
+          return;
+        }
+        
         statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">${config.message}...</div>`;
 
-        // Preload AI model
-        try {
-          if (typeof preloadFn === 'function') {
-            await preloadFn({ 
-              publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
-              model: config.model
-            });
+        let resultUrl = null;
+
+        // Route 1: Use backend for large files (15+ MB)
+        if (config.useBackend) {
+          const backendResult = await processWithBackend(dataURL, config.backendUrl);
+          
+          if (backendResult.success) {
+            resultUrl = backendResult.dataUrl;
+            processingMethod = backendResult.processedWith || config.description;
+          } else {
+            // Backend failed, fallback to browser if possible
+            if (removeBackgroundFn && fileSize < 25 * 1024 * 1024) {
+              statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(251,146,60,0.12);color:#7c2d12;font-weight:600;">Server busy, processing in browser...</div>';
+              config.useBackend = false;
+              config.model = 'medium';
+              config.quality = 0.9;
+            } else {
+              throw new Error('Backend processing failed and file too large for browser');
+            }
           }
-        } catch (err) {
-          console.warn('Preload failed, continuing:', err);
         }
 
-        const blob = await blobFromSource(dataURL, {
-          type: sessionStorage.getItem('bgRemover:originalType') || 'image/png',
-          size: fileSize
-        });
-        
-        if (!blob) throw new Error('Unable to read uploaded image.');
-        
-        const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'photo.png';
-        const fileForProcessing = new File([blob], filename, { type: blob.type || 'image/png' });
-        
-        previewOriginal.hidden = false;
-        previewOriginal.src = dataURL;
-
-        // Process with optimal settings
-        const result = await removeBackgroundFn(fileForProcessing, {
-          publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
-          model: config.model,
-          output: { 
-            format: 'image/png', 
-            quality: config.quality,
-            type: 'foreground'
-          },
-          progress: (key, current, total) => {
-            const percent = Math.round((current / total) * 100);
-            statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">Processing with ${config.description}... ${percent}%</div>`;
+        // Route 2: Use browser processing for small/medium files (0-15 MB)
+        if (!config.useBackend && !resultUrl) {
+          if (!removeBackgroundFn) {
+            showError('AI library not loaded. Please refresh the page.');
+            return;
           }
-        });
 
-        const resultBlob = result instanceof Blob ? result : await result.blob();
-        const resultUrl = await blobToDataURL(resultBlob);
+          // Preload AI model
+          try {
+            if (typeof preloadFn === 'function') {
+              await preloadFn({ 
+                publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
+                model: config.model
+              });
+            }
+          } catch (err) {
+            console.warn('Preload failed, continuing:', err);
+          }
+
+          const blob = await blobFromSource(dataURL, {
+            type: sessionStorage.getItem('bgRemover:originalType') || 'image/png',
+            size: fileSize
+          });
+          
+          if (!blob) throw new Error('Unable to read uploaded image.');
+          
+          const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'photo.png';
+          const fileForProcessing = new File([blob], filename, { type: blob.type || 'image/png' });
+
+          // Process with optimal settings
+          const result = await removeBackgroundFn(fileForProcessing, {
+            publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
+            model: config.model,
+            output: { 
+              format: 'image/png', 
+              quality: config.quality,
+              type: 'foreground'
+            },
+            progress: (key, current, total) => {
+              const percent = Math.round((current / total) * 100);
+              statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">Processing with ${config.description}... ${percent}%</div>`;
+            }
+          });
+
+          const resultBlob = result instanceof Blob ? result : await result.blob();
+          resultUrl = await blobToDataURL(resultBlob);
+        }
+        
+        // Common result handling for both routes
+        if (!resultUrl) {
+          throw new Error('Failed to generate result image');
+        }
+        
         sessionStorage.setItem(STORAGE_KEYS.foreground, resultUrl);
 
         const foregroundImage = new Image();

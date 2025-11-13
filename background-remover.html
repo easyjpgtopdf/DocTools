@@ -278,8 +278,8 @@
 
     async function handleFile(file) {
       if (!file) return;
-      if (file.size > 50 * 1024 * 1024) {
-        showStatus('Please pick an image smaller than 50MB (Free version limit).');
+      if (file.size > 100 * 1024 * 1024) {
+        showStatus('Please pick an image smaller than 100MB. (50+MB files use premium cloud processing)');
         return;
       }
 
