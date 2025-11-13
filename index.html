@@ -743,6 +743,52 @@
             font-size: 0.9rem;
         }
 
+        /* Floating Chat Button */
+        .chat-box-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-box-btn:hover {
+            background: var(--secondary);
+            transform: scale(1.1);
+        }
+
+        .chat-box-btn .chat-label {
+            position: absolute;
+            right: 70px;
+            background: white;
+            color: var(--dark);
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .chat-box-btn:hover .chat-label {
+            opacity: 1;
+        }
+
         .comment-list {
             list-style: none;
             display: flex;
@@ -2232,7 +2278,7 @@
                     </div>
 
                     <div class="feedback-card">
-                        <h3>Share Your Feedback</h3>
+                        <h3>Share Your Feedback <a href="comments.html#comments" style="font-size:0.9rem;margin-left:10px;text-decoration:none;color:var(--accent)" title="Go to full comments page"><i class="fas fa-external-link-alt"></i></a></h3>
                         <form class="comment-form" id="feedback-form">
                             <div class="form-group">
                                 <label for="feedback-name">Your Name</label>
@@ -4464,9 +4510,14 @@
                 entries = updatedEntries;
 
                 ui.form.reset();
-                ui.formMessage.textContent = 'Saved locally. Add Firebase config to sync online.';
+                ui.formMessage.textContent = 'Saved locally. Redirecting to comments page...';
                 ui.submit.disabled = false;
                 ui.submit.textContent = 'Share Feedback';
+                
+                // Redirect to comments page after 1 second
+                setTimeout(() => {
+                    window.location.href = 'comments.html#comments';
+                }, 1000);
             });
         }
 
@@ -4552,7 +4603,12 @@
                     try {
                         await addDoc(feedbackRef, payload);
                         ui.form.reset();
-                        ui.formMessage.textContent = 'Thank you! Your feedback is now live.';
+                        ui.formMessage.textContent = 'Thank you! Redirecting to comments page...';
+                        
+                        // Redirect to comments page after 1 second
+                        setTimeout(() => {
+                            window.location.href = 'comments.html#comments';
+                        }, 1000);
                     } catch (error) {
                         console.error('Unable to save feedback:', error);
                         ui.formMessage.textContent = 'Failed to submit. Please try again in a moment.';
@@ -4940,6 +4996,13 @@
             </p>
         </div>
     </footer>
+
+    <!-- Floating Chat Button -->
+    <button class="chat-box-btn" onclick="window.location.href='comments.html#comments'" title="Internal Comments">
+        <i class="fas fa-comment-dots"></i>
+        <span class="chat-label">Internal Comments</span>
+    </button>
+
 </body>
 </html>
 
