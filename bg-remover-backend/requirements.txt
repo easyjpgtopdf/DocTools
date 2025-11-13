@@ -7,21 +7,13 @@
 Flask==3.0.0
 flask-cors==4.0.0
 
-# AI Background Removal
-rembg==2.0.50
-
 # Image Processing
 Pillow==10.1.0
 
 # Production Server
 gunicorn==21.2.0
 
-# ML Runtime
-onnxruntime==1.16.3
+# AI Background Removal (install from git - latest stable)
+git+https://github.com/danielgatis/rembg.git@v2.0.50
 
-# Additional dependencies for rembg
-numpy==1.24.3
-opencv-python-headless==4.8.1.78
-
-# Note: Render will auto-install from this file
-# System packages in apt-packages file
+# Note: Installing rembg directly from GitHub to avoid PyPI version issues
