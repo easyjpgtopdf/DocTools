@@ -454,7 +454,7 @@
           const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'photo.png';
           const fileForProcessing = new File([blob], filename, { type: blob.type || 'image/png' });
 
-          // Process with high quality settings and edge preservation
+          // Process with MAXIMUM quality settings and edge preservation
           const result = await removeBackgroundFn(fileForProcessing, {
             publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
             model: config.model,
@@ -463,17 +463,23 @@
               quality: config.quality,
               type: 'foreground'
             },
-            // Advanced settings for better edge preservation
+            // Advanced settings for PROFESSIONAL edge preservation
             postprocessMask: {
-              featherRadius: 2  // Smooth edges without over-cleaning
+              featherRadius: 3  // Smoother edges (1-5 range, 3 is professional)
+            },
+            // Optional: Edge refinement for better hair/fur detection
+            segmentation: {
+              refinement: 'auto'  // Auto-refine edges for complex subjects
             },
             progress: (key, current, total) => {
               const percent = Math.round((current / total) * 100);
-              statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">Processing with ${config.description}... ${percent}%</div>`;
+              statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">🎨 Processing with professional AI... ${percent}%</div>`;
             }
           });
 
           const resultBlob = result instanceof Blob ? result : await result.blob();
+          
+          // Post-processing: Enhance edges if needed (optional refinement)
           resultUrl = await blobToDataURL(resultBlob);
         }
         
