@@ -215,6 +215,11 @@
   </footer>
 
   <script>
+    // Backend API URL - Automatically detects environment
+    const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://127.0.0.1:5000'  // Local development
+      : 'https://excel-unlocker-backend.onrender.com';  // Production - UPDATE THIS AFTER RENDER DEPLOYMENT
+    
     const form = document.getElementById('unlockForm');
     const fileInput = document.getElementById('fileInput');
     const passwordInput = document.getElementById('passwordInput');
@@ -256,7 +261,7 @@
       showStatus('Processing... This may take a few moments', 'processing');
 
       try {
-        const response = await fetch('http://127.0.0.1:5000/unlock', {
+        const response = await fetch(`${API_BASE_URL}/unlock`, {
           method: 'POST',
           body: formData
         });
@@ -269,7 +274,7 @@
           // Download file
           setTimeout(() => {
             const downloadLink = document.createElement('a');
-            downloadLink.href = `http://127.0.0.1:5000/download/${result.filename}`;
+            downloadLink.href = `${API_BASE_URL}/download/${result.filename}`;
             downloadLink.download = result.filename;
             document.body.appendChild(downloadLink);
             downloadLink.click();
