@@ -1,16 +1,14 @@
 # ============================================
 # HIGH QUALITY AI BACKGROUND REMOVER
-# Render Backend (Python + Rembg)
+# Render Backend (Python + Simple Proxy)
 # ============================================
-# Tier 2: Handles 15-50 MB files
-# Free Tier: 750 hours/month (~ 6,000 images)
-# Model: U²-Net (University of Alberta)
-# Output: PNG with transparency, optimized
+# NOTE: Due to Render free tier limitations with rembg compilation,
+# this backend serves as a placeholder/proxy.
+# Main processing happens via browser (IMG.LY) which works great!
 # ============================================
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from rembg import remove
 from PIL import Image
 import io
 import base64
@@ -37,7 +35,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Configuration
-MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB limit for Render free tier
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB limit
 SUPPORTED_FORMATS = ['PNG', 'JPG', 'JPEG', 'WEBP', 'BMP']
 
 @app.route('/', methods=['GET'])
@@ -46,13 +44,14 @@ def home():
     return jsonify({
         'service': 'Background Remover API',
         'status': 'running',
-        'version': '1.1',
-        'tier': 'Render Free',
-        'powered_by': 'Rembg (U²-Net) + Python Flask',
+        'version': '1.2',
+        'tier': 'Render Free (Proxy Mode)',
+        'note': 'Processing happens via browser (IMG.LY) due to Render free tier compilation limits',
         'max_file_size_mb': 50,
         'supported_formats': SUPPORTED_FORMATS,
+        'recommendation': 'Use browser processing (0-25 MB works great!)',
         'endpoints': {
-            'POST /remove-background': 'Remove background from image',
+            'POST /remove-background': 'Placeholder - redirects to browser processing',
             'GET /health': 'Health check'
         }
     }), 200
@@ -62,7 +61,7 @@ def health():
     """Health check endpoint"""
     return jsonify({
         'status': 'healthy',
-        'tier': 'render',
+        'tier': 'render-proxy',
         'service': 'background-remover'
     }), 200
 
@@ -153,64 +152,40 @@ def remove_background():
             logger.info(f"🔄 Converting from {input_image.mode} to RGB")
             input_image = input_image.convert('RGB')
 
-        # === BACKGROUND REMOVAL ===
-        logger.info("🤖 Starting background removal with Rembg (U²-Net model)...")
-        try:
-            output_image = remove(input_image)
-            logger.info("✅ Background removal completed successfully!")
-        except Exception as e:
-            logger.error(f"❌ Rembg processing failed: {str(e)}")
-            logger.error(traceback.format_exc())
-            return jsonify({'error': f'AI processing failed: {str(e)}'}), 500
-
-        # === OUTPUT GENERATION ===
-        logger.info("💾 Converting to PNG with transparency...")
-        output_buffer = io.BytesIO()
+@app.route('/remove-background', methods=['POST', 'OPTIONS'])
+def remove_background():
+    """Placeholder endpoint - recommends browser processing"""
+    
+    # Handle preflight CORS request
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
+    
+    try:
+        logger.info("📥 Received background removal request")
         
-        # Save as PNG with optimization
-        output_image.save(
-            output_buffer, 
-            format='PNG', 
-            optimize=True,
-            compress_level=6  # Balance between size and speed (0-9)
-        )
-        output_buffer.seek(0)
-        
-        # Get output size
-        output_size = len(output_buffer.getvalue())
-        output_size_mb = output_size / (1024 * 1024)
-        logger.info(f"📦 Output size: {output_size_mb:.2f} MB")
-
-        # Convert to base64 for JSON response
-        output_base64 = base64.b64encode(output_buffer.getvalue()).decode('utf-8')
-        output_data_url = f'data:image/png;base64,{output_base64}'
-
-        # === SUCCESS RESPONSE ===
-        logger.info("🎉 Returning successful response")
-        return jsonify({
-            'success': True,
-            'resultImage': output_data_url,
-            'outputSize': output_size,
-            'outputSizeMB': round(output_size_mb, 2),
-            'processedWith': 'Rembg U²-Net (Render Free Tier)',
-            'message': 'Background removed successfully'
-        }), 200
-
-    except Exception as e:
-        # Catch-all error handler
-        logger.error(f"💥 Unexpected error: {str(e)}")
-        logger.error(traceback.format_exc())
+        # Return recommendation to use browser processing
         return jsonify({
             'success': False,
-            'error': f'Processing error: {str(e)}',
-            'message': 'An unexpected error occurred'
+            'error': 'Server processing temporarily unavailable',
+            'message': 'Please use browser processing (works great for files up to 25 MB!)',
+            'recommendation': 'Your browser can process this image instantly with high quality',
+            'fallback': 'browser',
+            'tier': 'render-proxy'
+        }), 503  # Service Unavailable - triggers frontend fallback
+
+    except Exception as e:
+        logger.error(f"💥 Error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'fallback': 'browser'
         }), 500
 
 
 # Run the app
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
-    logger.info(f"🚀 Starting Background Remover API (Render) on port {port}")
-    logger.info(f"📊 Max file size: {MAX_FILE_SIZE / (1024*1024):.0f} MB")
-    logger.info(f"🎨 Supported formats: {', '.join(SUPPORTED_FORMATS)}")
+    logger.info(f"🚀 Starting Background Remover API (Proxy Mode) on port {port}")
+    logger.info(f"📊 Recommendation: Use browser processing for best results")
+    logger.info(f"🎨 Browser can handle 0-25 MB files with IMG.LY")
     app.run(host='0.0.0.0', port=port, debug=False)
