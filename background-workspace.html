@@ -258,10 +258,7 @@
     // Tier 3: 50-100 MB → Cloud Run (Docker Rembg) - Free 2M requests/month
     // ============================================
     
-    // STEP 1: Render backend URL (DEPLOYED AND LIVE!)
-    const RENDER_API_URL = 'https://doctools-bg-remover.onrender.com/remove-background';
-    
-    // STEP 2: (Optional) Deploy Cloud Run backend for 50+ MB files
+    // Google Cloud Run backend URL (Deploy after verification - 2-3 days)
     const CLOUDRUN_API_URL = 'https://YOUR-CLOUDRUN-SERVICE.run.app/remove-background';
     
     // Smart routing based on file size (optimized for quality + speed)
@@ -332,10 +329,7 @@
             'Content-Type': 'application/json',
             'Accept': 'application/json'
           },
-          body: JSON.stringify({ 
-            imageData: dataURL,
-            apiKey: 'YOUR_REMOVEBG_API_KEY' // Get free key from remove.bg
-          }),
+          body: JSON.stringify({ imageData: dataURL }),
           signal: controller.signal
         });
         
