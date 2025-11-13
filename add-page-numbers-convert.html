@@ -63,17 +63,26 @@
     .right-panel{flex:1;background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow-y:auto;max-height:calc(100vh + 384px - 280px)}
     
     /* Page Numbering Options */
-    .numbering-options{background:var(--light);border-radius:12px;padding:20px;margin-bottom:20px}
-    .option-group{margin-bottom:20px}
-    .option-group h3{font-size:1.1rem;color:var(--primary);margin-bottom:12px}
-    .option-group label{display:block;margin-bottom:8px;font-weight:500;color:var(--dark);font-size:.95rem}
-    .option-select,.form-control{width:100%;padding:10px 15px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:.95rem}
-    .radio-group{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-    .radio-option{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:#fff;border:1px solid #ddd;border-radius:6px;cursor:pointer;transition:.2s;font-size:.9rem}
+    .numbering-options{background:var(--light);border-radius:12px;padding:15px;margin-bottom:15px}
+    .option-group{margin-bottom:12px}
+    .option-group h3{font-size:1rem;color:var(--primary);margin-bottom:8px}
+    .option-group label{display:block;margin-bottom:6px;font-weight:500;color:var(--dark);font-size:.9rem}
+    .option-select,.form-control{width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:.9rem}
+    .radio-group{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+    .radio-option{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:#fff;border:1px solid #ddd;border-radius:6px;cursor:pointer;transition:.2s;font-size:.85rem}
     .radio-option:hover{border-color:var(--primary);background:rgba(67,97,238,0.05)}
     .radio-option input[type="radio"]{margin:0}
     .color-picker{display:flex;align-items:center;gap:10px;margin-top:8px}
     .color-preview{width:40px;height:40px;border:2px solid #ddd;border-radius:6px;cursor:pointer}
+    .preview-sample{background:#f8f9fa;border:1px solid #dee2e6;border-radius:8px;padding:15px;margin-top:12px;min-height:120px;position:relative;display:flex;align-items:center;justify-content:center}
+    .preview-sample p{position:absolute;top:8px;left:8px;right:8px;margin:0;font-size:.85rem}
+    .sample-page-number{position:absolute;font-size:14px;padding:5px 10px;background:rgba(255,255,255,0.9);border:1px solid #ddd;border-radius:4px}
+    .sample-page-number.top-left{top:30px;left:10px}
+    .sample-page-number.top-center{top:30px;left:50%;transform:translateX(-50%)}
+    .sample-page-number.top-right{top:30px;right:10px}
+    .sample-page-number.bottom-left{bottom:10px;left:10px}
+    .sample-page-number.bottom-center{bottom:10px;left:50%;transform:translateX(-50%)}
+    .sample-page-number.bottom-right{bottom:10px;right:10px}
     
     /* Preview Panel */
     .preview-panel-header{margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid var(--light)}
@@ -217,7 +226,7 @@
         <!-- LEFT PANEL: Numbering Options -->
         <div class="left-panel">
           <div class="numbering-options">
-            <h3 style="margin-bottom:20px;color:var(--primary)">Page Numbering Options</h3>
+            <h3 style="margin-bottom:12px;color:var(--primary);font-size:1.1rem">Page Numbering Options</h3>
             
             <div class="option-group">
               <label>Position</label>
@@ -242,7 +251,7 @@
               </div>
             </div>
             
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:8px">
               <div class="option-group">
                 <label for="startNumber">Starting Number</label>
                 <input type="number" id="startNumber" class="form-control" value="1" min="1">
@@ -596,6 +605,37 @@
             }).promise;
             
             pageWrapper.appendChild(canvas);
+            
+            // Add page number overlay to show how it will look
+            const position = document.querySelector('input[name="position"]:checked').value;
+            const format = document.querySelector('input[name="format"]:checked').value;
+            const startNum = parseInt(document.getElementById('startNumber').value) || 1;
+            const fontSize = parseInt(document.getElementById('fontSize').value);
+            const fontColor = document.getElementById('fontColor').value;
+            const pageText = document.getElementById('pageText').value || '{n}/{total}';
+            
+            let num = startNum + pageNum - 1;
+            if(format==='i') num = toRoman(num).toLowerCase();
+            else if(format==='I') num = toRoman(num);
+            else if(format==='a') num = toAlpha(num-1).toLowerCase();
+            else if(format==='A') num = toAlpha(num-1);
+            
+            // Handle {total} formatting
+            let totalFormatted = totalPages;
+            if(format==='i') totalFormatted = toRoman(totalPages).toLowerCase();
+            else if(format==='I') totalFormatted = toRoman(totalPages);
+            else if(format==='a') totalFormatted = toAlpha(totalPages-1).toLowerCase();
+            else if(format==='A') totalFormatted = toAlpha(totalPages-1);
+            
+            let text = pageText.replace('{n}',num).replace('{total}',totalFormatted);
+            if(!text.trim()) text = `${num}/${totalFormatted}`;
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'page-number-overlay ' + position;
+            overlay.style.fontSize = fontSize + 'px';
+            overlay.style.color = fontColor;
+            overlay.textContent = text;
+            pageWrapper.appendChild(overlay);
             
             // Add page label
             const label = document.createElement('div');
