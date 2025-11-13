@@ -343,7 +343,10 @@
             'Content-Type': 'application/json',
             'Accept': 'application/json'
           },
-          body: JSON.stringify({ imageData: dataURL }),
+          body: JSON.stringify({ 
+            imageData: dataURL,
+            apiKey: 'YOUR_REMOVEBG_API_KEY' // Get free key from remove.bg
+          }),
           signal: controller.signal
         });
         

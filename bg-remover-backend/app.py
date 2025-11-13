@@ -1,14 +1,11 @@
 """
-Professional Background Remover - Production Grade
-Using Rembg U²-Net AI Model (same as remove.bg uses)
+Professional Background Remover - Remove.bg API Integration
 100% Quality - No Over-Cleaning
 """
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from rembg import remove
-from PIL import Image
-import io
+import requests
 import base64
 import logging
 import os
@@ -27,11 +24,10 @@ def home():
     return jsonify({
         'service': 'Professional Background Remover',
         'status': 'running',
-        'version': '4.0',
-        'tier': 'Render Free',
-        'model': 'U²-Net (Production Grade)',
-        'quality': '100% - No over-cleaning',
-        'powered_by': 'Rembg AI'
+        'version': '5.0',
+        'tier': 'Remove.bg API',
+        'quality': '100% Professional - No over-cleaning',
+        'powered_by': 'Remove.bg'
     }), 200
 
 
@@ -48,15 +44,23 @@ def remove_background():
     try:
         logger.info("📥 Professional background removal started")
         
-        # Get image data
+        # Get image data and API key
         if not request.is_json:
             return jsonify({'error': 'JSON with imageData required'}), 400
         
         data = request.get_json()
         image_data = data.get('imageData', '')
+        api_key = data.get('apiKey', os.environ.get('REMOVEBG_API_KEY', ''))
         
         if not image_data:
             return jsonify({'error': 'No imageData provided'}), 400
+        
+        if not api_key:
+            return jsonify({
+                'error': 'API key required',
+                'message': 'Please provide Remove.bg API key',
+                'fallback': 'browser'
+            }), 400
         
         # Decode base64
         if ',' in image_data:
@@ -73,39 +77,41 @@ def remove_background():
         
         logger.info(f"📊 Processing {len(image_bytes)/(1024*1024):.2f} MB image")
         
-        # Load image
-        input_image = Image.open(io.BytesIO(image_bytes))
-        logger.info(f"🖼️ Image: {input_image.size[0]}x{input_image.size[1]}, Mode: {input_image.mode}")
+        # Call Remove.bg API
+        logger.info("🤖 Calling Remove.bg professional API...")
+        response = requests.post(
+            'https://api.remove.bg/v1.0/removebg',
+            files={'image_file': image_bytes},
+            data={'size': 'auto'},
+            headers={'X-Api-Key': api_key},
+            timeout=60
+        )
         
-        # Convert to RGB if needed
-        if input_image.mode not in ('RGB', 'RGBA'):
-            input_image = input_image.convert('RGB')
-        
-        # Professional background removal with Rembg
-        logger.info("🤖 Removing background with U²-Net AI model...")
-        output_image = remove(input_image)
-        logger.info("✅ Background removed with professional quality!")
-        
-        # Save as PNG with transparency
-        output_buffer = io.BytesIO()
-        output_image.save(output_buffer, format='PNG', optimize=True, compress_level=6)
-        output_buffer.seek(0)
-        
-        # Encode to base64
-        output_base64 = base64.b64encode(output_buffer.getvalue()).decode('utf-8')
-        output_data_url = f'data:image/png;base64,{output_base64}'
-        
-        output_size = len(output_buffer.getvalue())
-        logger.info(f"🎉 Success! Output: {output_size/(1024*1024):.2f} MB")
-        
-        return jsonify({
-            'success': True,
-            'resultImage': output_data_url,
-            'outputSize': output_size,
-            'outputSizeMB': round(output_size / (1024 * 1024), 2),
-            'processedWith': 'Rembg U²-Net (Professional)',
-            'message': 'Background removed successfully with professional quality'
-        }), 200
+        if response.status_code == 200:
+            output_bytes = response.content
+            output_base64 = base64.b64encode(output_bytes).decode('utf-8')
+            output_data_url = f'data:image/png;base64,{output_base64}'
+            
+            output_size = len(output_bytes)
+            logger.info(f"🎉 Success! Output: {output_size/(1024*1024):.2f} MB")
+            
+            return jsonify({
+                'success': True,
+                'resultImage': output_data_url,
+                'outputSize': output_size,
+                'outputSizeMB': round(output_size / (1024 * 1024), 2),
+                'processedWith': 'Remove.bg (Professional)',
+                'message': 'Background removed successfully with professional quality'
+            }), 200
+        else:
+            error_msg = response.json().get('errors', [{}])[0].get('title', 'API error')
+            logger.error(f"💥 Remove.bg error: {error_msg}")
+            return jsonify({
+                'success': False,
+                'error': error_msg,
+                'message': 'API processing failed',
+                'fallback': 'browser'
+            }), 500
     
     except Exception as e:
         logger.error(f"💥 Error: {str(e)}")
@@ -122,6 +128,6 @@ def remove_background():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     logger.info(f"🚀 Starting Professional Background Remover on port {port}")
-    logger.info(f"🎨 Model: U²-Net AI (Production Grade)")
+    logger.info(f"🎨 Using Remove.bg API (Professional Quality)")
     logger.info(f"📊 Max file size: 50 MB")
     app.run(host='0.0.0.0', port=port, debug=False)
