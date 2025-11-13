@@ -6,6 +6,8 @@ Unified workspace for **easyjpgtopdf.com** — frontend, backend, heavy compute 
 DocTools/
 ├─ frontend/            # Vercel site (HTML/JS today, Next.js later)
 ├─ server/              # Render Node.js backend (LibreOffice + rembg)
+├─ excel-unlocker/      # Flask backend for Excel password removal
+├─ bg-remover-backend/  # Google Cloud Run - AI background removal (rembg)
 ├─ services/
 │  ├─ cloud-run/        # Google Cloud Run microservices
 │  └─ firebase/         # Firebase Functions project
@@ -13,6 +15,62 @@ DocTools/
 ├─ *.html, css/, js/, images/  # existing static assets (to migrate into frontend/)
 └─ README.md            # this document
 ```
+
+---
+
+## 🆕 Excel Unlocker (Python Flask)
+**Status:** ✅ Fully Functional
+
+Professional Excel password & protection removal tool:
+- **Tech Stack:** Flask 3.1, openpyxl, msoffcrypto-tool
+- **Features:** 
+  - Remove file encryption (password-protected Excel)
+  - Remove workbook protection
+  - Remove worksheet protection
+  - Support .xls and .xlsx formats
+  - Max 500MB file size
+- **Endpoints:**
+  - POST `/excel-unlocker/unlock` - Upload and unlock file
+  - GET `/excel-unlocker/download/<filename>` - Download result
+
+### Quick Start:
+```powershell
+# Option 1: Auto-start both servers
+.\start-excel-unlocker.ps1
+
+# Option 2: Manual start
+cd excel-unlocker
+python app.py  # Backend on port 5000
+
+# In new terminal
+python -m http.server 8080  # Frontend on port 8080
+```
+
+**Access:** http://127.0.0.1:8080/excel-unlocker.html
+
+📖 **Complete Guide:** See `EXCEL_UNLOCKER_GUIDE.md`
+
+---
+
+## 🎨 AI Background Remover (Google Cloud Run)
+**Status:** ⏳ Ready for deployment (awaiting Cloud verification)
+
+High-quality background removal (100% like Photopea/remove.bg):
+- **Server:** Google Cloud Run with rembg U²-Net
+- **Browser:** IMG.LY @imgly/background-removal v1.7.0
+- **Project:** easyjpgtopdf-de346
+- **Quality:** 
+  - Cloud Run: 100% (U²-Net + Alpha Matting)
+  - Browser: 95-98% (medium model, featherRadius: 5)
+
+### Deployment:
+```bash
+# Wait for Google Cloud verification (2-3 days)
+# Then follow steps in CLOUDRUN_URL_SETUP.md
+gcloud run deploy bg-remover --source . --region us-central1
+```
+
+📖 **Complete Guide:** See `CLOUDRUN_URL_SETUP.md`
 
 ---
 

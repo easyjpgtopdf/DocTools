@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Excel Unlocker - Remove Password Protection | easyjpgtopdf</title>
+  <link rel="stylesheet" href="css/footer.css">
+  <link rel="stylesheet" href="css/header.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    :root {
+      --primary: #4361ee;
+      --secondary: #3a0ca3;
+      --accent: #4cc9f0;
+      --dark: #1b2050;
+      --muted: #6b7290;
+      --surface: #ffffff;
+      --border: rgba(26, 35, 126, 0.12);
+      --bg-gradient: linear-gradient(180deg, #f1f3ff 0%, #f7f9ff 100%);
+    }
+    body { background: var(--bg-gradient); color: var(--dark); min-height: 100vh; display: flex; flex-direction: column; }
+    .container { width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    header { background: #fff; position: sticky; top: 0; z-index: 40; box-shadow: 0 10px 40px rgba(15, 31, 80, 0.08); }
+    .navbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; }
+    .logo { display: flex; align-items: center; gap: 10px; color: var(--primary); text-decoration: none; font-weight: 700; font-size: 22px; }
+    .hero { padding: 70px 0; }
+    .hero .container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px; align-items: start; }
+    .hero-content h1 { font-size: 2.4rem; color: #0f1a4d; margin-bottom: 12px; }
+    .hero-content p { font-size: 1.05rem; color: var(--muted); margin-bottom: 24px; }
+    .upload-card { background: var(--surface); border-radius: 24px; padding: 36px 28px; box-shadow: 0 24px 60px rgba(16, 35, 96, 0.12); border: 2px dashed rgba(67, 97, 238, 0.25); display: flex; flex-direction: column; gap: 20px; align-items: center; text-align: center; }
+    .upload-card i { font-size: 56px; color: var(--primary); margin-bottom: 8px; }
+    .upload-card h2 { font-size: 1.4rem; color: #141d4f; }
+    .upload-card p { color: var(--muted); font-size: 0.95rem; }
+    .form-group { width: 100%; }
+    .form-group label { display: block; margin-bottom: 8px; color: var(--dark); font-weight: 600; }
+    .form-group input[type="text"], .form-group input[type="password"] { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 12px; font-size: 0.95rem; }
+    .form-group input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1); }
+    .btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 12px 24px; font-weight: 600; border: none; cursor: pointer; font-size: 0.95rem; transition: all 0.2s; }
+    .btn-primary { background: linear-gradient(135deg, #4361ee, #3a0ca3); color: #fff; box-shadow: 0 16px 30px rgba(67, 97, 238, 0.25); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 18px 34px rgba(67, 97, 238, 0.3); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .info-card { background: #fff; border-radius: 20px; padding: 26px; box-shadow: 0 18px 45px rgba(15, 30, 70, 0.08); }
+    .info-card h3 { margin-bottom: 14px; font-size: 1.2rem; color: #141c4d; }
+    .info-card ul { list-style: none; display: flex; flex-direction: column; gap: 12px; color: var(--muted); }
+    .info-card li { display: flex; gap: 10px; align-items: flex-start; }
+    .info-card li i { color: var(--primary); margin-top: 4px; }
+    .status-message { padding: 16px; border-radius: 12px; margin-top: 16px; display: none; }
+    .status-message.success { background: rgba(34, 197, 94, 0.1); color: #065f46; border: 1px solid rgba(34, 197, 94, 0.3); }
+    .status-message.error { background: rgba(239, 68, 68, 0.1); color: #991b1b; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .status-message.processing { background: rgba(67, 97, 238, 0.1); color: #1e40af; border: 1px solid rgba(67, 97, 238, 0.3); }
+    .spinner { width: 20px; height: 20px; border: 3px solid rgba(67, 97, 238, 0.3); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; margin-right: 8px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    footer { background: #0d1530; color: #e8ecff; padding: 32px 0; margin-top: auto; text-align: center; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container">
+      <nav class="navbar">
+        <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
+        <div class="nav-links">
+          <div class="dropdown">
+            <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="jpg-to-pdf.html">JPG to PDF</a>
+              <a href="word-to-pdf.html">Word to PDF</a>
+              <a href="excel-to-pdf.html">Excel to PDF</a>
+              <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="pdf-to-jpg.html">PDF to JPG</a>
+              <a href="pdf-to-word.html">PDF to Word</a>
+              <a href="pdf-to-excel.html">PDF to Excel</a>
+              <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="merge-pdf.html">Merge PDF</a>
+              <a href="split-pdf.html">Split PDF</a>
+              <a href="compress-pdf.html">Compress PDF</a>
+              <a href="edit-pdf.html">Pdf Editor</a>
+              <a href="protect-pdf.html">Protect PDF</a>
+              <a href="unlock-pdf.html">Unlock PDF</a>
+              <a href="watermark-pdf.html">Watermark PDF</a>
+              <a href="crop-pdf.html">Crop PDF</a>
+              <a href="add-page-numbers.html">Add Page Numbers</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="image-compressor.html">Image Compressor</a>
+              <a href="image-resizer.html">Image Resizer</a>
+              <a href="image-editor.html">Image Editor</a>
+              <a href="background-remover.html">Image Background Remover</a>
+              <a href="ocr-image.html">OCR Image</a>
+              <a href="image-watermark.html">Image Watermark Tool</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="resume-maker.html">Resume Maker</a>
+              <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+              <a href="ai-image-generator.html">AI Image Generator</a>
+              <a href="marriage-card.html">Marriage Card</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="excel-unlocker.html" class="active">Excel Unlocker</a>
+              <a href="protect-excel.html">Protect Excel Sheet</a>
+            </div>
+          </div>
+        </div>
+        <div class="auth-buttons">
+          <a href="login.html" class="auth-link">Sign In</a>
+          <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Signup</span></a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <h1><i class="fas fa-unlock-alt"></i> Excel Unlocker</h1>
+        <p>Remove password protection from Excel files instantly. Upload your protected Excel file and unlock it for free.</p>
+      </div>
+
+      <div class="upload-card">
+        <i class="fas fa-file-excel"></i>
+        <h2>Upload Protected Excel File</h2>
+        <p>Select your password-protected Excel file (XLS, XLSX)</p>
+        
+        <form id="unlockForm" style="width: 100%;">
+          <div class="form-group">
+            <label for="fileInput">
+              <i class="fas fa-file-upload"></i> Choose Excel File
+            </label>
+            <input type="file" id="fileInput" accept=".xls,.xlsx" required style="padding: 10px; cursor: pointer;">
+          </div>
+
+          <div class="form-group">
+            <label for="passwordInput">
+              <i class="fas fa-key"></i> Password (if known)
+            </label>
+            <input type="password" id="passwordInput" placeholder="Leave empty to try removing protection">
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="unlockBtn">
+            <i class="fas fa-unlock"></i> Unlock Excel File
+          </button>
+        </form>
+
+        <div id="statusMessage" class="status-message"></div>
+      </div>
+
+      <div class="info-card">
+        <h3><i class="fas fa-info-circle"></i> How It Works</h3>
+        <ul>
+          <li>
+            <i class="fas fa-check-circle"></i>
+            <div>
+              <strong>Upload File:</strong> Select your password-protected Excel file
+            </div>
+          </li>
+          <li>
+            <i class="fas fa-check-circle"></i>
+            <div>
+              <strong>Remove Protection:</strong> Our tool removes the password protection
+            </div>
+          </li>
+          <li>
+            <i class="fas fa-check-circle"></i>
+            <div>
+              <strong>Download:</strong> Get your unlocked Excel file instantly
+            </div>
+          </li>
+          <li>
+            <i class="fas fa-shield-alt"></i>
+            <div>
+              <strong>Privacy:</strong> Files are processed securely and deleted after download
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container footer-inner">
+      <div class="footer-company-links">
+        <span>Company</span>
+        <a href="index.html#about">About Us</a>
+        <a href="index.html#contact">Contact</a>
+        <a href="privacy-policy.html">Privacy Policy</a>
+        <a href="terms-of-service.html">Terms of Service</a>
+      </div>
+      <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+      <p class="footer-credits">
+        Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+        <a href="attributions.html">See full acknowledgements</a>.
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    const form = document.getElementById('unlockForm');
+    const fileInput = document.getElementById('fileInput');
+    const passwordInput = document.getElementById('passwordInput');
+    const unlockBtn = document.getElementById('unlockBtn');
+    const statusMessage = document.getElementById('statusMessage');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const file = fileInput.files[0];
+      if (!file) {
+        showStatus('Please select an Excel file', 'error');
+        return;
+      }
+
+      // Validate file type
+      const validTypes = [
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      ];
+      if (!validTypes.includes(file.type) && !file.name.match(/\.(xls|xlsx)$/i)) {
+        showStatus('Please select a valid Excel file (.xls or .xlsx)', 'error');
+        return;
+      }
+
+      // Validate file size (max 500MB)
+      if (file.size > 500 * 1024 * 1024) {
+        showStatus('File too large. Maximum size is 500MB', 'error');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      if (passwordInput.value) {
+        formData.append('password', passwordInput.value);
+      }
+
+      unlockBtn.disabled = true;
+      showStatus('Processing... This may take a few moments', 'processing');
+
+      try {
+        const response = await fetch('http://127.0.0.1:5000/unlock', {
+          method: 'POST',
+          body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showStatus('✅ Excel file unlocked successfully!', 'success');
+          
+          // Download file
+          setTimeout(() => {
+            const downloadLink = document.createElement('a');
+            downloadLink.href = `http://127.0.0.1:5000/download/${result.filename}`;
+            downloadLink.download = result.filename;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            
+            // Reset form
+            form.reset();
+            statusMessage.textContent += ' File downloaded. You can unlock another file.';
+          }, 1000);
+        } else {
+          showStatus(`❌ Error: ${result.error || 'Failed to unlock file'}`, 'error');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showStatus(`❌ Error: ${error.message || 'Network error. Please check if the Excel Unlocker service is running.'}`, 'error');
+      } finally {
+        unlockBtn.disabled = false;
+      }
+    });
+
+    function showStatus(message, type) {
+      statusMessage.textContent = message;
+      statusMessage.className = `status-message ${type}`;
+      statusMessage.style.display = 'block';
+      
+      if (type === 'processing') {
+        statusMessage.innerHTML = `<span class="spinner"></span>${message}`;
+      }
+    }
+  </script>
+</body>
+</html>
