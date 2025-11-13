@@ -411,25 +411,31 @@ document.addEventListener('DOMContentLoaded', () => {
     if (donateSection) {
       donateSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
       
-      // Check if user is logged in
+      // Check if user is logged in and auto-trigger donation
       const checkUserAndProceed = () => {
         const user = auth.currentUser;
         if (user) {
-          // User is logged in, proceed to click donate button after a brief moment
+          // User is logged in, auto-trigger Razorpay payment
           setTimeout(() => {
             const donateBtn = donateForm?.querySelector('button[type="submit"]');
             if (donateBtn && amountInput?.value) {
-              // Highlight the form briefly to show it's active
+              // Highlight the form briefly
               if (donateForm) {
                 donateForm.style.boxShadow = '0 0 20px rgba(67, 97, 238, 0.4)';
                 donateForm.style.transition = 'box-shadow 0.5s ease';
-                setTimeout(() => {
-                  donateForm.style.boxShadow = '';
-                }, 2000);
               }
-              // Show message
-              showMessage("Ready to donate! Click the Donate button or adjust the amount.");
+              // Show processing message
+              showMessage("Opening Razorpay payment...");
+              // Auto-click the donate button to open Razorpay
+              setTimeout(() => {
+                donateBtn.click();
+              }, 500);
             }
+          }, 800);
+        } else {
+          // User not logged in, show login prompt
+          setTimeout(() => {
+            showMessage("Please log in to make a donation.");
           }, 800);
         }
       };
@@ -442,6 +448,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
           if (user) {
             checkUserAndProceed();
+          } else {
+            // Show login message if still not logged in
+            setTimeout(() => {
+              showMessage("Please log in to make a donation.");
+            }, 1000);
           }
           unsubscribe();
         });
