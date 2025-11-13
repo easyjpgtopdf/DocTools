@@ -178,13 +178,28 @@
     let resultDataURL = null;
     let removeBackgroundFn = null;
     let preloadFn = null;
+    let modelPreloaded = false;
 
-    try {
-      ({ removeBackground: removeBackgroundFn, preload: preloadFn } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/index.mjs'));
-    } catch (err) {
-      showError('AI library failed to load. Please check your connection and refresh.');
-      console.error(err);
-    }
+    // Load IMG.LY library and preload model immediately
+    (async function initializeAI() {
+      try {
+        ({ removeBackground: removeBackgroundFn, preload: preloadFn } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/index.mjs'));
+        
+        // Preload model in background for instant processing
+        console.log('🚀 Preloading AI model in background...');
+        if (preloadFn) {
+          await preloadFn({ 
+            publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
+            model: 'medium'
+          });
+          modelPreloaded = true;
+          console.log('✅ AI model ready! Processing will be instant.');
+        }
+      } catch (err) {
+        showError('AI library failed to load. Please check your connection and refresh.');
+        console.error(err);
+      }
+    })();
 
     function dataURLToBlob(dataURL) {
       const [meta, encoded] = dataURL.split(',');
@@ -432,16 +447,18 @@
             return;
           }
 
-          // Preload AI model
-          try {
-            if (typeof preloadFn === 'function') {
+          // Use preloaded model (already cached)
+          if (!modelPreloaded && typeof preloadFn === 'function') {
+            console.log('⏳ Loading AI model...');
+            try {
               await preloadFn({ 
                 publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
                 model: config.model
               });
+              modelPreloaded = true;
+            } catch (err) {
+              console.warn('Preload failed, continuing:', err);
             }
-          } catch (err) {
-            console.warn('Preload failed, continuing:', err);
           }
 
           const blob = await blobFromSource(dataURL, {
@@ -454,7 +471,7 @@
           const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'photo.png';
           const fileForProcessing = new File([blob], filename, { type: blob.type || 'image/png' });
 
-          // Process with MAXIMUM quality settings and edge preservation
+          // Process with MAXIMUM quality and MINIMAL over-cleaning
           const result = await removeBackgroundFn(fileForProcessing, {
             publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
             model: config.model,
@@ -463,17 +480,13 @@
               quality: config.quality,
               type: 'foreground'
             },
-            // Advanced settings for PROFESSIONAL edge preservation
+            // CRITICAL: Reduce over-cleaning
             postprocessMask: {
-              featherRadius: 3  // Smoother edges (1-5 range, 3 is professional)
-            },
-            // Optional: Edge refinement for better hair/fur detection
-            segmentation: {
-              refinement: 'auto'  // Auto-refine edges for complex subjects
+              featherRadius: 5  // Higher = softer edges, less over-cleaning (1-10 range)
             },
             progress: (key, current, total) => {
               const percent = Math.round((current / total) * 100);
-              statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">🎨 Processing with professional AI... ${percent}%</div>`;
+              statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">🎨 Processing ${percent}% (Anti over-cleaning enabled)</div>`;
             }
           });
 
