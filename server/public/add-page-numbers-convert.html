@@ -58,9 +58,9 @@
     @media (max-width:768px){.nav-links{display:none}.split-layout{flex-direction:column}.left-panel,.right-panel{width:100%!important}.btn{width:100%;justify-content:center}}
     
     /* Split Layout - 50-50 */
-    .split-layout{display:flex;gap:20px;margin:20px 0;min-height:calc(100vh - 300px)}
-    .left-panel{flex:1;background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow-y:auto;max-height:calc(100vh - 280px)}
-    .right-panel{flex:1;background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow-y:auto;max-height:calc(100vh - 280px)}
+    .split-layout{display:flex;gap:20px;margin:20px 0;min-height:calc(100vh + 384px - 300px)}
+    .left-panel{flex:1;background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow-y:auto;max-height:calc(100vh + 384px - 280px)}
+    .right-panel{flex:1;background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow-y:auto;max-height:calc(100vh + 384px - 280px)}
     
     /* Page Numbering Options */
     .numbering-options{background:var(--light);border-radius:12px;padding:20px;margin-bottom:20px}
@@ -406,12 +406,18 @@
         // Load and preview original PDF
         const pdfDoc = await PDFDocument.load(originalPdfData);
         const pageCount = pdfDoc.getPageCount();
-        document.getElementById('meta').textContent = `${fileName} â€¢ ${pageCount} page(s)`;
+        document.getElementById('meta').textContent = `${fileName} • ${pageCount} page(s)`;
         
-        // Show original PDF in iframe
-        const blob = new Blob([originalPdfData], {type:'application/pdf'});
-        const url = URL.createObjectURL(blob);
-        document.getElementById('pdfFrame').src = url;
+        // Show message in preview panel
+        const previewContainer = document.getElementById('previewContainer');
+        previewContainer.innerHTML = `
+          <p style="text-align:center;color:var(--gray);padding:40px 20px">
+            <i class="fas fa-file-pdf" style="font-size:48px;margin-bottom:16px;display:block;opacity:0.5"></i>
+            <strong>${fileName}</strong><br>
+            ${pageCount} page(s) loaded<br><br>
+            <small>Click "Apply Page Numbers" to see preview with page numbers</small>
+          </p>
+        `;
       }catch(e){
         console.error(e);
         alert('Error loading PDF: '+e.message);
