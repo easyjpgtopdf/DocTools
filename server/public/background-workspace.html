@@ -270,26 +270,26 @@
       
       // Tier 1: Browser AI (IMG.LY U²-Net)
       if (fileSize < 8 * 1024 * 1024) {
-        // 0-8 MB: Fast browser processing with small model
-        return {
-          useBackend: false,
-          model: 'small',
-          quality: 0.85,
-          description: 'Fast AI (Browser)',
-          message: `Processing ${sizeMB.toFixed(1)} MB instantly in browser`,
-          tier: 'browser',
-          info: '⚡ Instant processing, no upload needed'
-        };
-      } else if (fileSize < 15 * 1024 * 1024) {
-        // 8-15 MB: Browser with medium model for better quality
+        // 0-8 MB: High quality browser processing
         return {
           useBackend: false,
           model: 'medium',
-          quality: 0.92,
+          quality: 0.95,
           description: 'High Quality AI (Browser)',
-          message: `Processing ${sizeMB.toFixed(1)} MB with advanced browser AI`,
+          message: `Processing ${sizeMB.toFixed(1)} MB with advanced AI`,
           tier: 'browser',
-          info: '🎯 High quality, no upload needed'
+          info: '⚡ High quality processing, instant results'
+        };
+      } else if (fileSize < 15 * 1024 * 1024) {
+        // 8-15 MB: Browser with medium model for best quality
+        return {
+          useBackend: false,
+          model: 'medium',
+          quality: 0.98,
+          description: 'Premium Quality AI (Browser)',
+          message: `Processing ${sizeMB.toFixed(1)} MB with premium AI`,
+          tier: 'browser',
+          info: '🎯 Premium quality, precise edge detection'
         };
       } 
       // Tier 2: Render Backend (Python Rembg)
@@ -468,7 +468,7 @@
           const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'photo.png';
           const fileForProcessing = new File([blob], filename, { type: blob.type || 'image/png' });
 
-          // Process with optimal settings
+          // Process with high quality settings and edge preservation
           const result = await removeBackgroundFn(fileForProcessing, {
             publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
             model: config.model,
@@ -476,6 +476,10 @@
               format: 'image/png', 
               quality: config.quality,
               type: 'foreground'
+            },
+            // Advanced settings for better edge preservation
+            postprocessMask: {
+              featherRadius: 2  // Smooth edges without over-cleaning
             },
             progress: (key, current, total) => {
               const percent = Math.round((current / total) * 100);
