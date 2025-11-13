@@ -278,24 +278,37 @@
 
     async function handleFile(file) {
       if (!file) return;
+      
+      // Validate file size with helpful messages
       if (file.size > 100 * 1024 * 1024) {
-        showStatus('Please pick an image smaller than 100MB. (50+MB files use premium cloud processing)');
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        showStatus(`Image too large (${sizeMB} MB). Maximum: 100 MB. Please compress your image first.`);
         return;
       }
 
       dropzone.classList.add('uploading');
       dropzone.dataset.pending = 'true';
-      showStatus('Preparing image… 0%');
+      
+      // Show processing tier info
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      if (file.size < 15 * 1024 * 1024) {
+        showStatus(`⚡ Preparing ${sizeMB} MB image for instant browser processing… 0%`);
+      } else if (file.size < 50 * 1024 * 1024) {
+        showStatus(`🚀 Preparing ${sizeMB} MB image for professional server AI… 0%`);
+      } else {
+        showStatus(`⭐ Preparing ${sizeMB} MB image for premium cloud AI… 0%`);
+      }
 
       try {
         showStatus('Processing image… 30%');
         const dataUrl = await prepareImage(file);
-        showStatus('Optimizing… 60%');
+        showStatus('Optimizing for quality… 60%');
         const approxBytes = Math.ceil(dataUrl.length * 0.75);
         
-        // Increased storage limit for better quality
-        if (approxBytes > 9 * 1024 * 1024) {
-          showStatus('Image is too large after compression. Please upload a smaller photo (under ~8 MB).');
+        // sessionStorage limit: ~9-10 MB for base64 data
+        if (approxBytes > 9.5 * 1024 * 1024) {
+          const compressMB = (approxBytes / (1024 * 1024)).toFixed(1);
+          showStatus(`Compressed image is ${compressMB} MB (max 9.5 MB for browser storage). Try reducing image dimensions or quality.`);
           return;
         }
         

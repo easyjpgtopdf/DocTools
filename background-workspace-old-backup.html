@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -59,6 +59,19 @@
       .actions { justify-content: center; }
     }
   </style>
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+    
+
     <link rel="stylesheet" href="css/header.css">
     <link rel="stylesheet" href="css/theme-modern.css">
 </head>
@@ -87,16 +100,16 @@
                         </div>
                     </div>
                     <div class="dropdown">
-                        <a href="#">Edit PDF <i class="fas fa-chevron-down"></i></a>
+                        <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
                             <a href="merge-pdf.html">Merge PDF</a>
                             <a href="split-pdf.html">Split PDF</a>
                             <a href="compress-pdf.html">Compress PDF</a>
-                            <a href="crop-pdf.html">Crop PDF</a>
+                            <a href="edit-pdf.html">Pdf Editor</a>
                             <a href="protect-pdf.html">Protect PDF</a>
                             <a href="unlock-pdf.html">Unlock PDF</a>
-                            <a href="add-page-numbers.html">Add Page Numbers</a>
                             <a href="watermark-pdf.html">Watermark PDF</a>
+                            <a href="crop-pdf.html">Crop PDF</a>
                         </div>
                     </div>
                     <div class="dropdown">
@@ -105,58 +118,91 @@
                             <a href="image-compressor.html">Image Compressor</a>
                             <a href="image-resizer.html">Image Resizer</a>
                             <a href="image-editor.html">Image Editor</a>
-                            <a href="image-watermark.html">Image Watermark</a>
-                            <a href="background-remover.html">Background Remover</a>
+                            <a href="background-remover.html">Image Background Remover</a>
+                            <a href="ocr-image.html">OCR Image</a>
+                            <a href="image-watermark.html">Image Watermark Tool</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="resume-maker.html">Resume Maker</a>
+                            <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+                            <a href="ai-image-generator.html">AI Image Generator</a>
+                            <a href="marriage-card.html">Marriage Card</a>
                         </div>
                     </div>
                 </div>
                 <div class="auth-buttons">
-                    <button id="auth-button" class="auth-btn">Login</button>
+                    <a href="login.html" class="auth-link">Sign In</a>
+                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Create Account</span></a>
+                </div>
+                <div id="user-menu" class="user-menu" data-open="false">
+                    <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
+                        <span class="user-initial" aria-hidden="true">U</span>
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                    </button>
+                    <div class="user-dropdown" id="user-dropdown" hidden>
+                        <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+                        <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+                        <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+                        <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
+                        <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
+                        <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+                    </div>
                 </div>
             </nav>
         </div>
     </header>
 
+
+
+
+  
+
   <main>
     <section class="panel">
-      <h2><i class="fas fa-wand-magic-sparkles"></i> Background Removed</h2>
-      <div id="previewStage" class="preview-stage">
-        <img id="previewOriginal" class="preview-original" alt="Original" hidden>
-        <img id="previewResult" class="preview-result" alt="Result" hidden>
-        <div id="previewOverlay" class="preview-overlay">
+      <h2><i class="fas fa-eye"></i> Preview</h2>
+      <div class="preview-stage empty" id="previewStage">
+        <img id="previewOriginal" class="preview-original" alt="Original preview" hidden>
+        <img id="previewResult" class="preview-result" alt="Background removed preview" hidden>
+        <div class="preview-overlay" id="previewOverlay">
           <div class="preview-spinner"></div>
-          <span>AI Processing...</span>
-        </div>
-        <div id="previewPlaceholder" class="preview-placeholder hidden">
-          <i class="fas fa-image" style="font-size:3rem;opacity:0.3;"></i>
-          <span>No image loaded</span>
+          <span>Preparing magicâ€¦</span>
         </div>
       </div>
+      <div class="preview-placeholder" id="previewPlaceholder">
+        <i class="fas fa-image" style="font-size:42px; opacity:0.75;"></i>
+        <p>Upload an image first to start removing the background.</p>
+      </div>
       <div class="actions">
-        <button id="backgroundChange" class="btn btn-outline" disabled>
-          <i class="fas fa-palette"></i> Change Background
-        </button>
-        <button id="downloadPng" class="btn btn-primary" disabled>
-          <i class="fas fa-download"></i> Download PNG
-        </button>
+        <button class="btn btn-primary" id="backgroundChange" disabled><i class="fas fa-layer-group"></i> Background Change</button>
+        <button class="btn btn-outline" id="downloadPng" disabled><i class="fas fa-download"></i> Download PNG</button>
       </div>
     </section>
 
-    <section class="panel">
-      <h2><i class="fas fa-info-circle"></i> Processing Info</h2>
-      <div id="statusMessage" class="status-card"></div>
-      <div class="status-card">
-        <strong>✓ 3-Tier Smart Processing</strong>
-        <p>• <strong>0-15 MB</strong>: Fast browser (IMG.LY AI) - Free</p>
-        <p>• <strong>15-50 MB</strong>: Free server (Render + Rembg) - Free</p>
-        <p>• <strong>50-100 MB</strong>: Cloud server (Google Cloud Run) - Premium</p>
-        <p>• Automatic routing for optimal speed & cost</p>
-        <p>• Professional AI quality at every tier</p>
+    <section class="panel status-card" id="statusCard">
+      <div>
+        <strong>How it works</strong>
+        <p>We process everything inside your browser. The first run may take a little longer while the AI model loads. Afterwards it becomes instant.</p>
       </div>
+      <div>
+        <strong>Tips</strong>
+        <ul style="list-style: disc; padding-left: 20px; margin-top: 8px;">
+          <li>Use high-quality PNG or JPG files under 10 MB.</li>
+          <li>For hair or fur, ensure good contrast with the background.</li>
+          <li>Switch to <em>Background Change</em> to add professional scenes or solid colours.</li>
+        </ul>
+      </div>
+      <div id="statusMessage"></div>
     </section>
   </main>
 
+  
+
   <script type="module">
+    import { API_BASE_URL } from './js/config.js';
+    
     const STORAGE_KEYS = {
       original: 'bgRemover:original',
       filename: 'bgRemover:filename',
@@ -182,8 +228,37 @@
     try {
       ({ removeBackground: removeBackgroundFn, preload: preloadFn } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/index.mjs'));
     } catch (err) {
-      showError('AI library failed to load. Please check your connection and refresh.');
-      console.error(err);
+      console.warn('Local AI library failed to load. Will use API fallback.', err);
+    }
+
+    // Try professional remove.bg API first for best quality
+    async function removeBackgroundAPI(imageData) {
+      try {
+        statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">Using professional AI (remove.bg quality)\u2026</div>';
+        
+        const response = await fetch(`${API_BASE_URL}/api/remove-background`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            imageData: imageData,
+            size: 'full' // full quality like remove.bg
+          })
+        });
+
+        const result = await response.json();
+        
+        if (result.success && result.resultImage) {
+          return { success: true, dataUrl: result.resultImage, method: 'API' };
+        } else if (result.fallback) {
+          console.log('API fallback:', result.message);
+          return { success: false, fallback: true };
+        } else {
+          throw new Error(result.error || 'API failed');
+        }
+      } catch (error) {
+        console.warn('Remove.bg API failed, using local AI:', error);
+        return { success: false, fallback: true };
+      }
     }
 
     function dataURLToBlob(dataURL) {
@@ -249,218 +324,47 @@
       resultCanvas.height = height;
     }
 
-    // ============================================
-    // HIGH QUALITY AI BACKGROUND REMOVER
-    // 3-Tier Processing System (Fast + Free + Scalable)
-    // ============================================
-    // Tier 1: 0-15 MB → IMG.LY (Browser AI) - Instant, Free, Unlimited
-    // Tier 2: 15-50 MB → Render Backend (Python Rembg) - Free 750hrs/month
-    // Tier 3: 50-100 MB → Cloud Run (Docker Rembg) - Free 2M requests/month
-    // ============================================
-    
-    // STEP 1: Deploy Render backend and update this URL
-    const RENDER_API_URL = 'https://YOUR-RENDER-SERVICE.onrender.com/remove-background';
-    
-    // STEP 2: (Optional) Deploy Cloud Run backend for 50+ MB files
-    const CLOUDRUN_API_URL = 'https://YOUR-CLOUDRUN-SERVICE.run.app/remove-background';
-    
-    // Smart routing based on file size (optimized for quality + speed)
-    function getProcessingConfig(fileSize) {
-      const sizeMB = fileSize / (1024 * 1024);
-      
-      // Tier 1: Browser AI (IMG.LY U²-Net)
-      if (fileSize < 8 * 1024 * 1024) {
-        // 0-8 MB: Fast browser processing with small model
-        return {
-          useBackend: false,
-          model: 'small',
-          quality: 0.85,
-          description: 'Fast AI (Browser)',
-          message: `Processing ${sizeMB.toFixed(1)} MB instantly in browser`,
-          tier: 'browser',
-          info: '⚡ Instant processing, no upload needed'
-        };
-      } else if (fileSize < 15 * 1024 * 1024) {
-        // 8-15 MB: Browser with medium model for better quality
-        return {
-          useBackend: false,
-          model: 'medium',
-          quality: 0.92,
-          description: 'High Quality AI (Browser)',
-          message: `Processing ${sizeMB.toFixed(1)} MB with advanced browser AI`,
-          tier: 'browser',
-          info: '🎯 High quality, no upload needed'
-        };
-      } 
-      // Tier 2: Render Backend (Python Rembg)
-      else if (fileSize < 50 * 1024 * 1024) {
-        // 15-50 MB: Professional server processing (Free)
-        return {
-          useBackend: true,
-          backendUrl: RENDER_API_URL,
-          description: 'Professional AI (Free Server)',
-          message: `Uploading ${sizeMB.toFixed(1)} MB to professional AI server`,
-          tier: 'render',
-          info: '🚀 Professional quality with Rembg AI (Free)'
-        };
-      } 
-      // Tier 3: Cloud Run Backend (Premium Docker)
-      else if (fileSize < 100 * 1024 * 1024) {
-        // 50-100 MB: Premium cloud processing with optimization
-        return {
-          useBackend: true,
-          backendUrl: CLOUDRUN_API_URL,
-          description: 'Premium AI (Google Cloud)',
-          message: `Uploading ${sizeMB.toFixed(1)} MB to premium cloud AI`,
-          tier: 'cloudrun',
-          info: '⭐ Premium quality with alpha matting (Google Cloud)'
-        };
-      } 
-      // Error: File too large
-      else {
-        return {
-          useBackend: false,
-          error: true,
-          message: `File size ${sizeMB.toFixed(1)} MB exceeds maximum limit of 100 MB. Please compress your image first.`,
-          tier: 'error'
-        };
-      }
-    }
-
-    // Process image using backend server (Render or Cloud Run)
-    async function processWithBackend(dataURL, backendUrl, config) {
-      try {
-        // Show upload progress
-        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">📤 Uploading to ${config.tier === 'render' ? 'Free Server' : 'Premium Cloud'}...</div>`;
-        
-        // Make API request with timeout
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 180000); // 3 min timeout
-        
-        const response = await fetch(backendUrl, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({ imageData: dataURL }),
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeout);
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || `Server error: ${response.status}`);
-        }
-
-        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">✨ Processing with professional AI...</div>`;
-        
-        const result = await response.json();
-        
-        if (result.success && result.resultImage) {
-          return { 
-            success: true, 
-            dataUrl: result.resultImage, 
-            processedWith: result.processedWith || config.description,
-            outputSize: result.outputSize,
-            outputSizeMB: result.outputSizeMB
-          };
-        } else {
-          throw new Error(result.error || 'Processing failed on server');
-        }
-      } catch (error) {
-        console.error('❌ Backend processing error:', error);
-        
-        if (error.name === 'AbortError') {
-          return { success: false, error: 'Request timeout. File too large or server busy.' };
-        }
-        
-        return { success: false, error: error.message || 'Server connection failed' };
-      }
-    }
-
     async function processImage(dataURL) {
+      if (!removeBackgroundFn && !API_BASE_URL) {
+        showError('No background removal method available. Please refresh the page.');
+        return;
+      }
+      
       clearStatus();
       previewPlaceholder.classList.add('hidden');
       previewStage.classList.remove('revealed');
       previewStage.classList.remove('empty');
       previewOverlay.style.opacity = 1;
+      statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">Processing image…</div>';
 
       try {
         previewOriginal.hidden = false;
         previewOriginal.src = dataURL;
         
-        // Get file size and optimal config
-        const fileSize = Number(sessionStorage.getItem('bgRemover:originalSize') || 0);
-        const config = getProcessingConfig(fileSize);
-        
-        // Check for error (file too large)
-        if (config.error) {
-          showError(config.message);
-          previewStage.classList.add('empty');
-          previewOverlay.style.opacity = 0;
-          previewPlaceholder.classList.remove('hidden');
-          return;
-        }
-        
-        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">${config.message}...</div>`;
-
         let resultUrl = null;
-
-        // ===== ROUTE 1: Backend Processing (15+ MB files) =====
-        if (config.useBackend) {
-          statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">${config.info}</div>`;
+        let processingMethod = 'Local AI';
+        
+        // Try professional remove.bg API first
+        const apiResult = await removeBackgroundAPI(dataURL);
+        
+        if (apiResult.success) {
+          resultUrl = apiResult.dataUrl;
+          processingMethod = 'Professional API (remove.bg quality)';
+        } else if (apiResult.fallback && removeBackgroundFn) {
+          // Fallback to local AI with high quality settings
+          statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">Processing with local AI…</div>';
           
-          const backendResult = await processWithBackend(dataURL, config.backendUrl, config);
-          
-          if (backendResult.success) {
-            resultUrl = backendResult.dataUrl;
-            processingMethod = backendResult.processedWith || config.description;
-            
-            // Log success
-            console.log('✅ Backend processing successful:', {
-              tier: config.tier,
-              outputSize: backendResult.outputSizeMB || 'unknown'
-            });
-          } else {
-            // Backend failed - try browser fallback for smaller files
-            console.warn('⚠️ Backend failed:', backendResult.error);
-            
-            if (removeBackgroundFn && fileSize < 25 * 1024 * 1024) {
-              statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(251,146,60,0.12);color:#7c2d12;font-weight:600;">⚠️ Server busy, switching to browser processing...</div>';
-              config.useBackend = false;
-              config.model = 'medium';
-              config.quality = 0.9;
-              console.log('🔄 Falling back to browser processing');
-            } else {
-              throw new Error(`Backend processing failed: ${backendResult.error}. File too large for browser fallback.`);
-            }
-          }
-        }
-
-        // Route 2: Use browser processing for small/medium files (0-15 MB)
-        if (!config.useBackend && !resultUrl) {
-          if (!removeBackgroundFn) {
-            showError('AI library not loaded. Please refresh the page.');
-            return;
-          }
-
-          // Preload AI model
           try {
             if (typeof preloadFn === 'function') {
-              await preloadFn({ 
-                publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
-                model: config.model
-              });
+              await preloadFn({ publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/' });
             }
           } catch (err) {
-            console.warn('Preload failed, continuing:', err);
+            console.warn('Preload failed, continuing lazily.', err);
           }
 
           const blob = await blobFromSource(dataURL, {
             type: sessionStorage.getItem('bgRemover:originalType') || 'image/png',
-            size: fileSize
+            size: Number(sessionStorage.getItem('bgRemover:originalSize') || 0)
           });
           
           if (!blob) throw new Error('Unable to read uploaded image.');
@@ -468,26 +372,28 @@
           const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'photo.png';
           const fileForProcessing = new File([blob], filename, { type: blob.type || 'image/png' });
 
-          // Process with optimal settings
+          // Use high-quality settings for professional results like remove.bg
           const result = await removeBackgroundFn(fileForProcessing, {
             publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
-            model: config.model,
+            model: 'medium', // Use medium model for better accuracy
             output: { 
               format: 'image/png', 
-              quality: config.quality,
-              type: 'foreground'
+              quality: 1.0, // Maximum quality
+              type: 'foreground' // Only foreground (transparent background)
             },
             progress: (key, current, total) => {
               const percent = Math.round((current / total) * 100);
-              statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">Processing with ${config.description}... ${percent}%</div>`;
+              statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">Processing with AI… ${percent}%</div>`;
             }
           });
 
           const resultBlob = result instanceof Blob ? result : await result.blob();
           resultUrl = await blobToDataURL(resultBlob);
+          processingMethod = 'Local AI (High Quality)';
+        } else {
+          throw new Error('No processing method available');
         }
         
-        // Common result handling for both routes
         if (!resultUrl) {
           throw new Error('Failed to generate result image');
         }
@@ -513,10 +419,9 @@
         backgroundChangeBtn.disabled = false;
         downloadBtn.disabled = false;
         
-        // Success message
-        const sizeInMB = (fileSize / (1024 * 1024)).toFixed(1);
-        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">✓ Background removed! (${sizeInMB} MB file processed with ${config.description})</div>`;
-        setTimeout(() => clearStatus(), 4000);
+        // Show success message with method used
+        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">✓ Background removed using ${processingMethod}</div>`;
+        setTimeout(() => clearStatus(), 3000);
         
       } catch (error) {
         console.error('Background removal failed', error);
@@ -563,6 +468,9 @@
     document.getElementById('footerYear').textContent = new Date().getFullYear();
   </script>
 
+
+
+
 <footer>
         <div class="container footer-inner">
             <div class="footer-company-links">
@@ -582,3 +490,31 @@
     <script type="module" src="js/auth.js"></script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

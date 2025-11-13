@@ -1,7 +1,26 @@
+# ============================================
+# GOOGLE CLOUD RUN REQUIREMENTS
+# Python 3.11+ (Tier 3: 50-100 MB files)
+# ============================================
+
+# Web Framework
 Flask==3.0.0
 flask-cors==4.0.0
+
+# AI Background Removal
 rembg==2.0.57
+
+# Image Processing
 Pillow==10.1.0
+
+# Production Server
 gunicorn==21.2.0
+
+# ML Runtime
 onnxruntime==1.16.3
+
+# Numerical Processing (for Cloud Run optimization)
 numpy==1.26.2
+
+# Note: Cloud Run will install via Dockerfile
+# Optimized for large file processing with alpha matting
