@@ -1,14 +1,15 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
+
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Protect Excel - Password Protect Excel Files Online | easyjpgtopdf</title>
-    <link rel="stylesheet" href="css/footer.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Protect Excel - Password Protect Excel Files Online | easyjpgtopdf</title>
+<link href="css/footer.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<style>
         /* Reset and Base Styles */
         * {
             margin: 0;
@@ -60,6 +61,14 @@
             justify-content: space-between;
             align-items: center;
             padding: 10px 0;
+            overflow: visible;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            overflow: visible;
         }
 
         .logo {
@@ -70,12 +79,6 @@
             font-weight: 700;
             color: var(--primary);
             text-decoration: none;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 15px;
-            align-items: center;
         }
 
         .nav-links a {
@@ -100,10 +103,11 @@
             background-color: white;
             min-width: 200px;
             box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-            z-index: 1;
+            z-index: 1000;
             border-radius: 8px;
             padding: 10px 0;
             margin-top: 10px;
+            left: 0;
         }
 
         .dropdown-content a {
@@ -112,14 +116,21 @@
             text-decoration: none;
             display: block;
             transition: background-color 0.3s;
+            cursor: pointer;
         }
 
         .dropdown-content a:hover {
             background-color: #f8f9fa;
+            color: var(--primary);
         }
 
         .dropdown:hover .dropdown-content {
             display: block;
+        }
+        
+        .dropdown > a {
+            cursor: pointer;
+            user-select: none;
         }
 
         .auth-buttons {
@@ -373,7 +384,7 @@
                 <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
                 <div class="nav-links">
                     <div class="dropdown">
-                        <a href="jpg-to-pdf.html">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+                        <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
                             <a href="jpg-to-pdf.html">JPG to PDF</a>
                             <a href="word-to-pdf.html">Word to PDF</a>
@@ -382,7 +393,7 @@
                         </div>
                     </div>
                     <div class="dropdown">
-                        <a href="pdf-to-jpg.html">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+                        <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
                             <a href="pdf-to-jpg.html">PDF to JPG</a>
                             <a href="pdf-to-word.html">PDF to Word</a>
@@ -391,12 +402,12 @@
                         </div>
                     </div>
                     <div class="dropdown">
-                        <a href="merge-pdf.html">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+                        <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
                             <a href="merge-pdf.html">Merge PDF</a>
                             <a href="split-pdf.html">Split PDF</a>
                             <a href="compress-pdf.html">Compress PDF</a>
-                            <a href="edit-pdf.html">Pdf Editor</a>
+                            <a href="edit-pdf.html">Edit PDF</a>
                             <a href="protect-pdf.html">Protect PDF</a>
                             <a href="unlock-pdf.html">Unlock PDF</a>
                             <a href="watermark-pdf.html">Watermark PDF</a>
@@ -405,7 +416,7 @@
                         </div>
                     </div>
                     <div class="dropdown">
-                        <a href="image-compressor.html">Image Tools <i class="fas fa-chevron-down"></i></a>
+                        <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
                             <a href="image-compressor.html">Image Compressor</a>
                             <a href="image-resizer.html">Image Resizer</a>
@@ -416,18 +427,18 @@
                         </div>
                     </div>
                     <div class="dropdown">
-                        <a href="resume-maker.html">Design Tools <i class="fas fa-chevron-down"></i></a>
+                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
                             <a href="resume-maker.html">Resume Maker</a>
-                            <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+                            <a href="biodata-maker.html">Marriage Biodata Maker</a>
                             <a href="ai-image-generator.html">AI Image Generator</a>
                             <a href="marriage-card.html">Marriage Card</a>
                         </div>
                     </div>
                     <div class="dropdown">
-                        <a href="protect-excel.html">Other Tools <i class="fas fa-chevron-down"></i></a>
+                        <a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
-                            <a href="excel-unlocker/" target="_blank">Excel Unlocker</a>
+                            <a href="excel-unlocker.html">Excel Unlocker</a>
                             <a href="protect-excel.html">Protect Excel Sheet</a>
                         </div>
                     </div>
@@ -441,94 +452,81 @@
                         <span class="user-initial" aria-hidden="true">U</span>
                         <i class="fas fa-chevron-down" aria-hidden="true"></i>
                     </button>
-                    <div class="user-dropdown" id="user-dropdown" hidden>
-                        <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
-                        <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
-                        <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
-                        <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
-                        <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
-                        <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+                    <div id="user-dropdown" class="user-dropdown" hidden>
+                        <a href="dashboard.html" class="user-dropdown-item"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                        <a href="accounts.html" class="user-dropdown-item"><i class="fas fa-user"></i> My Account</a>
+                        <a href="#" id="logout-btn" class="user-dropdown-item"><i class="fas fa-sign-out-alt"></i> Sign Out</a>
                     </div>
                 </div>
             </nav>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <div class="container">
-        <div class="tool-page">
-            <h2>Protect Excel Files</h2>
-            <p>Add password protection to your Excel files to keep your data secure and private.</p>
-            
-            <div class="upload-area" id="dropZone">
-                <i class="fas fa-file-excel"></i>
-                <h3>अपनी Excel फ़ाइल यहां अपलोड करें</h3>
-                <p>या फ़ाइल चुनने के लिए क्लिक करें</p>
-                <input type="file" id="fileInput" accept=".xlsx,.xls,.xlsm,.xlsb,.csv,.ods" style="display: none;">
-            </div>
-            
-            <div class="file-list" id="fileList">
-                <div id="fileItems"></div>
-            </div>
-            
-            <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 20px;">
-                <div class="form-group" style="flex: 1;">
-                    <label for="password">Set Password *</label>
-                    <input type="password" id="password" class="form-control" placeholder="Enter password" required>
-                    <small class="text-muted">Minimum 4 characters</small>
-                </div>
-                
-                <div class="form-group" style="flex: 1;">
-                    <label for="confirmPassword">Confirm Password *</label>
-                    <input type="password" id="confirmPassword" class="form-control" placeholder="Confirm password" required>
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label>Protection Options</label>
-                <div class="protection-options" style="margin-top: 10px;">
-                    <label class="checkbox-container" style="display: block; margin-bottom: 10px;">
-                        <input type="checkbox" id="protectStructure" checked>
-                        <span class="checkmark"></span>
+<!-- Main Content -->
+<div class="container">
+<div class="tool-page">
+<h2>Protect Excel Files</h2>
+<p>Add password protection to your Excel files to keep your data secure and private.</p>
+<div class="upload-area" id="dropZone">
+<i class="fas fa-file-excel"></i>
+<h3>अपनी Excel फ़ाइल यहां अपलोड करें</h3>
+<p>या फ़ाइल चुनने के लिए क्लिक करें</p>
+<input accept=".xlsx,.xls,.xlsm,.xlsb,.csv,.ods" id="fileInput" style="display: none;" type="file"/>
+</div>
+<div class="file-list" id="fileList">
+<div id="fileItems"></div>
+</div>
+<div class="form-row" style="display: flex; gap: 20px; margin-bottom: 20px;">
+<div class="form-group" style="flex: 1;">
+<label for="password">Set Password *</label>
+<input class="form-control" id="password" placeholder="Enter password" required="" type="password"/>
+<small class="text-muted">Minimum 4 characters</small>
+</div>
+<div class="form-group" style="flex: 1;">
+<label for="confirmPassword">Confirm Password *</label>
+<input class="form-control" id="confirmPassword" placeholder="Confirm password" required="" type="password"/>
+</div>
+</div>
+<div class="form-group">
+<label>Protection Options</label>
+<div class="protection-options" style="margin-top: 10px;">
+<label class="checkbox-container" style="display: block; margin-bottom: 10px;">
+<input checked="" id="protectStructure" type="checkbox"/>
+<span class="checkmark"></span>
                         Protect workbook structure
                     </label>
-                    <label class="checkbox-container" style="display: block; margin-bottom: 10px;">
-                        <input type="checkbox" id="protectWindows" checked>
-                        <span class="checkmark"></span>
+<label class="checkbox-container" style="display: block; margin-bottom: 10px;">
+<input checked="" id="protectWindows" type="checkbox"/>
+<span class="checkmark"></span>
                         Protect windows
                     </label>
-                    <label class="checkbox-container" style="display: block;">
-                        <input type="checkbox" id="readOnlyRecommended" checked>
-                        <span class="checkmark"></span>
+<label class="checkbox-container" style="display: block;">
+<input checked="" id="readOnlyRecommended" type="checkbox"/>
+<span class="checkmark"></span>
                         Read-only recommended
                     </label>
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label for="fileFormat">Output Format</label>
-                <select id="fileFormat" class="form-control">
-                    <option value="xlsx">XLSX (Excel 2007 and later)</option>
-                    <option value="xls">XLS (Excel 97-2003)</option>
-                </select>
-            </div>
-            
-            <button class="btn" id="protectBtn" style="width: 100%; padding: 12px; font-size: 16px;" disabled>
-                <i class="fas fa-lock"></i> Protect Excel File
+</div>
+</div>
+<div class="form-group">
+<label for="fileFormat">Output Format</label>
+<select class="form-control" id="fileFormat">
+<option value="xlsx">XLSX (Excel 2007 and later)</option>
+<option value="xls">XLS (Excel 97-2003)</option>
+</select>
+</div>
+<button class="btn" disabled="" id="protectBtn" style="width: 100%; padding: 12px; font-size: 16px;">
+<i class="fas fa-lock"></i> Protect Excel File
             </button>
-            
-            <!-- Progress Bar -->
-            <div class="progress-container" id="progressContainer">
-                <div class="progress-bar" id="progressBar"></div>
-                <div class="status-message" id="statusMessage"></div>
+<!-- Progress Bar -->
+<div class="progress-container" id="progressContainer">
+<div class="progress-bar" id="progressBar"></div>
+<div class="status-message" id="statusMessage"></div>
+</div>
+<!-- Success Message -->
+<div class="success-message" id="successMessage">
+<i class="fas fa-check-circle"></i> File protected successfully!
             </div>
-            
-            <!-- Success Message -->
-            <div class="success-message" id="successMessage">
-                <i class="fas fa-check-circle"></i> File protected successfully!
-            </div>
-            
-            <style>
+<style>
                 .checkbox-container {
                     display: flex;
                     align-items: center;
@@ -646,44 +644,40 @@
                     text-align: center;
                 }
             </style>
-            
-            <div class="info-box" style="margin-top: 30px; background: #f8f9fa; padding: 15px; border-radius: 8px;">
-                <h4><i class="fas fa-info-circle"></i> How to Protect Excel Files</h4>
-                <ol style="margin-top: 10px; padding-left: 20px;">
-                    <li>Click the upload area above and select your Excel file or drag and drop it</li>
-                    <li>Enter a strong password in the password field</li>
-                    <li>Confirm the password</li>
-                    <li>Click "Protect Excel File" to download the protected file</li>
-                </ol>
-                <p style="margin-top: 10px; margin-bottom: 0; font-size: 14px; color: #666;">
-                    <i class="fas fa-shield-alt"></i> Your files are processed securely in your browser and are never uploaded to our servers.
+<div class="info-box" style="margin-top: 30px; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+<h4><i class="fas fa-info-circle"></i> How to Protect Excel Files</h4>
+<ol style="margin-top: 10px; padding-left: 20px;">
+<li>Click the upload area above and select your Excel file or drag and drop it</li>
+<li>Enter a strong password in the password field</li>
+<li>Confirm the password</li>
+<li>Click "Protect Excel File" to download the protected file</li>
+</ol>
+<p style="margin-top: 10px; margin-bottom: 0; font-size: 14px; color: #666;">
+<i class="fas fa-shield-alt"></i> Your files are processed securely in your browser and are never uploaded to our servers.
                 </p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <footer>
-        <div class="container footer-inner">
-            <div class="footer-company-links">
-                <span>Company</span>
-                <a href="index.html#about">About Us</a>
-                <a href="index.html#contact">Contact</a>
-                <a href="privacy-policy.html">Privacy Policy</a>
-                <a href="terms-of-service.html">Terms of Service</a>
-            </div>
-            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
-            <p class="footer-credits">
+</div>
+</div>
+</div>
+<!-- Footer -->
+<footer>
+<div class="container footer-inner">
+<div class="footer-company-links">
+<span>Company</span>
+<a href="index.html#about">About Us</a>
+<a href="index.html#contact">Contact</a>
+<a href="privacy-policy.html">Privacy Policy</a>
+<a href="terms-of-service.html">Terms of Service</a>
+</div>
+<p class="footer-brand-line">© easyjpgtopdf — Free PDF &amp; Image Tools for everyone.</p>
+<p class="footer-credits">
                 Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
                 <a href="attributions.html">See full acknowledgements</a>.
             </p>
-        </div>
-    </footer>
-
-    <!-- Add SheetJS library -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
-    
-    <script>
+</div>
+</footer>
+<!-- Add SheetJS library -->
+<script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+<script>
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize SheetJS
             const XLSX = window.XLSX;
@@ -1264,6 +1258,6 @@
             }
         });
     </script>
-    <script type="module" src="js/auth.js"></script>
+<script src="js/auth.js" type="module"></script>
 </body>
 </html>
