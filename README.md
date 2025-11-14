@@ -100,6 +100,81 @@ python -m http.server 8080  # Frontend on port 8080
 
 ---
 
+## 🔓 PDF Unlocker (Python Flask)
+**Status:** ✅ Live in Production
+
+Professional PDF password removal tool with cloud backend.
+
+### 🌐 Live URLs:
+- **Frontend:** https://easyjpgtopdf.com/unlock-pdf.html
+- **Backend API:** https://pdf-unlocker-0yw2.onrender.com
+- **Test Endpoint:** https://pdf-unlocker-0yw2.onrender.com/test
+
+### 🔧 Tech Stack:
+- **Backend:** Flask 3.1.2, Python 3.13
+- **Library:** PyPDF2 3.0.0+
+- **Server:** Gunicorn 23.0.0 on Render.com
+- **CORS:** Enabled for cross-origin requests
+
+### ✨ Features:
+- ✅ Remove PDF password protection
+- ✅ Decrypt encrypted PDF files
+- ✅ Support for password-protected PDFs
+- ✅ Max 500MB file size
+- ✅ Auto-delete files after download
+- ✅ HTTPS encryption for all transfers
+- ✅ Input validation (only PDF files)
+
+### 🔒 Security & Privacy:
+- **CORS Enabled** - Only allowed domains can access
+- **File Size Limits** - Maximum 500MB
+- **Secure File Handling** - Auto-delete after download
+- **HTTPS Encryption** - All data transmitted securely
+- **No Storage** - Files processed temporarily only
+- **Input Validation** - Only .pdf files accepted
+
+### 📡 API Endpoints:
+- `POST /unlock` - Upload and unlock PDF file
+  - Form data: `file` (required), `password` (optional)
+  - Returns: `{"success": true, "filename": "unlocked_file.pdf"}`
+- `GET /download/<filename>` - Download unlocked PDF
+- `GET /test` - Health check endpoint
+
+### 🚀 Deployment:
+
+#### Production (Render):
+```bash
+# Backend auto-deploys from GitHub
+# Repository: https://github.com/easyjpgtopdf/DocTools
+# Service: pdf-unlocker-0yw2
+# Build Command: pip install -r pdf-unlocker/requirements.txt
+# Start Command: gunicorn --bind 0.0.0.0:$PORT --workers 1 --timeout 120 app:app
+# Working Directory: pdf-unlocker/
+```
+
+#### Local Development:
+```powershell
+cd pdf-unlocker
+pip install -r requirements.txt
+python app.py  # Backend on port 5001
+```
+
+**Local Access:** http://localhost:5001/test
+
+### ⚡ Performance:
+- **First Request:** 30-60 seconds (backend wake-up from sleep)
+- **Subsequent Requests:** 2-5 seconds
+- **Large Files (100MB+):** 10-20 seconds
+- **Free Tier Limit:** 750 hours/month (auto-sleep after 15 min inactivity)
+
+### 💰 Cost:
+- **Current:** FREE (Render Free Tier)
+- **Future (if needed):** $7/month for unlimited uptime
+
+📖 **Complete Guide:** See `pdf-unlocker/RENDER_DEPLOYMENT.md`
+
+---
+
 ## 🎨 AI Background Remover (Google Cloud Run)
 **Status:** ⏳ Ready for deployment (awaiting Cloud verification)
 
