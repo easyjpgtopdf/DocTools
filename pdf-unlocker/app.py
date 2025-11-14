@@ -109,12 +109,26 @@ def unlock_pdf(input_path, password, output_path):
         # Method 3: Try common passwords with pikepdf
         common_passwords = [
             '',  # Empty password
+            # Top common passwords
             '123456', 'password', '12345678', 'qwerty', '123456789',
             'abc123', 'password1', '1234567', '12345', 'iloveyou',
             '111111', '123123', 'admin', 'welcome', 'monkey',
             'Password', 'PASSWORD', '1234', '000000', 'letmein',
             'qwerty123', 'password123', 'welcome123', 'abc123456',
-            '123', '1234567890', 'Pass@123', 'Admin@123'
+            '123', '1234567890', 'Pass@123', 'Admin@123',
+            # Indian context - DOB patterns (common for voter ID/PAN)
+            '01011990', '01011991', '01011992', '01011993', '01011994', '01011995',
+            '15081947', '26011950',  # Independence Day, Republic Day
+            # Common Indian passwords
+            'india@123', 'India@123', 'INDIA@123', 'india123', 'India123',
+            'bharath', 'Bharath', 'jai', 'Jai', 'delhi', 'Delhi',
+            # Date patterns DDMMYYYY
+            '01011980', '01011985', '01011988', '01011989',
+            # Simple numeric
+            '123456789', '987654321', '0000', '1111', '2222', '9999',
+            # Government document patterns
+            'voter', 'Voter', 'VOTER', 'epic', 'EPIC', 'Epic',
+            'pan', 'PAN', 'Pan', 'aadhaar', 'Aadhaar', 'AADHAAR'
         ]
         
         # Add user-provided password to the front of the list
@@ -148,13 +162,23 @@ def unlock_pdf(input_path, password, output_path):
             if pdf_reader.is_encrypted:
                 logger.info("PDF is encrypted - trying to decrypt with PyPDF2...")
                 
-                # Try common passwords with PyPDF2
+                # Try common passwords with PyPDF2 (same as pikepdf list)
                 passwords_to_try = ['', password] if password else ['']
                 passwords_to_try.extend([
                     '123456', 'password', '12345678', 'qwerty', '123456789',
                     'abc123', 'password1', '1234567', '12345', 'iloveyou',
                     '111111', '123123', 'admin', 'welcome', 'monkey',
-                    'Password', 'PASSWORD', '1234', '000000', 'letmein'
+                    'Password', 'PASSWORD', '1234', '000000', 'letmein',
+                    'qwerty123', 'password123', 'welcome123', 'abc123456',
+                    '123', '1234567890', 'Pass@123', 'Admin@123',
+                    # Indian context passwords
+                    '01011990', '01011991', '01011992', '01011993', '01011994', '01011995',
+                    '15081947', '26011950', 'india@123', 'India@123', 'INDIA@123',
+                    'india123', 'India123', 'bharath', 'Bharath',
+                    '01011980', '01011985', '01011988', '01011989',
+                    '123456789', '987654321', '0000', '1111', '2222', '9999',
+                    'voter', 'Voter', 'VOTER', 'epic', 'EPIC', 'Epic',
+                    'pan', 'PAN', 'Pan', 'aadhaar', 'Aadhaar', 'AADHAAR'
                 ])
                 
                 decrypted = False
