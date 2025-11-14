@@ -215,10 +215,8 @@
   </footer>
 
   <script>
-    // Backend API URL - Automatically detects environment
-    const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      ? 'http://127.0.0.1:5000'  // Local development
-      : 'https://excel-unlocker-backend.onrender.com';  // Production - Render deployment
+    // Backend API URL - Production Render backend
+    const API_BASE_URL = 'https://excel-unlocker-backend.onrender.com';
     
     const form = document.getElementById('unlockForm');
     const fileInput = document.getElementById('fileInput');
@@ -289,7 +287,16 @@
         }
       } catch (error) {
         console.error('Error:', error);
-        showStatus(`❌ Error: ${error.message || 'Network error. Please check if the Excel Unlocker service is running.'}`, 'error');
+        
+        // Better error messages
+        let errorMsg = 'Network error. ';
+        if (error.message.includes('fetch')) {
+          errorMsg += 'Backend service may be waking up (first request takes 30-60 seconds). Please wait and try again.';
+        } else {
+          errorMsg += error.message || 'Please check your connection and try again.';
+        }
+        
+        showStatus(`❌ Error: ${errorMsg}`, 'error');
       } finally {
         unlockBtn.disabled = false;
       }
