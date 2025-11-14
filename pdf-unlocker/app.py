@@ -6,8 +6,18 @@ import logging
 import secrets
 from werkzeug.utils import secure_filename
 import PyPDF2
-import pikepdf
 from datetime import datetime
+
+# Try importing pikepdf, fallback gracefully if not available
+PIKEPDF_AVAILABLE = False
+try:
+    import pikepdf
+    PIKEPDF_AVAILABLE = True
+    logger = logging.getLogger(__name__)
+    logger.info("pikepdf imported successfully")
+except ImportError as e:
+    logger = logging.getLogger(__name__)
+    logger.warning(f"pikepdf not available: {e}. Using PyPDF2 only.")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -58,87 +68,111 @@ def unlock_pdf(input_path, password, output_path):
         tuple: (success: bool, method: str)
     """
     
-    # First check if PDF is actually encrypted
-    try:
-        with pikepdf.open(input_path, allow_overwriting_input=True) as pdf:
-            # If we can open without password, it's not encrypted
-            pdf.save(output_path)
-            logger.info("PDF is not encrypted - copied successfully")
-            return True, "PDF was not password protected"
-    except pikepdf.PasswordError:
-        logger.info("PDF is password protected - attempting unlock...")
-    except Exception as e:
-        logger.info(f"Initial check error: {str(e)}")
-    
-    # Method 1: Try pikepdf with user-provided password first
-    if password:
+    # First check if PDF is actually encrypted (only if pikepdf available)
+    if PIKEPDF_AVAILABLE:
         try:
-            logger.info("Attempting pikepdf unlock with provided password...")
-            with pikepdf.open(input_path, password=password, allow_overwriting_input=True) as pdf:
+            with pikepdf.open(input_path, allow_overwriting_input=True) as pdf:
+                # If we can open without password, it's not encrypted
                 pdf.save(output_path)
-                logger.info("Successfully unlocked PDF with provided password")
-                return True, "Unlocked with your password"
+                logger.info("PDF is not encrypted - copied successfully")
+                return True, "PDF was not password protected"
         except pikepdf.PasswordError:
-            logger.warning("Provided password incorrect - trying common passwords...")
+            logger.info("PDF is password protected - attempting unlock...")
         except Exception as e:
-            logger.warning(f"pikepdf error with provided password: {str(e)}")
-    
-    # Method 2: Try pikepdf with empty password (owner password bypass)
-    try:
-        logger.info("Attempting pikepdf unlock with empty password (owner bypass)...")
-        with pikepdf.open(input_path, password='', allow_overwriting_input=True) as pdf:
-            pdf.save(output_path)
-            logger.info("Successfully unlocked PDF using empty password (owner bypass)")
-            return True, "Owner restrictions removed"
-    except pikepdf.PasswordError:
-        logger.warning("Owner bypass failed - trying common passwords...")
-    except Exception as e:
-        logger.warning(f"pikepdf error: {str(e)}")
-    
-    # Method 2: Try common passwords
-    common_passwords = [
-        '',  # Empty password
-        '123456', 'password', '12345678', 'qwerty', '123456789',
-        'abc123', 'password1', '1234567', '12345', 'iloveyou',
-        '111111', '123123', 'admin', 'welcome', 'monkey',
-        'Password', 'PASSWORD', '1234', '000000', 'letmein',
-        'qwerty123', 'password123', 'welcome123', 'abc123456',
-        '123', '1234567890', 'Pass@123', 'Admin@123'
-    ]
-    
-    # Add user-provided password to the front of the list
-    if password:
-        common_passwords.insert(0, password)
-    
-    for attempt_password in common_passwords:
+            logger.info(f"Initial check error: {str(e)}")
+        
+        # Method 1: Try pikepdf with user-provided password first
+        if password:
+            try:
+                logger.info("Attempting pikepdf unlock with provided password...")
+                with pikepdf.open(input_path, password=password, allow_overwriting_input=True) as pdf:
+                    pdf.save(output_path)
+                    logger.info("Successfully unlocked PDF with provided password")
+                    return True, "Unlocked with your password"
+            except pikepdf.PasswordError:
+                logger.warning("Provided password incorrect - trying common passwords...")
+            except Exception as e:
+                logger.warning(f"pikepdf error with provided password: {str(e)}")
+        
+        # Method 2: Try pikepdf with empty password (owner password bypass)
         try:
-            # Try with pikepdf
-            with pikepdf.open(input_path, password=attempt_password, allow_overwriting_input=True) as pdf:
+            logger.info("Attempting pikepdf unlock with empty password (owner bypass)...")
+            with pikepdf.open(input_path, password='', allow_overwriting_input=True) as pdf:
                 pdf.save(output_path)
-                if attempt_password:
-                    logger.info(f"Successfully unlocked PDF with password attempt")
-                else:
-                    logger.info("Successfully unlocked PDF with empty password")
-                return True, f"Unlocked with common password"
+                logger.info("Successfully unlocked PDF using empty password (owner bypass)")
+                return True, "Owner restrictions removed"
         except pikepdf.PasswordError:
-            continue
-        except Exception:
-            continue
+            logger.warning("Owner bypass failed - trying common passwords...")
+        except Exception as e:
+            logger.warning(f"pikepdf error: {str(e)}")
+        
+        # Method 3: Try common passwords with pikepdf
+        common_passwords = [
+            '',  # Empty password
+            '123456', 'password', '12345678', 'qwerty', '123456789',
+            'abc123', 'password1', '1234567', '12345', 'iloveyou',
+            '111111', '123123', 'admin', 'welcome', 'monkey',
+            'Password', 'PASSWORD', '1234', '000000', 'letmein',
+            'qwerty123', 'password123', 'welcome123', 'abc123456',
+            '123', '1234567890', 'Pass@123', 'Admin@123'
+        ]
+        
+        # Add user-provided password to the front of the list
+        if password:
+            common_passwords.insert(0, password)
+        
+        for attempt_password in common_passwords:
+            try:
+                # Try with pikepdf
+                with pikepdf.open(input_path, password=attempt_password, allow_overwriting_input=True) as pdf:
+                    pdf.save(output_path)
+                    if attempt_password:
+                        logger.info(f"Successfully unlocked PDF with password attempt")
+                    else:
+                        logger.info("Successfully unlocked PDF with empty password")
+                    return True, f"Unlocked with common password"
+            except pikepdf.PasswordError:
+                continue
+            except Exception:
+                continue
+    else:
+        logger.info("pikepdf not available - using PyPDF2 only")
     
-    # Method 3: Fallback to PyPDF2 (for some edge cases)
+    # Fallback: PyPDF2 method (works without pikepdf)
+    logger.info("Attempting PyPDF2 unlock...")
     try:
-        logger.info("Attempting PyPDF2 unlock...")
         with open(input_path, 'rb') as input_file:
             pdf_reader = PyPDF2.PdfReader(input_file)
             
             # Check if PDF is encrypted
             if pdf_reader.is_encrypted:
-                # Try to decrypt with password or empty
-                decrypt_password = password if password else ''
-                decrypt_result = pdf_reader.decrypt(decrypt_password)
-                if decrypt_result == 0:
-                    logger.error("All unlock attempts failed")
-                    return False, "Password required - could not unlock"
+                logger.info("PDF is encrypted - trying to decrypt with PyPDF2...")
+                
+                # Try common passwords with PyPDF2
+                passwords_to_try = ['', password] if password else ['']
+                passwords_to_try.extend([
+                    '123456', 'password', '12345678', 'qwerty', '123456789',
+                    'abc123', 'password1', '1234567', '12345', 'iloveyou',
+                    '111111', '123123', 'admin', 'welcome', 'monkey',
+                    'Password', 'PASSWORD', '1234', '000000', 'letmein'
+                ])
+                
+                decrypted = False
+                for pwd in passwords_to_try:
+                    try:
+                        decrypt_result = pdf_reader.decrypt(pwd)
+                        if decrypt_result != 0:
+                            logger.info(f"PyPDF2 decrypted successfully")
+                            decrypted = True
+                            break
+                    except:
+                        continue
+                
+                if not decrypted:
+                    logger.error("PyPDF2: All password attempts failed")
+                    return False, "Password required - could not unlock with any method"
+            else:
+                logger.info("PDF is not encrypted - copying with PyPDF2")
             
             # Create PDF writer
             pdf_writer = PyPDF2.PdfWriter()
@@ -166,8 +200,13 @@ def test():
         'status': 'success',
         'message': 'PDF Unlocker API is working!',
         'python_version': sys.version,
-        'upload_folder': app.config['UPLOAD_FOLDER'],
-        'working_directory': os.getcwd()
+        'upload_folder': UPLOAD_FOLDER,
+        'working_directory': os.getcwd(),
+        'pikepdf_available': PIKEPDF_AVAILABLE,
+        'libraries': {
+            'PyPDF2': 'installed',
+            'pikepdf': 'installed' if PIKEPDF_AVAILABLE else 'NOT INSTALLED - using PyPDF2 fallback'
+        }
     })
 
 @app.route('/unlock', methods=['POST'])
