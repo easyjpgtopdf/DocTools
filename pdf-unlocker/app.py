@@ -58,15 +58,40 @@ def unlock_pdf(input_path, password, output_path):
         tuple: (success: bool, method: str)
     """
     
-    # Method 1: Try pikepdf first (better for owner password / restrictions)
+    # First check if PDF is actually encrypted
     try:
-        logger.info("Attempting pikepdf unlock (owner password bypass)...")
-        with pikepdf.open(input_path, password=password if password else '', allow_overwriting_input=True) as pdf:
+        with pikepdf.open(input_path, allow_overwriting_input=True) as pdf:
+            # If we can open without password, it's not encrypted
             pdf.save(output_path)
-            logger.info("Successfully unlocked PDF using pikepdf (owner password bypass)")
-            return True, "Owner password removed / Restrictions bypassed"
+            logger.info("PDF is not encrypted - copied successfully")
+            return True, "PDF was not password protected"
     except pikepdf.PasswordError:
-        logger.warning("pikepdf failed - trying common passwords...")
+        logger.info("PDF is password protected - attempting unlock...")
+    except Exception as e:
+        logger.info(f"Initial check error: {str(e)}")
+    
+    # Method 1: Try pikepdf with user-provided password first
+    if password:
+        try:
+            logger.info("Attempting pikepdf unlock with provided password...")
+            with pikepdf.open(input_path, password=password, allow_overwriting_input=True) as pdf:
+                pdf.save(output_path)
+                logger.info("Successfully unlocked PDF with provided password")
+                return True, "Unlocked with your password"
+        except pikepdf.PasswordError:
+            logger.warning("Provided password incorrect - trying common passwords...")
+        except Exception as e:
+            logger.warning(f"pikepdf error with provided password: {str(e)}")
+    
+    # Method 2: Try pikepdf with empty password (owner password bypass)
+    try:
+        logger.info("Attempting pikepdf unlock with empty password (owner bypass)...")
+        with pikepdf.open(input_path, password='', allow_overwriting_input=True) as pdf:
+            pdf.save(output_path)
+            logger.info("Successfully unlocked PDF using empty password (owner bypass)")
+            return True, "Owner restrictions removed"
+    except pikepdf.PasswordError:
+        logger.warning("Owner bypass failed - trying common passwords...")
     except Exception as e:
         logger.warning(f"pikepdf error: {str(e)}")
     
