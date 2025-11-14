@@ -213,17 +213,26 @@ def test():
 def unlock():
     """Unlock PDF file endpoint"""
     try:
+        logger.info(f"Unlock request received")
+        logger.info(f"Files in request: {list(request.files.keys())}")
+        logger.info(f"Form data: {list(request.form.keys())}")
+        
         # Check if file is present
         if 'file' not in request.files:
+            logger.error("No 'file' in request.files")
             return jsonify({'success': False, 'error': 'No file provided'}), 400
         
         file = request.files['file']
         password = request.form.get('password', '')
         
+        logger.info(f"File received: {file.filename}, Password provided: {bool(password)}")
+        
         if file.filename == '':
+            logger.error("Empty filename")
             return jsonify({'success': False, 'error': 'No file selected'}), 400
         
         if not allowed_file(file.filename):
+            logger.error(f"Invalid file type: {file.filename}")
             return jsonify({'success': False, 'error': 'Invalid file type. Only PDF files allowed'}), 400
         
         # Secure filename
