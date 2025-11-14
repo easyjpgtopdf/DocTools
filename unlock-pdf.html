@@ -1,581 +1,342 @@
-﻿<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Unlock PDF | easyjpgtopdf</title>
-    <link rel="stylesheet" href="css/footer.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><style>*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}:root{--primary:#4361ee;--secondary:#3a0ca3;--light:#f8f9fa;--dark:#212529}.container{max-width:1200px;margin:0 auto;padding:0 20px}body{background:#f5f7ff;color:var(--dark);min-height:100vh;display:flex;flex-direction:column;line-height:1.6}header{background:#fff;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.08)}.navbar{display:flex;justify-content:space-between;align-items:center;padding:14px 0}.logo{display:flex;gap:10px;align-items:center;font-size:22px;font-weight:700;color:var(--primary);text-decoration:none}.logo i{color:var(--secondary)}nav .nav-links{display:flex;gap:22px;align-items:center}nav a{color:var(--dark);text-decoration:none;font-weight:500}nav a:hover,nav a.active{color:var(--primary)}.dropdown{position:relative}.dropdown-content{display:none;position:absolute;background:#fff;min-width:220px;border-radius:10px;box-shadow:0 8px 20px rgba(0,0,0,.12);top:100%;left:0;padding:10px 0}.dropdown:hover .dropdown-content{display:block}.hero{background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;padding:60px 0;text-align:center;margin-bottom:30px;border-radius:0 0 20px 20px}.tool-page{background:#fff;border-radius:12px;padding:28px;box-shadow:0 5px 15px rgba(0,0,0,.05);margin-bottom:24px}.upload-area{border:2px dashed #ddd;border-radius:10px;padding:24px;text-align:center;cursor:pointer;margin-bottom:12px}.btn{display:inline-block;background:var(--primary);color:#fff;border:none;border-radius:40px;padding:10px 18px;margin-right:8px;cursor:pointer}.btn.secondary{background:#fff;color:var(--primary);border:1px solid var(--primary)}footer{background:var(--dark);color:#fff;padding:40px 0 20px;margin-top:auto}.footer-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:22px;margin-bottom:20px}.footer-links{list-style:none}.footer-links a{color:#aaa;text-decoration:none}.footer-links a:hover{color:#fff}.copyright{text-align:center;color:#aaa;border-top:1px solid #444;padding-top:16px;font-size:.9rem}@media(max-width:768px){nav .nav-links{display:none}}</style>
-<style>
-/* comment styles injected */
-.comments { margin: 40px 0; }
-.section-title { margin-bottom: 14px; color: var(--primary); }
-.comment-form { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 5px 15px rgba(0,0,0,.05); }
-.comment-form .form-group { margin-bottom: 14px; }
-.comment-form .form-control { padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; outline: none; }
-.comment-form .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(67,97,238,0.08); }
-</style>
-    
-
-    
-    
-    
-
-    
-
-    
-
-    
-    
-
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/theme-modern.css">
-</head><body>
-<header>
-        <div class="container">
-            <nav class="navbar">
-                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
-                <div class="nav-links">
-                    <div class="dropdown">
-                        <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="jpg-to-pdf.html">JPG to PDF</a>
-                            <a href="word-to-pdf.html">Word to PDF</a>
-                            <a href="excel-to-pdf.html">Excel to PDF</a>
-                            <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="pdf-to-jpg.html">PDF to JPG</a>
-                            <a href="pdf-to-word.html">PDF to Word</a>
-                            <a href="pdf-to-excel.html">PDF to Excel</a>
-                            <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="merge-pdf.html">Merge PDF</a>
-                            <a href="split-pdf.html">Split PDF</a>
-                            <a href="compress-pdf.html">Compress PDF</a>
-                            <a href="edit-pdf.html">Pdf Editor</a>
-                            <a href="protect-pdf.html">Protect PDF</a>
-                            <a href="unlock-pdf.html">Unlock PDF</a>
-                            <a href="watermark-pdf.html">Watermark PDF</a>
-                            <a href="crop-pdf.html">Crop PDF</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="image-compressor.html">Image Compressor</a>
-                            <a href="image-resizer.html">Image Resizer</a>
-                            <a href="image-editor.html">Image Editor</a>
-                            <a href="background-remover.html">Image Background Remover</a>
-                            <a href="ocr-image.html">OCR Image</a>
-                            <a href="image-watermark.html">Image Watermark Tool</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="resume-maker.html">Resume Maker</a>
-                            <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
-                            <a href="ai-image-generator.html">AI Image Generator</a>
-                            <a href="marriage-card.html">Marriage Card</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="auth-buttons">
-                    <a href="login.html" class="auth-link">Sign In</a>
-                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Create Account</span></a>
-                </div>
-                <div id="user-menu" class="user-menu" data-open="false">
-                    <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
-                        <span class="user-initial" aria-hidden="true">U</span>
-                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                    </button>
-                    <div class="user-dropdown" id="user-dropdown" hidden>
-                        <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
-                        <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
-                        <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
-                        <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
-                        <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
-                        <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
-                    </div>
-                </div>
-            </nav>
-        </div>
-    </header>
-
-
-
-<section class="hero">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Remove password protection from PDF files online. Fast, secure, and free PDF unlocker tool.">
+  <title>PDF Unlocker - Remove Password Protection | easyjpgtopdf</title>
+  <link rel="stylesheet" href="css/footer.css">
+  <link rel="stylesheet" href="css/header.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    :root {
+      --primary: #4361ee;
+      --secondary: #3a0ca3;
+      --accent: #4cc9f0;
+      --dark: #1b2050;
+      --muted: #6b7290;
+      --surface: #ffffff;
+      --border: rgba(26, 35, 126, 0.12);
+      --bg-gradient: linear-gradient(180deg, #f1f3ff 0%, #f7f9ff 100%);
+    }
+    body { background: var(--bg-gradient); color: var(--dark); min-height: 100vh; display: flex; flex-direction: column; }
+    .container { width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    header { background: #fff; position: sticky; top: 0; z-index: 40; box-shadow: 0 10px 40px rgba(15, 31, 80, 0.08); }
+    .navbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; }
+    .logo { display: flex; align-items: center; gap: 10px; color: var(--primary); text-decoration: none; font-weight: 700; font-size: 22px; }
+    .hero { padding: 70px 0; }
+    .hero .container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px; align-items: start; }
+    .hero-content h1 { font-size: 2.4rem; color: #0f1a4d; margin-bottom: 12px; }
+    .hero-content p { font-size: 1.05rem; color: var(--muted); margin-bottom: 24px; }
+    .upload-card { background: var(--surface); border-radius: 24px; padding: 36px 28px; box-shadow: 0 24px 60px rgba(16, 35, 96, 0.12); border: 2px dashed rgba(67, 97, 238, 0.25); display: flex; flex-direction: column; gap: 20px; align-items: center; text-align: center; }
+    .upload-card i { font-size: 56px; color: var(--primary); margin-bottom: 8px; }
+    .upload-card h2 { font-size: 1.4rem; color: #141d4f; }
+    .upload-card p { color: var(--muted); font-size: 0.95rem; }
+    .form-group { width: 100%; }
+    .form-group label { display: block; margin-bottom: 8px; color: var(--dark); font-weight: 600; }
+    .form-group input[type="text"], .form-group input[type="password"] { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 12px; font-size: 0.95rem; }
+    .form-group input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1); }
+    .btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 12px 24px; font-weight: 600; border: none; cursor: pointer; font-size: 0.95rem; transition: all 0.2s; }
+    .btn-primary { background: linear-gradient(135deg, #4361ee, #3a0ca3); color: #fff; box-shadow: 0 16px 30px rgba(67, 97, 238, 0.25); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 18px 34px rgba(67, 97, 238, 0.3); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .info-card { background: #fff; border-radius: 20px; padding: 26px; box-shadow: 0 18px 45px rgba(15, 30, 70, 0.08); }
+    .info-card h3 { margin-bottom: 14px; font-size: 1.2rem; color: #141c4d; }
+    .info-card ul { list-style: none; display: flex; flex-direction: column; gap: 12px; color: var(--muted); }
+    .info-card li { display: flex; gap: 10px; align-items: flex-start; }
+    .info-card li i { color: var(--primary); margin-top: 4px; }
+    .status-message { padding: 16px; border-radius: 12px; margin-top: 16px; display: none; }
+    .status-message.success { background: rgba(34, 197, 94, 0.1); color: #065f46; border: 1px solid rgba(34, 197, 94, 0.3); }
+    .status-message.error { background: rgba(239, 68, 68, 0.1); color: #991b1b; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .status-message.processing { background: rgba(67, 97, 238, 0.1); color: #1e40af; border: 1px solid rgba(67, 97, 238, 0.3); }
+    .spinner { width: 20px; height: 20px; border: 3px solid rgba(67, 97, 238, 0.3); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; margin-right: 8px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    footer { background: #0d1530; color: #e8ecff; padding: 32px 0; margin-top: auto; text-align: center; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
     <div class="container">
-        <h1>Unlock PDF</h1>
-        <p>Remove password protection from PDF files (up to 100MB)</p>
-    </div>
-</section>
-
-<main class="container">
-    <div class="tool-page">
-        <h2>Upload Locked PDF</h2>
-        <div class="upload-area" id="dropArea">
-            <i class="fas fa-cloud-upload-alt" style="font-size:38px;color:var(--primary)"></i>
-            <h3>Drag & drop or click to browse</h3>
-            <p class="file-info" style="margin-top:10px;color:#666;font-size:0.9em;">Max file size: 100MB</p>
-            <input id="unlock-input" type="file" accept=".pdf" style="display:none">
-        </div>
-        
-        <div id="status" style="margin-bottom: 16px; display: none;">
-            <div class="progress-container" style="width: 100%; background-color: #f0f0f0; border-radius: 8px; margin-bottom: 10px;">
-                <div id="progressBar" style="width: 0%; height: 8px; background-color: #4361ee; border-radius: 8px; transition: width 0.3s;"></div>
+      <nav class="navbar">
+        <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
+        <div class="nav-links">
+          <div class="dropdown">
+            <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="jpg-to-pdf.html">JPG to PDF</a>
+              <a href="word-to-pdf.html">Word to PDF</a>
+              <a href="excel-to-pdf.html">Excel to PDF</a>
+              <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
             </div>
-            <p id="statusText" style="text-align: center; color: #666; font-size: 0.9em;">Processing...</p>
+          </div>
+          <div class="dropdown">
+            <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="pdf-to-jpg.html">PDF to JPG</a>
+              <a href="pdf-to-word.html">PDF to Word</a>
+              <a href="pdf-to-excel.html">PDF to Excel</a>
+              <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="merge-pdf.html">Merge PDF</a>
+              <a href="split-pdf.html">Split PDF</a>
+              <a href="compress-pdf.html">Compress PDF</a>
+              <a href="edit-pdf.html">Pdf Editor</a>
+              <a href="protect-pdf.html">Protect PDF</a>
+              <a href="unlock-pdf.html">Unlock PDF</a>
+              <a href="watermark-pdf.html">Watermark PDF</a>
+              <a href="crop-pdf.html">Crop PDF</a>
+              <a href="add-page-numbers.html">Add Page Numbers</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="image-compressor.html">Image Compressor</a>
+              <a href="image-resizer.html">Image Resizer</a>
+              <a href="image-editor.html">Image Editor</a>
+              <a href="background-remover.html">Image Background Remover</a>
+              <a href="ocr-image.html">OCR Image</a>
+              <a href="image-watermark.html">Image Watermark Tool</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="resume-maker.html">Resume Maker</a>
+              <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+              <a href="ai-image-generator.html">AI Image Generator</a>
+              <a href="marriage-card.html">Marriage Card</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-content">
+              <a href="excel-unlocker.html" class="active">Excel Unlocker</a>
+              <a href="protect-excel.html">Protect Excel Sheet</a>
+            </div>
+          </div>
         </div>
-        
-        <div style="text-align: center; margin-top: 20px;">
-            <button id="unlockBtn" class="btn" style="min-width: 200px; padding: 12px 24px; font-size: 16px;">
-                <span class="btn-text"><i class="fas fa-lock-open"></i> Unlock PDF</span>
-                <span class="btn-loader" style="display:none; margin-left: 8px;">
-                    <i class="fas fa-spinner fa-spin"></i> Processing...
-                </span>
-            </button>
-            <a class="btn secondary" href="index.html" style="min-width: 120px;">Back to Home</a>
+        <div class="auth-buttons">
+          <a href="login.html" class="auth-link">Sign In</a>
+          <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Signup</span></a>
         </div>
-        
-        <div id="downloadSection" style="margin-top: 20px; text-align: center; display: none;">
-            <a id="downloadLink" href="#" class="btn" style="background-color: #28a745;">
-                <i class="fas fa-download"></i> Download Unlocked PDF
-            </a>
-            <p style="margin-top: 10px; color: #28a745;">
-                <i class="fas fa-check-circle"></i> PDF successfully unlocked!
-            </p>
-        </div>
+      </nav>
     </div>
-</main>
+  </header>
 
-<!-- Add pdf.js library -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js" integrity="sha512-ml/QKfGJH+Ag3Hv7g1z3jJh6XlL0z3kF1t9g8jJ8T+4XU0mC0hKfQY1Wt1P5Y1cmtm+9XZ2wV0Qy9R7q1Y8aA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/downloadjs/1.4.8/download.min.js"></script>
-<script>
-// File size limit: 100MB in bytes
-const MAX_FILE_SIZE = 100 * 1024 * 1024;
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <h1><i class="fas fa-unlock-alt"></i> PDF Unlocker</h1>
+        <p>Remove password protection from PDF files instantly. Upload your protected PDF file and unlock it for free.</p>
+        
+        <div style="margin-top: 24px; background: rgba(67, 97, 238, 0.05); border-left: 4px solid var(--primary); padding: 16px 20px; border-radius: 8px;">
+          <h3 style="font-size: 1.1rem; margin-bottom: 12px; color: var(--dark);"><i class="fas fa-shield-check"></i> Security & Privacy</h3>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 8px; color: var(--muted); font-size: 0.9rem;">
+            <li style="display: flex; gap: 8px; align-items: flex-start;">
+              <i class="fas fa-check-circle" style="color: var(--primary); margin-top: 2px;"></i>
+              <div><strong>CORS Enabled:</strong> Only allowed domains</div>
+            </li>
+            <li style="display: flex; gap: 8px; align-items: flex-start;">
+              <i class="fas fa-check-circle" style="color: var(--primary); margin-top: 2px;"></i>
+              <div><strong>File Size Limits:</strong> Max 500MB</div>
+            </li>
+            <li style="display: flex; gap: 8px; align-items: flex-start;">
+              <i class="fas fa-check-circle" style="color: var(--primary); margin-top: 2px;"></i>
+              <div><strong>Secure Handling:</strong> Auto-delete after download</div>
+            </li>
+            <li style="display: flex; gap: 8px; align-items: flex-start;">
+              <i class="fas fa-check-circle" style="color: var(--primary); margin-top: 2px;"></i>
+              <div><strong>HTTPS Encryption:</strong> All data secure</div>
+            </li>
+            <li style="display: flex; gap: 8px; align-items: flex-start;">
+              <i class="fas fa-check-circle" style="color: var(--primary); margin-top: 2px;"></i>
+              <div><strong>No Storage:</strong> Files processed temporarily</div>
+            </li>
+            <li style="display: flex; gap: 8px; align-items: flex-start;">
+              <i class="fas fa-check-circle" style="color: var(--primary); margin-top: 2px;"></i>
+              <div><strong>Input Validation:</strong> Only .pdf accepted</div>
+            </li>
+          </ul>
+        </div>
+      </div>
 
-// DOM Elements
-const dropArea = document.getElementById('dropArea');
-const fileInput = document.getElementById('unlock-input');
-const unlockBtn = document.getElementById('unlockBtn');
-const statusDiv = document.getElementById('status');
-const progressBar = document.getElementById('progressBar');
-const statusText = document.getElementById('statusText');
-const downloadSection = document.getElementById('downloadSection');
-const downloadLink = document.getElementById('downloadLink');
+      <div class="upload-card">
+        <i class="fas fa-file-pdf"></i>
+        <h2>PDF Unlocker</h2>
+        
+        <form id="unlockForm" style="width: 100%;">
+          <div class="form-group">
+            <label for="fileInput">
+              <i class="fas fa-file-upload"></i> Choose PDF File
+            </label>
+            <input type="file" id="fileInput" accept=".pdf" required style="padding: 10px; cursor: pointer;">
+          </div>
 
-// Update UI functions
-function showStatus(message, progress = 0) {
-    statusDiv.style.display = 'block';
-    statusText.textContent = message;
-    progressBar.style.width = `${progress}%`;
-}
+          <div class="form-group">
+            <label for="passwordInput">
+              <i class="fas fa-key"></i> Password (if known)
+            </label>
+            <input type="password" id="passwordInput" placeholder="Leave empty to try removing protection">
+          </div>
 
-function resetUI() {
-    statusDiv.style.display = 'none';
-    progressBar.style.width = '0%';
-    unlockBtn.disabled = false;
-    unlockBtn.querySelector('.btn-text').style.display = 'inline';
-    unlockBtn.querySelector('.btn-loader').style.display = 'none';
-}
+          <button type="submit" class="btn btn-primary" id="unlockBtn">
+            <i class="fas fa-unlock"></i> Unlock PDF File
+          </button>
+        </form>
 
-// File handling
-dropArea.addEventListener('click', () => fileInput.click());
+        <div id="statusMessage" class="status-message"></div>
+      </div>
 
-['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-    dropArea.addEventListener(eventName, preventDefaults, false);
-    document.body.addEventListener(eventName, preventDefaults, false);
-});
+      <div class="info-card">
+        <h3><i class="fas fa-info-circle"></i> How It Works</h3>
+        <ul>
+          <li>
+            <i class="fas fa-check-circle"></i>
+            <div>
+              <strong>Upload File:</strong> Select your password-protected PDF file
+            </div>
+          </li>
+          <li>
+            <i class="fas fa-check-circle"></i>
+            <div>
+              <strong>Remove Protection:</strong> Our tool removes the password protection
+            </div>
+          </li>
+          <li>
+            <i class="fas fa-check-circle"></i>
+            <div>
+              <strong>Download:</strong> Get your unlocked Excel file instantly
+            </div>
+          </li>
+          <li>
+            <i class="fas fa-shield-alt"></i>
+            <div>
+              <strong>Privacy:</strong> Files are processed securely and deleted after download
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
 
-function preventDefaults(e) {
-    e.preventDefault();
-    e.stopPropagation();
-}
+  <!-- Footer -->
+  <footer>
+    <div class="container footer-inner">
+      <div class="footer-company-links">
+        <span>Company</span>
+        <a href="index.html#about">About Us</a>
+        <a href="index.html#contact">Contact</a>
+        <a href="privacy-policy.html">Privacy Policy</a>
+        <a href="terms-of-service.html">Terms of Service</a>
+      </div>
+      <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+      <p class="footer-credits">
+        Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+        <a href="attributions.html">See full acknowledgements</a>.
+      </p>
+    </div>
+  </footer>
 
-['dragenter', 'dragover'].forEach(eventName => {
-    dropArea.addEventListener(eventName, highlight, false);
-});
-
-['dragleave', 'drop'].forEach(eventName => {
-    dropArea.addEventListener(eventName, unhighlight, false);
-});
-
-function highlight() {
-    dropArea.style.borderColor = '#4361ee';
-    dropArea.style.backgroundColor = '#f0f7ff';
-}
-
-function unhighlight() {
-    dropArea.style.borderColor = '#ddd';
-    dropArea.style.backgroundColor = '';
-}
-
-dropArea.addEventListener('drop', handleDrop, false);
-
-function handleDrop(e) {
-    const dt = e.dataTransfer;
-    const files = dt.files;
-    handleFiles(files);
-}
-
-fileInput.addEventListener('change', function() {
-    if (this.files.length) {
-        handleFiles(this.files);
-    }
-});
-
-function handleFiles(files) {
-    const file = files[0];
+  <script>
+    // Backend API URL - Production Render backend (will be updated after deployment)
+    const API_BASE_URL = 'https://pdf-unlocker-backend.onrender.com';
     
-    // Check file type
-    if (file.type !== 'application/pdf') {
-        alert('à¤•à¥ƒà¤ªà¤¯à¤¾ à¤à¤• à¤µà¥ˆà¤§ PDF à¤«à¤¾à¤‡à¤² à¤…à¤ªà¤²à¥‹à¤¡ à¤•à¤°à¥‡à¤‚à¥¤');
+    const form = document.getElementById('unlockForm');
+    const fileInput = document.getElementById('fileInput');
+    const passwordInput = document.getElementById('passwordInput');
+    const unlockBtn = document.getElementById('unlockBtn');
+    const statusMessage = document.getElementById('statusMessage');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const file = fileInput.files[0];
+      if (!file) {
+        showStatus('Please select a PDF file', 'error');
         return;
-    }
-    
-    // Check file size
-    if (file.size > MAX_FILE_SIZE) {
-        alert('à¤«à¤¾à¤‡à¤² à¤•à¤¾ à¤†à¤•à¤¾à¤° 100MB à¤¸à¥‡ à¤…à¤§à¤¿à¤• à¤¹à¥ˆà¥¤ à¤•à¥ƒà¤ªà¤¯à¤¾ à¤›à¥‹à¤Ÿà¥€ à¤«à¤¾à¤‡à¤² à¤šà¥à¤¨à¥‡à¤‚à¥¤');
+      }
+
+      // Validate file type
+      if (file.type !== 'application/pdf' && !file.name.match(/\.pdf$/i)) {
+        showStatus('Please select a valid PDF file', 'error');
         return;
-    }
-    
-    // Update UI
-    const fileInfo = document.createElement('p');
-    fileInfo.className = 'file-info';
-    fileInfo.textContent = `à¤šà¤¯à¤¨à¤¿à¤¤: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
-    fileInfo.style.marginTop = '10px';
-    fileInfo.style.color = '#666';
-    fileInfo.style.fontSize = '0.9em';
-    
-    const existingFileInfo = document.querySelector('.file-info');
-    if (existingFileInfo) {
-        existingFileInfo.replaceWith(fileInfo);
-    } else {
-        dropArea.appendChild(fileInfo);
-    }
-    
-    // Enable unlock button and show visual feedback
-    unlockBtn.disabled = false;
-    unlockBtn.style.opacity = '1';
-    unlockBtn.style.cursor = 'pointer';
-    unlockBtn.style.transform = 'scale(1.02)';
-    
-    // Add hover effect
-    unlockBtn.addEventListener('mouseover', function() {
-        unlockBtn.style.transform = 'scale(1.05)';
-        unlockBtn.style.boxShadow = '0 4px 12px rgba(67, 97, 238, 0.3)';
-    });
-    
-    unlockBtn.addEventListener('mouseout', function() {
-        unlockBtn.style.transform = 'scale(1.02)';
-        unlockBtn.style.boxShadow = 'none';
-    });
-    
-    // Automatically process the file after 500ms
-    setTimeout(() => {
-        handleUnlockClick();
-    }, 500);
-}
+      }
 
-// Initialize PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+      // Validate file size (max 500MB)
+      if (file.size > 500 * 1024 * 1024) {
+        showStatus('File too large. Maximum size is 500MB', 'error');
+        return;
+      }
 
-// Simple function to create a new PDF with the same content but without encryption
-async function unlockPDF(file) {
-    try {
-        showStatus('Reading PDF...', 10);
-        
-        // Read file as ArrayBuffer
-        const arrayBuffer = await file.arrayBuffer();
-        
-        showStatus('Loading PDF...', 30);
-        
-        try {
-            // First try to load with default options
-            const loadingTask = pdfjsLib.getDocument({
-                data: arrayBuffer,
-                password: '',
-                disableAutoFetch: true,
-                disableStream: true
-            });
-            
-            const pdf = await loadingTask.promise;
-            
-            // If we get here, the PDF was loaded successfully
-            showStatus('Creating unlocked version...', 60);
-            
-            // Create a new PDF document
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            // Process each page
-            for (let i = 1; i <= pdf.numPages; i++) {
-                showStatus(`Processing page ${i} of ${pdf.numPages}...`, 60 + Math.floor((i / pdf.numPages) * 30));
-                
-                const page = await pdf.getPage(i);
-                const viewport = page.getViewport({ scale: 1.5 });
-                
-                if (i > 1) {
-                    doc.addPage([viewport.width, viewport.height]);
-                }
-                
-                // Render the page to canvas
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-                
-                await page.render({
-                    canvasContext: context,
-                    viewport: viewport
-                }).promise;
-                
-                // Add image to PDF
-                const imgData = canvas.toDataURL('image/jpeg', 0.8);
-                doc.addImage(imgData, 'JPEG', 0, 0, viewport.width, viewport.height);
-            }
-            
-            // Save the PDF
-            const pdfBytes = doc.output('arraybuffer');
-            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-            
-            // Create download link
-            const url = URL.createObjectURL(blob);
-            const fileName = file.name.replace(/\.pdf$/i, '') + '_unlocked.pdf';
-            
-            downloadLink.href = url;
-            downloadLink.download = fileName;
-            downloadSection.style.display = 'block';
-            
-            // Auto download
-            download(blob, fileName, 'application/pdf');
-            
-            showStatus('PDF processed successfully!', 100);
-            return true;
-            
-        } catch (error) {
-            console.error('PDF Processing Error:', error);
-            throw new Error('This PDF cannot be processed. It may be password protected or corrupted.');
-        }
-        
-        showStatus('Processing pages...', 50);
-        
-        // Create a new PDF document
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({
-            orientation: 'p',
-            unit: 'pt',
-            format: 'a4'
+      const formData = new FormData();
+      formData.append('file', file);
+      if (passwordInput.value) {
+        formData.append('password', passwordInput.value);
+      }
+
+      unlockBtn.disabled = true;
+      showStatus('Processing... This may take a few moments', 'processing');
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/unlock`, {
+          method: 'POST',
+          body: formData
         });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showStatus('✅ PDF file unlocked successfully!', 'success');
+          
+          // Download file
+          setTimeout(() => {
+            const downloadLink = document.createElement('a');
+            downloadLink.href = `${API_BASE_URL}/download/${result.filename}`;
+            downloadLink.download = result.filename;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            
+            // Reset form
+            form.reset();
+            statusMessage.textContent += ' File downloaded. You can unlock another file.';
+          }, 1000);
+        } else {
+          showStatus(`❌ Error: ${result.error || 'Failed to unlock PDF'}`, 'error');
+        }
+      } catch (error) {
+        console.error('Error:', error);
         
-        // Process each page
-        for (let i = 1; i <= pdf.numPages; i++) {
-            showStatus(`Processing page ${i} of ${pdf.numPages}...`, 50 + Math.floor((i / pdf.numPages) * 40));
-            
-            const page = await pdf.getPage(i);
-            const viewport = page.getViewport({ scale: 1.5 });
-            
-            // Set document size to match the page
-            if (i > 1) {
-                doc.addPage([viewport.width, viewport.height]);
-            } else {
-                doc = new jsPDF({
-                    orientation: viewport.width > viewport.height ? 'l' : 'p',
-                    unit: 'pt',
-                    format: [viewport.width, viewport.height]
-                });
-            }
-            
-            // Render the page
-            const content = await page.getTextContent();
-            await page.render({
-                canvasContext: doc.context2d,
-                viewport: viewport
-            }).promise;
+        // Better error messages
+        let errorMsg = 'Network error. ';
+        if (error.message.includes('fetch')) {
+          errorMsg += 'Backend service may be waking up (first request takes 30-60 seconds). Please wait and try again.';
+        } else {
+          errorMsg += error.message || 'Please check your connection and try again.';
         }
         
-        showStatus('Finalizing...', 95);
-        
-        // Save the PDF
-        const pdfBytes = doc.output('arraybuffer');
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        
-        // Update download link
-        const fileName = file.name.replace(/\.pdf$/i, '') + '_unlocked.pdf';
-        downloadLink.href = url;
-        downloadLink.download = fileName;
-        
-        // Show download section
-        downloadSection.style.display = 'block';
-        downloadSection.scrollIntoView({ behavior: 'smooth' });
-        
-        showStatus('PDF processed successfully!', 100);
-        
-        // Auto-download
-        download(blob, fileName, 'application/pdf');
-        URL.revokeObjectURL(url);
-        
-        return true;
-    } catch (error) {
-        console.error('Error unlocking PDF:', error);
-        
-        console.error('PDF Processing Error:', error);
-        let errorMessage = 'An error occurred while processing the PDF. ';
-        
-        if (error.name === 'PasswordException') {
-            errorMessage = 'This PDF is password protected and cannot be unlocked without the password.';
-        } else if (error.message.includes('Invalid PDF') || error.message.includes('Failed to parse PDF document')) {
-            errorMessage = 'Invalid or corrupted PDF file. Please check the file and try again.';
-        } else if (error.message.includes('file format') || error.message.includes('invalid')) {
-            errorMessage = 'The selected file is not a valid PDF or is corrupted.';
-        }
-        
-        alert(errorMessage);
-        
-        resetUI();
-        return false;
-    } finally {
-        unlockBtn.disabled = !(fileInput.files.length > 0);
-        unlockBtn.querySelector('.btn-text').style.display = 'inline';
-        unlockBtn.querySelector('.btn-loader').style.display = 'none';
-    }
-}
-
-// Button click handler
-async function handleUnlockClick() {
-    const files = fileInput.files;
-    if (!files.length) {
-        alert('à¤•à¥ƒà¤ªà¤¯à¤¾ à¤ªà¤¹à¤²à¥‡ à¤à¤• PDF à¤«à¤¾à¤‡à¤² à¤šà¥à¤¨à¥‡à¤‚à¥¤');
-        return;
-    }
-    
-    try {
-        // Disable button and show loading state
-        unlockBtn.disabled = true;
-        unlockBtn.querySelector('.btn-text').style.display = 'none';
-        unlockBtn.querySelector('.btn-loader').style.display = 'inline-block';
-        
-        // Hide download section if it was shown before
-        downloadSection.style.display = 'none';
-        
-        // Show processing status
-        statusDiv.style.display = 'block';
-        progressBar.style.width = '10%';
-        statusText.textContent = 'Processing your PDF...';
-        
-        // Process the file
-        await unlockPDF(files[0]);
-    } catch (error) {
-        console.error('Error in handleUnlockClick:', error);
-        alert('à¤¤à¥à¤°à¥à¤Ÿà¤¿: ' + (error.message || 'à¤•à¥à¤› à¤—à¤²à¤¤ à¤¹à¥à¤†à¥¤ à¤•à¥ƒà¤ªà¤¯à¤¾ à¤«à¤¿à¤° à¤¸à¥‡ à¤ªà¥à¤°à¤¯à¤¾à¤¸ à¤•à¤°à¥‡à¤‚à¥¤'));
-        resetUI();
-    }
-}
-
-// Add click event listener
-unlockBtn.addEventListener('click', handleUnlockClick);
-
-// Also handle Enter key on file input
-fileInput.addEventListener('change', function() {
-    if (this.files.length > 0) {
+        showStatus(`❌ Error: ${errorMsg}`, 'error');
+      } finally {
         unlockBtn.disabled = false;
+      }
+    });
+
+    function showStatus(message, type) {
+      statusMessage.textContent = message;
+      statusMessage.className = `status-message ${type}`;
+      statusMessage.style.display = 'block';
+      
+      if (type === 'processing') {
+        statusMessage.innerHTML = `<span class="spinner"></span>${message}`;
+      }
     }
-});
-
-// Initialize button state
-unlockBtn.disabled = true;
-unlockBtn.style.opacity = '0.7';
-unlockBtn.style.cursor = 'not-allowed';
-unlockBtn.style.transition = 'all 0.3s ease';
-
-// Add some visual feedback for the upload area
-dropArea.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropArea.style.borderColor = '#4361ee';
-    dropArea.style.backgroundColor = 'rgba(67, 97, 238, 0.05)';
-});
-
-dropArea.addEventListener('dragleave', () => {
-    dropArea.style.borderColor = '#ddd';
-    dropArea.style.backgroundColor = '';
-});
-
-dropArea.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropArea.style.borderColor = '#ddd';
-    dropArea.style.backgroundColor = '';
-    
-    if (e.dataTransfer.files.length) {
-        fileInput.files = e.dataTransfer.files;
-        handleFiles(e.dataTransfer.files);
-    }
-});
-</script><script>document.getElementById('y').textContent=new Date().getFullYear();</script>
-
-
-
-<footer>
-        <div class="container footer-inner">
-            <div class="footer-company-links">
-                <span>Company</span>
-                <a href="index.html#about">About Us</a>
-                <a href="index.html#contact">Contact</a>
-                <a href="privacy-policy.html">Privacy Policy</a>
-                <a href="terms-of-service.html">Terms of Service</a>
-            </div>
-            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
-            <p class="footer-credits">
-                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
-                <a href="attributions.html">See full acknowledgements</a>.
-            </p>
-        </div>
-    </footer>
-    <script type="module" src="js/auth.js"></script>
-</body></html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  </script>
+</body>
+</html>
