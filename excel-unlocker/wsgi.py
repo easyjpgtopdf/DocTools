@@ -33,7 +33,8 @@ logger.info(f"Python path: {sys.path}")
 logger.info(f"Working directory: {os.getcwd()}")
 
 try:
-    from app import app as application
+    from app import app
+    application = app  # Expose as both 'app' and 'application'
     logger.info("Successfully imported Flask application")
 except Exception as e:
     logger.error(f"Error importing Flask application: {str(e)}")
