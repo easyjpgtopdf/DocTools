@@ -1,12 +1,13 @@
-﻿<!doctype html>
+﻿<!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Background Style | easyjpgtopdf</title>
-    <link rel="stylesheet" href="css/footer.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Background Style | easyjpgtopdf</title>
+<link href="css/footer.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<style>
     :root {
       --primary: #4361ee;
       --secondary: #3a0ca3;
@@ -94,241 +95,220 @@
       .stage { grid-template-columns: 1fr; }
     }
   </style>
-    
-
-    
-    
-    
-
-    
-
-    
-
-    
-    
-
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/theme-modern.css">
+<link href="css/header.css" rel="stylesheet"/>
+<link href="css/theme-modern.css" rel="stylesheet"/>
 </head>
 <body>
 <header>
-        <div class="container">
-            <nav class="navbar">
-                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
-                <div class="nav-links">
-                    <div class="dropdown">
-                        <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="jpg-to-pdf.html">JPG to PDF</a>
-                            <a href="word-to-pdf.html">Word to PDF</a>
-                            <a href="excel-to-pdf.html">Excel to PDF</a>
-                            <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="pdf-to-jpg.html">PDF to JPG</a>
-                            <a href="pdf-to-word.html">PDF to Word</a>
-                            <a href="pdf-to-excel.html">PDF to Excel</a>
-                            <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="merge-pdf.html">Merge PDF</a>
-                            <a href="split-pdf.html">Split PDF</a>
-                            <a href="compress-pdf.html">Compress PDF</a>
-                            <a href="edit-pdf.html">Pdf Editor</a>
-                            <a href="protect-pdf.html">Protect PDF</a>
-                            <a href="unlock-pdf.html">Unlock PDF</a>
-                            <a href="watermark-pdf.html">Watermark PDF</a>
-                            <a href="crop-pdf.html">Crop PDF</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="image-compressor.html">Image Compressor</a>
-                            <a href="image-resizer.html">Image Resizer</a>
-                            <a href="image-editor.html">Image Editor</a>
-                            <a href="background-remover.html">Image Background Remover</a>
-                            <a href="ocr-image.html">OCR Image</a>
-                            <a href="image-watermark.html">Image Watermark Tool</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="resume-maker.html">Resume Maker</a>
-                            <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
-                            <a href="ai-image-generator.html">AI Image Generator</a>
-                            <a href="marriage-card.html">Marriage Card</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="auth-buttons">
-                    <a href="login.html" class="auth-link">Sign In</a>
-                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Create Account</span></a>
-                </div>
-                <div id="user-menu" class="user-menu" data-open="false">
-                    <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
-                        <span class="user-initial" aria-hidden="true">U</span>
-                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                    </button>
-                    <div class="user-dropdown" id="user-dropdown" hidden>
-                        <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
-                        <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
-                        <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
-                        <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
-                        <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
-                        <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
-                    </div>
-                </div>
-            </nav>
-        </div>
-    </header>
-
-
-
-
-  
-
-  <main class="stage">
-    <section class="panel">
-      <h2><i class="fas fa-eye"></i> Live Preview</h2>
-      <div class="preview-frame">
-        <canvas id="previewCanvas"></canvas>
-      </div>
-      <div class="status" id="status"></div>
-        <div class="actions">
-          <button class="btn btn-outline" id="backToPreview"><i class="fas fa-arrow-left"></i> Back to Workspace</button>
-          <button class="btn btn-outline" id="resetBackground" disabled><i class="fas fa-undo"></i> Reset</button>
-          <button class="btn btn-primary" id="downloadImage" disabled><i class="fas fa-download"></i> Download</button>
-        </div>
-    </section>
-
-    <section class="panel">
-      <h2><i class="fas fa-magic"></i> Pick a Background</h2>
-      <div class="category-tabs">
-        <button class="tab-button active" data-tab="magic">Magic Photos</button>
-        <button class="tab-button" data-tab="photos">Cityscapes</button>
-        <button class="tab-button" data-tab="tech">Tech & Infra</button>
-        <button class="tab-button" data-tab="colors">Solid Colours</button>
-        <button class="tab-button" data-tab="transparent">Transparent</button>
-      </div>
-
-      <div class="tab-content" data-tab="magic">
-        <div class="grid" id="magicGrid"></div>
-      </div>
-
-      <div class="tab-content" data-tab="photos" hidden>
-        <div class="grid" id="photoGrid"></div>
-      </div>
-
-      <div class="tab-content" data-tab="tech" hidden>
-        <div class="grid" id="techGrid"></div>
-      </div>
-
-      <div class="tab-content" data-tab="colors" hidden>
-        <div class="color-grid" id="colorGrid"></div>
-      </div>
-
-      <div class="tab-content" data-tab="transparent" hidden>
-        <p style="color:var(--muted);">Set background to transparent and download instantly.</p>
-      </div>
-    </section>
-  </main>
-
-  <div class="overlay-deck">
-    <section class="panel overlay-panel">
-      <div class="overlay-controls">
-        <header>
-          <div>Overlay Controls
+<div class="container">
+<nav class="navbar">
+<a class="logo" href="index.html"><img alt="Logo" src="images/logo.png" style="height:54px;"/></a>
+<div class="nav-links">
+<div class="dropdown">
+<a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="jpg-to-pdf.html">JPG to PDF</a>
+<a href="word-to-pdf.html">Word to PDF</a>
+<a href="excel-to-pdf.html">Excel to PDF</a>
+<a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="pdf-to-jpg.html">PDF to JPG</a>
+<a href="pdf-to-word.html">PDF to Word</a>
+<a href="pdf-to-excel.html">PDF to Excel</a>
+<a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="merge-pdf.html">Merge PDF</a>
+<a href="split-pdf.html">Split PDF</a>
+<a href="compress-pdf.html">Compress PDF</a>
+<a href="edit-pdf.html">Pdf Editor</a>
+<a href="protect-pdf.html">Protect PDF</a>
+<a href="unlock-pdf.html">Unlock PDF</a>
+<a href="watermark-pdf.html">Watermark PDF</a>
+<a href="crop-pdf.html">Crop PDF</a>
+<a href="add-page-numbers.html">Add Page Numbers</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="image-repair.html">AI Image Repair</a>
+<a href="image-compressor.html">Image Compressor</a>
+<a href="image-resizer.html">Image Resizer</a>
+<a href="image-editor.html">Image Editor</a>
+<a href="background-remover.html">Image Background Remover</a>
+<a href="ocr-image.html">OCR Image</a>
+<a href="image-watermark.html">Image Watermark Tool</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="resume-maker.html">Resume Maker</a>
+<a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+<a href="ai-image-generator.html">AI Image Generator</a>
+<a href="marriage-card.html">Marriage Card</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="excel-unlocker.html">Excel Unlocker</a>
+<a href="protect-excel.html">Protect Excel Sheet</a>
+</div>
+</div>
+</div>
+<div class="auth-buttons">
+<a class="auth-link" href="login.html">Sign In</a>
+<a class="auth-btn" href="signup.html"><i aria-hidden="true" class="fas fa-user-plus"></i><span>Signup</span></a>
+</div>
+<div class="user-menu" data-open="false" id="user-menu">
+<button aria-expanded="false" aria-haspopup="true" aria-label="Account menu" class="user-menu-toggle" id="user-menu-toggle" type="button">
+<span aria-hidden="true" class="user-initial">U</span>
+<i aria-hidden="true" class="fas fa-chevron-down"></i>
+</button>
+<div class="user-dropdown" hidden="" id="user-dropdown">
+<a data-user-nav="dashboard-overview" href="dashboard.html#dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+<a data-user-nav="dashboard-billing" href="dashboard.html#dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+<a data-user-nav="dashboard-payments" href="dashboard.html#dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+<a data-user-nav="dashboard-orders" href="dashboard.html#dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
+<a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
+<button class="dropdown-logout" id="logout-button" type="button"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+</div>
+</div>
+</nav>
+</div>
+</header>
+<main class="stage">
+<section class="panel">
+<h2><i class="fas fa-eye"></i> Live Preview</h2>
+<div class="preview-frame">
+<canvas id="previewCanvas"></canvas>
+</div>
+<div class="status" id="status"></div>
+<div class="actions">
+<button class="btn btn-outline" id="backToPreview"><i class="fas fa-arrow-left"></i> Back to Workspace</button>
+<button class="btn btn-outline" disabled="" id="resetBackground"><i class="fas fa-undo"></i> Reset</button>
+<button class="btn btn-primary" disabled="" id="downloadImage"><i class="fas fa-download"></i> Download</button>
+</div>
+</section>
+<section class="panel">
+<h2><i class="fas fa-magic"></i> Pick a Background</h2>
+<div class="category-tabs">
+<button class="tab-button active" data-tab="magic">Magic Photos</button>
+<button class="tab-button" data-tab="photos">Cityscapes</button>
+<button class="tab-button" data-tab="tech">Tech &amp; Infra</button>
+<button class="tab-button" data-tab="colors">Solid Colours</button>
+<button class="tab-button" data-tab="transparent">Transparent</button>
+</div>
+<div class="tab-content" data-tab="magic">
+<div class="grid" id="magicGrid"></div>
+</div>
+<div class="tab-content" data-tab="photos" hidden="">
+<div class="grid" id="photoGrid"></div>
+</div>
+<div class="tab-content" data-tab="tech" hidden="">
+<div class="grid" id="techGrid"></div>
+</div>
+<div class="tab-content" data-tab="colors" hidden="">
+<div class="color-grid" id="colorGrid"></div>
+</div>
+<div class="tab-content" data-tab="transparent" hidden="">
+<p style="color:var(--muted);">Set background to transparent and download instantly.</p>
+</div>
+</section>
+</main>
+<div class="overlay-deck">
+<section class="panel overlay-panel">
+<div class="overlay-controls">
+<header>
+<div>Overlay Controls
             <label style="float:right; font-weight:600;">
-              <input type="checkbox" id="overlayToggle" style="margin-right:8px; vertical-align:middle;"> Enable Overlay
+<input id="overlayToggle" style="margin-right:8px; vertical-align:middle;" type="checkbox"/> Enable Overlay
             </label>
-          </div>
-        </header>
-        
-        <div class="overlay-fields hidden" id="overlayFields">
-          <label>
+</div>
+</header>
+<div class="overlay-fields hidden" id="overlayFields">
+<label>
             Text (multiline supported)
             <textarea id="overlayText" placeholder="Enter caption"></textarea>
-          </label>
-          <label>
+</label>
+<label>
             Font Family
             <select id="overlayFont">
-              <option value="'Segoe UI', sans-serif">Segoe UI</option>
-              <option value="'Poppins', sans-serif">Poppins</option>
-              <option value="'Roboto', sans-serif">Roboto</option>
-              <option value="'Montserrat', sans-serif">Montserrat</option>
-              <option value="'Playfair Display', serif">Playfair Display</option>
-            </select>
-          </label>
-          <label>
+<option value="'Segoe UI', sans-serif">Segoe UI</option>
+<option value="'Poppins', sans-serif">Poppins</option>
+<option value="'Roboto', sans-serif">Roboto</option>
+<option value="'Montserrat', sans-serif">Montserrat</option>
+<option value="'Playfair Display', serif">Playfair Display</option>
+</select>
+</label>
+<label>
             Font Weight
             <select id="overlayWeight">
-              <option value="400">Regular</option>
-              <option value="500">Medium</option>
-              <option value="600" selected>Semi Bold</option>
-              <option value="700">Bold</option>
-              <option value="800">Extra Bold</option>
-            </select>
-          </label>
-          <label>
+<option value="400">Regular</option>
+<option value="500">Medium</option>
+<option selected="" value="600">Semi Bold</option>
+<option value="700">Bold</option>
+<option value="800">Extra Bold</option>
+</select>
+</label>
+<label>
             Font Size
             <div style="display:flex;align-items:center;gap:10px;">
-              <input type="range" id="overlaySize" min="16" max="96" value="42">
-              <span class="overlay-range-value" id="overlaySizeValue">42px</span>
-            </div>
-          </label>
-          <label>
+<input id="overlaySize" max="96" min="16" type="range" value="42"/>
+<span class="overlay-range-value" id="overlaySizeValue">42px</span>
+</div>
+</label>
+<label>
             Position
             <select id="overlayPosition">
-              <option value="top-left">Top Left</option>
-              <option value="top-right">Top Right</option>
-              <option value="center" selected>Center</option>
-              <option value="bottom-left">Bottom Left</option>
-              <option value="bottom-right">Bottom Right</option>
-              <option value="bottom-center">Bottom Center</option>
-              <option value="manual">Manual (use sliders)</option>
-            </select>
-          </label>
-          <label id="overlayManualX" class="overlay-manual hidden">
+<option value="top-left">Top Left</option>
+<option value="top-right">Top Right</option>
+<option selected="" value="center">Center</option>
+<option value="bottom-left">Bottom Left</option>
+<option value="bottom-right">Bottom Right</option>
+<option value="bottom-center">Bottom Center</option>
+<option value="manual">Manual (use sliders)</option>
+</select>
+</label>
+<label class="overlay-manual hidden" id="overlayManualX">
             Horizontal Offset
             <div style="display:flex;align-items:center;gap:10px;">
-              <input type="range" id="overlayOffsetX" min="-100" max="100" value="0">
-              <span class="overlay-range-value" id="overlayOffsetXValue">0%</span>
-            </div>
-          </label>
-          <label id="overlayManualY" class="overlay-manual hidden">
+<input id="overlayOffsetX" max="100" min="-100" type="range" value="0"/>
+<span class="overlay-range-value" id="overlayOffsetXValue">0%</span>
+</div>
+</label>
+<label class="overlay-manual hidden" id="overlayManualY">
             Vertical Offset
             <div style="display:flex;align-items:center;gap:10px;">
-              <input type="range" id="overlayOffsetY" min="-100" max="100" value="0">
-              <span class="overlay-range-value" id="overlayOffsetYValue">0%</span>
-            </div>
-          </label>
-          <label>
+<input id="overlayOffsetY" max="100" min="-100" type="range" value="0"/>
+<span class="overlay-range-value" id="overlayOffsetYValue">0%</span>
+</div>
+</label>
+<label>
             Text Colour
-            <input type="color" id="overlayColor" value="#ffffff">
-          </label>
-          <label>
+            <input id="overlayColor" type="color" value="#ffffff"/>
+</label>
+<label>
             Shadow Strength
             <div style="display:flex;align-items:center;gap:10px;">
-              <input type="range" id="overlayShadow" min="0" max="30" value="12">
-              <span class="overlay-range-value" id="overlayShadowValue">12px</span>
-            </div>
-          </label>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  
-
-  <script type="module">
+<input id="overlayShadow" max="30" min="0" type="range" value="12"/>
+<span class="overlay-range-value" id="overlayShadowValue">12px</span>
+</div>
+</label>
+</div>
+</div>
+</section>
+</div>
+<script type="module">
     const STORAGE_KEYS = {
       original: 'bgRemover:original',
       foreground: 'bgRemover:foreground',
@@ -750,57 +730,22 @@
   const footerYearEl = document.getElementById('footerYear');
   if (footerYearEl) footerYearEl.textContent = new Date().getFullYear();
   </script>
-
-
-
-
 <footer>
-        <div class="container footer-inner">
-            <div class="footer-company-links">
-                <span>Company</span>
-                <a href="index.html#about">About Us</a>
-                <a href="index.html#contact">Contact</a>
-                <a href="privacy-policy.html">Privacy Policy</a>
-                <a href="terms-of-service.html">Terms of Service</a>
-            </div>
-            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
-            <p class="footer-credits">
+<div class="container footer-inner">
+<div class="footer-company-links">
+<span>Company</span>
+<a href="index.html#about">About Us</a>
+<a href="index.html#contact">Contact</a>
+<a href="privacy-policy.html">Privacy Policy</a>
+<a href="terms-of-service.html">Terms of Service</a>
+</div>
+<p class="footer-brand-line">© easyjpgtopdf — Free PDF &amp; Image Tools for everyone.</p>
+<p class="footer-credits">
                 Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
                 <a href="attributions.html">See full acknowledgements</a>.
             </p>
-        </div>
-    </footer>
-    <script type="module" src="js/auth.js"></script>
+</div>
+</footer>
+<script src="js/auth.js" type="module"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1,138 +1,129 @@
 ﻿<!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>JPG to PDF | easyjpgtopdf</title>
-    <link rel="stylesheet" href="css/footer.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}:root{--primary:#4361ee;--secondary:#3a0ca3;--accent:#4cc9f0;--light:#f8f9fa;--dark:#212529;--gray:#6c757d;--card:#ffffff;--border:#e5e7eb;--brand:var(--primary);--brand-dark:var(--secondary)}body{background-color:#f5f7ff;color:var(--dark);min-height:100vh;display:flex;flex-direction:column;line-height:1.6}.container{max-width:1400px;margin:0 auto;padding:0 24px}header{background:#fff;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.08)}.navbar{display:flex;justify-content:space-between;align-items:center;padding:14px 0}.logo{display:flex;gap:10px;align-items:center;font-size:22px;font-weight:700;color:var(--brand);text-decoration:none}.logo i{color:var(--brand-dark)}nav .nav-links{display:flex;gap:22px;align-items:center}nav a{color:var(--dark);text-decoration:none;font-weight:500}nav a:hover,nav a.active{color:var(--brand)}.dropdown{position:relative}.dropdown-content{display:none;position:absolute;background:#fff;min-width:220px;border-radius:10px;box-shadow:0 8px 20px rgba(0,0,0,.12);top:100%;left:0;padding:10px 0}.dropdown:hover .dropdown-content{display:block}.dropdown-content a{display:block;padding:10px 18px}.hero{background:linear-gradient(135deg,var(--brand),var(--brand-dark));color:#fff;padding:48px 0;text-align:center;margin-bottom:24px;border-radius:0 0 16px 16px}.tool-page{background:var(--card);border-radius:16px;padding:32px;box-shadow:0 8px 24px rgba(0,0,0,.08);margin-bottom:24px}.upload-area{border:2px dashed var(--border);border-radius:16px;padding:48px;text-align:center;cursor:pointer;background:linear-gradient(145deg,#fff,#fdf2f2)}.upload-area:hover{border-color:var(--brand);box-shadow:0 8px 20px rgba(67,97,238,.12)}.btn{display:inline-block;background:var(--brand);color:#fff;border:none;border-radius:40px;padding:10px 18px;margin-right:8px;cursor:pointer;transition:.2s transform,.2s box-shadow}.btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(67,97,238,.25)}.btn.secondary{background:#fff;color:var(--brand);border:1px solid var(--brand)}.btn.accent{background:var(--accent)}.preview-item{box-shadow:0 4px 12px rgba(0,0,0,.06)}.comments{padding:40px 0;background:#fff;border-radius:20px;margin:20px 0}.comment-form{max-width:600px;margin:0 auto;background:var(--light);padding:22px;border-radius:12px}.form-group{margin-bottom:14px}.form-control{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px}footer{background:var(--dark);color:#fff;padding:40px 0 20px;margin-top:auto}.footer-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:22px;margin-bottom:20px}.footer-links{list-style:none}.footer-links a{color:#aaa;text-decoration:none}.footer-links a:hover{color:#fff}.copyright{text-align:center;color:#aaa;border-top:1px solid #444;padding-top:16px;font-size:.9rem}@media(max-width:768px){nav .nav-links{display:none}}</style>
-
-    
-
-    
-    
-    
-
-    
-
-    
-
-    
-    
-
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/theme-modern.css">
+<meta charset="utf-8"/><meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>JPG to PDF | easyjpgtopdf</title>
+<link href="css/footer.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<style>*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}:root{--primary:#4361ee;--secondary:#3a0ca3;--accent:#4cc9f0;--light:#f8f9fa;--dark:#212529;--gray:#6c757d;--card:#ffffff;--border:#e5e7eb;--brand:var(--primary);--brand-dark:var(--secondary)}body{background-color:#f5f7ff;color:var(--dark);min-height:100vh;display:flex;flex-direction:column;line-height:1.6}.container{max-width:1400px;margin:0 auto;padding:0 24px}header{background:#fff;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.08)}.navbar{display:flex;justify-content:space-between;align-items:center;padding:14px 0}.logo{display:flex;gap:10px;align-items:center;font-size:22px;font-weight:700;color:var(--brand);text-decoration:none}.logo i{color:var(--brand-dark)}nav .nav-links{display:flex;gap:22px;align-items:center}nav a{color:var(--dark);text-decoration:none;font-weight:500}nav a:hover,nav a.active{color:var(--brand)}.dropdown{position:relative}.dropdown-content{display:none;position:absolute;background:#fff;min-width:220px;border-radius:10px;box-shadow:0 8px 20px rgba(0,0,0,.12);top:100%;left:0;padding:10px 0}.dropdown:hover .dropdown-content{display:block}.dropdown-content a{display:block;padding:10px 18px}.hero{background:linear-gradient(135deg,var(--brand),var(--brand-dark));color:#fff;padding:48px 0;text-align:center;margin-bottom:24px;border-radius:0 0 16px 16px}.tool-page{background:var(--card);border-radius:16px;padding:32px;box-shadow:0 8px 24px rgba(0,0,0,.08);margin-bottom:24px}.upload-area{border:2px dashed var(--border);border-radius:16px;padding:48px;text-align:center;cursor:pointer;background:linear-gradient(145deg,#fff,#fdf2f2)}.upload-area:hover{border-color:var(--brand);box-shadow:0 8px 20px rgba(67,97,238,.12)}.btn{display:inline-block;background:var(--brand);color:#fff;border:none;border-radius:40px;padding:10px 18px;margin-right:8px;cursor:pointer;transition:.2s transform,.2s box-shadow}.btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(67,97,238,.25)}.btn.secondary{background:#fff;color:var(--brand);border:1px solid var(--brand)}.btn.accent{background:var(--accent)}.preview-item{box-shadow:0 4px 12px rgba(0,0,0,.06)}.comments{padding:40px 0;background:#fff;border-radius:20px;margin:20px 0}.comment-form{max-width:600px;margin:0 auto;background:var(--light);padding:22px;border-radius:12px}.form-group{margin-bottom:14px}.form-control{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px}footer{background:var(--dark);color:#fff;padding:40px 0 20px;margin-top:auto}.footer-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:22px;margin-bottom:20px}.footer-links{list-style:none}.footer-links a{color:#aaa;text-decoration:none}.footer-links a:hover{color:#fff}.copyright{text-align:center;color:#aaa;border-top:1px solid #444;padding-top:16px;font-size:.9rem}@media(max-width:768px){nav .nav-links{display:none}}</style>
+<link href="css/header.css" rel="stylesheet"/>
+<link href="css/theme-modern.css" rel="stylesheet"/>
 </head>
 <body>
 <header>
-        <div class="container">
-            <nav class="navbar">
-                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
-                <div class="nav-links">
-                    <div class="dropdown">
-                        <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="jpg-to-pdf.html">JPG to PDF</a>
-                            <a href="word-to-pdf.html">Word to PDF</a>
-                            <a href="excel-to-pdf.html">Excel to PDF</a>
-                            <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="pdf-to-jpg.html">PDF to JPG</a>
-                            <a href="pdf-to-word.html">PDF to Word</a>
-                            <a href="pdf-to-excel.html">PDF to Excel</a>
-                            <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="merge-pdf.html">Merge PDF</a>
-                            <a href="split-pdf.html">Split PDF</a>
-                            <a href="compress-pdf.html">Compress PDF</a>
-                            <a href="edit-pdf.html">Pdf Editor</a>
-                            <a href="protect-pdf.html">Protect PDF</a>
-                            <a href="unlock-pdf.html">Unlock PDF</a>
-                            <a href="watermark-pdf.html">Watermark PDF</a>
-                            <a href="crop-pdf.html">Crop PDF</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="image-compressor.html">Image Compressor</a>
-                            <a href="image-resizer.html">Image Resizer</a>
-                            <a href="image-editor.html">Image Editor</a>
-                            <a href="background-remover.html">Image Background Remover</a>
-                            <a href="ocr-image.html">OCR Image</a>
-                            <a href="image-watermark.html">Image Watermark Tool</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="resume-maker.html">Resume Maker</a>
-                            <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
-                            <a href="ai-image-generator.html">AI Image Generator</a>
-                            <a href="marriage-card.html">Marriage Card</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="auth-buttons">
-                    <a href="login.html" class="auth-link">Sign In</a>
-                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Create Account</span></a>
-                </div>
-                <div id="user-menu" class="user-menu" data-open="false">
-                    <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
-                        <span class="user-initial" aria-hidden="true">U</span>
-                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                    </button>
-                    <div class="user-dropdown" id="user-dropdown" hidden>
-                        <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
-                        <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
-                        <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
-                        <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
-                        <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
-                        <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
-                    </div>
-                </div>
-            </nav>
-        </div>
-    </header>
-
-
-
-
-
+<div class="container">
+<nav class="navbar">
+<a class="logo" href="index.html"><img alt="Logo" src="images/logo.png" style="height:54px;"/></a>
+<div class="nav-links">
+<div class="dropdown">
+<a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="jpg-to-pdf.html">JPG to PDF</a>
+<a href="word-to-pdf.html">Word to PDF</a>
+<a href="excel-to-pdf.html">Excel to PDF</a>
+<a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="pdf-to-jpg.html">PDF to JPG</a>
+<a href="pdf-to-word.html">PDF to Word</a>
+<a href="pdf-to-excel.html">PDF to Excel</a>
+<a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="merge-pdf.html">Merge PDF</a>
+<a href="split-pdf.html">Split PDF</a>
+<a href="compress-pdf.html">Compress PDF</a>
+<a href="edit-pdf.html">Pdf Editor</a>
+<a href="protect-pdf.html">Protect PDF</a>
+<a href="unlock-pdf.html">Unlock PDF</a>
+<a href="watermark-pdf.html">Watermark PDF</a>
+<a href="crop-pdf.html">Crop PDF</a>
+<a href="add-page-numbers.html">Add Page Numbers</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="image-repair.html">AI Image Repair</a>
+<a href="image-compressor.html">Image Compressor</a>
+<a href="image-resizer.html">Image Resizer</a>
+<a href="image-editor.html">Image Editor</a>
+<a href="background-remover.html">Image Background Remover</a>
+<a href="ocr-image.html">OCR Image</a>
+<a href="image-watermark.html">Image Watermark Tool</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="resume-maker.html">Resume Maker</a>
+<a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+<a href="ai-image-generator.html">AI Image Generator</a>
+<a href="marriage-card.html">Marriage Card</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="excel-unlocker.html">Excel Unlocker</a>
+<a href="protect-excel.html">Protect Excel Sheet</a>
+</div>
+</div>
+</div>
+<div class="auth-buttons">
+<a class="auth-link" href="login.html">Sign In</a>
+<a class="auth-btn" href="signup.html"><i aria-hidden="true" class="fas fa-user-plus"></i><span>Signup</span></a>
+</div>
+<div class="user-menu" data-open="false" id="user-menu">
+<button aria-expanded="false" aria-haspopup="true" aria-label="Account menu" class="user-menu-toggle" id="user-menu-toggle" type="button">
+<span aria-hidden="true" class="user-initial">U</span>
+<i aria-hidden="true" class="fas fa-chevron-down"></i>
+</button>
+<div class="user-dropdown" hidden="" id="user-dropdown">
+<a data-user-nav="dashboard-overview" href="dashboard.html#dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+<a data-user-nav="dashboard-billing" href="dashboard.html#dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+<a data-user-nav="dashboard-payments" href="dashboard.html#dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+<a data-user-nav="dashboard-orders" href="dashboard.html#dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
+<a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
+<button class="dropdown-logout" id="logout-button" type="button"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+</div>
+</div>
+</nav>
+</div>
+</header>
 <section class="hero"><div class="container"><h1>JPG to PDF</h1><p>Convert JPG/JPEG images into high-quality PDF documents.</p></div></section>
 <main class="container">
-  <div class="tool-page">
-    <h2>Upload JPG Images</h2>
-    <div id="dropzone" class="upload-area" onclick="document.getElementById('jpg-input').click()">
-      <i class="fas fa-cloud-upload-alt" style="font-size:42px;color:var(--primary)"></i>
-      <h3>Drag & drop or click to browse</h3>
-      <input id="jpg-input" type="file" accept=".jpg,.jpeg" multiple style="display:none">
-    </div>
-    <div style="margin-top: 10px"></div>
-    <div class="preview-grid" id="preview" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin-top:14px"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
-      <div>
-        <label for="more-input" class="btn secondary" style="cursor:pointer"><i class="fas fa-plus"></i> Add more</label>
-        <input id="more-input" type="file" accept=".jpg,.jpeg" multiple style="display:none">
-      </div>
-      <div class="muted" id="count" style="color:var(--gray)">0 images</div>
-    </div>
-    <div class="action-buttons" style="margin-top:14px; display: flex; gap: 10px; align-items: center; justify-content: center; padding: 15px; background: linear-gradient(90deg, #f8f9fa 50%, #ffffff 50%); background-size: 200% 100%; animation: blink 1.5s infinite; border-radius: 8px; border: 1px solid #e5e7eb;">
-      <button id="continueBtn" class="btn" style="margin: 0;">Continue</button>
-      <a class="btn secondary" href="index.html" style="margin: 0;">Back to Home</a>
-      <button id="addMoreBtn" class="btn secondary" style="margin: 0;">
-        <i class="fas fa-plus"></i> Add More
+<div class="tool-page">
+<h2>Upload JPG Images</h2>
+<div class="upload-area" id="dropzone" onclick="document.getElementById('jpg-input').click()">
+<i class="fas fa-cloud-upload-alt" style="font-size:42px;color:var(--primary)"></i>
+<h3>Drag &amp; drop or click to browse</h3>
+<input accept=".jpg,.jpeg" id="jpg-input" multiple="" style="display:none" type="file"/>
+</div>
+<div style="margin-top: 10px"></div>
+<div class="preview-grid" id="preview" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin-top:14px"></div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+<div>
+<label class="btn secondary" for="more-input" style="cursor:pointer"><i class="fas fa-plus"></i> Add more</label>
+<input accept=".jpg,.jpeg" id="more-input" multiple="" style="display:none" type="file"/>
+</div>
+<div class="muted" id="count" style="color:var(--gray)">0 images</div>
+</div>
+<div class="action-buttons" style="margin-top:14px; display: flex; gap: 10px; align-items: center; justify-content: center; padding: 15px; background: linear-gradient(90deg, #f8f9fa 50%, #ffffff 50%); background-size: 200% 100%; animation: blink 1.5s infinite; border-radius: 8px; border: 1px solid #e5e7eb;">
+<button class="btn" id="continueBtn" style="margin: 0;">Continue</button>
+<a class="btn secondary" href="index.html" style="margin: 0;">Back to Home</a>
+<button class="btn secondary" id="addMoreBtn" style="margin: 0;">
+<i class="fas fa-plus"></i> Add More
       </button>
-    </div>
-    <style>
+</div>
+<style>
       @keyframes blink {
         0% { background-position: 100% 0; }
         50% { background-position: 0 0; }
@@ -143,8 +134,8 @@
         background: #f8f9fa;
       }
     </style>
-  </div>
-  <script>
+</div>
+<script>
     (function(){
       const preview = document.getElementById('preview');
       const count = document.getElementById('count');
@@ -235,66 +226,21 @@
   </script>
 </main>
 <script>document.getElementById('y').textContent=new Date().getFullYear();</script>
-
-
-
-
 <footer>
-        <div class="container footer-inner">
-            <div class="footer-company-links">
-                <span>Company</span>
-                <a href="index.html#about">About Us</a>
-                <a href="index.html#contact">Contact</a>
-                <a href="privacy-policy.html">Privacy Policy</a>
-                <a href="terms-of-service.html">Terms of Service</a>
-            </div>
-            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
-            <p class="footer-credits">
+<div class="container footer-inner">
+<div class="footer-company-links">
+<span>Company</span>
+<a href="index.html#about">About Us</a>
+<a href="index.html#contact">Contact</a>
+<a href="privacy-policy.html">Privacy Policy</a>
+<a href="terms-of-service.html">Terms of Service</a>
+</div>
+<p class="footer-brand-line">© easyjpgtopdf — Free PDF &amp; Image Tools for everyone.</p>
+<p class="footer-credits">
                 Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
                 <a href="attributions.html">See full acknowledgements</a>.
             </p>
-        </div>
-    </footer>
-    <script type="module" src="js/auth.js"></script>
+</div>
+</footer>
+<script src="js/auth.js" type="module"></script>
 </body></html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

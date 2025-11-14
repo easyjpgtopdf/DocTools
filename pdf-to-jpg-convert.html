@@ -1,15 +1,16 @@
 ﻿<!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PDF to JPG - Convert | easyjpgtopdf</title>
-    <link rel="stylesheet" href="css/footer.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-  <style>
+<meta charset="utf-8"/><meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>PDF to JPG - Convert | easyjpgtopdf</title>
+<link href="css/footer.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<style>
     *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}
     :root{--primary:#4361ee;--secondary:#3a0ca3;--accent:#4cc9f0;--light:#f8f9fa;--dark:#212529;--gray:#6c757d;--card:#ffffff;--border:#e5e7eb;--brand:var(--primary);--brand-dark:var(--secondary)}
     body{background-color:#f5f7ff;color:var(--dark);min-height:100vh;display:flex;flex-direction:column;line-height:1.6}
@@ -67,172 +68,160 @@
       .preview-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
     }
   </style>
-    
-
-    
-    
-    
-
-    
-
-    
-
-    
-    
-
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/theme-modern.css">
+<link href="css/header.css" rel="stylesheet"/>
+<link href="css/theme-modern.css" rel="stylesheet"/>
 </head>
 <body>
 <header>
-        <div class="container">
-            <nav class="navbar">
-                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
-                <div class="nav-links">
-                    <div class="dropdown">
-                        <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="jpg-to-pdf.html">JPG to PDF</a>
-                            <a href="word-to-pdf.html">Word to PDF</a>
-                            <a href="excel-to-pdf.html">Excel to PDF</a>
-                            <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="pdf-to-jpg.html">PDF to JPG</a>
-                            <a href="pdf-to-word.html">PDF to Word</a>
-                            <a href="pdf-to-excel.html">PDF to Excel</a>
-                            <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="merge-pdf.html">Merge PDF</a>
-                            <a href="split-pdf.html">Split PDF</a>
-                            <a href="compress-pdf.html">Compress PDF</a>
-                            <a href="edit-pdf.html">Pdf Editor</a>
-                            <a href="protect-pdf.html">Protect PDF</a>
-                            <a href="unlock-pdf.html">Unlock PDF</a>
-                            <a href="watermark-pdf.html">Watermark PDF</a>
-                            <a href="crop-pdf.html">Crop PDF</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="image-compressor.html">Image Compressor</a>
-                            <a href="image-resizer.html">Image Resizer</a>
-                            <a href="image-editor.html">Image Editor</a>
-                            <a href="background-remover.html">Image Background Remover</a>
-                            <a href="ocr-image.html">OCR Image</a>
-                            <a href="image-watermark.html">Image Watermark Tool</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="resume-maker.html">Resume Maker</a>
-                            <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
-                            <a href="ai-image-generator.html">AI Image Generator</a>
-                            <a href="marriage-card.html">Marriage Card</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="auth-buttons">
-                    <a href="login.html" class="auth-link">Sign In</a>
-                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Create Account</span></a>
-                </div>
-                <div id="user-menu" class="user-menu" data-open="false">
-                    <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
-                        <span class="user-initial" aria-hidden="true">U</span>
-                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                    </button>
-                    <div class="user-dropdown" id="user-dropdown" hidden>
-                        <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
-                        <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
-                        <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
-                        <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
-                        <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
-                        <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
-                    </div>
-                </div>
-            </nav>
-        </div>
-    </header>
-
-
-
-
-
+<div class="container">
+<nav class="navbar">
+<a class="logo" href="index.html"><img alt="Logo" src="images/logo.png" style="height:54px;"/></a>
+<div class="nav-links">
+<div class="dropdown">
+<a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="jpg-to-pdf.html">JPG to PDF</a>
+<a href="word-to-pdf.html">Word to PDF</a>
+<a href="excel-to-pdf.html">Excel to PDF</a>
+<a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="pdf-to-jpg.html">PDF to JPG</a>
+<a href="pdf-to-word.html">PDF to Word</a>
+<a href="pdf-to-excel.html">PDF to Excel</a>
+<a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="merge-pdf.html">Merge PDF</a>
+<a href="split-pdf.html">Split PDF</a>
+<a href="compress-pdf.html">Compress PDF</a>
+<a href="edit-pdf.html">Pdf Editor</a>
+<a href="protect-pdf.html">Protect PDF</a>
+<a href="unlock-pdf.html">Unlock PDF</a>
+<a href="watermark-pdf.html">Watermark PDF</a>
+<a href="crop-pdf.html">Crop PDF</a>
+<a href="add-page-numbers.html">Add Page Numbers</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="image-repair.html">AI Image Repair</a>
+<a href="image-compressor.html">Image Compressor</a>
+<a href="image-resizer.html">Image Resizer</a>
+<a href="image-editor.html">Image Editor</a>
+<a href="background-remover.html">Image Background Remover</a>
+<a href="ocr-image.html">OCR Image</a>
+<a href="image-watermark.html">Image Watermark Tool</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="resume-maker.html">Resume Maker</a>
+<a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+<a href="ai-image-generator.html">AI Image Generator</a>
+<a href="marriage-card.html">Marriage Card</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="excel-unlocker.html">Excel Unlocker</a>
+<a href="protect-excel.html">Protect Excel Sheet</a>
+</div>
+</div>
+</div>
+<div class="auth-buttons">
+<a class="auth-link" href="login.html">Sign In</a>
+<a class="auth-btn" href="signup.html"><i aria-hidden="true" class="fas fa-user-plus"></i><span>Signup</span></a>
+</div>
+<div class="user-menu" data-open="false" id="user-menu">
+<button aria-expanded="false" aria-haspopup="true" aria-label="Account menu" class="user-menu-toggle" id="user-menu-toggle" type="button">
+<span aria-hidden="true" class="user-initial">U</span>
+<i aria-hidden="true" class="fas fa-chevron-down"></i>
+</button>
+<div class="user-dropdown" hidden="" id="user-dropdown">
+<a data-user-nav="dashboard-overview" href="dashboard.html#dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+<a data-user-nav="dashboard-billing" href="dashboard.html#dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+<a data-user-nav="dashboard-payments" href="dashboard.html#dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+<a data-user-nav="dashboard-orders" href="dashboard.html#dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
+<a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
+<button class="dropdown-logout" id="logout-button" type="button"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+</div>
+</div>
+</nav>
+</div>
+</header>
 <section class="hero"><div class="container"><h1>PDF to JPG</h1><p>Preview pages, choose quality/DPI, and export pages as JPG.</p></div></section>
 <main class="container">
-  <div class="workbench">
-    <div class="panel left">
-      <h2 style="font-size:18px">PDF Pages</h2>
-      <!-- Upload new PDF removed as requested -->
-      <div class="muted" id="currentFileHint" style="margin-top:6px">Current file: <span id="pdfName">Loaded from session</span>.</div>
-      <div class="thumb-toolbar">
-        <div class="muted">Tip: Click pages to select. If none selected, range applies.</div>
-        <div class="toolbar-actions">
-          <button id="selectAllBtn" class="btn sm secondary">Select All</button>
-          <button id="clearSelBtn" class="btn sm secondary">Clear</button>
-        </div>
-      </div>
-      <div id="preview" class="preview-grid"></div>
-      <!-- Share Section moved into left preview panel -->
-    </div>
-    <div class="panel right">
-      <div class="right-sections">
-        <div class="section">
-          <h3>Export Range</h3>
-          <div class="options" style="gap:12px;align-items:center">
-            <label class="opt"><input type="radio" name="range" value="all" checked> All pages</label>
-            <label class="opt"><input type="radio" name="range" value="custom"> Range</label>
-            <input id="rangeInput" class="form-control" placeholder="e.g. 1-3,5" style="width:160px">
-          </div>
-        </div>
-        <div class="section">
-          <h3>Quality</h3>
-          <div style="display:flex;gap:12px;align-items:center">
-            <input id="qualitySlider" type="range" min="0.4" max="1" step="0.05" value="0.8">
-            <span class="muted" id="qualityLabel">80%</span>
-          </div>
-        </div>
-        <div class="section">
-          <h3>DPI</h3>
-          <div class="options" style="gap:12px;align-items:center">
-            <label class="opt"><input type="radio" name="dpi" value="72"> 72</label>
-            <label class="opt"><input type="radio" name="dpi" value="150" checked> 150</label>
-            <label class="opt"><input type="radio" name="dpi" value="300"> 300</label>
-          </div>
-        </div>
-      </div>
-      <div class="convert-bar">
-        <span class="muted" id="count">0 pages</span>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <a class="btn secondary" href="pdf-to-jpg.html"><i class="fas fa-arrow-left"></i> Back</a>
-          <button class="btn" id="convertBtn"><i class="fas fa-download"></i> Download JPG(s)</button>
-          <button class="btn secondary" id="zipBtn"><i class="fas fa-file-zipper"></i> Download ZIP</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <section class="comments">
-    <h2 class="section-title">User Comments</h2>
-    <div class="comment-form">
-      <div class="form-group"><label for="cname">Your Name</label><input id="cname" class="form-control" type="text" placeholder="Enter your name"></div>
-      <div class="form-group"><label for="cemail">Email Address</label><input id="cemail" class="form-control" type="email" placeholder="Enter your email"></div>
-      <div class="form-group"><label for="cmsg">Your Comment</label><textarea id="cmsg" class="form-control" placeholder="Share your experience"></textarea></div>
-      <button class="btn">Submit Comment</button>
-    </div>
-  </section>
+<div class="workbench">
+<div class="panel left">
+<h2 style="font-size:18px">PDF Pages</h2>
+<!-- Upload new PDF removed as requested -->
+<div class="muted" id="currentFileHint" style="margin-top:6px">Current file: <span id="pdfName">Loaded from session</span>.</div>
+<div class="thumb-toolbar">
+<div class="muted">Tip: Click pages to select. If none selected, range applies.</div>
+<div class="toolbar-actions">
+<button class="btn sm secondary" id="selectAllBtn">Select All</button>
+<button class="btn sm secondary" id="clearSelBtn">Clear</button>
+</div>
+</div>
+<div class="preview-grid" id="preview"></div>
+<!-- Share Section moved into left preview panel -->
+</div>
+<div class="panel right">
+<div class="right-sections">
+<div class="section">
+<h3>Export Range</h3>
+<div class="options" style="gap:12px;align-items:center">
+<label class="opt"><input checked="" name="range" type="radio" value="all"/> All pages</label>
+<label class="opt"><input name="range" type="radio" value="custom"/> Range</label>
+<input class="form-control" id="rangeInput" placeholder="e.g. 1-3,5" style="width:160px"/>
+</div>
+</div>
+<div class="section">
+<h3>Quality</h3>
+<div style="display:flex;gap:12px;align-items:center">
+<input id="qualitySlider" max="1" min="0.4" step="0.05" type="range" value="0.8"/>
+<span class="muted" id="qualityLabel">80%</span>
+</div>
+</div>
+<div class="section">
+<h3>DPI</h3>
+<div class="options" style="gap:12px;align-items:center">
+<label class="opt"><input name="dpi" type="radio" value="72"/> 72</label>
+<label class="opt"><input checked="" name="dpi" type="radio" value="150"/> 150</label>
+<label class="opt"><input name="dpi" type="radio" value="300"/> 300</label>
+</div>
+</div>
+</div>
+<div class="convert-bar">
+<span class="muted" id="count">0 pages</span>
+<div style="display:flex;gap:10px;flex-wrap:wrap">
+<a class="btn secondary" href="pdf-to-jpg.html"><i class="fas fa-arrow-left"></i> Back</a>
+<button class="btn" id="convertBtn"><i class="fas fa-download"></i> Download JPG(s)</button>
+<button class="btn secondary" id="zipBtn"><i class="fas fa-file-zipper"></i> Download ZIP</button>
+</div>
+</div>
+</div>
+</div>
+<section class="comments">
+<h2 class="section-title">User Comments</h2>
+<div class="comment-form">
+<div class="form-group"><label for="cname">Your Name</label><input class="form-control" id="cname" placeholder="Enter your name" type="text"/></div>
+<div class="form-group"><label for="cemail">Email Address</label><input class="form-control" id="cemail" placeholder="Enter your email" type="email"/></div>
+<div class="form-group"><label for="cmsg">Your Comment</label><textarea class="form-control" id="cmsg" placeholder="Share your experience"></textarea></div>
+<button class="btn">Submit Comment</button>
+</div>
+</section>
 </main>
-
-
 <script>
   (function(){
     const preview = document.getElementById('preview');
@@ -444,67 +433,22 @@
     loadPdfFromSession();
   })();
 </script>
-
-
-
-
 <footer>
-        <div class="container footer-inner">
-            <div class="footer-company-links">
-                <span>Company</span>
-                <a href="index.html#about">About Us</a>
-                <a href="index.html#contact">Contact</a>
-                <a href="privacy-policy.html">Privacy Policy</a>
-                <a href="terms-of-service.html">Terms of Service</a>
-            </div>
-            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
-            <p class="footer-credits">
+<div class="container footer-inner">
+<div class="footer-company-links">
+<span>Company</span>
+<a href="index.html#about">About Us</a>
+<a href="index.html#contact">Contact</a>
+<a href="privacy-policy.html">Privacy Policy</a>
+<a href="terms-of-service.html">Terms of Service</a>
+</div>
+<p class="footer-brand-line">© easyjpgtopdf — Free PDF &amp; Image Tools for everyone.</p>
+<p class="footer-credits">
                 Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
                 <a href="attributions.html">See full acknowledgements</a>.
             </p>
-        </div>
-    </footer>
-    <script type="module" src="js/auth.js"></script>
+</div>
+</footer>
+<script src="js/auth.js" type="module"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

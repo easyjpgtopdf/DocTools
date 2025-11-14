@@ -1,17 +1,18 @@
 ﻿<!DOCTYPE html>
-<html lang="hi" dir="ltr">
+
+<html dir="ltr" lang="hi">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>भुगतान रसीद - easyjpgtopdf</title>
-    <link rel="stylesheet" href="css/footer.css">
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
+<meta charset="utf-8"/>
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>भुगतान रसीद - easyjpgtopdf</title>
+<link href="css/footer.css" rel="stylesheet"/>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&amp;family=Poppins:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<style>
         /* Reset and Base Styles */
         @font-face {
             font-family: 'Hind';
@@ -276,111 +277,178 @@
             }
         }
     </style>
-    
-    
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/theme-modern.css">
+<link href="css/header.css" rel="stylesheet"/>
+<link href="css/theme-modern.css" rel="stylesheet"/>
 </head>
 <body>
-    <!-- Header -->
-    <header class="no-print">
-        <div class="container">
-            <nav class="navbar">
-                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:40px;"></a>
-                <div class="nav-links">
-                    <a href="index.html" class="nav-link">Home</a>
-                    <a href="#tools" class="nav-link">Tools</a>
-                    <a href="#about" class="nav-link">About</a>
-                    <a href="#contact" class="nav-link">Contact</a>
-                </div>
-            </nav>
-        </div>
-    </header>
-
-    <!-- Receipt Content -->
-    <div class="container" style="padding: 40px 20px;">
-        <div class="receipt-container" style="background: white; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); padding: 40px; max-width: 800px; margin: 0 auto;">
-            <div class="receipt-header" style="text-align: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #eee;">
-                <div style="width: 80px; height: 80px; background: #e8f5e9; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
-                    <i class="fas fa-check-circle" style="font-size: 48px; color: #4CAF50;"></i>
-                </div>
-                <h1 style="color: #333; margin-bottom: 10px; font-size: 28px;">पेमेंट सफल!</h1>
-                <p style="color: #666; font-size: 16px;">आपके दान के लिए धन्यवाद</p>
-                <p style="color: #666; font-size: 14px; margin-top: 5px;">आपका भुगतान सफलतापूर्वक प्राप्त कर लिया गया है</p>
-            </div>
-
-            <div class="receipt-details" style="margin: 30px 0;">
-                <div class="receipt-row" style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
-                    <span class="receipt-label" style="color: #666; font-weight: 500;">ट्रांजैक्शन आईडी:</span>
-                    <span class="receipt-value" id="transaction-id" style="font-weight: 500; color: #333;">-</span>
-                </div>
-                <div class="receipt-row" style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
-                    <span class="receipt-label" style="color: #666; font-weight: 500;">तारीख और समय:</span>
-                    <span class="receipt-value" id="transaction-date" style="font-weight: 500; color: #333;">-</span>
-                </div>
-                <div class="receipt-row" style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
-                    <span class="receipt-label" style="color: #666; font-weight: 500;">भुगतान विधि:</span>
-                    <span class="receipt-value" id="payment-method" style="font-weight: 500; color: #333;">-</span>
-                </div>
-                <div class="receipt-row" style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
-                    <span class="receipt-label" style="color: #666; font-weight: 500;">राशि:</span>
-                    <span class="receipt-value" id="amount" style="font-weight: 700; color: #2196F3; font-size: 18px;">-</span>
-                </div>
-                <div class="receipt-row" style="display: flex; justify-content: space-between; padding: 12px 0; margin-top: 20px; border-top: 2px solid #f0f0f0;">
-                    <span class="receipt-label" style="color: #666; font-weight: 600; font-size: 16px;">स्थिति:</span>
-                    <span class="receipt-value" id="status" style="font-weight: 600; color: #4CAF50; font-size: 16px;">
-                        <i class="fas fa-check-circle"></i> सफल
+<!-- Header -->
+<header>
+<div class="container">
+<nav class="navbar">
+<a class="logo" href="index.html"><img alt="Logo" src="images/logo.png" style="height:54px;"/></a>
+<div class="nav-links">
+<div class="dropdown">
+<a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="jpg-to-pdf.html">JPG to PDF</a>
+<a href="word-to-pdf.html">Word to PDF</a>
+<a href="excel-to-pdf.html">Excel to PDF</a>
+<a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="pdf-to-jpg.html">PDF to JPG</a>
+<a href="pdf-to-word.html">PDF to Word</a>
+<a href="pdf-to-excel.html">PDF to Excel</a>
+<a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="merge-pdf.html">Merge PDF</a>
+<a href="split-pdf.html">Split PDF</a>
+<a href="compress-pdf.html">Compress PDF</a>
+<a href="edit-pdf.html">Pdf Editor</a>
+<a href="protect-pdf.html">Protect PDF</a>
+<a href="unlock-pdf.html">Unlock PDF</a>
+<a href="watermark-pdf.html">Watermark PDF</a>
+<a href="crop-pdf.html">Crop PDF</a>
+<a href="add-page-numbers.html">Add Page Numbers</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="image-repair.html">AI Image Repair</a>
+<a href="image-compressor.html">Image Compressor</a>
+<a href="image-resizer.html">Image Resizer</a>
+<a href="image-editor.html">Image Editor</a>
+<a href="background-remover.html">Image Background Remover</a>
+<a href="ocr-image.html">OCR Image</a>
+<a href="image-watermark.html">Image Watermark Tool</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="resume-maker.html">Resume Maker</a>
+<a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+<a href="ai-image-generator.html">AI Image Generator</a>
+<a href="marriage-card.html">Marriage Card</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="excel-unlocker.html">Excel Unlocker</a>
+<a href="protect-excel.html">Protect Excel Sheet</a>
+</div>
+</div>
+</div>
+<div class="auth-buttons">
+<a class="auth-link" href="login.html">Sign In</a>
+<a class="auth-btn" href="signup.html"><i aria-hidden="true" class="fas fa-user-plus"></i><span>Signup</span></a>
+</div>
+<div class="user-menu" data-open="false" id="user-menu">
+<button aria-expanded="false" aria-haspopup="true" aria-label="Account menu" class="user-menu-toggle" id="user-menu-toggle" type="button">
+<span aria-hidden="true" class="user-initial">U</span>
+<i aria-hidden="true" class="fas fa-chevron-down"></i>
+</button>
+<div class="user-dropdown" hidden="" id="user-dropdown">
+<a data-user-nav="dashboard-overview" href="dashboard.html#dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+<a data-user-nav="dashboard-billing" href="dashboard.html#dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+<a data-user-nav="dashboard-payments" href="dashboard.html#dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+<a data-user-nav="dashboard-orders" href="dashboard.html#dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
+<a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
+<button class="dropdown-logout" id="logout-button" type="button"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+</div>
+</div>
+</nav>
+</div>
+</header>
+<!-- Receipt Content -->
+<div class="container" style="padding: 40px 20px;">
+<div class="receipt-container" style="background: white; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); padding: 40px; max-width: 800px; margin: 0 auto;">
+<div class="receipt-header" style="text-align: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #eee;">
+<div style="width: 80px; height: 80px; background: #e8f5e9; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+<i class="fas fa-check-circle" style="font-size: 48px; color: #4CAF50;"></i>
+</div>
+<h1 style="color: #333; margin-bottom: 10px; font-size: 28px;">पेमेंट सफल!</h1>
+<p style="color: #666; font-size: 16px;">आपके दान के लिए धन्यवाद</p>
+<p style="color: #666; font-size: 14px; margin-top: 5px;">आपका भुगतान सफलतापूर्वक प्राप्त कर लिया गया है</p>
+</div>
+<div class="receipt-details" style="margin: 30px 0;">
+<div class="receipt-row" style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
+<span class="receipt-label" style="color: #666; font-weight: 500;">ट्रांजैक्शन आईडी:</span>
+<span class="receipt-value" id="transaction-id" style="font-weight: 500; color: #333;">-</span>
+</div>
+<div class="receipt-row" style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
+<span class="receipt-label" style="color: #666; font-weight: 500;">तारीख और समय:</span>
+<span class="receipt-value" id="transaction-date" style="font-weight: 500; color: #333;">-</span>
+</div>
+<div class="receipt-row" style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
+<span class="receipt-label" style="color: #666; font-weight: 500;">भुगतान विधि:</span>
+<span class="receipt-value" id="payment-method" style="font-weight: 500; color: #333;">-</span>
+</div>
+<div class="receipt-row" style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
+<span class="receipt-label" style="color: #666; font-weight: 500;">राशि:</span>
+<span class="receipt-value" id="amount" style="font-weight: 700; color: #2196F3; font-size: 18px;">-</span>
+</div>
+<div class="receipt-row" style="display: flex; justify-content: space-between; padding: 12px 0; margin-top: 20px; border-top: 2px solid #f0f0f0;">
+<span class="receipt-label" style="color: #666; font-weight: 600; font-size: 16px;">स्थिति:</span>
+<span class="receipt-value" id="status" style="font-weight: 600; color: #4CAF50; font-size: 16px;">
+<i class="fas fa-check-circle"></i> सफल
                     </span>
-                </div>
-            </div>
-
-            <div class="receipt-actions no-print" style="display: flex; justify-content: center; gap: 15px; margin-top: 40px;">
-                <button id="print-receipt" class="btn btn-primary" style="background-color: #4361ee; color: white; border: none; padding: 12px 25px; border-radius: 5px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s ease;">
-                    <i class="fas fa-print"></i> रसीद प्रिंट करें
+</div>
+</div>
+<div class="receipt-actions no-print" style="display: flex; justify-content: center; gap: 15px; margin-top: 40px;">
+<button class="btn btn-primary" id="print-receipt" style="background-color: #4361ee; color: white; border: none; padding: 12px 25px; border-radius: 5px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s ease;">
+<i class="fas fa-print"></i> रसीद प्रिंट करें
                 </button>
-                <a href="index.html" class="btn btn-outline" style="background: white; color: #4361ee; border: 1px solid #4361ee; padding: 12px 25px; border-radius: 5px; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s ease;">
-                    <i class="fas fa-home"></i> होम पेज पर वापस जाएं
+<a class="btn btn-outline" href="index.html" style="background: white; color: #4361ee; border: 1px solid #4361ee; padding: 12px 25px; border-radius: 5px; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s ease;">
+<i class="fas fa-home"></i> होम पेज पर वापस जाएं
                 </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <footer class="no-print">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <h3>About Us</h3>
-                    <p>easyjpgtopdf offers a complete suite of PDF tools to convert, edit, and manage your documents with ease.</p>
-                    <div class="social-links">
-                        <a href="#"><i class="fab fa-facebook"></i></a>
-                        <a href="#"><i class="fab fa-twitter"></i></a>
-                        <a href="#"><i class="fab fa-instagram"></i></a>
-                        <a href="#"><i class="fab fa-linkedin"></i></a>
-                    </div>
-                </div>
-                <div class="footer-section">
-                    <h3>Quick Links</h3>
-                    <a href="#tools">Our Tools</a>
-                    <a href="#about">About Us</a>
-                    <a href="#contact">Contact</a>
-                    <a href="privacy-policy.html">Privacy Policy</a>
-                    <a href="terms-of-service.html">Terms of Service</a>
-                </div>
-                <div class="footer-section">
-                    <h3>Contact Us</h3>
-                    <p><i class="fas fa-envelope"></i> support@easyjpgtopdf.com</p>
-                    <p><i class="fas fa-phone"></i> +91 1234567890</p>
-                    <p><i class="fas fa-map-marker-alt"></i> 123 Tech Park, Bangalore, India</p>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; <span id="current-year">2024</span> easyjpgtopdf. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
-
-    <script>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<footer class="no-print">
+<div class="container">
+<div class="footer-content">
+<div class="footer-section">
+<h3>About Us</h3>
+<p>easyjpgtopdf offers a complete suite of PDF tools to convert, edit, and manage your documents with ease.</p>
+<div class="social-links">
+<a href="#"><i class="fab fa-facebook"></i></a>
+<a href="#"><i class="fab fa-twitter"></i></a>
+<a href="#"><i class="fab fa-instagram"></i></a>
+<a href="#"><i class="fab fa-linkedin"></i></a>
+</div>
+</div>
+<div class="footer-section">
+<h3>Quick Links</h3>
+<a href="#tools">Our Tools</a>
+<a href="#about">About Us</a>
+<a href="#contact">Contact</a>
+<a href="privacy-policy.html">Privacy Policy</a>
+<a href="terms-of-service.html">Terms of Service</a>
+</div>
+<div class="footer-section">
+<h3>Contact Us</h3>
+<p><i class="fas fa-envelope"></i> support@easyjpgtopdf.com</p>
+<p><i class="fas fa-phone"></i> +91 1234567890</p>
+<p><i class="fas fa-map-marker-alt"></i> 123 Tech Park, Bangalore, India</p>
+</div>
+</div>
+<div class="footer-bottom">
+<p>© <span id="current-year">2024</span> easyjpgtopdf. All rights reserved.</p>
+</div>
+</div>
+</footer>
+<script>
         document.addEventListener('DOMContentLoaded', function() {
             // URL पैरामीटर्स से डेटा निकालें
             const urlParams = new URLSearchParams(window.location.search);
@@ -443,6 +511,6 @@
             }
         });
     </script>
-    <script type="module" src="js/auth.js"></script>
+<script src="js/auth.js" type="module"></script>
 </body>
 </html>

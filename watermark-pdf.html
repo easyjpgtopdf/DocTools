@@ -1,13 +1,14 @@
 ﻿<!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Watermark PDF | easyjpgtopdf</title>
-    <link rel="stylesheet" href="css/footer.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Watermark PDF | easyjpgtopdf</title>
+<link href="css/footer.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     :root { --primary: #4361ee; --primary-dark: #3a0ca3; --secondary: #f72585; --success: #4cc9f0; --light: #f8f9fa; --dark: #212529; --gray: #6c757d; --border-radius: 12px; --box-shadow: 0 5px 15px rgba(0,0,0,0.08); --transition: all 0.3s ease; }
     body { background: linear-gradient(135deg, #f5f7ff 0%, #e9ecef 100%); color: var(--dark); min-height: 100vh; line-height: 1.6; display: flex; flex-direction: column; }
@@ -83,263 +84,241 @@
     .copyright { text-align: center; color: #aaa; border-top: 1px solid #444; padding-top: 16px; font-size: .9rem; }
     @media (max-width: 768px) { .nav-links { display: none; } .action-buttons { flex-direction: column; } .btn { width: 100%; justify-content: center; } }
   </style>
-    
-
-    
-    
-    
-
-    
-
-    
-
-    
-    
-
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/theme-modern.css">
-</head>
+<link href="css/header.css" rel="stylesheet"/>
+<link href="css/theme-modern.css" rel="stylesheet"/>
+</link></head>
 <body>
 <header>
-        <div class="container">
-            <nav class="navbar">
-                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
-                <div class="nav-links">
-                    <div class="dropdown">
-                        <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="jpg-to-pdf.html">JPG to PDF</a>
-                            <a href="word-to-pdf.html">Word to PDF</a>
-                            <a href="excel-to-pdf.html">Excel to PDF</a>
-                            <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="pdf-to-jpg.html">PDF to JPG</a>
-                            <a href="pdf-to-word.html">PDF to Word</a>
-                            <a href="pdf-to-excel.html">PDF to Excel</a>
-                            <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="merge-pdf.html">Merge PDF</a>
-                            <a href="split-pdf.html">Split PDF</a>
-                            <a href="compress-pdf.html">Compress PDF</a>
-                            <a href="edit-pdf.html">Pdf Editor</a>
-                            <a href="protect-pdf.html">Protect PDF</a>
-                            <a href="unlock-pdf.html">Unlock PDF</a>
-                            <a href="watermark-pdf.html">Watermark PDF</a>
-                            <a href="crop-pdf.html">Crop PDF</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="image-compressor.html">Image Compressor</a>
-                            <a href="image-resizer.html">Image Resizer</a>
-                            <a href="image-editor.html">Image Editor</a>
-                            <a href="background-remover.html">Image Background Remover</a>
-                            <a href="ocr-image.html">OCR Image</a>
-                            <a href="image-watermark.html">Image Watermark Tool</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="resume-maker.html">Resume Maker</a>
-                            <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
-                            <a href="ai-image-generator.html">AI Image Generator</a>
-                            <a href="marriage-card.html">Marriage Card</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="auth-buttons">
-                    <a href="login.html" class="auth-link">Sign In</a>
-                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Create Account</span></a>
-                </div>
-                <div id="user-menu" class="user-menu" data-open="false">
-                    <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
-                        <span class="user-initial" aria-hidden="true">U</span>
-                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                    </button>
-                    <div class="user-dropdown" id="user-dropdown" hidden>
-                        <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
-                        <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
-                        <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
-                        <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
-                        <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
-                        <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
-                    </div>
-                </div>
-            </nav>
-        </div>
-    </header>
-
-
-
-
-  <!-- Header from index.html -->
-  
-
-  <div class="container page-wrap">
-    <div class="converter-header">
-      <h1>Watermark PDF</h1>
-      <p>Add custom watermark text to your PDF. Fast, secure, and works in your browser.</p>
-    </div>
-
-    <div class="converter-card">
-      <div class="upload-area" id="upload-area">
-        <div class="upload-icon"><i class="fas fa-file-pdf"></i></div>
-        <h3>Upload Your PDF</h3>
-        <p>Drag & drop your .pdf file here</p>
-        <p>or click to browse files</p>
-        <input type="file" id="file-input" class="file-input" accept="application/pdf,.pdf" />
-      </div>
-
-      <div class="file-info" id="file-info">
-        <div class="file-details">
-          <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
-          <div class="file-text">
-            <h4 id="file-name">Document.pdf</h4>
-            <p id="file-size">0 KB</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="options-section">
-        <h3>Watermark Options</h3>
-        <div class="option-grid">
-          <div class="option-group">
-            <label for="wm-text">Watermark Text</label>
-            <input id="wm-text" class="option-input" type="text" placeholder="CONFIDENTIAL" value="CONFIDENTIAL" />
-          </div>
-          <div class="option-group">
-            <label for="wm-size">Font Size (pt)</label>
-            <input id="wm-size" class="option-input" type="number" min="8" max="200" step="1" value="48" />
-          </div>
-          <div class="option-group">
-            <label for="wm-color">Color</label>
-            <input id="wm-color" class="option-input" type="color" value="#ff0000" />
-          </div>
-          <div class="option-group">
-            <label for="wm-opacity">Opacity: <span id="wm-opacity-val">0.2</span></label>
-            <input id="wm-opacity" class="range" type="range" min="0.05" max="1" step="0.05" value="0.2" />
-          </div>
-          <div class="option-group">
-            <label for="wm-rotation">Rotation (deg)</label>
-            <input id="wm-rotation" class="option-input" type="number" min="-180" max="180" step="1" value="45" />
-          </div>
-          <div class="option-group">
-            <label for="wm-position">Position</label>
-            <select id="wm-position" class="option-select">
-              <option value="center-diagonal" selected>Center (Diagonal)</option>
-              <option value="center">Center</option>
-              <option value="top-left">Top Left</option>
-              <option value="top-right">Top Right</option>
-              <option value="bottom-left">Bottom Left</option>
-              <option value="bottom-right">Bottom Right</option>
-            </select>
-          </div>
-          <div class="option-group">
-            <label>Apply To</label>
-            <div class="inline"><input type="checkbox" id="all-pages" checked /><label for="all-pages">All Pages</label></div>
-            <small style="color:var(--gray)">If off, watermark only first page</small>
-          </div>
-
-          <!-- Logo watermark options -->
-          <div class="option-group">
-            <label class="inline" for="enable-logo"><input type="checkbox" id="enable-logo" style="margin-right:8px;"> Add Logo Watermark</label>
-            <input id="wm-logo-file" class="option-input" type="file" accept="image/png,image/jpeg" />
-          </div>
-          <div class="option-group">
-            <label for="wm-logo-scale">Logo Size (% of page width)</label>
-            <input id="wm-logo-scale" class="option-input" type="number" min="5" max="100" step="1" value="30" />
-          </div>
-          <div class="option-group">
-            <label for="wm-logo-rotation">Logo Rotation (deg)</label>
-            <input id="wm-logo-rotation" class="option-input" type="number" min="-180" max="180" step="1" value="0" />
-          </div>
-          <div class="option-group">
-            <label for="wm-logo-opacity">Logo Opacity: <span id="wm-logo-opacity-val">0.3</span></label>
-            <input id="wm-logo-opacity" class="range" type="range" min="0.05" max="1" step="0.05" value="0.3" />
-          </div>
-        </div>
-      </div>
-
-      <div class="progress-container" id="progress-container">
-        <div class="progress-bar"><div class="progress" id="progress-bar"></div></div>
-        <div class="progress-text" id="progress-text">Initializing...</div>
-      </div>
-
-      <div class="loading" id="loading">
-        <div class="loading-spinner"></div>
-        <p>Applying watermark to your PDF...</p>
-      </div>
-
-      <div class="success-message message" id="success-message"><i class="fas fa-check-circle"></i> Watermark added successfully!</div>
-      <div class="error-message message" id="error-message"><i class="fas fa-exclamation-circle"></i> <span id="error-text">An error occurred</span></div>
-
-      <div class="action-buttons">
-        <button class="btn btn-primary" id="convert-btn" disabled><i class="fas fa-water"></i> Add Watermark</button>
-        <button class="btn btn-secondary" id="clear-btn"><i class="fas fa-trash"></i> Clear File</button>
-      </div>
-
-      <div class="preview-section" id="preview-section"></div>
-    </div>
-
-    <!-- Comments (same style as word-to-pdf.html) -->
-  </div>
-
-  <!-- Footer (same as word-to-pdf.html) -->
-  <div class="features" style="background-color:#fff;padding:80px 0;border-radius:20px;margin-bottom:50px;">
-  <div class="container">
-    <h2 class="section-title">Why Choose easyjpgtopdf?</h2>
-    <div class="features-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:40px;">
-      <div class="feature" style="display:flex;gap:20px;">
-        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
-          <i class="fas fa-shield-alt"></i>
-        </div>
-        <div class="feature-content">
-          <h3 style="margin-bottom:10px;font-size:1.3rem;">Secure & Private</h3>
-          <p style="color:#6c757d;">All files are processed securely and automatically deleted after 1 hour.</p>
-        </div>
-      </div>
-      <div class="feature" style="display:flex;gap:20px;">
-        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
-          <i class="fas fa-bolt"></i>
-        </div>
-        <div class="feature-content">
-          <h3 style="margin-bottom:10px;font-size:1.3rem;">Fast Processing</h3>
-          <p style="color:#6c757d;">Our optimized algorithms process your files in seconds.</p>
-        </div>
-      </div>
-      <div class="feature" style="display:flex;gap:20px;">
-        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
-          <i class="fas fa-desktop"></i>
-        </div>
-        <div class="feature-content">
-          <h3 style="margin-bottom:10px;font-size:1.3rem;">Works Everywhere</h3>
-          <p style="color:#6c757d;">Use easyjpgtopdf on any device with a modern web browser.</p>
-        </div>
-      </div>
-      <div class="feature" style="display:flex;gap:20px;">
-        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
-          <i class="fas fa-euro-sign"></i>
-        </div>
-        <div class="feature-content">
-          <h3 style="margin-bottom:10px;font-size:1.3rem;">Completely Free</h3>
-          <p style="color:#6c757d;">All our basic tools are free to use with no hidden costs.</p>
-        </div>
-      </div>
-    </div>
-  </div>
+<div class="container">
+<nav class="navbar">
+<a class="logo" href="index.html"><img alt="Logo" src="images/logo.png" style="height:54px;"/></a>
+<div class="nav-links">
+<div class="dropdown">
+<a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="jpg-to-pdf.html">JPG to PDF</a>
+<a href="word-to-pdf.html">Word to PDF</a>
+<a href="excel-to-pdf.html">Excel to PDF</a>
+<a href="ppt-to-pdf.html">PowerPoint to PDF</a>
 </div>
-
-  <script>
+</div>
+<div class="dropdown">
+<a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="pdf-to-jpg.html">PDF to JPG</a>
+<a href="pdf-to-word.html">PDF to Word</a>
+<a href="pdf-to-excel.html">PDF to Excel</a>
+<a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="merge-pdf.html">Merge PDF</a>
+<a href="split-pdf.html">Split PDF</a>
+<a href="compress-pdf.html">Compress PDF</a>
+<a href="edit-pdf.html">Pdf Editor</a>
+<a href="protect-pdf.html">Protect PDF</a>
+<a href="unlock-pdf.html">Unlock PDF</a>
+<a href="watermark-pdf.html">Watermark PDF</a>
+<a href="crop-pdf.html">Crop PDF</a>
+<a href="add-page-numbers.html">Add Page Numbers</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="image-repair.html">AI Image Repair</a>
+<a href="image-compressor.html">Image Compressor</a>
+<a href="image-resizer.html">Image Resizer</a>
+<a href="image-editor.html">Image Editor</a>
+<a href="background-remover.html">Image Background Remover</a>
+<a href="ocr-image.html">OCR Image</a>
+<a href="image-watermark.html">Image Watermark Tool</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="resume-maker.html">Resume Maker</a>
+<a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+<a href="ai-image-generator.html">AI Image Generator</a>
+<a href="marriage-card.html">Marriage Card</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="excel-unlocker.html">Excel Unlocker</a>
+<a href="protect-excel.html">Protect Excel Sheet</a>
+</div>
+</div>
+</div>
+<div class="auth-buttons">
+<a class="auth-link" href="login.html">Sign In</a>
+<a class="auth-btn" href="signup.html"><i aria-hidden="true" class="fas fa-user-plus"></i><span>Signup</span></a>
+</div>
+<div class="user-menu" data-open="false" id="user-menu">
+<button aria-expanded="false" aria-haspopup="true" aria-label="Account menu" class="user-menu-toggle" id="user-menu-toggle" type="button">
+<span aria-hidden="true" class="user-initial">U</span>
+<i aria-hidden="true" class="fas fa-chevron-down"></i>
+</button>
+<div class="user-dropdown" hidden="" id="user-dropdown">
+<a data-user-nav="dashboard-overview" href="dashboard.html#dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+<a data-user-nav="dashboard-billing" href="dashboard.html#dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+<a data-user-nav="dashboard-payments" href="dashboard.html#dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+<a data-user-nav="dashboard-orders" href="dashboard.html#dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
+<a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
+<button class="dropdown-logout" id="logout-button" type="button"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+</div>
+</div>
+</nav>
+</div>
+</header>
+<!-- Header from index.html -->
+<div class="container page-wrap">
+<div class="converter-header">
+<h1>Watermark PDF</h1>
+<p>Add custom watermark text to your PDF. Fast, secure, and works in your browser.</p>
+</div>
+<div class="converter-card">
+<div class="upload-area" id="upload-area">
+<div class="upload-icon"><i class="fas fa-file-pdf"></i></div>
+<h3>Upload Your PDF</h3>
+<p>Drag &amp; drop your .pdf file here</p>
+<p>or click to browse files</p>
+<input accept="application/pdf,.pdf" class="file-input" id="file-input" type="file"/>
+</div>
+<div class="file-info" id="file-info">
+<div class="file-details">
+<div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+<div class="file-text">
+<h4 id="file-name">Document.pdf</h4>
+<p id="file-size">0 KB</p>
+</div>
+</div>
+</div>
+<div class="options-section">
+<h3>Watermark Options</h3>
+<div class="option-grid">
+<div class="option-group">
+<label for="wm-text">Watermark Text</label>
+<input class="option-input" id="wm-text" placeholder="CONFIDENTIAL" type="text" value="CONFIDENTIAL"/>
+</div>
+<div class="option-group">
+<label for="wm-size">Font Size (pt)</label>
+<input class="option-input" id="wm-size" max="200" min="8" step="1" type="number" value="48"/>
+</div>
+<div class="option-group">
+<label for="wm-color">Color</label>
+<input class="option-input" id="wm-color" type="color" value="#ff0000"/>
+</div>
+<div class="option-group">
+<label for="wm-opacity">Opacity: <span id="wm-opacity-val">0.2</span></label>
+<input class="range" id="wm-opacity" max="1" min="0.05" step="0.05" type="range" value="0.2"/>
+</div>
+<div class="option-group">
+<label for="wm-rotation">Rotation (deg)</label>
+<input class="option-input" id="wm-rotation" max="180" min="-180" step="1" type="number" value="45"/>
+</div>
+<div class="option-group">
+<label for="wm-position">Position</label>
+<select class="option-select" id="wm-position">
+<option selected="" value="center-diagonal">Center (Diagonal)</option>
+<option value="center">Center</option>
+<option value="top-left">Top Left</option>
+<option value="top-right">Top Right</option>
+<option value="bottom-left">Bottom Left</option>
+<option value="bottom-right">Bottom Right</option>
+</select>
+</div>
+<div class="option-group">
+<label>Apply To</label>
+<div class="inline"><input checked="" id="all-pages" type="checkbox"/><label for="all-pages">All Pages</label></div>
+<small style="color:var(--gray)">If off, watermark only first page</small>
+</div>
+<!-- Logo watermark options -->
+<div class="option-group">
+<label class="inline" for="enable-logo"><input id="enable-logo" style="margin-right:8px;" type="checkbox"/> Add Logo Watermark</label>
+<input accept="image/png,image/jpeg" class="option-input" id="wm-logo-file" type="file">
+</input></div>
+<div class="option-group">
+<label for="wm-logo-scale">Logo Size (% of page width)</label>
+<input class="option-input" id="wm-logo-scale" max="100" min="5" step="1" type="number" value="30"/>
+</div>
+<div class="option-group">
+<label for="wm-logo-rotation">Logo Rotation (deg)</label>
+<input class="option-input" id="wm-logo-rotation" max="180" min="-180" step="1" type="number" value="0"/>
+</div>
+<div class="option-group">
+<label for="wm-logo-opacity">Logo Opacity: <span id="wm-logo-opacity-val">0.3</span></label>
+<input class="range" id="wm-logo-opacity" max="1" min="0.05" step="0.05" type="range" value="0.3"/>
+</div>
+</div>
+</div>
+<div class="progress-container" id="progress-container">
+<div class="progress-bar"><div class="progress" id="progress-bar"></div></div>
+<div class="progress-text" id="progress-text">Initializing...</div>
+</div>
+<div class="loading" id="loading">
+<div class="loading-spinner"></div>
+<p>Applying watermark to your PDF...</p>
+</div>
+<div class="success-message message" id="success-message"><i class="fas fa-check-circle"></i> Watermark added successfully!</div>
+<div class="error-message message" id="error-message"><i class="fas fa-exclamation-circle"></i> <span id="error-text">An error occurred</span></div>
+<div class="action-buttons">
+<button class="btn btn-primary" disabled="" id="convert-btn"><i class="fas fa-water"></i> Add Watermark</button>
+<button class="btn btn-secondary" id="clear-btn"><i class="fas fa-trash"></i> Clear File</button>
+</div>
+<div class="preview-section" id="preview-section"></div>
+</div>
+<!-- Comments (same style as word-to-pdf.html) -->
+</div>
+<!-- Footer (same as word-to-pdf.html) -->
+<div class="features" style="background-color:#fff;padding:80px 0;border-radius:20px;margin-bottom:50px;">
+<div class="container">
+<h2 class="section-title">Why Choose easyjpgtopdf?</h2>
+<div class="features-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:40px;">
+<div class="feature" style="display:flex;gap:20px;">
+<div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+<i class="fas fa-shield-alt"></i>
+</div>
+<div class="feature-content">
+<h3 style="margin-bottom:10px;font-size:1.3rem;">Secure &amp; Private</h3>
+<p style="color:#6c757d;">All files are processed securely and automatically deleted after 1 hour.</p>
+</div>
+</div>
+<div class="feature" style="display:flex;gap:20px;">
+<div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+<i class="fas fa-bolt"></i>
+</div>
+<div class="feature-content">
+<h3 style="margin-bottom:10px;font-size:1.3rem;">Fast Processing</h3>
+<p style="color:#6c757d;">Our optimized algorithms process your files in seconds.</p>
+</div>
+</div>
+<div class="feature" style="display:flex;gap:20px;">
+<div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+<i class="fas fa-desktop"></i>
+</div>
+<div class="feature-content">
+<h3 style="margin-bottom:10px;font-size:1.3rem;">Works Everywhere</h3>
+<p style="color:#6c757d;">Use easyjpgtopdf on any device with a modern web browser.</p>
+</div>
+</div>
+<div class="feature" style="display:flex;gap:20px;">
+<div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+<i class="fas fa-euro-sign"></i>
+</div>
+<div class="feature-content">
+<h3 style="margin-bottom:10px;font-size:1.3rem;">Completely Free</h3>
+<p style="color:#6c757d;">All our basic tools are free to use with no hidden costs.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
     let currentFile = null; let originalPdfBytes = null;
     const uploadArea = document.getElementById('upload-area');
     const fileInput = document.getElementById('file-input');
@@ -513,67 +492,22 @@
     function showError(message){ errorText.textContent = message; errorMessage.style.display='block'; }
     function hideMessages(){ successMessage.style.display='none'; errorMessage.style.display='none'; }
   </script>
-
-
-
-
 <footer>
-        <div class="container footer-inner">
-            <div class="footer-company-links">
-                <span>Company</span>
-                <a href="index.html#about">About Us</a>
-                <a href="index.html#contact">Contact</a>
-                <a href="privacy-policy.html">Privacy Policy</a>
-                <a href="terms-of-service.html">Terms of Service</a>
-            </div>
-            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
-            <p class="footer-credits">
+<div class="container footer-inner">
+<div class="footer-company-links">
+<span>Company</span>
+<a href="index.html#about">About Us</a>
+<a href="index.html#contact">Contact</a>
+<a href="privacy-policy.html">Privacy Policy</a>
+<a href="terms-of-service.html">Terms of Service</a>
+</div>
+<p class="footer-brand-line">© easyjpgtopdf — Free PDF &amp; Image Tools for everyone.</p>
+<p class="footer-credits">
                 Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
                 <a href="attributions.html">See full acknowledgements</a>.
             </p>
-        </div>
-    </footer>
-    <script type="module" src="js/auth.js"></script>
+</div>
+</footer>
+<script src="js/auth.js" type="module"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

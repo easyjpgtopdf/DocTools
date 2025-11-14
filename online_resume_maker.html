@@ -1,17 +1,14 @@
 ﻿<!DOCTYPE html>
+
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resume/CV Maker - Free Templates</title>
-    <link rel="stylesheet" href="css/footer.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    
-    
-
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Roboto+Slab:wght@400;700&family=Montserrat:wght@500;700&display=swap" rel="stylesheet">
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Resume/CV Maker - Free Templates</title>
+<link href="css/footer.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&amp;family=Roboto+Slab:wght@400;700&amp;family=Montserrat:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<style>
     :root {
       --panel-w:15cm; /* preview panel width */
       --panel-h:20cm; /* preview panel height */
@@ -120,250 +117,235 @@
   </style>
 </head>
 <body>
-  <!-- Header -->
-  <header>
-    <div class="container">
-      <nav class="navbar">
-        <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
-        <div class="nav-links">
-          <div class="dropdown">
-            <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
-            <div class="dropdown-content">
-              <a href="jpg-to-pdf.html">JPG to PDF</a>
-              <a href="word-to-pdf.html">Word to PDF</a>
-              <a href="excel-to-pdf.html">Excel to PDF</a>
-              <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
-            </div>
-          </div>
-          <div class="dropdown">
-            <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
-            <div class="dropdown-content">
-              <a href="pdf-to-jpg.html">PDF to JPG</a>
-              <a href="pdf-to-word.html">PDF to Word</a>
-              <a href="pdf-to-excel.html">PDF to Excel</a>
-              <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
-            </div>
-          </div>
-          <div class="dropdown">
-            <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
-            <div class="dropdown-content">
-              <a href="merge-pdf.html">Merge PDF</a>
-              <a href="split-pdf.html">Split PDF</a>
-              <a href="compress-pdf.html">Compress PDF</a>
-              <a href="edit-pdf.html">Pdf Editor</a>
-              <a href="protect-pdf.html">Protect PDF</a>
-              <a href="unlock-pdf.html">Unlock PDF</a>
-              <a href="watermark-pdf.html">Watermark PDF</a>
-              <a href="crop-pdf.html">Crop PDF</a>
-            </div>
-          </div>
-          <div class="dropdown">
-            <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
-            <div class="dropdown-content">
-              <a href="image-compressor.html">Image Compressor</a>
-              <a href="image-resizer.html">Image Resizer</a>
-              <a href="image-editor.html">Image Editor</a>
-              <a href="background-remover.html">Image Background Remover</a>
-              <a href="ocr-image.html">OCR Image</a>
-              <a href="image-watermark.html">Image Watermark Tool</a>
-            </div>
-          </div>
-          <div class="dropdown">
-            <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
-            <div class="dropdown-content">
-              <a href="resume-maker.html">Resume Maker</a>
-              <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
-              <a href="ai-image-generator.html">AI Image Generator</a>
-              <a href="marriage-card.html">Marriage Card</a>
-            </div>
-          </div>
-        </div>
-        <div class="auth-buttons">
-          <a href="login.html" class="auth-link">Sign In</a>
-          <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Create Account</span></a>
-        </div>
-        <div id="user-menu" class="user-menu" data-open="false">
-          <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
-            <span class="user-initial" aria-hidden="true">U</span>
-            <i class="fas fa-chevron-down" aria-hidden="true"></i>
-          </button>
-          <div class="user-dropdown" id="user-dropdown" hidden>
-            <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
-            <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
-            <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
-            <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
-            <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
-            <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
-          </div>
-        </div>
-      </nav>
-    </div>
-  </header>
-
-  <div class="main-content">
-    <div class="app">
-      <div class="left">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <h2>Resume/CV Maker</h2>
-          <div class="locked">LOCKED</div>
-        </div>
-
-        <div class="section">
-          <label>Choose Template (Dropdown quick select)</label>
-          <select id="templateSelect" class="dropdown-template"></select>
-        </div>
-
-        <div class="section">
-          <label>Photo</label>
-          <input type="file" accept="image/*" id="photoInput">
-          <div style="margin-top:8px"><img id="photoPreview" class="img-preview" alt="photo preview"></div>
-        </div>
-
-        <div class="section">
-          <label>Full Name</label>
-          <input id="name" type="text" placeholder="Your name">
-        </div>
-
-        <div class="section">
-          <label>Title / Position (add multiple - comma separated OR type custom)</label>
-          <input id="title" type="text" placeholder="e.g. Software Developer, Team Lead, Frontend Engineer">
-        </div>
-
-        <div class="section">
-          <label>Profile (choose)</label>
-          <select id="profileSelect">
-            <option value="Student">Student - Seeking internships/entry roles</option>
-            <option value="Supervisor">Supervisor - Experienced in team management</option>
-            <option value="Labor">Labor - Skilled labor positions</option>
-            <option value="Driver">Driver - Truck/Car driver with licence details</option>
-            <option value="Fresher">Fresher - Recent graduate</option>
-          </select>
-        </div>
-
-        <div class="section">
-          <label>Choose Objective (select one)</label>
-          <select id="objectiveSelect"></select>
-        </div>
-
-        <div class="section">
-          <label>Summary / Professional Objective</label>
-          <textarea id="summary" placeholder="Short professional summary"></textarea>
-        </div>
-
-        <div class="section">
-          <label>Education (Add entries)</label>
-          <div id="educationList"></div>
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <button class="btn" id="addEdu">Add Education</button>
-          </div>
-        </div>
-
-        <div class="section">
-          <label>Experience (Add entries)</label>
-          <div id="expList"></div>
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <button class="btn" id="addExp">Add Experience</button>
-          </div>
-        </div>
-
-        <div class="section">
-          <label>Hobbies (comma separated)</label>
-          <input id="hobbies" type="text" placeholder="Reading, Coding, Football">
-        </div>
-
-        <div class="section">
-          <label>Personal Details</label>
-          <div class="row">
-            <div class="col"><input id="father" type="text" placeholder="Father's Name"></div>
-            <div class="col"><input id="dob" type="date" placeholder="D.O.B"></div>
-          </div>
-          <div class="row" style="margin-top:8px">
-            <div class="col"><input id="marital" type="text" placeholder="Marital Status"></div>
-            <div class="col"><input id="languages" type="text" placeholder="Languages Known (comma)"></div>
-          </div>
-
-          <div style="margin-top:8px">
-            <label>ID Card Details (dropdown - select type to add)</label>
-            <select id="idType"><option value="">Select ID Type</option><option>Aadhar Card</option><option>Pan Card</option><option>Voter Id Card</option><option>Passport</option><option>Driver License</option><option>Green Card</option><option>Yellow Card</option><option>Other</option></select>
-            <div style="display:flex;gap:8px;margin-top:8px">
-              <input id="idNo" type="text" placeholder="ID Number">
-              <input id="idValid" type="date" placeholder="Validity (if any)">
-              <button class="btn secondary" id="addIdBtn">Add</button>
-            </div>
-            <div id="idList" class="small muted" style="margin-top:8px"></div>
-          </div>
-        </div>
-
-        <div class="section" id="driverExtras" style="display:none">
-          <label>Driver Details (License Table)</label>
-          <div id="licTableWrap"></div>
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <button class="btn" id="addLicense">Add Licence</button>
-          </div>
-        </div>
-
-        <div class="section">
-          <label>Footer Declaration (will appear above footer bar)</label>
-          <input id="declarationText" type="text" placeholder="I hereby declare that...">
-        </div>
-
-        <div class="section btn-row">
-          <button class="btn" id="updateBtn">Update Preview</button>
-          <button class="btn" id="downloadPdf">Download PDF</button>
-          <button class="btn" id="downloadImg">Download Image</button>
-          <button class="btn" id="downloadDoc">Download Word</button>
-          <button class="btn secondary" id="downloadHtml">Download HTML</button>
-        </div>
-
-      </div>
-
-      <div class="right">
-        <div class="preview-wrapper">
-          <div class="preview-frame" id="previewFrame">
-            <div class="preview-inner" id="previewInner">
-              <!-- dynamic resume goes here -->
-            </div>
-          </div>
-
-          <div class="declaration small muted" id="declarationPreview">
-            <div class="decl-text">I hereby declare that the information given above is true to the best of my knowledge.</div>
-            <div class="decl-row" style="margin-top:8px">
-              <div id="declDate">Date: __________</div>
-              <div id="declName">(Signature) <strong id="declNameValue">Your Name</strong></div>
-            </div>
-          </div>
-
-          <div class="template-strip" id="templateStrip"></div>
-        </div>
-
-        <div style="display:flex;gap:8px;margin-top:6px">
-          <small class="muted">Preview frame: <strong>15cm x 20cm</strong> | Template thumb: 4.5cm x 6cm</small>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <!-- Global Footer -->
-  <footer>
-    <div class="container footer-inner">
-      <div class="footer-company-links">
-        <span>Company</span>
-        <a href="index.html#about">About Us</a>
-        <a href="index.html#contact">Contact</a>
-        <a href="privacy-policy.html">Privacy Policy</a>
-        <a href="terms-of-service.html">Terms of Service</a>
-      </div>
-      <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
-      <p class="footer-credits">
+<!-- Header -->
+<header>
+<div class="container">
+<nav class="navbar">
+<a class="logo" href="index.html"><img alt="Logo" src="images/logo.png" style="height:54px;"/></a>
+<div class="nav-links">
+<div class="dropdown">
+<a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="jpg-to-pdf.html">JPG to PDF</a>
+<a href="word-to-pdf.html">Word to PDF</a>
+<a href="excel-to-pdf.html">Excel to PDF</a>
+<a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="pdf-to-jpg.html">PDF to JPG</a>
+<a href="pdf-to-word.html">PDF to Word</a>
+<a href="pdf-to-excel.html">PDF to Excel</a>
+<a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="merge-pdf.html">Merge PDF</a>
+<a href="split-pdf.html">Split PDF</a>
+<a href="compress-pdf.html">Compress PDF</a>
+<a href="edit-pdf.html">Pdf Editor</a>
+<a href="protect-pdf.html">Protect PDF</a>
+<a href="unlock-pdf.html">Unlock PDF</a>
+<a href="watermark-pdf.html">Watermark PDF</a>
+<a href="crop-pdf.html">Crop PDF</a>
+<a href="add-page-numbers.html">Add Page Numbers</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="image-repair.html">AI Image Repair</a>
+<a href="image-compressor.html">Image Compressor</a>
+<a href="image-resizer.html">Image Resizer</a>
+<a href="image-editor.html">Image Editor</a>
+<a href="background-remover.html">Image Background Remover</a>
+<a href="ocr-image.html">OCR Image</a>
+<a href="image-watermark.html">Image Watermark Tool</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="resume-maker.html">Resume Maker</a>
+<a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+<a href="ai-image-generator.html">AI Image Generator</a>
+<a href="marriage-card.html">Marriage Card</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="excel-unlocker.html">Excel Unlocker</a>
+<a href="protect-excel.html">Protect Excel Sheet</a>
+</div>
+</div>
+</div>
+<div class="auth-buttons">
+<a class="auth-link" href="login.html">Sign In</a>
+<a class="auth-btn" href="signup.html"><i aria-hidden="true" class="fas fa-user-plus"></i><span>Signup</span></a>
+</div>
+<div class="user-menu" data-open="false" id="user-menu">
+<button aria-expanded="false" aria-haspopup="true" aria-label="Account menu" class="user-menu-toggle" id="user-menu-toggle" type="button">
+<span aria-hidden="true" class="user-initial">U</span>
+<i aria-hidden="true" class="fas fa-chevron-down"></i>
+</button>
+<div class="user-dropdown" hidden="" id="user-dropdown">
+<a data-user-nav="dashboard-overview" href="dashboard.html#dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+<a data-user-nav="dashboard-billing" href="dashboard.html#dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+<a data-user-nav="dashboard-payments" href="dashboard.html#dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+<a data-user-nav="dashboard-orders" href="dashboard.html#dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
+<a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
+<button class="dropdown-logout" id="logout-button" type="button"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+</div>
+</div>
+</nav>
+</div>
+</header>
+<div class="main-content">
+<div class="app">
+<div class="left">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<h2>Resume/CV Maker</h2>
+<div class="locked">LOCKED</div>
+</div>
+<div class="section">
+<label>Choose Template (Dropdown quick select)</label>
+<select class="dropdown-template" id="templateSelect"></select>
+</div>
+<div class="section">
+<label>Photo</label>
+<input accept="image/*" id="photoInput" type="file"/>
+<div style="margin-top:8px"><img alt="photo preview" class="img-preview" id="photoPreview"/></div>
+</div>
+<div class="section">
+<label>Full Name</label>
+<input id="name" placeholder="Your name" type="text"/>
+</div>
+<div class="section">
+<label>Title / Position (add multiple - comma separated OR type custom)</label>
+<input id="title" placeholder="e.g. Software Developer, Team Lead, Frontend Engineer" type="text"/>
+</div>
+<div class="section">
+<label>Profile (choose)</label>
+<select id="profileSelect">
+<option value="Student">Student - Seeking internships/entry roles</option>
+<option value="Supervisor">Supervisor - Experienced in team management</option>
+<option value="Labor">Labor - Skilled labor positions</option>
+<option value="Driver">Driver - Truck/Car driver with licence details</option>
+<option value="Fresher">Fresher - Recent graduate</option>
+</select>
+</div>
+<div class="section">
+<label>Choose Objective (select one)</label>
+<select id="objectiveSelect"></select>
+</div>
+<div class="section">
+<label>Summary / Professional Objective</label>
+<textarea id="summary" placeholder="Short professional summary"></textarea>
+</div>
+<div class="section">
+<label>Education (Add entries)</label>
+<div id="educationList"></div>
+<div style="display:flex;gap:8px;margin-top:8px">
+<button class="btn" id="addEdu">Add Education</button>
+</div>
+</div>
+<div class="section">
+<label>Experience (Add entries)</label>
+<div id="expList"></div>
+<div style="display:flex;gap:8px;margin-top:8px">
+<button class="btn" id="addExp">Add Experience</button>
+</div>
+</div>
+<div class="section">
+<label>Hobbies (comma separated)</label>
+<input id="hobbies" placeholder="Reading, Coding, Football" type="text"/>
+</div>
+<div class="section">
+<label>Personal Details</label>
+<div class="row">
+<div class="col"><input id="father" placeholder="Father's Name" type="text"/></div>
+<div class="col"><input id="dob" placeholder="D.O.B" type="date"/></div>
+</div>
+<div class="row" style="margin-top:8px">
+<div class="col"><input id="marital" placeholder="Marital Status" type="text"/></div>
+<div class="col"><input id="languages" placeholder="Languages Known (comma)" type="text"/></div>
+</div>
+<div style="margin-top:8px">
+<label>ID Card Details (dropdown - select type to add)</label>
+<select id="idType"><option value="">Select ID Type</option><option>Aadhar Card</option><option>Pan Card</option><option>Voter Id Card</option><option>Passport</option><option>Driver License</option><option>Green Card</option><option>Yellow Card</option><option>Other</option></select>
+<div style="display:flex;gap:8px;margin-top:8px">
+<input id="idNo" placeholder="ID Number" type="text"/>
+<input id="idValid" placeholder="Validity (if any)" type="date"/>
+<button class="btn secondary" id="addIdBtn">Add</button>
+</div>
+<div class="small muted" id="idList" style="margin-top:8px"></div>
+</div>
+</div>
+<div class="section" id="driverExtras" style="display:none">
+<label>Driver Details (License Table)</label>
+<div id="licTableWrap"></div>
+<div style="display:flex;gap:8px;margin-top:8px">
+<button class="btn" id="addLicense">Add Licence</button>
+</div>
+</div>
+<div class="section">
+<label>Footer Declaration (will appear above footer bar)</label>
+<input id="declarationText" placeholder="I hereby declare that..." type="text"/>
+</div>
+<div class="section btn-row">
+<button class="btn" id="updateBtn">Update Preview</button>
+<button class="btn" id="downloadPdf">Download PDF</button>
+<button class="btn" id="downloadImg">Download Image</button>
+<button class="btn" id="downloadDoc">Download Word</button>
+<button class="btn secondary" id="downloadHtml">Download HTML</button>
+</div>
+</div>
+<div class="right">
+<div class="preview-wrapper">
+<div class="preview-frame" id="previewFrame">
+<div class="preview-inner" id="previewInner">
+<!-- dynamic resume goes here -->
+</div>
+</div>
+<div class="declaration small muted" id="declarationPreview">
+<div class="decl-text">I hereby declare that the information given above is true to the best of my knowledge.</div>
+<div class="decl-row" style="margin-top:8px">
+<div id="declDate">Date: __________</div>
+<div id="declName">(Signature) <strong id="declNameValue">Your Name</strong></div>
+</div>
+</div>
+<div class="template-strip" id="templateStrip"></div>
+</div>
+<div style="display:flex;gap:8px;margin-top:6px">
+<small class="muted">Preview frame: <strong>15cm x 20cm</strong> | Template thumb: 4.5cm x 6cm</small>
+</div>
+</div>
+</div>
+</div>
+<!-- Global Footer -->
+<footer>
+<div class="container footer-inner">
+<div class="footer-company-links">
+<span>Company</span>
+<a href="index.html#about">About Us</a>
+<a href="index.html#contact">Contact</a>
+<a href="privacy-policy.html">Privacy Policy</a>
+<a href="terms-of-service.html">Terms of Service</a>
+</div>
+<p class="footer-brand-line">© easyjpgtopdf — Free PDF &amp; Image Tools for everyone.</p>
+<p class="footer-credits">
         Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
         <a href="attributions.html">See full acknowledgements</a>.
       </p>
-    </div>
-  </footer>
-
-  <script src="js/header.js"></script>
-  <script>
+</div>
+</footer>
+<script src="js/header.js"></script>
+<script>
     // Enhanced JS
     const objectives = [
       'To obtain a challenging position in a reputable organization to expand my learning and skills.',
@@ -594,9 +576,9 @@
 
 
     <script type="module" src="js/auth.js"></script>
-</body></html>`; const blob = new Blob(['Ã¯Â»Â¿', html], {type: 'application/msword'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download=(document.getElementById('name').value||'resume')+'.doc'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),5000); });
+</body></html>`; const blob = new Blob(['Ã¯Â»Â¿', html], {type: 'application/msword'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download=(document.getElementById('name').value||'resume')+'.doc'; a.click(); setTimeout(()=&gt;URL.revokeObjectURL(url),5000); });
 
-    document.getElementById('downloadHtml').addEventListener('click',()=>{ renderPreview(); const el = document.documentElement.outerHTML; const blob = new Blob([el], {type:'text/html'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='resume_maker_export.html'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),5000); });
+    document.getElementById('downloadHtml').addEventListener('click',()=&gt;{ renderPreview(); const el = document.documentElement.outerHTML; const blob = new Blob([el], {type:'text/html'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='resume_maker_export.html'; a.click(); setTimeout(()=&gt;URL.revokeObjectURL(url),5000); });
 
     // auto-update on input (now handled in DOMContentLoaded)
 
@@ -616,7 +598,7 @@
       
       if (nameEl) nameEl.value = 'Amit Kumar';
       if (titleEl) titleEl.value = 'Software Engineer';
-      if (objectiveEl && objectives && objectives.length > 0) objectiveEl.value = objectives[0];
+      if (objectiveEl &amp;&amp; objectives &amp;&amp; objectives.length &gt; 0) objectiveEl.value = objectives[0];
       if (summaryEl) summaryEl.value = 'Energetic software engineer with experience in building web applications and APIs.';
       if (hobbiesEl) hobbiesEl.value = 'Reading, Cricket, Music';
       if (fatherEl) fatherEl.value = 'Rajesh Kumar';
@@ -642,20 +624,20 @@
       function setupLivePreview() {
         // Text inputs and textareas
         const textInputs = document.querySelectorAll('input[type="text"], textarea, select');
-        textInputs.forEach(input => {
+        textInputs.forEach(input =&gt; {
           input.addEventListener('input', renderPreview);
           input.addEventListener('change', renderPreview);
         });
         
         // For select dropdowns
         const selectElements = document.querySelectorAll('select');
-        selectElements.forEach(select => {
+        selectElements.forEach(select =&gt; {
           select.addEventListener('change', renderPreview);
         });
         
         // For date inputs
         const dateInputs = document.querySelectorAll('input[type="date"]');
-        dateInputs.forEach(input => {
+        dateInputs.forEach(input =&gt; {
           input.addEventListener('change', renderPreview);
         });
         
@@ -680,7 +662,7 @@
     // double click preview to open large
     const previewFrame = document.getElementById('previewFrame');
     if (previewFrame) {
-      previewFrame.addEventListener('dblclick', () => {
+      previewFrame.addEventListener('dblclick', () =&gt; {
         const previewInner = document.getElementById('previewInner');
         if (!previewInner || !previewInner.firstElementChild) return;
         
@@ -690,15 +672,15 @@
         const clone = previewInner.firstElementChild.cloneNode(true);
         w.document.write(`
           <!DOCTYPE html>
-          <html>
-          <head>
-            <title>Preview</title>
-    <link rel="stylesheet" href="css/footer.css">
-            <meta charset="utf-8">
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/theme-modern.css">
 
-            <style>
+<html>
+<head>
+<title>Preview</title>
+<link href="css/footer.css" rel="stylesheet"/>
+<meta charset="utf-8"/>
+<link href="css/header.css" rel="stylesheet"/>
+<link href="css/theme-modern.css" rel="stylesheet"/>
+<style>
               body { 
                 margin: 20px; 
                 font-family: Inter, system-ui, Arial, sans-serif;
@@ -713,49 +695,20 @@
                 box-shadow: 0 2px 10px rgba(0,0,0,0.1);
               }
             </style>
-          </head>
-          <body>
-            <div class="preview-container">
+</head>
+<body>
+<div class="preview-container">
               ${clone.outerHTML}
             </div>
-              <script type="module" src="js/auth.js"></script>
+<script src="js/auth.js" type="module"></script>
 </body>
-          </html>
+</html>
         `);
         w.document.close();
       });
     }
 
-  </script>
-
-
-
-
-    <script type="module" src="js/auth.js"></script>
-</body>
-</html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  
+<script src="js/auth.js" type="module"></script>
 
 

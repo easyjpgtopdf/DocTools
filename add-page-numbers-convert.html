@@ -1,12 +1,13 @@
 ﻿<!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Add Page Numbers to PDF - easyjpgtopdf</title>
-    <link rel="stylesheet" href="css/footer.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Add Page Numbers to PDF - easyjpgtopdf</title>
+<link href="css/footer.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
     *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif}
     :root{--primary:#4361ee;--secondary:#3a0ca3;--accent:#4cc9f0;--light:#f8f9fa;--dark:#212529;--gray:#6c757d}
     body{background:#f5f7ff;color:var(--dark);min-height:100vh;display:flex;flex-direction:column;line-height:1.6}
@@ -96,292 +97,265 @@
     .progress-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));width:0%;transition:width .3s}
     .progress-text{text-align:center;margin-top:10px;color:var(--gray);font-size:.9rem}
   </style>
-    
-
-    
-    
-    
-
-    
-
-    
-
-    
-    
-
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/theme-modern.css">
-    
-    <!-- PDF.js for rendering PDF pages to canvas -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script>
+<link href="css/header.css" rel="stylesheet"/>
+<link href="css/theme-modern.css" rel="stylesheet"/>
+<!-- PDF.js for rendering PDF pages to canvas -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
       // Configure pdf.js worker
       if(typeof pdfjsLib !== 'undefined'){
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
       }
     </script>
-</head>
+</link></head>
 <body>
 <header>
-        <div class="container">
-            <nav class="navbar">
-                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
-                <div class="nav-links">
-                    <div class="dropdown">
-                        <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="jpg-to-pdf.html">JPG to PDF</a>
-                            <a href="word-to-pdf.html">Word to PDF</a>
-                            <a href="excel-to-pdf.html">Excel to PDF</a>
-                            <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="pdf-to-jpg.html">PDF to JPG</a>
-                            <a href="pdf-to-word.html">PDF to Word</a>
-                            <a href="pdf-to-excel.html">PDF to Excel</a>
-                            <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="merge-pdf.html">Merge PDF</a>
-                            <a href="split-pdf.html">Split PDF</a>
-                            <a href="compress-pdf.html">Compress PDF</a>
-                            <a href="edit-pdf.html">Pdf Editor</a>
-                            <a href="protect-pdf.html">Protect PDF</a>
-                            <a href="unlock-pdf.html">Unlock PDF</a>
-                            <a href="watermark-pdf.html">Watermark PDF</a>
-                            <a href="crop-pdf.html">Crop PDF</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="image-compressor.html">Image Compressor</a>
-                            <a href="image-resizer.html">Image Resizer</a>
-                            <a href="image-editor.html">Image Editor</a>
-                            <a href="background-remover.html">Image Background Remover</a>
-                            <a href="ocr-image.html">OCR Image</a>
-                            <a href="image-watermark.html">Image Watermark Tool</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="resume-maker.html">Resume Maker</a>
-                            <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
-                            <a href="ai-image-generator.html">AI Image Generator</a>
-                            <a href="marriage-card.html">Marriage Card</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="auth-buttons">
-                    <a href="login.html" class="auth-link">Sign In</a>
-                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Create Account</span></a>
-                </div>
-                <div id="user-menu" class="user-menu" data-open="false">
-                    <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
-                        <span class="user-initial" aria-hidden="true">U</span>
-                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                    </button>
-                    <div class="user-dropdown" id="user-dropdown" hidden>
-                        <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
-                        <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
-                        <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
-                        <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
-                        <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
-                        <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
-                    </div>
-                </div>
-            </nav>
-        </div>
-    </header>
-
-
-
-
-  
-
-  <div class="container">
-    <div class="tool-page">
-      <div class="title">Add Page Numbers to Your PDF</div>
-      <div id="meta" class="meta">Customize and preview your page numbering options below</div>
-      
-      <!-- Split Layout: Left Panel = Options, Right Panel = Preview -->
-      <div class="split-layout">
-        
-        <!-- LEFT PANEL: Numbering Options -->
-        <div class="left-panel">
-          <div class="numbering-options">
-            <h3 style="margin-bottom:12px;color:var(--primary);font-size:1.1rem">Page Numbering Options</h3>
-            
-            <div class="option-group">
-              <label>Position</label>
-              <div class="radio-group">
-                <label class="radio-option"><input type="radio" name="position" value="top-left"> Top Left</label>
-                <label class="radio-option"><input type="radio" name="position" value="top-center"> Top Center</label>
-                <label class="radio-option"><input type="radio" name="position" value="top-right"> Top Right</label>
-                <label class="radio-option"><input type="radio" name="position" value="bottom-left"> Bottom Left</label>
-                <label class="radio-option"><input type="radio" name="position" value="bottom-center"> Bottom Center</label>
-                <label class="radio-option"><input type="radio" name="position" value="bottom-right" checked> Bottom Right</label>
-              </div>
-            </div>
-            
-            <div class="option-group">
-              <label>Number Format</label>
-              <div class="radio-group">
-                <label class="radio-option"><input type="radio" name="format" value="1" checked> 1, 2, 3...</label>
-                <label class="radio-option"><input type="radio" name="format" value="i"> i, ii, iii...</label>
-                <label class="radio-option"><input type="radio" name="format" value="I"> I, II, III...</label>
-                <label class="radio-option"><input type="radio" name="format" value="a"> a, b, c...</label>
-                <label class="radio-option"><input type="radio" name="format" value="A"> A, B, C...</label>
-              </div>
-            </div>
-            
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:8px">
-              <div class="option-group">
-                <label for="startNumber">Starting Number</label>
-                <input type="number" id="startNumber" class="form-control" value="1" min="1">
-              </div>
-              
-              <div class="option-group">
-                <label for="fontSize">Font Size</label>
-                <select id="fontSize" class="option-select">
-                  <option value="8">8pt</option>
-                  <option value="10">10pt</option>
-                  <option value="12" selected>12pt</option>
-                  <option value="14">14pt</option>
-                  <option value="16">16pt</option>
-                  <option value="18">18pt</option>
-                </select>
-              </div>
-              
-              <div class="option-group">
-                <label for="fontColor">Font Color</label>
-                <div class="color-picker">
-                  <div class="color-preview" id="colorPreview" style="background-color:#000000"></div>
-                  <input type="color" id="fontColor" value="#000000" style="width:60px;height:40px;border:none;cursor:pointer">
-                </div>
-              </div>
-            </div>
-            
-            <div class="option-group">
-              <label for="pageText">Page Text Template (use {n} for number, {total} for total pages)</label>
-              <input type="text" id="pageText" class="form-control" placeholder="e.g., Page {n} of {total}">
-            </div>
-          </div>
-          
-          <!-- Progress Section -->
-          <div class="progress-container" id="progressContainer">
-            <div class="progress-bar">
-              <div class="progress-fill" id="progressFill"></div>
-            </div>
-            <div class="progress-text" id="progressText">Processing...</div>
-          </div>
-          
-          <!-- Actions -->
-          <div class="actions">
-            <a class="btn" href="add-page-numbers.html"><i class="fas fa-arrow-left"></i> Back</a>
-            <button id="applyBtn" class="btn btn-primary"><i class="fas fa-plus-circle"></i> Apply Page Numbers</button>
-            <button id="downloadBtn" class="btn btn-primary" style="display:none"><i class="fas fa-download"></i> Download PDF</button>
-          </div>
-          
-          <!-- Share Bar (hidden initially) -->
-          <div class="share-bar" id="shareBar" style="display:none">
-            <span>Share:</span>
-            <button id="nativeShare" class="share-btn native" title="Share">
-              <i class="fas fa-share-alt"></i>
-            </button>
-            <a id="shareFacebook" class="share-btn facebook" title="Share on Facebook" target="_blank" rel="noopener">
-              <i class="fab fa-facebook-f"></i>
-            </a>
-            <a id="shareTwitter" class="share-btn twitter" title="Share on Twitter" target="_blank" rel="noopener">
-              <i class="fab fa-twitter"></i>
-            </a>
-            <a id="shareWhatsApp" class="share-btn whatsapp" title="Share on WhatsApp" target="_blank" rel="noopener">
-              <i class="fab fa-whatsapp"></i>
-            </a>
-            <a id="shareEmail" class="share-btn email" title="Share via Email" target="_blank" rel="noopener">
-              <i class="fas fa-envelope"></i>
-            </a>
-          </div>
-        </div>
-        
-        <!-- RIGHT PANEL: PDF Preview with Multiple Pages -->
-        <div class="right-panel">
-          <div style="padding:20px;background:var(--bg-light);border-bottom:1px solid var(--border-color);margin-bottom:10px">
-            <h3 style="margin:0;color:var(--primary)">PDF Preview</h3>
-            <p style="margin:5px 0 0 0;color:var(--gray);font-size:14px">All pages will be displayed below</p>
-          </div>
-          
-          <div class="preview-container" id="previewContainer">
-            <!-- PDF pages will be rendered here as canvas elements -->
-            <p style="text-align:center;color:var(--gray);padding:40px 20px">
-              <i class="fas fa-file-pdf" style="font-size:48px;margin-bottom:16px;display:block;opacity:0.3"></i>
+<div class="container">
+<nav class="navbar">
+<a class="logo" href="index.html"><img alt="Logo" src="images/logo.png" style="height:54px;"/></a>
+<div class="nav-links">
+<div class="dropdown">
+<a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="jpg-to-pdf.html">JPG to PDF</a>
+<a href="word-to-pdf.html">Word to PDF</a>
+<a href="excel-to-pdf.html">Excel to PDF</a>
+<a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="pdf-to-jpg.html">PDF to JPG</a>
+<a href="pdf-to-word.html">PDF to Word</a>
+<a href="pdf-to-excel.html">PDF to Excel</a>
+<a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="merge-pdf.html">Merge PDF</a>
+<a href="split-pdf.html">Split PDF</a>
+<a href="compress-pdf.html">Compress PDF</a>
+<a href="edit-pdf.html">Pdf Editor</a>
+<a href="protect-pdf.html">Protect PDF</a>
+<a href="unlock-pdf.html">Unlock PDF</a>
+<a href="watermark-pdf.html">Watermark PDF</a>
+<a href="crop-pdf.html">Crop PDF</a>
+<a href="add-page-numbers.html">Add Page Numbers</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="image-repair.html">AI Image Repair</a>
+<a href="image-compressor.html">Image Compressor</a>
+<a href="image-resizer.html">Image Resizer</a>
+<a href="image-editor.html">Image Editor</a>
+<a href="background-remover.html">Image Background Remover</a>
+<a href="ocr-image.html">OCR Image</a>
+<a href="image-watermark.html">Image Watermark Tool</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="resume-maker.html">Resume Maker</a>
+<a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+<a href="ai-image-generator.html">AI Image Generator</a>
+<a href="marriage-card.html">Marriage Card</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="excel-unlocker.html">Excel Unlocker</a>
+<a href="protect-excel.html">Protect Excel Sheet</a>
+</div>
+</div>
+</div>
+<div class="auth-buttons">
+<a class="auth-link" href="login.html">Sign In</a>
+<a class="auth-btn" href="signup.html"><i aria-hidden="true" class="fas fa-user-plus"></i><span>Signup</span></a>
+</div>
+<div class="user-menu" data-open="false" id="user-menu">
+<button aria-expanded="false" aria-haspopup="true" aria-label="Account menu" class="user-menu-toggle" id="user-menu-toggle" type="button">
+<span aria-hidden="true" class="user-initial">U</span>
+<i aria-hidden="true" class="fas fa-chevron-down"></i>
+</button>
+<div class="user-dropdown" hidden="" id="user-dropdown">
+<a data-user-nav="dashboard-overview" href="dashboard.html#dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+<a data-user-nav="dashboard-billing" href="dashboard.html#dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+<a data-user-nav="dashboard-payments" href="dashboard.html#dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+<a data-user-nav="dashboard-orders" href="dashboard.html#dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
+<a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
+<button class="dropdown-logout" id="logout-button" type="button"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+</div>
+</div>
+</nav>
+</div>
+</header>
+<div class="container">
+<div class="tool-page">
+<div class="title">Add Page Numbers to Your PDF</div>
+<div class="meta" id="meta">Customize and preview your page numbering options below</div>
+<!-- Split Layout: Left Panel = Options, Right Panel = Preview -->
+<div class="split-layout">
+<!-- LEFT PANEL: Numbering Options -->
+<div class="left-panel">
+<div class="numbering-options">
+<h3 style="margin-bottom:12px;color:var(--primary);font-size:1.1rem">Page Numbering Options</h3>
+<div class="option-group">
+<label>Position</label>
+<div class="radio-group">
+<label class="radio-option"><input name="position" type="radio" value="top-left"/> Top Left</label>
+<label class="radio-option"><input name="position" type="radio" value="top-center"/> Top Center</label>
+<label class="radio-option"><input name="position" type="radio" value="top-right"/> Top Right</label>
+<label class="radio-option"><input name="position" type="radio" value="bottom-left"/> Bottom Left</label>
+<label class="radio-option"><input name="position" type="radio" value="bottom-center"/> Bottom Center</label>
+<label class="radio-option"><input checked="" name="position" type="radio" value="bottom-right"/> Bottom Right</label>
+</div>
+</div>
+<div class="option-group">
+<label>Number Format</label>
+<div class="radio-group">
+<label class="radio-option"><input checked="" name="format" type="radio" value="1"/> 1, 2, 3...</label>
+<label class="radio-option"><input name="format" type="radio" value="i"/> i, ii, iii...</label>
+<label class="radio-option"><input name="format" type="radio" value="I"/> I, II, III...</label>
+<label class="radio-option"><input name="format" type="radio" value="a"/> a, b, c...</label>
+<label class="radio-option"><input name="format" type="radio" value="A"/> A, B, C...</label>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:8px">
+<div class="option-group">
+<label for="startNumber">Starting Number</label>
+<input class="form-control" id="startNumber" min="1" type="number" value="1"/>
+</div>
+<div class="option-group">
+<label for="fontSize">Font Size</label>
+<select class="option-select" id="fontSize">
+<option value="8">8pt</option>
+<option value="10">10pt</option>
+<option selected="" value="12">12pt</option>
+<option value="14">14pt</option>
+<option value="16">16pt</option>
+<option value="18">18pt</option>
+</select>
+</div>
+<div class="option-group">
+<label for="fontColor">Font Color</label>
+<div class="color-picker">
+<div class="color-preview" id="colorPreview" style="background-color:#000000"></div>
+<input id="fontColor" style="width:60px;height:40px;border:none;cursor:pointer" type="color" value="#000000"/>
+</div>
+</div>
+</div>
+<div class="option-group">
+<label for="pageText">Page Text Template (use {n} for number, {total} for total pages)</label>
+<input class="form-control" id="pageText" placeholder="e.g., Page {n} of {total}" type="text"/>
+</div>
+</div>
+<!-- Progress Section -->
+<div class="progress-container" id="progressContainer">
+<div class="progress-bar">
+<div class="progress-fill" id="progressFill"></div>
+</div>
+<div class="progress-text" id="progressText">Processing...</div>
+</div>
+<!-- Actions -->
+<div class="actions">
+<a class="btn" href="add-page-numbers.html"><i class="fas fa-arrow-left"></i> Back</a>
+<button class="btn btn-primary" id="applyBtn"><i class="fas fa-plus-circle"></i> Apply Page Numbers</button>
+<button class="btn btn-primary" id="downloadBtn" style="display:none"><i class="fas fa-download"></i> Download PDF</button>
+</div>
+<!-- Share Bar (hidden initially) -->
+<div class="share-bar" id="shareBar" style="display:none">
+<span>Share:</span>
+<button class="share-btn native" id="nativeShare" title="Share">
+<i class="fas fa-share-alt"></i>
+</button>
+<a class="share-btn facebook" id="shareFacebook" rel="noopener" target="_blank" title="Share on Facebook">
+<i class="fab fa-facebook-f"></i>
+</a>
+<a class="share-btn twitter" id="shareTwitter" rel="noopener" target="_blank" title="Share on Twitter">
+<i class="fab fa-twitter"></i>
+</a>
+<a class="share-btn whatsapp" id="shareWhatsApp" rel="noopener" target="_blank" title="Share on WhatsApp">
+<i class="fab fa-whatsapp"></i>
+</a>
+<a class="share-btn email" id="shareEmail" rel="noopener" target="_blank" title="Share via Email">
+<i class="fas fa-envelope"></i>
+</a>
+</div>
+</div>
+<!-- RIGHT PANEL: PDF Preview with Multiple Pages -->
+<div class="right-panel">
+<div style="padding:20px;background:var(--bg-light);border-bottom:1px solid var(--border-color);margin-bottom:10px">
+<h3 style="margin:0;color:var(--primary)">PDF Preview</h3>
+<p style="margin:5px 0 0 0;color:var(--gray);font-size:14px">All pages will be displayed below</p>
+</div>
+<div class="preview-container" id="previewContainer">
+<!-- PDF pages will be rendered here as canvas elements -->
+<p style="text-align:center;color:var(--gray);padding:40px 20px">
+<i class="fas fa-file-pdf" style="font-size:48px;margin-bottom:16px;display:block;opacity:0.3"></i>
               PDF preview will appear here after you apply page numbers
             </p>
-          </div>
-        </div>
-        
-      </div>
-    </div>
-  </div>
-
-  <div class="features" style="background-color:#fff;padding:80px 0;border-radius:20px;margin-bottom:50px;">
-  <div class="container">
-    <h2 class="section-title">Why Choose easyjpgtopdf?</h2>
-    <div class="features-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:40px;">
-      <div class="feature" style="display:flex;gap:20px;">
-        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
-          <i class="fas fa-shield-alt"></i>
-        </div>
-        <div class="feature-content">
-          <h3 style="margin-bottom:10px;font-size:1.3rem;">Secure & Private</h3>
-          <p style="color:#6c757d;">All files are processed securely and automatically deleted after 1 hour.</p>
-        </div>
-      </div>
-      <div class="feature" style="display:flex;gap:20px;">
-        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
-          <i class="fas fa-bolt"></i>
-        </div>
-        <div class="feature-content">
-          <h3 style="margin-bottom:10px;font-size:1.3rem;">Fast Processing</h3>
-          <p style="color:#6c757d;">Our optimized algorithms process your files in seconds.</p>
-        </div>
-      </div>
-      <div class="feature" style="display:flex;gap:20px;">
-        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
-          <i class="fas fa-desktop"></i>
-        </div>
-        <div class="feature-content">
-          <h3 style="margin-bottom:10px;font-size:1.3rem;">Works Everywhere</h3>
-          <p style="color:#6c757d;">Use easyjpgtopdf on any device with a modern web browser.</p>
-        </div>
-      </div>
-      <div class="feature" style="display:flex;gap:20px;">
-        <div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
-          <i class="fas fa-euro-sign"></i>
-        </div>
-        <div class="feature-content">
-          <h3 style="margin-bottom:10px;font-size:1.3rem;">Completely Free</h3>
-          <p style="color:#6c757d;">All our basic tools are free to use with no hidden costs.</p>
-        </div>
-      </div>
-    </div>
-  </div>
 </div>
-
-  <!-- Add share bar styles and scripts -->
-  <link rel="stylesheet" href="css/share-bar.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
-  <script src="js/share-utils.js"></script>
-  <script>
+</div>
+</div>
+</div>
+</div>
+<div class="features" style="background-color:#fff;padding:80px 0;border-radius:20px;margin-bottom:50px;">
+<div class="container">
+<h2 class="section-title">Why Choose easyjpgtopdf?</h2>
+<div class="features-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:40px;">
+<div class="feature" style="display:flex;gap:20px;">
+<div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+<i class="fas fa-shield-alt"></i>
+</div>
+<div class="feature-content">
+<h3 style="margin-bottom:10px;font-size:1.3rem;">Secure &amp; Private</h3>
+<p style="color:#6c757d;">All files are processed securely and automatically deleted after 1 hour.</p>
+</div>
+</div>
+<div class="feature" style="display:flex;gap:20px;">
+<div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+<i class="fas fa-bolt"></i>
+</div>
+<div class="feature-content">
+<h3 style="margin-bottom:10px;font-size:1.3rem;">Fast Processing</h3>
+<p style="color:#6c757d;">Our optimized algorithms process your files in seconds.</p>
+</div>
+</div>
+<div class="feature" style="display:flex;gap:20px;">
+<div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+<i class="fas fa-desktop"></i>
+</div>
+<div class="feature-content">
+<h3 style="margin-bottom:10px;font-size:1.3rem;">Works Everywhere</h3>
+<p style="color:#6c757d;">Use easyjpgtopdf on any device with a modern web browser.</p>
+</div>
+</div>
+<div class="feature" style="display:flex;gap:20px;">
+<div class="feature-icon" style="width:60px;height:60px;background-color:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#4361ee;flex-shrink:0;">
+<i class="fas fa-euro-sign"></i>
+</div>
+<div class="feature-content">
+<h3 style="margin-bottom:10px;font-size:1.3rem;">Completely Free</h3>
+<p style="color:#6c757d;">All our basic tools are free to use with no hidden costs.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Add share bar styles and scripts -->
+<link href="css/share-bar.css" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+<script src="js/share-utils.js"></script>
+<script>
     const { PDFDocument, rgb, StandardFonts } = PDFLib;
     let originalPdfData=null, processedPdfBlob=null, fileName='document.pdf';
     
@@ -665,67 +639,22 @@
       updatePreview();
     });
   </script>
-
-
-
-
 <footer>
-        <div class="container footer-inner">
-            <div class="footer-company-links">
-                <span>Company</span>
-                <a href="index.html#about">About Us</a>
-                <a href="index.html#contact">Contact</a>
-                <a href="privacy-policy.html">Privacy Policy</a>
-                <a href="terms-of-service.html">Terms of Service</a>
-            </div>
-            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
-            <p class="footer-credits">
+<div class="container footer-inner">
+<div class="footer-company-links">
+<span>Company</span>
+<a href="index.html#about">About Us</a>
+<a href="index.html#contact">Contact</a>
+<a href="privacy-policy.html">Privacy Policy</a>
+<a href="terms-of-service.html">Terms of Service</a>
+</div>
+<p class="footer-brand-line">© easyjpgtopdf — Free PDF &amp; Image Tools for everyone.</p>
+<p class="footer-credits">
                 Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
                 <a href="attributions.html">See full acknowledgements</a>.
             </p>
-        </div>
-    </footer>
-    <script type="module" src="js/auth.js"></script>
+</div>
+</footer>
+<script src="js/auth.js" type="module"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

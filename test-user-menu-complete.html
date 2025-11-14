@@ -1,13 +1,14 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Menu Complete Test - All Features</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/footer.css">
-    <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>User Menu Complete Test - All Features</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="css/header.css" rel="stylesheet"/>
+<link href="css/footer.css" rel="stylesheet"/>
+<style>
         * {
             margin: 0;
             padding: 0;
@@ -212,147 +213,192 @@
     </style>
 </head>
 <body>
-    <header>
-        <div class="container">
-            <nav class="navbar">
-                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
-                <div class="nav-links">
-                    <div class="dropdown">
-                        <a href="#">Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="jpg-to-pdf.html">JPG to PDF</a>
-                            <a href="word-to-pdf.html">Word to PDF</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="auth-buttons">
-                    <a href="login.html" class="auth-link">Sign In</a>
-                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus"></i><span>Signup</span></a>
-                </div>
-                <div id="user-menu" class="user-menu" data-open="false" style="display: none;">
-                    <button id="user-menu-toggle" class="user-menu-toggle" type="button">
-                        <span class="user-initial">T</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
-                    <div class="user-dropdown" id="user-dropdown" hidden>
-                        <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
-                        <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
-                        <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
-                        <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders & Subscriptions</a>
-                        <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
-                        <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
-                    </div>
-                </div>
-            </nav>
-        </div>
-    </header>
-
-    <div class="test-container">
-        <div class="test-card">
-            <h2><i class="fas fa-vial"></i> User Menu Complete Test Suite</h2>
-            <p style="color: #666; margin-bottom: 20px;">Comprehensive testing for user dropdown menu functionality - hover behavior, dashboard navigation, and sign out.</p>
-            
-            <div class="status-grid">
-                <div class="status-item status-pending" id="status-hover">
-                    <i class="fas fa-clock"></i>
-                    <span>Hover Functionality: <strong>Pending</strong></span>
-                </div>
-                <div class="status-item status-pending" id="status-click">
-                    <i class="fas fa-clock"></i>
-                    <span>Click Toggle: <strong>Pending</strong></span>
-                </div>
-                <div class="status-item status-pending" id="status-links">
-                    <i class="fas fa-clock"></i>
-                    <span>Dashboard Links: <strong>Pending</strong></span>
-                </div>
-                <div class="status-item status-pending" id="status-logout">
-                    <i class="fas fa-clock"></i>
-                    <span>Sign Out Button: <strong>Pending</strong></span>
-                </div>
-            </div>
-
-            <h3><i class="fas fa-play-circle"></i> Test Controls</h3>
-            <div class="btn-group">
-                <button class="test-btn btn-primary" onclick="simulateLogin()">
-                    <i class="fas fa-sign-in-alt"></i> Simulate Login
+<header>
+<div class="container">
+<nav class="navbar">
+<a class="logo" href="index.html"><img alt="Logo" src="images/logo.png" style="height:54px;"/></a>
+<div class="nav-links">
+<div class="dropdown">
+<a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="jpg-to-pdf.html">JPG to PDF</a>
+<a href="word-to-pdf.html">Word to PDF</a>
+<a href="excel-to-pdf.html">Excel to PDF</a>
+<a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="pdf-to-jpg.html">PDF to JPG</a>
+<a href="pdf-to-word.html">PDF to Word</a>
+<a href="pdf-to-excel.html">PDF to Excel</a>
+<a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="merge-pdf.html">Merge PDF</a>
+<a href="split-pdf.html">Split PDF</a>
+<a href="compress-pdf.html">Compress PDF</a>
+<a href="edit-pdf.html">Pdf Editor</a>
+<a href="protect-pdf.html">Protect PDF</a>
+<a href="unlock-pdf.html">Unlock PDF</a>
+<a href="watermark-pdf.html">Watermark PDF</a>
+<a href="crop-pdf.html">Crop PDF</a>
+<a href="add-page-numbers.html">Add Page Numbers</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="image-compressor.html">Image Compressor</a>
+<a href="image-resizer.html">Image Resizer</a>
+<a href="image-editor.html">Image Editor</a>
+<a href="background-remover.html">Image Background Remover</a>
+<a href="ocr-image.html">OCR Image</a>
+<a href="image-watermark.html">Image Watermark Tool</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="resume-maker.html">Resume Maker</a>
+<a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+<a href="ai-image-generator.html">AI Image Generator</a>
+<a href="marriage-card.html">Marriage Card</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="excel-unlocker.html">Excel Unlocker</a>
+<a href="protect-excel.html">Protect Excel Sheet</a>
+</div>
+</div>
+</div>
+<div class="auth-buttons">
+<a class="auth-link" href="login.html">Sign In</a>
+<a class="auth-btn" href="signup.html"><i aria-hidden="true" class="fas fa-user-plus"></i><span>Signup</span></a>
+</div>
+<div class="user-menu" data-open="false" id="user-menu">
+<button aria-expanded="false" aria-haspopup="true" aria-label="Account menu" class="user-menu-toggle" id="user-menu-toggle" type="button">
+<span aria-hidden="true" class="user-initial">U</span>
+<i aria-hidden="true" class="fas fa-chevron-down"></i>
+</button>
+<div class="user-dropdown" hidden="" id="user-dropdown">
+<a data-user-nav="dashboard-overview" href="dashboard.html#dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+<a data-user-nav="dashboard-billing" href="dashboard.html#dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+<a data-user-nav="dashboard-payments" href="dashboard.html#dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+<a data-user-nav="dashboard-orders" href="dashboard.html#dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
+<a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
+<button class="dropdown-logout" id="logout-button" type="button"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+</div>
+</div>
+</nav>
+</div>
+</header>
+<div class="test-container">
+<div class="test-card">
+<h2><i class="fas fa-vial"></i> User Menu Complete Test Suite</h2>
+<p style="color: #666; margin-bottom: 20px;">Comprehensive testing for user dropdown menu functionality - hover behavior, dashboard navigation, and sign out.</p>
+<div class="status-grid">
+<div class="status-item status-pending" id="status-hover">
+<i class="fas fa-clock"></i>
+<span>Hover Functionality: <strong>Pending</strong></span>
+</div>
+<div class="status-item status-pending" id="status-click">
+<i class="fas fa-clock"></i>
+<span>Click Toggle: <strong>Pending</strong></span>
+</div>
+<div class="status-item status-pending" id="status-links">
+<i class="fas fa-clock"></i>
+<span>Dashboard Links: <strong>Pending</strong></span>
+</div>
+<div class="status-item status-pending" id="status-logout">
+<i class="fas fa-clock"></i>
+<span>Sign Out Button: <strong>Pending</strong></span>
+</div>
+</div>
+<h3><i class="fas fa-play-circle"></i> Test Controls</h3>
+<div class="btn-group">
+<button class="test-btn btn-primary" onclick="simulateLogin()">
+<i class="fas fa-sign-in-alt"></i> Simulate Login
                 </button>
-                <button class="test-btn btn-info" onclick="testHoverFunctionality()">
-                    <i class="fas fa-mouse-pointer"></i> Test Hover
+<button class="test-btn btn-info" onclick="testHoverFunctionality()">
+<i class="fas fa-mouse-pointer"></i> Test Hover
                 </button>
-                <button class="test-btn btn-info" onclick="testClickToggle()">
-                    <i class="fas fa-hand-pointer"></i> Test Click Toggle
+<button class="test-btn btn-info" onclick="testClickToggle()">
+<i class="fas fa-hand-pointer"></i> Test Click Toggle
                 </button>
-                <button class="test-btn btn-success" onclick="testAllDashboardLinks()">
-                    <i class="fas fa-link"></i> Test Dashboard Links
+<button class="test-btn btn-success" onclick="testAllDashboardLinks()">
+<i class="fas fa-link"></i> Test Dashboard Links
                 </button>
-                <button class="test-btn btn-danger" onclick="testLogoutButton()">
-                    <i class="fas fa-sign-out-alt"></i> Test Logout
+<button class="test-btn btn-danger" onclick="testLogoutButton()">
+<i class="fas fa-sign-out-alt"></i> Test Logout
                 </button>
-                <button class="test-btn btn-warning" onclick="runAllTests()">
-                    <i class="fas fa-check-double"></i> Run All Tests
+<button class="test-btn btn-warning" onclick="runAllTests()">
+<i class="fas fa-check-double"></i> Run All Tests
                 </button>
-                <button class="test-btn" onclick="clearLogs()" style="background: #6c757d; color: white;">
-                    <i class="fas fa-trash"></i> Clear Logs
+<button class="test-btn" onclick="clearLogs()" style="background: #6c757d; color: white;">
+<i class="fas fa-trash"></i> Clear Logs
                 </button>
-            </div>
-
-            <div class="log-console" id="logConsole"></div>
-        </div>
-
-        <div class="test-card">
-            <h3><i class="fas fa-lightbulb"></i> How to Use This Test Suite</h3>
-            <ul class="instruction-list">
-                <li>
-                    <i class="fas fa-arrow-right"></i>
-                    <span><strong>Step 1:</strong> Click <span class="highlight">Simulate Login</span> to show the user menu</span>
-                </li>
-                <li>
-                    <i class="fas fa-arrow-right"></i>
-                    <span><strong>Step 2:</strong> Hover your mouse over the user avatar to test <span class="highlight">hover open/close</span></span>
-                </li>
-                <li>
-                    <i class="fas fa-arrow-right"></i>
-                    <span><strong>Step 3:</strong> Click the avatar to test <span class="highlight">click toggle</span></span>
-                </li>
-                <li>
-                    <i class="fas fa-arrow-right"></i>
-                    <span><strong>Step 4:</strong> Click <span class="highlight">Test Dashboard Links</span> to verify all links work</span>
-                </li>
-                <li>
-                    <i class="fas fa-arrow-right"></i>
-                    <span><strong>Step 5:</strong> Click <span class="highlight">Test Logout</span> to test sign out functionality</span>
-                </li>
-            </ul>
-        </div>
-
-        <div class="test-card">
-            <h3><i class="fas fa-clipboard-check"></i> Expected Behavior</h3>
-            <ul class="instruction-list">
-                <li>
-                    <i class="fas fa-check-circle" style="color: #28a745;"></i>
-                    <span>User menu should <strong>open on hover</strong> over the avatar</span>
-                </li>
-                <li>
-                    <i class="fas fa-check-circle" style="color: #28a745;"></i>
-                    <span>User menu should <strong>close when mouse leaves</strong> the menu area</span>
-                </li>
-                <li>
-                    <i class="fas fa-check-circle" style="color: #28a745;"></i>
-                    <span>Clicking avatar should <strong>toggle menu open/closed</strong></span>
-                </li>
-                <li>
-                    <i class="fas fa-check-circle" style="color: #28a745;"></i>
-                    <span>Dashboard links should <strong>navigate to dashboard.html</strong> with correct hash</span>
-                </li>
-                <li>
-                    <i class="fas fa-check-circle" style="color: #28a745;"></i>
-                    <span>Sign Out button should <strong>show alert and redirect</strong> to index.html</span>
-                </li>
-            </ul>
-        </div>
-    </div>
-
-    <script>
+</div>
+<div class="log-console" id="logConsole"></div>
+</div>
+<div class="test-card">
+<h3><i class="fas fa-lightbulb"></i> How to Use This Test Suite</h3>
+<ul class="instruction-list">
+<li>
+<i class="fas fa-arrow-right"></i>
+<span><strong>Step 1:</strong> Click <span class="highlight">Simulate Login</span> to show the user menu</span>
+</li>
+<li>
+<i class="fas fa-arrow-right"></i>
+<span><strong>Step 2:</strong> Hover your mouse over the user avatar to test <span class="highlight">hover open/close</span></span>
+</li>
+<li>
+<i class="fas fa-arrow-right"></i>
+<span><strong>Step 3:</strong> Click the avatar to test <span class="highlight">click toggle</span></span>
+</li>
+<li>
+<i class="fas fa-arrow-right"></i>
+<span><strong>Step 4:</strong> Click <span class="highlight">Test Dashboard Links</span> to verify all links work</span>
+</li>
+<li>
+<i class="fas fa-arrow-right"></i>
+<span><strong>Step 5:</strong> Click <span class="highlight">Test Logout</span> to test sign out functionality</span>
+</li>
+</ul>
+</div>
+<div class="test-card">
+<h3><i class="fas fa-clipboard-check"></i> Expected Behavior</h3>
+<ul class="instruction-list">
+<li>
+<i class="fas fa-check-circle" style="color: #28a745;"></i>
+<span>User menu should <strong>open on hover</strong> over the avatar</span>
+</li>
+<li>
+<i class="fas fa-check-circle" style="color: #28a745;"></i>
+<span>User menu should <strong>close when mouse leaves</strong> the menu area</span>
+</li>
+<li>
+<i class="fas fa-check-circle" style="color: #28a745;"></i>
+<span>Clicking avatar should <strong>toggle menu open/closed</strong></span>
+</li>
+<li>
+<i class="fas fa-check-circle" style="color: #28a745;"></i>
+<span>Dashboard links should <strong>navigate to dashboard.html</strong> with correct hash</span>
+</li>
+<li>
+<i class="fas fa-check-circle" style="color: #28a745;"></i>
+<span>Sign Out button should <strong>show alert and redirect</strong> to index.html</span>
+</li>
+</ul>
+</div>
+</div>
+<script>
         const logConsole = document.getElementById('logConsole');
         const userMenu = document.getElementById('user-menu');
         const userMenuToggle = document.getElementById('user-menu-toggle');

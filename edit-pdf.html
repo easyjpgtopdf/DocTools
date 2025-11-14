@@ -1,20 +1,21 @@
 ﻿<!DOCTYPE html>
+
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Editor - easyjpgtopdf</title>
-    <link rel="stylesheet" href="css/footer.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Lato:wght@400;700&family=Poppins:wght@400;700&family=Montserrat:wght@400;700&family=Source+Sans+3:wght@400;700&family=Noto+Sans:wght@400;700&family=Merriweather:wght@400;700&family=PT+Sans:wght@400;700&family=PT+Serif:wght@400;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Raleway:wght@400;700&family=Ubuntu:wght@400;700&family=Work+Sans:wght@400;700&family=Karla:wght@400;700&family=Heebo:wght@400;700&family=Rubik:wght@400;700&family=Titillium+Web:wght@400;700&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- PDF.js libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js"></script>
-    <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PDF Editor - easyjpgtopdf</title>
+<link href="css/footer.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&amp;family=Roboto:wght@400;700&amp;family=Open+Sans:wght@400;700&amp;family=Lato:wght@400;700&amp;family=Poppins:wght@400;700&amp;family=Montserrat:wght@400;700&amp;family=Source+Sans+3:wght@400;700&amp;family=Noto+Sans:wght@400;700&amp;family=Merriweather:wght@400;700&amp;family=PT+Sans:wght@400;700&amp;family=PT+Serif:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&amp;family=Raleway:wght@400;700&amp;family=Ubuntu:wght@400;700&amp;family=Work+Sans:wght@400;700&amp;family=Karla:wght@400;700&amp;family=Heebo:wght@400;700&amp;family=Rubik:wght@400;700&amp;family=Titillium+Web:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- PDF.js libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js"></script>
+<style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         :root { --primary: #4361ee; --primary-dark: #3a0ca3; --secondary: #f72585; --success: #4cc9f0; --light: #f8f9fa; --dark: #212529; --gray: #6c757d; --border-radius: 12px; --box-shadow: 0 5px 15px rgba(0,0,0,0.08); --transition: all 0.3s ease; }
         body { background: linear-gradient(135deg, #f5f7ff 0%, #e9ecef 100%); color: var(--dark); min-height: 100vh; line-height: 1.6; display:flex; flex-direction:column; }
@@ -207,361 +208,339 @@
             .tool-group:last-child { border-bottom: none; padding-bottom: 0; } 
         }
     </style>
-    
-
-    
-    
-
-    
-
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/theme-modern.css">
+<link href="css/header.css" rel="stylesheet"/>
+<link href="css/theme-modern.css" rel="stylesheet"/>
 </head>
 <body>
 <header>
-        <div class="container">
-            <nav class="navbar">
-                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
-                <div class="nav-links">
-                    <div class="dropdown">
-                        <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="jpg-to-pdf.html">JPG to PDF</a>
-                            <a href="word-to-pdf.html">Word to PDF</a>
-                            <a href="excel-to-pdf.html">Excel to PDF</a>
-                            <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="pdf-to-jpg.html">PDF to JPG</a>
-                            <a href="pdf-to-word.html">PDF to Word</a>
-                            <a href="pdf-to-excel.html">PDF to Excel</a>
-                            <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="merge-pdf.html">Merge PDF</a>
-                            <a href="split-pdf.html">Split PDF</a>
-                            <a href="compress-pdf.html">Compress PDF</a>
-                            <a href="edit-pdf.html">Pdf Editor</a>
-                            <a href="protect-pdf.html">Protect PDF</a>
-                            <a href="unlock-pdf.html">Unlock PDF</a>
-                            <a href="watermark-pdf.html">Watermark PDF</a>
-                            <a href="crop-pdf.html">Crop PDF</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="image-compressor.html">Image Compressor</a>
-                            <a href="image-resizer.html">Image Resizer</a>
-                            <a href="image-editor.html">Image Editor</a>
-                            <a href="background-remover.html">Image Background Remover</a>
-                            <a href="ocr-image.html">OCR Image</a>
-                            <a href="image-watermark.html">Image Watermark Tool</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="resume-maker.html">Resume Maker</a>
-                            <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
-                            <a href="ai-image-generator.html">AI Image Generator</a>
-                            <a href="marriage-card.html">Marriage Card</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="auth-buttons">
-                    <a href="login.html" class="auth-link">Sign In</a>
-                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Create Account</span></a>
-                </div>
-                <div id="user-menu" class="user-menu" data-open="false">
-                    <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
-                        <span class="user-initial" aria-hidden="true">U</span>
-                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                    </button>
-                    <div class="user-dropdown" id="user-dropdown" hidden>
-                        <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
-                        <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
-                        <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
-                        <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
-                        <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
-                        <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
-                    </div>
-                </div>
-            </nav>
-        </div>
-    </header>
-
-
-
-
-    
-
-    <div class="container page-wrap">
-        <div class="editor-header">
-            <h1>PDF Editor - On-Screen Text Editing</h1>
-            <p>Edit text directly on your PDF - add, modify, change fonts, highlight and more</p>
-        </div>
-        <div class="editor-card">
-            <div class="upload-area" id="upload-area" tabindex="0" role="button" aria-label="Upload your PDF">
-                <div class="upload-icon"><i class="fas fa-file-pdf"></i></div>
-                <h3>Upload Your PDF File</h3>
-                <p>Drag & drop your PDF file here</p>
-                <p>or click to browse files</p>
-                <div style="margin-top:10px">
-                    <label for="file-input" class="btn btn-secondary" id="browse-btn"><i class="fas fa-folder-open"></i> Choose PDF</label>
-                </div>
-                <input type="file" id="file-input" class="file-input" accept="application/pdf,.pdf">
-            </div>
-            <div class="file-info" id="file-info">
-                <div class="file-details">
-                    <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
-                    <div class="file-text">
-                        <h4 id="file-name">document.pdf</h4>
-                        <p id="file-size">0 KB</p>
-                    </div>
-                </div>
-            </div>
-            <div class="editor-section" id="editor-section">
-                <h3>Pdf Editor Text</h3>
-                <div class="editor-container">
-                    <div class="toolbar">
-                        <div class="tool-group">
-                            <div class="tool-group-title">Text Tools</div>
-                            <button class="tool-btn active" id="select-tool">
-                                <i class="fas fa-mouse-pointer"></i>
-                                <span>Select Text</span>
-                            </button>
-                            <button class="tool-btn" id="text-tool">
-                                <i class="fas fa-font"></i>
-                                <span>Add Text</span>
-                            </button>
-                            <button class="tool-btn" id="highlight-tool">
-                                <i class="fas fa-highlighter"></i>
-                                <span>Highlight</span>
-                            </button>
-                            
-                            <button class="tool-btn" id="ocr-region-btn" title="Drag a box on the page to OCR only that region">
-                                <i class="fas fa-vector-square"></i>
-                                <span>OCR Region</span>
-                            </button>
-                            <div class="font-controls">
-                                <label style="font-size:.9rem;color:var(--dark)">OCR Language</label>
-                                <select id="ocr-lang" class="font-select">
-                                    <option value="eng" selected>English (eng)</option>
-                                    <option value="hin">Hindi (hin)</option>
-                                    <option value="ben">Bengali (ben)</option>
-                                    <option value="guj">Gujarati (guj)</option>
-                                    <option value="mar">Marathi (mar)</option>
-                                    <option value="pan">Punjabi (pan)</option>
-                                    <option value="tam">Tamil (tam)</option>
-                                    <option value="tel">Telugu (tel)</option>
-                                    <option value="kan">Kannada (kan)</option>
-                                    <option value="mal">Malayalam (mal)</option>
-                                    <option value="urd">Urdu (urd)</option>
-                                    <option value="asm">Assamese (asm)</option>
-                                    <option value="ori">Odia (ori)</option>
-                                    <option value="nep">Nepali (nep)</option>
-                                    <option value="snd">Sindhi (snd)</option>
-                                    <option value="eng+hin">English + Hindi</option>
-                                </select>
-                                <label style="display:flex;align-items:center;gap:8px;color:var(--dark);margin-top:6px">
-                                    <input type="checkbox" id="ocr-auto"> Auto OCR each page
+<div class="container">
+<nav class="navbar">
+<a class="logo" href="index.html"><img alt="Logo" src="images/logo.png" style="height:54px;"/></a>
+<div class="nav-links">
+<div class="dropdown">
+<a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="jpg-to-pdf.html">JPG to PDF</a>
+<a href="word-to-pdf.html">Word to PDF</a>
+<a href="excel-to-pdf.html">Excel to PDF</a>
+<a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="pdf-to-jpg.html">PDF to JPG</a>
+<a href="pdf-to-word.html">PDF to Word</a>
+<a href="pdf-to-excel.html">PDF to Excel</a>
+<a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="merge-pdf.html">Merge PDF</a>
+<a href="split-pdf.html">Split PDF</a>
+<a href="compress-pdf.html">Compress PDF</a>
+<a href="edit-pdf.html">Pdf Editor</a>
+<a href="protect-pdf.html">Protect PDF</a>
+<a href="unlock-pdf.html">Unlock PDF</a>
+<a href="watermark-pdf.html">Watermark PDF</a>
+<a href="crop-pdf.html">Crop PDF</a>
+<a href="add-page-numbers.html">Add Page Numbers</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="image-repair.html">AI Image Repair</a>
+<a href="image-compressor.html">Image Compressor</a>
+<a href="image-resizer.html">Image Resizer</a>
+<a href="image-editor.html">Image Editor</a>
+<a href="background-remover.html">Image Background Remover</a>
+<a href="ocr-image.html">OCR Image</a>
+<a href="image-watermark.html">Image Watermark Tool</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="resume-maker.html">Resume Maker</a>
+<a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+<a href="ai-image-generator.html">AI Image Generator</a>
+<a href="marriage-card.html">Marriage Card</a>
+</div>
+</div>
+<div class="dropdown">
+<a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
+<div class="dropdown-content">
+<a href="excel-unlocker.html">Excel Unlocker</a>
+<a href="protect-excel.html">Protect Excel Sheet</a>
+</div>
+</div>
+</div>
+<div class="auth-buttons">
+<a class="auth-link" href="login.html">Sign In</a>
+<a class="auth-btn" href="signup.html"><i aria-hidden="true" class="fas fa-user-plus"></i><span>Signup</span></a>
+</div>
+<div class="user-menu" data-open="false" id="user-menu">
+<button aria-expanded="false" aria-haspopup="true" aria-label="Account menu" class="user-menu-toggle" id="user-menu-toggle" type="button">
+<span aria-hidden="true" class="user-initial">U</span>
+<i aria-hidden="true" class="fas fa-chevron-down"></i>
+</button>
+<div class="user-dropdown" hidden="" id="user-dropdown">
+<a data-user-nav="dashboard-overview" href="dashboard.html#dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+<a data-user-nav="dashboard-billing" href="dashboard.html#dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+<a data-user-nav="dashboard-payments" href="dashboard.html#dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+<a data-user-nav="dashboard-orders" href="dashboard.html#dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
+<a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
+<button class="dropdown-logout" id="logout-button" type="button"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+</div>
+</div>
+</nav>
+</div>
+</header>
+<div class="container page-wrap">
+<div class="editor-header">
+<h1>PDF Editor - On-Screen Text Editing</h1>
+<p>Edit text directly on your PDF - add, modify, change fonts, highlight and more</p>
+</div>
+<div class="editor-card">
+<div aria-label="Upload your PDF" class="upload-area" id="upload-area" role="button" tabindex="0">
+<div class="upload-icon"><i class="fas fa-file-pdf"></i></div>
+<h3>Upload Your PDF File</h3>
+<p>Drag &amp; drop your PDF file here</p>
+<p>or click to browse files</p>
+<div style="margin-top:10px">
+<label class="btn btn-secondary" for="file-input" id="browse-btn"><i class="fas fa-folder-open"></i> Choose PDF</label>
+</div>
+<input accept="application/pdf,.pdf" class="file-input" id="file-input" type="file"/>
+</div>
+<div class="file-info" id="file-info">
+<div class="file-details">
+<div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+<div class="file-text">
+<h4 id="file-name">document.pdf</h4>
+<p id="file-size">0 KB</p>
+</div>
+</div>
+</div>
+<div class="editor-section" id="editor-section">
+<h3>Pdf Editor Text</h3>
+<div class="editor-container">
+<div class="toolbar">
+<div class="tool-group">
+<div class="tool-group-title">Text Tools</div>
+<button class="tool-btn active" id="select-tool">
+<i class="fas fa-mouse-pointer"></i>
+<span>Select Text</span>
+</button>
+<button class="tool-btn" id="text-tool">
+<i class="fas fa-font"></i>
+<span>Add Text</span>
+</button>
+<button class="tool-btn" id="highlight-tool">
+<i class="fas fa-highlighter"></i>
+<span>Highlight</span>
+</button>
+<button class="tool-btn" id="ocr-region-btn" title="Drag a box on the page to OCR only that region">
+<i class="fas fa-vector-square"></i>
+<span>OCR Region</span>
+</button>
+<div class="font-controls">
+<label style="font-size:.9rem;color:var(--dark)">OCR Language</label>
+<select class="font-select" id="ocr-lang">
+<option selected="" value="eng">English (eng)</option>
+<option value="hin">Hindi (hin)</option>
+<option value="ben">Bengali (ben)</option>
+<option value="guj">Gujarati (guj)</option>
+<option value="mar">Marathi (mar)</option>
+<option value="pan">Punjabi (pan)</option>
+<option value="tam">Tamil (tam)</option>
+<option value="tel">Telugu (tel)</option>
+<option value="kan">Kannada (kan)</option>
+<option value="mal">Malayalam (mal)</option>
+<option value="urd">Urdu (urd)</option>
+<option value="asm">Assamese (asm)</option>
+<option value="ori">Odia (ori)</option>
+<option value="nep">Nepali (nep)</option>
+<option value="snd">Sindhi (snd)</option>
+<option value="eng+hin">English + Hindi</option>
+</select>
+<label style="display:flex;align-items:center;gap:8px;color:var(--dark);margin-top:6px">
+<input id="ocr-auto" type="checkbox"/> Auto OCR each page
                                 </label>
-                            </div>
-                        </div>
-                        <div class="tool-group">
-                            <div class="tool-group-title">Highlight Colors</div>
-                            <div class="highlight-controls">
-                                <div class="highlight-color">
-                                    <div class="highlight-btn active" style="background-color: #FFFF00;" data-color="#FFFF00"></div>
-                                    <div class="highlight-btn" style="background-color: #00FF00;" data-color="#00FF00"></div>
-                                    <div class="highlight-btn" style="background-color: #00FFFF;" data-color="#00FFFF"></div>
-                                    <div class="highlight-btn" style="background-color: #FF00FF;" data-color="#FF00FF"></div>
-                                    <div class="highlight-btn" style="background-color: #FFA500;" data-color="#FFA500"></div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        
-                        
-                        
-                        
-                    </div>
-                    
-                    <div class="preview-container">
-                        <div class="ribbon">
-                          <div class="ribbon-row">
-                            <div class="ribbon-group">
-                              <div class="group-title">Font</div>
-                              <select id="tb-font-family">
-                                <option>Inter</option>
-                                <option>Roboto</option>
-                                <option>Open Sans</option>
-                                <option>Lato</option>
-                                <option>Poppins</option>
-                                <option>Montserrat</option>
-                                <option>Source Sans 3</option>
-                                <option>Noto Sans</option>
-                                <option>PT Sans</option>
-                                <option>PT Serif</option>
-                                <option>Merriweather</option>
-                                <option>Georgia</option>
-                                <option>Verdana</option>
-                                <option>Courier New</option>
-                                <option>Times New Roman</option>
-                                <option>Arial</option>
-                              </select>
-                              <select id="tb-font-size">
-                                <option>10</option>
-                                <option>12</option>
-                                <option selected>14</option>
-                                <option>16</option>
-                                <option>18</option>
-                                <option>24</option>
-                                <option>32</option>
-                              </select>
-                              <select id="tb-color-preset" title="Font Color Presets">
-                                <option value="#111827">Black</option>
-                                <option value="#ff0000">Red</option>
-                                <option value="#0057ff">Blue</option>
-                                <option value="#00a650">Green</option>
-                                <option value="#ff8c00">Orange</option>
-                                <option value="#800080">Purple</option>
-                                <option value="#808080">Gray</option>
-                                <option value="#ffff00">Yellow</option>
-                              </select>
-                              <input id="tb-color" type="color" value="#111827" title="Custom Color">
-                            </div>
-                            <div class="ribbon-group">
-                              <div class="group-title">Style</div>
-                              <button id="tb-bold" class="btn" title="Bold"><i class="fas fa-bold"></i></button>
-                              <button id="tb-italic" class="btn" title="Italic"><i class="fas fa-italic"></i></button>
-                              <button id="tb-underline" class="btn" title="Underline"><i class="fas fa-underline"></i></button>
-                            </div>
-                            <div class="ribbon-group">
-                              <div class="group-title">Align</div>
-                              <button id="tb-align-left" class="btn" title="Align Left"><i class="fas fa-align-left"></i></button>
-                              <button id="tb-align-center" class="btn" title="Align Center"><i class="fas fa-align-center"></i></button>
-                              <button id="tb-align-right" class="btn" title="Align Right"><i class="fas fa-align-right"></i></button>
-                            </div>
-                          </div>
-                          <div class="ribbon-row">
-                            <div class="ribbon-group">
-                              <div class="group-title">Edit</div>
-                              <button id="tb-undo" class="btn" title="Undo"><i class="fas fa-undo"></i></button>
-                              <button id="tb-redo" class="btn" title="Redo"><i class="fas fa-redo"></i></button>
-                              <button id="tb-clear" class="btn" title="Clear All"><i class="fas fa-trash"></i></button>
-                            </div>
-                            <div class="ribbon-group">
-                              <div class="group-title">Insert</div>
-                              <button id="tb-insert-image" class="btn" title="Insert Image"><i class="fas fa-image"></i></button>
-                              <input id="img-file-input" type="file" accept="image/*" style="display:none">
-                              <label for="tb-image-scale" class="group-title" style="margin-left:8px">Image Size</label>
-                              <input id="tb-image-scale" type="range" min="10" max="300" value="100" style="width:140px">
-                            </div>
-                            <div class="ribbon-group">
-                              <div class="group-title">Save</div>
-                              <button class="btn btn-primary" id="save-btn" disabled><i class="fas fa-download"></i> Save Edited PDF</button>
-                              <button class="btn" id="save-ocr-only-btn" disabled><i class="fas fa-file-export"></i> OCR-Only (No BG)</button>
-                              <button class="btn" id="save-selectable-btn" disabled title="Embed fonts to keep selectable text like Acrobat"><i class="fas fa-file-signature"></i> Save Selectable (Embed Fonts)</button>
-                              <label class="btn" for="add-font-input" title="Add TTF/OTF font to embed"><i class="fas fa-font"></i> Add Font</label>
-                              <input id="add-font-input" type="file" accept=".ttf,.otf,.ttc,.woff,.woff2" style="display:none">
-                            </div>
-                            <div class="ribbon-group" style="margin-left:auto">
-                              <div class="group-title">Zoom</div>
-                              <button id="zoom-out" class="btn" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
-                              <button id="zoom-in" class="btn" title="Zoom In"><i class="fas fa-search-plus"></i></button>
-                              <button id="zoom-fit" class="btn" title="Fit to Width"><i class="fas fa-expand"></i></button>
-                              <span id="zoom-pct" class="zoom-label">100%</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div class="preview-area">
-                            <div class="a4-preview" id="a4-preview">
-                                <canvas id="pdf-canvas"></canvas>
-                                <canvas id="overlay-canvas"></canvas>
-                                <div id="text-layer"></div>
-                            </div>
-                        </div>
-                        
-                        <div class="page-navigation">
-                            <button class="page-btn" id="prev-page"><i class="fas fa-chevron-left"></i></button>
-                            <span class="page-info">Page <span id="page-num">1</span> of <span id="page-count">1</span></span>
-                            <button class="page-btn" id="next-page"><i class="fas fa-chevron-right"></i></button>
-                        </div>
-                    </div>
-                </div>
+</div>
+</div>
+<div class="tool-group">
+<div class="tool-group-title">Highlight Colors</div>
+<div class="highlight-controls">
+<div class="highlight-color">
+<div class="highlight-btn active" data-color="#FFFF00" style="background-color: #FFFF00;"></div>
+<div class="highlight-btn" data-color="#00FF00" style="background-color: #00FF00;"></div>
+<div class="highlight-btn" data-color="#00FFFF" style="background-color: #00FFFF;"></div>
+<div class="highlight-btn" data-color="#FF00FF" style="background-color: #FF00FF;"></div>
+<div class="highlight-btn" data-color="#FFA500" style="background-color: #FFA500;"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="preview-container">
+<div class="ribbon">
+<div class="ribbon-row">
+<div class="ribbon-group">
+<div class="group-title">Font</div>
+<select id="tb-font-family">
+<option>Inter</option>
+<option>Roboto</option>
+<option>Open Sans</option>
+<option>Lato</option>
+<option>Poppins</option>
+<option>Montserrat</option>
+<option>Source Sans 3</option>
+<option>Noto Sans</option>
+<option>PT Sans</option>
+<option>PT Serif</option>
+<option>Merriweather</option>
+<option>Georgia</option>
+<option>Verdana</option>
+<option>Courier New</option>
+<option>Times New Roman</option>
+<option>Arial</option>
+</select>
+<select id="tb-font-size">
+<option>10</option>
+<option>12</option>
+<option selected="">14</option>
+<option>16</option>
+<option>18</option>
+<option>24</option>
+<option>32</option>
+</select>
+<select id="tb-color-preset" title="Font Color Presets">
+<option value="#111827">Black</option>
+<option value="#ff0000">Red</option>
+<option value="#0057ff">Blue</option>
+<option value="#00a650">Green</option>
+<option value="#ff8c00">Orange</option>
+<option value="#800080">Purple</option>
+<option value="#808080">Gray</option>
+<option value="#ffff00">Yellow</option>
+</select>
+<input id="tb-color" title="Custom Color" type="color" value="#111827"/>
+</div>
+<div class="ribbon-group">
+<div class="group-title">Style</div>
+<button class="btn" id="tb-bold" title="Bold"><i class="fas fa-bold"></i></button>
+<button class="btn" id="tb-italic" title="Italic"><i class="fas fa-italic"></i></button>
+<button class="btn" id="tb-underline" title="Underline"><i class="fas fa-underline"></i></button>
+</div>
+<div class="ribbon-group">
+<div class="group-title">Align</div>
+<button class="btn" id="tb-align-left" title="Align Left"><i class="fas fa-align-left"></i></button>
+<button class="btn" id="tb-align-center" title="Align Center"><i class="fas fa-align-center"></i></button>
+<button class="btn" id="tb-align-right" title="Align Right"><i class="fas fa-align-right"></i></button>
+</div>
+</div>
+<div class="ribbon-row">
+<div class="ribbon-group">
+<div class="group-title">Edit</div>
+<button class="btn" id="tb-undo" title="Undo"><i class="fas fa-undo"></i></button>
+<button class="btn" id="tb-redo" title="Redo"><i class="fas fa-redo"></i></button>
+<button class="btn" id="tb-clear" title="Clear All"><i class="fas fa-trash"></i></button>
+</div>
+<div class="ribbon-group">
+<div class="group-title">Insert</div>
+<button class="btn" id="tb-insert-image" title="Insert Image"><i class="fas fa-image"></i></button>
+<input accept="image/*" id="img-file-input" style="display:none" type="file"/>
+<label class="group-title" for="tb-image-scale" style="margin-left:8px">Image Size</label>
+<input id="tb-image-scale" max="300" min="10" style="width:140px" type="range" value="100"/>
+</div>
+<div class="ribbon-group">
+<div class="group-title">Save</div>
+<button class="btn btn-primary" disabled="" id="save-btn"><i class="fas fa-download"></i> Save Edited PDF</button>
+<button class="btn" disabled="" id="save-ocr-only-btn"><i class="fas fa-file-export"></i> OCR-Only (No BG)</button>
+<button class="btn" disabled="" id="save-selectable-btn" title="Embed fonts to keep selectable text like Acrobat"><i class="fas fa-file-signature"></i> Save Selectable (Embed Fonts)</button>
+<label class="btn" for="add-font-input" title="Add TTF/OTF font to embed"><i class="fas fa-font"></i> Add Font</label>
+<input accept=".ttf,.otf,.ttc,.woff,.woff2" id="add-font-input" style="display:none" type="file"/>
+</div>
+<div class="ribbon-group" style="margin-left:auto">
+<div class="group-title">Zoom</div>
+<button class="btn" id="zoom-out" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
+<button class="btn" id="zoom-in" title="Zoom In"><i class="fas fa-search-plus"></i></button>
+<button class="btn" id="zoom-fit" title="Fit to Width"><i class="fas fa-expand"></i></button>
+<span class="zoom-label" id="zoom-pct">100%</span>
+</div>
+</div>
+</div>
+<div class="preview-area">
+<div class="a4-preview" id="a4-preview">
+<canvas id="pdf-canvas"></canvas>
+<canvas id="overlay-canvas"></canvas>
+<div id="text-layer"></div>
+</div>
+</div>
+<div class="page-navigation">
+<button class="page-btn" id="prev-page"><i class="fas fa-chevron-left"></i></button>
+<span class="page-info">Page <span id="page-num">1</span> of <span id="page-count">1</span></span>
+<button class="page-btn" id="next-page"><i class="fas fa-chevron-right"></i></button>
+</div>
+</div>
+</div>
+</div>
+<div class="progress-container" id="progress-container">
+<div class="progress-bar">
+<div class="progress" id="progress-bar"></div>
+</div>
+<div class="progress-text" id="progress-text">Loading PDF...</div>
+</div>
+<div class="loading" id="loading">
+<div class="loading-spinner"></div>
+<p>Processing your PDF file...</p>
+</div>
+<div class="success-message message" id="success-message">
+<i class="fas fa-check-circle"></i> Your PDF has been successfully edited!
             </div>
-            
-            <div class="progress-container" id="progress-container">
-                <div class="progress-bar">
-                    <div class="progress" id="progress-bar"></div>
-                </div>
-                <div class="progress-text" id="progress-text">Loading PDF...</div>
-            </div>
-            
-            <div class="loading" id="loading">
-                <div class="loading-spinner"></div>
-                <p>Processing your PDF file...</p>
-            </div>
-            
-            <div class="success-message message" id="success-message">
-                <i class="fas fa-check-circle"></i> Your PDF has been successfully edited!
-            </div>
-            
-            <div class="error-message message" id="error-message">
-                <i class="fas fa-exclamation-circle"></i> <span id="error-text">An error occurred during processing</span>
-            </div>
-            
-            <div class="action-buttons">
-                <button class="btn btn-secondary" id="new-file-btn">
-                    <i class="fas fa-file"></i> New File
+<div class="error-message message" id="error-message">
+<i class="fas fa-exclamation-circle"></i> <span id="error-text">An error occurred during processing</span>
+</div>
+<div class="action-buttons">
+<button class="btn btn-secondary" id="new-file-btn">
+<i class="fas fa-file"></i> New File
                 </button>
-            </div>
-        </div>
-        
-        <div class="features">
-            <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-edit"></i></div>
-                <h3>Direct Text Editing</h3>
-                <p>Click and edit text directly on the PDF with real-time preview</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-palette"></i></div>
-                <h3>Font Customization</h3>
-                <p>Change font family, size, color and apply highlights to text</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-text-height"></i></div>
-                <h3>Add New Text</h3>
-                <p>Insert new text anywhere on the PDF document</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
-                <h3>Secure & Private</h3>
-                <p>Your files stay in your browser - no server uploads</p>
-            </div>
-        </div>
-    </div>
-
-    
-
-    <!-- Context Menu -->
-    <div class="context-menu" id="context-menu">
-        <div class="context-menu-item" id="edit-text">Edit Text</div>
-        <div class="context-menu-item" id="change-font">Change Font</div>
-        <div class="context-menu-item" id="change-color">Change Color</div>
-        <div class="context-menu-item" id="highlight-text">Highlight</div>
-        <div class="context-menu-item" id="remove-text">Remove Text</div>
-    </div>
-
-    <script>
+</div>
+</div>
+<div class="features">
+<div class="feature-card">
+<div class="feature-icon"><i class="fas fa-edit"></i></div>
+<h3>Direct Text Editing</h3>
+<p>Click and edit text directly on the PDF with real-time preview</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon"><i class="fas fa-palette"></i></div>
+<h3>Font Customization</h3>
+<p>Change font family, size, color and apply highlights to text</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon"><i class="fas fa-text-height"></i></div>
+<h3>Add New Text</h3>
+<p>Insert new text anywhere on the PDF document</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
+<h3>Secure &amp; Private</h3>
+<p>Your files stay in your browser - no server uploads</p>
+</div>
+</div>
+</div>
+<!-- Context Menu -->
+<div class="context-menu" id="context-menu">
+<div class="context-menu-item" id="edit-text">Edit Text</div>
+<div class="context-menu-item" id="change-font">Change Font</div>
+<div class="context-menu-item" id="change-color">Change Color</div>
+<div class="context-menu-item" id="highlight-text">Highlight</div>
+<div class="context-menu-item" id="remove-text">Remove Text</div>
+</div>
+<script>
         const STABLE_MODE = false; // enable full tools, including Insert Image
         // Set PDF.js worker path
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -1237,29 +1216,29 @@
     <script type="module" src="js/auth.js"></script>
 </body></html>');
             d.close();
-            function addScript(src){ return new Promise((res,rej)=>{ const s=d.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; d.body.appendChild(s); }); }
-            (async ()=>{
+            function addScript(src){ return new Promise((res,rej)=&gt;{ const s=d.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; d.body.appendChild(s); }); }
+            (async ()=&gt;{
                 try{
                     await addScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
                     await addScript('https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js');
                     const layer = d.getElementById('text-layer');
                     let selected=null;
-                    function select(el){ d.querySelectorAll('.editable-text.selected').forEach(e=>e.classList.remove('selected')); el.classList.add('selected'); selected=el; }
-                    function makeEditable(el){ d.querySelectorAll('.editable-text.editing').forEach(e=>{e.classList.remove('editing'); e.contentEditable='false';}); el.classList.add('editing'); el.contentEditable='true'; el.focus(); }
-                    function place(line){ const b=line.bbox; const x0=b.x0, y0=b.y0, x1=b.x1, y1=b.y1; const fs=Math.max(10, Math.round((y1-y0)*0.8)); const el=d.createElement('div'); el.className='editable-text'; el.textContent=(line.text||'').trim(); el.style.left=x0+'px'; el.style.top=y0+'px'; el.style.fontSize=fs+'px'; el.style.fontFamily=d.getElementById('ff').value; el.style.color=d.getElementById('tc').value; el.addEventListener('dblclick',e=>{e.stopPropagation(); makeEditable(el);}); el.addEventListener('click',e=>{e.stopPropagation(); select(el);}); layer.appendChild(el); }
-                    const res = await w.Tesseract.recognize(img,'eng',{logger:()=>{}});
-                    const lines = (res.data && res.data.lines)||[]; lines.forEach(l=>{ if(l && l.bbox) place(l); });
+                    function select(el){ d.querySelectorAll('.editable-text.selected').forEach(e=&gt;e.classList.remove('selected')); el.classList.add('selected'); selected=el; }
+                    function makeEditable(el){ d.querySelectorAll('.editable-text.editing').forEach(e=&gt;{e.classList.remove('editing'); e.contentEditable='false';}); el.classList.add('editing'); el.contentEditable='true'; el.focus(); }
+                    function place(line){ const b=line.bbox; const x0=b.x0, y0=b.y0, x1=b.x1, y1=b.y1; const fs=Math.max(10, Math.round((y1-y0)*0.8)); const el=d.createElement('div'); el.className='editable-text'; el.textContent=(line.text||'').trim(); el.style.left=x0+'px'; el.style.top=y0+'px'; el.style.fontSize=fs+'px'; el.style.fontFamily=d.getElementById('ff').value; el.style.color=d.getElementById('tc').value; el.addEventListener('dblclick',e=&gt;{e.stopPropagation(); makeEditable(el);}); el.addEventListener('click',e=&gt;{e.stopPropagation(); select(el);}); layer.appendChild(el); }
+                    const res = await w.Tesseract.recognize(img,'eng',{logger:()=&gt;{}});
+                    const lines = (res.data &amp;&amp; res.data.lines)||[]; lines.forEach(l=&gt;{ if(l &amp;&amp; l.bbox) place(l); });
                     // toolbar handlers
-                    d.getElementById('ff').addEventListener('change',()=>{ if(selected){ selected.style.fontFamily=d.getElementById('ff').value; }});
-                    d.getElementById('fs').addEventListener('change',()=>{ if(selected){ selected.style.fontSize=d.getElementById('fs').value+'px'; }});
-                    d.getElementById('tc').addEventListener('input',()=>{ if(selected){ selected.style.color=d.getElementById('tc').value; }});
-                    d.getElementById('bBold').addEventListener('click',()=>{ if(selected){ const wgt=w.getComputedStyle(selected).fontWeight; selected.style.fontWeight=(wgt==='700'||wgt==='bold')?'400':'700'; }});
-                    d.getElementById('bItalic').addEventListener('click',()=>{ if(selected){ const st=w.getComputedStyle(selected).fontStyle; selected.style.fontStyle=(st==='italic')?'normal':'italic'; }});
-                    d.getElementById('bUnderline').addEventListener('click',()=>{ if(selected){ const dec=w.getComputedStyle(selected).textDecorationLine; selected.style.textDecoration=(dec.includes('underline'))?'none':'underline'; }});
+                    d.getElementById('ff').addEventListener('change',()=&gt;{ if(selected){ selected.style.fontFamily=d.getElementById('ff').value; }});
+                    d.getElementById('fs').addEventListener('change',()=&gt;{ if(selected){ selected.style.fontSize=d.getElementById('fs').value+'px'; }});
+                    d.getElementById('tc').addEventListener('input',()=&gt;{ if(selected){ selected.style.color=d.getElementById('tc').value; }});
+                    d.getElementById('bBold').addEventListener('click',()=&gt;{ if(selected){ const wgt=w.getComputedStyle(selected).fontWeight; selected.style.fontWeight=(wgt==='700'||wgt==='bold')?'400':'700'; }});
+                    d.getElementById('bItalic').addEventListener('click',()=&gt;{ if(selected){ const st=w.getComputedStyle(selected).fontStyle; selected.style.fontStyle=(st==='italic')?'normal':'italic'; }});
+                    d.getElementById('bUnderline').addEventListener('click',()=&gt;{ if(selected){ const dec=w.getComputedStyle(selected).textDecorationLine; selected.style.textDecoration=(dec.includes('underline'))?'none':'underline'; }});
                     // drag with Ctrl
-                    layer.addEventListener('mousedown',e=>{ const t=e.target; if(!(t&&t.classList&&t.classList.contains('editable-text'))) return; if(t.isContentEditable||!e.ctrlKey) return; e.preventDefault(); select(t); const sx=e.clientX, sy=e.clientY; const l=parseFloat(t.style.left)||0; const tp=parseFloat(t.style.top)||0; function mm(ev){ t.style.left=(l+ev.clientX-sx)+'px'; t.style.top=(tp+ev.clientY-sy)+'px'; } function mu(){ w.removeEventListener('mousemove',mm); w.removeEventListener('mouseup',mu);} w.addEventListener('mousemove',mm); w.addEventListener('mouseup',mu); });
+                    layer.addEventListener('mousedown',e=&gt;{ const t=e.target; if(!(t&amp;&amp;t.classList&amp;&amp;t.classList.contains('editable-text'))) return; if(t.isContentEditable||!e.ctrlKey) return; e.preventDefault(); select(t); const sx=e.clientX, sy=e.clientY; const l=parseFloat(t.style.left)||0; const tp=parseFloat(t.style.top)||0; function mm(ev){ t.style.left=(l+ev.clientX-sx)+'px'; t.style.top=(tp+ev.clientY-sy)+'px'; } function mu(){ w.removeEventListener('mousemove',mm); w.removeEventListener('mouseup',mu);} w.addEventListener('mousemove',mm); w.addEventListener('mouseup',mu); });
                     // save
-                    d.getElementById('bSave').addEventListener('click',()=>{ const { jsPDF }=w.jspdf; const pdf=new jsPDF({unit:'pt',format:[595,842]}); const nodes=[...d.querySelectorAll('.editable-text')]; nodes.forEach(el=>{ const left=parseFloat(el.style.left)||0; const top=parseFloat(el.style.top)||0; const fs=parseFloat(el.style.fontSize)||14; const fam=el.style.fontFamily||'Arial'; const col=el.style.color||'#000'; pdf.setTextColor(col); pdf.setFont(fam,'normal'); pdf.setFontSize(fs); const lines=(el.textContent||'').split('\n'); let y=top+fs*0.1; lines.forEach(line=>{ pdf.text(line,left,y); y+=fs*1.2; }); }); pdf.save('ocr-edited.pdf'); });
+                    d.getElementById('bSave').addEventListener('click',()=&gt;{ const { jsPDF }=w.jspdf; const pdf=new jsPDF({unit:'pt',format:[595,842]}); const nodes=[...d.querySelectorAll('.editable-text')]; nodes.forEach(el=&gt;{ const left=parseFloat(el.style.left)||0; const top=parseFloat(el.style.top)||0; const fs=parseFloat(el.style.fontSize)||14; const fam=el.style.fontFamily||'Arial'; const col=el.style.color||'#000'; pdf.setTextColor(col); pdf.setFont(fam,'normal'); pdf.setFontSize(fs); const lines=(el.textContent||'').split('\n'); let y=top+fs*0.1; lines.forEach(line=&gt;{ pdf.text(line,left,y); y+=fs*1.2; }); }); pdf.save('ocr-edited.pdf'); });
                 }catch(e){ console.error(e); }
             })();
         }
@@ -1303,8 +1282,8 @@
                 if (confirm('Are you sure you want to remove this text?')) {
                     selectedTextElement.remove();
                     // Remove from annotations
-                    textAnnotations = textAnnotations.filter(ann => 
-                        !(ann.x === parseFloat(selectedTextElement.style.left) && 
+                    textAnnotations = textAnnotations.filter(ann =&gt; 
+                        !(ann.x === parseFloat(selectedTextElement.style.left) &amp;&amp; 
                           ann.y === parseFloat(selectedTextElement.style.top))
                     );
                     annotationHistory.push([...textAnnotations]);
@@ -1317,7 +1296,7 @@
         
         // Select text element
         function selectTextElement(textEl) {
-            document.querySelectorAll('.editable-text.selected').forEach(el => {
+            document.querySelectorAll('.editable-text.selected').forEach(el =&gt; {
                 el.classList.remove('selected');
             });
             textEl.classList.add('selected');
@@ -1331,9 +1310,9 @@
             textEl.textContent = 'New Text';
             textEl.style.left = x + 'px';
             textEl.style.top = y + 'px';
-            const defSize = (tbFontSize && tbFontSize.value) ? tbFontSize.value : (fontSizeSelect && fontSizeSelect.value ? fontSizeSelect.value : '14');
-            const defFamily = (tbFontFamily && tbFontFamily.value) ? tbFontFamily.value : (fontFamilySelect && fontFamilySelect.value ? fontFamilySelect.value : 'Noto Sans, Arial, sans-serif');
-            const defColor = (tbColor && tbColor.value) ? tbColor.value : (colorPicker && colorPicker.value ? colorPicker.value : '#000');
+            const defSize = (tbFontSize &amp;&amp; tbFontSize.value) ? tbFontSize.value : (fontSizeSelect &amp;&amp; fontSizeSelect.value ? fontSizeSelect.value : '14');
+            const defFamily = (tbFontFamily &amp;&amp; tbFontFamily.value) ? tbFontFamily.value : (fontFamilySelect &amp;&amp; fontFamilySelect.value ? fontFamilySelect.value : 'Noto Sans, Arial, sans-serif');
+            const defColor = (tbColor &amp;&amp; tbColor.value) ? tbColor.value : (colorPicker &amp;&amp; colorPicker.value ? colorPicker.value : '#000');
             textEl.style.fontSize = defSize + 'px';
             textEl.style.fontFamily = defFamily;
             textEl.style.color = defColor;
@@ -1369,7 +1348,7 @@
                 const y = e.clientY - rect.top;
                 
                 addNewText(x, y);
-            } else if (activeTool === 'highlight' && selectedTextElement) {
+            } else if (activeTool === 'highlight' &amp;&amp; selectedTextElement) {
                 selectedTextElement.style.backgroundColor = highlightColor;
                 saveTextAnnotation(selectedTextElement);
             }
@@ -1379,18 +1358,18 @@
         a4Preview.addEventListener('click', handleCanvasClick);
 
         // Deselect when clicking outside any text element
-        a4Preview.addEventListener('mousedown', (e)=>{
-            if(!(e.target && e.target.classList && e.target.classList.contains('editable-text'))){
-                document.querySelectorAll('.editable-text.selected').forEach(el => { el.classList.remove('selected','editing'); el.contentEditable='false'; });
+        a4Preview.addEventListener('mousedown', (e)=&gt;{
+            if(!(e.target &amp;&amp; e.target.classList &amp;&amp; e.target.classList.contains('editable-text'))){
+                document.querySelectorAll('.editable-text.selected').forEach(el =&gt; { el.classList.remove('selected','editing'); el.contentEditable='false'; });
                 selectedTextElement = null;
             }
         });
 
         // Drag to move when not editing (hold Ctrl to move to avoid text selection)
         let dragInfo = null;
-        textLayer.addEventListener('mousedown', (e)=>{
+        textLayer.addEventListener('mousedown', (e)=&gt;{
             const target = e.target;
-            if(!(target && target.classList && target.classList.contains('editable-text'))) return;
+            if(!(target &amp;&amp; target.classList &amp;&amp; target.classList.contains('editable-text'))) return;
             // Start drag only if not in editing mode and Ctrl pressed
             if(target.isContentEditable || !e.ctrlKey) return;
             e.preventDefault();
@@ -1399,7 +1378,7 @@
             const origLeft = parseFloat(target.style.left)||0;
             const origTop = parseFloat(target.style.top)||0;
             dragInfo = { target, startX, startY, origLeft, origTop };
-            const onMove = (ev)=>{
+            const onMove = (ev)=&gt;{
                 if(!dragInfo) return;
                 const dx = ev.clientX - dragInfo.startX;
                 const dy = ev.clientY - dragInfo.startY;
@@ -1407,7 +1386,7 @@
                 dragInfo.target.style.top = (dragInfo.origTop + dy) + 'px';
                 updateMask(dragInfo.target);
             };
-            const onUp = ()=>{
+            const onUp = ()=&gt;{
                 if(dragInfo){ saveTextAnnotation(dragInfo.target); }
                 dragInfo = null; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp);
             };
@@ -1416,27 +1395,27 @@
         });
 
         // Key handling for selected element when not editing
-        document.addEventListener('keydown', (e)=>{
+        document.addEventListener('keydown', (e)=&gt;{
             if(!selectedTextElement) return;
-            const isEditing = selectedTextElement.isContentEditable && selectedTextElement.classList.contains('editing');
+            const isEditing = selectedTextElement.isContentEditable &amp;&amp; selectedTextElement.classList.contains('editing');
             if(isEditing) return; // already inline editing
 
-            // Ctrl/Cmd + Delete/Backspace => remove entire block
-            if((e.key === 'Delete' || e.key === 'Backspace') && (e.ctrlKey || e.metaKey)){
+            // Ctrl/Cmd + Delete/Backspace =&gt; remove entire block
+            if((e.key === 'Delete' || e.key === 'Backspace') &amp;&amp; (e.ctrlKey || e.metaKey)){
                 e.preventDefault();
                 const tgt = selectedTextElement; selectedTextElement = null;
                 // remove mask if present
-                const prev = tgt.previousElementSibling; if(prev && prev.classList.contains('mask-block')) prev.remove();
+                const prev = tgt.previousElementSibling; if(prev &amp;&amp; prev.classList.contains('mask-block')) prev.remove();
                 tgt.remove();
-                textAnnotations = textAnnotations.filter(ann => !(ann.x === parseFloat(tgt.style.left) && ann.y === parseFloat(tgt.style.top)));
+                textAnnotations = textAnnotations.filter(ann =&gt; !(ann.x === parseFloat(tgt.style.left) &amp;&amp; ann.y === parseFloat(tgt.style.top)));
                 annotationHistory.push([...textAnnotations]);
                 redoHistory = [];
                 updateUndoRedoButtons();
                 return;
             }
 
-            // Character typing -> enter edit mode and insert char
-            if(e.key && e.key.length === 1 && !e.altKey && !e.ctrlKey && !e.metaKey){
+            // Character typing -&gt; enter edit mode and insert char
+            if(e.key &amp;&amp; e.key.length === 1 &amp;&amp; !e.altKey &amp;&amp; !e.ctrlKey &amp;&amp; !e.metaKey){
                 e.preventDefault();
                 makeTextEditable(selectedTextElement);
                 // insert the typed character at caret
@@ -1445,12 +1424,12 @@
                 return;
             }
 
-            // Backspace/Delete -> enter edit mode and delete one character
+            // Backspace/Delete -&gt; enter edit mode and delete one character
             if(e.key === 'Backspace' || e.key === 'Delete'){
                 e.preventDefault();
                 makeTextEditable(selectedTextElement);
                 // simulate deletion
-                setTimeout(()=>{
+                setTimeout(()=&gt;{
                     try{ document.execCommand(e.key === 'Delete' ? 'forwardDelete' : 'delete'); }catch(_){ /* ignore */ }
                     updateMask(selectedTextElement);
                 },0);
@@ -1460,17 +1439,17 @@
 
         // Apply formatting to selected element (guard missing left controls)
         if(fontFamilySelect){
-            fontFamilySelect.addEventListener('change', ()=>{
+            fontFamilySelect.addEventListener('change', ()=&gt;{
                 if(selectedTextElement){ selectedTextElement.style.fontFamily = fontFamilySelect.value; saveTextAnnotation(selectedTextElement); }
             });
         }
         if(fontSizeSelect){
-            fontSizeSelect.addEventListener('change', ()=>{
+            fontSizeSelect.addEventListener('change', ()=&gt;{
                 if(selectedTextElement){ selectedTextElement.style.fontSize = fontSizeSelect.value + 'px'; saveTextAnnotation(selectedTextElement); }
             });
         }
         if(colorPicker){
-            colorPicker.addEventListener('input', ()=>{
+            colorPicker.addEventListener('input', ()=&gt;{
                 if(selectedTextElement){ selectedTextElement.style.color = colorPicker.value; saveTextAnnotation(selectedTextElement); }
             });
         }
@@ -1480,7 +1459,7 @@
             activeTool = tool;
             
             // Update UI
-            document.querySelectorAll('.tool-btn').forEach(btn => {
+            document.querySelectorAll('.tool-btn').forEach(btn =&gt; {
                 btn.classList.remove('active');
             });
             
@@ -1518,7 +1497,7 @@
         function ensureMask(el){
             if(!el || !el.parentNode) return;
             const prev = el.previousElementSibling;
-            if(!(prev && prev.classList && prev.classList.contains('mask-block'))){
+            if(!(prev &amp;&amp; prev.classList &amp;&amp; prev.classList.contains('mask-block'))){
                 const m = document.createElement('div');
                 m.className = 'mask-block';
                 el.parentNode.insertBefore(m, el);
@@ -1528,7 +1507,7 @@
         function updateMask(el){
             if(!el) return;
             const m = el.previousElementSibling;
-            if(!(m && m.classList && m.classList.contains('mask-block'))) return;
+            if(!(m &amp;&amp; m.classList &amp;&amp; m.classList.contains('mask-block'))) return;
             // padding to fully hide glyph descenders/overshoot
             const padX = 4, padY = 4;
             const left = parseFloat(el.style.left||'0');
@@ -1548,7 +1527,7 @@
         
         // Undo last action
         function undo() {
-            if (annotationHistory.length > 1) {
+            if (annotationHistory.length &gt; 1) {
                 redoHistory.push(textAnnotations);
                 annotationHistory.pop();
                 textAnnotations = [...annotationHistory[annotationHistory.length - 1]];
@@ -1559,7 +1538,7 @@
         
         // Redo last undone action
         function redo() {
-            if (redoHistory.length > 0) {
+            if (redoHistory.length &gt; 0) {
                 textAnnotations = redoHistory.pop();
                 annotationHistory.push([...textAnnotations]);
                 updateUndoRedoButtons();
@@ -1580,7 +1559,7 @@
         
         // Update undo/redo button states
         function updateUndoRedoButtons() {
-            if(undoBtn) undoBtn.disabled = annotationHistory.length <= 1;
+            if(undoBtn) undoBtn.disabled = annotationHistory.length &lt;= 1;
             if(redoBtn) redoBtn.disabled = redoHistory.length === 0;
         }
         
@@ -1598,7 +1577,7 @@
                 octx.drawImage(pdfCanvas, 0, 0);
                 // Draw overlays from DOM (first mask white, then optional highlight, then text)
                 const nodes = Array.from(textLayer.querySelectorAll('.editable-text'));
-                nodes.forEach(el => {
+                nodes.forEach(el =&gt; {
                     const left = parseFloat(el.style.left)||0;
                     const top = parseFloat(el.style.top)||0;
                     const fs = parseFloat(el.style.fontSize)||14;
@@ -1615,7 +1594,7 @@
                     octx.fillStyle = '#FFFFFF';
                     octx.fillRect(left-padX, top-padY, textW+padX*2, textH+padY*2);
                     // 2) Optional highlight background over the mask
-                    if(bg && bg !== 'transparent'){
+                    if(bg &amp;&amp; bg !== 'transparent'){
                         octx.fillStyle = bg;
                         octx.fillRect(left-padX, top-padY, textW+padX*2, textH+padY*2);
                     }
@@ -1625,11 +1604,11 @@
                     octx.font = `${it==='italic'?'italic ':''}${(fw==='700'||fw==='bold')?'bold ':''}${fs}px ${fam}`;
                     const lines = (el.textContent||'').split('\n');
                     let y = top; const lh = fs * 1.2;
-                    lines.forEach(line=>{ octx.fillText(line, left, y); y += lh; });
+                    lines.forEach(line=&gt;{ octx.fillText(line, left, y); y += lh; });
                 });
                 // Draw overlay images
                 const imgs = Array.from(textLayer.querySelectorAll('.overlay-image'));
-                await Promise.all(imgs.map(el=> new Promise((res)=>{ const im = new Image(); im.onload=()=>{ const left=parseFloat(el.style.left)||0; const top=parseFloat(el.style.top)||0; const wv=parseFloat(el.style.width)||im.naturalWidth; const hv=im.naturalHeight*(wv/im.naturalWidth); octx.drawImage(im, left, top, wv, hv); res(); }; im.src = el.src; })));
+                await Promise.all(imgs.map(el=&gt; new Promise((res)=&gt;{ const im = new Image(); im.onload=()=&gt;{ const left=parseFloat(el.style.left)||0; const top=parseFloat(el.style.top)||0; const wv=parseFloat(el.style.width)||im.naturalWidth; const hv=im.naturalHeight*(wv/im.naturalWidth); octx.drawImage(im, left, top, wv, hv); res(); }; im.src = el.src; })));
                 // Export to PDF via jsPDF with A4 points matching our 595x842 canvas
                 const imgData = out.toDataURL('image/png');
                 const { jsPDF } = window.jspdf;
@@ -1674,21 +1653,21 @@
         
         // Navigation functions
         function prevPage() {
-            if (currentPage <= 1) return;
+            if (currentPage &lt;= 1) return;
             currentPage--;
             renderPage(currentPage);
         }
         
         function nextPage() {
-            if (!pdfDoc || currentPage >= pdfDoc.numPages) return;
+            if (!pdfDoc || currentPage &gt;= pdfDoc.numPages) return;
             currentPage++;
             renderPage(currentPage);
         }
         
         // Utility functions
         function formatFileSize(bytes) {
-            if (bytes < 1024) return bytes + ' bytes';
-            else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            if (bytes &lt; 1024) return bytes + ' bytes';
+            else if (bytes &lt; 1048576) return (bytes / 1024).toFixed(1) + ' KB';
             else return (bytes / 1048576).toFixed(1) + ' MB';
         }
         
@@ -1719,7 +1698,7 @@
             const padX = parseFloat(cs.paddingLeft||'0') + parseFloat(cs.paddingRight||'0');
             const avail = container.clientWidth - padX;
             const baseWidth = 595; // CSS width of a4-preview
-            if(baseWidth>0){ setUiZoom(avail / baseWidth); }
+            if(baseWidth&gt;0){ setUiZoom(avail / baseWidth); }
         }
 
         // OCR: create editable text overlays from current canvas
@@ -1731,15 +1710,15 @@
                 // Use the visible canvas as image source
                 const dataUrl = customDataUrl || pdfCanvas.toDataURL('image/png');
                 updateProgress(10, 'Running OCR on page...');
-                const lang = (ocrLang && ocrLang.value) ? ocrLang.value : 'eng';
+                const lang = (ocrLang &amp;&amp; ocrLang.value) ? ocrLang.value : 'eng';
                 const result = await Tesseract.recognize(dataUrl, lang, {
-                    logger: m => { if(m.status && m.progress!=null){ updateProgress(10 + Math.round(m.progress*80), m.status.replace(/_/g,' ') + '...'); } }
+                    logger: m =&gt; { if(m.status &amp;&amp; m.progress!=null){ updateProgress(10 + Math.round(m.progress*80), m.status.replace(/_/g,' ') + '...'); } }
                 });
                 updateProgress(95, 'Placing editable text...');
                 const { lines } = result.data;
-                if(!lines || !lines.length){ updateProgress(100, 'No text found'); setTimeout(()=>{progressContainer.style.display='none';}, 800); return; }
+                if(!lines || !lines.length){ updateProgress(100, 'No text found'); setTimeout(()=&gt;{progressContainer.style.display='none';}, 800); return; }
                 // Add overlays for each OCR line
-                lines.forEach(line => {
+                lines.forEach(line =&gt; {
                     if(!line.text) return;
                     const { x0, y0, x1, y1 } = line.bbox || {};
                     if(x0==null||y0==null||x1==null||y1==null) return;
@@ -1754,18 +1733,18 @@
                     el.style.left = left + 'px';
                     el.style.top = top + 'px';
                     el.style.fontSize = fontPx + 'px';
-                    el.style.fontFamily = (tbFontFamily && tbFontFamily.value) ? tbFontFamily.value : (fontFamilySelect && fontFamilySelect.value ? fontFamilySelect.value : 'Arial');
-                    el.style.color = (tbColor && tbColor.value) ? tbColor.value : (colorPicker && colorPicker.value ? colorPicker.value : '#000');
+                    el.style.fontFamily = (tbFontFamily &amp;&amp; tbFontFamily.value) ? tbFontFamily.value : (fontFamilySelect &amp;&amp; fontFamilySelect.value ? fontFamilySelect.value : 'Arial');
+                    el.style.color = (tbColor &amp;&amp; tbColor.value) ? tbColor.value : (colorPicker &amp;&amp; colorPicker.value ? colorPicker.value : '#000');
                     // interactions
-                    el.addEventListener('dblclick', (e)=>{ e.stopPropagation(); makeTextEditable(el); });
-                    el.addEventListener('contextmenu', (e)=>{ e.preventDefault(); e.stopPropagation(); showContextMenu(e, el); });
-                    el.addEventListener('click', (e)=>{ e.stopPropagation(); selectTextElement(el); });
+                    el.addEventListener('dblclick', (e)=&gt;{ e.stopPropagation(); makeTextEditable(el); });
+                    el.addEventListener('contextmenu', (e)=&gt;{ e.preventDefault(); e.stopPropagation(); showContextMenu(e, el); });
+                    el.addEventListener('click', (e)=&gt;{ e.stopPropagation(); selectTextElement(el); });
                     textLayer.appendChild(el);
                     ensureMask(el);
                     saveTextAnnotation(el);
                 });
                 updateProgress(100, 'OCR completed');
-                setTimeout(()=>{progressContainer.style.display='none';}, 800);
+                setTimeout(()=&gt;{progressContainer.style.display='none';}, 800);
             }catch(err){
                 console.error(err);
                 progressContainer.style.display='none';
@@ -1780,14 +1759,14 @@
             ocrRegionMode = true;
             a4Preview.style.cursor = 'crosshair';
         }
-        a4Preview.addEventListener('mousedown', (e)=>{
+        a4Preview.addEventListener('mousedown', (e)=&gt;{
             if(!ocrRegionMode) return;
             const r = a4Preview.getBoundingClientRect();
             selStart = { x: e.clientX - r.left, y: e.clientY - r.top };
             // draw via overlay canvas
             if(overlayCtx) overlayCtx.clearRect(0,0,overlayCanvas.width, overlayCanvas.height);
         });
-        a4Preview.addEventListener('mousemove', (e)=>{
+        a4Preview.addEventListener('mousemove', (e)=&gt;{
             if(!ocrRegionMode || !selStart) return;
             const r = a4Preview.getBoundingClientRect();
             const x = e.clientX - r.left; const y = e.clientY - r.top;
@@ -1797,11 +1776,11 @@
             if(overlayCtx) overlayCtx.clearRect(0,0,overlayCanvas.width, overlayCanvas.height);
             if(overlayCtx){ overlayCtx.strokeStyle = '#3a0ca3'; overlayCtx.lineWidth = 2; overlayCtx.setLineDash([6,4]); overlayCtx.strokeRect(x0, y0, w, h); }
         });
-        a4Preview.addEventListener('mouseup', async (e)=>{
+        a4Preview.addEventListener('mouseup', async (e)=&gt;{
             if(!ocrRegionMode) return;
             a4Preview.style.cursor = 'default';
             ocrRegionMode = false;
-            if(!selRect || selRect.w<5 || selRect.h<5){ if(overlayCtx) overlayCtx.clearRect(0,0,overlayCanvas.width, overlayCanvas.height); return; }
+            if(!selRect || selRect.w&lt;5 || selRect.h&lt;5){ if(overlayCtx) overlayCtx.clearRect(0,0,overlayCanvas.width, overlayCanvas.height); return; }
             try{
                 // crop region from pdfCanvas
                 const sx = Math.round(selRect.x), sy = Math.round(selRect.y);
@@ -1819,57 +1798,23 @@
         
         // Initialize when page loads
         window.addEventListener('load', init);
-    </script>
-
-
-
-
+    
 <footer>
-        <div class="container footer-inner">
-            <div class="footer-company-links">
-                <span>Company</span>
-                <a href="index.html#about">About Us</a>
-                <a href="index.html#contact">Contact</a>
-                <a href="privacy-policy.html">Privacy Policy</a>
-                <a href="terms-of-service.html">Terms of Service</a>
-            </div>
-            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
-            <p class="footer-credits">
+<div class="container footer-inner">
+<div class="footer-company-links">
+<span>Company</span>
+<a href="index.html#about">About Us</a>
+<a href="index.html#contact">Contact</a>
+<a href="privacy-policy.html">Privacy Policy</a>
+<a href="terms-of-service.html">Terms of Service</a>
+</div>
+<p class="footer-brand-line">© easyjpgtopdf — Free PDF &amp; Image Tools for everyone.</p>
+<p class="footer-credits">
                 Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
                 <a href="attributions.html">See full acknowledgements</a>.
             </p>
-        </div>
-    </footer>
-    <script type="module" src="js/auth.js"></script>
-</body>
-</html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+</div>
+</footer>
+<script src="js/auth.js" type="module"></script>
 
 
