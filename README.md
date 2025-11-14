@@ -19,21 +19,59 @@ DocTools/
 ---
 
 ## 🆕 Excel Unlocker (Python Flask)
-**Status:** ✅ Fully Functional
+**Status:** ✅ Live in Production
 
-Professional Excel password & protection removal tool:
-- **Tech Stack:** Flask 3.1, openpyxl, msoffcrypto-tool
-- **Features:** 
-  - Remove file encryption (password-protected Excel)
-  - Remove workbook protection
-  - Remove worksheet protection
-  - Support .xls and .xlsx formats
-  - Max 500MB file size
-- **Endpoints:**
-  - POST `/excel-unlocker/unlock` - Upload and unlock file
-  - GET `/excel-unlocker/download/<filename>` - Download result
+Professional Excel password & protection removal tool with cloud backend.
 
-### Quick Start:
+### 🌐 Live URLs:
+- **Frontend:** https://easyjpgtopdf.com/excel-unlocker.html
+- **Backend API:** https://excel-unlocker-backend.onrender.com
+- **Test Endpoint:** https://excel-unlocker-backend.onrender.com/test
+
+### 🔧 Tech Stack:
+- **Backend:** Flask 3.1.2, Python 3.13
+- **Libraries:** openpyxl 3.1.5, msoffcrypto-tool 5.4.2
+- **Server:** Gunicorn 23.0.0 on Render.com
+- **CORS:** Enabled for cross-origin requests
+
+### ✨ Features:
+- ✅ Remove file encryption (password-protected Excel)
+- ✅ Remove workbook protection
+- ✅ Remove worksheet protection
+- ✅ Support .xls and .xlsx formats
+- ✅ Max 500MB file size
+- ✅ Auto-delete files after download
+- ✅ HTTPS encryption for all transfers
+- ✅ Input validation (only Excel files)
+
+### 🔒 Security & Privacy:
+- **CORS Enabled** - Only allowed domains can access
+- **File Size Limits** - Maximum 500MB for optimal performance
+- **Secure File Handling** - Auto-delete after download
+- **HTTPS Encryption** - All data transmitted securely
+- **No Storage** - Files are processed temporarily only
+- **Input Validation** - Only .xls and .xlsx files accepted
+
+### 📡 API Endpoints:
+- `POST /unlock` - Upload and unlock Excel file
+  - Form data: `file` (required), `password` (optional)
+  - Returns: `{"success": true, "filename": "unlocked_file.xlsx"}`
+- `GET /download/<filename>` - Download unlocked file
+- `GET /test` - Health check endpoint
+
+### 🚀 Deployment:
+
+#### Production (Render):
+```bash
+# Backend auto-deploys from GitHub
+# Repository: https://github.com/easyjpgtopdf/DocTools
+# Service: excel-unlocker-backend
+# Build Command: pip install -r excel-unlocker/requirements.txt
+# Start Command: gunicorn --bind 0.0.0.0:$PORT --workers 1 --timeout 120 app:app
+# Working Directory: excel-unlocker/
+```
+
+#### Local Development:
 ```powershell
 # Option 1: Auto-start both servers
 .\start-excel-unlocker.ps1
@@ -46,7 +84,17 @@ python app.py  # Backend on port 5000
 python -m http.server 8080  # Frontend on port 8080
 ```
 
-**Access:** http://127.0.0.1:8080/excel-unlocker.html
+**Local Access:** http://127.0.0.1:8080/excel-unlocker.html
+
+### ⚡ Performance:
+- **First Request:** 30-60 seconds (backend wake-up from sleep)
+- **Subsequent Requests:** 2-5 seconds
+- **Large Files (100MB+):** 10-20 seconds
+- **Free Tier Limit:** 750 hours/month (auto-sleep after 15 min inactivity)
+
+### 💰 Cost:
+- **Current:** FREE (Render Free Tier)
+- **Future (if needed):** $7/month for unlimited uptime
 
 📖 **Complete Guide:** See `EXCEL_UNLOCKER_GUIDE.md`
 
