@@ -11,9 +11,6 @@
     <link rel="stylesheet" href="css/footer.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
-    <!-- Imgly Integration -->
-    <script src="https://cdn.img.ly/packages/imgly/cesdk-js/1.31.0/cesdk.umd.js"></script>
-
     <style>
         * {
             margin: 0;
@@ -585,6 +582,33 @@
             .toolbar-section {
                 border-right: none;
                 border-bottom: 1px solid #e9ecef;
+                min-width: 100%;
+            }
+
+            .navbar {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .nav-links {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .dropdown {
+                width: 100%;
+            }
+
+            .dropdown-content {
+                position: relative;
+                box-shadow: none;
+                border: 1px solid #e9ecef;
+                margin-top: 5px;
+            }
+
+            .auth-buttons {
+                width: 100%;
+                justify-content: center;
             }
         }
 
@@ -601,6 +625,35 @@
             .action-bar {
                 flex-direction: column;
                 gap: 15px;
+            }
+
+            .upload-section h1 {
+                font-size: 1.8rem;
+            }
+
+            .upload-section p {
+                font-size: 0.95rem;
+            }
+
+            .upload-area {
+                padding: 40px 20px;
+            }
+
+            .section-title {
+                font-size: 0.75rem;
+            }
+
+            .tool-btn {
+                font-size: 0.7rem;
+                padding: 6px 8px;
+            }
+
+            .properties-title {
+                font-size: 0.85rem;
+            }
+
+            .slider-label {
+                font-size: 0.8rem;
             }
         }
     </style>
@@ -1139,75 +1192,53 @@
                 </div>
             </div>
 
-            <div style="border-top: 1px solid #34495e; padding-top: 20px; text-align: center;">
-                <div style="margin-bottom: 15px;">
-                    <a href="accounts.html" style="color: #bdc3c7; text-decoration: none; margin: 0 15px;">Account</a>
-                    <a href="privacy-policy.html" style="color: #bdc3c7; text-decoration: none; margin: 0 15px;">Privacy Policy</a>
-                    <a href="terms-of-service.html" style="color: #bdc3c7; text-decoration: none; margin: 0 15px;">Terms of Service</a>
-                    <a href="index.html#contact" style="color: #bdc3c7; text-decoration: none; margin: 0 15px;">Contact</a>
-                </div>
-                <p style="color: #95a5a6; font-size: 14px; margin-bottom: 10px;">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
-                <p style="color: #7f8c8d; font-size: 12px;">
-                    Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
-                    <a href="attributions.html" style="color: #3498db;">See full acknowledgements</a>.
-                </p>
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
             </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+            <p class="footer-credits">
+                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+                <a href="attributions.html">See full acknowledgements</a>.
+            </p>
         </div>
     </footer>
 
     <script>
-        // Imgly Configuration
-        let cesdk = null;
+        // Canvas-based Editor Configuration
+        let canvas, ctx;
         let currentImage = null;
         let selectedFormat = 'png';
+        let originalImageData = null;
+        let currentImageData = null;
 
-        // Initialize Imgly Editor
-        async function initializeImgly() {
+        // Initialize Canvas Editor
+        function initializeEditor() {
             try {
                 showLoading(true);
-
-                // Initialize Creative Engine
-                cesdk = await window.CESDK.open({
-                    element: '#imgly-editor',
-                    config: {
-                        baseURL: 'https://cdn.img.ly/packages/imgly/cesdk-js/1.31.0/assets',
-                        presets: {
-                            templates: []
-                        },
-                        ui: {
-                            elements: {
-                                panels: {
-                                    settings: true
-                                },
-                                navigation: {
-                                    action: {
-                                        export: false,
-                                        save: false,
-                                        load: false,
-                                        help: false
-                                    }
-                                }
-                            }
-                        },
-                        callbacks: {
-                            onExport: 'download',
-                            onSave: 'download',
-                            onLoad: 'upload'
-                        }
-                    }
-                });
-
-                // Configure for image editing
-                await cesdk.engine.scene.setDesignUnit({
-                    unit: 'Pixel',
-                    value: 300
-                });
-
+                
+                canvas = document.createElement('canvas');
+                canvas.id = 'mainCanvas';
+                canvas.style.maxWidth = '100%';
+                canvas.style.maxHeight = '100%';
+                canvas.style.objectFit = 'contain';
+                canvas.style.background = '#2a2a2a';
+                canvas.style.display = 'block';
+                canvas.style.margin = 'auto';
+                
+                const container = document.getElementById('cesdk-container');
+                container.innerHTML = '';
+                container.appendChild(canvas);
+                
+                ctx = canvas.getContext('2d', { willReadFrequently: true });
+                
                 showLoading(false);
             } catch (error) {
-                console.error('Failed to initialize Imgly:', error);
+                console.error('Failed to initialize editor:', error);
                 showLoading(false);
-                alert('Failed to load professional editor. Please refresh the page.');
             }
         }
 
@@ -1232,19 +1263,33 @@
             try {
                 showLoading(true);
 
-                // Load image into Imgly
-                const imageURL = URL.createObjectURL(file);
-                await cesdk.engine.scene.loadFromURL(imageURL);
-
-                // Update UI
-                document.getElementById('uploadSection').style.display = 'none';
-                document.getElementById('editorInterface').classList.add('active');
-
-                // Update image info
-                updateImageInfo(file);
-
+                // Load image
+                const img = new Image();
+                img.onload = function() {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    
+                    // Store original image data
+                    originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    
+                    // Update UI
+                    document.getElementById('uploadSection').style.display = 'none';
+                    document.getElementById('editorInterface').classList.add('active');
+                    
+                    // Update image info
+                    updateImageInfo(file, img);
+                    
+                    showLoading(false);
+                };
+                img.onerror = function() {
+                    showLoading(false);
+                    alert('Failed to load image. Please try again.');
+                };
+                
+                img.src = URL.createObjectURL(file);
                 currentImage = file;
-                showLoading(false);
 
             } catch (error) {
                 console.error('Error loading image:', error);
@@ -1254,18 +1299,12 @@
         }
 
         // Update Image Information
-        function updateImageInfo(file) {
+        function updateImageInfo(file, img) {
             document.getElementById('fileSize').textContent = formatFileSize(file.size);
             document.getElementById('imageFormat').textContent = file.type.split('/')[1].toUpperCase();
-
-            // Get image dimensions
-            const img = new Image();
-            img.onload = function() {
-                document.getElementById('imageDimensions').textContent = `${img.width} × ${img.height}px`;
-                document.getElementById('imageDPI').textContent = '72'; // Default assumption
-                document.getElementById('colorMode').textContent = 'RGB'; // Default assumption
-            };
-            img.src = URL.createObjectURL(file);
+            document.getElementById('imageDimensions').textContent = `${img.width} × ${img.height}px`;
+            document.getElementById('imageDPI').textContent = '72';
+            document.getElementById('colorMode').textContent = 'RGB';
         }
 
         // Format file size
@@ -1277,122 +1316,159 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
-        // Tool Functions (Imgly Integration)
-        async function applyPreset(preset) {
-            try {
-                const adjustments = cesdk.engine.block.findByType('adjustments')[0];
-                if (!adjustments) return;
+        // Tool Functions (Canvas-based Implementation)
+        function applyPreset(preset) {
+            if (!currentImageData) return;
+            
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
 
-                switch (preset) {
-                    case 'bw':
-                        await cesdk.engine.block.set(adjustments, { saturation: -100 });
-                        break;
-                    case 'sepia':
-                        await cesdk.engine.block.set(adjustments, {
-                            saturation: -50,
-                            hue: 30,
-                            brightness: 10
-                        });
-                        break;
-                    case 'vibrant':
-                        await cesdk.engine.block.set(adjustments, { saturation: 50 });
-                        break;
-                    case 'high-contrast':
-                        await cesdk.engine.block.set(adjustments, { contrast: 50 });
-                        break;
-                    case 'bright':
-                        await cesdk.engine.block.set(adjustments, { brightness: 20 });
-                        break;
-                    case 'grayscale':
-                        await cesdk.engine.block.set(adjustments, { saturation: -100 });
-                        break;
-                    case 'invert':
-                        await cesdk.engine.block.set(adjustments, { invert: true });
-                        break;
-                    case 'hue-shift':
-                        await cesdk.engine.block.set(adjustments, { hue: 90 });
-                        break;
-                }
-            } catch (error) {
-                console.error('Error applying preset:', error);
+            switch (preset) {
+                case 'bw':
+                    for (let i = 0; i < data.length; i += 4) {
+                        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                        data[i] = data[i + 1] = data[i + 2] = avg;
+                    }
+                    break;
+                case 'sepia':
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i], g = data[i + 1], b = data[i + 2];
+                        data[i] = Math.min(255, r * 0.393 + g * 0.769 + b * 0.189);
+                        data[i + 1] = Math.min(255, r * 0.349 + g * 0.686 + b * 0.168);
+                        data[i + 2] = Math.min(255, r * 0.272 + g * 0.534 + b * 0.131);
+                    }
+                    break;
+                case 'vibrant':
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] = Math.min(255, data[i] * 1.5);
+                        data[i + 1] = Math.min(255, data[i + 1] * 1.5);
+                        data[i + 2] = Math.min(255, data[i + 2] * 1.5);
+                    }
+                    break;
+                case 'high-contrast':
+                    const factor = (259 * (128 + 255)) / (255 * (259 - 128));
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] = Math.min(255, Math.max(0, factor * (data[i] - 128) + 128));
+                        data[i + 1] = Math.min(255, Math.max(0, factor * (data[i + 1] - 128) + 128));
+                        data[i + 2] = Math.min(255, Math.max(0, factor * (data[i + 2] - 128) + 128));
+                    }
+                    break;
+                case 'bright':
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] = Math.min(255, data[i] + 30);
+                        data[i + 1] = Math.min(255, data[i + 1] + 30);
+                        data[i + 2] = Math.min(255, data[i + 2] + 30);
+                    }
+                    break;
+                case 'grayscale':
+                    for (let i = 0; i < data.length; i += 4) {
+                        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+                        data[i] = data[i + 1] = data[i + 2] = gray;
+                    }
+                    break;
+                case 'invert':
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] = 255 - data[i];
+                        data[i + 1] = 255 - data[i + 1];
+                        data[i + 2] = 255 - data[i + 2];
+                    }
+                    break;
+                case 'hue-shift':
+                    // Simple hue shift implementation
+                    for (let i = 0; i < data.length; i += 4) {
+                        const temp = data[i];
+                        data[i] = data[i + 1];
+                        data[i + 1] = data[i + 2];
+                        data[i + 2] = temp;
+                    }
+                    break;
             }
+            
+            ctx.putImageData(imageData, 0, 0);
         }
 
         // Adjustment Functions
-        async function updateBrightness() {
-            const value = document.getElementById('brightnessSlider').value;
+        function updateBrightness() {
+            const value = parseInt(document.getElementById('brightnessSlider').value);
             document.getElementById('brightnessValue').textContent = value;
-            try {
-                const adjustments = cesdk.engine.block.findByType('adjustments')[0];
-                if (adjustments) {
-                    await cesdk.engine.block.set(adjustments, { brightness: parseInt(value) });
-                }
-            } catch (error) {
-                console.error('Error updating brightness:', error);
-            }
+            applyAdjustment('brightness', value);
         }
 
-        async function updateContrast() {
-            const value = document.getElementById('contrastSlider').value;
+        function updateContrast() {
+            const value = parseInt(document.getElementById('contrastSlider').value);
             document.getElementById('contrastValue').textContent = value;
-            try {
-                const adjustments = cesdk.engine.block.findByType('adjustments')[0];
-                if (adjustments) {
-                    await cesdk.engine.block.set(adjustments, { contrast: parseInt(value) });
-                }
-            } catch (error) {
-                console.error('Error updating contrast:', error);
-            }
+            applyAdjustment('contrast', value);
         }
 
-        async function updateSaturation() {
-            const value = document.getElementById('saturationSlider').value;
+        function updateSaturation() {
+            const value = parseInt(document.getElementById('saturationSlider').value);
             document.getElementById('saturationValue').textContent = value;
-            try {
-                const adjustments = cesdk.engine.block.findByType('adjustments')[0];
-                if (adjustments) {
-                    await cesdk.engine.block.set(adjustments, { saturation: parseInt(value) });
-                }
-            } catch (error) {
-                console.error('Error updating saturation:', error);
-            }
+            applyAdjustment('saturation', value);
         }
 
-        async function updateHue() {
-            const value = document.getElementById('hueSlider').value;
+        function updateHue() {
+            const value = parseInt(document.getElementById('hueSlider').value);
             document.getElementById('hueValue').textContent = value;
-            try {
-                const adjustments = cesdk.engine.block.findByType('adjustments')[0];
-                if (adjustments) {
-                    await cesdk.engine.block.set(adjustments, { hue: parseInt(value) });
-                }
-            } catch (error) {
-                console.error('Error updating hue:', error);
-            }
+            applyAdjustment('hue', value);
         }
 
-        async function updateOpacity() {
-            const value = document.getElementById('opacitySlider').value;
+        function updateOpacity() {
+            const value = parseInt(document.getElementById('opacitySlider').value);
             document.getElementById('opacityValue').textContent = value;
-            try {
-                const selectedBlocks = cesdk.engine.block.findAllSelected();
-                for (const block of selectedBlocks) {
-                    await cesdk.engine.block.set(block, { opacity: parseInt(value) / 100 });
+            canvas.style.opacity = value / 100;
+        }
+
+        function applyAdjustment(type, value) {
+            if (!originalImageData) return;
+            
+            const imageData = ctx.createImageData(originalImageData);
+            const data = imageData.data;
+            const originalData = originalImageData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                let r = originalData[i];
+                let g = originalData[i + 1];
+                let b = originalData[i + 2];
+                
+                switch(type) {
+                    case 'brightness':
+                        r = Math.min(255, Math.max(0, r + value));
+                        g = Math.min(255, Math.max(0, g + value));
+                        b = Math.min(255, Math.max(0, b + value));
+                        break;
+                    case 'contrast':
+                        const factor = (259 * (value + 255)) / (255 * (259 - value));
+                        r = Math.min(255, Math.max(0, factor * (r - 128) + 128));
+                        g = Math.min(255, Math.max(0, factor * (g - 128) + 128));
+                        b = Math.min(255, Math.max(0, factor * (b - 128) + 128));
+                        break;
+                    case 'saturation':
+                        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                        const satFactor = value / 100;
+                        r = Math.min(255, Math.max(0, gray + (r - gray) * satFactor));
+                        g = Math.min(255, Math.max(0, gray + (g - gray) * satFactor));
+                        b = Math.min(255, Math.max(0, gray + (b - gray) * satFactor));
+                        break;
                 }
-            } catch (error) {
-                console.error('Error updating opacity:', error);
+                
+                data[i] = r;
+                data[i + 1] = g;
+                data[i + 2] = b;
+                data[i + 3] = originalData[i + 3];
             }
+            
+            ctx.putImageData(imageData, 0, 0);
         }
 
         // Color Functions
-        async function updateForegroundColor() {
+        function updateForegroundColor() {
             const color = document.getElementById('foregroundColor').value;
-            // This would be handled by Imgly's color picker integration
+            // Canvas color picker integration
         }
 
-        async function updateBackgroundColor() {
+        function updateBackgroundColor() {
             const color = document.getElementById('backgroundColor').value;
-            // This would be handled by Imgly's color picker integration
+            canvas.style.background = color;
         }
 
         function swapColors() {
@@ -1519,10 +1595,23 @@
         function slices() { /* Imgly handles this */ }
 
         // View Controls
-        function zoomIn() { cesdk.engine.editor.zoomIn(); }
-        function zoomOut() { cesdk.engine.editor.zoomOut(); }
-        function fitToScreen() { cesdk.engine.editor.zoomToFit(); }
-        function actualSize() { cesdk.engine.editor.zoomToActualSize(); }
+        let zoomLevel = 1;
+        function zoomIn() { 
+            zoomLevel *= 1.2;
+            if (canvas) canvas.style.transform = `scale(${zoomLevel})`;
+        }
+        function zoomOut() { 
+            zoomLevel /= 1.2;
+            if (canvas) canvas.style.transform = `scale(${zoomLevel})`;
+        }
+        function fitToScreen() {
+            zoomLevel = 1;
+            if (canvas) canvas.style.transform = 'scale(1)';
+        }
+        function actualSize() {
+            zoomLevel = 1;
+            if (canvas) canvas.style.transform = 'scale(1)';
+        }
 
         // Format Selection
         function selectFormat(btn, format) {
@@ -1532,22 +1621,23 @@
         }
 
         // Export Functions
-        async function exportImage() {
+        function exportImage() {
+            if (!canvas) return;
+            
             try {
                 showLoading(true);
-                const result = await cesdk.engine.editor.export();
-                const blob = new Blob([result], { type: `image/${selectedFormat}` });
-                const url = URL.createObjectURL(blob);
-
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `edited-image.${selectedFormat}`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-
-                showLoading(false);
+                
+                canvas.toBlob((blob) => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `edited-image.${selectedFormat}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    showLoading(false);
+                }, `image/${selectedFormat}`);
             } catch (error) {
                 console.error('Export failed:', error);
                 showLoading(false);
@@ -1576,7 +1666,7 @@
 
         // Initialize on page load
         window.onload = function() {
-            initializeImgly();
+            initializeEditor();
         };
     </script>
 </body>
