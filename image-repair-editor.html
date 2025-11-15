@@ -371,6 +371,115 @@
             margin-bottom: 10px;
         }
 
+        /* Professional Toolbar */
+        .professional-toolbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 15px 20px;
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+
+        .toolbar-category {
+            position: relative;
+        }
+
+        .category-button {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .category-button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+        }
+
+        .category-button i {
+            font-size: 1rem;
+        }
+
+        .category-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 5px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            min-width: 220px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+            padding: 8px;
+        }
+
+        .toolbar-category:hover .category-dropdown {
+            display: block;
+        }
+
+        .tool-item-dropdown {
+            width: 100%;
+            padding: 10px 12px;
+            background: white;
+            border: none;
+            border-radius: 6px;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s;
+            color: #333;
+        }
+
+        .tool-item-dropdown:hover {
+            background: #f0f4ff;
+            color: var(--primary);
+            transform: translateX(4px);
+        }
+
+        .tool-item-dropdown i {
+            color: var(--primary);
+            width: 18px;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .professional-toolbar {
+                padding: 10px;
+                gap: 5px;
+            }
+
+            .category-button {
+                padding: 8px 12px;
+                font-size: 0.75rem;
+            }
+
+            .category-dropdown {
+                min-width: 200px;
+            }
+
+            .tool-item-dropdown {
+                padding: 8px 10px;
+                font-size: 0.8rem;
+            }
+        }
+
         .color-picker-item {
             flex: 1;
         }
@@ -482,6 +591,315 @@
 
     <!-- Editor Container -->
     <div class="editor-container">
+        <!-- Professional Toolbar with Categories -->
+        <div class="professional-toolbar">
+            <!-- FILE & BASIC -->
+            <div class="toolbar-category">
+                <button class="category-button">
+                    <i class="fas fa-file"></i> FILE & BASIC
+                </button>
+                <div class="category-dropdown">
+                    <button class="tool-item-dropdown" onclick="newImage()">
+                        <i class="fas fa-plus-square"></i> New Image
+                    </button>
+                    <button class="tool-item-dropdown" onclick="openImage()">
+                        <i class="fas fa-folder-open"></i> Open Image
+                    </button>
+                    <button class="tool-item-dropdown" onclick="saveImage()">
+                        <i class="fas fa-save"></i> Save Image
+                    </button>
+                    <button class="tool-item-dropdown" onclick="exportAs()">
+                        <i class="fas fa-file-export"></i> Export As
+                    </button>
+                    <button class="tool-item-dropdown" onclick="undoEdit()">
+                        <i class="fas fa-undo"></i> Undo
+                    </button>
+                    <button class="tool-item-dropdown" onclick="redoEdit()">
+                        <i class="fas fa-redo"></i> Redo
+                    </button>
+                    <button class="tool-item-dropdown" onclick="resetToOriginal()">
+                        <i class="fas fa-refresh"></i> Reset to Original
+                    </button>
+                    <button class="tool-item-dropdown" onclick="duplicateImage()">
+                        <i class="fas fa-copy"></i> Duplicate Image
+                    </button>
+                    <button class="tool-item-dropdown" onclick="printImage()">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                </div>
+            </div>
+
+            <!-- SELECTION -->
+            <div class="toolbar-category">
+                <button class="category-button">
+                    <i class="fas fa-mouse-pointer"></i> SELECTION
+                </button>
+                <div class="category-dropdown">
+                    <button class="tool-item-dropdown" onclick="rectangularSelection()">
+                        <i class="far fa-square"></i> Rectangular Selection
+                    </button>
+                    <button class="tool-item-dropdown" onclick="ellipticalSelection()">
+                        <i class="far fa-circle"></i> Elliptical Selection
+                    </button>
+                    <button class="tool-item-dropdown" onclick="lassoSelection()">
+                        <i class="fas fa-draw-polygon"></i> Lasso Selection
+                    </button>
+                    <button class="tool-item-dropdown" onclick="magicWand()">
+                        <i class="fas fa-magic"></i> Magic Wand
+                    </button>
+                    <button class="tool-item-dropdown" onclick="quickSelection()">
+                        <i class="fas fa-bolt"></i> Quick Selection
+                    </button>
+                    <button class="tool-item-dropdown" onclick="selectAll()">
+                        <i class="fas fa-border-all"></i> Select All
+                    </button>
+                    <button class="tool-item-dropdown" onclick="deselectAll()">
+                        <i class="fas fa-times"></i> Deselect All
+                    </button>
+                    <button class="tool-item-dropdown" onclick="invertSelection()">
+                        <i class="fas fa-exchange-alt"></i> Invert Selection
+                    </button>
+                    <button class="tool-item-dropdown" onclick="expandSelection()">
+                        <i class="fas fa-expand"></i> Expand Selection
+                    </button>
+                    <button class="tool-item-dropdown" onclick="contractSelection()">
+                        <i class="fas fa-compress"></i> Contract Selection
+                    </button>
+                </div>
+            </div>
+
+            <!-- CROP & TRANSFORM -->
+            <div class="toolbar-category">
+                <button class="category-button">
+                    <i class="fas fa-crop"></i> CROP & TRANSFORM
+                </button>
+                <div class="category-dropdown">
+                    <button class="tool-item-dropdown" onclick="cropImage()">
+                        <i class="fas fa-crop-alt"></i> Crop
+                    </button>
+                    <button class="tool-item-dropdown" onclick="cropToSelection()">
+                        <i class="fas fa-crop"></i> Crop to Selection
+                    </button>
+                    <button class="tool-item-dropdown" onclick="trimCanvas()">
+                        <i class="fas fa-cut"></i> Trim Canvas
+                    </button>
+                    <button class="tool-item-dropdown" onclick="rotateRight()">
+                        <i class="fas fa-redo"></i> Rotate 90° Right
+                    </button>
+                    <button class="tool-item-dropdown" onclick="rotateLeft()">
+                        <i class="fas fa-undo"></i> Rotate 90° Left
+                    </button>
+                    <button class="tool-item-dropdown" onclick="rotate180()">
+                        <i class="fas fa-sync"></i> Rotate 180°
+                    </button>
+                    <button class="tool-item-dropdown" onclick="customRotate()">
+                        <i class="fas fa-spinner"></i> Custom Rotate
+                    </button>
+                    <button class="tool-item-dropdown" onclick="flipHorizontal()">
+                        <i class="fas fa-arrows-alt-h"></i> Flip Horizontal
+                    </button>
+                    <button class="tool-item-dropdown" onclick="flipVertical()">
+                        <i class="fas fa-arrows-alt-v"></i> Flip Vertical
+                    </button>
+                    <button class="tool-item-dropdown" onclick="resizeImage()">
+                        <i class="fas fa-expand-arrows-alt"></i> Resize Image
+                    </button>
+                    <button class="tool-item-dropdown" onclick="scaleImage()">
+                        <i class="fas fa-search-plus"></i> Scale Image
+                    </button>
+                    <button class="tool-item-dropdown" onclick="skewImage()">
+                        <i class="fas fa-sliders-h"></i> Skew
+                    </button>
+                    <button class="tool-item-dropdown" onclick="perspectiveTransform()">
+                        <i class="fas fa-cube"></i> Perspective
+                    </button>
+                </div>
+            </div>
+
+            <!-- BRUSH & PAINT -->
+            <div class="toolbar-category">
+                <button class="category-button">
+                    <i class="fas fa-paint-brush"></i> BRUSH & PAINT
+                </button>
+                <div class="category-dropdown">
+                    <button class="tool-item-dropdown" onclick="brushTool()">
+                        <i class="fas fa-brush"></i> Brush Tool
+                    </button>
+                    <button class="tool-item-dropdown" onclick="pencilTool()">
+                        <i class="fas fa-pencil-alt"></i> Pencil Tool
+                    </button>
+                    <button class="tool-item-dropdown" onclick="eraserTool()">
+                        <i class="fas fa-eraser"></i> Eraser Tool
+                    </button>
+                    <button class="tool-item-dropdown" onclick="paintBucket()">
+                        <i class="fas fa-fill-drip"></i> Paint Bucket
+                    </button>
+                    <button class="tool-item-dropdown" onclick="gradientTool()">
+                        <i class="fas fa-palette"></i> Gradient Tool
+                    </button>
+                    <button class="tool-item-dropdown" onclick="blurTool()">
+                        <i class="fas fa-eye-slash"></i> Blur Tool
+                    </button>
+                    <button class="tool-item-dropdown" onclick="sharpenTool()">
+                        <i class="fas fa-adjust"></i> Sharpen Tool
+                    </button>
+                    <button class="tool-item-dropdown" onclick="smudgeTool()">
+                        <i class="fas fa-hand-paper"></i> Smudge Tool
+                    </button>
+                    <button class="tool-item-dropdown" onclick="cloneStamp()">
+                        <i class="fas fa-stamp"></i> Clone Stamp
+                    </button>
+                    <button class="tool-item-dropdown" onclick="healingBrush()">
+                        <i class="fas fa-band-aid"></i> Healing Brush
+                    </button>
+                    <button class="tool-item-dropdown" onclick="dodgeTool()">
+                        <i class="fas fa-sun"></i> Dodge (Lighten)
+                    </button>
+                    <button class="tool-item-dropdown" onclick="burnTool()">
+                        <i class="fas fa-moon"></i> Burn (Darken)
+                    </button>
+                </div>
+            </div>
+
+            <!-- FILTERS & EFFECTS -->
+            <div class="toolbar-category">
+                <button class="category-button">
+                    <i class="fas fa-filter"></i> FILTERS & EFFECTS
+                </button>
+                <div class="category-dropdown">
+                    <button class="tool-item-dropdown" onclick="applyFilter('grayscale')">
+                        <i class="fas fa-adjust"></i> Grayscale
+                    </button>
+                    <button class="tool-item-dropdown" onclick="applyFilter('sepia')">
+                        <i class="fas fa-image"></i> Sepia
+                    </button>
+                    <button class="tool-item-dropdown" onclick="applyFilter('invert')">
+                        <i class="fas fa-exchange-alt"></i> Invert Colors
+                    </button>
+                    <button class="tool-item-dropdown" onclick="applyFilter('blur')">
+                        <i class="fas fa-cloud"></i> Blur
+                    </button>
+                    <button class="tool-item-dropdown" onclick="sharpenFilter()">
+                        <i class="fas fa-certificate"></i> Sharpen
+                    </button>
+                    <button class="tool-item-dropdown" onclick="edgeDetect()">
+                        <i class="fas fa-border-style"></i> Edge Detect
+                    </button>
+                    <button class="tool-item-dropdown" onclick="embossFilter()">
+                        <i class="fas fa-layer-group"></i> Emboss
+                    </button>
+                    <button class="tool-item-dropdown" onclick="pixelateFilter()">
+                        <i class="fas fa-th"></i> Pixelate
+                    </button>
+                    <button class="tool-item-dropdown" onclick="posterizeFilter()">
+                        <i class="fas fa-image"></i> Posterize
+                    </button>
+                    <button class="tool-item-dropdown" onclick="vignetteEffect()">
+                        <i class="far fa-circle"></i> Vignette
+                    </button>
+                </div>
+            </div>
+
+            <!-- ADJUSTMENTS -->
+            <div class="toolbar-category">
+                <button class="category-button">
+                    <i class="fas fa-sliders-h"></i> ADJUSTMENTS
+                </button>
+                <div class="category-dropdown">
+                    <button class="tool-item-dropdown" onclick="brightnessContrast()">
+                        <i class="fas fa-sun"></i> Brightness/Contrast
+                    </button>
+                    <button class="tool-item-dropdown" onclick="hueSaturation()">
+                        <i class="fas fa-palette"></i> Hue/Saturation
+                    </button>
+                    <button class="tool-item-dropdown" onclick="colorBalance()">
+                        <i class="fas fa-balance-scale"></i> Color Balance
+                    </button>
+                    <button class="tool-item-dropdown" onclick="levels()">
+                        <i class="fas fa-chart-bar"></i> Levels
+                    </button>
+                    <button class="tool-item-dropdown" onclick="curves()">
+                        <i class="fas fa-chart-line"></i> Curves
+                    </button>
+                    <button class="tool-item-dropdown" onclick="exposure()">
+                        <i class="fas fa-camera"></i> Exposure
+                    </button>
+                    <button class="tool-item-dropdown" onclick="vibrance()">
+                        <i class="fas fa-star"></i> Vibrance
+                    </button>
+                    <button class="tool-item-dropdown" onclick="autoAdjust()">
+                        <i class="fas fa-magic"></i> Auto Adjust
+                    </button>
+                </div>
+            </div>
+
+            <!-- LAYERS & MASKS -->
+            <div class="toolbar-category">
+                <button class="category-button">
+                    <i class="fas fa-layer-group"></i> LAYERS
+                </button>
+                <div class="category-dropdown">
+                    <button class="tool-item-dropdown" onclick="newLayer()">
+                        <i class="fas fa-plus-square"></i> New Layer
+                    </button>
+                    <button class="tool-item-dropdown" onclick="duplicateLayer()">
+                        <i class="fas fa-copy"></i> Duplicate Layer
+                    </button>
+                    <button class="tool-item-dropdown" onclick="deleteLayer()">
+                        <i class="fas fa-trash"></i> Delete Layer
+                    </button>
+                    <button class="tool-item-dropdown" onclick="mergeDown()">
+                        <i class="fas fa-level-down-alt"></i> Merge Down
+                    </button>
+                    <button class="tool-item-dropdown" onclick="mergeVisible()">
+                        <i class="fas fa-compress"></i> Merge Visible
+                    </button>
+                    <button class="tool-item-dropdown" onclick="flattenImage()">
+                        <i class="fas fa-layer-group"></i> Flatten Image
+                    </button>
+                    <button class="tool-item-dropdown" onclick="layerOpacity()">
+                        <i class="fas fa-adjust"></i> Layer Opacity
+                    </button>
+                    <button class="tool-item-dropdown" onclick="addLayerMask()">
+                        <i class="fas fa-mask"></i> Add Layer Mask
+                    </button>
+                </div>
+            </div>
+
+            <!-- TEXT & SHAPES -->
+            <div class="toolbar-category">
+                <button class="category-button">
+                    <i class="fas fa-font"></i> TEXT & SHAPES
+                </button>
+                <div class="category-dropdown">
+                    <button class="tool-item-dropdown" onclick="addText()">
+                        <i class="fas fa-text-height"></i> Text Tool
+                    </button>
+                    <button class="tool-item-dropdown" onclick="verticalText()">
+                        <i class="fas fa-text-width"></i> Vertical Text
+                    </button>
+                    <button class="tool-item-dropdown" onclick="addRectangle()">
+                        <i class="fas fa-square"></i> Rectangle
+                    </button>
+                    <button class="tool-item-dropdown" onclick="addCircle()">
+                        <i class="fas fa-circle"></i> Circle/Ellipse
+                    </button>
+                    <button class="tool-item-dropdown" onclick="addLine()">
+                        <i class="fas fa-minus"></i> Line
+                    </button>
+                    <button class="tool-item-dropdown" onclick="addArrow()">
+                        <i class="fas fa-arrow-right"></i> Arrow
+                    </button>
+                    <button class="tool-item-dropdown" onclick="addPolygon()">
+                        <i class="fas fa-draw-polygon"></i> Polygon
+                    </button>
+                    <button class="tool-item-dropdown" onclick="addStar()">
+                        <i class="fas fa-star"></i> Star
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Mobile Toggle Buttons -->
         <button class="toggle-panel-btn" onclick="toggleToolsPanel()">
             <i class="fas fa-tools"></i> Toggle Tools Panel
@@ -1019,6 +1437,233 @@
             const shareText = 'Copy this link to share: ' + dataURL.substring(0, 100) + '...';
             alert('Sharing not supported on this device. You can download the image and share it manually.');
         }
+
+        // ==================== TOOLBAR FUNCTIONS ====================
+        
+        // FILE & BASIC
+        function newImage() {
+            if (confirm('Create a new image? Current changes will be lost.')) {
+                const width = prompt('Enter width (px):', '800');
+                const height = prompt('Enter height (px):', '600');
+                if (width && height) {
+                    canvas.width = parseInt(width);
+                    canvas.height = parseInt(height);
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    saveToHistory();
+                }
+            }
+        }
+
+        function openImage() {
+            if (confirm('Open a new image? Current changes will be lost.')) {
+                window.location.href = 'image-repair.html';
+            }
+        }
+
+        function saveImage() {
+            downloadImage();
+        }
+
+        function exportAs() {
+            const format = prompt('Export format (png, jpg, webp):', 'png');
+            if (format) {
+                const link = document.createElement('a');
+                link.download = 'edited-image-' + Date.now() + '.' + format;
+                link.href = canvas.toDataURL('image/' + format);
+                link.click();
+            }
+        }
+
+        function undoEdit() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                ctx.putImageData(editorHistory[historyIndex], 0, 0);
+                currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                resetSliders();
+            } else {
+                alert('Nothing to undo');
+            }
+        }
+
+        function redoEdit() {
+            if (historyIndex < editorHistory.length - 1) {
+                historyIndex++;
+                ctx.putImageData(editorHistory[historyIndex], 0, 0);
+                currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                resetSliders();
+            } else {
+                alert('Nothing to redo');
+            }
+        }
+
+        function resetToOriginal() {
+            if (confirm('Reset to original image? All changes will be lost.')) {
+                if (originalImageData) {
+                    ctx.putImageData(originalImageData, 0, 0);
+                    currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    saveToHistory();
+                    resetSliders();
+                }
+            }
+        }
+
+        function duplicateImage() {
+            const link = document.createElement('a');
+            link.download = 'copy-' + Date.now() + '.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            alert('Image duplicated and downloaded!');
+        }
+
+        // SELECTION
+        function rectangularSelection() { alert('Rectangular Selection - Feature coming soon!'); }
+        function ellipticalSelection() { alert('Elliptical Selection - Feature coming soon!'); }
+        function lassoSelection() { alert('Lasso Selection - Feature coming soon!'); }
+        function magicWand() { alert('Magic Wand - Feature coming soon!'); }
+        function quickSelection() { alert('Quick Selection - Feature coming soon!'); }
+        function selectAll() { alert('Select All - Feature coming soon!'); }
+        function deselectAll() { alert('Deselect All - Feature coming soon!'); }
+        function invertSelection() { alert('Invert Selection - Feature coming soon!'); }
+        function expandSelection() { alert('Expand Selection - Feature coming soon!'); }
+        function contractSelection() { alert('Contract Selection - Feature coming soon!'); }
+
+        // CROP & TRANSFORM
+        function cropImage() { alert('Crop Tool - Feature coming soon!'); }
+        function cropToSelection() { alert('Crop to Selection - Feature coming soon!'); }
+        function trimCanvas() { alert('Trim Canvas - Feature coming soon!'); }
+        
+        function rotate180() {
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate(Math.PI);
+            ctx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            saveToHistory();
+        }
+
+        function customRotate() {
+            const angle = prompt('Enter rotation angle (degrees):', '45');
+            if (angle) {
+                const rad = parseFloat(angle) * Math.PI / 180;
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+                tempCtx.rotate(rad);
+                tempCtx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(tempCanvas, 0, 0);
+                currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                saveToHistory();
+            }
+        }
+
+        function resizeImage() {
+            const width = prompt('Enter new width (px):', canvas.width);
+            const height = prompt('Enter new height (px):', canvas.height);
+            if (width && height) {
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = parseInt(width);
+                tempCanvas.height = parseInt(height);
+                tempCtx.drawImage(canvas, 0, 0, parseInt(width), parseInt(height));
+                canvas.width = parseInt(width);
+                canvas.height = parseInt(height);
+                ctx.drawImage(tempCanvas, 0, 0);
+                currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                saveToHistory();
+            }
+        }
+
+        function scaleImage() {
+            const scale = prompt('Enter scale factor (e.g., 1.5 for 150%):', '1');
+            if (scale) {
+                const factor = parseFloat(scale);
+                const newWidth = canvas.width * factor;
+                const newHeight = canvas.height * factor;
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = newWidth;
+                tempCanvas.height = newHeight;
+                tempCtx.drawImage(canvas, 0, 0, newWidth, newHeight);
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+                ctx.drawImage(tempCanvas, 0, 0);
+                currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                saveToHistory();
+            }
+        }
+
+        function skewImage() { alert('Skew - Feature coming soon!'); }
+        function perspectiveTransform() { alert('Perspective Transform - Feature coming soon!'); }
+
+        // BRUSH & PAINT
+        function brushTool() { alert('Brush Tool - Feature coming soon!'); }
+        function pencilTool() { alert('Pencil Tool - Feature coming soon!'); }
+        function eraserTool() { alert('Eraser Tool - Feature coming soon!'); }
+        function paintBucket() { alert('Paint Bucket - Feature coming soon!'); }
+        function gradientTool() { alert('Gradient Tool - Feature coming soon!'); }
+        function blurTool() { alert('Blur Tool - Feature coming soon!'); }
+        function sharpenTool() { alert('Sharpen Tool - Feature coming soon!'); }
+        function smudgeTool() { alert('Smudge Tool - Feature coming soon!'); }
+        function cloneStamp() { alert('Clone Stamp - Feature coming soon!'); }
+        function healingBrush() { alert('Healing Brush - Feature coming soon!'); }
+        function dodgeTool() { alert('Dodge Tool - Feature coming soon!'); }
+        function burnTool() { alert('Burn Tool - Feature coming soon!'); }
+
+        // FILTERS & EFFECTS
+        function sharpenFilter() { alert('Sharpen Filter - Feature coming soon!'); }
+        function edgeDetect() { alert('Edge Detect - Feature coming soon!'); }
+        function embossFilter() { alert('Emboss - Feature coming soon!'); }
+        function pixelateFilter() { alert('Pixelate - Feature coming soon!'); }
+        function posterizeFilter() { alert('Posterize - Feature coming soon!'); }
+        function vignetteEffect() { alert('Vignette - Feature coming soon!'); }
+
+        // ADJUSTMENTS
+        function brightnessContrast() { alert('Use the Adjustments panel on the right →'); }
+        function hueSaturation() { alert('Use the Adjustments panel on the right →'); }
+        function colorBalance() { alert('Color Balance - Feature coming soon!'); }
+        function levels() { alert('Levels - Feature coming soon!'); }
+        function curves() { alert('Curves - Feature coming soon!'); }
+        function exposure() { alert('Exposure - Feature coming soon!'); }
+        function vibrance() { alert('Vibrance - Feature coming soon!'); }
+        function autoAdjust() {
+            // Simple auto-adjust implementation
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            // Increase brightness and contrast
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = Math.min(255, data[i] * 1.2 + 10);
+                data[i + 1] = Math.min(255, data[i + 1] * 1.2 + 10);
+                data[i + 2] = Math.min(255, data[i + 2] * 1.2 + 10);
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+            currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            saveToHistory();
+            alert('Auto-adjust applied!');
+        }
+
+        // LAYERS & MASKS
+        function newLayer() { alert('New Layer - Feature coming soon!'); }
+        function deleteLayer() { alert('Delete Layer - Feature coming soon!'); }
+        function mergeDown() { alert('Merge Down - Feature coming soon!'); }
+        function mergeVisible() { alert('Merge Visible - Feature coming soon!'); }
+        function flattenImage() { alert('Flatten Image - Feature coming soon!'); }
+        function layerOpacity() { alert('Use Opacity slider in Adjustments panel →'); }
+        function addLayerMask() { alert('Layer Mask - Feature coming soon!'); }
+
+        // TEXT & SHAPES
+        function addText() { alert('Text Tool - Feature coming soon!'); }
+        function verticalText() { alert('Vertical Text - Feature coming soon!'); }
+        function addRectangle() { alert('Rectangle - Feature coming soon!'); }
+        function addPolygon() { alert('Polygon - Feature coming soon!'); }
+        function addArrow() { alert('Arrow - Feature coming soon!'); }
+        function addStar() { alert('Star - Feature coming soon!'); }
     </script>
 </body>
 </html>
