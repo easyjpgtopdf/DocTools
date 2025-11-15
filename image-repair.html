@@ -640,6 +640,360 @@
                 font-size: 0.8rem;
             }
         }
+
+        /* NEW 3-PANEL EDITOR WORKSPACE */
+        .full-editor-workspace {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #e5e7eb;
+            z-index: 2000;
+            flex-direction: column;
+        }
+
+        .full-editor-workspace.active {
+            display: flex;
+        }
+
+        .editor-top-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .editor-top-bar h2 {
+            font-size: clamp(1rem, 3vw, 1.3rem);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .editor-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .top-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: clamp(0.8rem, 2vw, 0.9rem);
+            transition: all 0.3s;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .top-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+
+        .top-btn.success {
+            background: var(--success);
+            border-color: var(--success);
+        }
+
+        .top-btn.danger {
+            background: var(--danger);
+            border-color: var(--danger);
+        }
+
+        .editor-main-panels {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .tools-panel {
+            width: 200px;
+            background: white;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .tool-group {
+            margin-bottom: 20px;
+        }
+
+        .tool-group-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--gray);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tool-option {
+            padding: 10px 12px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tool-option:hover, .tool-option.selected {
+            background: var(--primary);
+            color: white;
+            transform: translateX(3px);
+        }
+
+        .canvas-panel {
+            flex: 1;
+            background: #1f2937;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+            position: relative;
+        }
+
+        #editorCanvas {
+            max-width: 100%;
+            max-height: 100%;
+            box-shadow: 0 0 30px rgba(0,0,0,0.6);
+        }
+
+        .properties-panel {
+            width: 300px;
+            background: white;
+            border-left: 1px solid #ddd;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .prop-section {
+            margin-bottom: 25px;
+        }
+
+        .prop-section-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--gray);
+            margin-bottom: 6px;
+        }
+
+        .control-value {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 5px;
+            outline: none;
+            -webkit-appearance: none;
+            background: #ddd;
+            cursor: pointer;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--primary);
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        .control-group input[type="color"] {
+            width: 100%;
+            height: 45px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .btn-apply {
+            width: 100%;
+            padding: 12px;
+            background: var(--success);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 12px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-apply:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(75, 181, 67, 0.3);
+        }
+
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .preset-option {
+            padding: 10px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .preset-option:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .info-display {
+            font-size: 0.85rem;
+            line-height: 1.9;
+        }
+
+        .info-display div {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .info-display strong {
+            color: var(--dark);
+        }
+
+        .info-display span {
+            color: var(--gray);
+        }
+
+        /* Mobile Responsive for 3-Panel Editor */
+        @media (max-width: 1024px) {
+            .tools-panel {
+                width: 180px;
+            }
+
+            .properties-panel {
+                width: 260px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .editor-main-panels {
+                flex-direction: column;
+            }
+
+            .tools-panel {
+                width: 100%;
+                max-height: 140px;
+                border-right: none;
+                border-bottom: 1px solid #ddd;
+                display: flex;
+                overflow-x: auto;
+                overflow-y: hidden;
+                padding: 12px;
+            }
+
+            .tool-group {
+                margin: 0 12px 0 0;
+                min-width: 160px;
+            }
+
+            .canvas-panel {
+                min-height: 300px;
+                flex: 1;
+            }
+
+            .properties-panel {
+                width: 100%;
+                max-height: 280px;
+                border-left: none;
+                border-top: 1px solid #ddd;
+            }
+
+            .editor-top-bar h2 {
+                font-size: 0.95rem;
+            }
+
+            .top-btn {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .tools-panel {
+                padding: 10px;
+                max-height: 120px;
+            }
+
+            .properties-panel {
+                max-height: 240px;
+            }
+
+            .tool-group {
+                min-width: 140px;
+            }
+
+            .tool-option {
+                padding: 8px 10px;
+                font-size: 0.8rem;
+            }
+
+            .control-label, .prop-section-title {
+                font-size: 0.8rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1089,6 +1443,176 @@
         </div>
     </div>
 
+    <!-- NEW 3-PANEL FULL-SCREEN EDITOR WORKSPACE -->
+    <div class="full-editor-workspace" id="fullEditorWorkspace">
+        <!-- Top Toolbar -->
+        <div class="editor-top-bar">
+            <h2>
+                <i class="fas fa-image"></i>
+                Professional Image Editor
+            </h2>
+            <div class="editor-actions">
+                <button class="top-btn" onclick="undoAction()">
+                    <i class="fas fa-undo"></i> Undo
+                </button>
+                <button class="top-btn" onclick="redoAction()">
+                    <i class="fas fa-redo"></i> Redo
+                </button>
+                <button class="top-btn success" onclick="downloadEditedImage()">
+                    <i class="fas fa-download"></i> Export
+                </button>
+                <button class="top-btn danger" onclick="closeFullEditor()">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+
+        <!-- 3-Panel Layout -->
+        <div class="editor-main-panels">
+            <!-- Left Panel: Tools -->
+            <div class="tools-panel">
+                <div class="tool-group">
+                    <div class="tool-group-title">
+                        <i class="fas fa-sliders-h"></i>
+                        Transform
+                    </div>
+                    <div class="tool-option" onclick="rotateRight()">
+                        <i class="fas fa-redo"></i> Rotate 90° →
+                    </div>
+                    <div class="tool-option" onclick="rotateLeft()">
+                        <i class="fas fa-undo"></i> Rotate 90° ←
+                    </div>
+                    <div class="tool-option" onclick="flipH()">
+                        <i class="fas fa-arrows-alt-h"></i> Flip Horizontal
+                    </div>
+                    <div class="tool-option" onclick="flipV()">
+                        <i class="fas fa-arrows-alt-v"></i> Flip Vertical
+                    </div>
+                </div>
+
+                <div class="tool-group">
+                    <div class="tool-group-title">
+                        <i class="fas fa-magic"></i>
+                        Quick Filters
+                    </div>
+                    <div class="tool-option" onclick="quickFilter('grayscale')">
+                        <i class="fas fa-adjust"></i> Grayscale
+                    </div>
+                    <div class="tool-option" onclick="quickFilter('sepia')">
+                        <i class="fas fa-image"></i> Sepia
+                    </div>
+                    <div class="tool-option" onclick="quickFilter('invert')">
+                        <i class="fas fa-exchange-alt"></i> Invert
+                    </div>
+                    <div class="tool-option" onclick="quickFilter('blur')">
+                        <i class="fas fa-circle"></i> Blur
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Panel: Canvas -->
+            <div class="canvas-panel">
+                <canvas id="editorCanvas"></canvas>
+            </div>
+
+            <!-- Right Panel: Properties & Colors -->
+            <div class="properties-panel">
+                <!-- Colors Section -->
+                <div class="prop-section">
+                    <div class="prop-section-title">
+                        <i class="fas fa-palette"></i>
+                        Colors
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Foreground Color</label>
+                        <input type="color" id="fgColor" value="#000000">
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Background Color</label>
+                        <input type="color" id="bgColor" value="#ffffff">
+                    </div>
+                </div>
+
+                <!-- Adjustments Section -->
+                <div class="prop-section">
+                    <div class="prop-section-title">
+                        <i class="fas fa-sliders-h"></i>
+                        Adjustments
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">
+                            <span>Brightness</span>
+                            <span class="control-value" id="brightnessVal">0</span>
+                        </label>
+                        <input type="range" id="brightnessRange" min="-100" max="100" value="0" oninput="livePreview()">
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">
+                            <span>Contrast</span>
+                            <span class="control-value" id="contrastVal">0</span>
+                        </label>
+                        <input type="range" id="contrastRange" min="-100" max="100" value="0" oninput="livePreview()">
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">
+                            <span>Saturation</span>
+                            <span class="control-value" id="saturationVal">100</span>
+                        </label>
+                        <input type="range" id="saturationRange" min="0" max="200" value="100" oninput="livePreview()">
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">
+                            <span>Opacity</span>
+                            <span class="control-value" id="opacityVal">100</span>%
+                        </label>
+                        <input type="range" id="opacityRange" min="0" max="100" value="100" oninput="livePreview()">
+                    </div>
+                    <button class="btn-apply" onclick="applyChanges()">
+                        <i class="fas fa-check"></i> Apply Changes
+                    </button>
+                </div>
+
+                <!-- Presets Section -->
+                <div class="prop-section">
+                    <div class="prop-section-title">
+                        <i class="fas fa-star"></i>
+                        Presets
+                    </div>
+                    <div class="preset-buttons">
+                        <button class="preset-option" onclick="presetEffect('bw')">B & W</button>
+                        <button class="preset-option" onclick="presetEffect('sepia')">Sepia</button>
+                        <button class="preset-option" onclick="presetEffect('vibrant')">Vibrant</button>
+                        <button class="preset-option" onclick="presetEffect('cool')">Cool</button>
+                        <button class="preset-option" onclick="presetEffect('warm')">Warm</button>
+                        <button class="preset-option" onclick="presetEffect('vintage')">Vintage</button>
+                    </div>
+                </div>
+
+                <!-- Image Info Section -->
+                <div class="prop-section">
+                    <div class="prop-section-title">
+                        <i class="fas fa-info-circle"></i>
+                        Image Info
+                    </div>
+                    <div class="info-display">
+                        <div>
+                            <strong>Dimensions:</strong>
+                            <span id="imgDimensions">-</span>
+                        </div>
+                        <div>
+                            <strong>File Size:</strong>
+                            <span id="imgFileSize">-</span>
+                        </div>
+                        <div>
+                            <strong>Format:</strong>
+                            <span id="imgFormat">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay" style="display: none;">
         <div class="loading-spinner"></div>
@@ -1146,7 +1670,7 @@
             }
         }
 
-        // File Upload Handler
+        // File Upload Handler - Opens New 3-Panel Editor
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -1164,18 +1688,16 @@
                 return;
             }
 
-            // Initialize canvas if not already done
-            if (!canvas) {
-                initializeEditor();
-            }
+            // Open new 3-panel editor workspace
+            document.getElementById('fullEditorWorkspace').classList.add('active');
+
+            // Get canvas from new editor
+            canvas = document.getElementById('editorCanvas');
+            ctx = canvas.getContext('2d', { willReadFrequently: true });
 
             // Load image instantly
             const img = new Image();
             img.onload = function() {
-                // Update UI immediately
-                document.getElementById('uploadSection').style.display = 'none';
-                document.getElementById('editorInterface').classList.add('active');
-                
                 // Draw image on canvas
                 canvas.width = img.width;
                 canvas.height = img.height;
@@ -1185,8 +1707,14 @@
                 originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 
-                // Update image info
-                updateImageInfo(file, img);
+                // Save to history
+                editorHistory = [ctx.getImageData(0, 0, canvas.width, canvas.height)];
+                historyIndex = 0;
+                
+                // Update image info in new panel
+                document.getElementById('imgDimensions').textContent = `${img.width} × ${img.height}px`;
+                document.getElementById('imgFileSize').textContent = formatFileSize(file.size);
+                document.getElementById('imgFormat').textContent = file.type.split('/')[1].toUpperCase();
             };
             img.onerror = function() {
                 alert('Failed to load image. Please try again.');
@@ -1566,6 +2094,336 @@
         window.onload = function() {
             initializeEditor();
         };
+
+        // ========== NEW 3-PANEL EDITOR FUNCTIONS ==========
+        
+        // History Management for Undo/Redo
+        let editorHistory = [];
+        let historyIndex = -1;
+
+        function saveToEditorHistory() {
+            editorHistory = editorHistory.slice(0, historyIndex + 1);
+            editorHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+            historyIndex++;
+            if (editorHistory.length > 20) {
+                editorHistory.shift();
+                historyIndex--;
+            }
+        }
+
+        function undoAction() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                ctx.putImageData(editorHistory[historyIndex], 0, 0);
+                currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                resetAdjustmentSliders();
+            }
+        }
+
+        function redoAction() {
+            if (historyIndex < editorHistory.length - 1) {
+                historyIndex++;
+                ctx.putImageData(editorHistory[historyIndex], 0, 0);
+                currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                resetAdjustmentSliders();
+            }
+        }
+
+        // Live Preview Function
+        let previewData = null;
+
+        function livePreview() {
+            if (!currentImageData) return;
+            
+            const brightness = parseInt(document.getElementById('brightnessRange').value);
+            const contrast = parseInt(document.getElementById('contrastRange').value);
+            const saturation = parseInt(document.getElementById('saturationRange').value);
+            const opacity = parseInt(document.getElementById('opacityRange').value);
+            
+            // Update display values
+            document.getElementById('brightnessVal').textContent = brightness;
+            document.getElementById('contrastVal').textContent = contrast;
+            document.getElementById('saturationVal').textContent = saturation;
+            document.getElementById('opacityVal').textContent = opacity;
+            
+            // Apply adjustments to preview
+            const imageData = ctx.createImageData(currentImageData);
+            const data = imageData.data;
+            const sourceData = currentImageData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                let r = sourceData[i];
+                let g = sourceData[i + 1];
+                let b = sourceData[i + 2];
+                
+                // Brightness
+                r += brightness;
+                g += brightness;
+                b += brightness;
+                
+                // Contrast
+                if (contrast !== 0) {
+                    const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+                    r = factor * (r - 128) + 128;
+                    g = factor * (g - 128) + 128;
+                    b = factor * (b - 128) + 128;
+                }
+                
+                // Saturation
+                if (saturation !== 100) {
+                    const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                    const satFactor = saturation / 100;
+                    r = gray + (r - gray) * satFactor;
+                    g = gray + (g - gray) * satFactor;
+                    b = gray + (b - gray) * satFactor;
+                }
+                
+                // Clamp values
+                data[i] = Math.min(255, Math.max(0, r));
+                data[i + 1] = Math.min(255, Math.max(0, g));
+                data[i + 2] = Math.min(255, Math.max(0, b));
+                data[i + 3] = Math.min(255, sourceData[i + 3] * (opacity / 100));
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+            previewData = imageData;
+        }
+
+        // Apply Changes (Make Permanent)
+        function applyChanges() {
+            if (previewData) {
+                currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                saveToEditorHistory();
+                resetAdjustmentSliders();
+                alert('✓ Changes applied successfully!');
+            }
+        }
+
+        // Reset Adjustment Sliders
+        function resetAdjustmentSliders() {
+            document.getElementById('brightnessRange').value = 0;
+            document.getElementById('contrastRange').value = 0;
+            document.getElementById('saturationRange').value = 100;
+            document.getElementById('opacityRange').value = 100;
+            
+            document.getElementById('brightnessVal').textContent = 0;
+            document.getElementById('contrastVal').textContent = 0;
+            document.getElementById('saturationVal').textContent = 100;
+            document.getElementById('opacityVal').textContent = 100;
+            
+            previewData = null;
+        }
+
+        // Transform Functions
+        function rotateRight() {
+            if (!canvas) return;
+            const temp = document.createElement('canvas');
+            temp.width = canvas.height;
+            temp.height = canvas.width;
+            const tempCtx = temp.getContext('2d');
+            tempCtx.translate(temp.width / 2, temp.height / 2);
+            tempCtx.rotate(Math.PI / 2);
+            tempCtx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+            canvas.width = temp.width;
+            canvas.height = temp.height;
+            ctx.drawImage(temp, 0, 0);
+            currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            saveToEditorHistory();
+            resetAdjustmentSliders();
+        }
+
+        function rotateLeft() {
+            if (!canvas) return;
+            const temp = document.createElement('canvas');
+            temp.width = canvas.height;
+            temp.height = canvas.width;
+            const tempCtx = temp.getContext('2d');
+            tempCtx.translate(temp.width / 2, temp.height / 2);
+            tempCtx.rotate(-Math.PI / 2);
+            tempCtx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+            canvas.width = temp.width;
+            canvas.height = temp.height;
+            ctx.drawImage(temp, 0, 0);
+            currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            saveToEditorHistory();
+            resetAdjustmentSliders();
+        }
+
+        function flipH() {
+            if (!canvas) return;
+            const temp = document.createElement('canvas');
+            temp.width = canvas.width;
+            temp.height = canvas.height;
+            const tempCtx = temp.getContext('2d');
+            tempCtx.save();
+            tempCtx.scale(-1, 1);
+            tempCtx.drawImage(canvas, -canvas.width, 0);
+            tempCtx.restore();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(temp, 0, 0);
+            currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            saveToEditorHistory();
+            resetAdjustmentSliders();
+        }
+
+        function flipV() {
+            if (!canvas) return;
+            const temp = document.createElement('canvas');
+            temp.width = canvas.width;
+            temp.height = canvas.height;
+            const tempCtx = temp.getContext('2d');
+            tempCtx.save();
+            tempCtx.scale(1, -1);
+            tempCtx.drawImage(canvas, 0, -canvas.height);
+            tempCtx.restore();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(temp, 0, 0);
+            currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            saveToEditorHistory();
+            resetAdjustmentSliders();
+        }
+
+        // Quick Filters
+        function quickFilter(filterType) {
+            if (!currentImageData) return;
+            
+            const imageData = ctx.createImageData(currentImageData);
+            const data = imageData.data;
+            const sourceData = currentImageData.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+                let r = sourceData[i];
+                let g = sourceData[i + 1];
+                let b = sourceData[i + 2];
+                
+                switch (filterType) {
+                    case 'grayscale':
+                        const gray = r * 0.299 + g * 0.587 + b * 0.114;
+                        r = g = b = gray;
+                        break;
+                    case 'sepia':
+                        const tr = r * 0.393 + g * 0.769 + b * 0.189;
+                        const tg = r * 0.349 + g * 0.686 + b * 0.168;
+                        const tb = r * 0.272 + g * 0.534 + b * 0.131;
+                        r = Math.min(255, tr);
+                        g = Math.min(255, tg);
+                        b = Math.min(255, tb);
+                        break;
+                    case 'invert':
+                        r = 255 - r;
+                        g = 255 - g;
+                        b = 255 - b;
+                        break;
+                    case 'blur':
+                        if (i > 0 && i < data.length - 4) {
+                            r = (r + sourceData[i-4] + sourceData[i+4]) / 3;
+                            g = (g + sourceData[i-3] + sourceData[i+5]) / 3;
+                            b = (b + sourceData[i-2] + sourceData[i+6]) / 3;
+                        }
+                        break;
+                }
+                
+                data[i] = r;
+                data[i + 1] = g;
+                data[i + 2] = b;
+                data[i + 3] = sourceData[i + 3];
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+            currentImageData = imageData;
+            saveToEditorHistory();
+            resetAdjustmentSliders();
+        }
+
+        // Preset Effects
+        function presetEffect(preset) {
+            if (!currentImageData) return;
+            
+            const imageData = ctx.createImageData(currentImageData);
+            const data = imageData.data;
+            const sourceData = currentImageData.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+                let r = sourceData[i];
+                let g = sourceData[i + 1];
+                let b = sourceData[i + 2];
+                
+                switch (preset) {
+                    case 'bw':
+                        const avg = (r + g + b) / 3;
+                        r = g = b = avg;
+                        break;
+                    case 'sepia':
+                        const tr = r * 0.393 + g * 0.769 + b * 0.189;
+                        const tg = r * 0.349 + g * 0.686 + b * 0.168;
+                        const tb = r * 0.272 + g * 0.534 + b * 0.131;
+                        r = Math.min(255, tr);
+                        g = Math.min(255, tg);
+                        b = Math.min(255, tb);
+                        break;
+                    case 'vibrant':
+                        r = Math.min(255, r * 1.3);
+                        g = Math.min(255, g * 1.3);
+                        b = Math.min(255, b * 1.3);
+                        break;
+                    case 'cool':
+                        r = Math.max(0, r * 0.8);
+                        b = Math.min(255, b * 1.2);
+                        break;
+                    case 'warm':
+                        r = Math.min(255, r * 1.2);
+                        b = Math.max(0, b * 0.8);
+                        break;
+                    case 'vintage':
+                        r = Math.min(255, r * 1.1);
+                        g = Math.min(255, g * 0.95);
+                        b = Math.max(0, b * 0.7);
+                        break;
+                }
+                
+                data[i] = r;
+                data[i + 1] = g;
+                data[i + 2] = b;
+                data[i + 3] = sourceData[i + 3];
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+            currentImageData = imageData;
+            saveToEditorHistory();
+            resetAdjustmentSliders();
+        }
+
+        // Download Edited Image
+        function downloadEditedImage() {
+            if (!canvas) return;
+            
+            canvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `edited-image-${Date.now()}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 'image/png');
+        }
+
+        // Close Full Editor
+        function closeFullEditor() {
+            if (confirm('Close editor? Unsaved changes will be lost.')) {
+                document.getElementById('fullEditorWorkspace').classList.remove('active');
+                canvas = null;
+                ctx = null;
+                currentImage = null;
+                originalImageData = null;
+                currentImageData = null;
+                editorHistory = [];
+                historyIndex = -1;
+                previewData = null;
+                document.getElementById('fileInput').value = '';
+            }
+        }
     </script>
 </body>
 </html>
