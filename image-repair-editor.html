@@ -380,6 +380,8 @@
             gap: 5px;
             flex-wrap: wrap;
             box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            position: relative;
+            overflow: visible;
         }
 
         .toolbar-category {
@@ -425,9 +427,22 @@
             overflow-y: auto;
             z-index: 1000;
             padding: 8px;
+            animation: slideDown 0.2s ease-out;
         }
 
-        .toolbar-category:hover .category-dropdown {
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .toolbar-category:hover .category-dropdown,
+        .toolbar-category.active .category-dropdown {
             display: block;
         }
 
@@ -1176,7 +1191,43 @@
                 document.getElementById('imgFormat').textContent = fileType || '-';
             };
             img.src = imageData;
+
+            // Initialize toolbar dropdowns for click support (mobile)
+            initializeToolbarDropdowns();
         });
+
+        // Toolbar Dropdown Handler for Mobile/Touch Devices
+        function initializeToolbarDropdowns() {
+            const categories = document.querySelectorAll('.toolbar-category');
+            
+            categories.forEach(category => {
+                const button = category.querySelector('.category-button');
+                
+                // Click event for mobile/touch devices
+                button.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    
+                    // Close other dropdowns
+                    categories.forEach(cat => {
+                        if (cat !== category) {
+                            cat.classList.remove('active');
+                        }
+                    });
+                    
+                    // Toggle current dropdown
+                    category.classList.toggle('active');
+                });
+            });
+
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.toolbar-category')) {
+                    categories.forEach(cat => {
+                        cat.classList.remove('active');
+                    });
+                }
+            });
+        }
 
         // Mobile Panel Toggles
         function toggleToolsPanel() {
