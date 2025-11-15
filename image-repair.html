@@ -106,6 +106,88 @@
             font-weight: 600;
         }
 
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 180px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            z-index: 1;
+            border-radius: 6px;
+            padding: 6px 0;
+            top: 100%;
+            left: 0;
+            font-size: 0.9em;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .dropdown-content a {
+            display: block;
+            padding: 8px 16px;
+            text-decoration: none;
+            color: var(--dark);
+            font-size: 0.95em;
+        }
+
+        .dropdown-content a:hover {
+            background-color: var(--light);
+        }
+
+        .auth-buttons {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9em;
+        }
+
+        .auth-link {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(67, 97, 238, 0.28);
+            color: var(--primary);
+            font-weight: 600;
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .auth-link:hover {
+            background: rgba(67, 97, 238, 0.1);
+            color: var(--secondary);
+            box-shadow: 0 8px 18px rgba(67, 97, 238, 0.15);
+        }
+
+        .auth-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 20px;
+            border-radius: 999px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #fff;
+            background: linear-gradient(135deg, #ff5a5f, #ff8a5c);
+            border: 1px solid rgba(255, 90, 95, 0.4);
+            box-shadow: 0 8px 18px rgba(255, 90, 95, 0.25);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .auth-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 22px rgba(255, 90, 95, 0.35);
+        }
+
         /* Main Editor Container */
         .editor-main {
             background: white;
@@ -528,54 +610,72 @@
     <header>
         <div class="container">
             <nav class="navbar">
-                <a href="index.html" class="logo">
-                    <i class="fas fa-file-pdf"></i>
-                    easyjpgtopdf
-                </a>
+                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
                 <div class="nav-links">
-                    <a href="index.html">Home</a>
                     <div class="dropdown">
-                        <a href="#" class="dropdown-toggle">PDF Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-menu">
+                        <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="jpg-to-pdf.html">JPG to PDF</a>
+                            <a href="word-to-pdf.html">Word to PDF</a>
+                            <a href="excel-to-pdf.html">Excel to PDF</a>
+                            <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
                             <a href="pdf-to-jpg.html">PDF to JPG</a>
                             <a href="pdf-to-word.html">PDF to Word</a>
                             <a href="pdf-to-excel.html">PDF to Excel</a>
-                            <a href="pdf-to-ppt.html">PDF to PPT</a>
+                            <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
                             <a href="merge-pdf.html">Merge PDF</a>
                             <a href="split-pdf.html">Split PDF</a>
                             <a href="compress-pdf.html">Compress PDF</a>
-                            <a href="unlock-pdf.html">Unlock PDF</a>
+                            <a href="edit-pdf.html">Pdf Editor</a>
                             <a href="protect-pdf.html">Protect PDF</a>
-                            <a href="rotate-pdf.html">Rotate PDF</a>
+                            <a href="unlock-pdf.html">Unlock PDF</a>
                             <a href="watermark-pdf.html">Watermark PDF</a>
+                            <a href="crop-pdf.html">Crop PDF</a>
                             <a href="add-page-numbers.html">Add Page Numbers</a>
                         </div>
                     </div>
                     <div class="dropdown">
-                        <a href="#" class="dropdown-toggle">Image Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-menu">
-                            <a href="image-compressor.html">Compress Image</a>
-                            <a href="image-resizer.html">Resize Image</a>
-                            <a href="image-editor.html">Edit Image</a>
-                            <a href="image-watermark.html">Watermark Image</a>
-                            <a href="background-remover.html">Remove Background</a>
+                        <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
                             <a href="image-repair.html">AI Image Repair</a>
+                            <a href="image-compressor.html">Image Compressor</a>
+                            <a href="image-resizer.html">Image Resizer</a>
+                            <a href="image-editor.html">Image Editor</a>
+                            <a href="background-remover.html">Image Background Remover</a>
                             <a href="ocr-image.html">OCR Image</a>
-                            <a href="image-converter.html">Convert Image</a>
+                            <a href="image-watermark.html">Image Watermark Tool</a>
                         </div>
                     </div>
                     <div class="dropdown">
-                        <a href="#" class="dropdown-toggle">Design Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-menu">
-                            <a href="marriage-card.html">Marriage Card</a>
-                            <a href="payment-receipt.html">Payment Receipt</a>
-                            <a href="biodata-maker.html">Biodata Maker</a>
+                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
                             <a href="resume-maker.html">Resume Maker</a>
-                            <a href="kyc-support.html">KYC Support</a>
+                            <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+                            <a href="ai-image-generator.html">AI Image Generator</a>
+                            <a href="marriage-card.html">Marriage Card</a>
                         </div>
                     </div>
-                    <a href="accounts.html">Account</a>
-                    <a href="index.html#contact">Contact</a>
+                    <div class="dropdown">
+                        <a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="excel-unlocker.html">Excel Unlocker</a>
+                            <a href="protect-excel.html">Protect Excel Sheet</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="auth-buttons">
+                    <a href="login.html" class="auth-link">Sign In</a>
+                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Signup</span></a>
                 </div>
             </nav>
         </div>
