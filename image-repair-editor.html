@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Editor - Professional Tools</title>
+    <link rel="icon" type="image/png" href="images/favicon.png">
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/footer.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --success: #4bb543;
+            --danger: #dc3545;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7ff;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .editor-workspace {
+            display: grid;
+            grid-template-columns: 250px 1fr 320px;
+            gap: 15px;
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            min-height: 600px;
+        }
+
+        /* Left Panel - Tools */
+        .tools-panel {
+            border-right: 1px solid #e9ecef;
+            padding-right: 15px;
+            overflow-y: auto;
+        }
+
+        .panel-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tool-group {
+            margin-bottom: 20px;
+        }
+
+        .tool-group-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+
+        .tool-btn {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 8px;
+            border: 1px solid #dee2e6;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .tool-btn:hover {
+            background: #f8f9fa;
+            border-color: var(--primary);
+            transform: translateX(2px);
+        }
+
+        .tool-btn i {
+            color: var(--primary);
+            width: 18px;
+        }
+
+        /* Center Panel - Canvas */
+        .canvas-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #fafbfc;
+            border-radius: 8px;
+            padding: 20px;
+            position: relative;
+            overflow: auto;
+        }
+
+        #editorCanvas {
+            max-width: 100%;
+            max-height: 100%;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            border-radius: 4px;
+        }
+
+        /* Right Panel - Properties */
+        .properties-panel {
+            border-left: 1px solid #e9ecef;
+            padding-left: 15px;
+            overflow-y: auto;
+        }
+
+        .prop-section {
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .prop-section-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+            color: #495057;
+        }
+
+        .control-value {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #dee2e6;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+        }
+
+        .btn-apply {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, var(--success) 0%, #38a832 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn-apply:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(75, 181, 67, 0.3);
+        }
+
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .preset-option {
+            padding: 8px;
+            border: 1px solid #dee2e6;
+            background: white;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .preset-option:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Action Buttons Below Canvas */
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .action-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            min-width: 140px;
+            justify-content: center;
+        }
+
+        .action-btn i {
+            font-size: 1.1rem;
+        }
+
+        .btn-preview {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, var(--success) 0%, #38a832 100%);
+            color: white;
+        }
+
+        .btn-reupload {
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            color: white;
+        }
+
+        .btn-share {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 1024px) {
+            .editor-workspace {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+
+            .tools-panel, .properties-panel {
+                border: none;
+                padding: 0;
+                max-height: 0;
+                overflow: hidden;
+                transition: max-height 0.3s ease;
+            }
+
+            .tools-panel.open {
+                max-height: 400px;
+                padding: 15px 0;
+                margin-bottom: 15px;
+            }
+
+            .properties-panel.open {
+                max-height: 500px;
+                padding: 15px 0;
+                margin-top: 15px;
+            }
+
+            .toggle-panel-btn {
+                display: block;
+                width: 100%;
+                padding: 12px;
+                background: var(--primary);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-weight: 600;
+                margin-bottom: 10px;
+                cursor: pointer;
+            }
+
+            .canvas-panel {
+                order: -1;
+            }
+        }
+
+        @media (min-width: 1025px) {
+            .toggle-panel-btn {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .editor-container {
+                padding: 10px;
+            }
+
+            .action-buttons {
+                padding: 15px;
+            }
+
+            .action-btn {
+                min-width: 120px;
+                padding: 10px 16px;
+                font-size: 0.85rem;
+            }
+        }
+
+        .info-display {
+            font-size: 0.8rem;
+        }
+
+        .info-display div {
+            padding: 6px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .info-display div:last-child {
+            border-bottom: none;
+        }
+
+        .color-picker-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .color-picker-item {
+            flex: 1;
+        }
+
+        .color-picker-item label {
+            font-size: 0.75rem;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input[type="color"] {
+            width: 100%;
+            height: 40px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
+                <div class="nav-links">
+                    <div class="dropdown">
+                        <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="jpg-to-pdf.html">JPG to PDF</a>
+                            <a href="word-to-pdf.html">Word to PDF</a>
+                            <a href="excel-to-pdf.html">Excel to PDF</a>
+                            <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="pdf-to-jpg.html">PDF to JPG</a>
+                            <a href="pdf-to-word.html">PDF to Word</a>
+                            <a href="pdf-to-excel.html">PDF to Excel</a>
+                            <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="merge-pdf.html">Merge PDF</a>
+                            <a href="split-pdf.html">Split PDF</a>
+                            <a href="compress-pdf.html">Compress PDF</a>
+                            <a href="edit-pdf.html">Pdf Editor</a>
+                            <a href="protect-pdf.html">Protect PDF</a>
+                            <a href="unlock-pdf.html">Unlock PDF</a>
+                            <a href="watermark-pdf.html">Watermark PDF</a>
+                            <a href="crop-pdf.html">Crop PDF</a>
+                            <a href="add-page-numbers.html">Add Page Numbers</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="image-repair.html">AI Image Repair</a>
+                            <a href="image-compressor.html">Image Compressor</a>
+                            <a href="image-resizer.html">Image Resizer</a>
+                            <a href="image-editor.html">Image Editor</a>
+                            <a href="background-remover.html">Image Background Remover</a>
+                            <a href="ocr-image.html">OCR Image</a>
+                            <a href="image-watermark.html">Image Watermark Tool</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="resume-maker.html">Resume Maker</a>
+                            <a href="biodata-maker.html">Marriage Biodata Maker</a>
+                            <a href="ai-image-generator.html">AI Image Generator</a>
+                            <a href="marriage-card.html">Marriage Card</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="excel-unlocker.html">Excel Unlocker</a>
+                            <a href="protect-excel.html">Protect Excel Sheet</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="auth-buttons">
+                    <a href="login.html" class="auth-link">Sign In</a>
+                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus"></i><span>Signup</span></a>
+                </div>
+                <div id="user-menu" class="user-menu" data-open="false">
+                    <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
+                        <span class="user-initial" aria-hidden="true">U</span>
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                    </button>
+                    <div class="user-dropdown" id="user-dropdown" hidden>
+                        <a href="dashboard.html#dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+                        <a href="dashboard.html#dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+                        <a href="dashboard.html#dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+                        <a href="dashboard.html#dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
+                        <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
+                        <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Editor Container -->
+    <div class="editor-container">
+        <!-- Mobile Toggle Buttons -->
+        <button class="toggle-panel-btn" onclick="toggleToolsPanel()">
+            <i class="fas fa-tools"></i> Toggle Tools Panel
+        </button>
+
+        <!-- 3-Panel Editor Workspace -->
+        <div class="editor-workspace">
+            <!-- Left Panel - Tools -->
+            <div class="tools-panel" id="toolsPanel">
+                <div class="panel-title">
+                    <i class="fas fa-toolbox"></i>
+                    Tools
+                </div>
+
+                <div class="tool-group">
+                    <div class="tool-group-title">Transform</div>
+                    <button class="tool-btn" onclick="rotateRight()">
+                        <i class="fas fa-redo"></i> Rotate Right 90°
+                    </button>
+                    <button class="tool-btn" onclick="rotateLeft()">
+                        <i class="fas fa-undo"></i> Rotate Left 90°
+                    </button>
+                    <button class="tool-btn" onclick="flipHorizontal()">
+                        <i class="fas fa-arrows-alt-h"></i> Flip Horizontal
+                    </button>
+                    <button class="tool-btn" onclick="flipVertical()">
+                        <i class="fas fa-arrows-alt-v"></i> Flip Vertical
+                    </button>
+                </div>
+
+                <div class="tool-group">
+                    <div class="tool-group-title">Quick Filters</div>
+                    <button class="tool-btn" onclick="applyFilter('grayscale')">
+                        <i class="fas fa-adjust"></i> Grayscale
+                    </button>
+                    <button class="tool-btn" onclick="applyFilter('sepia')">
+                        <i class="fas fa-image"></i> Sepia
+                    </button>
+                    <button class="tool-btn" onclick="applyFilter('invert')">
+                        <i class="fas fa-exchange-alt"></i> Invert Colors
+                    </button>
+                    <button class="tool-btn" onclick="applyFilter('blur')">
+                        <i class="fas fa-eye-slash"></i> Blur
+                    </button>
+                </div>
+            </div>
+
+            <!-- Center Panel - Canvas -->
+            <div class="canvas-panel">
+                <canvas id="editorCanvas"></canvas>
+            </div>
+
+            <!-- Right Panel - Properties -->
+            <div class="properties-panel" id="propertiesPanel">
+                <div class="panel-title">
+                    <i class="fas fa-sliders-h"></i>
+                    Properties
+                </div>
+
+                <!-- Color Pickers -->
+                <div class="prop-section">
+                    <div class="prop-section-title">
+                        <i class="fas fa-palette"></i>
+                        Colors
+                    </div>
+                    <div class="color-picker-group">
+                        <div class="color-picker-item">
+                            <label>Foreground</label>
+                            <input type="color" id="fgColor" value="#000000">
+                        </div>
+                        <div class="color-picker-item">
+                            <label>Background</label>
+                            <input type="color" id="bgColor" value="#ffffff">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Adjustments -->
+                <div class="prop-section">
+                    <div class="prop-section-title">
+                        <i class="fas fa-adjust"></i>
+                        Adjustments
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">
+                            <span>Brightness</span>
+                            <span class="control-value" id="brightnessVal">0</span>
+                        </label>
+                        <input type="range" id="brightnessRange" min="-100" max="100" value="0" oninput="livePreview()">
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">
+                            <span>Contrast</span>
+                            <span class="control-value" id="contrastVal">0</span>
+                        </label>
+                        <input type="range" id="contrastRange" min="-100" max="100" value="0" oninput="livePreview()">
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">
+                            <span>Saturation</span>
+                            <span class="control-value" id="saturationVal">100</span>
+                        </label>
+                        <input type="range" id="saturationRange" min="0" max="200" value="100" oninput="livePreview()">
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">
+                            <span>Opacity</span>
+                            <span class="control-value" id="opacityVal">100</span>%
+                        </label>
+                        <input type="range" id="opacityRange" min="0" max="100" value="100" oninput="livePreview()">
+                    </div>
+                    <button class="btn-apply" onclick="applyChanges()">
+                        <i class="fas fa-check"></i> Apply Changes
+                    </button>
+                </div>
+
+                <!-- Presets -->
+                <div class="prop-section">
+                    <div class="prop-section-title">
+                        <i class="fas fa-star"></i>
+                        Presets
+                    </div>
+                    <div class="preset-buttons">
+                        <button class="preset-option" onclick="presetEffect('bw')">B & W</button>
+                        <button class="preset-option" onclick="presetEffect('sepia')">Sepia</button>
+                        <button class="preset-option" onclick="presetEffect('vibrant')">Vibrant</button>
+                        <button class="preset-option" onclick="presetEffect('cool')">Cool</button>
+                        <button class="preset-option" onclick="presetEffect('warm')">Warm</button>
+                        <button class="preset-option" onclick="presetEffect('vintage')">Vintage</button>
+                    </div>
+                </div>
+
+                <!-- Image Info -->
+                <div class="prop-section">
+                    <div class="prop-section-title">
+                        <i class="fas fa-info-circle"></i>
+                        Image Info
+                    </div>
+                    <div class="info-display">
+                        <div><strong>Dimensions:</strong> <span id="imgDimensions">-</span></div>
+                        <div><strong>File Size:</strong> <span id="imgFileSize">-</span></div>
+                        <div><strong>Format:</strong> <span id="imgFormat">-</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Toggle for Properties -->
+        <button class="toggle-panel-btn" onclick="togglePropertiesPanel()">
+            <i class="fas fa-sliders-h"></i> Toggle Properties Panel
+        </button>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button class="action-btn btn-preview" onclick="previewImage()">
+                <i class="fas fa-eye"></i> Preview
+            </button>
+            <button class="action-btn btn-download" onclick="downloadImage()">
+                <i class="fas fa-download"></i> Download
+            </button>
+            <button class="action-btn btn-reupload" onclick="reuploadImage()">
+                <i class="fas fa-upload"></i> Re-upload
+            </button>
+            <button class="action-btn btn-share" onclick="shareImage()">
+                <i class="fas fa-share-alt"></i> Share
+            </button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About DocTools</h3>
+                    <p>Professional document and image editing tools for all your needs.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <a href="index.html">Home</a>
+                    <a href="privacy-policy.html">Privacy Policy</a>
+                    <a href="terms-of-service.html">Terms of Service</a>
+                </div>
+                <div class="footer-section">
+                    <h3>Contact</h3>
+                    <p>Email: support@doctools.com</p>
+                    <p>Phone: +1 234 567 8900</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DocTools. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        let canvas, ctx;
+        let originalImageData, currentImageData;
+        let editorHistory = [];
+        let historyIndex = -1;
+
+        // Load image from sessionStorage on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            const imageData = sessionStorage.getItem('uploadedImage');
+            const fileName = sessionStorage.getItem('uploadedFileName');
+            const fileSize = sessionStorage.getItem('uploadedFileSize');
+            const fileType = sessionStorage.getItem('uploadedFileType');
+
+            if (!imageData) {
+                alert('No image found. Redirecting to upload page...');
+                window.location.href = 'image-repair.html';
+                return;
+            }
+
+            canvas = document.getElementById('editorCanvas');
+            ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+            const img = new Image();
+            img.onload = function() {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+
+                originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+                editorHistory = [ctx.getImageData(0, 0, canvas.width, canvas.height)];
+                historyIndex = 0;
+
+                // Update image info
+                document.getElementById('imgDimensions').textContent = `${img.width} × ${img.height}px`;
+                document.getElementById('imgFileSize').textContent = fileSize || '-';
+                document.getElementById('imgFormat').textContent = fileType || '-';
+            };
+            img.src = imageData;
+        });
+
+        // Mobile Panel Toggles
+        function toggleToolsPanel() {
+            document.getElementById('toolsPanel').classList.toggle('open');
+        }
+
+        function togglePropertiesPanel() {
+            document.getElementById('propertiesPanel').classList.toggle('open');
+        }
+
+        // Save to history
+        function saveToHistory() {
+            if (historyIndex < editorHistory.length - 1) {
+                editorHistory = editorHistory.slice(0, historyIndex + 1);
+            }
+            editorHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+            historyIndex++;
+            if (editorHistory.length > 20) {
+                editorHistory.shift();
+                historyIndex--;
+            }
+        }
+
+        // Transform Functions
+        function rotateRight() {
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = canvas.height;
+            tempCanvas.height = canvas.width;
+            tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+            tempCtx.rotate(90 * Math.PI / 180);
+            tempCtx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+            canvas.width = tempCanvas.width;
+            canvas.height = tempCanvas.height;
+            ctx.drawImage(tempCanvas, 0, 0);
+            currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            saveToHistory();
+        }
+
+        function rotateLeft() {
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = canvas.height;
+            tempCanvas.height = canvas.width;
+            tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+            tempCtx.rotate(-90 * Math.PI / 180);
+            tempCtx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+            canvas.width = tempCanvas.width;
+            canvas.height = tempCanvas.height;
+            ctx.drawImage(tempCanvas, 0, 0);
+            currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            saveToHistory();
+        }
+
+        function flipHorizontal() {
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(canvas, 0, 0);
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            saveToHistory();
+        }
+
+        function flipVertical() {
+            ctx.translate(0, canvas.height);
+            ctx.scale(1, -1);
+            ctx.drawImage(canvas, 0, 0);
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            saveToHistory();
+        }
+
+        // Filter Functions
+        function applyFilter(filterType) {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            switch(filterType) {
+                case 'grayscale':
+                    for (let i = 0; i < data.length; i += 4) {
+                        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                        data[i] = data[i + 1] = data[i + 2] = avg;
+                    }
+                    break;
+                case 'sepia':
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i], g = data[i + 1], b = data[i + 2];
+                        data[i] = Math.min(255, r * 0.393 + g * 0.769 + b * 0.189);
+                        data[i + 1] = Math.min(255, r * 0.349 + g * 0.686 + b * 0.168);
+                        data[i + 2] = Math.min(255, r * 0.272 + g * 0.534 + b * 0.131);
+                    }
+                    break;
+                case 'invert':
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] = 255 - data[i];
+                        data[i + 1] = 255 - data[i + 1];
+                        data[i + 2] = 255 - data[i + 2];
+                    }
+                    break;
+                case 'blur':
+                    // Simple box blur
+                    const tempData = new Uint8ClampedArray(data);
+                    const width = canvas.width;
+                    for (let i = 0; i < data.length; i += 4) {
+                        const x = (i / 4) % width;
+                        const y = Math.floor((i / 4) / width);
+                        if (x > 0 && x < width - 1 && y > 0 && y < canvas.height - 1) {
+                            for (let c = 0; c < 3; c++) {
+                                let sum = 0;
+                                for (let dy = -1; dy <= 1; dy++) {
+                                    for (let dx = -1; dx <= 1; dx++) {
+                                        const idx = ((y + dy) * width + (x + dx)) * 4 + c;
+                                        sum += tempData[idx];
+                                    }
+                                }
+                                data[i + c] = sum / 9;
+                            }
+                        }
+                    }
+                    break;
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+            currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            saveToHistory();
+        }
+
+        // Live Preview
+        function livePreview() {
+            if (!currentImageData) return;
+
+            const brightness = parseInt(document.getElementById('brightnessRange').value);
+            const contrast = parseInt(document.getElementById('contrastRange').value);
+            const saturation = parseInt(document.getElementById('saturationRange').value);
+            const opacity = parseInt(document.getElementById('opacityRange').value);
+
+            document.getElementById('brightnessVal').textContent = brightness;
+            document.getElementById('contrastVal').textContent = contrast;
+            document.getElementById('saturationVal').textContent = saturation;
+            document.getElementById('opacityVal').textContent = opacity;
+
+            const imageData = ctx.createImageData(currentImageData);
+            const data = imageData.data;
+            const sourceData = currentImageData.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+                let r = sourceData[i];
+                let g = sourceData[i + 1];
+                let b = sourceData[i + 2];
+
+                // Brightness
+                r += brightness;
+                g += brightness;
+                b += brightness;
+
+                // Contrast
+                if (contrast !== 0) {
+                    const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+                    r = factor * (r - 128) + 128;
+                    g = factor * (g - 128) + 128;
+                    b = factor * (b - 128) + 128;
+                }
+
+                // Saturation
+                if (saturation !== 100) {
+                    const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                    const satFactor = saturation / 100;
+                    r = gray + (r - gray) * satFactor;
+                    g = gray + (g - gray) * satFactor;
+                    b = gray + (b - gray) * satFactor;
+                }
+
+                data[i] = Math.min(255, Math.max(0, r));
+                data[i + 1] = Math.min(255, Math.max(0, g));
+                data[i + 2] = Math.min(255, Math.max(0, b));
+                data[i + 3] = Math.min(255, sourceData[i + 3] * (opacity / 100));
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        // Apply Changes
+        function applyChanges() {
+            currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            saveToHistory();
+            resetSliders();
+            alert('✓ Changes applied successfully!');
+        }
+
+        function resetSliders() {
+            document.getElementById('brightnessRange').value = 0;
+            document.getElementById('contrastRange').value = 0;
+            document.getElementById('saturationRange').value = 100;
+            document.getElementById('opacityRange').value = 100;
+            document.getElementById('brightnessVal').textContent = '0';
+            document.getElementById('contrastVal').textContent = '0';
+            document.getElementById('saturationVal').textContent = '100';
+            document.getElementById('opacityVal').textContent = '100';
+        }
+
+        // Preset Effects
+        function presetEffect(preset) {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            switch(preset) {
+                case 'bw':
+                    for (let i = 0; i < data.length; i += 4) {
+                        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                        data[i] = data[i + 1] = data[i + 2] = avg;
+                    }
+                    break;
+                case 'sepia':
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i], g = data[i + 1], b = data[i + 2];
+                        data[i] = Math.min(255, r * 0.393 + g * 0.769 + b * 0.189);
+                        data[i + 1] = Math.min(255, r * 0.349 + g * 0.686 + b * 0.168);
+                        data[i + 2] = Math.min(255, r * 0.272 + g * 0.534 + b * 0.131);
+                    }
+                    break;
+                case 'vibrant':
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] = Math.min(255, data[i] * 1.3);
+                        data[i + 1] = Math.min(255, data[i + 1] * 1.3);
+                        data[i + 2] = Math.min(255, data[i + 2] * 1.3);
+                    }
+                    break;
+                case 'cool':
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] = Math.max(0, data[i] - 20);
+                        data[i + 2] = Math.min(255, data[i + 2] + 20);
+                    }
+                    break;
+                case 'warm':
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] = Math.min(255, data[i] + 20);
+                        data[i + 2] = Math.max(0, data[i + 2] - 20);
+                    }
+                    break;
+                case 'vintage':
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i], g = data[i + 1], b = data[i + 2];
+                        data[i] = Math.min(255, r * 0.9 + 30);
+                        data[i + 1] = Math.min(255, g * 0.85 + 20);
+                        data[i + 2] = Math.max(0, b * 0.7);
+                    }
+                    break;
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+            currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            saveToHistory();
+        }
+
+        // Action Button Functions
+        function previewImage() {
+            const dataURL = canvas.toDataURL('image/png');
+            const win = window.open();
+            win.document.write('<img src="' + dataURL + '" style="max-width:100%; height:auto;">');
+        }
+
+        function downloadImage() {
+            const link = document.createElement('a');
+            link.download = 'edited-image-' + Date.now() + '.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function reuploadImage() {
+            if (confirm('Are you sure you want to upload a new image? Current changes will be lost.')) {
+                sessionStorage.clear();
+                window.location.href = 'image-repair.html';
+            }
+        }
+
+        function shareImage() {
+            canvas.toBlob(async function(blob) {
+                const file = new File([blob], 'edited-image.png', { type: 'image/png' });
+                
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            files: [file],
+                            title: 'Edited Image',
+                            text: 'Check out my edited image!'
+                        });
+                    } catch (err) {
+                        console.log('Share failed:', err);
+                        fallbackShare();
+                    }
+                } else {
+                    fallbackShare();
+                }
+            });
+        }
+
+        function fallbackShare() {
+            const dataURL = canvas.toDataURL('image/png');
+            const shareText = 'Copy this link to share: ' + dataURL.substring(0, 100) + '...';
+            alert('Sharing not supported on this device. You can download the image and share it manually.');
+        }
+    </script>
+</body>
+</html>

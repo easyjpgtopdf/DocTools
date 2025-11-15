@@ -2164,7 +2164,7 @@
             }
         }
 
-        // File Upload Handler - Opens New 3-Panel Editor
+        // File Upload Handler - Redirects to Editor Page
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -2182,40 +2182,19 @@
                 return;
             }
 
-            // Open new 3-panel editor workspace
-            document.getElementById('fullEditorWorkspace').classList.add('active');
-
-            // Get canvas from new editor
-            canvas = document.getElementById('editorCanvas');
-            ctx = canvas.getContext('2d', { willReadFrequently: true });
-
-            // Load image instantly
-            const img = new Image();
-            img.onload = function() {
-                // Draw image on canvas
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
+            // Load image and store in sessionStorage
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Store image data in sessionStorage
+                sessionStorage.setItem('uploadedImage', e.target.result);
+                sessionStorage.setItem('uploadedFileName', file.name);
+                sessionStorage.setItem('uploadedFileSize', formatFileSize(file.size));
+                sessionStorage.setItem('uploadedFileType', file.type.split('/')[1].toUpperCase());
                 
-                // Store original image data
-                originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                
-                // Save to history
-                editorHistory = [ctx.getImageData(0, 0, canvas.width, canvas.height)];
-                historyIndex = 0;
-                
-                // Update image info in new panel
-                document.getElementById('imgDimensions').textContent = `${img.width} × ${img.height}px`;
-                document.getElementById('imgFileSize').textContent = formatFileSize(file.size);
-                document.getElementById('imgFormat').textContent = file.type.split('/')[1].toUpperCase();
+                // Redirect to editor page
+                window.location.href = 'image-repair-editor.html';
             };
-            img.onerror = function() {
-                alert('Failed to load image. Please try again.');
-            };
-            
-            img.src = URL.createObjectURL(file);
-            currentImage = file;
+            reader.readAsDataURL(file);
         }
 
         // Update Image Information
