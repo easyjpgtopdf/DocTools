@@ -2110,74 +2110,17 @@
             
             canvas.toBlob(blob => {
                 const sizeKB = (blob.size / 1024).toFixed(2);
-                document.getElementById('imgSize').textContent = `${sizeKB} KB`;
+                document.getElementById('imgFileSize').textContent = `${sizeKB} KB`;
             });
         }
 
         function setupFileUpload() {
-                        <div><strong>File Size:</strong> <span id="imgFileSize">-</span></div>
-                        <div><strong>Format:</strong> <span id="imgFormat">-</span></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Mobile Toggle for Properties -->
-        <button class="toggle-panel-btn" onclick="togglePropertiesPanel()">
-            <i class="fas fa-sliders-h"></i> Toggle Properties Panel
-        </button>
-
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-            <button class="action-btn btn-preview" onclick="previewImage()">
-                <i class="fas fa-eye"></i> Preview
-            </button>
-            <button class="action-btn btn-download" onclick="downloadImage()">
-                <i class="fas fa-download"></i> Download
-            </button>
-            <button class="action-btn btn-reupload" onclick="reuploadImage()">
-                <i class="fas fa-upload"></i> Re-upload
-            </button>
-            <button class="action-btn btn-share" onclick="shareImage()">
-                <i class="fas fa-share-alt"></i> Share
-            </button>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <footer>
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <h3>About DocTools</h3>
-                    <p>Professional document and image editing tools for all your needs.</p>
-                </div>
-                <div class="footer-section">
-                    <h3>Quick Links</h3>
-                    <a href="index.html">Home</a>
-                    <a href="privacy-policy.html">Privacy Policy</a>
-                    <a href="terms-of-service.html">Terms of Service</a>
-                </div>
-                <div class="footer-section">
-                    <h3>Contact</h3>
-                    <p>Email: support@doctools.com</p>
-                    <p>Phone: +1 234 567 8900</p>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2024 DocTools. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
-
-    <script>
-        let canvas, ctx;
-        let originalImageData, currentImageData;
-        let editorHistory = [];
-        let historyIndex = -1;
-
-        // Load image from sessionStorage on page load
-        window.addEventListener('DOMContentLoaded', function() {
+            // File upload handler placeholder
+            console.log('File upload handler initialized');
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
             // Initialize canvas elements first
             canvas = document.getElementById('editorCanvas');
             ctx = canvas.getContext('2d', { willReadFrequently: true });
