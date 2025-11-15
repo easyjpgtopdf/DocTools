@@ -1093,8 +1093,8 @@
     <div class="loading-overlay" id="loadingOverlay" style="display: none;">
         <div class="loading-spinner"></div>
         <div style="text-align: center;">
-            <h3>Loading Professional Editor...</h3>
-            <p>Initializing 500+ tools and Imgly engine</p>
+            <h3>Loading Image...</h3>
+            <p>Please wait</p>
         </div>
     </div>
 
@@ -1127,8 +1127,6 @@
         // Initialize Canvas Editor
         function initializeEditor() {
             try {
-                showLoading(true);
-                
                 canvas = document.createElement('canvas');
                 canvas.id = 'mainCanvas';
                 canvas.style.maxWidth = '100%';
@@ -1143,16 +1141,13 @@
                 container.appendChild(canvas);
                 
                 ctx = canvas.getContext('2d', { willReadFrequently: true });
-                
-                showLoading(false);
             } catch (error) {
                 console.error('Failed to initialize editor:', error);
-                showLoading(false);
             }
         }
 
         // File Upload Handler
-        async function handleFileUpload(event) {
+        function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
@@ -1169,42 +1164,36 @@
                 return;
             }
 
-            try {
-                showLoading(true);
-
-                // Load image
-                const img = new Image();
-                img.onload = function() {
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    ctx.drawImage(img, 0, 0);
-                    
-                    // Store original image data
-                    originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    
-                    // Update UI
-                    document.getElementById('uploadSection').style.display = 'none';
-                    document.getElementById('editorInterface').classList.add('active');
-                    
-                    // Update image info
-                    updateImageInfo(file, img);
-                    
-                    showLoading(false);
-                };
-                img.onerror = function() {
-                    showLoading(false);
-                    alert('Failed to load image. Please try again.');
-                };
-                
-                img.src = URL.createObjectURL(file);
-                currentImage = file;
-
-            } catch (error) {
-                console.error('Error loading image:', error);
-                showLoading(false);
-                alert('Failed to load image. Please try again.');
+            // Initialize canvas if not already done
+            if (!canvas) {
+                initializeEditor();
             }
+
+            // Load image instantly
+            const img = new Image();
+            img.onload = function() {
+                // Update UI immediately
+                document.getElementById('uploadSection').style.display = 'none';
+                document.getElementById('editorInterface').classList.add('active');
+                
+                // Draw image on canvas
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                
+                // Store original image data
+                originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                
+                // Update image info
+                updateImageInfo(file, img);
+            };
+            img.onerror = function() {
+                alert('Failed to load image. Please try again.');
+            };
+            
+            img.src = URL.createObjectURL(file);
+            currentImage = file;
         }
 
         // Update Image Information
