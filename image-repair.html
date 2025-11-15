@@ -1702,6 +1702,18 @@
                     <i class="fas fa-file"></i> FILE & BASIC
                 </button>
                 <div class="category-dropdown">
+                    <button class="tool-item-dropdown" onclick="newImage()">
+                        <i class="fas fa-file"></i> New Image
+                    </button>
+                    <button class="tool-item-dropdown" onclick="openImage()">
+                        <i class="fas fa-folder-open"></i> Open Image
+                    </button>
+                    <button class="tool-item-dropdown" onclick="downloadEditedImage()">
+                        <i class="fas fa-save"></i> Save Image
+                    </button>
+                    <button class="tool-item-dropdown" onclick="downloadEditedImage()">
+                        <i class="fas fa-download"></i> Export As
+                    </button>
                     <button class="tool-item-dropdown" onclick="undoAction()">
                         <i class="fas fa-undo"></i> Undo
                     </button>
@@ -1709,10 +1721,13 @@
                         <i class="fas fa-redo"></i> Redo
                     </button>
                     <button class="tool-item-dropdown" onclick="resetImage()">
-                        <i class="fas fa-sync"></i> Reset
+                        <i class="fas fa-sync"></i> Reset to Original
                     </button>
-                    <button class="tool-item-dropdown" onclick="downloadEditedImage()">
-                        <i class="fas fa-download"></i> Save/Export
+                    <button class="tool-item-dropdown" onclick="duplicateImage()">
+                        <i class="fas fa-copy"></i> Duplicate Image
+                    </button>
+                    <button class="tool-item-dropdown" onclick="printImage()">
+                        <i class="fas fa-print"></i> Print
                     </button>
                 </div>
             </div>
@@ -1723,6 +1738,21 @@
                     <i class="fas fa-mouse-pointer"></i> SELECTION
                 </button>
                 <div class="category-dropdown">
+                    <button class="tool-item-dropdown" onclick="rectangularSelect()">
+                        <i class="fas fa-square"></i> Rectangular Selection
+                    </button>
+                    <button class="tool-item-dropdown" onclick="ellipticalSelect()">
+                        <i class="fas fa-circle"></i> Elliptical Selection
+                    </button>
+                    <button class="tool-item-dropdown" onclick="lassoSelect()">
+                        <i class="fas fa-draw-polygon"></i> Lasso Selection
+                    </button>
+                    <button class="tool-item-dropdown" onclick="magicWandSelect()">
+                        <i class="fas fa-magic"></i> Magic Wand
+                    </button>
+                    <button class="tool-item-dropdown" onclick="quickSelection()">
+                        <i class="fas fa-bolt"></i> Quick Selection
+                    </button>
                     <button class="tool-item-dropdown" onclick="selectAll()">
                         <i class="fas fa-object-group"></i> Select All
                     </button>
@@ -1731,6 +1761,12 @@
                     </button>
                     <button class="tool-item-dropdown" onclick="invertSelection()">
                         <i class="fas fa-exchange-alt"></i> Invert Selection
+                    </button>
+                    <button class="tool-item-dropdown" onclick="expandSelection()">
+                        <i class="fas fa-expand"></i> Expand Selection
+                    </button>
+                    <button class="tool-item-dropdown" onclick="contractSelection()">
+                        <i class="fas fa-compress"></i> Contract Selection
                     </button>
                 </div>
             </div>
@@ -1741,11 +1777,26 @@
                     <i class="fas fa-crop"></i> CROP & TRANSFORM
                 </button>
                 <div class="category-dropdown">
+                    <button class="tool-item-dropdown" onclick="cropImage()">
+                        <i class="fas fa-crop"></i> Crop
+                    </button>
+                    <button class="tool-item-dropdown" onclick="cropToSelection()">
+                        <i class="fas fa-crop-alt"></i> Crop to Selection
+                    </button>
+                    <button class="tool-item-dropdown" onclick="trimCanvas()">
+                        <i class="fas fa-cut"></i> Trim Canvas
+                    </button>
                     <button class="tool-item-dropdown" onclick="rotateRight()">
-                        <i class="fas fa-redo"></i> Rotate Right 90°
+                        <i class="fas fa-redo"></i> Rotate 90° Right
                     </button>
                     <button class="tool-item-dropdown" onclick="rotateLeft()">
-                        <i class="fas fa-undo"></i> Rotate Left 90°
+                        <i class="fas fa-undo"></i> Rotate 90° Left
+                    </button>
+                    <button class="tool-item-dropdown" onclick="rotate180()">
+                        <i class="fas fa-sync"></i> Rotate 180°
+                    </button>
+                    <button class="tool-item-dropdown" onclick="customRotate()">
+                        <i class="fas fa-sync-alt"></i> Custom Rotate
                     </button>
                     <button class="tool-item-dropdown" onclick="flipH()">
                         <i class="fas fa-arrows-alt-h"></i> Flip Horizontal
@@ -1756,6 +1807,15 @@
                     <button class="tool-item-dropdown" onclick="resizeImage()">
                         <i class="fas fa-expand-arrows-alt"></i> Resize Image
                     </button>
+                    <button class="tool-item-dropdown" onclick="scaleImage()">
+                        <i class="fas fa-expand"></i> Scale Image
+                    </button>
+                    <button class="tool-item-dropdown" onclick="skewImage()">
+                        <i class="fas fa-sliders-h"></i> Skew
+                    </button>
+                    <button class="tool-item-dropdown" onclick="perspectiveTransform()">
+                        <i class="fas fa-cube"></i> Perspective
+                    </button>
                 </div>
             </div>
 
@@ -1765,17 +1825,41 @@
                     <i class="fas fa-paint-brush"></i> BRUSH & PAINT
                 </button>
                 <div class="category-dropdown">
+                    <button class="tool-item-dropdown" onclick="enableBrush()">
+                        <i class="fas fa-paint-brush"></i> Brush Tool
+                    </button>
+                    <button class="tool-item-dropdown" onclick="enablePencil()">
+                        <i class="fas fa-pencil-alt"></i> Pencil Tool
+                    </button>
+                    <button class="tool-item-dropdown" onclick="enableEraser()">
+                        <i class="fas fa-eraser"></i> Eraser Tool
+                    </button>
+                    <button class="tool-item-dropdown" onclick="paintBucket()">
+                        <i class="fas fa-fill-drip"></i> Paint Bucket
+                    </button>
+                    <button class="tool-item-dropdown" onclick="gradientTool()">
+                        <i class="fas fa-adjust"></i> Gradient Tool
+                    </button>
                     <button class="tool-item-dropdown" onclick="quickFilter('blur')">
                         <i class="fas fa-circle"></i> Blur Tool
                     </button>
-                    <button class="tool-item-dropdown" onclick="enableDrawing()">
-                        <i class="fas fa-pen"></i> Pencil Tool
+                    <button class="tool-item-dropdown" onclick="sharpenTool()">
+                        <i class="fas fa-star"></i> Sharpen Tool
                     </button>
-                    <button class="tool-item-dropdown" onclick="enableBrush()">
-                        <i class="fas fa-paint-brush"></i> Paint Brush
+                    <button class="tool-item-dropdown" onclick="smudgeTool()">
+                        <i class="fas fa-hand-paper"></i> Smudge Tool
                     </button>
-                    <button class="tool-item-dropdown" onclick="enableEraser()">
-                        <i class="fas fa-eraser"></i> Eraser
+                    <button class="tool-item-dropdown" onclick="cloneStamp()">
+                        <i class="fas fa-stamp"></i> Clone Stamp
+                    </button>
+                    <button class="tool-item-dropdown" onclick="healingBrush()">
+                        <i class="fas fa-band-aid"></i> Healing Brush
+                    </button>
+                    <button class="tool-item-dropdown" onclick="dodgeTool()">
+                        <i class="fas fa-sun"></i> Dodge (Lighten)
+                    </button>
+                    <button class="tool-item-dropdown" onclick="burnTool()">
+                        <i class="fas fa-moon"></i> Burn (Darken)
                     </button>
                 </div>
             </div>
@@ -1786,14 +1870,38 @@
                     <i class="fas fa-layer-group"></i> LAYERS & MASKS
                 </button>
                 <div class="category-dropdown">
-                    <button class="tool-item-dropdown" onclick="adjustOpacity()">
-                        <i class="fas fa-adjust"></i> Adjust Opacity
+                    <button class="tool-item-dropdown" onclick="newLayer()">
+                        <i class="fas fa-plus-square"></i> New Layer
+                    </button>
+                    <button class="tool-item-dropdown" onclick="duplicateLayer()">
+                        <i class="fas fa-copy"></i> Duplicate Layer
+                    </button>
+                    <button class="tool-item-dropdown" onclick="deleteLayer()">
+                        <i class="fas fa-trash"></i> Delete Layer
+                    </button>
+                    <button class="tool-item-dropdown" onclick="mergeDown()">
+                        <i class="fas fa-level-down-alt"></i> Merge Down
                     </button>
                     <button class="tool-item-dropdown" onclick="mergeVisible()">
                         <i class="fas fa-compress"></i> Merge Visible
                     </button>
-                    <button class="tool-item-dropdown" onclick="duplicateLayer()">
-                        <i class="fas fa-copy"></i> Duplicate Layer
+                    <button class="tool-item-dropdown" onclick="flattenImage()">
+                        <i class="fas fa-layer-group"></i> Flatten Image
+                    </button>
+                    <button class="tool-item-dropdown" onclick="adjustOpacity()">
+                        <i class="fas fa-adjust"></i> Layer Opacity
+                    </button>
+                    <button class="tool-item-dropdown" onclick="addLayerMask()">
+                        <i class="fas fa-mask"></i> Add Layer Mask
+                    </button>
+                    <button class="tool-item-dropdown" onclick="applyLayerMask()">
+                        <i class="fas fa-check-circle"></i> Apply Mask
+                    </button>
+                    <button class="tool-item-dropdown" onclick="deleteLayerMask()">
+                        <i class="fas fa-times-circle"></i> Delete Mask
+                    </button>
+                    <button class="tool-item-dropdown" onclick="blendModes()">
+                        <i class="fas fa-blender"></i> Blend Modes
                     </button>
                 </div>
             </div>
@@ -1805,16 +1913,40 @@
                 </button>
                 <div class="category-dropdown">
                     <button class="tool-item-dropdown" onclick="addText()">
-                        <i class="fas fa-text-height"></i> Add Text
+                        <i class="fas fa-text-height"></i> Text Tool
+                    </button>
+                    <button class="tool-item-dropdown" onclick="addVerticalText()">
+                        <i class="fas fa-text-width"></i> Vertical Text
+                    </button>
+                    <button class="tool-item-dropdown" onclick="textOnPath()">
+                        <i class="fas fa-bezier-curve"></i> Text on Path
                     </button>
                     <button class="tool-item-dropdown" onclick="addRectangle()">
                         <i class="fas fa-square"></i> Rectangle
                     </button>
+                    <button class="tool-item-dropdown" onclick="addRoundedRect()">
+                        <i class="far fa-square"></i> Rounded Rectangle
+                    </button>
                     <button class="tool-item-dropdown" onclick="addCircle()">
-                        <i class="fas fa-circle"></i> Circle
+                        <i class="fas fa-circle"></i> Circle/Ellipse
                     </button>
                     <button class="tool-item-dropdown" onclick="addLine()">
                         <i class="fas fa-minus"></i> Line
+                    </button>
+                    <button class="tool-item-dropdown" onclick="addArrow()">
+                        <i class="fas fa-arrow-right"></i> Arrow
+                    </button>
+                    <button class="tool-item-dropdown" onclick="addPolygon()">
+                        <i class="fas fa-draw-polygon"></i> Polygon
+                    </button>
+                    <button class="tool-item-dropdown" onclick="addStar()">
+                        <i class="fas fa-star"></i> Star
+                    </button>
+                    <button class="tool-item-dropdown" onclick="addHeart()">
+                        <i class="fas fa-heart"></i> Heart
+                    </button>
+                    <button class="tool-item-dropdown" onclick="customShape()">
+                        <i class="fas fa-shapes"></i> Custom Shape
                     </button>
                 </div>
             </div>
