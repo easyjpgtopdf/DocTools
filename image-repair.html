@@ -917,6 +917,40 @@
             color: var(--gray);
         }
 
+        /* Mobile Toggle Buttons */
+        .mobile-panel-toggle {
+            display: none;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 5px;
+            margin: 5px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .mobile-panel-toggle:hover {
+            background: var(--secondary);
+            transform: translateY(-1px);
+        }
+
+        .mobile-panel-toggle.active {
+            background: var(--success);
+        }
+
+        .mobile-toggles-container {
+            display: none;
+            padding: 8px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
         /* Mobile Responsive for 3-Panel Editor */
         @media (max-width: 1024px) {
             .tools-panel {
@@ -929,36 +963,68 @@
         }
 
         @media (max-width: 768px) {
+            .mobile-toggles-container {
+                display: flex;
+            }
+
+            .mobile-panel-toggle {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+            }
+
             .editor-main-panels {
                 flex-direction: column;
+                position: relative;
             }
 
             .tools-panel {
                 width: 100%;
-                max-height: 140px;
+                max-height: 0;
                 border-right: none;
                 border-bottom: 1px solid #ddd;
-                display: flex;
-                overflow-x: auto;
-                overflow-y: hidden;
-                padding: 12px;
+                overflow: hidden;
+                padding: 0;
+                transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out;
+            }
+
+            .tools-panel.mobile-open {
+                max-height: 200px;
+                overflow-y: auto;
+                overflow-x: hidden;
+                padding: 15px;
             }
 
             .tool-group {
-                margin: 0 12px 0 0;
-                min-width: 160px;
+                margin: 0 0 15px 0;
+                min-width: auto;
             }
 
             .canvas-panel {
-                min-height: 300px;
+                min-height: 350px;
                 flex: 1;
+                order: 2;
             }
 
             .properties-panel {
                 width: 100%;
-                max-height: 280px;
+                max-height: 0;
                 border-left: none;
                 border-top: 1px solid #ddd;
+                overflow: hidden;
+                padding: 0;
+                transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out;
+                order: 3;
+            }
+
+            .properties-panel.mobile-open {
+                max-height: 400px;
+                overflow-y: auto;
+                padding: 15px;
+            }
+
+            .mobile-toggles-container {
+                order: 1;
             }
 
             .editor-top-bar h2 {
@@ -1469,8 +1535,17 @@
 
         <!-- 3-Panel Layout -->
         <div class="editor-main-panels">
+            <!-- Mobile Toggle Buttons -->
+            <div class="mobile-toggles-container">
+                <button class="mobile-panel-toggle" id="toolsToggle" onclick="toggleMobilePanel('tools')">
+                    <i class="fas fa-tools"></i> Tools
+                </button>
+                <button class="mobile-panel-toggle" id="propsToggle" onclick="toggleMobilePanel('properties')">
+                    <i class="fas fa-sliders-h"></i> Adjustments
+                </button>
+            </div>
             <!-- Left Panel: Tools -->
-            <div class="tools-panel">
+            <div class="tools-panel" id="toolsPanel">
                 <div class="tool-group">
                     <div class="tool-group-title">
                         <i class="fas fa-sliders-h"></i>
@@ -1516,7 +1591,7 @@
             </div>
 
             <!-- Right Panel: Properties & Colors -->
-            <div class="properties-panel">
+            <div class="properties-panel" id="propertiesPanel">
                 <!-- Colors Section -->
                 <div class="prop-section">
                     <div class="prop-section-title">
@@ -2422,6 +2497,38 @@
                 historyIndex = -1;
                 previewData = null;
                 document.getElementById('fileInput').value = '';
+                
+                // Reset mobile panels
+                document.getElementById('toolsPanel').classList.remove('mobile-open');
+                document.getElementById('propertiesPanel').classList.remove('mobile-open');
+                document.getElementById('toolsToggle').classList.remove('active');
+                document.getElementById('propsToggle').classList.remove('active');
+            }
+        }
+
+        // Toggle Mobile Panels (Collapsible)
+        function toggleMobilePanel(panelType) {
+            const toolsPanel = document.getElementById('toolsPanel');
+            const propsPanel = document.getElementById('propertiesPanel');
+            const toolsToggle = document.getElementById('toolsToggle');
+            const propsToggle = document.getElementById('propsToggle');
+            
+            if (panelType === 'tools') {
+                // Toggle tools panel
+                toolsPanel.classList.toggle('mobile-open');
+                toolsToggle.classList.toggle('active');
+                
+                // Close properties panel
+                propsPanel.classList.remove('mobile-open');
+                propsToggle.classList.remove('active');
+            } else if (panelType === 'properties') {
+                // Toggle properties panel
+                propsPanel.classList.toggle('mobile-open');
+                propsToggle.classList.toggle('active');
+                
+                // Close tools panel
+                toolsPanel.classList.remove('mobile-open');
+                toolsToggle.classList.remove('active');
             }
         }
     </script>
