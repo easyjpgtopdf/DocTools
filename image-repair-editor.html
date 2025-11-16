@@ -378,17 +378,7 @@
 
         /* TOOL OVERLAY */
         .tool-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-            backdrop-filter: blur(5px);
+            display: none !important; /* DISABLED - Popup removed */
         }
 
         .tool-message {
@@ -848,21 +838,8 @@
                 <canvas id="mainCanvas"></canvas>
                 <div class="canvas-info" id="canvasInfo">No image loaded</div>
                 
-                <!-- Tool Instructions Overlay -->
-                <div class="tool-overlay hidden" id="toolOverlay" onclick="handleOverlayClick(event)">
-                    <div class="tool-message" id="toolMessage" onclick="event.stopPropagation()">
-                        <h3 id="toolTitle">Tool Active</h3>
-                        <p id="toolInstructions">Follow instructions...</p>
-                        <div class="tool-actions">
-                            <button class="btn-apply" id="btnApply" onclick="applyCurrentTool()">
-                                <i class="fas fa-check"></i> Apply
-                            </button>
-                            <button class="btn-cancel" id="btnCancel" onclick="cancelCurrentTool()">
-                                <i class="fas fa-times"></i> Cancel
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <!-- Tool Instructions Overlay - DISABLED -->
+                <!-- Popup removed as per user request -->
                 
                 <!-- Loading Indicator -->
                 <div class="loading hidden" id="loadingIndicator">
@@ -1194,14 +1171,8 @@
 
             // Keyboard shortcuts
             document.addEventListener('keydown', (e) => {
-                // ESC to close overlay or cancel crop
+                // ESC to cancel crop tool
                 if (e.key === 'Escape') {
-                    const overlay = document.getElementById('toolOverlay');
-                    if (!overlay.classList.contains('hidden')) {
-                        // Close overlay if open
-                        cancelCurrentTool();
-                        return;
-                    }
                     if (currentTool === 'crop') {
                         ctx.putImageData(currentImage, 0, 0);
                         selectTool('move');
@@ -1350,79 +1321,28 @@
             
             updateCanvasInfo();
             
-            // Show tool instructions only for specific tools, not for 'move'
-            if (tool !== 'move') {
-                showToolInstructions(tool);
-            }
+            // Tool instructions popup disabled as per user request
         }
 
         let overlayTimeout = null;
 
         function showToolInstructions(tool) {
-            const overlay = document.getElementById('toolOverlay');
-            const title = document.getElementById('toolTitle');
-            const instructions = document.getElementById('toolInstructions');
-            
-            // Clear any existing timeout
-            if (overlayTimeout) {
-                clearTimeout(overlayTimeout);
-                overlayTimeout = null;
-            }
-            
-            hideToolOverlay(); // Hide first
-            
-            const toolMessages = {
-                'crop': {
-                    title: '✂️ Crop Tool Active',
-                    text: 'Click and drag on the canvas to select crop area.\n\n• Drag corners to adjust\n• Press ENTER or click Apply to crop\n• Press ESC or click Cancel to exit'
-                },
-                'brush': {
-                    title: '🖌️ Brush Tool Active',
-                    text: 'Click and drag to paint on canvas.\n\n• Adjust size in right panel\n• Change color below\n• Start drawing now!'
-                },
-                'eraser': {
-                    title: '🧹 Eraser Tool Active',
-                    text: 'Click and drag to erase parts of image.\n\n• Adjust eraser size in right panel\n• Start erasing now!'
-                },
-                'select': {
-                    title: '◻️ Selection Tool Active',
-                    text: 'Click and drag to create rectangular selection.\n\n• Blue dashed border shows selection\n• Use for copying or cutting areas'
-                }
-            };
-            
-            if (toolMessages[tool] && currentImage) {
-                title.textContent = toolMessages[tool].title;
-                instructions.textContent = toolMessages[tool].text;
-                overlay.classList.remove('hidden');
-                
-                // Auto hide after 3 seconds
-                overlayTimeout = setTimeout(() => {
-                    hideToolOverlay();
-                }, 3000);
-            }
+            // DISABLED - Popup removed as per user request
+            return;
         }
 
         function hideToolOverlay() {
-            // Clear any pending timeout
-            if (overlayTimeout) {
-                clearTimeout(overlayTimeout);
-                overlayTimeout = null;
-            }
-            const overlay = document.getElementById('toolOverlay');
-            if (overlay) {
-                overlay.classList.add('hidden');
-            }
+            // DISABLED - Popup removed
+            return;
         }
 
         function handleOverlayClick(event) {
-            // Close overlay when clicking on backdrop (not on message box)
-            if (event.target.id === 'toolOverlay') {
-                cancelCurrentTool();
-            }
+            // DISABLED - Popup removed
+            return;
         }
 
         function applyCurrentTool() {
-            hideToolOverlay();
+            // Apply tool without popup
             if (currentTool === 'crop' && pendingToolData) {
                 applyCrop(pendingToolData.x1, pendingToolData.y1, pendingToolData.x2, pendingToolData.y2);
             }
@@ -1430,7 +1350,7 @@
         }
 
         function cancelCurrentTool() {
-            hideToolOverlay();
+            // Cancel without popup
             if (currentImage) {
                 ctx.putImageData(currentImage, 0, 0);
             }
