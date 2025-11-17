@@ -667,15 +667,8 @@ function render(){
 // helper
 function escape(s){ return (s||'').toString().replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
 
-// wire template selection
-templateDropdown.addEventListener('change', e=> { currentTemplate = parseInt(e.target.value); render(); });
-
-// auto render on many inputs
-['name','title','mobile','email','summary','hobbies','father','dob','marital','languages','idNo','religion','nationality','declaration'].forEach(id=>{
-  const el = document.getElementById(id);
-  if(el) el.addEventListener('input', render);
-});
-['profile','objective'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('change', render); });
+// wire template selection (already added above, this is a duplicate - removed)
+// auto render on many inputs (already added above, this is a duplicate - removed)
 
 // initial render & demo
 render();

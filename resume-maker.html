@@ -2805,9 +2805,14 @@
                 }
             });
 
-            // Add auto-update listeners
-            document.querySelectorAll('input, textarea, select').forEach(element =&gt; {
+            // Add auto-update listeners for inputs and textareas
+            document.querySelectorAll('input, textarea').forEach(element =&gt; {
                 element.addEventListener('input', updatePreview);
+            });
+            
+            // Add change listeners for select elements
+            document.querySelectorAll('select').forEach(element =&gt; {
+                element.addEventListener('change', updatePreview);
             });
 
             // Download buttons
