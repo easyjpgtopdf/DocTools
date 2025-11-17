@@ -32,36 +32,78 @@ const razorpay = razorpayKeyId && razorpayKeySecret
   : null;
 
 module.exports = async function handler(req, res) {
-  // Enable CORS
+  // Enable CORS with better headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Content-Type', 'application/json');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ 
+      success: false,
+      error: 'Method not allowed',
+      message: 'Only POST requests are accepted',
+      allowedMethods: ['POST', 'OPTIONS']
+    });
   }
 
   try {
     // Check if Razorpay is configured
     if (!razorpay) {
+      console.error('Razorpay not configured - missing environment variables');
       return res.status(503).json({ 
-        error: 'Razorpay is not configured on the server.',
-        details: 'Missing RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET in environment variables'
+        success: false,
+        error: 'Payment service unavailable',
+        message: 'Razorpay payment gateway is not configured. Please contact support.',
+        details: process.env.NODE_ENV === 'development' 
+          ? 'Missing RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET' 
+          : undefined
       });
     }
 
     const { amount, name, email, firebaseUid, currency = 'INR' } = req.body;
     
-    if (!amount || !name || !email) {
-      return res.status(400).json({ error: 'Missing required fields: amount, name, email' });
+    // Validate required fields
+    const missingFields = [];
+    if (!amount) missingFields.push('amount');
+    if (!name) missingFields.push('name');
+    if (!email) missingFields.push('email');
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Validation error',
+        message: 'Required fields are missing',
+        missingFields: missingFields
+      });
+    }
+
+    // Validate amount
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid amount',
+        message: 'Amount must be a positive number'
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid email',
+        message: 'Please provide a valid email address'
+      });
     }
 
     const orderOptions = {
-      amount: Math.round(amount * 100), // Convert to paise
+      amount: Math.round(numAmount * 100), // Convert to paise
       currency: currency,
       receipt: `${razorpayReceiptPrefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       payment_capture: 1,
@@ -73,7 +115,21 @@ module.exports = async function handler(req, res) {
       }
     };
 
-    const order = await razorpay.orders.create(orderOptions);
+    // Create Razorpay order with better error handling
+    let order;
+    try {
+      order = await razorpay.orders.create(orderOptions);
+    } catch (razorpayError) {
+      console.error('Razorpay API error:', razorpayError);
+      return res.status(502).json({
+        success: false,
+        error: 'Payment gateway error',
+        message: 'Failed to create payment order. Please try again.',
+        details: process.env.NODE_ENV === 'development' 
+          ? razorpayError.message 
+          : undefined
+      });
+    }
     
     // Save initial order record to Firestore if user is logged in
     if (firebaseUid && firebaseUid !== 'anonymous' && admin.apps.length) {
@@ -85,7 +141,7 @@ module.exports = async function handler(req, res) {
           .doc(order.id)
           .set({
             orderId: order.id,
-            amount: amount,
+            amount: numAmount,
             currency: currency,
             status: 'pending',
             paymentStatus: 'created',
@@ -102,20 +158,30 @@ module.exports = async function handler(req, res) {
       }
     }
     
-    res.json({
-      id: order.id,
-      amount: order.amount,
-      currency: order.currency,
-      receipt: order.receipt,
-      key: razorpayKeyId || '',
-      amountInPaise: order.amount
+    // Success response
+    return res.status(200).json({
+      success: true,
+      message: 'Payment order created successfully',
+      data: {
+        id: order.id,
+        amount: order.amount,
+        currency: order.currency,
+        receipt: order.receipt,
+        key: razorpayKeyId || '',
+        amountInPaise: order.amount,
+        amountInRupees: numAmount
+      }
     });
     
   } catch (error) {
-    console.error('Error creating Razorpay order:', error);
-    res.status(500).json({ 
-      error: 'Failed to create order',
-      details: error.message 
+    console.error('Unexpected error creating Razorpay order:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Internal server error',
+      message: 'An unexpected error occurred while processing your request',
+      details: process.env.NODE_ENV === 'development' 
+        ? error.message 
+        : 'Please try again or contact support if the problem persists'
     });
   }
 }
