@@ -1,85 +1,11 @@
 ﻿<!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Resume Maker - Create Professional Resumes for Free</title>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
-<link href="css/header.css" rel="stylesheet"/>
-<link href="css/footer.css" rel="stylesheet"/>
-<style>
-        /* Template Buttons Styles */
-        .template-buttons-container {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            padding: 20px 0;
-            background: linear-gradient(135deg, #f5f7ff 0%, #e8ecff 100%);
-            border-bottom: 1px solid rgba(67, 97, 238, 0.1);
-        }
-        
-        .template-button {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            padding: 16px 28px;
-            background: white;
-            color: var(--primary);
-            border: 2px solid var(--primary);
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 1.1rem;
-            text-decoration: none;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.15);
-            z-index: 1;
-        }
-        
-        .template-button i {
-            font-size: 1.4rem;
-            transition: transform 0.3s ease;
-        }
-        
-        .template-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(67, 97, 238, 0.25);
-            color: white;
-            background: var(--primary);
-        }
-        
-        .template-button:hover i {
-            transform: scale(1.2);
-        }
-        
-        .button-hover-effect {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(45deg, var(--primary), var(--accent));
-            z-index: -1;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        
-        .template-button:hover .button-hover-effect {
-            opacity: 1;
-        }
-        
-        /* Blinking Animation */
-        @keyframes blink {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.4); }
-            50% { box-shadow: 0 0 0 8px rgba(67, 97, 238, 0); }
-        }
-        
-        .blink {
-            animation: blink 2s infinite;
-        }
-        
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Maker - Create Professional Resumes for Free</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
         :root {
             --primary: #4361ee;
             --secondary: #3a0ca3;
@@ -117,6 +43,120 @@
             padding: 0 20px;
         }
         
+        /* Header Styles */
+        header {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+        }
+        
+        .logo i {
+            color: var(--secondary);
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 25px;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: var(--dark);
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+        
+        .nav-links a.active {
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        .dropdown {
+            position: relative;
+        }
+        
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 200px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            z-index: 1;
+            border-radius: 8px;
+            padding: 10px 0;
+            top: 100%;
+            left: 0;
+        }
+        
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+        
+        .dropdown-content a {
+            display: block;
+            padding: 10px 20px;
+            text-decoration: none;
+            color: var(--dark);
+        }
+        
+        .dropdown-content a:hover {
+            background-color: var(--light);
+        }
+        
+        .auth-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .auth-btn {
+            padding: 6px 15px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        
+        .auth-btn.login {
+            background-color: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+        
+        .auth-btn.signup {
+            background-color: var(--primary);
+            color: white;
+            border: 1px solid var(--primary);
+        }
+        
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+        }
+
         .personal-info-grid {
             display: flex;
             gap: 24px;
@@ -1319,77 +1359,6 @@
             background: #f8f9fa;
         }
 
-        /* Template Buttons Styles */
-        .template-buttons-container {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            padding: 20px 0;
-            background: linear-gradient(135deg, #f5f7ff 0%, #e8ecff 100%);
-            border-bottom: 1px solid rgba(67, 97, 238, 0.1);
-        }
-        
-        .template-button {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            padding: 16px 28px;
-            background: white;
-            color: var(--primary);
-            border: 2px solid var(--primary);
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 1.1rem;
-            text-decoration: none;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.15);
-            z-index: 1;
-        }
-        
-        .template-button i {
-            font-size: 1.4rem;
-            transition: transform 0.3s ease;
-        }
-        
-        .template-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(67, 97, 238, 0.25);
-            color: white;
-            background: var(--primary);
-        }
-        
-        .template-button:hover i {
-            transform: scale(1.2);
-        }
-        
-        .button-hover-effect {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(45deg, var(--primary), var(--accent));
-            z-index: -1;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        
-        .template-button:hover .button-hover-effect {
-            opacity: 1;
-        }
-        
-        /* Blinking Animation */
-        @keyframes blink {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.4); }
-            50% { box-shadow: 0 0 0 8px rgba(67, 97, 238, 0); }
-        }
-        
-        .blink {
-            animation: blink 2s infinite;
-        }
-        
         /* Responsive */
         @media (max-width: 992px) {
             .app-container {
@@ -1411,431 +1380,461 @@
     </style>
 </head>
 <body>
-<header>
-<div class="container">
-<nav class="navbar">
-<a class="logo" href="index.html"><img alt="Logo" src="images/logo.png" style="height:54px;"/></a>
-<div class="nav-links">
-<div class="dropdown">
-<a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
-<div class="dropdown-content">
-<a href="jpg-to-pdf.html">JPG to PDF</a>
-<a href="word-to-pdf.html">Word to PDF</a>
-<a href="excel-to-pdf.html">Excel to PDF</a>
-<a href="ppt-to-pdf.html">PowerPoint to PDF</a>
-</div>
-</div>
-<div class="dropdown">
-<a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
-<div class="dropdown-content">
-<a href="pdf-to-jpg.html">PDF to JPG</a>
-<a href="pdf-to-word.html">PDF to Word</a>
-<a href="pdf-to-excel.html">PDF to Excel</a>
-<a href="pdf-to-ppt.html">PDF to PowerPoint</a>
-</div>
-</div>
-<div class="dropdown">
-<a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
-<div class="dropdown-content">
-<a href="merge-pdf.html">Merge PDF</a>
-<a href="split-pdf.html">Split PDF</a>
-<a href="compress-pdf.html">Compress PDF</a>
-<a href="edit-pdf.html">Pdf Editor</a>
-<a href="protect-pdf.html">Protect PDF</a>
-<a href="unlock-pdf.html">Unlock PDF</a>
-<a href="watermark-pdf.html">Watermark PDF</a>
-<a href="crop-pdf.html">Crop PDF</a>
-<a href="add-page-numbers.html">Add Page Numbers</a>
-</div>
-</div>
-<div class="dropdown">
-<a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
-<div class="dropdown-content">
-<a href="image-repair.html">AI Image Repair</a>
-<a href="image-compressor.html">Image Compressor</a>
-<a href="image-resizer.html">Image Resizer</a>
-<a href="image-editor.html">Image Editor</a>
-<a href="background-remover.html">Image Background Remover</a>
-<a href="ocr-image.html">OCR Image</a>
-<a href="image-watermark.html">Image Watermark Tool</a>
-</div>
-</div>
-<div class="dropdown">
-<a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
-<div class="dropdown-content">
-<a href="resume-maker.html">Resume Maker</a>
-<a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
-<a href="ai-image-generator.html">AI Image Generator</a>
-<a href="marriage-card.html">Marriage Card</a>
-</div>
-</div>
-<div class="dropdown">
-<a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
-<div class="dropdown-content">
-<a href="excel-unlocker.html">Excel Unlocker</a>
-<a href="protect-excel.html">Protect Excel Sheet</a>
-</div>
-</div>
-</div>
-<div class="auth-buttons">
-<a class="auth-link" href="login.html">Sign In</a>
-<a class="auth-btn" href="signup.html"><i aria-hidden="true" class="fas fa-user-plus"></i><span>Signup</span></a>
-</div>
-<div class="user-menu" data-open="false" id="user-menu">
-<button aria-expanded="false" aria-haspopup="true" aria-label="Account menu" class="user-menu-toggle" id="user-menu-toggle" type="button">
-<span aria-hidden="true" class="user-initial">U</span>
-<i aria-hidden="true" class="fas fa-chevron-down"></i>
-</button>
-<div class="user-dropdown" hidden="" id="user-dropdown">
-<a data-user-nav="dashboard-overview" href="dashboard.html#dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
-<a data-user-nav="dashboard-billing" href="dashboard.html#dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
-<a data-user-nav="dashboard-payments" href="dashboard.html#dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
-<a data-user-nav="dashboard-orders" href="dashboard.html#dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
-<a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
-<button class="dropdown-logout" id="logout-button" type="button"><i class="fas fa-sign-out-alt"></i> Sign out</button>
-</div>
-</div>
-</nav>
-</div>
-</header>
-<!-- Template Buttons Section -->
-<div class="template-buttons-container">
-<a class="template-button blink" href="online_resume_maker.html">
-<i class="fas fa-file-alt"></i>
-<span>20+ More Templates</span>
-<div class="button-hover-effect"></div>
-</a>
-<a class="template-button blink" href="Indian-style-Resume-generator.html">
-<i class="fas fa-file-invoice"></i>
-<span>Indian Style CV/Resume Maker</span>
-<div class="button-hover-effect"></div>
-</a>
-</div>
-<div class="container">
-<div class="app-container">
-<div class="form-section">
-<h2 class="section-title">Personal Information</h2>
-<div class="personal-info-grid">
-<div class="personal-fields">
-<div class="form-group">
-<label for="fullName">Full Name</label>
-<input id="fullName" placeholder="John Doe" type="text"/>
-</div>
-<div class="form-group">
-<label for="jobTitle">Professional Title</label>
-<input id="jobTitle" placeholder="Software Engineer" type="text"/>
-</div>
-<div class="form-group">
-<label for="email">Email</label>
-<input id="email" placeholder="john.doe@example.com" type="email"/>
-</div>
-<div class="form-group">
-<label for="phone">Phone</label>
-<input id="phone" placeholder="+1 (123) 456-7890" type="text"/>
-</div>
-<div class="form-group">
-<label for="address">Address</label>
-<input id="address" placeholder="New York, NY" type="text"/>
-</div>
-<div class="form-group">
-<label for="linkedin">LinkedIn Profile (Optional)</label>
-<input id="linkedin" placeholder="linkedin.com/in/johndoe" type="text"/>
-</div>
-</div>
-<div class="photo-column">
-<div class="form-group">
-<label>Profile Photo</label>
-<div class="photo-upload">
-<div class="photo-preview" id="photoPreview">
-<span>No Photo</span>
-</div>
-<div>
-<input accept="image/*" id="photoUpload" style="display: none;" type="file"/>
-<button class="btn btn-primary" id="uploadBtn" type="button">Upload Photo</button>
-</div>
-</div>
-</div>
-</div>
-</div>
-<h2 class="section-title">Professional Summary</h2>
-<div class="form-group">
-<label for="objective">Select a Pre-written Objective</label>
-<select id="objective">
-<option value="">-- Select an Objective --</option>
-<option value="Experienced professional seeking a challenging position to utilize my skills and contribute to organizational growth.">Experienced Professional</option>
-<option value="Recent graduate seeking an entry-level position to apply academic knowledge and gain practical experience in a professional environment.">Recent Graduate</option>
-<option value="Results-driven manager with proven leadership skills seeking to leverage experience in a senior management role.">Management Position</option>
-<option value="Creative professional looking for opportunities to apply innovative thinking and design skills in a collaborative environment.">Creative Professional</option>
-<option value="Skilled technician seeking a position where I can apply my technical expertise and problem-solving abilities.">Technical Specialist</option>
-<option value="Dynamic sales professional with a proven track record of exceeding targets and building strong client relationships.">Sales Professional</option>
-<option value="Dedicated healthcare professional committed to providing high-quality patient care and improving health outcomes.">Healthcare Professional</option>
-<option value="Innovative educator passionate about fostering student growth and creating engaging learning environments.">Educator</option>
-<option value="Strategic marketing professional with expertise in digital campaigns, brand development, and market analysis.">Marketing Professional</option>
-<option value="Detail-oriented finance expert with strong analytical skills and experience in budget management and financial planning.">Finance Professional</option>
-<option value="custom">Write my own</option>
-</select>
-</div>
-<div class="form-group" id="customObjective" style="display: none;">
-<label for="customObjectiveText">Your Objective</label>
-<textarea id="customObjectiveText" placeholder="Write your professional summary here..." rows="4"></textarea>
-</div>
-<h2 class="section-title">Work Experience</h2>
-<div id="workExperienceContainer">
-<div class="dynamic-section" id="workExp1">
-<div class="form-group">
-<label for="job1Title">Job Title</label>
-<input id="job1Title" placeholder="Senior Developer" type="text"/>
-</div>
-<div class="form-group">
-<label for="job1Company">Company</label>
-<input id="job1Company" placeholder="Tech Solutions Inc." type="text"/>
-</div>
-<div class="form-group">
-<label for="job1Duration">Duration</label>
-<input id="job1Duration" placeholder="Jan 2020 - Present" type="text"/>
-</div>
-<div class="form-group">
-<label for="job1Description">Description</label>
-<textarea id="job1Description" placeholder="Describe your responsibilities and achievements..." rows="3"></textarea>
-</div>
-</div>
-</div>
-<div class="add-more-btn">
-<button class="btn btn-warning" id="addWorkExp">+ Add More Work Experience</button>
-</div>
-<h2 class="section-title">Education</h2>
-<div id="educationContainer">
-<div class="dynamic-section" id="edu1">
-<div class="form-group">
-<label for="edu1Degree">Degree</label>
-<input id="edu1Degree" placeholder="Bachelor of Science in Computer Science" type="text"/>
-</div>
-<div class="form-group">
-<label for="edu1School">School/University</label>
-<input id="edu1School" placeholder="University of Technology" type="text"/>
-</div>
-<div class="form-group">
-<label for="edu1Year">Year</label>
-<input id="edu1Year" placeholder="2016 - 2020" type="text"/>
-</div>
-<div class="form-group">
-<label for="edu1Percentage">Percentage/GPA</label>
-<input id="edu1Percentage" placeholder="85% or 3.8/4.0" type="text"/>
-</div>
-</div>
-</div>
-<div class="add-more-btn">
-<button class="btn btn-warning" id="addEducation">+ Add More Education</button>
-</div>
-<h2 class="section-title">Personal Details</h2>
-<div class="form-group">
-<label for="fatherName">Father's Name</label>
-<input id="fatherName" placeholder="Robert Doe" type="text"/>
-</div>
-<div class="form-group">
-<label for="dob">Date of Birth</label>
-<input id="dob" type="date"/>
-</div>
-<div class="form-group">
-<label for="maritalStatus">Marital Status</label>
-<select id="maritalStatus">
-<option value="">-- Select --</option>
-<option value="Single">Single</option>
-<option value="Married">Married</option>
-<option value="Divorced">Divorced</option>
-<option value="Widowed">Widowed</option>
-</select>
-</div>
-<div class="form-group">
-<label for="languages">Languages Known</label>
-<input id="languages" placeholder="English, Hindi, Spanish" type="text"/>
-</div>
-<div class="form-group">
-<label for="religion">Religion</label>
-<input id="religion" placeholder="Christianity, Hinduism, Islam, etc." type="text"/>
-</div>
-<div class="form-group">
-<label for="nationality">Nationality</label>
-<input id="nationality" placeholder="Indian, American, British, etc." type="text"/>
-</div>
-<div class="form-group">
-<label for="idType">ID Card Type</label>
-<select id="idType">
-<option value="">-- Select ID Type --</option>
-<option value="aadhar">Aadhar Card</option>
-<option value="pan">PAN Card</option>
-<option value="voter">Voter ID Card</option>
-<option value="passport">Passport</option>
-<option value="driver">Driver Licence</option>
-<option value="green">Green Card</option>
-<option value="yellow">Yellow Card</option>
-<option value="other">Other</option>
-</select>
-</div>
-<div class="id-details" id="idDetails">
-<div class="form-group">
-<label for="idName">ID Name</label>
-<input id="idName" placeholder="Name as on ID" type="text"/>
-</div>
-<div class="form-group">
-<label for="idNumber">ID Number</label>
-<input id="idNumber" placeholder="ID Number" type="text"/>
-</div>
-<div class="form-group">
-<label for="idValidity">Validity</label>
-<input id="idValidity" placeholder="Valid until" type="text"/>
-</div>
-</div>
-<h2 class="section-title">Skills</h2>
-<div class="form-group">
-<label for="skills">Skills (comma separated)</label>
-<input id="skills" placeholder="JavaScript, React, Node.js, Project Management" type="text"/>
-</div>
-<h2 class="section-title">Hobbies</h2>
-<div class="form-group">
-<label for="hobbies">Hobbies (comma separated)</label>
-<input id="hobbies" placeholder="Reading, Traveling, Photography, Cooking" type="text"/>
-</div>
-<h2 class="section-title">Declaration</h2>
-<div class="form-group">
-<label for="declaration">Declaration Statement</label>
-<textarea id="declaration" placeholder="I hereby declare that the information provided above is true to the best of my knowledge..." rows="3"></textarea>
-</div>
-<div class="action-buttons">
-<button class="btn btn-outline" id="previewModalTrigger">Preview</button>
-<button class="btn btn-success" id="downloadPdf">Download PDF</button>
-<button class="btn btn-success" id="downloadWord">Download Word</button>
-<button class="btn btn-purple" id="resetForm">Reset Form</button>
-</div>
-</div>
-<div class="preview-section">
-<h2 class="section-title">Resume Preview</h2>
-<div class="resume-preview" id="resumePreview">
-<div class="resume-preview-header">
-<div class="resume-header-details">
-<h1 class="resume-preview-name" id="previewName">Your Name</h1>
-<h2 class="resume-preview-title" id="previewTitle">Professional Title</h2>
-<div id="previewContact">
-<div>email@example.com | +1 (123) 456-7890 | City, State</div>
-</div>
-</div>
-<div class="resume-preview-photo" id="previewPhotoContainer">
-<img alt="Profile Photo" id="previewPhoto" src="" style="display: none;"/>
-</div>
-</div>
-<div class="resume-preview-section">
-<h3 class="resume-preview-section-title">Professional Summary</h3>
-<div class="objective-item">
-<p id="previewObjective">Experienced professional seeking a challenging position to utilize my skills and contribute to organizational growth.</p>
-</div>
-</div>
-<div class="resume-preview-section">
-<h3 class="resume-preview-section-title">Work Experience</h3>
-<div id="previewWorkExp">
-<div class="experience-item">
-<div class="item-title">Job Title</div>
-<div class="item-subtitle">Company Name</div>
-<div class="item-date">Jan 2020 - Present</div>
-<p>Description of responsibilities and achievements.</p>
-</div>
-</div>
-</div>
-<div class="resume-preview-section">
-<h3 class="resume-preview-section-title">Education</h3>
-<div class="education-table-wrapper">
-<table class="education-table">
-<thead>
-<tr>
-<th>Degree</th>
-<th>Institution</th>
-<th>Year</th>
-<th>Score</th>
-</tr>
-</thead>
-<tbody id="previewEducation">
-<tr>
-<td>Degree Name</td>
-<td>University Name</td>
-<td>2016 - 2020</td>
-<td>85% / 3.8 GPA</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<div class="resume-preview-section personal-details-section">
-<h3 class="resume-preview-section-title">Personal Details</h3>
-<div class="personal-details-grid">
-<div class="personal-detail-item">
-<span class="personal-detail-label">Father's Name</span>
-<span class="personal-detail-value" id="previewFatherName">Robert Doe</span>
-</div>
-<div class="personal-detail-item">
-<span class="personal-detail-label">Date of Birth</span>
-<span class="personal-detail-value" id="previewDob">01/01/1990</span>
-</div>
-<div class="personal-detail-item">
-<span class="personal-detail-label">Marital Status</span>
-<span class="personal-detail-value" id="previewMaritalStatus">Single</span>
-</div>
-<div class="personal-detail-item">
-<span class="personal-detail-label">Languages Known</span>
-<span class="personal-detail-value" id="previewLanguages">English, Hindi</span>
-</div>
-<div class="personal-detail-item">
-<span class="personal-detail-label">Religion</span>
-<span class="personal-detail-value" id="previewReligion">Christianity</span>
-</div>
-<div class="personal-detail-item">
-<span class="personal-detail-label">Nationality</span>
-<span class="personal-detail-value" id="previewNationality">Indian</span>
-</div>
-<div class="personal-detail-item">
-<span class="personal-detail-label">ID Details</span>
-<span class="personal-detail-value" id="previewIdDetails">Aadhar Card: XXXX-XXXX-XXXX</span>
-</div>
-</div>
-</div>
-<div class="resume-preview-section">
-<h3 class="resume-preview-section-title">Skills</h3>
-<div class="skills-list" id="previewSkills">
-<div class="skill-tag">Skill 1</div>
-<div class="skill-tag">Skill 2</div>
-<div class="skill-tag">Skill 3</div>
-</div>
-</div>
-<div class="resume-preview-section">
-<h3 class="resume-preview-section-title">Hobbies</h3>
-<div class="hobbies-list" id="previewHobbies">
-<div class="hobby-tag">Reading</div>
-<div class="hobby-tag">Traveling</div>
-</div>
-</div>
-<div class="declaration" id="previewDeclaration">
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <a href="index.html" class="logo">
+                    <i class="fas fa-file-pdf"></i>
+                    <span>easyjpgtopdf</span>
+                </a>
+                <div class="nav-links">
+                    <a href="index.html">Home</a>
+                    <div class="dropdown">
+                        <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="jpg-to-pdf.html">JPG to PDF</a>
+                            <a href="word-to-pdf.html">Word to PDF</a>
+                            <a href="excel-to-pdf.html">Excel to PDF</a>
+                            <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="pdf-to-jpg.html">PDF to JPG</a>
+                            <a href="pdf-to-word.html">PDF to Word</a>
+                            <a href="pdf-to-excel.html">PDF to Excel</a>
+                            <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="merge-pdf.html">Merge PDF</a>
+                            <a href="split-pdf.html">Split PDF</a>
+                            <a href="compress-pdf.html">Compress PDF</a>
+                            <a href="edit-pdf.html">Pdf Editor</a>
+                            <a href="protect-pdf.html">Protect PDF</a>
+                            <a href="unlock-pdf.html">Unlock PDF</a>
+                            <a href="watermark-pdf.html">Watermark PDF</a>
+                            <a href="crop-pdf.html">Crop PDF</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="image-compressor.html">Image Compressor</a>
+                            <a href="image-resizer.html">Image Resizer</a>
+                            <a href="image-editor.html">Image Editor</a>
+                            <a href="background-remover.html">Image Background Remover</a>
+                            <a href="ocr-image.html">OCR Image</a>
+                            <a href="image-watermark.html">Image Watermark Tool</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#" class="active">Design Tools <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="resume-maker.html" class="active">Resume Maker</a>
+                            <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+                            <a href="ai-image-generator.html">AI Image Generator</a>
+                            <a href="marriage-card.html">Marriage Card</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="auth-buttons">
+                    <a href="#" class="auth-btn login" onclick="showModal('login-modal')">Login</a>
+                    <a href="#" class="auth-btn signup" onclick="showModal('signup-modal')">Sign Up</a>
+                </div>
+            </nav>
+        </div>
+        <div class="quick-links-bar">
+            <div class="container quick-links-container">
+                <a class="quick-link-btn" href="online_resume_maker.html">20+ More Resume Formats</a>
+                <a class="quick-link-btn" href="Indian-style-Resume-generator.html">Indian Style Resume</a>
+                <a class="quick-link-btn" href="biodata-maker.html">Marriage Biodata</a>
+                <a class="quick-link-btn" href="marriage-card.html">Marriage Card Design</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="app-container">
+            <div class="form-section">
+                <h2 class="section-title">Personal Information</h2>
+                <div class="personal-info-grid">
+                    <div class="personal-fields">
+                        <div class="form-group">
+                            <label for="fullName">Full Name</label>
+                            <input type="text" id="fullName" placeholder="John Doe">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="jobTitle">Professional Title</label>
+                            <input type="text" id="jobTitle" placeholder="Software Engineer">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" placeholder="john.doe@example.com">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="phone">Phone</label>
+                            <input type="text" id="phone" placeholder="+1 (123) 456-7890">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="address">Address</label>
+                            <input type="text" id="address" placeholder="New York, NY">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="linkedin">LinkedIn Profile (Optional)</label>
+                            <input type="text" id="linkedin" placeholder="linkedin.com/in/johndoe">
+                        </div>
+                    </div>
+                    <div class="photo-column">
+                        <div class="form-group">
+                            <label>Profile Photo</label>
+                            <div class="photo-upload">
+                                <div class="photo-preview" id="photoPreview">
+                                    <span>No Photo</span>
+                                </div>
+                                <div>
+                                    <input type="file" id="photoUpload" accept="image/*" style="display: none;">
+                                    <button type="button" class="btn btn-primary" id="uploadBtn">Upload Photo</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h2 class="section-title">Professional Summary</h2>
+                
+                <div class="form-group">
+                    <label for="objective">Select a Pre-written Objective</label>
+                    <select id="objective">
+                        <option value="">-- Select an Objective --</option>
+                        <option value="Experienced professional seeking a challenging position to utilize my skills and contribute to organizational growth.">Experienced Professional</option>
+                        <option value="Recent graduate seeking an entry-level position to apply academic knowledge and gain practical experience in a professional environment.">Recent Graduate</option>
+                        <option value="Results-driven manager with proven leadership skills seeking to leverage experience in a senior management role.">Management Position</option>
+                        <option value="Creative professional looking for opportunities to apply innovative thinking and design skills in a collaborative environment.">Creative Professional</option>
+                        <option value="Skilled technician seeking a position where I can apply my technical expertise and problem-solving abilities.">Technical Specialist</option>
+                        <option value="Dynamic sales professional with a proven track record of exceeding targets and building strong client relationships.">Sales Professional</option>
+                        <option value="Dedicated healthcare professional committed to providing high-quality patient care and improving health outcomes.">Healthcare Professional</option>
+                        <option value="Innovative educator passionate about fostering student growth and creating engaging learning environments.">Educator</option>
+                        <option value="Strategic marketing professional with expertise in digital campaigns, brand development, and market analysis.">Marketing Professional</option>
+                        <option value="Detail-oriented finance expert with strong analytical skills and experience in budget management and financial planning.">Finance Professional</option>
+                        <option value="custom">Write my own</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="customObjective" style="display: none;">
+                    <label for="customObjectiveText">Your Objective</label>
+                    <textarea id="customObjectiveText" rows="4" placeholder="Write your professional summary here..."></textarea>
+                </div>
+                
+                <h2 class="section-title">Work Experience</h2>
+                
+                <div id="workExperienceContainer">
+                    <div class="dynamic-section" id="workExp1">
+                        <div class="form-group">
+                            <label for="job1Title">Job Title</label>
+                            <input type="text" id="job1Title" placeholder="Senior Developer">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="job1Company">Company</label>
+                            <input type="text" id="job1Company" placeholder="Tech Solutions Inc.">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="job1Duration">Duration</label>
+                            <input type="text" id="job1Duration" placeholder="Jan 2020 - Present">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="job1Description">Description</label>
+                            <textarea id="job1Description" rows="3" placeholder="Describe your responsibilities and achievements..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="add-more-btn">
+                    <button class="btn btn-warning" id="addWorkExp">+ Add More Work Experience</button>
+                </div>
+                
+                <h2 class="section-title">Education</h2>
+                
+                <div id="educationContainer">
+                    <div class="dynamic-section" id="edu1">
+                        <div class="form-group">
+                            <label for="edu1Degree">Degree</label>
+                            <input type="text" id="edu1Degree" placeholder="Bachelor of Science in Computer Science">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edu1School">School/University</label>
+                            <input type="text" id="edu1School" placeholder="University of Technology">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edu1Year">Year</label>
+                            <input type="text" id="edu1Year" placeholder="2016 - 2020">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edu1Percentage">Percentage/GPA</label>
+                            <input type="text" id="edu1Percentage" placeholder="85% or 3.8/4.0">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="add-more-btn">
+                    <button class="btn btn-warning" id="addEducation">+ Add More Education</button>
+                </div>
+                
+                <h2 class="section-title">Personal Details</h2>
+                
+                <div class="form-group">
+                    <label for="fatherName">Father's Name</label>
+                    <input type="text" id="fatherName" placeholder="Robert Doe">
+                </div>
+                
+                <div class="form-group">
+                    <label for="dob">Date of Birth</label>
+                    <input type="date" id="dob">
+                </div>
+                
+                <div class="form-group">
+                    <label for="maritalStatus">Marital Status</label>
+                    <select id="maritalStatus">
+                        <option value="">-- Select --</option>
+                        <option value="Single">Single</option>
+                        <option value="Married">Married</option>
+                        <option value="Divorced">Divorced</option>
+                        <option value="Widowed">Widowed</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="languages">Languages Known</label>
+                    <input type="text" id="languages" placeholder="English, Hindi, Spanish">
+                </div>
+                
+                <div class="form-group">
+                    <label for="religion">Religion</label>
+                    <input type="text" id="religion" placeholder="Christianity, Hinduism, Islam, etc.">
+                </div>
+                
+                <div class="form-group">
+                    <label for="nationality">Nationality</label>
+                    <input type="text" id="nationality" placeholder="Indian, American, British, etc.">
+                </div>
+                
+                <div class="form-group">
+                    <label for="idType">ID Card Type</label>
+                    <select id="idType">
+                        <option value="">-- Select ID Type --</option>
+                        <option value="aadhar">Aadhar Card</option>
+                        <option value="pan">PAN Card</option>
+                        <option value="voter">Voter ID Card</option>
+                        <option value="passport">Passport</option>
+                        <option value="driver">Driver Licence</option>
+                        <option value="green">Green Card</option>
+                        <option value="yellow">Yellow Card</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="id-details" id="idDetails">
+                    <div class="form-group">
+                        <label for="idName">ID Name</label>
+                        <input type="text" id="idName" placeholder="Name as on ID">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="idNumber">ID Number</label>
+                        <input type="text" id="idNumber" placeholder="ID Number">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="idValidity">Validity</label>
+                        <input type="text" id="idValidity" placeholder="Valid until">
+                    </div>
+                </div>
+                
+                <h2 class="section-title">Skills</h2>
+                
+                <div class="form-group">
+                    <label for="skills">Skills (comma separated)</label>
+                    <input type="text" id="skills" placeholder="JavaScript, React, Node.js, Project Management">
+                </div>
+                
+                <h2 class="section-title">Hobbies</h2>
+                
+                <div class="form-group">
+                    <label for="hobbies">Hobbies (comma separated)</label>
+                    <input type="text" id="hobbies" placeholder="Reading, Traveling, Photography, Cooking">
+                </div>
+                
+                <h2 class="section-title">Declaration</h2>
+                
+                <div class="form-group">
+                    <label for="declaration">Declaration Statement</label>
+                    <textarea id="declaration" rows="3" placeholder="I hereby declare that the information provided above is true to the best of my knowledge..."></textarea>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="btn btn-outline" id="previewModalTrigger">Preview</button>
+                    <button class="btn btn-success" id="downloadPdf">Download PDF</button>
+                    <button class="btn btn-success" id="downloadWord">Download Word</button>
+                    <button class="btn btn-purple" id="resetForm">Reset Form</button>
+                </div>
+            </div>
+            
+            <div class="preview-section">
+                <h2 class="section-title">Resume Preview</h2>
+                
+                <div class="resume-preview" id="resumePreview">
+                    <div class="resume-preview-header">
+                        <div class="resume-header-details">
+                            <h1 class="resume-preview-name" id="previewName">Your Name</h1>
+                            <h2 class="resume-preview-title" id="previewTitle">Professional Title</h2>
+                            <div id="previewContact">
+                                <div>email@example.com | +1 (123) 456-7890 | City, State</div>
+                            </div>
+                        </div>
+                        <div class="resume-preview-photo" id="previewPhotoContainer">
+                            <img src="" alt="Profile Photo" id="previewPhoto" style="display: none;">
+                        </div>
+                    </div>
+                    
+                    <div class="resume-preview-section">
+                        <h3 class="resume-preview-section-title">Professional Summary</h3>
+                        <div class="objective-item">
+                            <p id="previewObjective">Experienced professional seeking a challenging position to utilize my skills and contribute to organizational growth.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="resume-preview-section">
+                        <h3 class="resume-preview-section-title">Work Experience</h3>
+                        <div id="previewWorkExp">
+                            <div class="experience-item">
+                                <div class="item-title">Job Title</div>
+                                <div class="item-subtitle">Company Name</div>
+                                <div class="item-date">Jan 2020 - Present</div>
+                                <p>Description of responsibilities and achievements.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="resume-preview-section">
+                        <h3 class="resume-preview-section-title">Education</h3>
+                        <div class="education-table-wrapper">
+                            <table class="education-table">
+                                <thead>
+                                    <tr>
+                                        <th>Degree</th>
+                                        <th>Institution</th>
+                                        <th>Year</th>
+                                        <th>Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="previewEducation">
+                                    <tr>
+                                        <td>Degree Name</td>
+                                        <td>University Name</td>
+                                        <td>2016 - 2020</td>
+                                        <td>85% / 3.8 GPA</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="resume-preview-section personal-details-section">
+                        <h3 class="resume-preview-section-title">Personal Details</h3>
+                        <div class="personal-details-grid">
+                            <div class="personal-detail-item">
+                                <span class="personal-detail-label">Father's Name</span>
+                                <span class="personal-detail-value" id="previewFatherName">Robert Doe</span>
+                            </div>
+                            <div class="personal-detail-item">
+                                <span class="personal-detail-label">Date of Birth</span>
+                                <span class="personal-detail-value" id="previewDob">01/01/1990</span>
+                            </div>
+                            <div class="personal-detail-item">
+                                <span class="personal-detail-label">Marital Status</span>
+                                <span class="personal-detail-value" id="previewMaritalStatus">Single</span>
+                            </div>
+                            <div class="personal-detail-item">
+                                <span class="personal-detail-label">Languages Known</span>
+                                <span class="personal-detail-value" id="previewLanguages">English, Hindi</span>
+                            </div>
+                            <div class="personal-detail-item">
+                                <span class="personal-detail-label">Religion</span>
+                                <span class="personal-detail-value" id="previewReligion">Christianity</span>
+                            </div>
+                            <div class="personal-detail-item">
+                                <span class="personal-detail-label">Nationality</span>
+                                <span class="personal-detail-value" id="previewNationality">Indian</span>
+                            </div>
+                            <div class="personal-detail-item">
+                                <span class="personal-detail-label">ID Details</span>
+                                <span class="personal-detail-value" id="previewIdDetails">Aadhar Card: XXXX-XXXX-XXXX</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="resume-preview-section">
+                        <h3 class="resume-preview-section-title">Skills</h3>
+                        <div class="skills-list" id="previewSkills">
+                            <div class="skill-tag">Skill 1</div>
+                            <div class="skill-tag">Skill 2</div>
+                            <div class="skill-tag">Skill 3</div>
+                        </div>
+                    </div>
+                    
+                    <div class="resume-preview-section">
+                        <h3 class="resume-preview-section-title">Hobbies</h3>
+                        <div class="hobbies-list" id="previewHobbies">
+                            <div class="hobby-tag">Reading</div>
+                            <div class="hobby-tag">Traveling</div>
+                        </div>
+                    </div>
+                    
+                    <div class="declaration" id="previewDeclaration">
                         I hereby declare that the information provided above is true to the best of my knowledge and belief.
                     </div>
-<div class="resume-preview-footer">
-<div class="resume-footer-line">
-<span>Date: <span id="previewDate">Today's Date</span></span>
-<span class="footer-candidate">Candidate: <span id="previewCandidateName">Your Name</span></span>
-</div>
-<div class="resume-footer-line">
-<span>Place: <span id="previewPlace">City, State</span></span>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div aria-hidden="true" class="screen-preview-overlay" id="screenPreviewOverlay">
-<div aria-labelledby="screenPreviewTitle" aria-modal="true" class="screen-preview-dialog" role="dialog">
-<button aria-label="Close preview" class="screen-preview-close" id="screenPreviewClose">Ãƒâ€”</button>
-<h2 id="screenPreviewTitle" style="margin:0; font-size:20px; color:#1b1c2e;">Resume Preview</h2>
-<div class="screen-preview-content" id="screenPreviewContent"></div>
-</div>
-</div>
-<!-- Footer from your HTML file -->
-<script>
+                    
+                    <div class="resume-preview-footer">
+                        <div class="resume-footer-line">
+                            <span>Date: <span id="previewDate">Today&#39;s Date</span></span>
+                            <span class="footer-candidate">Candidate: <span id="previewCandidateName">Your Name</span></span>
+                        </div>
+                        <div class="resume-footer-line">
+                            <span>Place: <span id="previewPlace">City, State</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="screen-preview-overlay" id="screenPreviewOverlay" aria-hidden="true">
+        <div class="screen-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="screenPreviewTitle">
+            <button class="screen-preview-close" id="screenPreviewClose" aria-label="Close preview">Ã—</button>
+            <h2 id="screenPreviewTitle" style="margin:0; font-size:20px; color:#1b1c2e;">Resume Preview</h2>
+            <div class="screen-preview-content" id="screenPreviewContent"></div>
+        </div>
+    </div>
+
+    <!-- Footer from your HTML file -->
+    
+
+    <script>
         // Initialize the resume data
         let resumeData = {
             personal: {
@@ -2092,11 +2091,7 @@
                 <html>
                     <head>
                         <title>Resume Preview</title>
-                        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-                        
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/theme-modern.css">
-
+                        ${styles}
                         <style>
                             @page {
                                 size: A4;
@@ -2195,22 +2190,15 @@
                                 text-align: right;
                             }
                         </style>
-    
-
-    
-    
-
-</head>
+                    </head>
                     <body>
                         <div class="print-wrapper">${preview.outerHTML}</div>
-                    
-    <script type="module" src="js/auth.js"></script>
-</body>
-</html>
+                    </body>
+                </html>
             `);
             printWindow.document.close();
             printWindow.focus();
-            printWindow.onload = () =&gt; {
+            printWindow.onload = () => {
                 printWindow.print();
                 printWindow.close();
             };
@@ -2447,16 +2435,10 @@
             `;
 
             const content = `
-                <html xmlns="http://www.w3.org/TR/REC-html40" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
-<head><meta charset="utf-8"/><title>Resume</title>${styles}    
-
-    
-    <link href="css/footer.css" rel="stylesheet"/>
-</head>
-<body>${preview.outerHTML}
-<script src="js/auth.js" type="module"></script>
-</body>
-</html>
+                <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+                    <head><meta charset="utf-8"><title>Resume</title>${styles}</head>
+                    <body>${preview.outerHTML}</body>
+                </html>
             `;
 
             const blob = new Blob(['\ufeff', content], { type: 'application/msword' });
@@ -2487,7 +2469,7 @@
             const photoPreview = document.getElementById('photoPreview');
             const previewPhoto = document.getElementById('previewPhoto');
             const previewPhotoContainer = document.getElementById('previewPhotoContainer');
-            const triggerPhotoUpload = () =&gt; photoUpload.click();
+            const triggerPhotoUpload = () => photoUpload.click();
             
             uploadBtn.addEventListener('click', triggerPhotoUpload);
             photoPreview.addEventListener('click', triggerPhotoUpload);
@@ -2545,7 +2527,7 @@
                 updateIdDetailsPreview();
             });
 
-            [idNameInput, idNumberInput, idValidityInput].filter(Boolean).forEach(input =&gt; {
+            [idNameInput, idNumberInput, idValidityInput].filter(Boolean).forEach(input => {
                 input.addEventListener('input', function() {
                     updateIdDetailsPreview();
                 });
@@ -2559,14 +2541,14 @@
                 'nationality', 'skills', 'hobbies', 'declaration'
             ];
 
-            autoUpdateFields.forEach(fieldId =&gt; {
+            autoUpdateFields.forEach(fieldId => {
                 const element = document.getElementById(fieldId);
                 if (!element) return;
                 const events = element.tagName === 'SELECT' ? ['change'] : ['input'];
                 if (element.type === 'date') {
                     events.push('change');
                 }
-                events.forEach(eventName =&gt; {
+                events.forEach(eventName => {
                     element.addEventListener(eventName, updatePreview);
                 });
             });
@@ -2583,27 +2565,30 @@
                 newWorkExp.id = `workExp${workExpCounter}`;
                 
                 newWorkExp.innerHTML = `
-                    <button class="remove-btn" onclick="removeSection('workExp${workExpCounter}')">Ãƒâ€”</button>
-<div class="form-group">
-<label for="job${workExpCounter}Title">Job Title</label>
-<input id="job${workExpCounter}Title" placeholder="Position Title" type="text"/>
-</div>
-<div class="form-group">
-<label for="job${workExpCounter}Company">Company</label>
-<input id="job${workExpCounter}Company" placeholder="Company Name" type="text"/>
-</div>
-<div class="form-group">
-<label for="job${workExpCounter}Duration">Duration</label>
-<input id="job${workExpCounter}Duration" placeholder="Start Date - End Date" type="text"/>
-</div>
-<div class="form-group">
-<label for="job${workExpCounter}Description">Description</label>
-<textarea id="job${workExpCounter}Description" placeholder="Describe your responsibilities and achievements..." rows="3"></textarea>
-</div>
+                    <button class="remove-btn" onclick="removeSection('workExp${workExpCounter}')">Ã—</button>
+                    <div class="form-group">
+                        <label for="job${workExpCounter}Title">Job Title</label>
+                        <input type="text" id="job${workExpCounter}Title" placeholder="Position Title">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="job${workExpCounter}Company">Company</label>
+                        <input type="text" id="job${workExpCounter}Company" placeholder="Company Name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="job${workExpCounter}Duration">Duration</label>
+                        <input type="text" id="job${workExpCounter}Duration" placeholder="Start Date - End Date">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="job${workExpCounter}Description">Description</label>
+                        <textarea id="job${workExpCounter}Description" rows="3" placeholder="Describe your responsibilities and achievements..."></textarea>
+                    </div>
                 `;
                 
                 workExpContainer.appendChild(newWorkExp);
-                newWorkExp.querySelectorAll('input, textarea').forEach(element =&gt; {
+                newWorkExp.querySelectorAll('input, textarea').forEach(element => {
                     element.addEventListener('input', updatePreview);
                 });
                 updatePreview();
@@ -2620,27 +2605,30 @@
                 newEducation.id = `edu${educationCounter}`;
                 
                 newEducation.innerHTML = `
-                    <button class="remove-btn" onclick="removeSection('edu${educationCounter}')">Ãƒâ€”</button>
-<div class="form-group">
-<label for="edu${educationCounter}Degree">Degree</label>
-<input id="edu${educationCounter}Degree" placeholder="Degree Name" type="text"/>
-</div>
-<div class="form-group">
-<label for="edu${educationCounter}School">School/University</label>
-<input id="edu${educationCounter}School" placeholder="Institution Name" type="text"/>
-</div>
-<div class="form-group">
-<label for="edu${educationCounter}Year">Year</label>
-<input id="edu${educationCounter}Year" placeholder="Start Year - End Year" type="text"/>
-</div>
-<div class="form-group">
-<label for="edu${educationCounter}Percentage">Percentage/GPA</label>
-<input id="edu${educationCounter}Percentage" placeholder="85% or 3.8/4.0" type="text"/>
-</div>
+                    <button class="remove-btn" onclick="removeSection('edu${educationCounter}')">Ã—</button>
+                    <div class="form-group">
+                        <label for="edu${educationCounter}Degree">Degree</label>
+                        <input type="text" id="edu${educationCounter}Degree" placeholder="Degree Name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edu${educationCounter}School">School/University</label>
+                        <input type="text" id="edu${educationCounter}School" placeholder="Institution Name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edu${educationCounter}Year">Year</label>
+                        <input type="text" id="edu${educationCounter}Year" placeholder="Start Year - End Year">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edu${educationCounter}Percentage">Percentage/GPA</label>
+                        <input type="text" id="edu${educationCounter}Percentage" placeholder="85% or 3.8/4.0">
+                    </div>
                 `;
                 
                 educationContainer.appendChild(newEducation);
-                newEducation.querySelectorAll('input, textarea').forEach(element =&gt; {
+                newEducation.querySelectorAll('input, textarea').forEach(element => {
                     element.addEventListener('input', updatePreview);
                 });
                 updatePreview();
@@ -2660,8 +2648,8 @@
             
             resetFormBtn.addEventListener('click', function() {
                 if (confirm('Are you sure you want to reset the form? All data will be lost.')) {
-                    document.querySelectorAll('input, textarea, select').forEach(element =&gt; {
-                        if (element.type !== 'button' &amp;&amp; element.type !== 'submit') {
+                    document.querySelectorAll('input, textarea, select').forEach(element => {
+                        if (element.type !== 'button' && element.type !== 'submit') {
                             element.value = '';
                         }
                     });
@@ -2673,44 +2661,50 @@
                     // Reset dynamic sections
                     workExpContainer.innerHTML = `
                         <div class="dynamic-section" id="workExp1">
-<div class="form-group">
-<label for="job1Title">Job Title</label>
-<input id="job1Title" placeholder="Senior Developer" type="text"/>
-</div>
-<div class="form-group">
-<label for="job1Company">Company</label>
-<input id="job1Company" placeholder="Tech Solutions Inc." type="text"/>
-</div>
-<div class="form-group">
-<label for="job1Duration">Duration</label>
-<input id="job1Duration" placeholder="Jan 2020 - Present" type="text"/>
-</div>
-<div class="form-group">
-<label for="job1Description">Description</label>
-<textarea id="job1Description" placeholder="Describe your responsibilities and achievements..." rows="3"></textarea>
-</div>
-</div>
+                            <div class="form-group">
+                                <label for="job1Title">Job Title</label>
+                                <input type="text" id="job1Title" placeholder="Senior Developer">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="job1Company">Company</label>
+                                <input type="text" id="job1Company" placeholder="Tech Solutions Inc.">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="job1Duration">Duration</label>
+                                <input type="text" id="job1Duration" placeholder="Jan 2020 - Present">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="job1Description">Description</label>
+                                <textarea id="job1Description" rows="3" placeholder="Describe your responsibilities and achievements..."></textarea>
+                            </div>
+                        </div>
                     `;
                     
                     educationContainer.innerHTML = `
                         <div class="dynamic-section" id="edu1">
-<div class="form-group">
-<label for="edu1Degree">Degree</label>
-<input id="edu1Degree" placeholder="Bachelor of Science in Computer Science" type="text"/>
-</div>
-<div class="form-group">
-<label for="edu1School">School/University</label>
-<input id="edu1School" placeholder="University of Technology" type="text"/>
-</div>
-<div class="form-group">
-<label for="edu1Year">Year</label>
-<input id="edu1Year" placeholder="2016 - 2020" type="text"/>
-</div>
-<div class="form-group">
-<label for="edu1Percentage">Percentage/GPA</label>
-<input id="edu1Percentage" placeholder="85% or 3.8/4.0" type="text"/>
-</div>
-</div>
+                            <div class="form-group">
+                                <label for="edu1Degree">Degree</label>
+                                <input type="text" id="edu1Degree" placeholder="Bachelor of Science in Computer Science">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="edu1School">School/University</label>
+                                <input type="text" id="edu1School" placeholder="University of Technology">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="edu1Year">Year</label>
+                                <input type="text" id="edu1Year" placeholder="2016 - 2020">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="edu1Percentage">Percentage/GPA</label>
+                                <input type="text" id="edu1Percentage" placeholder="85% or 3.8/4.0">
+                            </div>
+                        </div>
                     `;
                     
                     workExpCounter = 1;
@@ -2762,29 +2756,15 @@
             }
 
             document.addEventListener('keydown', function(event) {
-                if (event.key === 'Escape' &amp;&amp; screenPreviewOverlay?.classList.contains('show')) {
+                if (event.key === 'Escape' && screenPreviewOverlay?.classList.contains('show')) {
                     closeScreenPreview();
                 }
             });
 
-            // Add auto-update listeners for ALL form elements
-            // Input and textarea - use 'input' event for real-time updates
-            document.querySelectorAll('input, textarea').forEach(element =&gt; {
+            // Add auto-update listeners
+            document.querySelectorAll('input, textarea, select').forEach(element => {
                 element.addEventListener('input', updatePreview);
-                element.addEventListener('change', updatePreview); // Backup for some input types
             });
-            
-            // Select elements - use 'change' event
-            document.querySelectorAll('select').forEach(element =&gt; {
-                element.addEventListener('change', updatePreview);
-            });
-            
-            // Force update on any form interaction
-            document.addEventListener('input', function(e) {
-                if (e.target.matches('input, textarea, select')) {
-                    updatePreview();
-                }
-            }, true);
 
             // Download buttons
             const downloadPdfBtn = document.getElementById('downloadPdf');
@@ -2797,7 +2777,95 @@
             // Initialize the preview with default values
             updatePreview();
         });
-    
-<script src="js/auth.js" type="module"></script>
+    </script>
+</body>
+</html>
 
 
+
+
+
+
+
+<footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>easyjpgtopdf</h3>
+                    <p>Your all-in-one PDF solution for converting, editing, and managing documents with ease.</p>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert to PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="jpg-to-pdf.html">JPG to PDF</a></li>
+                        <li><a href="word-to-pdf.html">Word to PDF</a></li>
+                        <li><a href="excel-to-pdf.html">Excel to PDF</a></li>
+                        <li><a href="ppt-to-pdf.html">PowerPoint to PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Convert from PDF</h3>
+                    <ul class="footer-links">
+                        <li><a href="pdf-to-jpg.html">PDF to JPG</a></li>
+                        <li><a href="pdf-to-word.html">PDF to Word</a></li>
+                        <li><a href="pdf-to-excel.html">PDF to Excel</a></li>
+                        <li><a href="pdf-to-ppt.html">PDF to PowerPoint</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Pdf Editor</h3>
+                    <ul class="footer-links">
+                        <li><a href="merge-pdf.html">Merge PDF</a></li>
+                        <li><a href="split-pdf.html">Split PDF</a></li>
+                        <li><a href="compress-pdf.html">Compress PDF</a></li>
+                        <li><a href="edit-pdf.html">Pdf Editor</a></li>
+                        <li><a href="protect-pdf.html">Protect PDF</a></li>
+                        <li><a href="unlock-pdf.html">Unlock PDF</a></li>
+                        <li><a href="watermark-pdf.html">Watermark PDF</a></li>
+                        <li><a href="crop-pdf.html">Crop PDF</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Image Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="image-compressor.html">Image Compressor</a></li>
+                        <li><a href="image-resizer.html">Image Resizer</a></li>
+                        <li><a href="image-editor.html">Image Editor</a></li>
+                        <li><a href="background-remover.html">Image Background Remover</a></li>
+                        <li><a href="ocr-image.html">OCR Image</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Design Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="resume-maker.html">Resume Maker</a></li>
+                        <li><a href="biodata-maker.html">Marrige Biodata-Data Maker</a></li>
+                        <li><a href="ai-image-generator.html">AI Image Generator</a></li>
+                        <li><a href="marriage-card.html">Marriage Card</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Company</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html#about">About Us</a></li>
+                        <li><a href="index.html#contact">Contact</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Connect With Us</h3>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fab fa-twitter"></i> Twitter</a></li>
+                        <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
+                        <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
+                        <li><a href="#"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+                <p class="attribution">Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site. <a href="attributions.html">See full acknowledgements</a>.</p>
+            </div>
+        </div>
+    </footer>
