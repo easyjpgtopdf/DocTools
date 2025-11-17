@@ -922,14 +922,120 @@
 <script type="module">
         import { auth } from './js/firebase-init.js';
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-        import { getFirestore, collection, query, where, getDocs, orderBy } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+        import { getFirestore, collection, query, where, getDocs, orderBy, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
-        // Load payment history when user is logged in
-        auth.onAuthStateChanged(async (user) => {
+        // Real-time dashboard data updater
+        async function updateDashboardData(user) {
             if (!user) return;
 
             try {
                 const firestore = getFirestore();
+                
+                // Update Profile Overview section
+                updateProfileOverview(user, firestore);
+                
+                // Load and display payment history
+                await loadPaymentHistory(user, firestore);
+                
+                // Load user statistics
+                await loadUserStatistics(user, firestore);
+                
+                // Load billing address if exists
+                await loadBillingAddress(user, firestore);
+                
+            } catch (error) {
+                console.error('Failed to update dashboard data:', error);
+            }
+        }
+
+        // Update Profile Overview with real-time data
+        function updateProfileOverview(user, firestore) {
+            // Update all user-name elements
+            document.querySelectorAll('.user-name').forEach(el => {
+                el.textContent = user.displayName || user.email || 'User';
+            });
+            
+            // Update all user-email elements
+            document.querySelectorAll('.user-email').forEach(el => {
+                el.textContent = user.email || '—';
+            });
+            
+            // Update user plan (default to Free)
+            const planEl = document.querySelector('.user-plan');
+            if (planEl) {
+                planEl.textContent = 'Free'; // Can be extended to fetch from Firestore
+            }
+        }
+
+        // Load user statistics from Firestore
+        async function loadUserStatistics(user, firestore) {
+            try {
+                const userDocRef = doc(firestore, 'users', user.uid);
+                const userDoc = await getDoc(userDocRef);
+                
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    
+                    // Update conversions count
+                    const conversionsEl = document.querySelector('.user-conversions');
+                    if (conversionsEl) {
+                        conversionsEl.textContent = userData.totalConversions || 0;
+                    }
+                    
+                    // Update billing address preview
+                    const billingAddressEl = document.querySelector('.user-billing-address');
+                    if (billingAddressEl && userData.billingAddress) {
+                        const addr = userData.billingAddress;
+                        billingAddressEl.textContent = `${addr.city || ''}, ${addr.state || ''}, ${addr.country || ''}`.trim() || 'Not added yet.';
+                    }
+                    
+                    // Update recent tool usage if data exists
+                    if (userData.recentTools && userData.recentTools.length > 0) {
+                        const usageList = document.querySelector('.usage-list');
+                        if (usageList) {
+                            usageList.innerHTML = userData.recentTools.slice(0, 5).map(tool => {
+                                const date = tool.timestamp?.toDate?.() || new Date();
+                                return `<li><strong>${tool.toolName}</strong> - ${date.toLocaleDateString()}</li>`;
+                            }).join('');
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load user statistics:', error);
+            }
+        }
+
+        // Load billing address from Firestore
+        async function loadBillingAddress(user, firestore) {
+            try {
+                const userDocRef = doc(firestore, 'users', user.uid);
+                const userDoc = await getDoc(userDocRef);
+                
+                if (userDoc.exists() && userDoc.data().billingAddress) {
+                    const addr = userDoc.data().billingAddress;
+                    
+                    // Populate billing form
+                    document.getElementById('billing-name').value = addr.name || '';
+                    document.getElementById('billing-phone').value = addr.phone || '';
+                    document.getElementById('billing-line1').value = addr.line1 || '';
+                    document.getElementById('billing-line2').value = addr.line2 || '';
+                    document.getElementById('billing-city').value = addr.city || '';
+                    document.getElementById('billing-state').value = addr.state || '';
+                    document.getElementById('billing-postal').value = addr.postal || '';
+                    document.getElementById('billing-country').value = addr.country || 'India';
+                    document.getElementById('billing-notes').value = addr.notes || '';
+                }
+            } catch (error) {
+                console.error('Failed to load billing address:', error);
+            }
+        }
+
+        // Load payment history with real-time updates
+        async function loadPaymentHistory(user, firestore) {
+
+        // Load payment history with real-time updates
+        async function loadPaymentHistory(user, firestore) {
+            try {
                 const paymentsRef = collection(firestore, 'payments', user.uid, 'records');
                 const q = query(paymentsRef, orderBy('createdAt', 'desc'));
                 const querySnapshot = await getDocs(q);
@@ -938,7 +1044,7 @@
                 if (!paymentList) return;
 
                 if (querySnapshot.empty) {
-                    paymentList.innerHTML = '<li>No donations found yet.</li>';
+                    paymentList.innerHTML = '<li style="color: #999; padding: 20px; text-align: center;"><i class="fas fa-info-circle"></i> No payment history found yet.</li>';
                     return;
                 }
 
@@ -959,21 +1065,28 @@
                     const statusText = status === 'succeeded' ? '✓ Completed' : status === 'failed' ? '✗ Failed' : '⏳ Pending';
 
                     html += `
-                        <li class="payment-item" style="border-left: 4px solid ${status === 'succeeded' ? '#28a745' : status === 'failed' ? '#dc3545' : '#ffc107'}; padding-left: 12px; margin: 12px 0; padding: 12px;">
-                            <div style="display: flex; justify-content: space-between; align-items: start;">
-                                <div>
-                                    <strong style="color: #333;">${currency} ${amount}</strong>
-                                    <p style="margin: 4px 0; font-size: 13px; color: #666;">
-                                        <span class="status-badge" style="background: ${status === 'succeeded' ? '#d4edda' : status === 'failed' ? '#f8d7da' : '#fff3cd'}; color: ${status === 'succeeded' ? '#155724' : status === 'failed' ? '#721c24' : '#856404'}; padding: 2px 8px; border-radius: 4px; font-size: 12px;">
+                        <li class="payment-item" style="border-left: 4px solid ${status === 'succeeded' ? '#28a745' : status === 'failed' ? '#dc3545' : '#ffc107'}; padding: 16px; margin: 16px 0; background: ${status === 'succeeded' ? '#f8fff9' : status === 'failed' ? '#fff5f5' : '#fffef5'}; border-radius: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; gap: 20px;">
+                                <div style="flex: 1;">
+                                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                        <strong style="color: #333; font-size: 18px;">${currency} ${amount}</strong>
+                                        <span class="status-badge" style="background: ${status === 'succeeded' ? '#d4edda' : status === 'failed' ? '#f8d7da' : '#fff3cd'}; color: ${status === 'succeeded' ? '#155724' : status === 'failed' ? '#721c24' : '#856404'}; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600;">
                                             ${statusText}
                                         </span>
+                                    </div>
+                                    <p style="margin: 6px 0; font-size: 13px; color: #666;">
+                                        <i class="fas fa-calendar-alt"></i> ${dateStr} at ${timeStr}
                                     </p>
-                                    <p style="margin: 4px 0; font-size: 12px; color: #999;">${dateStr} at ${timeStr}</p>
-                                    <p style="margin: 4px 0; font-size: 11px; color: #ccc;">Order ID: ${orderId.substring(0, 12)}...</p>
+                                    <p style="margin: 6px 0; font-size: 12px; color: #999;">
+                                        <i class="fas fa-receipt"></i> Order ID: ${orderId.substring(0, 16)}...
+                                    </p>
+                                    <p style="margin: 6px 0; font-size: 12px; color: #999;">
+                                        <i class="fas fa-credit-card"></i> ${paymentMethod.toUpperCase()}
+                                    </p>
                                 </div>
                                 ${status === 'succeeded' ? `
-                                    <a href="payment-receipt.html?txn_id=${data.paymentId || orderId}&amount=${amount}&currency=${currency}&method=${paymentMethod}" style="font-size: 12px; color: #4361ee; text-decoration: none; font-weight: 500;">
-                                        View Receipt →
+                                    <a href="payment-receipt.html?txn_id=${data.paymentId || orderId}&amount=${amount}&currency=${currency}&method=${paymentMethod}" style="font-size: 13px; color: #4361ee; text-decoration: none; font-weight: 600; padding: 8px 16px; border: 2px solid #4361ee; border-radius: 6px; transition: all 0.3s;" onmouseover="this.style.background='#4361ee'; this.style.color='white';" onmouseout="this.style.background='transparent'; this.style.color='#4361ee';">
+                                        <i class="fas fa-file-invoice"></i> View Receipt
                                     </a>
                                 ` : ''}
                             </div>
@@ -984,6 +1097,23 @@
                 paymentList.innerHTML = html;
             } catch (error) {
                 console.error('Failed to load payment history:', error);
+                const paymentList = document.querySelector('.payment-list');
+                if (paymentList) {
+                    paymentList.innerHTML = '<li style="color: #dc3545; padding: 20px;"><i class="fas fa-exclamation-triangle"></i> Failed to load payment history. Please refresh the page.</li>';
+                }
+            }
+        }
+
+        // Main auth state listener - triggers all real-time updates
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                // Update all dashboard data in real-time
+                await updateDashboardData(user);
+                
+                // Show success message after data loads
+                console.log('✅ Dashboard data loaded successfully for:', user.email);
+            } else {
+                console.log('⚠️ No user logged in - dashboard hidden');
             }
         });
 
@@ -1039,6 +1169,9 @@
                 }
             }
         });
+        
+        // Real-time update indicator
+        console.log('🔄 Dashboard real-time updater initialized');
     </script>
 <footer>
 <div class="container footer-inner">
