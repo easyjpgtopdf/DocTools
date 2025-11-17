@@ -173,6 +173,7 @@ async function initiateRazorpayDonation(user, donation) {
       prefill: {
         name: user.displayName || "",
         email: user.email || "",
+        contact: user.phoneNumber || "",  // Auto-fill phone if available from Google account
       },
       notes: {
         donationType: donation.donationType,

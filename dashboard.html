@@ -1083,9 +1083,19 @@
                                     <p style="margin: 6px 0; font-size: 12px; color: #999;">
                                         <i class="fas fa-credit-card"></i> ${paymentMethod.toUpperCase()}
                                     </p>
+                                    ${data.contact ? `
+                                    <p style="margin: 6px 0; font-size: 12px; color: #999;">
+                                        <i class="fas fa-phone"></i> ${data.contact}
+                                    </p>
+                                    ` : ''}
+                                    ${data.email ? `
+                                    <p style="margin: 6px 0; font-size: 12px; color: #999;">
+                                        <i class="fas fa-envelope"></i> ${data.email}
+                                    </p>
+                                    ` : ''}
                                 </div>
                                 ${status === 'succeeded' ? `
-                                    <a href="payment-receipt.html?txn_id=${data.paymentId || orderId}&amount=${amount}&currency=${currency}&method=${paymentMethod}" style="font-size: 13px; color: #4361ee; text-decoration: none; font-weight: 600; padding: 8px 16px; border: 2px solid #4361ee; border-radius: 6px; transition: all 0.3s;" onmouseover="this.style.background='#4361ee'; this.style.color='white';" onmouseout="this.style.background='transparent'; this.style.color='#4361ee';">
+                                    <a href="payment-receipt.html?txn_id=${data.paymentId || orderId}&amount=${amount}&currency=${currency}&method=${paymentMethod}&email=${data.email || ''}&contact=${data.contact || ''}" style="font-size: 13px; color: #4361ee; text-decoration: none; font-weight: 600; padding: 8px 16px; border: 2px solid #4361ee; border-radius: 6px; transition: all 0.3s;" onmouseover="this.style.background='#4361ee'; this.style.color='white';" onmouseout="this.style.background='transparent'; this.style.color='#4361ee';">
                                         <i class="fas fa-file-invoice"></i> View Receipt
                                     </a>
                                 ` : ''}

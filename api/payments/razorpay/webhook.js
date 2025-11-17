@@ -92,6 +92,10 @@ module.exports = async function handler(req, res) {
       currency: payment?.currency || order?.currency || 'INR',
       method: payment?.method || 'razorpay',
       createdAt: payment?.created_at ? admin.firestore.Timestamp.fromMillis(payment.created_at * 1000) : admin.firestore.FieldValue.serverTimestamp(),
+      // Customer details from payment
+      email: payment?.email || metadata.email || '',
+      contact: payment?.contact || metadata.contact || '',
+      // Additional metadata
       razorpayPayload: event,
     };
 
