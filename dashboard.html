@@ -1032,26 +1032,67 @@
 
         // Load payment history with real-time updates
         async function loadPaymentHistory(user, firestore) {
-
-        // Load payment history with real-time updates
-        async function loadPaymentHistory(user, firestore) {
             try {
+                console.log('📊 Loading payment history for user:', user.uid);
+                
                 const paymentsRef = collection(firestore, 'payments', user.uid, 'records');
-                const q = query(paymentsRef, orderBy('createdAt', 'desc'));
-                const querySnapshot = await getDocs(q);
+                
+                // Query with fallback - try createdAt, then updatedAt
+                let querySnapshot;
+                try {
+                    const q = query(paymentsRef, orderBy('createdAt', 'desc'));
+                    querySnapshot = await getDocs(q);
+                } catch (orderError) {
+                    console.warn('⚠️ createdAt orderBy failed, trying without order:', orderError);
+                    // Fallback: get all documents without ordering
+                    querySnapshot = await getDocs(paymentsRef);
+                }
 
                 const paymentList = document.querySelector('.payment-list');
-                if (!paymentList) return;
+                if (!paymentList) {
+                    console.error('❌ Payment list element not found');
+                    return;
+                }
+
+                console.log('📦 Found payments:', querySnapshot.size);
 
                 if (querySnapshot.empty) {
                     paymentList.innerHTML = '<li style="color: #999; padding: 20px; text-align: center;"><i class="fas fa-info-circle"></i> No payment history found yet.</li>';
                     return;
                 }
 
-                let html = '';
+                // Convert to array and sort manually if needed
+                const payments = [];
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
-                    const date = data.createdAt?.toDate?.() || new Date(data.createdAt);
+                    payments.push({ id: doc.id, ...data });
+                });
+
+                // Sort by createdAt if available
+                payments.sort((a, b) => {
+                    const dateA = a.createdAt?.toDate?.() || a.createdAt || new Date(0);
+                    const dateB = b.createdAt?.toDate?.() || b.createdAt || new Date(0);
+                    return dateB - dateA; // Descending (newest first)
+                });
+
+                console.log('✅ Payments sorted:', payments.length);
+
+                let html = '';
+                payments.forEach((data) => {
+                    // Handle different date formats
+                    let date;
+                    if (data.createdAt?.toDate) {
+                        date = data.createdAt.toDate();
+                    } else if (data.createdAt) {
+                        date = new Date(data.createdAt);
+                    } else if (data.updatedAt?.toDate) {
+                        date = data.updatedAt.toDate();
+                    } else if (data.updatedAt) {
+                        date = new Date(data.updatedAt);
+                    } else {
+                        date = new Date();
+                    }
+
                     const dateStr = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
                     const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                     
@@ -1059,13 +1100,15 @@
                     const currency = data.currency || 'INR';
                     const status = data.status || data.paymentStatus || 'pending';
                     const paymentMethod = data.method || 'razorpay';
-                    const orderId = data.orderId || doc.id;
+                    const orderId = data.orderId || data.id;
 
-                    const statusClass = status === 'succeeded' ? 'success' : status === 'failed' ? 'failed' : 'pending';
-                    const statusText = status === 'succeeded' ? '✓ Completed' : status === 'failed' ? '✗ Failed' : '⏳ Pending';
+                    const statusClass = status === 'succeeded' || status === 'captured' ? 'success' : status === 'failed' ? 'failed' : 'pending';
+                    const statusText = status === 'succeeded' || status === 'captured' ? '✓ Completed' : status === 'failed' ? '✗ Failed' : '⏳ Pending';
+
+                    console.log('💳 Payment:', { orderId, amount, status, date: dateStr });
 
                     html += `
-                        <li class="payment-item" style="border-left: 4px solid ${status === 'succeeded' ? '#28a745' : status === 'failed' ? '#dc3545' : '#ffc107'}; padding: 16px; margin: 16px 0; background: ${status === 'succeeded' ? '#f8fff9' : status === 'failed' ? '#fff5f5' : '#fffef5'}; border-radius: 8px;">
+                        <li class="payment-item" style="border-left: 4px solid ${statusClass === 'success' ? '#28a745' : statusClass === 'failed' ? '#dc3545' : '#ffc107'}; padding: 16px; margin: 16px 0; background: ${statusClass === 'success' ? '#f8fff9' : statusClass === 'failed' ? '#fff5f5' : '#fffef5'}; border-radius: 8px;">
                             <div style="display: flex; justify-content: space-between; align-items: start; gap: 20px;">
                                 <div style="flex: 1;">
                                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
