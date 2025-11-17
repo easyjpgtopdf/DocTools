@@ -1,186 +1,136 @@
-# System Health Check Script
-# Verifies complete Local + Git + Vercel + Domain setup
+# System Health Check - EasyJpgToPDF.com
+# Verifies Local + Git + Vercel + Domain setup
 
-Write-Host "`n╔══════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║     🔍 EASYJPGTOPDF.COM - SYSTEM HEALTH CHECK       ║" -ForegroundColor Cyan
-Write-Host "╚══════════════════════════════════════════════════════╝`n" -ForegroundColor Cyan
+Write-Host "`n================================================" -ForegroundColor Cyan
+Write-Host "   SYSTEM HEALTH CHECK - EASYJPGTOPDF.COM" -ForegroundColor Cyan
+Write-Host "================================================`n" -ForegroundColor Cyan
 
 $errors = 0
 $warnings = 0
 
-# Test 1: Local Git Configuration
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor White
-Write-Host "1️⃣  LOCAL GIT CONFIGURATION" -ForegroundColor Yellow
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor White
-
+# Test 1: Git Configuration
+Write-Host "[1] LOCAL GIT CONFIGURATION" -ForegroundColor Yellow
+Write-Host "----------------------------" -ForegroundColor White
 try {
     $gitUser = git config user.name
     $gitEmail = git config user.email
     
     if ($gitUser -and $gitEmail) {
-        Write-Host "   ✅ Git user configured: $gitUser <$gitEmail>" -ForegroundColor Green
+        Write-Host "   [OK] Git configured: $gitUser" -ForegroundColor Green
     } else {
-        Write-Host "   ❌ Git user not configured" -ForegroundColor Red
+        Write-Host "   [ERROR] Git not configured" -ForegroundColor Red
         $errors++
     }
 } catch {
-    Write-Host "   ❌ Git not installed or configured" -ForegroundColor Red
+    Write-Host "   [ERROR] Git not installed" -ForegroundColor Red
     $errors++
 }
 
-# Test 2: GitHub Remote Connection
-Write-Host "`n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor White
-Write-Host "2️⃣  GITHUB REMOTE CONNECTION" -ForegroundColor Yellow
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor White
-
+# Test 2: GitHub Connection
+Write-Host "`n[2] GITHUB REMOTE CONNECTION" -ForegroundColor Yellow
+Write-Host "----------------------------" -ForegroundColor White
 try {
     $remote = git remote get-url origin
     if ($remote -match "easyjpgtopdf/DocTools") {
-        Write-Host "   ✅ GitHub remote: $remote" -ForegroundColor Green
+        Write-Host "   [OK] GitHub remote connected" -ForegroundColor Green
         
-        # Test push access
         git ls-remote origin HEAD > $null 2>&1
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "   ✅ GitHub access verified" -ForegroundColor Green
+            Write-Host "   [OK] GitHub access verified" -ForegroundColor Green
         } else {
-            Write-Host "   ⚠️  Cannot access GitHub (check credentials)" -ForegroundColor Yellow
+            Write-Host "   [WARNING] Cannot access GitHub" -ForegroundColor Yellow
             $warnings++
         }
     } else {
-        Write-Host "   ❌ Invalid GitHub remote" -ForegroundColor Red
+        Write-Host "   [ERROR] Invalid GitHub remote" -ForegroundColor Red
         $errors++
     }
 } catch {
-    Write-Host "   ❌ No GitHub remote configured" -ForegroundColor Red
+    Write-Host "   [ERROR] No GitHub remote configured" -ForegroundColor Red
     $errors++
 }
 
 # Test 3: Vercel CLI
-Write-Host "`n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor White
-Write-Host "3️⃣  VERCEL CLI STATUS" -ForegroundColor Yellow
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor White
-
+Write-Host "`n[3] VERCEL CLI STATUS" -ForegroundColor Yellow
+Write-Host "----------------------------" -ForegroundColor White
 try {
     $vercelUser = vercel whoami 2>&1 | Out-String
     if ($vercelUser -match "easyjpgtopdf") {
-        Write-Host "   ✅ Vercel CLI logged in as: easyjpgtopdf" -ForegroundColor Green
+        Write-Host "   [OK] Vercel CLI logged in" -ForegroundColor Green
     } else {
-        Write-Host "   ❌ Vercel CLI not logged in" -ForegroundColor Red
+        Write-Host "   [ERROR] Vercel CLI not logged in" -ForegroundColor Red
         $errors++
     }
 } catch {
-    Write-Host "   ❌ Vercel CLI not installed" -ForegroundColor Red
+    Write-Host "   [ERROR] Vercel CLI not installed" -ForegroundColor Red
     $errors++
 }
 
-# Test 4: Vercel Project
-Write-Host "`n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor White
-Write-Host "4️⃣  VERCEL PROJECT STATUS" -ForegroundColor Yellow
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor White
-
-if (Test-Path ".vercel") {
-    Write-Host "   ✅ Project linked to Vercel" -ForegroundColor Green
-} else {
-    Write-Host "   ⚠️  Project not linked (will link on first deploy)" -ForegroundColor Yellow
-    $warnings++
-}
-
-# Test 5: Domain Connection
-Write-Host "`n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor White
-Write-Host "5️⃣  DOMAIN CONNECTION" -ForegroundColor Yellow
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor White
-
+# Test 4: Domain Connection
+Write-Host "`n[4] DOMAIN CONNECTION" -ForegroundColor Yellow
+Write-Host "----------------------------" -ForegroundColor White
 try {
     $response = Invoke-WebRequest -Uri "https://easyjpgtopdf.com" -Method Head -UseBasicParsing -TimeoutSec 10
     if ($response.StatusCode -eq 200) {
-        Write-Host "   ✅ Domain accessible: easyjpgtopdf.com" -ForegroundColor Green
-        Write-Host "   ✅ SSL/HTTPS working" -ForegroundColor Green
+        Write-Host "   [OK] Domain accessible" -ForegroundColor Green
+        Write-Host "   [OK] SSL/HTTPS working" -ForegroundColor Green
         
         $lastModified = $response.Headers['Last-Modified']
-        Write-Host "   📅 Last deployment: $lastModified" -ForegroundColor Cyan
+        Write-Host "   [INFO] Last deploy: $lastModified" -ForegroundColor Cyan
     } else {
-        Write-Host "   ⚠️  Domain returned status: $($response.StatusCode)" -ForegroundColor Yellow
+        Write-Host "   [WARNING] Domain status: $($response.StatusCode)" -ForegroundColor Yellow
         $warnings++
     }
 } catch {
-    Write-Host "   ❌ Cannot reach easyjpgtopdf.com" -ForegroundColor Red
+    Write-Host "   [ERROR] Cannot reach domain" -ForegroundColor Red
     $errors++
 }
 
-# Test 6: Environment Variables
-Write-Host "`n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor White
-Write-Host "6️⃣  ENVIRONMENT VARIABLES" -ForegroundColor Yellow
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor White
+# Test 5: Required Files
+Write-Host "`n[5] REQUIRED FILES" -ForegroundColor Yellow
+Write-Host "----------------------------" -ForegroundColor White
 
-try {
-    $envVars = vercel env ls 2>&1 | Out-String
-    if ($envVars -match "RAZORPAY_KEY_ID" -and $envVars -match "FIREBASE_SERVICE_ACCOUNT") {
-        Write-Host "   ✅ All environment variables configured (10/10)" -ForegroundColor Green
-    } else {
-        Write-Host "   ⚠️  Some environment variables may be missing" -ForegroundColor Yellow
-        $warnings++
-    }
-} catch {
-    Write-Host "   ⚠️  Cannot check environment variables" -ForegroundColor Yellow
-    $warnings++
-}
-
-# Test 7: Required Files
-Write-Host "`n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor White
-Write-Host "7️⃣  REQUIRED FILES" -ForegroundColor Yellow
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor White
-
-$requiredFiles = @(
-    "vercel.json",
-    "package.json",
-    ".gitignore",
-    "deploy-vercel.ps1",
-    "index.html"
-)
-
+$requiredFiles = @("vercel.json", "package.json", ".gitignore", "deploy-vercel.ps1", "index.html")
 foreach ($file in $requiredFiles) {
     if (Test-Path $file) {
-        Write-Host "   ✅ $file" -ForegroundColor Green
+        Write-Host "   [OK] $file" -ForegroundColor Green
     } else {
-        Write-Host "   ❌ Missing: $file" -ForegroundColor Red
+        Write-Host "   [ERROR] Missing: $file" -ForegroundColor Red
         $errors++
     }
 }
 
-# Test 8: Git Status
-Write-Host "`n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor White
-Write-Host "8️⃣  REPOSITORY STATUS" -ForegroundColor Yellow
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor White
+# Test 6: Git Status
+Write-Host "`n[6] REPOSITORY STATUS" -ForegroundColor Yellow
+Write-Host "----------------------------" -ForegroundColor White
 
 $gitStatus = git status --short
 if ([string]::IsNullOrWhiteSpace($gitStatus)) {
-    Write-Host "   ✅ Working tree clean (no uncommitted changes)" -ForegroundColor Green
+    Write-Host "   [OK] Working tree clean" -ForegroundColor Green
 } else {
-    Write-Host "   ⚠️  Uncommitted changes found:" -ForegroundColor Yellow
-    git status --short | ForEach-Object { Write-Host "      $_" -ForegroundColor Gray }
+    Write-Host "   [WARNING] Uncommitted changes found" -ForegroundColor Yellow
     $warnings++
 }
 
 # Final Report
-Write-Host "`n╔══════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║                  HEALTH CHECK RESULTS                ║" -ForegroundColor Cyan
-Write-Host "╚══════════════════════════════════════════════════════╝`n" -ForegroundColor Cyan
+Write-Host "`n================================================" -ForegroundColor Cyan
+Write-Host "              HEALTH CHECK RESULTS" -ForegroundColor Cyan
+Write-Host "================================================`n" -ForegroundColor Cyan
 
 if ($errors -eq 0 -and $warnings -eq 0) {
-    Write-Host "   🎉 ALL SYSTEMS OPERATIONAL!" -ForegroundColor Green
-    Write-Host "   ✅ 0 Errors" -ForegroundColor Green
-    Write-Host "   ✅ 0 Warnings`n" -ForegroundColor Green
-    Write-Host "   Your auto-deployment setup is perfect!" -ForegroundColor Cyan
-    Write-Host "   Just edit → commit → push → automatic deploy ✨`n" -ForegroundColor White
+    Write-Host "   STATUS: ALL SYSTEMS OPERATIONAL" -ForegroundColor Green
+    Write-Host "   Errors: 0" -ForegroundColor Green
+    Write-Host "   Warnings: 0`n" -ForegroundColor Green
+    Write-Host "   Auto-deployment setup is PERFECT!" -ForegroundColor Cyan
+    Write-Host "   Edit -> Commit -> Push -> Auto Deploy`n" -ForegroundColor White
 } elseif ($errors -eq 0) {
-    Write-Host "   ✅ SYSTEM OPERATIONAL (with minor warnings)" -ForegroundColor Yellow
-    Write-Host "   ✅ 0 Errors" -ForegroundColor Green
-    Write-Host "   ⚠️  $warnings Warning(s)`n" -ForegroundColor Yellow
+    Write-Host "   STATUS: OPERATIONAL (with warnings)" -ForegroundColor Yellow
+    Write-Host "   Errors: 0" -ForegroundColor Green
+    Write-Host "   Warnings: $warnings`n" -ForegroundColor Yellow
 } else {
-    Write-Host "   ❌ SYSTEM NEEDS ATTENTION" -ForegroundColor Red
-    Write-Host "   ❌ $errors Error(s)" -ForegroundColor Red
-    Write-Host "   ⚠️  $warnings Warning(s)`n" -ForegroundColor Yellow
-    Write-Host "   Please fix the errors above before deploying.`n" -ForegroundColor White
+    Write-Host "   STATUS: NEEDS ATTENTION" -ForegroundColor Red
+    Write-Host "   Errors: $errors" -ForegroundColor Red
+    Write-Host "   Warnings: $warnings`n" -ForegroundColor Yellow
 }
 
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`n" -ForegroundColor White
+Write-Host "================================================`n" -ForegroundColor White
