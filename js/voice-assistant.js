@@ -6,9 +6,65 @@ class VoiceAssistant {
         this.recognition = null;
         this.isListening = false;
         this.isSpeaking = false;
+        this.currentLanguage = 'en-IN';
+        this.detectedUserLanguage = null;
         this.commands = this.initializeCommands();
         this.setupRecognition();
         this.createUI();
+    }
+
+    // Auto-detect user's preferred language
+    detectLanguage() {
+        const savedLang = localStorage.getItem('voiceAssistantLang');
+        if (savedLang) return savedLang;
+        
+        // Browser language detection
+        const browserLang = navigator.language || navigator.userLanguage;
+        
+        // Map common languages
+        const langMap = {
+            'hi': 'hi-IN',      // Hindi
+            'en': 'en-IN',      // English (India)
+            'mr': 'mr-IN',      // Marathi
+            'gu': 'gu-IN',      // Gujarati
+            'ta': 'ta-IN',      // Tamil
+            'te': 'te-IN',      // Telugu
+            'kn': 'kn-IN',      // Kannada
+            'ml': 'ml-IN',      // Malayalam
+            'bn': 'bn-IN',      // Bengali
+            'pa': 'pa-IN',      // Punjabi
+            'es': 'es-ES',      // Spanish
+            'fr': 'fr-FR',      // French
+            'de': 'de-DE',      // German
+            'pt': 'pt-BR',      // Portuguese
+            'ru': 'ru-RU',      // Russian
+            'ja': 'ja-JP',      // Japanese
+            'zh': 'zh-CN',      // Chinese
+            'ar': 'ar-SA',      // Arabic
+        };
+        
+        const langCode = browserLang.split('-')[0];
+        return langMap[langCode] || 'en-IN';
+    }
+
+    // Detect language from spoken text
+    detectSpokenLanguage(text) {
+        const lowerText = text.toLowerCase();
+        
+        // Hindi/Devanagari detection
+        if (/[\u0900-\u097F]/.test(text)) {
+            return 'hi-IN';
+        }
+        
+        // Common Hindi words in Roman script
+        const hindiWords = ['pdf', 'image', 'convert', 'karo', 'kholo', 'dikhao', 'banao', 'merge', 'compress', 'dashboard', 'kar', 'de'];
+        const hindiMatches = hindiWords.filter(word => lowerText.includes(word)).length;
+        
+        if (hindiMatches > 2) {
+            return 'hi-IN';
+        }
+        
+        return this.currentLanguage;
     }
 
     setupRecognition() {
@@ -23,7 +79,10 @@ class VoiceAssistant {
         this.recognition = new SpeechRecognition();
         this.recognition.continuous = false;
         this.recognition.interimResults = true;
-        this.recognition.lang = 'en-IN'; // English (India) - supports Hinglish
+        
+        // Auto-detect language or use saved preference
+        this.currentLanguage = this.detectLanguage();
+        this.recognition.lang = this.currentLanguage;
 
         this.recognition.onstart = () => {
             this.isListening = true;
@@ -127,33 +186,153 @@ class VoiceAssistant {
         
         console.log('Voice command received:', command);
         
-        // Find matching command
-        let matchedUrl = null;
-        let matchedCommand = null;
-
-        for (const [key, url] of Object.entries(this.commands)) {
-            if (command.includes(key)) {
-                matchedUrl = url;
-                matchedCommand = key;
-                break;
-            }
-        }
-
-        if (matchedUrl) {
-            this.speak(`Opening ${matchedCommand}`);
+        // Detect user's language from speech
+        this.detectedUserLanguage = this.detectSpokenLanguage(transcript);
+        
+        // Smart search with fuzzy matching
+        const results = this.smartSearch(command);
+        
+        if (results.length === 1) {
+            // Exact match - navigate directly
+            const match = results[0];
+            this.speakInUserLanguage(`Opening ${match.title}`, match.title);
             setTimeout(() => {
-                window.location.href = matchedUrl;
+                window.location.href = match.url;
             }, 1000);
+        } else if (results.length > 1) {
+            // Multiple matches - show suggestions
+            this.showSuggestions(results);
+            const titles = results.slice(0, 3).map(r => r.title).join(', ');
+            this.speakInUserLanguage(`Found ${results.length} results: ${titles}`, `मिले ${results.length} परिणाम`);
         } else {
-            // Smart fallback - check for keywords
-            if (command.includes('convert') || command.includes('open')) {
-                this.speak('Please specify which tool you want to use. For example, say PDF to Word or Compress Image');
-            } else if (command.includes('upload') || command.includes('file')) {
-                this.speak('Please first open the tool you want to use, then upload your file');
-            } else {
-                this.speak('Sorry, I did not understand that command. Try saying PDF to Word, Merge PDF, or Dashboard');
+            // No match - helpful message
+            this.speakInUserLanguage(
+                'Sorry, I did not understand that. Try saying PDF to Word, Compress Image, or Dashboard',
+                'समझ नहीं आया। PDF to Word, Image Compress, या Dashboard बोलो'
+            );
+        }
+    }
+
+    // Smart search with fuzzy matching
+    smartSearch(query) {
+        const results = [];
+        
+        // Keywords for each tool
+        const toolDatabase = [
+            { title: 'PDF to Word', url: 'pdf-to-word.html', keywords: ['pdf', 'word', 'convert', 'doc', 'docx', 'pdf se word', 'pdf ko word'], category: 'PDF Tools', description: 'Convert PDF to editable Word document' },
+            { title: 'PDF to Excel', url: 'pdf-to-excel.html', keywords: ['pdf', 'excel', 'spreadsheet', 'xls', 'xlsx', 'pdf se excel'], category: 'PDF Tools', description: 'Convert PDF to Excel spreadsheet' },
+            { title: 'PDF to PowerPoint', url: 'pdf-to-ppt.html', keywords: ['pdf', 'powerpoint', 'ppt', 'pptx', 'presentation', 'pdf se ppt'], category: 'PDF Tools', description: 'Convert PDF to PowerPoint presentation' },
+            { title: 'PDF to JPG', url: 'pdf-to-jpg.html', keywords: ['pdf', 'jpg', 'jpeg', 'image', 'picture', 'pdf se image', 'pdf se jpg'], category: 'PDF Tools', description: 'Convert PDF pages to JPG images' },
+            { title: 'Merge PDF', url: 'merge-pdf.html', keywords: ['merge', 'combine', 'join', 'pdf', 'milao', 'jodo', 'ek karo'], category: 'PDF Tools', description: 'Combine multiple PDF files into one' },
+            { title: 'Split PDF', url: 'split-pdf.html', keywords: ['split', 'divide', 'separate', 'pdf', 'todo', 'alag karo'], category: 'PDF Tools', description: 'Split PDF into multiple files' },
+            { title: 'Compress PDF', url: 'compress-pdf.html', keywords: ['compress', 'reduce', 'size', 'pdf', 'chhota', 'size kam'], category: 'PDF Tools', description: 'Reduce PDF file size' },
+            { title: 'Protect PDF', url: 'protect-pdf.html', keywords: ['protect', 'password', 'secure', 'lock', 'pdf', 'surakshit'], category: 'PDF Tools', description: 'Add password protection to PDF' },
+            { title: 'Edit PDF', url: 'edit-pdf.html', keywords: ['edit', 'modify', 'change', 'pdf', 'sudhar', 'badlo'], category: 'PDF Tools', description: 'Edit PDF content directly' },
+            { title: 'Crop PDF', url: 'crop-pdf.html', keywords: ['crop', 'trim', 'cut', 'pdf', 'kaato'], category: 'PDF Tools', description: 'Crop PDF pages' },
+            
+            { title: 'JPG to PDF', url: 'jpg-to-pdf.html', keywords: ['jpg', 'jpeg', 'image', 'pdf', 'picture', 'photo', 'image se pdf'], category: 'Image Tools', description: 'Convert images to PDF' },
+            { title: 'Compress Image', url: 'image-compressor.html', keywords: ['compress', 'image', 'reduce', 'size', 'photo', 'image chhota', 'size kam'], category: 'Image Tools', description: 'Reduce image file size' },
+            { title: 'Resize Image', url: 'image-resizer.html', keywords: ['resize', 'scale', 'dimension', 'image', 'photo', 'size badlo'], category: 'Image Tools', description: 'Change image dimensions' },
+            { title: 'Image Editor', url: 'image-editor.html', keywords: ['edit', 'image', 'photo', 'editor', 'modify', 'sudhar', 'badlo'], category: 'Image Tools', description: 'Professional image editing tools' },
+            { title: 'Add Watermark', url: 'image-watermark.html', keywords: ['watermark', 'logo', 'text', 'image', 'mark', 'nishaan'], category: 'Image Tools', description: 'Add watermark to images' },
+            { title: 'Remove Background', url: 'background-remover.html', keywords: ['background', 'remove', 'transparent', 'bg', 'image', 'background hatao'], category: 'Image Tools', description: 'Remove image background' },
+            
+            { title: 'Excel to PDF', url: 'excel-to-pdf.html', keywords: ['excel', 'pdf', 'spreadsheet', 'xls', 'xlsx se pdf'], category: 'Office Tools', description: 'Convert Excel to PDF' },
+            { title: 'PowerPoint to PDF', url: 'ppt-to-pdf.html', keywords: ['powerpoint', 'ppt', 'pdf', 'presentation', 'ppt se pdf'], category: 'Office Tools', description: 'Convert PowerPoint to PDF' },
+            { title: 'Unlock Excel', url: 'excel-unlocker.html', keywords: ['unlock', 'excel', 'password', 'remove', 'kholo', 'password hatao'], category: 'Office Tools', description: 'Remove Excel password protection' },
+            { title: 'Protect Excel', url: 'protect-excel.html', keywords: ['protect', 'excel', 'password', 'secure', 'lock', 'surakshit'], category: 'Office Tools', description: 'Add password to Excel file' },
+            
+            { title: 'OCR Image', url: 'ocr-image.html', keywords: ['ocr', 'text', 'recognition', 'read', 'image', 'scan', 'text nikalo'], category: 'AI Tools', description: 'Extract text from images' },
+            { title: 'AI Image Generator', url: 'ai-image-generator.html', keywords: ['ai', 'generate', 'image', 'create', 'art', 'banao'], category: 'AI Tools', description: 'Generate images using AI' },
+            
+            { title: 'Resume Maker', url: 'resume-maker.html', keywords: ['resume', 'cv', 'create', 'make', 'job', 'biodata'], category: 'Document Tools', description: 'Create professional resume' },
+            { title: 'Biodata Maker', url: 'biodata-maker.html', keywords: ['biodata', 'create', 'make', 'personal'], category: 'Document Tools', description: 'Create biodata form' },
+            { title: 'Marriage Card', url: 'marriage-card.html', keywords: ['marriage', 'wedding', 'card', 'invitation', 'shadi'], category: 'Document Tools', description: 'Create marriage invitation card' },
+            
+            { title: 'Dashboard', url: 'dashboard.html', keywords: ['dashboard', 'account', 'profile', 'home', 'khata'], category: 'Navigation', description: 'View your account dashboard' },
+            { title: 'Payment History', url: 'dashboard.html#payment-history', keywords: ['payment', 'history', 'transaction', 'receipt', 'bill', 'lenden'], category: 'Navigation', description: 'View payment history' },
+            { title: 'Make Donation', url: 'index.html#donate', keywords: ['donate', 'donation', 'support', 'contribute', 'daan'], category: 'Navigation', description: 'Support our service' },
+        ];
+        
+        // Calculate relevance score
+        for (const tool of toolDatabase) {
+            let score = 0;
+            const queryWords = query.split(' ');
+            
+            // Exact title match
+            if (tool.title.toLowerCase() === query) {
+                score += 100;
+            }
+            
+            // Keyword matching
+            for (const keyword of tool.keywords) {
+                if (query.includes(keyword)) {
+                    score += 20;
+                }
+            }
+            
+            // Partial word matching
+            for (const word of queryWords) {
+                if (word.length > 2) {
+                    for (const keyword of tool.keywords) {
+                        if (keyword.includes(word) || word.includes(keyword)) {
+                            score += 10;
+                        }
+                    }
+                }
+            }
+            
+            if (score > 0) {
+                results.push({ ...tool, score });
             }
         }
+        
+        // Sort by relevance score
+        results.sort((a, b) => b.score - a.score);
+        
+        return results;
+    }
+
+    // Show suggestion panel
+    showSuggestions(results) {
+        const panel = document.getElementById('voice-transcript-panel');
+        const content = panel.querySelector('.transcript-content');
+        
+        content.innerHTML = `
+            <div class="suggestions-list">
+                <div class="suggestions-title">Did you mean:</div>
+                ${results.slice(0, 5).map(result => `
+                    <div class="suggestion-item" data-url="${result.url}">
+                        <div class="suggestion-title">${result.title}</div>
+                        <div class="suggestion-desc">${result.description}</div>
+                        <div class="suggestion-category">${result.category}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        
+        panel.classList.remove('hidden');
+        
+        // Add click handlers
+        content.querySelectorAll('.suggestion-item').forEach(item => {
+            item.addEventListener('click', () => {
+                window.location.href = item.dataset.url;
+            });
+        });
+    }
+
+    // Speak in user's detected language
+    speakInUserLanguage(englishText, hindiText) {
+        const isHindi = this.detectedUserLanguage && this.detectedUserLanguage.startsWith('hi');
+        const text = isHindi && hindiText ? hindiText : englishText;
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = this.detectedUserLanguage || this.currentLanguage;
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+        
+        window.speechSynthesis.speak(utterance);
     }
 
     speak(text) {
