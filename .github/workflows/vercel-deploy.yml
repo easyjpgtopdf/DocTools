@@ -1,10 +1,30 @@
-name: Force Vercel Deploy
+name: Deploy to Vercel (Auto)
+
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
-  
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Trigger Vercel Deployment
-        run: echo "Deployment triggered at $(date)"
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: 🚀 Deploy to Vercel
+        run: |
+          echo "✅ Code pushed to main branch"
+          echo "🔄 Vercel webhook will auto-deploy"
+          echo "⏱️ Deployment will be live in ~30-60 seconds"
+          echo "🌐 Live URL: https://easyjpgtopdf.com"
+      
+      - name: 📊 Deployment Info
+        run: |
+          echo "Repository: ${{ github.repository }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Author: ${{ github.actor }}"
+          echo "Message: ${{ github.event.head_commit.message }}"
