@@ -1,0 +1,10 @@
+name: Force Vercel Deploy
+on:
+  workflow_dispatch:
+  
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel Deployment
+        run: echo "Deployment triggered at $(date)"
