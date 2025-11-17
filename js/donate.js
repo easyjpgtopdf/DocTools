@@ -1,3 +1,4 @@
+// Payment donation handler - v2.1 (Fixed payload extraction)
 import { auth, setPendingAction } from "./auth.js";
 import { API_BASE_URL } from "./config.js";
 
@@ -129,15 +130,36 @@ async function initiateRazorpayDonation(user, donation) {
 
     const payload = await response.json();
 
-    console.log('✅ Order Created:', payload);
+    console.log('✅ Order Created - Full Payload:', payload);
+    console.log('📦 Payload Structure Check:', {
+      hasData: !!payload.data,
+      hasDirectId: !!payload.id,
+      payloadKeys: Object.keys(payload)
+    });
 
     // Extract data from response (backend sends data in 'data' object)
     const orderData = payload.data || payload;
 
+    console.log('🔍 Order Data Extracted:', {
+      id: orderData.id,
+      key: orderData.key,
+      amount: orderData.amount,
+      currency: orderData.currency
+    });
+
     if (!orderData?.id || !orderData?.key) {
-      console.error('❌ Missing required fields:', { orderData, payload });
-      throw new Error("Incomplete Razorpay order payload.");
+      console.error('❌ Missing required fields:', { 
+        orderData, 
+        payload,
+        hasId: !!orderData?.id,
+        hasKey: !!orderData?.key,
+        idValue: orderData?.id,
+        keyValue: orderData?.key
+      });
+      throw new Error("Incomplete Razorpay order payload. Missing id or key.");
     }
+
+    console.log('✅ Validation passed - Opening Razorpay checkout');
 
     // Create Razorpay options
     const options = {
