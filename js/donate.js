@@ -131,19 +131,23 @@ async function initiateRazorpayDonation(user, donation) {
 
     console.log('✅ Order Created:', payload);
 
-    if (!payload?.id || !payload?.key) {
+    // Extract data from response (backend sends data in 'data' object)
+    const orderData = payload.data || payload;
+
+    if (!orderData?.id || !orderData?.key) {
+      console.error('❌ Missing required fields:', { orderData, payload });
       throw new Error("Incomplete Razorpay order payload.");
     }
 
     // Create Razorpay options
     const options = {
-      key: payload.key,
-      order_id: payload.id,
-      amount: payload.amountInPaise || payload.amount,
-      currency: payload.currency || "INR",
+      key: orderData.key,
+      order_id: orderData.id,
+      amount: orderData.amountInPaise || orderData.amount,
+      currency: orderData.currency || "INR",
       name: "easyjpgtopdf",
       description: `Donation - ${donation.donationType}`,
-      receipt: payload.receipt,
+      receipt: orderData.receipt,
       prefill: {
         name: user.displayName || "",
         email: user.email || "",
@@ -159,7 +163,7 @@ async function initiateRazorpayDonation(user, donation) {
         setTimeout(() => {
           const params = new URLSearchParams({
             txn_id: razorpayResponse.razorpay_payment_id || "",
-            order_id: razorpayResponse.razorpay_order_id || payload.id,
+            order_id: razorpayResponse.razorpay_order_id || orderData.id,
             amount: donation.amount,
             currency: donation.currency || "INR",
             method: "razorpay",
