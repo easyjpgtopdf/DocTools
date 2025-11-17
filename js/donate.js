@@ -181,11 +181,26 @@ async function initiateRazorpayDonation(user, donation) {
         motive: donation.motive
       },
       handler: async (razorpayResponse) => {
-        console.log("Razorpay success", razorpayResponse);
-        showMessage("Payment successful! Updating records...", { hidden: false });
+        console.log("🎉 Razorpay payment success!", razorpayResponse);
+        console.log("📦 Payment Details:", {
+          paymentId: razorpayResponse.razorpay_payment_id,
+          orderId: razorpayResponse.razorpay_order_id,
+          signature: razorpayResponse.razorpay_signature
+        });
+        
+        showMessage("Payment successful! Saving to database...", { hidden: false });
         
         // Save payment to Firestore immediately
+        let firestoreSaved = false;
         try {
+          console.log("🔄 Attempting Firestore save...");
+          console.log("📍 User UID:", user.uid);
+          console.log("📍 Database instance:", db ? "✅ Available" : "❌ Not available");
+          
+          if (!db) {
+            throw new Error("Firestore database not initialized");
+          }
+          
           const { doc, setDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js");
           
           const paymentData = {
@@ -204,13 +219,25 @@ async function initiateRazorpayDonation(user, donation) {
             updatedAt: serverTimestamp()
           };
 
-          const paymentRef = doc(db, "payments", user.uid, "records", razorpayResponse.razorpay_order_id || orderData.id);
+          const docId = razorpayResponse.razorpay_order_id || orderData.id;
+          const paymentRef = doc(db, "payments", user.uid, "records", docId);
+          
+          console.log("💾 Saving to path:", `payments/${user.uid}/records/${docId}`);
+          console.log("💾 Payment data:", paymentData);
+          
           await setDoc(paymentRef, paymentData, { merge: true });
           
-          console.log("✅ Payment saved to Firestore:", paymentData.orderId);
-          showMessage("Payment recorded! Sending receipt email...", { hidden: false });
+          firestoreSaved = true;
+          console.log("✅ SUCCESS! Payment saved to Firestore:", docId);
+          showMessage("✅ Payment recorded! Sending receipt email...", { hidden: false });
         } catch (firestoreError) {
-          console.error("❌ Failed to save payment to Firestore:", firestoreError);
+          console.error("❌ FIRESTORE SAVE FAILED:", firestoreError);
+          console.error("Error details:", {
+            message: firestoreError.message,
+            code: firestoreError.code,
+            stack: firestoreError.stack
+          });
+          showMessage("⚠️ Payment successful but dashboard update delayed. Check email for receipt.", { hidden: false });
           // Continue anyway - webhook will handle it
         }
         
