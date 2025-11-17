@@ -1,6 +1,7 @@
-// Payment donation handler - v2.1 (Fixed payload extraction)
+// Payment donation handler - v2.2 (Added Firestore payment tracking)
 import { auth, setPendingAction } from "./auth.js";
 import { API_BASE_URL } from "./config.js";
+import { db } from "./firebase-init.js";
 
 const donateForm = document.getElementById("donate-form");
 const amountInput = document.getElementById("donate-amount");
@@ -181,7 +182,37 @@ async function initiateRazorpayDonation(user, donation) {
       },
       handler: async (razorpayResponse) => {
         console.log("Razorpay success", razorpayResponse);
-        showMessage("Payment successful! Sending receipt email...", { hidden: false });
+        showMessage("Payment successful! Updating records...", { hidden: false });
+        
+        // Save payment to Firestore immediately
+        try {
+          const { doc, setDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js");
+          
+          const paymentData = {
+            orderId: razorpayResponse.razorpay_order_id || orderData.id,
+            paymentId: razorpayResponse.razorpay_payment_id || "",
+            signature: razorpayResponse.razorpay_signature || "",
+            amount: donation.amount,
+            currency: donation.currency || "INR",
+            status: "succeeded",
+            paymentStatus: "captured",
+            method: "razorpay",
+            name: user.displayName || "Donor",
+            email: user.email || "",
+            contact: "", // Will be updated by webhook if user entered mobile
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          };
+
+          const paymentRef = doc(db, "payments", user.uid, "records", razorpayResponse.razorpay_order_id || orderData.id);
+          await setDoc(paymentRef, paymentData, { merge: true });
+          
+          console.log("✅ Payment saved to Firestore:", paymentData.orderId);
+          showMessage("Payment recorded! Sending receipt email...", { hidden: false });
+        } catch (firestoreError) {
+          console.error("❌ Failed to save payment to Firestore:", firestoreError);
+          // Continue anyway - webhook will handle it
+        }
         
         // Send receipt email
         try {

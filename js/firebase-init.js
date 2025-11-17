@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
 import { getMessaging, isSupported } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-messaging.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
 // Firebase configuration - Client-side Web SDK
 // Note: API keys are safe to expose as they're client-side keys
@@ -14,6 +15,7 @@ export const firebaseConfig = {
 };
 
 export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+export const db = getFirestore(app);
 
 async function initMessaging() {
   if (!(await isSupported())) {
