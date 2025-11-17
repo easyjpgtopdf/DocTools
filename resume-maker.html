@@ -1384,12 +1384,8 @@
     <header>
         <div class="container">
             <nav class="navbar">
-                <a href="index.html" class="logo">
-                    <i class="fas fa-file-pdf"></i>
-                    <span>easyjpgtopdf</span>
-                </a>
+                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
                 <div class="nav-links">
-                    <a href="index.html">Home</a>
                     <div class="dropdown">
                         <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
@@ -1419,11 +1415,13 @@
                             <a href="unlock-pdf.html">Unlock PDF</a>
                             <a href="watermark-pdf.html">Watermark PDF</a>
                             <a href="crop-pdf.html">Crop PDF</a>
+                            <a href="add-page-numbers.html">Add Page Numbers</a>
                         </div>
                     </div>
                     <div class="dropdown">
                         <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
+                            <a href="image-repair.html">AI Image Repair</a>
                             <a href="image-compressor.html">Image Compressor</a>
                             <a href="image-resizer.html">Image Resizer</a>
                             <a href="image-editor.html">Image Editor</a>
@@ -1433,28 +1431,41 @@
                         </div>
                     </div>
                     <div class="dropdown">
-                        <a href="#" class="active">Design Tools <i class="fas fa-chevron-down"></i></a>
+                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
-                            <a href="resume-maker.html" class="active">Resume Maker</a>
+                            <a href="resume-maker.html">Resume Maker</a>
                             <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
                             <a href="ai-image-generator.html">AI Image Generator</a>
                             <a href="marriage-card.html">Marriage Card</a>
                         </div>
                     </div>
+                    <div class="dropdown">
+                        <a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="excel-unlocker.html">Excel Unlocker</a>
+                            <a href="protect-excel.html">Protect Excel Sheet</a>
+                        </div>
+                    </div>
                 </div>
                 <div class="auth-buttons">
-                    <a href="#" class="auth-btn login" onclick="showModal('login-modal')">Login</a>
-                    <a href="#" class="auth-btn signup" onclick="showModal('signup-modal')">Sign Up</a>
+                    <a href="login.html" class="auth-link">Sign In</a>
+                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Signup</span></a>
+                </div>
+                <div id="user-menu" class="user-menu" data-open="false">
+                    <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
+                        <span class="user-initial" aria-hidden="true">U</span>
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                    </button>
+                    <div class="user-dropdown" id="user-dropdown" hidden>
+                        <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+                        <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+                        <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+                        <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
+                        <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
+                        <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+                    </div>
                 </div>
             </nav>
-        </div>
-        <div class="quick-links-bar">
-            <div class="container quick-links-container">
-                <a class="quick-link-btn" href="online_resume_maker.html">20+ More Resume Formats</a>
-                <a class="quick-link-btn" href="Indian-style-Resume-generator.html">Indian Style Resume</a>
-                <a class="quick-link-btn" href="biodata-maker.html">Marriage Biodata</a>
-                <a class="quick-link-btn" href="marriage-card.html">Marriage Card Design</a>
-            </div>
         </div>
     </header>
 
