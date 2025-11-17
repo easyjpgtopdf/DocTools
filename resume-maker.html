@@ -2772,10 +2772,24 @@
                 }
             });
 
-            // Add auto-update listeners
-            document.querySelectorAll('input, textarea, select').forEach(element => {
+            // Add auto-update listeners for ALL form elements - ENHANCED FOR REAL-TIME PREVIEW
+            // Input and textarea - use 'input' event for real-time updates
+            document.querySelectorAll('input, textarea').forEach(element => {
                 element.addEventListener('input', updatePreview);
+                element.addEventListener('change', updatePreview); // Backup for some input types
             });
+            
+            // Select elements - use 'change' event
+            document.querySelectorAll('select').forEach(element => {
+                element.addEventListener('change', updatePreview);
+            });
+            
+            // Force update on any form interaction (global event delegation)
+            document.addEventListener('input', function(e) {
+                if (e.target.matches('input, textarea, select')) {
+                    updatePreview();
+                }
+            }, true);
 
             // Download buttons
             const downloadPdfBtn = document.getElementById('downloadPdf');
