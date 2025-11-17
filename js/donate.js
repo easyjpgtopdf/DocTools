@@ -156,9 +156,42 @@ async function initiateRazorpayDonation(user, donation) {
         donationType: donation.donationType,
         motive: donation.motive
       },
-      handler: (razorpayResponse) => {
+      handler: async (razorpayResponse) => {
         console.log("Razorpay success", razorpayResponse);
-        showMessage("Payment successful! Generating receipt...", { hidden: true });
+        showMessage("Payment successful! Sending receipt email...", { hidden: false });
+        
+        // Send receipt email
+        try {
+          const emailResponse = await fetch(`${API_BASE_URL}/api/send-receipt-email`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: user.email || "",
+              name: user.displayName || "Donor",
+              amount: donation.amount,
+              currency: donation.currency || "INR",
+              transactionId: razorpayResponse.razorpay_payment_id || "",
+              orderId: razorpayResponse.razorpay_order_id || orderData.id,
+              paymentMethod: "Razorpay",
+              date: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+            }),
+          });
+
+          const emailResult = await emailResponse.json();
+          if (emailResult.success) {
+            console.log("✅ Receipt email sent:", emailResult.emailId);
+            showMessage("Receipt sent to your email! Redirecting...", { hidden: false });
+          } else {
+            console.warn("⚠️ Email sending failed:", emailResult.error);
+            showMessage("Payment successful! Redirecting to receipt...", { hidden: false });
+          }
+        } catch (emailError) {
+          console.error("❌ Error sending receipt email:", emailError);
+          // Continue anyway - receipt page will still work
+        }
+
         // Redirect to receipt page with payment details
         setTimeout(() => {
           const params = new URLSearchParams({
@@ -171,7 +204,7 @@ async function initiateRazorpayDonation(user, donation) {
             name: user.displayName || "Donor"
           });
           window.location.href = `payment-receipt.html?${params.toString()}`;
-        }, 1500);
+        }, 2000);
       },
       modal: {
         ondismiss: () => {
