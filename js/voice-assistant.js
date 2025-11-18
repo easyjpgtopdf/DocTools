@@ -9,8 +9,76 @@ class VoiceAssistant {
         this.currentLanguage = 'en-IN';
         this.detectedUserLanguage = null;
         this.commands = this.initializeCommands();
+        this.knowledgeBase = this.initializeKnowledgeBase();
         this.setupRecognition();
         this.createUI();
+    }
+
+    // Website features knowledge base
+    initializeKnowledgeBase() {
+        return {
+            // General questions
+            'what is this website': {
+                en: 'EasyJPGtoPDF is a free online platform offering 50+ tools for PDF conversion, image editing, document creation, and AI-powered features. All tools work directly in your browser with no software installation needed.',
+                hi: 'EasyJPGtoPDF एक फ्री ऑनलाइन प्लेटफॉर्म है जो PDF conversion, image editing, document बनाने और AI features के 50+ tools देता है। सभी tools आपके browser में काम करते हैं, कोई software install नहीं करना पड़ता।'
+            },
+            'what can i do': {
+                en: 'You can convert PDFs to Word, Excel, PowerPoint, compress images, edit photos, create resumes, generate AI images, remove backgrounds, merge PDFs, and much more - all for free!',
+                hi: 'आप PDF को Word, Excel, PowerPoint में convert कर सकते हैं, images compress कर सकते हैं, photos edit कर सकते हैं, resume बना सकते हैं, AI images generate कर सकते हैं, background remove कर सकते हैं, PDFs merge कर सकते हैं - सब free में!'
+            },
+            'is it free': {
+                en: 'Yes! All basic tools are completely free to use. You can make donations to support the service if you wish.',
+                hi: 'हाँ! सभी basic tools बिलकुल free हैं। अगर चाहें तो आप service को support करने के लिए donation दे सकते हैं।'
+            },
+            'do i need account': {
+                en: 'No account needed for basic tools! You can use them instantly. However, creating a free account gives you access to payment history and premium features.',
+                hi: 'Basic tools के लिए account की जरूरत नहीं! तुरंत use कर सकते हैं। लेकिन free account बनाने से payment history और premium features मिलते हैं।'
+            },
+            'is it safe': {
+                en: 'Yes, completely safe! All files are processed securely in your browser or on encrypted servers. Files are automatically deleted after 1 hour. We never store your personal data.',
+                hi: 'हाँ, पूरी तरह safe है! सभी files आपके browser या encrypted servers पर securely process होती हैं। Files 1 घंटे बाद automatically delete हो जाती हैं। हम आपका personal data कभी store नहीं करते।'
+            },
+            'file size limit': {
+                en: 'Most tools support files up to 15MB. Some tools like PDF processing support up to 500MB. The limit is shown on each tool page.',
+                hi: '⁣अधिकतर tools 15MB तक की files support करते हैं। PDF processing जैसे कुछ tools 500MB तक support करते हैं। Limit हर tool page पर दिखाई देती है।'
+            },
+            'how to convert pdf': {
+                en: 'Just say "PDF to Word" or choose any PDF converter from our tools. Upload your PDF, click convert, and download the result. It takes just seconds!',
+                hi: 'बस बोलो "PDF to Word" या हमारे tools से कोई PDF converter चुनें। अपनी PDF upload करें, convert पर click करें, और result download करें। बस कुछ seconds लगते हैं!'
+            },
+            'how to compress image': {
+                en: 'Say "Compress Image" to open the tool. Upload your photo, adjust quality slider, and download the compressed version. You can reduce size by up to 90%!',
+                hi: '"Compress Image" बोलो tool खोलने के लिए। अपनी photo upload करें, quality slider adjust करें, और compressed version download करें। आप size 90% तक कम कर सकते हैं!'
+            },
+            'payment methods': {
+                en: 'We accept all major payment methods through Razorpay - UPI, Credit/Debit Cards, Net Banking, and Wallets. All payments are secure and encrypted.',
+                hi: 'हम Razorpay के through सभी major payment methods accept करते हैं - UPI, Credit/Debit Cards, Net Banking, और Wallets। सभी payments secure और encrypted हैं।'
+            },
+            'mobile support': {
+                en: 'Yes! All tools work perfectly on mobile phones and tablets. The interface automatically adapts to your screen size for the best experience.',
+                hi: 'हाँ! सभी tools mobile phones और tablets पर perfectly काम करते हैं। Interface automatically आपकी screen size के हिसाब से adjust हो जाता है।'
+            },
+            'voice commands': {
+                en: 'You can use voice to navigate! Just click the mic button and say commands like "PDF to Word", "Compress Image", "Dashboard", or ask questions about features.',
+                hi: 'आप voice से navigate कर सकते हैं! बस mic button पर click करें और commands बोलें जैसे "PDF to Word", "Compress Image", "Dashboard", या features के बारे में सवाल पूछें।'
+            },
+            'supported formats': {
+                en: 'We support PDF, Word (DOC/DOCX), Excel (XLS/XLSX), PowerPoint (PPT/PPTX), Images (JPG, PNG, WEBP, BMP), and many more formats.',
+                hi: 'हम PDF, Word (DOC/DOCX), Excel (XLS/XLSX), PowerPoint (PPT/PPTX), Images (JPG, PNG, WEBP, BMP), और कई formats support करते हैं।'
+            },
+            'background removal': {
+                en: 'Our AI-powered background remover works instantly! Upload any image, and the AI automatically detects and removes the background, giving you a transparent PNG.',
+                hi: 'हमारा AI-powered background remover तुरंत काम करता है! कोई भी image upload करें, और AI automatically background detect करके remove कर देता है, transparent PNG देता है।'
+            },
+            'resume maker': {
+                en: 'Create professional resumes in minutes! Choose from multiple templates, fill in your details, and download a beautiful PDF resume ready for job applications.',
+                hi: 'Minutes में professional resumes बनाएं! कई templates में से चुनें, अपनी details भरें, और job applications के लिए तैयार खूबसूरत PDF resume download करें।'
+            },
+            'ai features': {
+                en: 'We offer AI Image Generation, OCR text extraction, Background Removal, and Smart Image Enhancement. More AI features coming soon!',
+                hi: 'हम AI Image Generation, OCR text extraction, Background Removal, और Smart Image Enhancement provide करते हैं। और AI features जल्द आ रहे हैं!'
+            }
+        };
     }
 
     // Auto-detect user's preferred language
@@ -189,6 +257,13 @@ class VoiceAssistant {
         // Detect user's language from speech
         this.detectedUserLanguage = this.detectSpokenLanguage(transcript);
         
+        // Check if it's a question about features
+        const questionAnswer = this.checkKnowledgeBase(command);
+        if (questionAnswer) {
+            this.showAnswer(questionAnswer);
+            return;
+        }
+        
         // Smart search with fuzzy matching
         const results = this.smartSearch(command);
         
@@ -207,10 +282,69 @@ class VoiceAssistant {
         } else {
             // No match - helpful message
             this.speakInUserLanguage(
-                'Sorry, I did not understand that. Try saying PDF to Word, Compress Image, or Dashboard',
-                'समझ नहीं आया। PDF to Word, Image Compress, या Dashboard बोलो'
+                'Sorry, I did not understand that. Try saying PDF to Word, Compress Image, or ask me about website features',
+                'समझ नहीं आया। PDF to Word, Image Compress बोलो, या website features के बारे में पूछो'
             );
         }
+    }
+
+    // Check knowledge base for questions
+    checkKnowledgeBase(query) {
+        const questionKeywords = {
+            'what is this': ['what is this', 'ye kya hai', 'what is easyjpgtopdf', 'about'],
+            'what can i do': ['what can i do', 'kya kar sakte', 'features', 'tools available'],
+            'is it free': ['free', 'cost', 'price', 'kitna paisa', 'free hai'],
+            'do i need account': ['account', 'login', 'signup', 'registration', 'sign up chahiye'],
+            'is it safe': ['safe', 'secure', 'privacy', 'surakshit', 'safe hai'],
+            'file size limit': ['file size', 'limit', 'maximum', 'kitna bada', 'size limit'],
+            'how to convert pdf': ['convert pdf', 'pdf kaise', 'pdf conversion'],
+            'how to compress image': ['compress', 'image size', 'reduce size', 'chhota karo'],
+            'payment methods': ['payment', 'pay kaise', 'payment method', 'razorpay'],
+            'mobile support': ['mobile', 'phone', 'mobile me', 'phone me chalega'],
+            'voice commands': ['voice', 'mic', 'kaise bolu', 'voice kaise use'],
+            'supported formats': ['format', 'file type', 'kaunse format', 'support'],
+            'background removal': ['background', 'remove background', 'background hatao'],
+            'resume maker': ['resume', 'cv', 'biodata', 'resume kaise'],
+            'ai features': ['ai', 'artificial intelligence', 'ai kya hai', 'ai tools']
+        };
+
+        // Find matching question
+        for (const [key, keywords] of Object.entries(questionKeywords)) {
+            for (const keyword of keywords) {
+                if (query.includes(keyword)) {
+                    return {
+                        question: key,
+                        answer: this.knowledgeBase[key]
+                    };
+                }
+            }
+        }
+
+        return null;
+    }
+
+    // Show answer in panel
+    showAnswer(qa) {
+        const panel = document.getElementById('voice-transcript-panel');
+        const content = panel.querySelector('.transcript-content');
+        
+        const isHindi = this.detectedUserLanguage && this.detectedUserLanguage.startsWith('hi');
+        const answer = isHindi ? qa.answer.hi : qa.answer.en;
+        
+        content.innerHTML = `
+            <div class="answer-box">
+                <div class="answer-icon">💡</div>
+                <div class="answer-text">${answer}</div>
+                <div class="follow-up">
+                    <small>Ask me more: "What can I do?", "Is it free?", "How to convert PDF?"</small>
+                </div>
+            </div>
+        `;
+        
+        panel.classList.remove('hidden');
+        
+        // Speak the answer
+        this.speak(answer);
     }
 
     // Smart search with fuzzy matching
