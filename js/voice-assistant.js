@@ -257,11 +257,16 @@ class VoiceAssistant {
         // Detect user's language from speech
         this.detectedUserLanguage = this.detectSpokenLanguage(transcript);
         
-        // Check if it's a question about features
-        const questionAnswer = this.checkKnowledgeBase(command);
-        if (questionAnswer) {
-            this.showAnswer(questionAnswer);
-            return;
+        // Only check Q&A if command contains question words (not direct tool names)
+        const questionWords = ['what', 'kya', 'क्या', 'how', 'kaise', 'कैसे', 'is', 'hai', 'है', 'can', 'sakta', 'सकता', 'free', 'safe', 'surakshit', 'mobile', 'phone'];
+        const hasQuestionWord = questionWords.some(word => command.includes(word));
+        
+        if (hasQuestionWord) {
+            const questionAnswer = this.checkKnowledgeBase(command);
+            if (questionAnswer) {
+                this.showAnswer(questionAnswer);
+                return;
+            }
         }
         
         // Smart search with fuzzy matching
@@ -347,17 +352,57 @@ class VoiceAssistant {
         this.speak(answer);
     }
 
-    // Smart search with fuzzy matching
+    // Smart search with fuzzy matching and workflow guidance
     smartSearch(query) {
         const results = [];
         
-        // Complete tool database - ALL pages with multilingual keywords
+        // Complete tool database with step-by-step instructions
         const toolDatabase = [
             // PDF Conversion Tools
-            { title: 'PDF to Word', url: 'pdf-to-word.html', keywords: ['pdf', 'word', 'convert', 'doc', 'docx', 'pdf se word', 'pdf ko word', 'word mein', 'वर्ड'], category: 'PDF Tools', description: 'Convert PDF to editable Word document' },
-            { title: 'PDF to Excel', url: 'pdf-to-excel.html', keywords: ['pdf', 'excel', 'spreadsheet', 'xls', 'xlsx', 'pdf se excel', 'एक्सेल'], category: 'PDF Tools', description: 'Convert PDF to Excel spreadsheet' },
-            { title: 'PDF to PowerPoint', url: 'pdf-to-ppt.html', keywords: ['pdf', 'powerpoint', 'ppt', 'pptx', 'presentation', 'pdf se ppt', 'पीपीटी'], category: 'PDF Tools', description: 'Convert PDF to PowerPoint presentation' },
-            { title: 'PDF to JPG', url: 'pdf-to-jpg.html', keywords: ['pdf', 'jpg', 'jpeg', 'image', 'picture', 'photo', 'pdf se image', 'pdf se jpg', 'तस्वीर'], category: 'PDF Tools', description: 'Convert PDF pages to JPG images' },
+            { 
+                title: 'PDF to Word', 
+                url: 'pdf-to-word.html', 
+                keywords: ['pdf', 'word', 'convert', 'doc', 'docx', 'pdf se word', 'pdf ko word', 'word mein', 'वर्ड', 'document'], 
+                category: 'PDF Tools', 
+                description: 'Convert PDF to editable Word document',
+                instructions: {
+                    en: '1. Click "Select PDF File" button\n2. Choose your PDF from computer\n3. Click "Convert to Word"\n4. Wait 5-10 seconds\n5. Click "Download Word File"',
+                    hi: '1. "Select PDF File" button पर click करें\n2. अपने computer से PDF चुनें\n3. "Convert to Word" पर click करें\n4. 5-10 seconds wait करें\n5. "Download Word File" पर click करें'
+                }
+            },
+            { 
+                title: 'PDF to Excel', 
+                url: 'pdf-to-excel.html', 
+                keywords: ['pdf', 'excel', 'spreadsheet', 'xls', 'xlsx', 'pdf se excel', 'एक्सेल'], 
+                category: 'PDF Tools', 
+                description: 'Convert PDF to Excel spreadsheet',
+                instructions: {
+                    en: '1. Upload PDF file\n2. Click Convert\n3. Download Excel file',
+                    hi: '1. PDF file upload करें\n2. Convert पर click करें\n3. Excel file download करें'
+                }
+            },
+            { 
+                title: 'PDF to PowerPoint', 
+                url: 'pdf-to-ppt.html', 
+                keywords: ['pdf', 'powerpoint', 'ppt', 'pptx', 'presentation', 'pdf se ppt', 'पीपीटी'], 
+                category: 'PDF Tools', 
+                description: 'Convert PDF to PowerPoint presentation',
+                instructions: {
+                    en: '1. Select PDF file\n2. Click Convert to PPT\n3. Download PowerPoint file',
+                    hi: '1. PDF file select करें\n2. Convert to PPT पर click करें\n3. PowerPoint file download करें'
+                }
+            },
+            { 
+                title: 'PDF to JPG', 
+                url: 'pdf-to-jpg.html', 
+                keywords: ['pdf', 'jpg', 'jpeg', 'image', 'picture', 'photo', 'pdf se image', 'pdf se jpg', 'तस्वीर'], 
+                category: 'PDF Tools', 
+                description: 'Convert PDF pages to JPG images',
+                instructions: {
+                    en: '1. Upload PDF\n2. Select pages to convert\n3. Click Convert\n4. Download JPG images',
+                    hi: '1. PDF upload करें\n2. Convert करने के pages select करें\n3. Convert पर click करें\n4. JPG images download करें'
+                }
+            },
             
             // PDF Editing Tools
             { title: 'Merge PDF', url: 'merge-pdf.html', keywords: ['merge', 'combine', 'join', 'pdf', 'milao', 'jodo', 'ek karo', 'मिलाओ'], category: 'PDF Tools', description: 'Combine multiple PDF files into one' },
@@ -562,8 +607,25 @@ class VoiceAssistant {
         // Event listeners
         voiceBtn.addEventListener('click', () => this.toggleListening());
         
-        transcriptPanel.querySelector('.close-btn').addEventListener('click', () => {
+        // Close button
+        transcriptPanel.querySelector('.close-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
             transcriptPanel.classList.add('hidden');
+        });
+
+        // Click outside to close (overlay behavior)
+        document.addEventListener('click', (e) => {
+            if (!transcriptPanel.classList.contains('hidden')) {
+                // Check if click is outside panel and button
+                if (!transcriptPanel.contains(e.target) && !voiceBtn.contains(e.target)) {
+                    transcriptPanel.classList.add('hidden');
+                }
+            }
+        });
+
+        // Prevent panel clicks from closing it
+        transcriptPanel.addEventListener('click', (e) => {
+            e.stopPropagation();
         });
 
         // Long press to show help

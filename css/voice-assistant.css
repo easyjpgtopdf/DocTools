@@ -69,12 +69,15 @@
     right: 30px;
     width: 350px;
     max-width: calc(100vw - 60px);
+    max-height: calc(100vh - 150px);
     background: white;
     border-radius: 16px;
     box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12);
     transition: all 0.3s ease;
     z-index: 9998;
-    overflow: hidden;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
 }
 
 .transcript-panel.hidden {
@@ -90,6 +93,10 @@
     padding: 16px 20px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .status-indicator {
@@ -110,13 +117,17 @@
     background: rgba(255, 255, 255, 0.2);
     border: none;
     color: white;
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     cursor: pointer;
-    font-size: 20px;
+    font-size: 22px;
     line-height: 1;
     transition: all 0.2s ease;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .close-btn:hover {
@@ -126,9 +137,13 @@
 .transcript-content {
     padding: 20px;
     min-height: 80px;
+    max-height: calc(100vh - 250px);
+    overflow-y: auto;
+    overflow-x: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex: 1;
 }
 
 .transcript-text {
