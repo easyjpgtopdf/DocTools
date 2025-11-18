@@ -217,41 +217,70 @@ class VoiceAssistant {
     smartSearch(query) {
         const results = [];
         
-        // Keywords for each tool
+        // Complete tool database - ALL pages with multilingual keywords
         const toolDatabase = [
-            { title: 'PDF to Word', url: 'pdf-to-word.html', keywords: ['pdf', 'word', 'convert', 'doc', 'docx', 'pdf se word', 'pdf ko word'], category: 'PDF Tools', description: 'Convert PDF to editable Word document' },
-            { title: 'PDF to Excel', url: 'pdf-to-excel.html', keywords: ['pdf', 'excel', 'spreadsheet', 'xls', 'xlsx', 'pdf se excel'], category: 'PDF Tools', description: 'Convert PDF to Excel spreadsheet' },
-            { title: 'PDF to PowerPoint', url: 'pdf-to-ppt.html', keywords: ['pdf', 'powerpoint', 'ppt', 'pptx', 'presentation', 'pdf se ppt'], category: 'PDF Tools', description: 'Convert PDF to PowerPoint presentation' },
-            { title: 'PDF to JPG', url: 'pdf-to-jpg.html', keywords: ['pdf', 'jpg', 'jpeg', 'image', 'picture', 'pdf se image', 'pdf se jpg'], category: 'PDF Tools', description: 'Convert PDF pages to JPG images' },
-            { title: 'Merge PDF', url: 'merge-pdf.html', keywords: ['merge', 'combine', 'join', 'pdf', 'milao', 'jodo', 'ek karo'], category: 'PDF Tools', description: 'Combine multiple PDF files into one' },
-            { title: 'Split PDF', url: 'split-pdf.html', keywords: ['split', 'divide', 'separate', 'pdf', 'todo', 'alag karo'], category: 'PDF Tools', description: 'Split PDF into multiple files' },
-            { title: 'Compress PDF', url: 'compress-pdf.html', keywords: ['compress', 'reduce', 'size', 'pdf', 'chhota', 'size kam'], category: 'PDF Tools', description: 'Reduce PDF file size' },
-            { title: 'Protect PDF', url: 'protect-pdf.html', keywords: ['protect', 'password', 'secure', 'lock', 'pdf', 'surakshit'], category: 'PDF Tools', description: 'Add password protection to PDF' },
-            { title: 'Edit PDF', url: 'edit-pdf.html', keywords: ['edit', 'modify', 'change', 'pdf', 'sudhar', 'badlo'], category: 'PDF Tools', description: 'Edit PDF content directly' },
-            { title: 'Crop PDF', url: 'crop-pdf.html', keywords: ['crop', 'trim', 'cut', 'pdf', 'kaato'], category: 'PDF Tools', description: 'Crop PDF pages' },
+            // PDF Conversion Tools
+            { title: 'PDF to Word', url: 'pdf-to-word.html', keywords: ['pdf', 'word', 'convert', 'doc', 'docx', 'pdf se word', 'pdf ko word', 'word mein', 'वर्ड'], category: 'PDF Tools', description: 'Convert PDF to editable Word document' },
+            { title: 'PDF to Excel', url: 'pdf-to-excel.html', keywords: ['pdf', 'excel', 'spreadsheet', 'xls', 'xlsx', 'pdf se excel', 'एक्सेल'], category: 'PDF Tools', description: 'Convert PDF to Excel spreadsheet' },
+            { title: 'PDF to PowerPoint', url: 'pdf-to-ppt.html', keywords: ['pdf', 'powerpoint', 'ppt', 'pptx', 'presentation', 'pdf se ppt', 'पीपीटी'], category: 'PDF Tools', description: 'Convert PDF to PowerPoint presentation' },
+            { title: 'PDF to JPG', url: 'pdf-to-jpg.html', keywords: ['pdf', 'jpg', 'jpeg', 'image', 'picture', 'photo', 'pdf se image', 'pdf se jpg', 'तस्वीर'], category: 'PDF Tools', description: 'Convert PDF pages to JPG images' },
             
-            { title: 'JPG to PDF', url: 'jpg-to-pdf.html', keywords: ['jpg', 'jpeg', 'image', 'pdf', 'picture', 'photo', 'image se pdf'], category: 'Image Tools', description: 'Convert images to PDF' },
-            { title: 'Compress Image', url: 'image-compressor.html', keywords: ['compress', 'image', 'reduce', 'size', 'photo', 'image chhota', 'size kam'], category: 'Image Tools', description: 'Reduce image file size' },
-            { title: 'Resize Image', url: 'image-resizer.html', keywords: ['resize', 'scale', 'dimension', 'image', 'photo', 'size badlo'], category: 'Image Tools', description: 'Change image dimensions' },
-            { title: 'Image Editor', url: 'image-editor.html', keywords: ['edit', 'image', 'photo', 'editor', 'modify', 'sudhar', 'badlo'], category: 'Image Tools', description: 'Professional image editing tools' },
-            { title: 'Add Watermark', url: 'image-watermark.html', keywords: ['watermark', 'logo', 'text', 'image', 'mark', 'nishaan'], category: 'Image Tools', description: 'Add watermark to images' },
-            { title: 'Remove Background', url: 'background-remover.html', keywords: ['background', 'remove', 'transparent', 'bg', 'image', 'background hatao'], category: 'Image Tools', description: 'Remove image background' },
+            // PDF Editing Tools
+            { title: 'Merge PDF', url: 'merge-pdf.html', keywords: ['merge', 'combine', 'join', 'pdf', 'milao', 'jodo', 'ek karo', 'मिलाओ'], category: 'PDF Tools', description: 'Combine multiple PDF files into one' },
+            { title: 'Split PDF', url: 'split-pdf.html', keywords: ['split', 'divide', 'separate', 'pdf', 'todo', 'alag karo', 'विभाजित'], category: 'PDF Tools', description: 'Split PDF into multiple files' },
+            { title: 'Compress PDF', url: 'compress-pdf.html', keywords: ['compress', 'reduce', 'size', 'pdf', 'chhota', 'size kam', 'छोटा'], category: 'PDF Tools', description: 'Reduce PDF file size' },
+            { title: 'Protect PDF', url: 'protect-pdf.html', keywords: ['protect', 'password', 'secure', 'lock', 'pdf', 'surakshit', 'tala', 'सुरक्षित'], category: 'PDF Tools', description: 'Add password protection to PDF' },
+            { title: 'Unlock PDF', url: 'unlock-pdf.html', keywords: ['unlock', 'pdf', 'password', 'remove', 'open', 'kholo', 'खोलो'], category: 'PDF Tools', description: 'Remove PDF password protection' },
+            { title: 'Edit PDF', url: 'edit-pdf.html', keywords: ['edit', 'modify', 'change', 'pdf', 'sudhar', 'badlo', 'संपादित'], category: 'PDF Tools', description: 'Edit PDF content directly' },
+            { title: 'Crop PDF', url: 'crop-pdf.html', keywords: ['crop', 'trim', 'cut', 'pdf', 'kaato', 'काटो'], category: 'PDF Tools', description: 'Crop PDF pages' },
+            { title: 'Watermark PDF', url: 'watermark-pdf.html', keywords: ['watermark', 'pdf', 'logo', 'mark', 'stamp', 'nishaan', 'निशान'], category: 'PDF Tools', description: 'Add watermark to PDF' },
+            { title: 'Add Page Numbers', url: 'add-page-numbers.html', keywords: ['page', 'number', 'pdf', 'add', 'sankhya', 'संख्या'], category: 'PDF Tools', description: 'Add page numbers to PDF' },
             
-            { title: 'Excel to PDF', url: 'excel-to-pdf.html', keywords: ['excel', 'pdf', 'spreadsheet', 'xls', 'xlsx se pdf'], category: 'Office Tools', description: 'Convert Excel to PDF' },
-            { title: 'PowerPoint to PDF', url: 'ppt-to-pdf.html', keywords: ['powerpoint', 'ppt', 'pdf', 'presentation', 'ppt se pdf'], category: 'Office Tools', description: 'Convert PowerPoint to PDF' },
-            { title: 'Unlock Excel', url: 'excel-unlocker.html', keywords: ['unlock', 'excel', 'password', 'remove', 'kholo', 'password hatao'], category: 'Office Tools', description: 'Remove Excel password protection' },
-            { title: 'Protect Excel', url: 'protect-excel.html', keywords: ['protect', 'excel', 'password', 'secure', 'lock', 'surakshit'], category: 'Office Tools', description: 'Add password to Excel file' },
+            // Image to PDF
+            { title: 'JPG to PDF', url: 'jpg-to-pdf.html', keywords: ['jpg', 'jpeg', 'image', 'pdf', 'picture', 'photo', 'image se pdf', 'तस्वीर से पीडीएफ'], category: 'Image Tools', description: 'Convert images to PDF' },
             
-            { title: 'OCR Image', url: 'ocr-image.html', keywords: ['ocr', 'text', 'recognition', 'read', 'image', 'scan', 'text nikalo'], category: 'AI Tools', description: 'Extract text from images' },
-            { title: 'AI Image Generator', url: 'ai-image-generator.html', keywords: ['ai', 'generate', 'image', 'create', 'art', 'banao'], category: 'AI Tools', description: 'Generate images using AI' },
+            // Image Editing Tools
+            { title: 'Compress Image', url: 'image-compressor.html', keywords: ['compress', 'image', 'reduce', 'size', 'photo', 'image chhota', 'size kam', 'छोटा'], category: 'Image Tools', description: 'Reduce image file size' },
+            { title: 'Resize Image', url: 'image-resizer.html', keywords: ['resize', 'scale', 'dimension', 'image', 'photo', 'size badlo', 'आकार'], category: 'Image Tools', description: 'Change image dimensions' },
+            { title: 'Image Editor', url: 'image-editor.html', keywords: ['edit', 'image', 'photo', 'editor', 'modify', 'sudhar', 'badlo', 'फोटो एडिट'], category: 'Image Tools', description: 'Professional image editing tools' },
+            { title: 'Image Repair', url: 'image-repair.html', keywords: ['repair', 'fix', 'restore', 'image', 'photo', 'thik karo', 'ठीक'], category: 'Image Tools', description: 'Repair and restore damaged images' },
+            { title: 'Add Watermark', url: 'image-watermark.html', keywords: ['watermark', 'logo', 'text', 'image', 'mark', 'nishaan', 'निशान'], category: 'Image Tools', description: 'Add watermark to images' },
+            { title: 'Remove Background', url: 'background-remover.html', keywords: ['background', 'remove', 'transparent', 'bg', 'image', 'background hatao', 'बैकग्राउंड हटाओ'], category: 'Image Tools', description: 'Remove image background' },
             
-            { title: 'Resume Maker', url: 'resume-maker.html', keywords: ['resume', 'cv', 'create', 'make', 'job', 'biodata'], category: 'Document Tools', description: 'Create professional resume' },
-            { title: 'Biodata Maker', url: 'biodata-maker.html', keywords: ['biodata', 'create', 'make', 'personal'], category: 'Document Tools', description: 'Create biodata form' },
-            { title: 'Marriage Card', url: 'marriage-card.html', keywords: ['marriage', 'wedding', 'card', 'invitation', 'shadi'], category: 'Document Tools', description: 'Create marriage invitation card' },
+            // Office to PDF
+            { title: 'Excel to PDF', url: 'excel-to-pdf.html', keywords: ['excel', 'pdf', 'spreadsheet', 'xls', 'xlsx', 'xlsx se pdf', 'एक्सेल से पीडीएफ'], category: 'Office Tools', description: 'Convert Excel to PDF' },
+            { title: 'PowerPoint to PDF', url: 'ppt-to-pdf.html', keywords: ['powerpoint', 'ppt', 'pdf', 'presentation', 'ppt se pdf', 'प्रेजेंटेशन'], category: 'Office Tools', description: 'Convert PowerPoint to PDF' },
+            { title: 'Word to PDF', url: 'word-to-pdf.html', keywords: ['word', 'pdf', 'doc', 'docx', 'word se pdf', 'वर्ड से पीडीएफ'], category: 'Office Tools', description: 'Convert Word to PDF' },
             
-            { title: 'Dashboard', url: 'dashboard.html', keywords: ['dashboard', 'account', 'profile', 'home', 'khata'], category: 'Navigation', description: 'View your account dashboard' },
-            { title: 'Payment History', url: 'dashboard.html#payment-history', keywords: ['payment', 'history', 'transaction', 'receipt', 'bill', 'lenden'], category: 'Navigation', description: 'View payment history' },
-            { title: 'Make Donation', url: 'index.html#donate', keywords: ['donate', 'donation', 'support', 'contribute', 'daan'], category: 'Navigation', description: 'Support our service' },
+            // Excel Tools
+            { title: 'Unlock Excel', url: 'excel-unlocker.html', keywords: ['unlock', 'excel', 'password', 'remove', 'kholo', 'password hatao', 'एक्सेल खोलो'], category: 'Office Tools', description: 'Remove Excel password protection' },
+            { title: 'Protect Excel', url: 'protect-excel.html', keywords: ['protect', 'excel', 'password', 'secure', 'lock', 'surakshit', 'सुरक्षित'], category: 'Office Tools', description: 'Add password to Excel file' },
+            
+            // AI Tools
+            { title: 'OCR Image', url: 'ocr-image.html', keywords: ['ocr', 'text', 'recognition', 'read', 'image', 'scan', 'text nikalo', 'टेक्स्ट निकालो'], category: 'AI Tools', description: 'Extract text from images using AI' },
+            { title: 'AI Image Generator', url: 'ai-image-generator.html', keywords: ['ai', 'generate', 'image', 'create', 'art', 'banao', 'आर्टिफिशियल', 'बनाओ'], category: 'AI Tools', description: 'Generate images using AI' },
+            
+            // Document Makers
+            { title: 'Resume Maker', url: 'resume-maker.html', keywords: ['resume', 'cv', 'create', 'make', 'job', 'biodata', 'रिज्यूमे'], category: 'Document Tools', description: 'Create professional resume' },
+            { title: 'Indian Resume Maker', url: 'Indian-style-Resume-generator.html', keywords: ['indian', 'resume', 'cv', 'bharatiya', 'भारतीय', 'रिज्यूमे'], category: 'Document Tools', description: 'Create Indian-style resume' },
+            { title: 'Online Resume Maker', url: 'online_resume_maker.html', keywords: ['online', 'resume', 'cv', 'web', 'ऑनलाइन'], category: 'Document Tools', description: 'Create resume online' },
+            { title: 'Biodata Maker', url: 'biodata-maker.html', keywords: ['biodata', 'create', 'make', 'personal', 'bio', 'बायोडाटा'], category: 'Document Tools', description: 'Create biodata form' },
+            { title: 'Marriage Card', url: 'marriage-card.html', keywords: ['marriage', 'wedding', 'card', 'invitation', 'shadi', 'vivah', 'शादी', 'विवाह'], category: 'Document Tools', description: 'Create marriage invitation card' },
+            
+            // Account & Navigation
+            { title: 'Dashboard', url: 'dashboard.html', keywords: ['dashboard', 'account', 'profile', 'home', 'khata', 'डैशबोर्ड'], category: 'Navigation', description: 'View your account dashboard' },
+            { title: 'Login', url: 'login.html', keywords: ['login', 'signin', 'enter', 'log in', 'प्रवेश'], category: 'Navigation', description: 'Login to your account' },
+            { title: 'Sign Up', url: 'signup.html', keywords: ['signup', 'register', 'create account', 'join', 'पंजीकरण'], category: 'Navigation', description: 'Create new account' },
+            { title: 'Payment History', url: 'dashboard.html#payment-history', keywords: ['payment', 'history', 'transaction', 'receipt', 'bill', 'lenden', 'भुगतान'], category: 'Navigation', description: 'View payment history' },
+            { title: 'Billing Details', url: 'shipping-billing.html', keywords: ['billing', 'shipping', 'address', 'details', 'पता'], category: 'Navigation', description: 'Manage billing information' },
+            { title: 'Make Donation', url: 'index.html#donate', keywords: ['donate', 'donation', 'support', 'contribute', 'daan', 'दान'], category: 'Navigation', description: 'Support our service' },
+            
+            // Legal & Support
+            { title: 'Privacy Policy', url: 'privacy-policy.html', keywords: ['privacy', 'policy', 'terms', 'गोपनीयता'], category: 'Legal', description: 'Privacy policy and data protection' },
+            { title: 'Terms of Service', url: 'terms-of-service.html', keywords: ['terms', 'service', 'conditions', 'शर्तें'], category: 'Legal', description: 'Terms and conditions' },
+            { title: 'Refund Policy', url: 'refund-policy.html', keywords: ['refund', 'return', 'money back', 'वापसी'], category: 'Legal', description: 'Refund and return policy' },
+            { title: 'KYC Support', url: 'kyc-support.html', keywords: ['kyc', 'support', 'verification', 'help', 'सहायता'], category: 'Support', description: 'KYC verification support' },
+            { title: 'Attributions', url: 'attributions.html', keywords: ['attribution', 'credit', 'acknowledgment', 'श्रेय'], category: 'Support', description: 'Third-party attributions' },
         ];
         
         // Calculate relevance score
