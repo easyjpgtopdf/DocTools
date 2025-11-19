@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 <html lang="en">
 <head>
@@ -173,6 +173,9 @@
 <button class="btn btn-primary" disabled="" id="downloadPng">
 <i class="fas fa-download"></i> Download PNG
         </button>
+  <button class="btn btn-outline" id="reuploadBtn" style="margin-left:6px;">
+    <i class="fas fa-cloud-upload-alt"></i> Reupload
+  </button>
 </div>
 </section>
 <section class="panel">
@@ -183,15 +186,16 @@
 <img alt="AI Processing Demo" src="images/bg-removal-jungle-demo.svg" style="width: 100%; height: auto; display: block;"/>
 </div>
 <div class="status-card">
-<strong>✓ 3-Tier Smart Processing</strong>
-<p>• <strong>0-15 MB</strong>: Fast browser (IMG.LY AI) - Free</p>
-<p>• <strong>15-100 MB</strong>: Cloud server (Google Cloud Run) - Premium</p>
-<p>• Automatic routing for optimal speed &amp; cost</p>
-<p>• Professional AI quality at every tier</p>
+<strong>âœ“ 3-Tier Smart Processing</strong>
+<p>â€¢ <strong>0-15 MB</strong>: Fast browser (IMG.LY AI) - Free</p>
+<p>â€¢ <strong>15-100 MB</strong>: Cloud server (Google Cloud Run) - Premium</p>
+<p>â€¢ Automatic routing for optimal speed &amp; cost</p>
+<p>â€¢ Professional AI quality at every tier</p>
 </div>
 </section>
 </main>
-<script type="module">
+  <script type="module">
+    import { canProceed, showUpgradeModal, registerUsage } from './js/limits.js';
     const STORAGE_KEYS = {
       original: 'bgRemover:original',
       filename: 'bgRemover:filename',
@@ -229,14 +233,14 @@
 
       try {
         libraryLoading = true;
-        console.log('🚀 Loading AI library...');
+        console.log('ðŸš€ Loading AI library...');
         ({ removeBackground: removeBackgroundFn, preload: preloadFn } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/index.mjs'));
-        console.log('✅ AI library loaded successfully!');
+        console.log('âœ… AI library loaded successfully!');
         libraryLoading = false;
         return true;
       } catch (err) {
         libraryLoading = false;
-        console.error('❌ Failed to load AI library:', err);
+        console.error('âŒ Failed to load AI library:', err);
         showError('AI library failed to load. Please check your internet connection and refresh the page.');
         return false;
       }
@@ -309,9 +313,9 @@
     // HIGH QUALITY AI BACKGROUND REMOVER
     // 3-Tier Processing System (Fast + Free + Scalable)
     // ============================================
-    // Tier 1: 0-15 MB → IMG.LY (Browser AI) - Instant, Free, Unlimited
-    // Tier 2: 15-50 MB → Render Backend (Python Rembg) - Free 750hrs/month
-    // Tier 3: 50-100 MB → Cloud Run (Docker Rembg) - Free 2M requests/month
+    // Tier 1: 0-15 MB â†’ IMG.LY (Browser AI) - Instant, Free, Unlimited
+    // Tier 2: 15-50 MB â†’ Render Backend (Python Rembg) - Free 750hrs/month
+    // Tier 3: 50-100 MB â†’ Cloud Run (Docker Rembg) - Free 2M requests/month
     // ============================================
     // GOOGLE CLOUD RUN BACKEND CONFIGURATION
     // ============================================
@@ -323,13 +327,13 @@
     // ============================================
     
     const CLOUDRUN_API_URL = 'https://bg-remover-api-XXXXXXXXXX-uc.a.run.app/remove-background';
-    // ⬆️ Replace XXXXXXXXXX with your Cloud Run service hash after deployment
+    // â¬†ï¸ Replace XXXXXXXXXX with your Cloud Run service hash after deployment
     
     // Smart routing based on file size (optimized for quality + speed)
     function getProcessingConfig(fileSize) {
       const sizeMB = fileSize / (1024 * 1024);
       
-      // Tier 1: Browser AI (IMG.LY U²-Net) - Best browser quality
+      // Tier 1: Browser AI (IMG.LY UÂ²-Net) - Best browser quality
       if (fileSize < 15 * 1024 * 1024) {
         // 0-15 MB: Browser processing (95-98% quality, instant)
         return {
@@ -339,20 +343,20 @@
           description: 'Browser AI - Professional Quality',
           message: `Processing ${sizeMB.toFixed(1)} MB with browser AI (95-98% quality)`,
           tier: 'browser',
-          info: '⚡ Fast & Free - Good quality for most images'
+          info: 'âš¡ Fast & Free - Good quality for most images'
         };
       } 
-      // Tier 2: Google Cloud Run (Rembg U²-Net) - 100% Professional
+      // Tier 2: Google Cloud Run (Rembg UÂ²-Net) - 100% Professional
       else if (fileSize < 100 * 1024 * 1024) {
         // 15-100 MB: Cloud processing (100% quality, FREE 18k/month)
         return {
           useBackend: true,
           backendUrl: CLOUDRUN_API_URL,
           timeout: 300000,  // 5 minutes
-          description: 'Google Cloud Run - Rembg U²-Net',
+          description: 'Google Cloud Run - Rembg UÂ²-Net',
           message: `Processing ${sizeMB.toFixed(1)} MB with Cloud AI (100% quality - Same as Photopea)`,
           tier: 'cloudrun',
-          info: '☁️ 100% Professional - FREE 18,000 images/month'
+          info: 'â˜ï¸ 100% Professional - FREE 18,000 images/month'
         };
       } 
       // Error: File too large
@@ -370,7 +374,7 @@
     async function processWithBackend(dataURL, backendUrl, config) {
       try {
         // Show upload progress
-        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">☁️ Uploading to Google Cloud AI...</div>`;
+        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">â˜ï¸ Uploading to Google Cloud AI...</div>`;
         
         // Make API request with timeout
         const controller = new AbortController();
@@ -393,7 +397,7 @@
           throw new Error(errorData.error || `Server error: ${response.status}`);
         }
 
-        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">✨ Processing with professional AI...</div>`;
+        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">âœ¨ Processing with professional AI...</div>`;
         
         const result = await response.json();
         
@@ -409,7 +413,7 @@
           throw new Error(result.error || 'Processing failed on server');
         }
       } catch (error) {
-        console.error('❌ Backend processing error:', error);
+        console.error('âŒ Backend processing error:', error);
         
         if (error.name === 'AbortError') {
           return { success: false, error: 'Request timeout. File too large or server busy.' };
@@ -458,20 +462,20 @@
             processingMethod = backendResult.processedWith || config.description;
             
             // Log success
-            console.log('✅ Backend processing successful:', {
+            console.log('âœ… Backend processing successful:', {
               tier: config.tier,
               outputSize: backendResult.outputSizeMB || 'unknown'
             });
           } else {
             // Backend failed - try browser fallback for smaller files
-            console.warn('⚠️ Backend failed:', backendResult.error);
+            console.warn('âš ï¸ Backend failed:', backendResult.error);
             
             if (removeBackgroundFn && fileSize < 25 * 1024 * 1024) {
-              statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(251,146,60,0.12);color:#7c2d12;font-weight:600;">⚠️ Server busy, switching to browser processing...</div>';
+              statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(251,146,60,0.12);color:#7c2d12;font-weight:600;">âš ï¸ Server busy, switching to browser processing...</div>';
               config.useBackend = false;
               config.model = 'medium';
               config.quality = 0.9;
-              console.log('🔄 Falling back to browser processing');
+              console.log('ðŸ”„ Falling back to browser processing');
             } else {
               throw new Error(`Backend processing failed: ${backendResult.error}. File too large for browser fallback.`);
             }
@@ -489,17 +493,17 @@
 
           // Preload model if not already done
           if (!modelPreloaded && typeof preloadFn === 'function') {
-            console.log('⏳ Preloading AI model for faster processing...');
-            statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⏳ Loading AI model (one-time, 30-45 sec)...</div>';
+            console.log('â³ Preloading AI model for faster processing...');
+            statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">â³ Loading AI model (one-time, 30-45 sec)...</div>';
             try {
               await preloadFn({ 
                 publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
                 model: config.model
               });
               modelPreloaded = true;
-              console.log('✅ AI model preloaded and cached!');
+              console.log('âœ… AI model preloaded and cached!');
             } catch (err) {
-              console.warn('⚠️ Preload failed, will load during processing:', err);
+              console.warn('âš ï¸ Preload failed, will load during processing:', err);
             }
           }
 
@@ -528,7 +532,7 @@
             },
             progress: (key, current, total) => {
               const percent = Math.round((current / total) * 100);
-              statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">🎨 Processing ${percent}% (Anti over-cleaning enabled)</div>`;
+              statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">ðŸŽ¨ Processing ${percent}% (Anti over-cleaning enabled)</div>`;
             }
           });
 
@@ -566,7 +570,7 @@
         
         // Success message
         const sizeInMB = (fileSize / (1024 * 1024)).toFixed(1);
-        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">✓ Background removed! (${sizeInMB} MB file processed with ${config.description})</div>`;
+        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">âœ“ Background removed! (${sizeInMB} MB file processed with ${config.description})</div>`;
         setTimeout(() => clearStatus(), 4000);
         
       } catch (error) {
@@ -604,6 +608,19 @@
 
     downloadBtn.addEventListener('click', () => {
       if (!resultDataURL) return;
+      // approximate bytes from data URL
+      try {
+        const approxBytes = Math.ceil(resultDataURL.length * 0.75);
+        const check = canProceed(approxBytes, { tool: 'background-remover', operation: 'download' });
+        if (!check.allowed) {
+          showUpgradeModal();
+          return;
+        }
+        // register download usage
+        try { registerUsage(approxBytes); } catch (e) { /* ignore */ }
+      } catch (e) {
+        console.warn('Could not compute download size', e);
+      }
       const link = document.createElement('a');
       const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-removed.png';
       link.href = resultDataURL;
@@ -611,24 +628,53 @@
       link.click();
     });
 
+    // Reupload: clear stored image and return to upload page
+    const reuploadBtn = document.getElementById('reuploadBtn');
+    if (reuploadBtn) {
+      reuploadBtn.addEventListener('click', () => {
+        // Remove stored image data so the upload page starts fresh
+        try {
+          sessionStorage.removeItem(STORAGE_KEYS.original);
+          sessionStorage.removeItem(STORAGE_KEYS.filename);
+          sessionStorage.removeItem(STORAGE_KEYS.foreground);
+          sessionStorage.removeItem(STORAGE_KEYS.dimensions);
+          sessionStorage.removeItem('bgRemover:originalSize');
+          sessionStorage.removeItem('bgRemover:originalType');
+        } catch (e) {
+          // ignore storage errors
+          console.warn('Failed to clear session storage during reupload', e);
+        }
+
+        // Navigate back to the upload page
+        window.location.href = 'background-remover.html';
+      });
+    }
+
     document.getElementById('footerYear').textContent = new Date().getFullYear();
   </script>
+
+<script src="js/auth.js" type="module"></script>
+
 <footer>
-<div class="container footer-inner">
-<div class="footer-company-links">
-<span>Company</span>
-<a href="index.html#about">About Us</a>
-<a href="index.html#contact">Contact</a>
-<a href="privacy-policy.html">Privacy Policy</a>
-<a href="terms-of-service.html">Terms of Service</a>
-</div>
-<p class="footer-brand-line">© easyjpgtopdf — Free PDF &amp; Image Tools for everyone.</p>
-<p class="footer-credits">
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+                <a href="dmca-en.html">DMCA</a>
+                <a href="blog.html">Blog</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+            <p class="footer-credits">
                 Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
                 <a href="attributions.html">See full acknowledgements</a>.
             </p>
-</div>
-</footer>
-<script src="js/auth.js" type="module"></script>
+        </div>
+    </footer>
 </body>
 </html>
+
+
