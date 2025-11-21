@@ -11,7 +11,7 @@
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from rembg import remove
+from rembg import remove, new_session
 from PIL import Image
 import io
 import base64
@@ -43,6 +43,23 @@ MAX_FILE_SIZE = 100 * 1024 * 1024  # 100 MB for Cloud Run (premium)
 MAX_DIMENSION = 4096  # Max pixels for processing (to manage memory)
 SUPPORTED_FORMATS = ['PNG', 'JPG', 'JPEG', 'WEBP', 'BMP', 'TIFF']
 
+MODEL_NAME = os.environ.get('REMBG_MODEL', 'u2net')
+_rembg_session = None
+
+
+def get_rembg_session():
+    """Lazy-load and reuse a single rembg session to avoid duplicate model args."""
+    global _rembg_session
+    if _rembg_session is not None:
+        return _rembg_session
+    logger.info("🔄 Initializing rembg session with model %s", MODEL_NAME)
+    try:
+        _rembg_session = new_session(model_name=MODEL_NAME)
+    except Exception as exc:
+        logger.error("❌ Failed to initialize rembg session: %s", exc)
+        raise
+    return _rembg_session
+
 @app.route('/', methods=['GET'])
 def home():
     """API info endpoint"""
@@ -52,14 +69,18 @@ def home():
         'version': '2.0',
         'tier': 'Google Cloud Run',
         'powered_by': 'Rembg U²-Net + Alpha Matting',
+        'model': MODEL_NAME,
+        'model_auto_download': True,
         'max_file_size_mb': 100,
         'max_dimension': MAX_DIMENSION,
         'supported_formats': SUPPORTED_FORMATS,
         'features': [
+            'U²-Net model (explicitly configured)',
             'Alpha matting for high quality edges',
             'Large file optimization (50-100 MB)',
             'Memory-optimized processing',
-            'Auto image resizing for performance'
+            'Auto image resizing for performance',
+            'Anti over-cleaning thresholds optimized'
         ],
         'endpoints': {
             'POST /remove-background': 'Remove background from large images',
@@ -173,15 +194,16 @@ def remove_background():
             logger.info(f"🔄 Converting from {input_image.mode} to RGB")
             input_image = input_image.convert('RGB')
 
-        # === PREMIUM BACKGROUND REMOVAL WITH ALPHA MATTING ===
-        logger.info("🎨 Starting PREMIUM background removal with U²-Net + Alpha Matting...")
+        # === PREMIUM BACKGROUND REMOVAL WITH U²-NET + ALPHA MATTING ===
+        logger.info("🎨 Starting PREMIUM background removal with U²-Net + Alpha Matting (Maximum Quality)...")
         try:
             output_image = remove(
                 input_image,
+                session=get_rembg_session(),
                 alpha_matting=True,              # Enable alpha matting for smooth edges
-                alpha_matting_foreground_threshold=240,  # Fine-tune foreground
-                alpha_matting_background_threshold=10,   # Fine-tune background
-                alpha_matting_erode_size=10      # Edge refinement
+                alpha_matting_foreground_threshold=120,  # Optimized - keeps maximum foreground
+                alpha_matting_background_threshold=10,   # Optimized - best foreground preservation
+                alpha_matting_erode_size=3      # Minimal refinement (prevents over-cleaning)
             )
             logger.info("✅ Premium background removal completed!")
         except Exception as e:
@@ -194,25 +216,16 @@ def remove_background():
         del input_image
         gc.collect()
 
-        # === OUTPUT OPTIMIZATION ===
-        logger.info("💾 Optimizing PNG output...")
+        # === OUTPUT OPTIMIZATION (FAST COMPRESSION + SPEED) ===
+        logger.info("💾 Optimizing PNG output with fast compression...")
         output_buffer = io.BytesIO()
         
-        # Use higher compression for large outputs
-        if max(output_image.size) > 2048:
-            logger.info("🗜️ Applying high compression for large output")
-            output_image.save(
-                output_buffer, 
-                format='PNG', 
-                optimize=True,
-                compress_level=6  # Balance quality vs size (0-9)
-            )
-        else:
-            output_image.save(
-                output_buffer, 
-                format='PNG', 
-                optimize=True
-            )
+        output_image.save(
+            output_buffer, 
+            format='PNG', 
+            optimize=False,
+            compress_level=1
+        )
         
         output_buffer.seek(0)
 
@@ -222,11 +235,14 @@ def remove_background():
         logger.info(f"📦 Output size: {output_size_mb:.2f} MB")
 
         # Convert to base64 for JSON response
-        output_base64 = base64.b64encode(output_buffer.getvalue()).decode('utf-8')
+        output_bytes = output_buffer.getvalue()
+        output_base64 = base64.b64encode(output_bytes).decode('utf-8')
         output_data_url = f'data:image/png;base64,{output_base64}'
 
         # Free memory
         del output_image
+        del output_bytes
+        del output_buffer
         gc.collect()
         
         # === SUCCESS RESPONSE ===
@@ -238,6 +254,7 @@ def remove_background():
             'outputSizeMB': round(output_size_mb, 2),
             'originalSize': list(original_size),
             'processedWith': 'Rembg U²-Net + Alpha Matting (Google Cloud Run)',
+            'model': MODEL_NAME,
             'message': 'Background removed with premium quality'
         }), 200
 
