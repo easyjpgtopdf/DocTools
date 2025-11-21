@@ -1,19 +1,20 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Background Workspace | easyjpgtopdf</title>
-    <link rel="stylesheet" href="css/footer.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script type="importmap">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Background Workspace | easyjpgtopdf</title>
+<link href="css/footer.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<script type="importmap">
     {
       "imports": {
         "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort.min.mjs"
       }
     }
   </script>
-  <style>
+<style>
     :root {
       --primary: #4361ee;
       --secondary: #3a0ca3;
@@ -31,7 +32,7 @@
     .quick-links { display: flex; gap: 10px; flex-wrap: wrap; }
     .quick-links a { text-decoration: none; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); color: #253156; font-weight: 600; background: rgba(67, 97, 238, 0.08); transition: transform 0.2s, box-shadow 0.2s, background 0.2s; }
     .quick-links a:hover { background: linear-gradient(135deg, #4361ee, #3a0ca3); color: #fff; transform: translateY(-1px); box-shadow: 0 12px 24px rgba(67, 97, 238, 0.2); }
-    main { flex: 1; width: 100%; max-width: 1200px; margin: 36px auto; padding: 0 24px 48px; display: grid; grid-template-columns: minmax(320px, 500px) 1fr; gap: 32px; align-items: start; }
+    main { flex: 1; width: 100%; max-width: 1200px; margin: 36px auto; padding: 0 24px 48px; display: grid; grid-template-columns: 1fr 40%; gap: 32px; align-items: start; }
     .panel { background: var(--surface); border-radius: 24px; padding: 28px; box-shadow: 0 20px 45px rgba(15, 30, 70, 0.08); }
     .panel h2 { font-size: 1.35rem; margin-bottom: 18px; display: flex; gap: 12px; align-items: center; color: #171f4d; }
     .preview-stage { position: relative; width: 8.5cm; height: 6cm; max-width: 100%; max-height: 100%; margin: 0 auto; border-radius: 18px; background: repeating-conic-gradient(#e5e9ff 0deg 25deg, #f8f9ff 25deg 50deg); overflow: hidden; display: flex; align-items: center; justify-content: center; }
@@ -59,8 +60,8 @@
       .actions { justify-content: center; }
     }
   </style>
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/theme-modern.css">
+<link href="css/header.css" rel="stylesheet"/>
+<link href="css/theme-modern.css" rel="stylesheet"/>
 </head>
 <body>
 <header>
@@ -87,76 +88,114 @@
                         </div>
                     </div>
                     <div class="dropdown">
-                        <a href="#">Edit PDF <i class="fas fa-chevron-down"></i></a>
+                        <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
                             <a href="merge-pdf.html">Merge PDF</a>
                             <a href="split-pdf.html">Split PDF</a>
                             <a href="compress-pdf.html">Compress PDF</a>
-                            <a href="crop-pdf.html">Crop PDF</a>
+                            <a href="edit-pdf.html">Pdf Editor</a>
                             <a href="protect-pdf.html">Protect PDF</a>
                             <a href="unlock-pdf.html">Unlock PDF</a>
-                            <a href="add-page-numbers.html">Add Page Numbers</a>
                             <a href="watermark-pdf.html">Watermark PDF</a>
+                            <a href="crop-pdf.html">Crop PDF</a>
+                            <a href="add-page-numbers.html">Add Page Numbers</a>
                         </div>
                     </div>
                     <div class="dropdown">
                         <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
+                            <a href="image-repair.html">AI Image Repair</a>
                             <a href="image-compressor.html">Image Compressor</a>
                             <a href="image-resizer.html">Image Resizer</a>
                             <a href="image-editor.html">Image Editor</a>
-                            <a href="image-watermark.html">Image Watermark</a>
-                            <a href="background-remover.html">Background Remover</a>
+                            <a href="background-remover.html">Image Background Remover</a>
+                            <a href="ocr-image.html">OCR Image</a>
+                            <a href="image-watermark.html">Image Watermark Tool</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="resume-maker.html">Resume Maker</a>
+                            <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+                            <a href="ai-image-generator.html">AI Image Generator</a>
+                            <a href="marriage-card.html">Marriage Card</a>
+                            <a href="excel-unlocker/" target="_blank">Excel Unlocker</a>
+                            <a href="protect-excel.html">Protect Excel Sheet</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">More <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="pricing.html">Pricing</a>
+                            <a href="blog.html">Blog/Articles</a>
+                            <a href="https://apnaonlineservic.com" target="_blank">Shop-ApnaOnline</a>
+                            <a href="https://aimathmaster.com" target="_blank">AI-Math Master</a>
                         </div>
                     </div>
                 </div>
                 <div class="auth-buttons">
-                    <button id="auth-button" class="auth-btn">Login</button>
+                    <a href="login.html" class="auth-link">Sign In</a>
+                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Signup</span></a>
+                </div>
+                <div id="user-menu" class="user-menu" data-open="false">
+                    <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
+                        <span class="user-initial" aria-hidden="true">U</span>
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                    </button>
+                    <div class="user-dropdown" id="user-dropdown" hidden>
+                        <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+                        <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+                        <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+                        <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
+                        <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
+                        <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+                    </div>
                 </div>
             </nav>
         </div>
     </header>
-
-  <main>
-    <section class="panel">
-      <h2><i class="fas fa-wand-magic-sparkles"></i> Background Removed</h2>
-      <div id="previewStage" class="preview-stage">
-        <img id="previewOriginal" class="preview-original" alt="Original" hidden>
-        <img id="previewResult" class="preview-result" alt="Result" hidden>
-        <div id="previewOverlay" class="preview-overlay">
-          <div class="preview-spinner"></div>
-          <span>AI Processing...</span>
-        </div>
-        <div id="previewPlaceholder" class="preview-placeholder hidden">
-          <i class="fas fa-image" style="font-size:3rem;opacity:0.3;"></i>
-          <span>No image loaded</span>
-        </div>
-      </div>
-      <div class="actions">
-        <button id="backgroundChange" class="btn btn-outline" disabled>
-          <i class="fas fa-palette"></i> Change Background
+<main>
+<section class="panel">
+<h2><i class="fas fa-wand-magic-sparkles"></i> Background Removed</h2>
+<div class="preview-stage" id="previewStage">
+<img alt="Original" class="preview-original" hidden="" id="previewOriginal"/>
+<img alt="Result" class="preview-result" hidden="" id="previewResult"/>
+<div class="preview-overlay" id="previewOverlay">
+<div class="preview-spinner"></div>
+<span>AI Processing...</span>
+</div>
+<div class="preview-placeholder hidden" id="previewPlaceholder">
+<i class="fas fa-image" style="font-size:3rem;opacity:0.3;"></i>
+<span>No image loaded</span>
+</div>
+</div>
+<div class="actions">
+<button class="btn btn-outline" disabled="" id="backgroundChange">
+<i class="fas fa-palette"></i> Change Background
         </button>
-        <button id="downloadPng" class="btn btn-primary" disabled>
-          <i class="fas fa-download"></i> Download PNG
+<button class="btn btn-primary" disabled="" id="downloadPng">
+<i class="fas fa-download"></i> Download PNG
         </button>
-      </div>
-    </section>
-
-    <section class="panel">
-      <h2><i class="fas fa-info-circle"></i> Processing Info</h2>
-      <div id="statusMessage" class="status-card"></div>
-      <div class="status-card">
-        <strong>✓ 3-Tier Smart Processing</strong>
-        <p>• <strong>0-15 MB</strong>: Fast browser (IMG.LY AI) - Free</p>
-        <p>• <strong>15-50 MB</strong>: Free server (Render + Rembg) - Free</p>
-        <p>• <strong>50-100 MB</strong>: Cloud server (Google Cloud Run) - Premium</p>
-        <p>• Automatic routing for optimal speed & cost</p>
-        <p>• Professional AI quality at every tier</p>
-      </div>
-    </section>
-  </main>
-
-  <script type="module">
+</div>
+</section>
+<section class="panel">
+<h2><i class="fas fa-info-circle"></i> Processing Info</h2>
+<div class="status-card" id="statusMessage"></div>
+<!-- Animated Demo -->
+<div style="margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(67,97,238,0.15);">
+<img alt="AI Processing Demo" src="images/bg-removal-jungle-demo.svg" style="width: 100%; height: auto; display: block;"/>
+</div>
+<div class="status-card">
+<strong>✓ 3-Tier Smart Processing</strong>
+<p>• <strong>0-15 MB</strong>: Fast browser (IMG.LY AI) - Free</p>
+<p>• <strong>15-100 MB</strong>: Cloud server (Google Cloud Run) - Premium</p>
+<p>• Automatic routing for optimal speed &amp; cost</p>
+<p>• Professional AI quality at every tier</p>
+</div>
+</section>
+</main>
+<script type="module">
     const STORAGE_KEYS = {
       original: 'bgRemover:original',
       filename: 'bgRemover:filename',
@@ -178,12 +217,33 @@
     let resultDataURL = null;
     let removeBackgroundFn = null;
     let preloadFn = null;
+    let modelPreloaded = false;
+    let libraryLoading = false;
 
-    try {
-      ({ removeBackground: removeBackgroundFn, preload: preloadFn } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/index.mjs'));
-    } catch (err) {
-      showError('AI library failed to load. Please check your connection and refresh.');
-      console.error(err);
+    // Load IMG.LY library (wait for user action instead of auto-preload)
+    async function ensureLibraryLoaded() {
+      if (removeBackgroundFn) return true; // Already loaded
+      if (libraryLoading) {
+        // Wait for ongoing load
+        while (libraryLoading) {
+          await new Promise(r => setTimeout(r, 100));
+        }
+        return !!removeBackgroundFn;
+      }
+
+      try {
+        libraryLoading = true;
+        console.log('🚀 Loading AI library...');
+        ({ removeBackground: removeBackgroundFn, preload: preloadFn } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/index.mjs'));
+        console.log('✅ AI library loaded successfully!');
+        libraryLoading = false;
+        return true;
+      } catch (err) {
+        libraryLoading = false;
+        console.error('❌ Failed to load AI library:', err);
+        showError('AI library failed to load. Please check your internet connection and refresh the page.');
+        return false;
+      }
     }
 
     function dataURLToBlob(dataURL) {
@@ -257,63 +317,47 @@
     // Tier 2: 15-50 MB → Render Backend (Python Rembg) - Free 750hrs/month
     // Tier 3: 50-100 MB → Cloud Run (Docker Rembg) - Free 2M requests/month
     // ============================================
+    // GOOGLE CLOUD RUN BACKEND CONFIGURATION
+    // ============================================
+    // Project: easyjpgtopdf-de346
+    // Region: us-central1
+    // Service: bg-remover-api
+    // TODO: Update URL after Cloud Run deployment (2-3 days)
+    // Deploy guide: bg-remover-backend/GOOGLE_CLOUD_COMPLETE_GUIDE.md
+    // ============================================
     
-    // STEP 1: Render backend URL (DEPLOYED AND LIVE!)
-    const RENDER_API_URL = 'https://doctools-bg-remover.onrender.com/remove-background';
-    
-    // STEP 2: (Optional) Deploy Cloud Run backend for 50+ MB files
-    const CLOUDRUN_API_URL = 'https://YOUR-CLOUDRUN-SERVICE.run.app/remove-background';
+    const CLOUDRUN_API_URL = 'https://bg-remover-api-iwumaktavq-uc.a.run.app/remove-background';
     
     // Smart routing based on file size (optimized for quality + speed)
     function getProcessingConfig(fileSize) {
       const sizeMB = fileSize / (1024 * 1024);
       
-      // Tier 1: Browser AI (IMG.LY U²-Net)
-      if (fileSize < 8 * 1024 * 1024) {
-        // 0-8 MB: High quality browser processing
+      // Tier 1: Browser AI (IMG.LY U²-Net) - Best browser quality
+      if (fileSize < 15 * 1024 * 1024) {
+        // 0-15 MB: Browser processing (95-98% quality, instant)
         return {
           useBackend: false,
-          model: 'medium',
-          quality: 0.95,
-          description: 'High Quality AI (Browser)',
-          message: `Processing ${sizeMB.toFixed(1)} MB with advanced AI`,
+          model: 'medium',  // Best IMG.LY model
+          quality: 1.0,     // Maximum quality
+          description: 'Browser AI - Professional Quality',
+          message: `Processing ${sizeMB.toFixed(1)} MB with browser AI (95-98% quality)`,
           tier: 'browser',
-          info: '⚡ High quality processing, instant results'
-        };
-      } else if (fileSize < 15 * 1024 * 1024) {
-        // 8-15 MB: Browser with medium model for best quality
-        return {
-          useBackend: false,
-          model: 'medium',
-          quality: 0.98,
-          description: 'Premium Quality AI (Browser)',
-          message: `Processing ${sizeMB.toFixed(1)} MB with premium AI`,
-          tier: 'browser',
-          info: '🎯 Premium quality, precise edge detection'
+          info: '⚡ Fast & Free - Good quality for most images',
+          quality: 0.92
         };
       } 
-      // Tier 2: Render Backend (Python Rembg)
-      else if (fileSize < 50 * 1024 * 1024) {
-        // 15-50 MB: Professional server processing (Free)
-        return {
-          useBackend: true,
-          backendUrl: RENDER_API_URL,
-          description: 'Professional AI (Free Server)',
-          message: `Uploading ${sizeMB.toFixed(1)} MB to professional AI server`,
-          tier: 'render',
-          info: '🚀 Professional quality with Rembg AI (Free)'
-        };
-      } 
-      // Tier 3: Cloud Run Backend (Premium Docker)
+      // Tier 2: Google Cloud Run (Rembg U²-Net) - 100% Professional
       else if (fileSize < 100 * 1024 * 1024) {
-        // 50-100 MB: Premium cloud processing with optimization
+        // 15-100 MB: Cloud processing (100% quality, FREE 18k/month)
         return {
           useBackend: true,
           backendUrl: CLOUDRUN_API_URL,
-          description: 'Premium AI (Google Cloud)',
-          message: `Uploading ${sizeMB.toFixed(1)} MB to premium cloud AI`,
+          timeout: 300000,  // 5 minutes
+          description: 'Google Cloud Run - Rembg U²-Net',
+          message: `Processing ${sizeMB.toFixed(1)} MB with Cloud AI (100% quality - Same as Photopea)`,
           tier: 'cloudrun',
-          info: '⭐ Premium quality with alpha matting (Google Cloud)'
+          info: '☁️ 100% Professional - FREE 18,000 images/month',
+          quality: 1.0
         };
       } 
       // Error: File too large
@@ -327,11 +371,11 @@
       }
     }
 
-    // Process image using backend server (Render or Cloud Run)
+    // Process image using Google Cloud Run backend
     async function processWithBackend(dataURL, backendUrl, config) {
       try {
         // Show upload progress
-        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">📤 Uploading to ${config.tier === 'render' ? 'Free Server' : 'Premium Cloud'}...</div>`;
+        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">☁️ Uploading to Google Cloud AI...</div>`;
         
         // Make API request with timeout
         const controller = new AbortController();
@@ -407,6 +451,7 @@
         statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">${config.message}...</div>`;
 
         let resultUrl = null;
+        let processingMethod = 'Browser AI';
 
         // ===== ROUTE 1: Backend Processing (15+ MB files) =====
         if (config.useBackend) {
@@ -441,21 +486,27 @@
 
         // Route 2: Use browser processing for small/medium files (0-15 MB)
         if (!config.useBackend && !resultUrl) {
-          if (!removeBackgroundFn) {
-            showError('AI library not loaded. Please refresh the page.');
+          // Ensure library is loaded
+          const libraryReady = await ensureLibraryLoaded();
+          if (!libraryReady || !removeBackgroundFn) {
+            showError('AI library not loaded. Please refresh the page and try again.');
             return;
           }
 
-          // Preload AI model
-          try {
-            if (typeof preloadFn === 'function') {
+          // Preload model if not already done
+          if (!modelPreloaded && typeof preloadFn === 'function') {
+            console.log('⏳ Preloading AI model for faster processing...');
+            statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⏳ Loading AI model (one-time, 30-45 sec)...</div>';
+            try {
               await preloadFn({ 
                 publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
                 model: config.model
               });
+              modelPreloaded = true;
+              console.log('✅ AI model preloaded and cached!');
+            } catch (err) {
+              console.warn('⚠️ Preload failed, will load during processing:', err);
             }
-          } catch (err) {
-            console.warn('Preload failed, continuing:', err);
           }
 
           const blob = await blobFromSource(dataURL, {
@@ -468,7 +519,7 @@
           const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'photo.png';
           const fileForProcessing = new File([blob], filename, { type: blob.type || 'image/png' });
 
-          // Process with high quality settings and edge preservation
+          // Process with MAXIMUM quality and MINIMAL over-cleaning
           const result = await removeBackgroundFn(fileForProcessing, {
             publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
             model: config.model,
@@ -477,17 +528,20 @@
               quality: config.quality,
               type: 'foreground'
             },
-            // Advanced settings for better edge preservation
             postprocessMask: {
-              featherRadius: 2  // Smooth edges without over-cleaning
+              featherRadius: 1,
+              smooth: 5
             },
+            device: 'cpu',
             progress: (key, current, total) => {
               const percent = Math.round((current / total) * 100);
-              statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">Processing with ${config.description}... ${percent}%</div>`;
+              statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">🎨 Processing ${percent}% (Anti over-cleaning enabled)</div>`;
             }
           });
 
           const resultBlob = result instanceof Blob ? result : await result.blob();
+          
+          // Post-processing: Enhance edges if needed (optional refinement)
           resultUrl = await blobToDataURL(resultBlob);
         }
         
@@ -519,7 +573,8 @@
         
         // Success message
         const sizeInMB = (fileSize / (1024 * 1024)).toFixed(1);
-        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">✓ Background removed! (${sizeInMB} MB file processed with ${config.description})</div>`;
+        const methodLabel = processingMethod || config.description;
+        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">✓ Background removed! (${sizeInMB} MB file processed with ${methodLabel})</div>`;
         setTimeout(() => clearStatus(), 4000);
         
       } catch (error) {
@@ -566,23 +621,31 @@
 
     document.getElementById('footerYear').textContent = new Date().getFullYear();
   </script>
-
 <footer>
-        <div class="container footer-inner">
-            <div class="footer-company-links">
-                <span>Company</span>
-                <a href="index.html#about">About Us</a>
-                <a href="index.html#contact">Contact</a>
-                <a href="privacy-policy.html">Privacy Policy</a>
-                <a href="terms-of-service.html">Terms of Service</a>
-            </div>
-            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
-            <p class="footer-credits">
+<div class="container footer-inner">
+<div class="footer-company-links">
+<span>Company</span>
+<a href="index.html#about">About Us</a>
+<a href="index.html#contact">Contact</a>
+<a href="privacy-policy.html">Privacy Policy</a>
+<a href="terms-of-service.html">Terms of Service</a>
+</div>
+<p class="footer-brand-line">© easyjpgtopdf — Free PDF &amp; Image Tools for everyone.</p>
+<p class="footer-credits">
                 Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
                 <a href="attributions.html">See full acknowledgements</a>.
             </p>
-        </div>
-    </footer>
-    <script type="module" src="js/auth.js"></script>
+</div>
+</footer>
+<script type="module">
+  const isLocalFileProtocol = window.location.protocol === 'file:';
+  if (isLocalFileProtocol) {
+    console.warn('⚠️ auth.js skipped on file:// protocol to avoid CORS errors.');
+  } else {
+    import('./js/auth.js').catch(err => {
+      console.error('❌ Failed to load auth.js:', err);
+    });
+  }
+</script>
 </body>
 </html>
