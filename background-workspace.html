@@ -965,23 +965,29 @@
         const file = e.target.files[0];
         if (!file) return;
         
-        // Check upload limit
-        if (file.size > FREE_UPLOAD_LIMIT && auth) {
-          if (!currentUser) {
+        // Check upload limit - ALWAYS enforce 10 MB limit regardless of auth state
+        if (file.size > FREE_UPLOAD_LIMIT) {
+          // If auth is available, check premium status
+          if (auth && currentUser) {
+            if (!userSubscription) {
+              userSubscription = await checkUserSubscription(currentUser);
+            }
+            
+            // Premium users can upload unlimited
+            if (userSubscription && userSubscription.isPremium && userSubscription.isValid) {
+              // Premium user - allow upload
+            } else {
+              // Not premium - show limit message
+              const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+              if (confirm(`File size: ${sizeMB} MB\nFree upload limit: 10 MB\n\nYou need Premium subscription for files larger than 10 MB. Go to pricing page?`)) {
+                window.location.href = 'pricing.html';
+              }
+              return;
+            }
+          } else {
+            // No auth or not logged in - enforce limit
             const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
             if (confirm(`File size: ${sizeMB} MB\nFree upload limit: 10 MB\n\nUpgrade to Premium for unlimited uploads. Go to pricing page?`)) {
-              window.location.href = 'pricing.html';
-            }
-            return;
-          }
-          
-          if (!userSubscription) {
-            userSubscription = await checkUserSubscription(currentUser);
-          }
-          
-          if (!userSubscription || !userSubscription.isPremium || !userSubscription.isValid) {
-            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            if (confirm(`File size: ${sizeMB} MB\nFree upload limit: 10 MB\n\nYou need Premium subscription for files larger than 10 MB. Go to pricing page?`)) {
               window.location.href = 'pricing.html';
             }
             return;
