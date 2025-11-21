@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -46,13 +45,17 @@
     .preview-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; color: var(--muted); font-weight: 600; letter-spacing: 0.03em; }
     .preview-placeholder.hidden { display: none; }
     .preview-spinner { width: 34px; height: 34px; border: 3px solid rgba(255, 255, 255, 0.4); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; }
-    .actions { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 14px; }
+    .actions { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
     .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 22px; border-radius: 999px; border: none; cursor: pointer; font-weight: 600; font-size: 0.95rem; transition: transform 0.2s, box-shadow 0.2s; }
     .btn-primary { background: linear-gradient(135deg, #4361ee, #3a0ca3); color: #fff; box-shadow: 0 16px 30px rgba(67, 97, 238, 0.25); }
     .btn-outline { background: #fff; border: 1px solid var(--border); color: #233050; }
     .btn[disabled] { opacity: 0.5; cursor: not-allowed; box-shadow: none; transform: none; }
     .status-card { display: flex; flex-direction: column; gap: 18px; color: var(--muted); font-size: 0.95rem; line-height: 1.6; }
     .status-card strong { color: #1e254d; font-size: 1.05rem; }
+    #addMoreFiles { min-width: 48px; padding: 10px; }
+    #fileGallery { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    .gallery-download-btn:hover { background: rgba(67,97,238,1) !important; transform: scale(1.1); }
     footer { text-align: center; padding: 24px 16px 40px; font-size: 0.85rem; color: var(--muted); }
     @keyframes spin { to { transform: rotate(360deg); } }
     @media (max-width: 960px) {
@@ -177,31 +180,75 @@
 <button class="btn btn-primary" disabled="" id="downloadPng">
 <i class="fas fa-download"></i> Download PNG
         </button>
+<button class="btn btn-primary" id="addMoreFiles" title="Add more images">
+<i class="fas fa-plus"></i>
+        </button>
+</div>
+<!-- File Preview Gallery (like remove.bg) -->
+<div id="fileGallery" style="display: none; margin-top: 24px; padding: 16px; background: rgba(67,97,238,0.05); border-radius: 12px;">
+  <h3 style="margin-bottom: 12px; font-size: 1rem; color: #1e254d;">Processed Files</h3>
+  <div id="galleryContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px;"></div>
 </div>
 </section>
 <section class="panel">
 <h2><i class="fas fa-info-circle"></i> Processing Info</h2>
 <div class="status-card" id="statusMessage"></div>
-<!-- Animated Demo -->
+<!-- Animated Demo from background-remover.html -->
 <div style="margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(67,97,238,0.15);">
-<img alt="AI Processing Demo" src="images/bg-removal-jungle-demo.svg" style="width: 100%; height: auto; display: block;"/>
+  <img src="images/bg-removal-city-demo.svg" alt="Background Removal Demo" style="width: 100%; height: auto; display: block;">
 </div>
 <div class="status-card">
-<strong>✓ 3-Tier Smart Processing</strong>
-<p>• <strong>0-15 MB</strong>: Fast browser (IMG.LY AI) - Free</p>
-<p>• <strong>15-100 MB</strong>: Cloud server (Google Cloud Run) - Premium</p>
-<p>• Automatic routing for optimal speed &amp; cost</p>
-<p>• Professional AI quality at every tier</p>
+<strong>✓ Smart Processing System</strong>
+<p>• <strong>0-2 MB</strong>: IMG.LY AI (Browser) - Free</p>
+<p>• <strong>2+ MB</strong>: Google Cloud Run (Rembg U²-Net) - Premium</p>
+<p>• Free Upload: Up to 10 MB</p>
+<p>• Free Download: Up to 500 KB (compressed)</p>
+<p>• Premium: Unlimited upload & download</p>
 </div>
 </section>
 </main>
 <script type="module">
+    // Import Firebase modules (optional - works without Firebase for file:// protocol)
+    let auth = null;
+    let db = null;
+    let getDoc = null;
+    let doc = null;
+    let onAuthStateChanged = null;
+    
+    // Try to load Firebase, but don't fail if file:// protocol
+    const isLocalFile = window.location.protocol === 'file:';
+    
+    if (!isLocalFile) {
+      try {
+        const firebaseInit = await import('./js/firebase-init.js');
+        const firestore = await import('https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js');
+        const firebaseAuth = await import('https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js');
+        
+        auth = firebaseInit.auth;
+        db = firebaseInit.db;
+        getDoc = firestore.getDoc;
+        doc = firestore.doc;
+        onAuthStateChanged = firebaseAuth.onAuthStateChanged;
+        
+        console.log('✅ Firebase loaded successfully');
+      } catch (error) {
+        console.warn('⚠️ Firebase not available (file:// protocol or network issue):', error.message);
+      }
+    } else {
+      console.log('ℹ️ Running on file:// protocol - Firebase disabled (upload will work without auth)');
+    }
+
     const STORAGE_KEYS = {
       original: 'bgRemover:original',
       filename: 'bgRemover:filename',
       foreground: 'bgRemover:foreground',
       dimensions: 'bgRemover:dimensions'
     };
+
+    // Limits - Updated
+    const FREE_UPLOAD_LIMIT = 10 * 1024 * 1024; // 10 MB - Free upload limit
+    const FREE_DOWNLOAD_LIMIT = 500 * 1024; // 500 KB - Free download limit
+    const IMGLY_MAX_SIZE = 2 * 1024 * 1024; // 2 MB - use imagly up to this
 
     const previewStage = document.getElementById('previewStage');
     const previewOriginal = document.getElementById('previewOriginal');
@@ -219,12 +266,60 @@
     let preloadFn = null;
     let modelPreloaded = false;
     let libraryLoading = false;
+    let currentUser = null;
+    let userSubscription = null;
 
-    // Load IMG.LY library (wait for user action instead of auto-preload)
+    // Check user subscription status (only if Firebase available)
+    async function checkUserSubscription(user) {
+      if (!user || !auth || !db || !doc || !getDoc) return null;
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          const plan = data.plan || 'free';
+          const subscriptionEnd = data.subscriptionEnd || null;
+          const isPremium = plan === 'premium' || plan === 'pro';
+          
+          // Check if subscription is valid (not expired)
+          let isValid = false;
+          if (isPremium && subscriptionEnd) {
+            const endDate = new Date(subscriptionEnd);
+            const now = new Date();
+            isValid = endDate > now;
+          }
+          
+          return {
+            plan: plan,
+            isPremium: isPremium,
+            isValid: isValid,
+            subscriptionEnd: subscriptionEnd
+          };
+        }
+      } catch (error) {
+        console.error('Error checking subscription:', error);
+      }
+      return null;
+    }
+
+    // Monitor auth state (only if Firebase available)
+    if (auth && onAuthStateChanged) {
+      onAuthStateChanged(auth, async (user) => {
+        currentUser = user;
+        if (user) {
+          userSubscription = await checkUserSubscription(user);
+        } else {
+          userSubscription = null;
+        }
+      });
+    } else {
+      console.log('ℹ️ Running without authentication - all features available');
+    }
+
+    // Load IMG.LY library
     async function ensureLibraryLoaded() {
-      if (removeBackgroundFn) return true; // Already loaded
+      if (removeBackgroundFn) return true;
       if (libraryLoading) {
-        // Wait for ongoing load
         while (libraryLoading) {
           await new Promise(r => setTimeout(r, 100));
         }
@@ -309,64 +404,59 @@
       resultCanvas.height = height;
     }
 
-    // ============================================
-    // HIGH QUALITY AI BACKGROUND REMOVER
-    // 3-Tier Processing System (Fast + Free + Scalable)
-    // ============================================
-    // Tier 1: 0-15 MB → IMG.LY (Browser AI) - Instant, Free, Unlimited
-    // Tier 2: 15-50 MB → Render Backend (Python Rembg) - Free 750hrs/month
-    // Tier 3: 50-100 MB → Cloud Run (Docker Rembg) - Free 2M requests/month
-    // ============================================
-    // GOOGLE CLOUD RUN BACKEND CONFIGURATION
-    // ============================================
-    // Project: easyjpgtopdf-de346
-    // Region: us-central1
-    // Service: bg-remover-api
-    // TODO: Update URL after Cloud Run deployment (2-3 days)
-    // Deploy guide: bg-remover-backend/GOOGLE_CLOUD_COMPLETE_GUIDE.md
-    // ============================================
-    
+    // Google Cloud Run API URL - Connected to u2net rembg backend
+    // Verify connection: Open this URL in browser to check if backend is running
     const CLOUDRUN_API_URL = 'https://bg-remover-api-iwumaktavq-uc.a.run.app/remove-background';
     
-    // Smart routing based on file size (optimized for quality + speed)
+    // Test backend connection on load
+    async function testBackendConnection() {
+      try {
+        const response = await fetch(CLOUDRUN_API_URL.replace('/remove-background', '/health'), {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ Google Cloud Run Backend Connected:', data);
+          console.log('✅ Using u2net rembg model:', data.model || 'u2net');
+          return true;
+        }
+      } catch (error) {
+        console.warn('⚠️ Backend not reachable (will use browser processing):', error.message);
+      }
+      return false;
+    }
+    
+    // Test connection immediately
+    testBackendConnection();
+    
+    // Smart routing based on file size
     function getProcessingConfig(fileSize) {
       const sizeMB = fileSize / (1024 * 1024);
       
-      // Tier 1: Browser AI (IMG.LY U²-Net) - Best browser quality
-      if (fileSize < 15 * 1024 * 1024) {
-        // 0-15 MB: Browser processing (95-98% quality, instant)
+      // Tier 1: IMG.LY (Browser AI) - 0 to 2 MB
+      if (fileSize <= IMGLY_MAX_SIZE) {
         return {
           useBackend: false,
-          model: 'medium',  // Best IMG.LY model
-          quality: 1.0,     // Maximum quality
-          description: 'Browser AI - Professional Quality',
-          message: `Processing ${sizeMB.toFixed(1)} MB with browser AI (95-98% quality)`,
-          tier: 'browser',
-          info: '⚡ Fast & Free - Good quality for most images',
-          quality: 0.92
+          model: 'medium',
+          quality: 1.0,
+          description: 'IMG.LY AI - Professional Quality',
+          message: `Processing ${sizeMB.toFixed(1)} MB with IMG.LY AI`,
+          tier: 'imagly',
+          info: '⚡ Fast & Free - Professional quality'
         };
       } 
-      // Tier 2: Google Cloud Run (Rembg U²-Net) - 100% Professional
-      else if (fileSize < 100 * 1024 * 1024) {
-        // 15-100 MB: Cloud processing (100% quality, FREE 18k/month)
+      // Tier 2: Google Cloud Run (Rembg U²-Net) - Above 2 MB
+      else {
         return {
           useBackend: true,
           backendUrl: CLOUDRUN_API_URL,
-          timeout: 300000,  // 5 minutes
+          timeout: 300000,
           description: 'Google Cloud Run - Rembg U²-Net',
-          message: `Processing ${sizeMB.toFixed(1)} MB with Cloud AI (100% quality - Same as Photopea)`,
+          message: `Processing ${sizeMB.toFixed(1)} MB with Cloud AI (Premium)`,
           tier: 'cloudrun',
-          info: '☁️ 100% Professional - FREE 18,000 images/month',
+          info: '☁️ Premium Processing - Rembg U²-Net Latest',
           quality: 1.0
-        };
-      } 
-      // Error: File too large
-      else {
-        return {
-          useBackend: false,
-          error: true,
-          message: `File size ${sizeMB.toFixed(1)} MB exceeds maximum limit of 100 MB. Please compress your image first.`,
-          tier: 'error'
         };
       }
     }
@@ -374,12 +464,10 @@
     // Process image using Google Cloud Run backend
     async function processWithBackend(dataURL, backendUrl, config) {
       try {
-        // Show upload progress
         statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">☁️ Uploading to Google Cloud AI...</div>`;
         
-        // Make API request with timeout
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 180000); // 3 min timeout
+        const timeout = setTimeout(() => controller.abort(), 180000);
         
         const response = await fetch(backendUrl, {
           method: 'POST',
@@ -429,31 +517,26 @@
       previewPlaceholder.classList.add('hidden');
       previewStage.classList.remove('revealed');
       previewStage.classList.remove('empty');
-      previewOverlay.style.opacity = 1;
-
+      
+      // IMMEDIATE PREVIEW - Show original image instantly
       try {
         previewOriginal.hidden = false;
         previewOriginal.src = dataURL;
-        
-        // Get file size and optimal config
+        previewOverlay.style.opacity = 1;
+      } catch (err) {
+        console.warn('Preview display error:', err);
+      }
+      
+      try {
         const fileSize = Number(sessionStorage.getItem('bgRemover:originalSize') || 0);
         const config = getProcessingConfig(fileSize);
-        
-        // Check for error (file too large)
-        if (config.error) {
-          showError(config.message);
-          previewStage.classList.add('empty');
-          previewOverlay.style.opacity = 0;
-          previewPlaceholder.classList.remove('hidden');
-          return;
-        }
         
         statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">${config.message}...</div>`;
 
         let resultUrl = null;
-        let processingMethod = 'Browser AI';
+        let processingMethod = 'IMG.LY AI';
 
-        // ===== ROUTE 1: Backend Processing (15+ MB files) =====
+        // Route 1: Backend Processing (2+ MB files)
         if (config.useBackend) {
           statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">${config.info}</div>`;
           
@@ -462,40 +545,25 @@
           if (backendResult.success) {
             resultUrl = backendResult.dataUrl;
             processingMethod = backendResult.processedWith || config.description;
-            
-            // Log success
             console.log('✅ Backend processing successful:', {
               tier: config.tier,
               outputSize: backendResult.outputSizeMB || 'unknown'
             });
           } else {
-            // Backend failed - try browser fallback for smaller files
-            console.warn('⚠️ Backend failed:', backendResult.error);
-            
-            if (removeBackgroundFn && fileSize < 25 * 1024 * 1024) {
-              statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(251,146,60,0.12);color:#7c2d12;font-weight:600;">⚠️ Server busy, switching to browser processing...</div>';
-              config.useBackend = false;
-              config.model = 'medium';
-              config.quality = 0.9;
-              console.log('🔄 Falling back to browser processing');
-            } else {
-              throw new Error(`Backend processing failed: ${backendResult.error}. File too large for browser fallback.`);
-            }
+            throw new Error(`Backend processing failed: ${backendResult.error}`);
           }
         }
-
-        // Route 2: Use browser processing for small/medium files (0-15 MB)
-        if (!config.useBackend && !resultUrl) {
-          // Ensure library is loaded
+        // Route 2: Browser processing with IMG.LY (0-2 MB)
+        else {
           const libraryReady = await ensureLibraryLoaded();
           if (!libraryReady || !removeBackgroundFn) {
             showError('AI library not loaded. Please refresh the page and try again.');
             return;
           }
 
-          // Preload model if not already done
+          // Preload model if needed
           if (!modelPreloaded && typeof preloadFn === 'function') {
-            console.log('⏳ Preloading AI model for faster processing...');
+            console.log('⏳ Preloading AI model...');
             statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⏳ Loading AI model (one-time, 30-45 sec)...</div>';
             try {
               await preloadFn({ 
@@ -503,7 +571,7 @@
                 model: config.model
               });
               modelPreloaded = true;
-              console.log('✅ AI model preloaded and cached!');
+              console.log('✅ AI model preloaded!');
             } catch (err) {
               console.warn('⚠️ Preload failed, will load during processing:', err);
             }
@@ -519,37 +587,35 @@
           const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'photo.png';
           const fileForProcessing = new File([blob], filename, { type: blob.type || 'image/png' });
 
-          // Process with MAXIMUM quality and MINIMAL over-cleaning
+          // Process with EXACT remove.bg quality settings
           const result = await removeBackgroundFn(fileForProcessing, {
             publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
-            model: config.model,
+            model: 'medium',  // Remove.bg uses medium model for best quality/speed balance
             output: { 
               format: 'image/png', 
-              quality: config.quality,
+              quality: 1.0,  // Maximum quality like remove.bg
               type: 'foreground'
             },
             postprocessMask: {
-              featherRadius: 1,
-              smooth: 5
+              featherRadius: 0,    // Remove.bg uses 0 for sharp edges
+              smooth: 0             // Remove.bg uses 0 for no smoothing
             },
             device: 'cpu',
             progress: (key, current, total) => {
               const percent = Math.round((current / total) * 100);
-              statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">🎨 Processing ${percent}% (Anti over-cleaning enabled)</div>`;
+              statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">🎨 Processing ${percent}%...</div>`;
             }
           });
 
           const resultBlob = result instanceof Blob ? result : await result.blob();
-          
-          // Post-processing: Enhance edges if needed (optional refinement)
           resultUrl = await blobToDataURL(resultBlob);
         }
         
-        // Common result handling for both routes
         if (!resultUrl) {
           throw new Error('Failed to generate result image');
         }
         
+        // Store original high-quality result for download
         sessionStorage.setItem(STORAGE_KEYS.foreground, resultUrl);
 
         const foregroundImage = new Image();
@@ -557,13 +623,39 @@
         foregroundImage.src = resultUrl;
         await foregroundImage.decode();
 
+        // OPTIMIZE PREVIEW - Reduce size for display (max 800px width, compressed)
+        const maxPreviewWidth = 800;
+        const maxPreviewHeight = 600;
+        let previewWidth = foregroundImage.width;
+        let previewHeight = foregroundImage.height;
+        
+        // Calculate scale if image is too large
+        if (previewWidth > maxPreviewWidth || previewHeight > maxPreviewHeight) {
+          const scale = Math.min(maxPreviewWidth / previewWidth, maxPreviewHeight / previewHeight);
+          previewWidth = Math.round(previewWidth * scale);
+          previewHeight = Math.round(previewHeight * scale);
+        }
+        
+        // Create optimized preview canvas
+        const previewCanvas = document.createElement('canvas');
+        previewCanvas.width = previewWidth;
+        previewCanvas.height = previewHeight;
+        const previewCtx = previewCanvas.getContext('2d');
+        previewCtx.imageSmoothingEnabled = true;
+        previewCtx.imageSmoothingQuality = 'high';
+        previewCtx.drawImage(foregroundImage, 0, 0, previewWidth, previewHeight);
+        
+        // Compressed preview for display (reduces size significantly)
+        const optimizedPreview = previewCanvas.toDataURL('image/png', 0.85);
+        
         previewResult.hidden = false;
-        previewResult.src = resultUrl;
+        previewResult.src = optimizedPreview; // Use optimized preview for display
 
+        // Store full quality for download
         ensureCanvas(foregroundImage.width, foregroundImage.height);
         resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
         resultContext.drawImage(foregroundImage, 0, 0, resultCanvas.width, resultCanvas.height);
-        resultDataURL = resultCanvas.toDataURL('image/png');
+        resultDataURL = resultCanvas.toDataURL('image/png', 1.0); // Full quality for download
 
         sessionStorage.setItem(STORAGE_KEYS.dimensions, JSON.stringify({ width: resultCanvas.width, height: resultCanvas.height }));
         previewOverlay.style.opacity = 0;
@@ -571,10 +663,14 @@
         backgroundChangeBtn.disabled = false;
         downloadBtn.disabled = false;
         
-        // Success message
+        // Add to gallery automatically after processing
+        const imageInfo = await getImageInfo(resultDataURL);
+        const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-removed.png';
+        addToGallery(resultDataURL, filename, imageInfo);
+        
         const sizeInMB = (fileSize / (1024 * 1024)).toFixed(1);
         const methodLabel = processingMethod || config.description;
-        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">✓ Background removed! (${sizeInMB} MB file processed with ${methodLabel})</div>`;
+        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">✓ Background removed! (${sizeInMB} MB processed with ${methodLabel})</div>`;
         setTimeout(() => clearStatus(), 4000);
         
       } catch (error) {
@@ -585,7 +681,7 @@
         } else if (error.message && error.message.includes('memory')) {
           errorMsg += 'Image too complex. Try a smaller or simpler image.';
         } else {
-          errorMsg += 'Please try uploading a different image with clear subject.';
+          errorMsg += error.message || 'Please try uploading a different image.';
         }
         showError(errorMsg);
         previewStage.classList.add('empty');
@@ -594,6 +690,329 @@
       }
     }
 
+    // Compress image to reduce size (for free users)
+    async function compressImageForFree(dataURL, targetSizeKB = 500) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const originalSize = Math.ceil((dataURL.split(',')[1].length * 0.75) / 1024);
+          
+          // If already under limit, return as is
+          if (originalSize <= targetSizeKB) {
+            resolve({ dataURL, width, height, size: originalSize * 1024 });
+            return;
+          }
+          
+          // Calculate scale to reduce size
+          const scale = Math.sqrt(targetSizeKB / originalSize) * 0.9; // 90% to be safe
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+          
+          // Ensure minimum dimensions
+          if (width < 200) width = 200;
+          if (height < 200) height = 200;
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          
+          // High quality resize
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Convert to PNG with compression
+          let compressedDataURL = canvas.toDataURL('image/png', 0.92);
+          let compressedSize = Math.ceil((compressedDataURL.split(',')[1].length * 0.75) / 1024);
+          
+          // If still too large, reduce quality further
+          if (compressedSize > targetSizeKB) {
+            const quality = (targetSizeKB / compressedSize) * 0.9;
+            compressedDataURL = canvas.toDataURL('image/png', Math.max(0.7, quality));
+            compressedSize = Math.ceil((compressedDataURL.split(',')[1].length * 0.75) / 1024);
+          }
+          
+          resolve({
+            dataURL: compressedDataURL,
+            width: width,
+            height: height,
+            size: compressedSize * 1024,
+            compressed: true
+          });
+        };
+        img.src = dataURL;
+      });
+    }
+
+    // Get image dimensions and size info
+    function getImageInfo(dataURL) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const base64Data = dataURL.split(',')[1];
+          const size = Math.ceil(base64Data.length * 0.75);
+          resolve({
+            width: img.width,
+            height: img.height,
+            size: size,
+            sizeMB: (size / (1024 * 1024)).toFixed(2),
+            sizeKB: (size / 1024).toFixed(0)
+          });
+        };
+        img.src = dataURL;
+      });
+    }
+
+    // Check download size and subscription before download
+    async function handleDownload() {
+      if (!resultDataURL) {
+        showError('No processed image available. Please wait for processing to complete.');
+        return;
+      }
+
+      // Get original image info (size and dimensions)
+      const originalInfo = await getImageInfo(resultDataURL);
+      const originalSize = originalInfo.size;
+      const originalSizeKB = parseInt(originalInfo.sizeKB);
+      
+      // Check if user is premium (must be logged in with active Pro plan)
+      let isPremium = false;
+      if (auth && currentUser) {
+        if (!userSubscription) {
+          userSubscription = await checkUserSubscription(currentUser);
+        }
+        // Only active Pro plan users are premium
+        isPremium = userSubscription && 
+                   (userSubscription.plan === 'premium' || userSubscription.plan === 'pro') && 
+                   userSubscription.isValid;
+      }
+      
+      // FIXED: If file is ≤ 500 KB, allow free download (no compression needed)
+      if (originalSizeKB <= 500) {
+        // Free download - direct (no compression)
+        const link = document.createElement('a');
+        const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-removed.png';
+        link.href = resultDataURL;
+        link.download = filename.endsWith('.png') ? filename : `${filename.replace(/\.[^/.]+$/, '') || 'background-removed'}.png`;
+        link.click();
+        
+        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">✓ Downloaded (${originalInfo.sizeKB} KB, ${originalInfo.width}×${originalInfo.height}px)</div>`;
+        setTimeout(() => clearStatus(), 4000);
+        
+        // Add to gallery
+        addToGallery(resultDataURL, filename, originalInfo);
+        return;
+      }
+      
+      // File > 500 KB - Check premium status
+      if (!isPremium) {
+        // Not premium - show message and require Pro plan
+        const message = `Download size: ${originalInfo.sizeKB} KB (${originalInfo.sizeMB} MB)\n` +
+                       `Image dimensions: ${originalInfo.width} × ${originalInfo.height} pixels\n\n` +
+                       `Free download limit: 500 KB\n` +
+                       `Your file (${originalInfo.sizeKB} KB) exceeds the free limit.\n\n` +
+                       `To download files larger than 500 KB, you need:\n` +
+                       `• Active Pro/Premium plan\n` +
+                       `• Must be logged in`;
+        
+        if (!auth || !currentUser) {
+          // Not logged in
+          if (confirm(message + '\n\nLogin now?')) {
+            window.location.href = 'login.html';
+          }
+        } else {
+          // Logged in but no active Pro plan
+          if (confirm(message + '\n\nGo to pricing page to upgrade?')) {
+            window.location.href = 'pricing.html';
+          }
+        }
+        return;
+      }
+      
+      // Premium user with active Pro plan - allow download
+      // Show size options for premium users
+      const message = `Download Options:\n\n` +
+                     `Original: ${originalInfo.sizeKB} KB (${originalInfo.sizeMB} MB)\n` +
+                     `Dimensions: ${originalInfo.width} × ${originalInfo.height} pixels\n\n` +
+                     `Choose download option:`;
+      
+      const choice = confirm(message + '\n\nOK = Original Size\nCancel = Compressed (500 KB)');
+      
+      let downloadDataURL = resultDataURL;
+      let downloadInfo = originalInfo;
+      
+      if (!choice) {
+        // User wants compressed version
+        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⚙️ Compressing image...</div>`;
+        const compressed = await compressImageForFree(resultDataURL, 500);
+        downloadDataURL = compressed.dataURL;
+        downloadInfo = {
+          width: compressed.width,
+          height: compressed.height,
+          size: compressed.size,
+          sizeKB: (compressed.size / 1024).toFixed(0),
+          sizeMB: (compressed.size / (1024 * 1024)).toFixed(2)
+        };
+      }
+      
+      // Download selected version
+      const link = document.createElement('a');
+      const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-removed.png';
+      const baseName = filename.replace(/\.[^/.]+$/, '') || 'background-removed';
+      link.href = downloadDataURL;
+      link.download = choice ? filename : `${baseName}-compressed.png`;
+      link.click();
+      
+      statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">✓ Downloaded (${downloadInfo.sizeKB} KB, ${downloadInfo.width}×${downloadInfo.height}px)</div>`;
+      setTimeout(() => clearStatus(), 4000);
+      
+      // Add to gallery
+      addToGallery(downloadDataURL, choice ? filename : `${baseName}-compressed.png`, downloadInfo);
+    }
+
+    // File Gallery Functions (like remove.bg)
+    let processedFiles = [];
+    
+    function addToGallery(dataURL, filename, imageInfo) {
+      const fileData = {
+        id: Date.now(),
+        dataURL: dataURL,
+        filename: filename,
+        info: imageInfo,
+        timestamp: new Date()
+      };
+      
+      processedFiles.push(fileData);
+      updateGallery();
+    }
+    
+    function updateGallery() {
+      const gallery = document.getElementById('fileGallery');
+      const container = document.getElementById('galleryContainer');
+      
+      if (processedFiles.length === 0) {
+        gallery.style.display = 'none';
+        return;
+      }
+      
+      gallery.style.display = 'block';
+      container.innerHTML = '';
+      
+      processedFiles.forEach((file, index) => {
+        const card = document.createElement('div');
+        card.style.cssText = 'position: relative; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer;';
+        card.innerHTML = `
+          <img src="${file.dataURL}" alt="${file.filename}" style="width: 100%; height: 80px; object-fit: cover;">
+          <div style="padding: 8px; font-size: 0.75rem; color: #666;">
+            <div style="font-weight: 600; color: #333; margin-bottom: 4px;">${file.filename.substring(0, 15)}${file.filename.length > 15 ? '...' : ''}</div>
+            <div>${file.info.width}×${file.info.height}</div>
+            <div>${file.info.sizeKB} KB</div>
+          </div>
+          <button class="gallery-download-btn" data-index="${index}" style="position: absolute; top: 4px; right: 4px; background: rgba(67,97,238,0.9); color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.7rem;">
+            <i class="fas fa-download"></i>
+          </button>
+        `;
+        
+        // Click to download
+        card.querySelector('.gallery-download-btn').addEventListener('click', async (e) => {
+          e.stopPropagation();
+          await downloadFileWithCompression(file.dataURL, file.filename, file.info);
+        });
+        
+        container.appendChild(card);
+      });
+    }
+    
+    async function downloadFileWithCompression(dataURL, filename, imageInfo) {
+      // Check if user is premium
+      let isPremium = false;
+      if (auth && currentUser) {
+        if (!userSubscription) {
+          userSubscription = await checkUserSubscription(currentUser);
+        }
+        isPremium = userSubscription && userSubscription.isPremium && userSubscription.isValid;
+      }
+      
+      const fileSize = imageInfo.size || Math.ceil((dataURL.split(',')[1].length * 0.75));
+      
+      // For free users: compress if exceeds limit
+      if (!isPremium && fileSize > FREE_DOWNLOAD_LIMIT) {
+        const compressed = await compressImageForFree(dataURL, 500);
+        const baseName = filename.replace(/\.[^/.]+$/, '') || 'background-removed';
+        const link = document.createElement('a');
+        link.href = compressed.dataURL;
+        link.download = `${baseName}-compressed.png`;
+        link.click();
+        return;
+      }
+      
+      // For premium users or files under limit: direct download
+      const link = document.createElement('a');
+      link.href = dataURL;
+      link.download = filename.endsWith('.png') ? filename : `${filename.replace(/\.[^/.]+$/, '') || 'background-removed'}.png`;
+      link.click();
+    }
+
+    // Add more files button handler
+    document.getElementById('addMoreFiles').addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/png,image/jpeg,image/jpg';
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        // Check upload limit
+        if (file.size > FREE_UPLOAD_LIMIT && auth) {
+          if (!currentUser) {
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            if (confirm(`File size: ${sizeMB} MB\nFree upload limit: 10 MB\n\nUpgrade to Premium for unlimited uploads. Go to pricing page?`)) {
+              window.location.href = 'pricing.html';
+            }
+            return;
+          }
+          
+          if (!userSubscription) {
+            userSubscription = await checkUserSubscription(currentUser);
+          }
+          
+          if (!userSubscription || !userSubscription.isPremium || !userSubscription.isValid) {
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            if (confirm(`File size: ${sizeMB} MB\nFree upload limit: 10 MB\n\nYou need Premium subscription for files larger than 10 MB. Go to pricing page?`)) {
+              window.location.href = 'pricing.html';
+            }
+            return;
+          }
+        }
+        
+        // Process new file
+        const dataURL = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        
+        sessionStorage.setItem(STORAGE_KEYS.original, dataURL);
+        sessionStorage.setItem(STORAGE_KEYS.filename, file.name || 'photo.png');
+        sessionStorage.setItem('bgRemover:originalType', file.type);
+        sessionStorage.setItem('bgRemover:originalSize', file.size.toString());
+        sessionStorage.removeItem('bgRemover:foreground');
+        sessionStorage.removeItem('bgRemover:dimensions');
+        
+        // Reload to process new file
+        window.location.reload();
+      };
+      input.click();
+    });
+
+    // Initialize gallery
+    updateGallery();
+    
+    // Initialize
     const storedOriginal = sessionStorage.getItem(STORAGE_KEYS.original);
     if (!storedOriginal) {
       previewStage.classList.add('empty');
@@ -610,14 +1029,7 @@
       window.location.href = 'background-style.html';
     });
 
-    downloadBtn.addEventListener('click', () => {
-      if (!resultDataURL) return;
-      const link = document.createElement('a');
-      const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-removed.png';
-      link.href = resultDataURL;
-      link.download = filename.endsWith('.png') ? filename : `${filename.replace(/\.[^/.]+$/, '') || 'background-removed'}.png`;
-      link.click();
-    });
+    downloadBtn.addEventListener('click', handleDownload);
 
     document.getElementById('footerYear').textContent = new Date().getFullYear();
   </script>

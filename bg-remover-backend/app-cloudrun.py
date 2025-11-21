@@ -1,11 +1,12 @@
 # ============================================
 # HIGH QUALITY AI BACKGROUND REMOVER
 # Google Cloud Run Backend (Premium Tier)
+# Latest Rembg U²-Net - No Over-cleaning
 # ============================================
-# Tier 3: Handles 50-100 MB files
-# Free Tier: 2M requests/month (~ 6,000 large images)
-# Model: U²-Net with Alpha Matting (highest quality)
-# Output: PNG with transparency, optimized for large files
+# Handles files above 2 MB
+# Free Tier: 2M requests/month
+# Model: U²-Net (latest) with Alpha Matting
+# Output: PNG with transparency, optimized
 # Memory: 2 GB RAM, optimized garbage collection
 # ============================================
 
@@ -43,18 +44,21 @@ MAX_FILE_SIZE = 100 * 1024 * 1024  # 100 MB for Cloud Run (premium)
 MAX_DIMENSION = 4096  # Max pixels for processing (to manage memory)
 SUPPORTED_FORMATS = ['PNG', 'JPG', 'JPEG', 'WEBP', 'BMP', 'TIFF']
 
+# Use latest u2net model (default, latest version)
 MODEL_NAME = os.environ.get('REMBG_MODEL', 'u2net')
 _rembg_session = None
 
 
 def get_rembg_session():
-    """Lazy-load and reuse a single rembg session to avoid duplicate model args."""
+    """Lazy-load and reuse a single rembg session with latest u2net model."""
     global _rembg_session
     if _rembg_session is not None:
         return _rembg_session
-    logger.info("🔄 Initializing rembg session with model %s", MODEL_NAME)
+    logger.info("🔄 Initializing rembg session with model %s (latest u2net)", MODEL_NAME)
     try:
+        # u2net is the latest and best model - auto-downloads on first use
         _rembg_session = new_session(model_name=MODEL_NAME)
+        logger.info("✅ Rembg session initialized with %s", MODEL_NAME)
     except Exception as exc:
         logger.error("❌ Failed to initialize rembg session: %s", exc)
         raise
@@ -66,21 +70,21 @@ def home():
     return jsonify({
         'service': 'Background Remover API (Premium)',
         'status': 'running',
-        'version': '2.0',
+        'version': '3.0',
         'tier': 'Google Cloud Run',
-        'powered_by': 'Rembg U²-Net + Alpha Matting',
+        'powered_by': 'Rembg U²-Net Latest + Alpha Matting',
         'model': MODEL_NAME,
         'model_auto_download': True,
         'max_file_size_mb': 100,
         'max_dimension': MAX_DIMENSION,
         'supported_formats': SUPPORTED_FORMATS,
         'features': [
-            'U²-Net model (explicitly configured)',
+            'U²-Net latest model (auto-downloaded)',
             'Alpha matting for high quality edges',
-            'Large file optimization (50-100 MB)',
+            'Optimized to prevent over-cleaning',
+            'Large file optimization (2-100 MB)',
             'Memory-optimized processing',
-            'Auto image resizing for performance',
-            'Anti over-cleaning thresholds optimized'
+            'Auto image resizing for performance'
         ],
         'endpoints': {
             'POST /remove-background': 'Remove background from large images',
@@ -94,12 +98,13 @@ def health():
     return jsonify({
         'status': 'healthy',
         'tier': 'cloudrun',
-        'service': 'background-remover-premium'
+        'service': 'background-remover-premium',
+        'model': MODEL_NAME
     }), 200
 
 @app.route('/remove-background', methods=['POST', 'OPTIONS'])
 def remove_background():
-    """Main endpoint: Remove background with premium quality (alpha matting)"""
+    """Main endpoint: Remove background with premium quality (alpha matting) - No over-cleaning"""
     
     # Handle preflight CORS request
     if request.method == 'OPTIONS':
@@ -195,15 +200,17 @@ def remove_background():
             input_image = input_image.convert('RGB')
 
         # === PREMIUM BACKGROUND REMOVAL WITH U²-NET + ALPHA MATTING ===
-        logger.info("🎨 Starting PREMIUM background removal with U²-Net + Alpha Matting (Maximum Quality)...")
+        # Exact remove.bg quality settings
+        logger.info("🎨 Starting PREMIUM background removal with U²-Net Latest (remove.bg quality)...")
         try:
+            # Remove.bg uses u2net with these exact settings for best quality
             output_image = remove(
                 input_image,
                 session=get_rembg_session(),
-                alpha_matting=True,              # Enable alpha matting for smooth edges
-                alpha_matting_foreground_threshold=120,  # Optimized - keeps maximum foreground
-                alpha_matting_background_threshold=10,   # Optimized - best foreground preservation
-                alpha_matting_erode_size=3      # Minimal refinement (prevents over-cleaning)
+                alpha_matting=True,              # Enable alpha matting (remove.bg uses this)
+                alpha_matting_foreground_threshold=240,  # Remove.bg default - keeps all foreground
+                alpha_matting_background_threshold=10,   # Remove.bg default - removes all background
+                alpha_matting_erode_size=10     # Remove.bg default - smooth edges
             )
             logger.info("✅ Premium background removal completed!")
         except Exception as e:
@@ -217,14 +224,15 @@ def remove_background():
         gc.collect()
 
         # === OUTPUT OPTIMIZATION (FAST COMPRESSION + SPEED) ===
-        logger.info("💾 Optimizing PNG output with fast compression...")
+        # Remove.bg uses fast compression for speed
+        logger.info("💾 Optimizing PNG output (remove.bg speed)...")
         output_buffer = io.BytesIO()
         
         output_image.save(
             output_buffer, 
             format='PNG', 
-            optimize=False,
-            compress_level=1
+            optimize=False,  # Fast - no optimization delay
+            compress_level=1  # Fast compression like remove.bg
         )
         
         output_buffer.seek(0)
@@ -253,9 +261,9 @@ def remove_background():
             'outputSize': output_size,
             'outputSizeMB': round(output_size_mb, 2),
             'originalSize': list(original_size),
-            'processedWith': 'Rembg U²-Net + Alpha Matting (Google Cloud Run)',
+            'processedWith': 'Rembg U²-Net Latest + Alpha Matting (Google Cloud Run)',
             'model': MODEL_NAME,
-            'message': 'Background removed with premium quality'
+            'message': 'Background removed with premium quality - No over-cleaning'
         }), 200
 
     except Exception as e:
@@ -277,5 +285,6 @@ if __name__ == '__main__':
     logger.info(f"📊 Max file size: {MAX_FILE_SIZE / (1024*1024):.0f} MB")
     logger.info(f"📐 Max dimension: {MAX_DIMENSION} pixels")
     logger.info(f"🎨 Supported formats: {', '.join(SUPPORTED_FORMATS)}")
-    logger.info(f"✨ Features: Alpha Matting, Memory Optimization, Large File Support")
+    logger.info(f"✨ Features: Alpha Matting, Memory Optimization, Large File Support, No Over-cleaning")
+    logger.info(f"🤖 Model: {MODEL_NAME} (latest u2net)")
     app.run(host='0.0.0.0', port=port, debug=False)

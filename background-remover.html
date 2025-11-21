@@ -193,7 +193,7 @@
       <div class="upload-card" id="dropzone">
         <i class="fas fa-cloud-upload-alt"></i>
         <h2>Drag & drop your JPG/PNG</h2>
-        <p>Max 10MB â€¢ Works entirely in your browser</p>
+        <p>Free: Up to 10 MB • Premium: Unlimited</p>
         <button class="btn btn-primary" type="button" id="browseBtn"><i class="fas fa-upload"></i> Choose Image</button>
         <input type="file" id="imageInput" accept="image/png,image/jpeg" hidden>
       </div>
@@ -248,106 +248,85 @@
       });
     }
 
+    // INSTANT UPLOAD - No processing delay
     async function prepareImage(file) {
-      const MAX_EDGE = 1400;
-      const MAX_STORAGE_BYTES = 4.5 * 1024 * 1024; // ~4.5 MB
+      // Fast path: Read file directly without processing for instant upload
       try {
-        if (!('createImageBitmap' in window)) {
-          return await readAsDataURL(file);
-        }
-        const bitmap = await createImageBitmap(file);
-        let { width, height } = bitmap;
-        const maxDimension = Math.max(width, height);
-        const scale = maxDimension > MAX_EDGE ? MAX_EDGE / maxDimension : 1;
-        if (scale < 1) {
-          width = Math.round(width * scale);
-          height = Math.round(height * scale);
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(bitmap, 0, 0, width, height);
-          bitmap.close();
-          const hasAlpha = file.type.includes('png');
-          const mime = hasAlpha ? 'image/png' : 'image/jpeg';
-          const quality = hasAlpha ? 1 : 0.82;
-          const dataUrl = canvas.toDataURL(mime, quality);
-          if (Math.ceil(dataUrl.length * 0.75) > MAX_STORAGE_BYTES && !hasAlpha) {
-            const fallback = canvas.toDataURL('image/jpeg', 0.7);
-            return fallback;
-          }
-          return dataUrl;
-        }
-        bitmap.close();
-        const hasAlpha = file.type.includes('png');
-        const mime = hasAlpha ? 'image/png' : 'image/jpeg';
-        return await readAsDataURL(file).then((dataUrl) => {
-          if (Math.ceil(dataUrl.length * 0.75) > MAX_STORAGE_BYTES && !hasAlpha) {
-            return new Promise((resolve) => {
-              readAsDataURL(file).then(resolve);
-            });
-          }
-          return dataUrl;
-        });
-      } catch (err) {
-        console.warn('Image preparation fallback', err);
         return await readAsDataURL(file);
+      } catch (err) {
+        console.warn('Image read error', err);
+        // Fallback: Try with FileReader
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
       }
     }
 
     async function handleFile(file) {
       if (!file) return;
       
-      // Validate file size with helpful messages
+      // FREE UPLOAD LIMIT: 10 MB
+      const FREE_UPLOAD_LIMIT = 10 * 1024 * 1024; // 10 MB
+      
+      if (file.size > FREE_UPLOAD_LIMIT) {
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        // Get image dimensions for premium message
+        const img = new Image();
+        img.onload = () => {
+          const message = `File size: ${sizeMB} MB\n` +
+                         `Image dimensions: ${img.width} × ${img.height} pixels\n\n` +
+                         `Free upload limit: 10 MB\n` +
+                         `Your file exceeds the free limit. Upgrade to Premium for unlimited uploads.`;
+          
+          if (confirm(message + '\n\nGo to pricing page?')) {
+            window.location.href = 'pricing.html';
+          }
+          showStatus(`Upload limit: 10 MB free. Your file: ${sizeMB} MB`);
+          dropzone.classList.remove('uploading');
+          dropzone.dataset.pending = 'false';
+        };
+        img.src = URL.createObjectURL(file);
+        return;
+      }
+      
+      // Maximum file size limit
       if (file.size > 100 * 1024 * 1024) {
         const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
         showStatus(`Image too large (${sizeMB} MB). Maximum: 100 MB. Please compress your image first.`);
+        dropzone.classList.remove('uploading');
+        dropzone.dataset.pending = 'false';
         return;
       }
 
+      // INSTANT UPLOAD - Save immediately, process later
       dropzone.classList.add('uploading');
       dropzone.dataset.pending = 'true';
+      showStatus('⚡ Uploading instantly...');
       
-      // Show processing tier info
-      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
-      if (file.size < 15 * 1024 * 1024) {
-        showStatus(`⚡ Preparing ${sizeMB} MB image for instant browser processing… 0%`);
-      } else if (file.size < 50 * 1024 * 1024) {
-        showStatus(`🚀 Preparing ${sizeMB} MB image for professional server AI… 0%`);
-      } else {
-        showStatus(`⭐ Preparing ${sizeMB} MB image for premium cloud AI… 0%`);
-      }
-
       try {
-        showStatus('Processing image… 30%');
+        // Fast read - no processing delay (instant)
         const dataUrl = await prepareImage(file);
-        showStatus('Optimizing for quality… 60%');
-        const approxBytes = Math.ceil(dataUrl.length * 0.75);
         
-        // sessionStorage limit: ~9-10 MB for base64 data
-        if (approxBytes > 9.5 * 1024 * 1024) {
-          const compressMB = (approxBytes / (1024 * 1024)).toFixed(1);
-          showStatus(`Compressed image is ${compressMB} MB (max 9.5 MB for browser storage). Try reducing image dimensions or quality.`);
-          return;
-        }
-        
-        showStatus('Saving… 80%');
+        // Save immediately to sessionStorage
         sessionStorage.setItem(STORAGE_KEYS.original, dataUrl);
         sessionStorage.setItem(STORAGE_KEYS.filename, file.name || 'photo.png');
         sessionStorage.setItem('bgRemover:originalType', file.type);
         sessionStorage.setItem('bgRemover:originalSize', file.size.toString());
         sessionStorage.removeItem('bgRemover:foreground');
         sessionStorage.removeItem('bgRemover:dimensions');
-        showStatus('Opening workspace… 100%');
+        
+        // Instant redirect - processing happens in workspace
+        showStatus('✅ Uploaded! Opening workspace...');
         setTimeout(() => {
           window.location.href = 'background-workspace.html';
-        }, 150);
+        }, 50); // Minimal delay for status message
       } catch (err) {
         console.error('Failed to read file', err);
-        showStatus('Could not read this image. Please try a different file.');
+        showStatus('❌ Error: Could not read this image. Please try a different file.');
         sessionStorage.removeItem(STORAGE_KEYS.original);
-        return;
-      } finally {
         dropzone.classList.remove('uploading');
         dropzone.dataset.pending = 'false';
         imageInput.value = '';

@@ -1,3 +1,8 @@
+# ============================================
+# Dockerfile for Google Cloud Run
+# Background Remover with Rembg U²-Net Latest
+# ============================================
+
 # Use Python 3.11 slim image
 FROM python:3.11-slim
 
@@ -21,9 +26,11 @@ COPY app-cloudrun.py app.py
 # Set environment variables
 ENV PORT=8080
 ENV PYTHONUNBUFFERED=1
+ENV REMBG_MODEL=u2net
 
 # Expose port
 EXPOSE 8080
 
 # Run with gunicorn
+# Note: Model will auto-download on first request (~180MB)
 CMD exec gunicorn --bind :$PORT --workers 1 --threads 2 --timeout 300 --max-requests 100 app:app
