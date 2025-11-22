@@ -1,21 +1,197 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Pricing â€” easyjpgtopdf</title>
+  <title>Pricing — easyjpgtopdf</title>
   <link rel="stylesheet" href="css/footer.css">
+  <link rel="stylesheet" href="css/header.css">
+  <link rel="stylesheet" href="css/theme-modern.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    body{font-family:Segoe UI, Tahoma, Geneva, Verdana, sans-serif;margin:0;padding:24px;background:#f7f9ff;color:#0b1630}
-    .container{max-width:980px;margin:0 auto}
-    .plans{display:flex;gap:16px;flex-wrap:wrap;margin-top:18px}
-    .plan{background:#fff;padding:18px;border-radius:12px;flex:1;min-width:220px;border:1px solid rgba(15,30,70,0.06)}
-    .plan h3{margin:0 0 8px 0}
-    .plan p{margin:6px 0;color:#34456b}
-    .actions{margin-top:18px}
-    .btn{display:inline-block;padding:10px 14px;border-radius:999px;text-decoration:none}
-    .btn-primary{background:linear-gradient(135deg,#4361ee,#3a0ca3);color:#fff}
-    .note{margin-top:12px;color:#56607a}
+    /* Pricing Page Specific Styles */
+    body {
+      background: #f5f7ff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    main {
+      flex: 1;
+      padding: 40px 24px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .pricing-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    .pricing-header h1 {
+      font-size: 2.5rem;
+      color: #0b1630;
+      margin-bottom: 12px;
+    }
+    
+    .pricing-header p {
+      font-size: 1.1rem;
+      color: #56607a;
+    }
+    
+    .plans {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-top: 32px;
+      justify-content: center;
+    }
+    
+    .plan {
+      background: #fff;
+      padding: 32px 24px;
+      border-radius: 16px;
+      flex: 1;
+      min-width: 280px;
+      max-width: 380px;
+      border: 2px solid rgba(15,30,70,0.08);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    
+    .plan:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(67, 97, 238, 0.15);
+    }
+    
+    .plan.featured {
+      border-color: #4361ee;
+      position: relative;
+    }
+    
+    .plan.featured::before {
+      content: "POPULAR";
+      position: absolute;
+      top: -12px;
+      right: 20px;
+      background: linear-gradient(135deg, #4361ee, #3a0ca3);
+      color: white;
+      padding: 4px 16px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    
+    .plan h3 {
+      margin: 0 0 12px 0;
+      font-size: 1.8rem;
+      color: #0b1630;
+    }
+    
+    .plan .price {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #4361ee;
+      margin: 16px 0;
+    }
+    
+    .plan .price span {
+      font-size: 1rem;
+      color: #56607a;
+      font-weight: 400;
+    }
+    
+    .plan p {
+      margin: 8px 0;
+      color: #34456b;
+      line-height: 1.6;
+    }
+    
+    .plan ul {
+      list-style: none;
+      padding: 0;
+      margin: 20px 0;
+    }
+    
+    .plan ul li {
+      padding: 8px 0;
+      color: #34456b;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .plan ul li::before {
+      content: "✓";
+      color: #4bb543;
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+    
+    .actions {
+      margin-top: 24px;
+    }
+    
+    .btn {
+      display: inline-block;
+      padding: 12px 32px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s;
+      text-align: center;
+      width: 100%;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #4361ee, #3a0ca3);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+    }
+    
+    .btn-outline {
+      background: white;
+      color: #4361ee;
+      border: 2px solid #4361ee;
+    }
+    
+    .btn-outline:hover {
+      background: #4361ee;
+      color: white;
+    }
+    
+    .note {
+      margin-top: 40px;
+      padding: 20px;
+      background: rgba(67, 97, 238, 0.05);
+      border-radius: 12px;
+      color: #56607a;
+      text-align: center;
+    }
+    
+    @media (max-width: 768px) {
+      .pricing-header h1 {
+        font-size: 2rem;
+      }
+      
+      .plans {
+        flex-direction: column;
+      }
+      
+      .plan {
+        max-width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
@@ -111,72 +287,116 @@
             </nav>
         </div>
     </header>
-  <div class="container">
-    <h1>Plans & Pricing</h1>
-    <p>Choose a plan that fits your needs. Payments and billing are handled separately â€” this is a simple client-side placeholder that links to account pages.</p>
-
-    <div class="plans">
-      <div class="plan">
-        <h3>Free</h3>
-        <p>Upload / Download up to 6 MB per file (general tools).</p>
-        <p>Background remover download free quota: 1 MB.</p>
-        <p class="note">Total user transfer cap: 5 GB across all tools.</p>
+  
+  <main>
+    <div class="container">
+      <div class="pricing-header">
+        <h1>Plans & Pricing</h1>
+        <p>Choose a plan that fits your needs. Simple, transparent pricing with no hidden fees.</p>
       </div>
 
-      <div class="plan">
-        <h3>Premium â€” 50 MB per file</h3>
-        <p>Monthly: $5 Â· Yearly: $60</p>
-        <ul>
-          <li>Upload & download up to 50 MB per file</li>
-          <li>Priority processing</li>
-          <li>Email invoicing & account management</li>
-        </ul>
-        <div class="actions">
-          <button class="btn btn-primary" data-plan="premium50" data-billing="monthly">Buy Monthly â€” $5</button>
-          <button class="btn" style="background:#3a0ca3;color:#fff;margin-left:8px" data-plan="premium50" data-billing="yearly">Buy Yearly â€” $60</button>
+      <div class="plans">
+        <!-- Free Plan -->
+        <div class="plan">
+          <h3>Free</h3>
+          <div class="price">$0<span>/month</span></div>
+          <p>Perfect for occasional use</p>
+          <ul>
+            <li>Upload/Download up to 6 MB per file</li>
+            <li>Background remover: 1 MB quota</li>
+            <li>5 GB total transfer cap</li>
+            <li>Basic support</li>
+            <li>All essential tools</li>
+          </ul>
+          <div class="actions">
+            <a href="signup.html" class="btn btn-outline">Get Started Free</a>
+          </div>
+        </div>
+
+        <!-- Premium 50MB Plan -->
+        <div class="plan featured">
+          <h3>Premium 50</h3>
+          <div class="price">$5<span>/month</span></div>
+          <p>Great for regular users</p>
+          <ul>
+            <li>Upload/Download up to 50 MB per file</li>
+            <li>Unlimited background removal</li>
+            <li>Priority processing</li>
+            <li>Email invoicing</li>
+            <li>Account management</li>
+            <li>Premium support</li>
+          </ul>
+          <div class="actions">
+            <button class="btn btn-primary" data-plan="premium50" data-billing="monthly">Buy Monthly — $5</button>
+          </div>
+          <p style="text-align:center; margin-top:12px; font-size:0.9rem; color:#56607a;">
+            or <button class="btn btn-outline" data-plan="premium50" data-billing="yearly" style="display:inline-block; width:auto; padding:8px 20px; margin-top:8px;">Yearly — $60</button> (Save $0)
+          </p>
+        </div>
+
+        <!-- Premium 500MB Plan -->
+        <div class="plan">
+          <h3>Premium 500</h3>
+          <div class="price">$10<span>/month</span></div>
+          <p>Best for professionals</p>
+          <ul>
+            <li>Upload/Download up to 500 MB per file</li>
+            <li>Unlimited background removal</li>
+            <li>Highest priority processing</li>
+            <li>Bulk processing support</li>
+            <li>Dedicated support</li>
+            <li>Advanced features</li>
+          </ul>
+          <div class="actions">
+            <button class="btn btn-primary" data-plan="premium500" data-billing="monthly">Buy Monthly — $10</button>
+          </div>
+          <p style="text-align:center; margin-top:12px; font-size:0.9rem; color:#56607a;">
+            or <button class="btn btn-outline" data-plan="premium500" data-billing="yearly" style="display:inline-block; width:auto; padding:8px 20px; margin-top:8px;">Yearly — $100</button> (Save $20)
+          </p>
         </div>
       </div>
 
-      <div class="plan">
-        <h3>Premium â€” 500 MB per file</h3>
-        <p>Monthly: $10 Â· Yearly: $100</p>
-        <ul>
-          <li>Upload & download up to 500 MB per file</li>
-          <li>Highest priority & bulk processing</li>
-          <li>Dedicated support</li>
-        </ul>
-        <div class="actions">
-          <button class="btn btn-primary" data-plan="premium500" data-billing="monthly">Buy Monthly â€” $10</button>
-          <button class="btn" style="background:#3a0ca3;color:#fff;margin-left:8px" data-plan="premium500" data-billing="yearly">Buy Yearly â€” $100</button>
+      <div class="note">
+        <p><strong>Note:</strong> All plans include access to all tools. Payments and billing are managed through your account dashboard.</p>
+        <div style="margin-top:20px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+          <a class="btn btn-outline" href="login.html" style="width:auto; padding:10px 24px;">Sign In</a>
+          <a class="btn btn-primary" href="signup.html" style="width:auto; padding:10px 24px;">Create Account</a>
         </div>
       </div>
     </div>
+  </main>
 
-    <div style="margin-top:18px">
-      <a class="btn" href="login.html">Sign in</a>
-      <a class="btn btn-primary" href="signup.html" style="margin-left:8px">Create account</a>
+  <!-- Footer -->
+  <footer>
+    <div class="container footer-inner">
+      <div class="footer-company-links">
+        <span>Company</span>
+        <a href="index.html#about">About Us</a>
+        <a href="index.html#contact">Contact</a>
+        <a href="privacy-policy.html">Privacy Policy</a>
+        <a href="terms-of-service.html">Terms of Service</a>
+      </div>
+      <p class="footer-brand-line">© easyjpgtopdf — Free PDF & Image Tools for everyone.</p>
+      <p class="footer-credits">
+        Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+        <a href="attributions.html">See full acknowledgements</a>.
+      </p>
     </div>
+  </footer>
 
-    <div style="margin-top:12px;display:flex;align-items:center;gap:8px">
-      <input type="checkbox" id="autorenew-checkbox" /> <label for="autorenew-checkbox">Enable auto-renewal for future billing (recommended)</label>
-    </div>
+  <!-- Scripts -->
+  <script type="module">
+    // Auth script
+    const isLocalFileProtocol = window.location.protocol === 'file:';
+    if (!isLocalFileProtocol) {
+      import('./js/auth.js').catch(err => {
+        console.error('❌ Failed to load auth.js:', err);
+      });
+    }
+  </script>
 
-    <p class="note">Notes: For background-remover special higher tiers or enterprise options, contact support.</p>
-
-    <div style="margin-top:16px" class="safety">
-      <strong>Safety & legal notice:</strong>
-      <p style="margin:6px 0">Our services are provided as-is. By purchasing you agree to our <a href="privacy-policy.html">Privacy Policy</a> and <a href="privacy-policy.html">Terms of Service</a>. We are not liable for indirect or consequential damages. This notice is provided for safety and does not waive consumer protections where applicable.</p>
-    </div>
-
-    <script type="module">
+  <script type="module">
       import { initiatePurchase } from './js/limits.js';
-      // Hook autorenew checkbox
-      const arCheckbox = document.getElementById('autorenew-checkbox');
-      if (arCheckbox) {
-        // initialize from storage
-        try { arCheckbox.checked = sessionStorage.getItem('autorenew') === 'true'; } catch (e) {}
-        arCheckbox.addEventListener('change', () => { try { sessionStorage.setItem('autorenew', arCheckbox.checked ? 'true' : 'false'); } catch(e){} });
-      }
 
       // When user clicks buy: if not signed in, store pending purchase and redirect to login/signup flow
       document.querySelectorAll('button[data-plan]').forEach(b => {
@@ -222,25 +442,6 @@
     </script>
   </div>
 
-<footer>
-        <div class="container footer-inner">
-            <div class="footer-company-links">
-                <span>Company</span>
-                <a href="index.html#about">About Us</a>
-                <a href="index.html#contact">Contact</a>
-                <a href="pricing.html">Pricing</a>
-                <a href="privacy-policy.html">Privacy Policy</a>
-                <a href="terms-of-service.html">Terms of Service</a>
-                <a href="dmca-en.html">DMCA</a>
-                <a href="blog.html">Blog</a>
-            </div>
-            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
-            <p class="footer-credits">
-                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
-                <a href="attributions.html">See full acknowledgements</a>.
-            </p>
-        </div>
-    </footer>
 </body>
 </html>
 
