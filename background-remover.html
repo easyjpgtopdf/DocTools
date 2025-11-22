@@ -273,16 +273,8 @@
       
       if (file.size > FREE_UPLOAD_LIMIT) {
         const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-        
-        // Show immediate message (don't wait for image load)
-        showStatus(`Upload limit: 10 MB free. Your file: ${sizeMB} MB`);
-        dropzone.classList.remove('uploading');
-        dropzone.dataset.pending = 'false';
-        
-        // Get image dimensions asynchronously for better message
+        // Get image dimensions for premium message
         const img = new Image();
-        const objectURL = URL.createObjectURL(file);
-        
         img.onload = () => {
           const message = `File size: ${sizeMB} MB\n` +
                          `Image dimensions: ${img.width} × ${img.height} pixels\n\n` +
@@ -292,29 +284,11 @@
           if (confirm(message + '\n\nGo to pricing page?')) {
             window.location.href = 'pricing.html';
           }
-          // Clean up object URL
-          URL.revokeObjectURL(objectURL);
+          showStatus(`Upload limit: 10 MB free. Your file: ${sizeMB} MB`);
+          dropzone.classList.remove('uploading');
+          dropzone.dataset.pending = 'false';
         };
-        
-        img.onerror = () => {
-          // If image load fails, show message without dimensions
-          const message = `File size: ${sizeMB} MB\n\n` +
-                         `Free upload limit: 10 MB\n` +
-                         `Your file exceeds the free limit. Upgrade to Premium for unlimited uploads.`;
-          
-          if (confirm(message + '\n\nGo to pricing page?')) {
-            window.location.href = 'pricing.html';
-          }
-          // Clean up object URL
-          URL.revokeObjectURL(objectURL);
-        };
-        
-        img.onabort = () => {
-          // Clean up object URL
-          URL.revokeObjectURL(objectURL);
-        };
-        
-        img.src = objectURL;
+        img.src = URL.createObjectURL(file);
         return;
       }
       
@@ -419,7 +393,6 @@
     <script type="module" src="js/auth.js"></script>
 </body>
 </html>
-
 
 
 

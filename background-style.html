@@ -83,6 +83,28 @@
     .overlay-fields input:disabled, .overlay-fields select:disabled { opacity: 0.5; cursor: not-allowed; }
     .overlay-range-value { font-weight: 600; color: #1f2559; font-size: 0.9rem; }
     .overlay-manual { display: flex; flex-direction: column; gap: 6px; }
+    /* Download Modal Styles */
+    .download-modal { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); z-index: 1000; align-items: center; justify-content: center; }
+    .download-modal.active { display: flex; }
+    .download-modal-content { background: #fff; border-radius: 20px; padding: 32px; max-width: 480px; width: 90%; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3); }
+    .download-modal-header { margin-bottom: 24px; }
+    .download-modal-header h3 { font-size: 1.4rem; color: #1a214d; margin-bottom: 8px; }
+    .download-modal-header p { color: var(--muted); font-size: 0.95rem; }
+    .download-options { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+    .download-option { border: 2px solid var(--border); border-radius: 16px; padding: 20px; cursor: pointer; transition: all 0.3s; background: #fff; }
+    .download-option:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(67, 97, 238, 0.15); }
+    .download-option.disabled { opacity: 0.6; cursor: not-allowed; background: #f5f5f5; }
+    .download-option-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .download-option-title { font-weight: 700; font-size: 1.1rem; color: #1a214d; }
+    .download-option-badge { padding: 4px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .download-option-badge.free { background: rgba(34, 197, 94, 0.15); color: #059669; }
+    .download-option-badge.premium { background: rgba(67, 97, 238, 0.15); color: var(--primary); }
+    .download-option-details { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+    .download-option-details strong { color: #1a214d; }
+    .download-modal-actions { display: flex; gap: 12px; justify-content: flex-end; }
+    .download-modal-actions button { padding: 10px 20px; border-radius: 999px; border: none; cursor: pointer; font-weight: 600; font-size: 0.95rem; transition: transform 0.2s; }
+    .download-modal-actions button:hover { transform: translateY(-1px); }
+    .download-modal-actions .btn-cancel { background: #f5f5f5; color: #666; }
     footer { background: #0d1530; color: #e8ecff; padding: 50px 0 30px; margin-top: auto; }
     .footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 30px; margin-bottom: 30px; }
     .footer-grid h3 { margin-bottom: 12px; font-size: 1rem; }
@@ -312,13 +334,114 @@
 </div>
 </section>
 </div>
+<!-- Download Modal -->
+<div id="downloadModal" class="download-modal">
+  <div class="download-modal-content">
+    <div class="download-modal-header">
+      <h3><i class="fas fa-download"></i> Choose Download Size</h3>
+      <p>Select your preferred download option</p>
+    </div>
+    <div class="download-options" id="downloadOptions">
+      <!-- Options will be populated by JavaScript -->
+    </div>
+    <div class="download-modal-actions">
+      <button class="btn-cancel" onclick="closeDownloadModal()">Cancel</button>
+    </div>
+  </div>
+</div>
 <script type="module">
+    // Import Firebase modules (optional - works without Firebase for file:// protocol)
+    let auth = null;
+    let db = null;
+    let getDoc = null;
+    let doc = null;
+    let onAuthStateChanged = null;
+    
+    // Try to load Firebase, but don't fail if file:// protocol
+    const isLocalFile = window.location.protocol === 'file:';
+    
+    if (!isLocalFile) {
+      try {
+        const firebaseInit = await import('./js/firebase-init.js');
+        const firestore = await import('https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js');
+        const firebaseAuth = await import('https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js');
+        
+        auth = firebaseInit.auth;
+        db = firebaseInit.db;
+        getDoc = firestore.getDoc;
+        doc = firestore.doc;
+        onAuthStateChanged = firebaseAuth.onAuthStateChanged;
+        
+        console.log('✅ Firebase loaded successfully');
+      } catch (error) {
+        console.warn('⚠️ Firebase not available (file:// protocol or network issue):', error.message);
+      }
+    } else {
+      console.log('ℹ️ Running on file:// protocol - Firebase disabled (download will work without auth)');
+    }
+
     const STORAGE_KEYS = {
       original: 'bgRemover:original',
       foreground: 'bgRemover:foreground',
       filename: 'bgRemover:filename',
       dimensions: 'bgRemover:dimensions'
     };
+
+    // Limits - Same as background-workspace.html
+    const FREE_UPLOAD_LIMIT = 10 * 1024 * 1024; // 10 MB - Free upload limit
+    const FREE_DOWNLOAD_LIMIT = 500 * 1024; // 500 KB - Free download limit
+    const FREE_PREVIEW_LIMIT = 100 * 1024; // 100 KB - Free preview without compression
+    const FREE_PREVIEW_MAX = 400 * 1024; // 400 KB - Max preview size for free users
+
+    let currentUser = null;
+    let userSubscription = null;
+
+    // Check user subscription status (only if Firebase available)
+    async function checkUserSubscription(user) {
+      if (!user || !auth || !db || !doc || !getDoc) return null;
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          const plan = data.plan || 'free';
+          const subscriptionEnd = data.subscriptionEnd || null;
+          const isPremium = plan === 'premium' || plan === 'pro';
+          
+          // Check if subscription is valid (not expired)
+          let isValid = false;
+          if (isPremium && subscriptionEnd) {
+            const endDate = new Date(subscriptionEnd);
+            const now = new Date();
+            isValid = endDate > now;
+          }
+          
+          return {
+            plan: plan,
+            isPremium: isPremium,
+            isValid: isValid,
+            subscriptionEnd: subscriptionEnd
+          };
+        }
+      } catch (error) {
+        console.error('Error checking subscription:', error);
+      }
+      return null;
+    }
+
+    // Monitor auth state (only if Firebase available)
+    if (auth && onAuthStateChanged) {
+      onAuthStateChanged(auth, async (user) => {
+        currentUser = user;
+        if (user) {
+          userSubscription = await checkUserSubscription(user);
+        } else {
+          userSubscription = null;
+        }
+      });
+    } else {
+      console.log('ℹ️ Running without authentication - all features available');
+    }
 
     const fallbackBackgrounds = {
       magic: [
@@ -484,6 +607,109 @@
       });
     }
 
+    // Compress image to reduce size (for free users) - UPDATED to match background-workspace.html
+    async function compressImageForFree(dataURL, targetSizeKB = 500) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const originalSize = Math.ceil((dataURL.split(',')[1].length * 0.75) / 1024);
+          
+          // If already under limit, return as is
+          if (originalSize <= targetSizeKB) {
+            resolve({ dataURL, width, height, size: originalSize * 1024 });
+            return;
+          }
+          
+          // Calculate scale to reduce size
+          const scale = Math.sqrt(targetSizeKB / originalSize) * 0.9; // 90% to be safe
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+          
+          // Ensure minimum dimensions
+          if (width < 200) width = 200;
+          if (height < 200) height = 200;
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          
+          // High quality resize
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Convert to PNG with compression
+          let compressedDataURL = canvas.toDataURL('image/png', 0.92);
+          let compressedSize = Math.ceil((compressedDataURL.split(',')[1].length * 0.75) / 1024);
+          
+          // If still too large, reduce quality further
+          if (compressedSize > targetSizeKB) {
+            const quality = (targetSizeKB / compressedSize) * 0.9;
+            compressedDataURL = canvas.toDataURL('image/png', Math.max(0.7, quality));
+            compressedSize = Math.ceil((compressedDataURL.split(',')[1].length * 0.75) / 1024);
+          }
+          
+          resolve({
+            dataURL: compressedDataURL,
+            width: width,
+            height: height,
+            size: compressedSize * 1024,
+            compressed: true,
+            originalSize: originalSize * 1024
+          });
+        };
+        img.src = dataURL;
+      });
+    }
+    
+    // Compress preview for faster background styling (free users) - Same as background-workspace.html
+    async function compressPreviewForRemoval(dataURL) {
+      const originalSize = Math.ceil((dataURL.split(',')[1].length * 0.75));
+      const originalSizeKB = originalSize / 1024;
+      
+      console.log('📊 Original size:', originalSizeKB.toFixed(0), 'KB');
+      
+      // If under 100 KB, use as is
+      if (originalSize <= FREE_PREVIEW_LIMIT) {
+        console.log('✅ Using original size (under 100 KB)');
+        return { dataURL, compressed: false, originalSize };
+      }
+      
+      // Compress to 400 KB for faster editing
+      console.log('⚙️ Compressing preview to 400 KB for faster editing...');
+      const compressed = await compressImageForFree(dataURL, 400);
+      console.log('✅ Preview compressed to:', (compressed.size / 1024).toFixed(0), 'KB');
+      
+      return {
+        dataURL: compressed.dataURL,
+        compressed: true,
+        originalSize: originalSize,
+        compressedSize: compressed.size
+      };
+    }
+
+    // Get image dimensions and size info - Same as background-workspace.html
+    function getImageInfo(dataURL) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const base64Data = dataURL.split(',')[1];
+          const size = Math.ceil(base64Data.length * 0.75);
+          resolve({
+            width: img.width,
+            height: img.height,
+            size: size,
+            sizeMB: (size / (1024 * 1024)).toFixed(2),
+            sizeKB: (size / 1024).toFixed(0)
+          });
+        };
+        img.src = dataURL;
+      });
+    }
+
     function applyOverlay() {
       if (!overlayState.enabled || !overlayState.text.trim()) return;
       const ctx = previewContext;
@@ -565,9 +791,35 @@
     async function init() {
       if (!foregroundDataUrl || !dimensions) return;
       try {
-        await loadImage(foregroundImage, foregroundDataUrl);
+        // Check if user is premium
+        let isPremium = false;
+        if (auth && currentUser) {
+          if (!userSubscription) {
+            userSubscription = await checkUserSubscription(currentUser);
+          }
+          isPremium = userSubscription && 
+                     (userSubscription.plan === 'premium' || userSubscription.plan === 'pro') && 
+                     userSubscription.isValid;
+        }
+        
+        // For free users, compress preview for faster background styling
+        let previewUrl = foregroundDataUrl;
+        if (!isPremium) {
+          const previewData = await compressPreviewForRemoval(foregroundDataUrl);
+          if (previewData.compressed) {
+            previewUrl = previewData.dataURL;
+            setStatus('ℹ️ Preview optimized for faster editing (400 KB). Original quality saved for download.');
+            setTimeout(() => {
+              setStatus('Background set to transparent. Choose a new style.');
+            }, 3000);
+          }
+        }
+        
+        await loadImage(foregroundImage, previewUrl);
         await drawComposite('transparent');
-        setStatus('Background set to transparent. Choose a new style.');
+        if (isPremium || !previewUrl || previewUrl === foregroundDataUrl) {
+          setStatus('Background set to transparent. Choose a new style.');
+        }
       } catch (err) {
         console.error('Failed to load foreground', err);
         setStatus('Failed to load the removed background. Try uploading again.');
@@ -652,13 +904,224 @@
       }
     });
 
-    downloadBtn.addEventListener('click', () => {
+    // Modal functions
+    function showDownloadModal() {
+      const modal = document.getElementById('downloadModal');
+      if (modal) {
+        modal.classList.add('active');
+      }
+    }
+
+    function closeDownloadModal() {
+      const modal = document.getElementById('downloadModal');
+      if (modal) {
+        modal.classList.remove('active');
+      }
+    }
+
+    // Expose closeDownloadModal globally for onclick handler
+    window.closeDownloadModal = closeDownloadModal;
+
+    // Close modal on background click
+    const downloadModal = document.getElementById('downloadModal');
+    if (downloadModal) {
+      downloadModal.addEventListener('click', (e) => {
+        if (e.target === downloadModal) {
+          closeDownloadModal();
+        }
+      });
+    }
+
+    // Handle download with modal showing two options - UPDATED to match background-workspace.html
+    async function handleDownload() {
+      // Get the current canvas image as data URL
+      const resultDataURL = previewCanvas.toDataURL('image/png', 1.0);
+      
+      // Get ORIGINAL high-quality image from storage (not preview)
+      const originalResultURL = sessionStorage.getItem(STORAGE_KEYS.foreground) || resultDataURL;
+      
+      // Get image info from ORIGINAL quality
+      const imageInfo = await getImageInfo(originalResultURL);
+      const originalSize = imageInfo.size;
+      const originalSizeKB = parseInt(imageInfo.sizeKB);
+      
+      console.log('📥 Download requested');
+      console.log('   Original size:', originalSizeKB, 'KB');
+      console.log('   Dimensions:', imageInfo.width, 'x', imageInfo.height);
+      
+      // Check if user is premium (must be logged in with active Pro plan)
+      let isPremium = false;
+      if (auth && currentUser) {
+        if (!userSubscription) {
+          userSubscription = await checkUserSubscription(currentUser);
+        }
+        // Only active Pro plan users are premium
+        isPremium = userSubscription && 
+                   (userSubscription.plan === 'premium' || userSubscription.plan === 'pro') && 
+                   userSubscription.isValid;
+      }
+      
+      console.log('   User type:', isPremium ? 'Premium' : 'Free');
+      
+      // Calculate compressed size info (will be used for Free option)
+      let compressedInfo = null;
+      if (originalSizeKB > 500) {
+        setStatus('⚙️ Calculating compressed size...');
+        const compressed = await compressImageForFree(originalResultURL, 500);
+        compressedInfo = {
+          dataURL: compressed.dataURL,
+          width: compressed.width,
+          height: compressed.height,
+          size: compressed.size,
+          sizeKB: (compressed.size / 1024).toFixed(0),
+          sizeMB: (compressed.size / (1024 * 1024)).toFixed(2)
+        };
+        clearStatus();
+      }
+      
+      // Build modal options
+      const downloadOptions = document.getElementById('downloadOptions');
+      downloadOptions.innerHTML = '';
+      
+      // Option 1: Compressed (Free) - Always available, under 500 KB
+      const freeOption = document.createElement('div');
+      freeOption.className = 'download-option';
+      freeOption.innerHTML = `
+        <div class="download-option-header">
+          <div class="download-option-title">Compressed Size</div>
+          <span class="download-option-badge free">FREE</span>
+        </div>
+        <div class="download-option-details">
+          ${compressedInfo ? 
+            `<strong>${compressedInfo.sizeKB} KB</strong> (${compressedInfo.sizeMB} MB)<br>` +
+            `${compressedInfo.width} × ${compressedInfo.height} pixels<br>` +
+            `<small>Auto-compressed to under 500 KB</small>` :
+            `<strong>${imageInfo.sizeKB} KB</strong> (${imageInfo.sizeMB} MB)<br>` +
+            `${imageInfo.width} × ${imageInfo.height} pixels<br>` +
+            `<small>Already under 500 KB limit</small>`
+          }
+        </div>
+      `;
+      freeOption.addEventListener('click', async () => {
+        closeDownloadModal();
+        await downloadCompressed(resultDataURL, imageInfo, compressedInfo);
+      });
+      downloadOptions.appendChild(freeOption);
+      
+      // Option 2: Original/High Quality (Premium) - Only for Pro users
+      const premiumOption = document.createElement('div');
+      premiumOption.className = 'download-option';
+      if (!isPremium) {
+        premiumOption.classList.add('disabled');
+      }
+      premiumOption.innerHTML = `
+        <div class="download-option-header">
+          <div class="download-option-title">Original / High Quality</div>
+          <span class="download-option-badge premium">PRO</span>
+        </div>
+        <div class="download-option-details">
+          <strong>${imageInfo.sizeKB} KB</strong> (${imageInfo.sizeMB} MB)<br>
+          ${imageInfo.width} × ${imageInfo.height} pixels<br>
+          ${!isPremium ? 
+            `<small style="color: #dc2626;">🔒 Requires active Pro/Premium plan</small>` :
+            `<small style="color: #059669;">✓ Full quality, no compression</small>`
+          }
+        </div>
+      `;
+      premiumOption.addEventListener('click', async () => {
+        if (isPremium) {
+          closeDownloadModal();
+          await downloadOriginal(originalResultURL, imageInfo);
+        } else {
+          // Show upgrade message
+          const message = `Original Quality Download\n\n` +
+                         `Size: ${imageInfo.sizeKB} KB (${imageInfo.sizeMB} MB)\n` +
+                         `Dimensions: ${imageInfo.width} × ${imageInfo.height} pixels\n\n` +
+                         `Free users: Max 500 KB (compressed)\n` +
+                         `Your file: ${imageInfo.sizeKB} KB\n\n` +
+                         `Upgrade to Pro/Premium for:\n` +
+                         `✓ Unlimited download size\n` +
+                         `✓ Original quality (no compression)\n` +
+                         `✓ HD resolution\n` +
+                         `✓ Faster processing`;
+          
+          if (!auth || !currentUser) {
+            if (confirm(message + '\n\nLogin now to upgrade?')) {
+              window.location.href = 'login.html';
+            }
+          } else {
+            if (confirm(message + '\n\nView pricing plans?')) {
+              window.location.href = 'pricing.html';
+            }
+          }
+        }
+      });
+      downloadOptions.appendChild(premiumOption);
+      
+      // Show modal
+      showDownloadModal();
+    }
+
+    // Download compressed version (Free) - UPDATED to match background-workspace.html
+    async function downloadCompressed(resultDataURL, originalInfo, compressedInfo) {
+      // Get original quality from storage
+      const originalResultURL = sessionStorage.getItem(STORAGE_KEYS.foreground) || resultDataURL;
+      
+      let downloadDataURL = originalResultURL;
+      let downloadInfo = originalInfo;
+      let wasCompressed = false;
+      
+      // If file is > 500 KB, compress it
+      if (parseInt(originalInfo.sizeKB) > 500) {
+        if (compressedInfo && compressedInfo.dataURL) {
+          // Use pre-calculated compressed version
+          downloadDataURL = compressedInfo.dataURL;
+          downloadInfo = compressedInfo;
+          wasCompressed = true;
+        } else {
+          // Compress now
+          setStatus('⚙️ Compressing to 500 KB...');
+          const compressed = await compressImageForFree(originalResultURL, 500);
+          downloadDataURL = compressed.dataURL;
+          downloadInfo = {
+            width: compressed.width,
+            height: compressed.height,
+            size: compressed.size,
+            sizeKB: (compressed.size / 1024).toFixed(0),
+            sizeMB: (compressed.size / (1024 * 1024)).toFixed(2)
+          };
+          wasCompressed = true;
+          clearStatus();
+        }
+      }
+      
+      // Download
       const link = document.createElement('a');
       const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-styled.png';
-      link.href = previewCanvas.toDataURL('image/png');
+      const baseName = filename.replace(/\.[^/.]+$/, '') || 'background-styled';
+      link.href = downloadDataURL;
+      link.download = wasCompressed ? `${baseName}-free.png` : (filename.endsWith('.png') ? filename : `${baseName}.png`);
+      link.click();
+      
+      const sizeLabel = wasCompressed ? `${downloadInfo.sizeKB} KB (compressed from ${originalInfo.sizeKB} KB)` : `${downloadInfo.sizeKB} KB`;
+      setStatus(`✓ Downloaded ${sizeLabel} - Free tier`);
+      setTimeout(() => clearStatus(), 4000);
+    }
+
+    // Download original/high quality version (Premium)
+    async function downloadOriginal(resultDataURL, imageInfo) {
+      // Download original version
+      const link = document.createElement('a');
+      const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-styled.png';
+      link.href = resultDataURL;
       link.download = filename.endsWith('.png') ? filename : `${filename.replace(/\.[^/.]+$/, '') || 'background-styled'}.png`;
       link.click();
-    });
+      
+      setStatus(`✓ Downloaded (${imageInfo.sizeKB} KB, ${imageInfo.width}×${imageInfo.height}px) - Premium`);
+      setTimeout(() => clearStatus(), 4000);
+    }
+
+    downloadBtn.addEventListener('click', handleDownload);
 
     backToPreview.addEventListener('click', () => {
       window.location.href = 'background-workspace.html';

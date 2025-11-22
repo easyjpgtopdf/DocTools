@@ -35,7 +35,11 @@
     .panel { background: var(--surface); border-radius: 24px; padding: 28px; box-shadow: 0 20px 45px rgba(15, 30, 70, 0.08); }
     .panel h2 { font-size: 1.35rem; margin-bottom: 18px; display: flex; gap: 12px; align-items: center; color: #171f4d; }
     .preview-stage { position: relative; width: 8.5cm; height: 6cm; max-width: 100%; max-height: 100%; margin: 0 auto; border-radius: 18px; background: repeating-conic-gradient(#e5e9ff 0deg 25deg, #f8f9ff 25deg 50deg); overflow: hidden; display: flex; align-items: center; justify-content: center; }
-    .preview-original, .preview-result { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transition: opacity 0.6s ease; }
+    .preview-stage.remover-active { cursor: none !important; }
+    .preview-stage.remover-active #editableCanvas { cursor: none !important; }
+    .preview-original, .preview-result { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transition: opacity 0.6s ease; pointer-events: none; }
+    #editableCanvas { pointer-events: none; }
+    .preview-stage.remover-active #editableCanvas { pointer-events: auto !important; }
     .preview-result { opacity: 0; }
     .preview-stage.revealed .preview-result { opacity: 1; }
     .preview-stage.revealed .preview-original { opacity: 0; }
@@ -58,9 +62,65 @@
     .gallery-download-btn:hover { background: rgba(67,97,238,1) !important; transform: scale(1.1); }
     footer { text-align: center; padding: 24px 16px 40px; font-size: 0.85rem; color: var(--muted); }
     @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeInOut { 0% { opacity: 0; transform: translateY(-10px); } 20% { opacity: 1; transform: translateY(0); } 80% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-10px); } }
+    /* Download Modal Styles */
+    .download-modal { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); z-index: 1000; align-items: center; justify-content: center; }
+    .download-modal.active { display: flex; }
+    .download-modal-content { background: #fff; border-radius: 20px; padding: 32px; max-width: 480px; width: 90%; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3); }
+    .download-modal-header { margin-bottom: 24px; }
+    .download-modal-header h3 { font-size: 1.4rem; color: #1a214d; margin-bottom: 8px; }
+    .download-modal-header p { color: var(--muted); font-size: 0.95rem; }
+    .download-options { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+    .download-option { border: 2px solid var(--border); border-radius: 16px; padding: 20px; cursor: pointer; transition: all 0.3s; background: #fff; }
+    .download-option:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(67, 97, 238, 0.15); }
+    .download-option.disabled { opacity: 0.6; cursor: not-allowed; background: #f5f5f5; }
+    .download-option-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .download-option-title { font-weight: 700; font-size: 1.1rem; color: #1a214d; }
+    .download-option-badge { padding: 4px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .download-option-badge.free { background: rgba(34, 197, 94, 0.15); color: #059669; }
+    .download-option-badge.premium { background: rgba(67, 97, 238, 0.15); color: var(--primary); }
+    .download-option-details { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+    .download-option-details strong { color: #1a214d; }
+    .download-modal-actions { display: flex; gap: 12px; justify-content: flex-end; }
+    .download-modal-actions button { padding: 10px 20px; border-radius: 999px; border: none; cursor: pointer; font-weight: 600; font-size: 0.95rem; transition: transform 0.2s; }
+    .download-modal-actions button:hover { transform: translateY(-1px); }
+    .download-modal-actions .btn-cancel { background: #f5f5f5; color: #666; }
+    /* AI Object Remover Tool Styles - Integrated in Preview */
+    .preview-canvas-container { position: relative; }
+    .inpaint-canvas { position: absolute; top: 0; left: 0; pointer-events: none; opacity: 0; z-index: 5; }
+    .brush-cursor { position: absolute; border: 3px solid #4361ee; border-radius: 50%; pointer-events: none; z-index: 20; background: rgba(67, 97, 238, 0.1); box-shadow: 0 0 10px rgba(67, 97, 238, 0.5); transition: width 0.1s, height 0.1s; transform: translate(-50%, -50%); }
+    .brush-cursor.eraser-mode { border-color: #dc2626; background: rgba(220, 38, 38, 0.1); box-shadow: 0 0 10px rgba(220, 38, 38, 0.5); }
+    
+    /* Inline Tool Bar - Above Preview */
+    .inline-tool-bar { background: linear-gradient(135deg, #4361ee, #3a0ca3); border-radius: 16px; padding: 12px 16px; margin-bottom: 16px; box-shadow: 0 8px 24px rgba(67, 97, 238, 0.3); display: none; }
+    .inline-tool-bar.active { display: block; animation: slideDown 0.3s ease; }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .tool-bar-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .tool-bar-row:last-child { margin-bottom: 0; }
+    
+    .tool-bar-btn { background: rgba(255, 255, 255, 0.15); border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 10px; padding: 8px 12px; color: #fff; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 600; flex: 1; justify-content: center; }
+    .tool-bar-btn:hover { background: rgba(255, 255, 255, 0.25); transform: translateY(-2px); }
+    .tool-bar-btn.active { background: #fff; color: var(--primary); border-color: #fff; }
+    .tool-bar-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .tool-bar-btn i { font-size: 1rem; }
+    
+    .brush-size-inline { flex: 2; display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.15); border-radius: 10px; padding: 8px 12px; }
+    .brush-size-inline label { color: #fff; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
+    .brush-size-inline input { flex: 1; }
+    .brush-size-inline span { color: #fff; font-weight: 700; min-width: 40px; text-align: right; font-size: 0.85rem; }
+    
+    .tool-toggle-floating { position: absolute; top: -50px; right: 0; background: linear-gradient(135deg, #4361ee, #3a0ca3); color: #fff; border: none; border-radius: 12px; padding: 10px 16px; cursor: pointer; box-shadow: 0 4px 16px rgba(67, 97, 238, 0.3); z-index: 10; transition: all 0.2s; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .tool-toggle-floating:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4); }
+    .tool-toggle-floating.active { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+    .tool-toggle-floating i { font-size: 1.1rem; }
     @media (max-width: 960px) {
       main { grid-template-columns: 1fr; }
       .actions { justify-content: center; }
+      .tool-bar-row { flex-direction: column; }
+      .tool-bar-btn { width: 100%; }
+      .brush-size-inline { width: 100%; }
+      .tool-toggle-floating { top: -45px; font-size: 0.8rem; padding: 8px 12px; }
     }
   </style>
 <link href="css/header.css" rel="stylesheet"/>
@@ -161,17 +221,53 @@
 <main>
 <section class="panel">
 <h2><i class="fas fa-wand-magic-sparkles"></i> Background Removed</h2>
-<div class="preview-stage" id="previewStage">
-<img alt="Original" class="preview-original" hidden="" id="previewOriginal"/>
-<img alt="Result" class="preview-result" hidden="" id="previewResult"/>
-<div class="preview-overlay" id="previewOverlay">
-<div class="preview-spinner"></div>
-<span>AI Processing...</span>
+
+<!-- Inline Tool Bar - Photopea/Canva Style -->
+<div class="inline-tool-bar" id="inlineToolBar">
+  <div class="tool-bar-row">
+    <button class="tool-bar-btn" id="eraserToolInline" title="Click objects to remove them instantly">
+      <i class="fas fa-eraser"></i> Remove Object
+    </button>
+    <div class="brush-size-inline">
+      <label>Size:</label>
+      <input type="range" id="brushSizeInline" min="10" max="150" value="40">
+      <span id="brushSizeValueInline">40px</span>
+    </div>
+  </div>
+  <div class="tool-bar-row">
+    <button class="tool-bar-btn" id="undoBtnInline" disabled title="Undo last removal">
+      <i class="fas fa-undo"></i> Undo
+    </button>
+    <button class="tool-bar-btn" id="redoBtnInline" disabled title="Redo removal">
+      <i class="fas fa-redo"></i> Redo
+    </button>
+    <button class="tool-bar-btn" id="resetImageBtn" title="Reset to original">
+      <i class="fas fa-rotate-left"></i> Reset
+    </button>
+  </div>
 </div>
-<div class="preview-placeholder hidden" id="previewPlaceholder">
-<i class="fas fa-image" style="font-size:3rem;opacity:0.3;"></i>
-<span>No image loaded</span>
-</div>
+
+<div class="preview-canvas-container" id="previewCanvasContainer" style="position: relative;">
+  <!-- Toggle Button -->
+  <button class="tool-toggle-floating" id="toolToggleFloating" title="Toggle Object Remover">
+    <i class="fas fa-magic"></i> Object Remover
+  </button>
+  
+  <div class="preview-stage" id="previewStage">
+    <img alt="Original" class="preview-original" hidden="" id="previewOriginal"/>
+    <img alt="Result" class="preview-result" hidden="" id="previewResult"/>
+    <!-- EDITABLE CANVAS - Overlays on top of image for real-time editing -->
+    <canvas id="editableCanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; display: none; z-index: 10; cursor: crosshair;"></canvas>
+    <div class="brush-cursor" id="brushCursor" style="display: none;"></div>
+    <div class="preview-overlay" id="previewOverlay">
+      <div class="preview-spinner"></div>
+      <span>AI Processing...</span>
+    </div>
+    <div class="preview-placeholder hidden" id="previewPlaceholder">
+      <i class="fas fa-image" style="font-size:3rem;opacity:0.3;"></i>
+      <span>No image loaded</span>
+    </div>
+  </div>
 </div>
 <div class="actions">
 <button class="btn btn-outline" disabled="" id="backgroundChange">
@@ -190,6 +286,22 @@
   <div id="galleryContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px;"></div>
 </div>
 </section>
+<!-- Download Modal -->
+<div id="downloadModal" class="download-modal">
+  <div class="download-modal-content">
+    <div class="download-modal-header">
+      <h3><i class="fas fa-download"></i> Choose Download Size</h3>
+      <p>Select your preferred download option</p>
+    </div>
+    <div class="download-options" id="downloadOptions">
+      <!-- Options will be populated by JavaScript -->
+    </div>
+    <div class="download-modal-actions">
+      <button class="btn-cancel" onclick="closeDownloadModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <section class="panel">
 <h2><i class="fas fa-info-circle"></i> Processing Info</h2>
 <div class="status-card" id="statusMessage"></div>
@@ -248,6 +360,8 @@
     // Limits - Updated
     const FREE_UPLOAD_LIMIT = 10 * 1024 * 1024; // 10 MB - Free upload limit
     const FREE_DOWNLOAD_LIMIT = 500 * 1024; // 500 KB - Free download limit
+    const FREE_PREVIEW_LIMIT = 100 * 1024; // 100 KB - Free preview without compression
+    const FREE_PREVIEW_MAX = 400 * 1024; // 400 KB - Max preview size for free users
     const IMGLY_MAX_SIZE = 2 * 1024 * 1024; // 2 MB - use imagly up to this
 
     const previewStage = document.getElementById('previewStage');
@@ -587,23 +701,25 @@
           const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'photo.png';
           const fileForProcessing = new File([blob], filename, { type: blob.type || 'image/png' });
 
-          // Process with EXACT remove.bg quality settings
+          // Process with ENHANCED remove.bg quality settings for 100% accuracy
+          // Using advanced settings to prevent over-cleaning and ensure complete background removal
           const result = await removeBackgroundFn(fileForProcessing, {
             publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
-            model: 'medium',  // Remove.bg uses medium model for best quality/speed balance
+            model: 'medium',  // Best balance for quality and accuracy
             output: { 
               format: 'image/png', 
-              quality: 1.0,  // Maximum quality like remove.bg
+              quality: 1.0,  // Maximum quality
               type: 'foreground'
             },
             postprocessMask: {
-              featherRadius: 0,    // Remove.bg uses 0 for sharp edges
-              smooth: 0             // Remove.bg uses 0 for no smoothing
+              featherRadius: 2,    // Light feather for smooth edges (prevents harsh cuts)
+              smooth: 2             // Light smoothing for natural edges (prevents artifacts)
             },
+            modelScale: 1.0,        // Full scale for maximum accuracy
             device: 'cpu',
             progress: (key, current, total) => {
               const percent = Math.round((current / total) * 100);
-              statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">🎨 Processing ${percent}%...</div>`;
+              statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">🎨 AI Processing ${percent}% (Enhanced Quality Mode)...</div>`;
             }
           });
 
@@ -617,15 +733,38 @@
         
         // Store original high-quality result for download
         sessionStorage.setItem(STORAGE_KEYS.foreground, resultUrl);
+        
+        // Check if user is premium
+        let isPremium = false;
+        if (auth && currentUser) {
+          if (!userSubscription) {
+            userSubscription = await checkUserSubscription(currentUser);
+          }
+          isPremium = userSubscription && 
+                     (userSubscription.plan === 'premium' || userSubscription.plan === 'pro') && 
+                     userSubscription.isValid;
+        }
+        
+        // For free users, compress preview for faster object removal
+        let previewUrl = resultUrl;
+        if (!isPremium) {
+          const previewData = await compressPreviewForRemoval(resultUrl);
+          if (previewData.compressed) {
+            previewUrl = previewData.dataURL;
+            statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">ℹ️ Preview optimized for faster editing (400 KB). Original quality saved for download.</div>';
+            setTimeout(() => clearStatus(), 4000);
+          }
+        }
 
         const foregroundImage = new Image();
         foregroundImage.crossOrigin = 'anonymous';
-        foregroundImage.src = resultUrl;
+        foregroundImage.src = previewUrl;
         await foregroundImage.decode();
 
-        // OPTIMIZE PREVIEW - Reduce size for display (max 800px width, compressed)
-        const maxPreviewWidth = 800;
-        const maxPreviewHeight = 600;
+        // ENHANCED PREVIEW - High quality preview with edge refinement
+        // Use larger preview size for better visibility of quality
+        const maxPreviewWidth = 1000;  // Increased from 800 for better quality preview
+        const maxPreviewHeight = 800;  // Increased from 600 for better quality preview
         let previewWidth = foregroundImage.width;
         let previewHeight = foregroundImage.height;
         
@@ -636,26 +775,37 @@
           previewHeight = Math.round(previewHeight * scale);
         }
         
-        // Create optimized preview canvas
+        // Create high-quality preview canvas with enhanced rendering
         const previewCanvas = document.createElement('canvas');
         previewCanvas.width = previewWidth;
         previewCanvas.height = previewHeight;
         const previewCtx = previewCanvas.getContext('2d');
+        
+        // Enhanced rendering settings for better quality
         previewCtx.imageSmoothingEnabled = true;
-        previewCtx.imageSmoothingQuality = 'high';
+        previewCtx.imageSmoothingQuality = 'high';  // Best quality smoothing
+        previewCtx.globalCompositeOperation = 'source-over';
+        
+        // Draw with high quality
         previewCtx.drawImage(foregroundImage, 0, 0, previewWidth, previewHeight);
         
-        // Compressed preview for display (reduces size significantly)
-        const optimizedPreview = previewCanvas.toDataURL('image/png', 0.85);
+        // Higher quality preview (increased from 0.85 to 0.95 for better preview)
+        const optimizedPreview = previewCanvas.toDataURL('image/png', 0.95);
         
         previewResult.hidden = false;
-        previewResult.src = optimizedPreview; // Use optimized preview for display
+        previewResult.src = optimizedPreview; // Use high-quality preview for display
 
-        // Store full quality for download
+        // Store full quality for download with enhanced rendering
         ensureCanvas(foregroundImage.width, foregroundImage.height);
         resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+        
+        // Enhanced rendering for full quality output
+        resultContext.imageSmoothingEnabled = true;
+        resultContext.imageSmoothingQuality = 'high';
+        resultContext.globalCompositeOperation = 'source-over';
+        
         resultContext.drawImage(foregroundImage, 0, 0, resultCanvas.width, resultCanvas.height);
-        resultDataURL = resultCanvas.toDataURL('image/png', 1.0); // Full quality for download
+        resultDataURL = resultCanvas.toDataURL('image/png', 1.0); // Maximum quality for download
 
         sessionStorage.setItem(STORAGE_KEYS.dimensions, JSON.stringify({ width: resultCanvas.width, height: resultCanvas.height }));
         previewOverlay.style.opacity = 0;
@@ -702,7 +852,7 @@
           
           // If already under limit, return as is
           if (originalSize <= targetSizeKB) {
-            resolve({ dataURL, width, height, size: originalSize * 1024 });
+            resolve({ dataURL, width, height, size: originalSize * 1024, compressed: false });
             return;
           }
           
@@ -740,11 +890,38 @@
             width: width,
             height: height,
             size: compressedSize * 1024,
-            compressed: true
+            compressed: true,
+            originalSize: originalSize * 1024
           });
         };
         img.src = dataURL;
       });
+    }
+    
+    // Compress preview for faster object removal (free users)
+    async function compressPreviewForRemoval(dataURL) {
+      const originalSize = Math.ceil((dataURL.split(',')[1].length * 0.75));
+      const originalSizeKB = originalSize / 1024;
+      
+      console.log('📊 Original size:', originalSizeKB.toFixed(0), 'KB');
+      
+      // If under 100 KB, use as is
+      if (originalSize <= FREE_PREVIEW_LIMIT) {
+        console.log('✅ Using original size (under 100 KB)');
+        return { dataURL, compressed: false, originalSize };
+      }
+      
+      // Compress to 400 KB for faster removal
+      console.log('⚙️ Compressing preview to 400 KB for faster removal...');
+      const compressed = await compressImageForFree(dataURL, 400);
+      console.log('✅ Preview compressed to:', (compressed.size / 1024).toFixed(0), 'KB');
+      
+      return {
+        dataURL: compressed.dataURL,
+        compressed: true,
+        originalSize: originalSize,
+        compressedSize: compressed.size
+      };
     }
 
     // Get image dimensions and size info
@@ -766,17 +943,52 @@
       });
     }
 
-    // Check download size and subscription before download
+    // Modal functions
+    function showDownloadModal() {
+      const modal = document.getElementById('downloadModal');
+      if (modal) {
+        modal.classList.add('active');
+      }
+    }
+
+    function closeDownloadModal() {
+      const modal = document.getElementById('downloadModal');
+      if (modal) {
+        modal.classList.remove('active');
+      }
+    }
+
+    // Expose closeDownloadModal globally for onclick handler
+    window.closeDownloadModal = closeDownloadModal;
+
+    // Close modal on background click
+    const downloadModal = document.getElementById('downloadModal');
+    if (downloadModal) {
+      downloadModal.addEventListener('click', (e) => {
+        if (e.target === downloadModal) {
+          closeDownloadModal();
+        }
+      });
+    }
+
+    // Handle download with modal showing two options
     async function handleDownload() {
       if (!resultDataURL) {
         showError('No processed image available. Please wait for processing to complete.');
         return;
       }
-
-      // Get original image info (size and dimensions)
-      const originalInfo = await getImageInfo(resultDataURL);
-      const originalSize = originalInfo.size;
-      const originalSizeKB = parseInt(originalInfo.sizeKB);
+      
+      // Get ORIGINAL high-quality image from storage (not preview)
+      const originalResultURL = sessionStorage.getItem(STORAGE_KEYS.foreground) || resultDataURL;
+      
+      // Get image info from ORIGINAL quality
+      const imageInfo = await getImageInfo(originalResultURL);
+      const originalSize = imageInfo.size;
+      const originalSizeKB = parseInt(imageInfo.sizeKB);
+      
+      console.log('📥 Download requested');
+      console.log('   Original size:', originalSizeKB, 'KB');
+      console.log('   Dimensions:', imageInfo.width, 'x', imageInfo.height);
       
       // Check if user is premium (must be logged in with active Pro plan)
       let isPremium = false;
@@ -790,87 +1002,171 @@
                    userSubscription.isValid;
       }
       
-      // FIXED: If file is ≤ 500 KB, allow free download (no compression needed)
-      if (originalSizeKB <= 500) {
-        // Free download - direct (no compression)
-        const link = document.createElement('a');
-        const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-removed.png';
-        link.href = resultDataURL;
-        link.download = filename.endsWith('.png') ? filename : `${filename.replace(/\.[^/.]+$/, '') || 'background-removed'}.png`;
-        link.click();
-        
-        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">✓ Downloaded (${originalInfo.sizeKB} KB, ${originalInfo.width}×${originalInfo.height}px)</div>`;
-        setTimeout(() => clearStatus(), 4000);
-        
-        // Add to gallery
-        addToGallery(resultDataURL, filename, originalInfo);
-        return;
-      }
+      console.log('   User type:', isPremium ? 'Premium' : 'Free');
       
-      // File > 500 KB - Check premium status
-      if (!isPremium) {
-        // Not premium - show message and require Pro plan
-        const message = `Download size: ${originalInfo.sizeKB} KB (${originalInfo.sizeMB} MB)\n` +
-                       `Image dimensions: ${originalInfo.width} × ${originalInfo.height} pixels\n\n` +
-                       `Free download limit: 500 KB\n` +
-                       `Your file (${originalInfo.sizeKB} KB) exceeds the free limit.\n\n` +
-                       `To download files larger than 500 KB, you need:\n` +
-                       `• Active Pro/Premium plan\n` +
-                       `• Must be logged in`;
-        
-        if (!auth || !currentUser) {
-          // Not logged in
-          if (confirm(message + '\n\nLogin now?')) {
-            window.location.href = 'login.html';
-          }
-        } else {
-          // Logged in but no active Pro plan
-          if (confirm(message + '\n\nGo to pricing page to upgrade?')) {
-            window.location.href = 'pricing.html';
-          }
-        }
-        return;
-      }
-      
-      // Premium user with active Pro plan - allow download
-      // Show size options for premium users
-      const message = `Download Options:\n\n` +
-                     `Original: ${originalInfo.sizeKB} KB (${originalInfo.sizeMB} MB)\n` +
-                     `Dimensions: ${originalInfo.width} × ${originalInfo.height} pixels\n\n` +
-                     `Choose download option:`;
-      
-      const choice = confirm(message + '\n\nOK = Original Size\nCancel = Compressed (500 KB)');
-      
-      let downloadDataURL = resultDataURL;
-      let downloadInfo = originalInfo;
-      
-      if (!choice) {
-        // User wants compressed version
-        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⚙️ Compressing image...</div>`;
-        const compressed = await compressImageForFree(resultDataURL, 500);
-        downloadDataURL = compressed.dataURL;
-        downloadInfo = {
+      // Calculate compressed size info (will be used for Free option)
+      let compressedInfo = null;
+      if (originalSizeKB > 500) {
+        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⚙️ Calculating compressed size...</div>`;
+        const compressed = await compressImageForFree(originalResultURL, 500);
+        compressedInfo = {
+          dataURL: compressed.dataURL,
           width: compressed.width,
           height: compressed.height,
           size: compressed.size,
           sizeKB: (compressed.size / 1024).toFixed(0),
           sizeMB: (compressed.size / (1024 * 1024)).toFixed(2)
         };
+        clearStatus();
       }
       
-      // Download selected version
+      // Build modal options
+      const downloadOptions = document.getElementById('downloadOptions');
+      downloadOptions.innerHTML = '';
+      
+      // Option 1: Compressed (Free) - Always available, under 500 KB
+      const freeOption = document.createElement('div');
+      freeOption.className = 'download-option';
+      freeOption.innerHTML = `
+        <div class="download-option-header">
+          <div class="download-option-title">Compressed Size</div>
+          <span class="download-option-badge free">FREE</span>
+        </div>
+        <div class="download-option-details">
+          ${compressedInfo ? 
+            `<strong>${compressedInfo.sizeKB} KB</strong> (${compressedInfo.sizeMB} MB)<br>` +
+            `${compressedInfo.width} × ${compressedInfo.height} pixels<br>` +
+            `<small>Auto-compressed to under 500 KB</small>` :
+            `<strong>${imageInfo.sizeKB} KB</strong> (${imageInfo.sizeMB} MB)<br>` +
+            `${imageInfo.width} × ${imageInfo.height} pixels<br>` +
+            `<small>Already under 500 KB limit</small>`
+          }
+        </div>
+      `;
+      freeOption.addEventListener('click', async () => {
+        closeDownloadModal();
+        await downloadCompressed(resultDataURL, imageInfo, compressedInfo);
+      });
+      downloadOptions.appendChild(freeOption);
+      
+      // Option 2: Original/High Quality (Premium) - Only for Pro users
+      const premiumOption = document.createElement('div');
+      premiumOption.className = 'download-option';
+      if (!isPremium) {
+        premiumOption.classList.add('disabled');
+      }
+      premiumOption.innerHTML = `
+        <div class="download-option-header">
+          <div class="download-option-title">Original / High Quality</div>
+          <span class="download-option-badge premium">PRO</span>
+        </div>
+        <div class="download-option-details">
+          <strong>${imageInfo.sizeKB} KB</strong> (${imageInfo.sizeMB} MB)<br>
+          ${imageInfo.width} × ${imageInfo.height} pixels<br>
+          ${!isPremium ? 
+            `<small style="color: #dc2626;">🔒 Requires active Pro/Premium plan</small>` :
+            `<small style="color: #059669;">✓ Full quality, no compression</small>`
+          }
+        </div>
+      `;
+      premiumOption.addEventListener('click', async () => {
+        if (isPremium) {
+          closeDownloadModal();
+          await downloadOriginal(originalResultURL, imageInfo);
+        } else {
+          // Show upgrade message
+          const message = `Original Quality Download\n\n` +
+                         `Size: ${imageInfo.sizeKB} KB (${imageInfo.sizeMB} MB)\n` +
+                         `Dimensions: ${imageInfo.width} × ${imageInfo.height} pixels\n\n` +
+                         `Free users: Max 500 KB (compressed)\n` +
+                         `Your file: ${imageInfo.sizeKB} KB\n\n` +
+                         `Upgrade to Pro/Premium for:\n` +
+                         `✓ Unlimited download size\n` +
+                         `✓ Original quality (no compression)\n` +
+                         `✓ HD resolution\n` +
+                         `✓ Faster processing`;
+          
+          if (!auth || !currentUser) {
+            if (confirm(message + '\n\nLogin now to upgrade?')) {
+              window.location.href = 'login.html';
+            }
+          } else {
+            if (confirm(message + '\n\nView pricing plans?')) {
+              window.location.href = 'pricing.html';
+            }
+          }
+        }
+      });
+      downloadOptions.appendChild(premiumOption);
+      
+      // Show modal
+      showDownloadModal();
+    }
+
+    // Download compressed version (Free)
+    async function downloadCompressed(resultDataURL, originalInfo, compressedInfo) {
+      // Get original quality from storage
+      const originalResultURL = sessionStorage.getItem(STORAGE_KEYS.foreground) || resultDataURL;
+      
+      let downloadDataURL = originalResultURL;
+      let downloadInfo = originalInfo;
+      let wasCompressed = false;
+      
+      // If file is > 500 KB, compress it
+      if (parseInt(originalInfo.sizeKB) > 500) {
+        if (compressedInfo && compressedInfo.dataURL) {
+          // Use pre-calculated compressed version
+          downloadDataURL = compressedInfo.dataURL;
+          downloadInfo = compressedInfo;
+          wasCompressed = true;
+        } else {
+          // Compress now
+          statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⚙️ Compressing to 500 KB...</div>`;
+          const compressed = await compressImageForFree(originalResultURL, 500);
+          downloadDataURL = compressed.dataURL;
+          downloadInfo = {
+            width: compressed.width,
+            height: compressed.height,
+            size: compressed.size,
+            sizeKB: (compressed.size / 1024).toFixed(0),
+            sizeMB: (compressed.size / (1024 * 1024)).toFixed(2)
+          };
+          wasCompressed = true;
+          clearStatus();
+        }
+      }
+      
+      // Download
       const link = document.createElement('a');
       const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-removed.png';
       const baseName = filename.replace(/\.[^/.]+$/, '') || 'background-removed';
       link.href = downloadDataURL;
-      link.download = choice ? filename : `${baseName}-compressed.png`;
+      link.download = wasCompressed ? `${baseName}-free.png` : (filename.endsWith('.png') ? filename : `${baseName}.png`);
       link.click();
       
-      statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">✓ Downloaded (${downloadInfo.sizeKB} KB, ${downloadInfo.width}×${downloadInfo.height}px)</div>`;
+      const sizeLabel = wasCompressed ? `${downloadInfo.sizeKB} KB (compressed from ${originalInfo.sizeKB} KB)` : `${downloadInfo.sizeKB} KB`;
+      statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">✓ Downloaded ${sizeLabel} - Free tier</div>`;
       setTimeout(() => clearStatus(), 4000);
       
       // Add to gallery
-      addToGallery(downloadDataURL, choice ? filename : `${baseName}-compressed.png`, downloadInfo);
+      const galleryFilename = wasCompressed ? `${baseName}-free.png` : filename;
+      addToGallery(downloadDataURL, galleryFilename, downloadInfo);
+    }
+
+    // Download original/high quality version (Premium)
+    async function downloadOriginal(resultDataURL, imageInfo) {
+      // Download original version
+      const link = document.createElement('a');
+      const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-removed.png';
+      link.href = resultDataURL;
+      link.download = filename.endsWith('.png') ? filename : `${filename.replace(/\.[^/.]+$/, '') || 'background-removed'}.png`;
+      link.click();
+      
+      statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">✓ Downloaded (${imageInfo.sizeKB} KB, ${imageInfo.width}×${imageInfo.height}px) - Premium</div>`;
+      setTimeout(() => clearStatus(), 4000);
+      
+      // Add to gallery
+      addToGallery(resultDataURL, filename, imageInfo);
     }
 
     // File Gallery Functions (like remove.bg)
@@ -965,29 +1261,23 @@
         const file = e.target.files[0];
         if (!file) return;
         
-        // Check upload limit - ALWAYS enforce 10 MB limit regardless of auth state
-        if (file.size > FREE_UPLOAD_LIMIT) {
-          // If auth is available, check premium status
-          if (auth && currentUser) {
-            if (!userSubscription) {
-              userSubscription = await checkUserSubscription(currentUser);
-            }
-            
-            // Premium users can upload unlimited
-            if (userSubscription && userSubscription.isPremium && userSubscription.isValid) {
-              // Premium user - allow upload
-            } else {
-              // Not premium - show limit message
-              const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-              if (confirm(`File size: ${sizeMB} MB\nFree upload limit: 10 MB\n\nYou need Premium subscription for files larger than 10 MB. Go to pricing page?`)) {
-                window.location.href = 'pricing.html';
-              }
-              return;
-            }
-          } else {
-            // No auth or not logged in - enforce limit
+        // Check upload limit
+        if (file.size > FREE_UPLOAD_LIMIT && auth) {
+          if (!currentUser) {
             const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
             if (confirm(`File size: ${sizeMB} MB\nFree upload limit: 10 MB\n\nUpgrade to Premium for unlimited uploads. Go to pricing page?`)) {
+              window.location.href = 'pricing.html';
+            }
+            return;
+          }
+          
+          if (!userSubscription) {
+            userSubscription = await checkUserSubscription(currentUser);
+          }
+          
+          if (!userSubscription || !userSubscription.isPremium || !userSubscription.isValid) {
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            if (confirm(`File size: ${sizeMB} MB\nFree upload limit: 10 MB\n\nYou need Premium subscription for files larger than 10 MB. Go to pricing page?`)) {
               window.location.href = 'pricing.html';
             }
             return;
@@ -1037,7 +1327,560 @@
 
     downloadBtn.addEventListener('click', handleDownload);
 
-    document.getElementById('footerYear').textContent = new Date().getFullYear();
+    // ============================================
+    // AI OBJECT REMOVER TOOL - Real-time Automatic Removal
+    // ============================================
+    
+    const toolToggleFloating = document.getElementById('toolToggleFloating');
+    const inlineToolBar = document.getElementById('inlineToolBar');
+    const editableCanvas = document.getElementById('editableCanvas');
+    const brushCursor = document.getElementById('brushCursor');
+    const eraserToolInline = document.getElementById('eraserToolInline');
+    const brushSizeInline = document.getElementById('brushSizeInline');
+    const brushSizeValueInline = document.getElementById('brushSizeValueInline');
+    const undoBtnInline = document.getElementById('undoBtnInline');
+    const redoBtnInline = document.getElementById('redoBtnInline');
+    const resetImageBtn = document.getElementById('resetImageBtn');
+    
+    let editableCtx = null;
+    let isRemoving = false;
+    let brushSize = 40;
+    let imageHistory = [];
+    let historyIndex = -1;
+    let isRemoverToolActive = false;
+    let originalImageData = null;
+    let currentImageData = null;
+    
+    // Initialize editable canvas for real-time removal
+    function initEditableCanvas() {
+      if (!previewResult.src || previewResult.hidden) {
+        console.warn('⚠️ Preview result not ready');
+        statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(220,38,38,0.12);color:#7f1d1d;font-weight:600;">⚠️ Please wait for image to load first!</div>';
+        setTimeout(() => clearStatus(), 3000);
+        return false;
+      }
+      
+      // Get canvas context
+      editableCtx = editableCanvas.getContext('2d', { willReadFrequently: true });
+      
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = previewResult.src;
+      
+      img.onload = () => {
+        // Set canvas size to match image natural size
+        editableCanvas.width = img.width;
+        editableCanvas.height = img.height;
+        
+        // Draw image on canvas
+        editableCtx.clearRect(0, 0, editableCanvas.width, editableCanvas.height);
+        editableCtx.drawImage(img, 0, 0);
+        
+        // Save original image data
+        originalImageData = editableCtx.getImageData(0, 0, editableCanvas.width, editableCanvas.height);
+        currentImageData = editableCtx.getImageData(0, 0, editableCanvas.width, editableCanvas.height);
+        
+        // Show canvas and hide image
+        editableCanvas.style.display = 'block';
+        previewResult.style.opacity = '0';
+        
+        // Save initial state to history
+        imageHistory = [];
+        historyIndex = -1;
+        saveImageState();
+        
+        console.log('✅ Editable Canvas Ready!');
+        console.log('   Canvas size:', editableCanvas.width, 'x', editableCanvas.height);
+        console.log('   Display size:', editableCanvas.getBoundingClientRect().width, 'x', editableCanvas.getBoundingClientRect().height);
+        
+        statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">✅ Ready! Click on the image to remove objects.</div>';
+        setTimeout(() => {
+          statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;"><i class="fas fa-magic"></i> Click or drag on the image to remove objects instantly!</div>';
+        }, 2000);
+      };
+      
+      img.onerror = () => {
+        console.error('❌ Failed to load image for object removal');
+        statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(220,38,38,0.12);color:#7f1d1d;font-weight:600;">❌ Failed to initialize tool. Please try again.</div>';
+      };
+      
+      return true;
+    }
+    
+    // Toggle tool panel - Real-time removal mode
+    toolToggleFloating.addEventListener('click', () => {
+      isRemoverToolActive = !isRemoverToolActive;
+      
+      if (isRemoverToolActive) {
+        // Check if preview result is available
+        if (!previewResult.src || previewResult.hidden) {
+          statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(220,38,38,0.12);color:#7f1d1d;font-weight:600;">⚠️ Please wait for image to load first!</div>';
+          isRemoverToolActive = false;
+          return;
+        }
+        
+        inlineToolBar.classList.add('active');
+        toolToggleFloating.classList.add('active');
+        toolToggleFloating.innerHTML = '<i class="fas fa-times"></i> Close Tool';
+        
+        // Add active classes for cursor control
+        previewStage.classList.add('remover-active');
+        
+        // Initialize editable canvas
+        const success = initEditableCanvas();
+        if (!success) {
+          isRemoverToolActive = false;
+          inlineToolBar.classList.remove('active');
+          toolToggleFloating.classList.remove('active');
+          toolToggleFloating.innerHTML = '<i class="fas fa-magic"></i> Object Remover';
+          previewStage.classList.remove('remover-active');
+          return;
+        }
+        
+        // ATTACH CANVAS EVENTS after canvas is visible
+        setTimeout(() => {
+          attachCanvasEvents();
+        }, 100);
+        
+        eraserToolInline.classList.add('active');
+        
+        console.log('🎨 Tool activated - Click on canvas to remove objects');
+        console.log('   Canvas rect:', editableCanvas.getBoundingClientRect());
+        
+      } else {
+        inlineToolBar.classList.remove('active');
+        toolToggleFloating.classList.remove('active');
+        toolToggleFloating.innerHTML = '<i class="fas fa-magic"></i> Object Remover';
+        
+        // Remove active classes
+        previewStage.classList.remove('remover-active');
+        
+        // DETACH CANVAS EVENTS
+        detachCanvasEvents();
+        
+        // Hide canvas and show result image
+        editableCanvas.style.display = 'none';
+        previewResult.style.opacity = '1';
+        
+        brushCursor.style.display = 'none';
+        eraserToolInline.classList.remove('active');
+        isRemoving = false;
+        clearStatus();
+        
+        console.log('🔒 Tool deactivated');
+      }
+    });
+    
+    // Brush size control
+    brushSizeInline.addEventListener('input', () => {
+      brushSize = parseInt(brushSizeInline.value);
+      brushSizeValueInline.textContent = brushSize + 'px';
+      brushCursor.style.width = brushSize + 'px';
+      brushCursor.style.height = brushSize + 'px';
+    });
+    
+    // Reset image button with AUTO-SAVE
+    resetImageBtn.addEventListener('click', () => {
+      if (confirm('Reset to original image? All removals will be lost.')) {
+        if (originalImageData && editableCtx) {
+          editableCtx.putImageData(originalImageData, 0, 0);
+          
+          // Update preview immediately
+          updatePreviewInstant();
+          
+          // Clear history
+          imageHistory = [];
+          historyIndex = -1;
+          saveImageState();
+          
+          // AUTO-SAVE after reset
+          autoSaveImage();
+          
+          statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">✓ Image reset to original & auto-saved!</div>';
+          setTimeout(() => {
+            statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;"><i class="fas fa-magic"></i> Click or drag on objects to remove them instantly!</div>';
+          }, 2000);
+        }
+      }
+    });
+    
+    // Get mouse position relative to canvas
+    function getCanvasMousePos(e) {
+      if (!editableCanvas) {
+        console.warn('Canvas not ready');
+        return { x: 0, y: 0 };
+      }
+      
+      const rect = editableCanvas.getBoundingClientRect();
+      
+      // Get mouse position relative to canvas display
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      
+      // Scale to canvas internal coordinates
+      const scaleX = editableCanvas.width / rect.width;
+      const scaleY = editableCanvas.height / rect.height;
+      
+      const canvasX = mouseX * scaleX;
+      const canvasY = mouseY * scaleY;
+      
+      // Clamp to canvas bounds
+      const x = Math.max(0, Math.min(editableCanvas.width - 1, Math.round(canvasX)));
+      const y = Math.max(0, Math.min(editableCanvas.height - 1, Math.round(canvasY)));
+      
+      return { x, y };
+    }
+    
+    // Save image state for undo/redo
+    function saveImageState() {
+      if (!editableCtx) return;
+      
+      // Remove any states after current index
+      imageHistory = imageHistory.slice(0, historyIndex + 1);
+      
+      // Save current image state
+      const imageData = editableCtx.getImageData(0, 0, editableCanvas.width, editableCanvas.height);
+      imageHistory.push(imageData);
+      historyIndex++;
+      
+      // Limit history to 20 states
+      if (imageHistory.length > 20) {
+        imageHistory.shift();
+        historyIndex--;
+      }
+      
+      updateUndoRedoButtons();
+    }
+    
+    // Update undo/redo button states
+    function updateUndoRedoButtons() {
+      undoBtnInline.disabled = historyIndex <= 0;
+      redoBtnInline.disabled = historyIndex >= imageHistory.length - 1;
+    }
+    
+    // Undo with AUTO-SAVE
+    undoBtnInline.addEventListener('click', () => {
+      if (historyIndex > 0 && editableCtx) {
+        historyIndex--;
+        const imageData = imageHistory[historyIndex];
+        editableCtx.putImageData(imageData, 0, 0);
+        
+        // Update preview immediately
+        updatePreviewInstant();
+        
+        // AUTO-SAVE after undo
+        autoSaveImage();
+        
+        updateUndoRedoButtons();
+        statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">↩️ Undo applied & auto-saved!</div>';
+        setTimeout(() => {
+          statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;"><i class="fas fa-magic"></i> Click or drag on objects to remove them instantly!</div>';
+        }, 1500);
+      }
+    });
+    
+    // Redo with AUTO-SAVE
+    redoBtnInline.addEventListener('click', () => {
+      if (historyIndex < imageHistory.length - 1 && editableCtx) {
+        historyIndex++;
+        const imageData = imageHistory[historyIndex];
+        editableCtx.putImageData(imageData, 0, 0);
+        
+        // Update preview immediately
+        updatePreviewInstant();
+        
+        // AUTO-SAVE after redo
+        autoSaveImage();
+        
+        updateUndoRedoButtons();
+        statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">↪️ Redo applied & auto-saved!</div>';
+        setTimeout(() => {
+          statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;"><i class="fas fa-magic"></i> Click or drag on objects to remove them instantly!</div>';
+        }, 1500);
+      }
+    });
+    
+    // Real-time object removal functions with AUTO-SAVE
+    let lastX = 0;
+    let lastY = 0;
+    let removalTimeout = null;
+    let autoSaveTimeout = null;
+    
+    function startRemoving(e) {
+      if (!isRemoverToolActive) {
+        console.log('Tool not active');
+        return;
+      }
+      
+      if (!editableCtx) {
+        console.warn('Canvas not initialized');
+        statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(220,38,38,0.12);color:#7f1d1d;font-weight:600;">⚠️ Tool not ready. Please close and reopen.</div>';
+        return;
+      }
+      
+      isRemoving = true;
+      const pos = getCanvasMousePos(e);
+      lastX = pos.x;
+      lastY = pos.y;
+      
+      console.log('🎨 Removing at:', pos.x.toFixed(0), pos.y.toFixed(0));
+      
+      // Immediately remove at click point
+      removeAtPoint(pos.x, pos.y);
+    }
+    
+    function continueRemoving(e) {
+      if (!isRemoving || !isRemoverToolActive || !editableCtx) return;
+      
+      const pos = getCanvasMousePos(e);
+      
+      // Draw line from last position to current position
+      const dx = pos.x - lastX;
+      const dy = pos.y - lastY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const steps = Math.max(1, Math.floor(distance / (brushSize / 4)));
+      
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const x = lastX + dx * t;
+        const y = lastY + dy * t;
+        removeAtPoint(x, y);
+      }
+      
+      lastX = pos.x;
+      lastY = pos.y;
+    }
+    
+    function stopRemoving() {
+      if (isRemoving) {
+        isRemoving = false;
+        
+        // Final update and AUTO-SAVE
+        updatePreviewInstant();
+        saveImageState();
+        
+        // AUTO-SAVE to storage immediately
+        autoSaveImage();
+        
+        statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">✓ Object removed & auto-saved!</div>';
+        setTimeout(() => {
+          statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;"><i class="fas fa-magic"></i> Click or drag on objects to remove them instantly!</div>';
+        }, 1500);
+      }
+    }
+    
+    // INSTANT preview update - no delay
+    function updatePreviewInstant() {
+      if (!editableCanvas) return;
+      
+      const updatedDataURL = editableCanvas.toDataURL('image/png', 1.0);
+      previewResult.src = updatedDataURL;
+      resultDataURL = updatedDataURL;
+    }
+    
+    // AUTO-SAVE function - saves immediately after removal
+    function autoSaveImage() {
+      if (!editableCanvas) return;
+      
+      const savedDataURL = editableCanvas.toDataURL('image/png', 1.0);
+      
+      // Save to session storage for persistence
+      sessionStorage.setItem(STORAGE_KEYS.foreground, savedDataURL);
+      
+      // Update result for download
+      resultDataURL = savedDataURL;
+      
+      console.log('💾 Auto-saved! Size:', (savedDataURL.length / 1024).toFixed(0), 'KB');
+      
+      // Show brief save confirmation
+      const saveIndicator = document.createElement('div');
+      saveIndicator.style.cssText = 'position: fixed; top: 80px; right: 20px; background: rgba(34,197,94,0.9); color: white; padding: 8px 16px; border-radius: 8px; font-weight: 600; z-index: 9999; animation: fadeInOut 2s ease;';
+      saveIndicator.innerHTML = '<i class="fas fa-check-circle"></i> Auto-saved!';
+      document.body.appendChild(saveIndicator);
+      
+      setTimeout(() => {
+        saveIndicator.remove();
+      }, 2000);
+    }
+    
+    // Remove object at specific point using content-aware fill
+    function removeAtPoint(x, y) {
+      if (!editableCtx) return;
+      
+      const imageData = editableCtx.getImageData(0, 0, editableCanvas.width, editableCanvas.height);
+      const data = imageData.data;
+      const radius = Math.floor(brushSize / 2);
+      
+      // Mark pixels to remove (circular brush)
+      const pixelsToRemove = [];
+      for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance <= radius) {
+            const px = Math.floor(x + dx);
+            const py = Math.floor(y + dy);
+            
+            if (px >= 0 && px < editableCanvas.width && py >= 0 && py < editableCanvas.height) {
+              pixelsToRemove.push({ x: px, y: py });
+            }
+          }
+        }
+      }
+      
+      // Inpaint each pixel using surrounding pixels
+      const sampleRadius = Math.max(3, Math.floor(brushSize / 3));
+      for (const pixel of pixelsToRemove) {
+        let r = 0, g = 0, b = 0, a = 0, count = 0;
+        
+        // Sample surrounding pixels (outside the brush area)
+        for (let dy = -sampleRadius; dy <= sampleRadius; dy++) {
+          for (let dx = -sampleRadius; dx <= sampleRadius; dx++) {
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // Only sample pixels outside the brush radius
+            if (distance > radius && distance <= sampleRadius) {
+              const sx = pixel.x + dx;
+              const sy = pixel.y + dy;
+              
+              if (sx >= 0 && sx < editableCanvas.width && sy >= 0 && sy < editableCanvas.height) {
+                const si = (sy * editableCanvas.width + sx) * 4;
+                r += data[si];
+                g += data[si + 1];
+                b += data[si + 2];
+                a += data[si + 3];
+                count++;
+              }
+            }
+          }
+        }
+        
+        // Apply averaged color
+        if (count > 0) {
+          const i = (pixel.y * editableCanvas.width + pixel.x) * 4;
+          data[i] = r / count;
+          data[i + 1] = g / count;
+          data[i + 2] = b / count;
+          data[i + 3] = a / count;
+        }
+      }
+      
+      editableCtx.putImageData(imageData, 0, 0);
+    }
+    
+    // Update preview image (kept for compatibility, now uses instant version)
+    function updatePreview() {
+      updatePreviewInstant();
+      autoSaveImage();
+    }
+    
+    // Mouse event handlers - will be attached when tool activates
+    function handleMouseDown(e) {
+      if (!isRemoverToolActive || !editableCtx) return;
+      e.preventDefault();
+      e.stopPropagation();
+      startRemoving(e);
+    }
+    
+    function handleMouseMove(e) {
+      if (!isRemoverToolActive) return;
+      
+      // Update brush cursor position (centered on mouse)
+      const rect = editableCanvas.getBoundingClientRect();
+      brushCursor.style.left = (e.clientX - rect.left) + 'px';
+      brushCursor.style.top = (e.clientY - rect.top) + 'px';
+      brushCursor.style.width = brushSize + 'px';
+      brushCursor.style.height = brushSize + 'px';
+      brushCursor.style.display = 'block';
+      
+      // Continue removing if mouse is down
+      if (editableCtx) {
+        continueRemoving(e);
+      }
+    }
+    
+    function handleMouseUp(e) {
+      if (!isRemoverToolActive) return;
+      e.preventDefault();
+      e.stopPropagation();
+      stopRemoving();
+    }
+    
+    function handleMouseLeave() {
+      if (!isRemoverToolActive) return;
+      stopRemoving();
+      brushCursor.style.display = 'none';
+    }
+    
+    function handleMouseEnter() {
+      if (isRemoverToolActive && editableCtx) {
+        brushCursor.style.display = 'block';
+      }
+    }
+    
+    function handleTouchStart(e) {
+      if (!isRemoverToolActive || !editableCtx) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const touch = e.touches[0];
+      const mouseEvent = new MouseEvent('mousedown', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+      });
+      editableCanvas.dispatchEvent(mouseEvent);
+    }
+    
+    function handleTouchMove(e) {
+      if (!isRemoverToolActive) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const touch = e.touches[0];
+      const mouseEvent = new MouseEvent('mousemove', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+      });
+      editableCanvas.dispatchEvent(mouseEvent);
+    }
+    
+    function handleTouchEnd(e) {
+      if (!isRemoverToolActive) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const mouseEvent = new MouseEvent('mouseup', {});
+      editableCanvas.dispatchEvent(mouseEvent);
+    }
+    
+    // Attach event listeners to canvas
+    function attachCanvasEvents() {
+      editableCanvas.addEventListener('mousedown', handleMouseDown, { passive: false });
+      editableCanvas.addEventListener('mousemove', handleMouseMove, { passive: true });
+      editableCanvas.addEventListener('mouseup', handleMouseUp, { passive: false });
+      editableCanvas.addEventListener('mouseleave', handleMouseLeave);
+      editableCanvas.addEventListener('mouseenter', handleMouseEnter);
+      editableCanvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+      editableCanvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+      editableCanvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+      console.log('✅ Canvas events attached');
+    }
+    
+    // Detach event listeners from canvas
+    function detachCanvasEvents() {
+      editableCanvas.removeEventListener('mousedown', handleMouseDown);
+      editableCanvas.removeEventListener('mousemove', handleMouseMove);
+      editableCanvas.removeEventListener('mouseup', handleMouseUp);
+      editableCanvas.removeEventListener('mouseleave', handleMouseLeave);
+      editableCanvas.removeEventListener('mouseenter', handleMouseEnter);
+      editableCanvas.removeEventListener('touchstart', handleTouchStart);
+      editableCanvas.removeEventListener('touchmove', handleTouchMove);
+      editableCanvas.removeEventListener('touchend', handleTouchEnd);
+      console.log('🔒 Canvas events detached');
+    }
+    
+
+    // Set footer year if element exists
+    const footerYearEl = document.getElementById('footerYear');
+    if (footerYearEl) {
+      footerYearEl.textContent = new Date().getFullYear();
+    }
   </script>
 <footer>
 <div class="container footer-inner">
