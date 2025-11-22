@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Use PowerPoint to PDF Converter: Complete Guide - easyjpgtopdf Blog</title>
+    <meta name="description" content="Convert PowerPoint presentations to PDF format seamlessly. Keep your slides intact and create shareable PDF presentations effortlessly.">
+    <link rel="stylesheet" href="css/footer.css">
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/theme-modern.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: #f5f7ff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        main {
+            flex: 1;
+            padding: 24px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .blog-article {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .blog-article h1 {
+            font-size: 2.5rem;
+            color: #0b1630;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .blog-meta {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e2e6ff;
+            flex-wrap: wrap;
+        }
+
+        .blog-meta span {
+            color: #56607a;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .blog-content {
+            line-height: 1.8;
+            color: #0b1630;
+            font-size: 1.1rem;
+        }
+
+        .blog-content h2 {
+            font-size: 2rem;
+            color: #4361ee;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e6ff;
+        }
+
+        .blog-content h3 {
+            font-size: 1.5rem;
+            color: #0b1630;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        .blog-content p {
+            margin-bottom: 20px;
+        }
+
+        .blog-content ul, .blog-content ol {
+            margin-bottom: 20px;
+            padding-left: 30px;
+        }
+
+        .blog-content li {
+            margin-bottom: 10px;
+        }
+
+        .blog-image {
+            width: 100%;
+            border-radius: 12px;
+            margin: 30px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .blog-chart {
+            width: 100%;
+            max-width: 800px;
+            margin: 30px auto;
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        .feature-box {
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin: 30px 0;
+        }
+
+        .feature-box h3 {
+            color: white;
+            margin-top: 0;
+        }
+
+        .step-box {
+            background: #f8f9ff;
+            padding: 20px;
+            border-left: 4px solid #4361ee;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .ad-banner-inline {
+            width: 100%;
+            min-height: 120px;
+            background: #f5f7ff;
+            border: 2px dashed #dbe2ef;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 0.9rem;
+            margin: 40px 0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        /* Comment Box Trigger */
+        .comment-trigger-box {
+            background: white;
+            border: 2px solid #e2e6ff;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 30px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .comment-trigger-box:hover {
+            border-color: #4361ee;
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.1);
+        }
+
+        .comment-trigger-box i {
+            color: #4361ee;
+            font-size: 1.2rem;
+        }
+
+        .comment-trigger-text {
+            color: #56607a;
+            font-size: 0.95rem;
+            flex: 1;
+        }
+
+        /* Comment Modal */
+        .comment-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            backdrop-filter: blur(4px);
+        }
+
+        .comment-modal.active {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .comment-modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 700px;
+            max-height: 90vh;
+            margin-top: 40px;
+            margin-bottom: 40px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .comment-modal-header {
+            padding: 20px 24px;
+            border-bottom: 2px solid #e2e6ff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: white;
+            border-radius: 16px 16px 0 0;
+            z-index: 10;
+        }
+
+        .comment-modal-header h3 {
+            margin: 0;
+            font-size: 1.3rem;
+            color: #0b1630;
+        }
+
+        .comment-modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #56607a;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 50%;
+            transition: all 0.3s;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .comment-modal-close:hover {
+            background: #f5f7ff;
+            color: #4361ee;
+        }
+
+        .comment-modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .comment-input-box {
+            background: #f8f9ff;
+            border: 2px solid #e2e6ff;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 24px;
+        }
+
+        .comment-input-box textarea {
+            width: 100%;
+            min-height: 80px;
+            border: none;
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            resize: vertical;
+            outline: none;
+        }
+
+        .comment-input-box textarea:focus {
+            border: 2px solid #4361ee;
+        }
+
+        .comment-submit-btn {
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: all 0.3s;
+        }
+
+        .comment-submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+        }
+
+        .comment-submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .login-prompt {
+            text-align: center;
+            padding: 20px;
+            color: #56607a;
+        }
+
+        .login-prompt a {
+            color: #4361ee;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .comment-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .comment-item {
+            padding: 16px 0;
+            border-bottom: 1px solid #e2e6ff;
+        }
+
+        .comment-item:last-child {
+            border-bottom: none;
+        }
+
+        .comment-author {
+            font-weight: 600;
+            color: #0b1630;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+        }
+
+        .comment-text {
+            color: #56607a;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+
+        .comment-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.75rem;
+            color: #7a8196;
+        }
+
+        .comment-reply-btn {
+            background: none;
+            border: none;
+            color: #4361ee;
+            font-size: 0.8rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .comment-reply-btn:hover {
+            background: #f5f7ff;
+        }
+
+        .comment-replies {
+            margin-top: 12px;
+            padding-left: 24px;
+            border-left: 2px solid #e2e6ff;
+        }
+
+        .reply-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f2ff;
+        }
+
+        .reply-item:last-child {
+            border-bottom: none;
+        }
+
+        .reply-author {
+            font-weight: 600;
+            color: #0b1630;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+
+        .reply-text {
+            color: #56607a;
+            font-size: 0.8rem;
+            line-height: 1.5;
+        }
+
+        .reply-meta {
+            font-size: 0.7rem;
+            color: #7a8196;
+            margin-top: 4px;
+        }
+
+        .reply-input-box {
+            margin-top: 12px;
+            padding: 12px;
+            background: #f8f9ff;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .reply-input-box.active {
+            display: block;
+        }
+
+        .reply-input-box textarea {
+            width: 100%;
+            min-height: 60px;
+            border: 2px solid #e2e6ff;
+            border-radius: 6px;
+            padding: 8px;
+            font-size: 0.85rem;
+            font-family: inherit;
+            resize: vertical;
+            outline: none;
+        }
+
+        .reply-input-box textarea:focus {
+            border-color: #4361ee;
+        }
+
+        .reply-submit-btn {
+            background: #4361ee;
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .empty-comments {
+            text-align: center;
+            padding: 40px 20px;
+            color: #7a8196;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .blog-article {
+                padding: 24px;
+            }
+
+            .blog-article h1 {
+                font-size: 2rem;
+            }
+
+            .ad-banner-inline {
+                min-height: 100px;
+                margin: 30px 0;
+            }
+
+            .feedback-grid {
+                grid-template-columns: 1fr;
+                padding: 0 20px 20px;
+            }
+
+            .feedback-card {
+                height: auto;
+                max-height: 500px;
+            }
+
+            .comments .section-title {
+                padding: 0 20px;
+                padding-top: 20px;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="css/voice-assistant.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
+                <div class="nav-links">
+                    <div class="dropdown">
+                        <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="jpg-to-pdf.html">JPG to PDF</a>
+                            <a href="word-to-pdf.html">Word to PDF</a>
+                            <a href="excel-to-pdf.html">Excel to PDF</a>
+                            <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="pdf-to-jpg.html">PDF to JPG</a>
+                            <a href="pdf-to-word.html">PDF to Word</a>
+                            <a href="pdf-to-excel.html">PDF to Excel</a>
+                            <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="merge-pdf.html">Merge PDF</a>
+                            <a href="split-pdf.html">Split PDF</a>
+                            <a href="compress-pdf.html">Compress PDF</a>
+                            <a href="edit-pdf.html">Pdf Editor</a>
+                            <a href="protect-pdf.html">Protect PDF</a>
+                            <a href="unlock-pdf.html">Unlock PDF</a>
+                            <a href="watermark-pdf.html">Watermark PDF</a>
+                            <a href="crop-pdf.html">Crop PDF</a>
+                            <a href="add-page-numbers.html">Add Page Numbers</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="image-compressor.html">Image Compressor</a>
+                            <a href="image-resizer.html">Image Resizer</a>
+                            <a href="image-editor.html">Image Editor</a>
+                            <a href="background-remover.html">Image Background Remover</a>
+                            <a href="ocr-image.html">OCR Image</a>
+                            <a href="image-watermark.html">Image Watermark Tool</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="resume-maker.html">Resume Maker</a>
+                            <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+                            <a href="ai-image-generator.html">AI Image Generator</a>
+                            <a href="marriage-card.html">Marriage Card</a>
+                            <a href="excel-unlocker/" target="_blank">Excel Unlocker</a>
+                            <a href="protect-excel.html">Protect Excel Sheet</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">More <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="pricing.html">Pricing</a>
+                            <div class="dropdown">
+                                <a href="#">Blog/Articles <i class="fas fa-chevron-down"></i></a>
+                                <div class="dropdown-content">
+                                    <a href="blog.html">Blog Home</a>
+                                    <a href="blog-articles.html">All Articles</a>
+                                    <a href="blog-tutorials.html">Tutorials</a>
+                                    <a href="blog-tips.html">Tips & Tricks</a>
+                                    <a href="blog-news.html">News & Updates</a>
+                                    <a href="blog-guides.html">Guides</a>
+                                </div>
+                            </div>
+                            <a href="https://apnaonlineservic.com" target="_blank">Shop-ApnaOnline</a>
+                            <a href="https://aimathmaster.com" target="_blank">AI-Math Master</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="auth-buttons">
+                    <a href="login.html" class="auth-link">Sign In</a>
+                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus"></i><span>Signup</span></a>
+                </div>
+                <div id="user-menu" class="user-menu" data-open="false">
+                    <button id="user-menu-toggle" class="user-menu-toggle" type="button">
+                        <span class="user-initial">U</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="user-dropdown" id="user-dropdown" hidden>
+                        <a href="dashboard.html#dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+                        <a href="dashboard.html#dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+                        <a href="dashboard.html#dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+                        <a href="dashboard.html#dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders & Subscriptions</a>
+                        <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
+                        <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Advertisement Banner Top -->
+            <div class="ad-banner-inline">
+                <p><i class="fas fa-ad"></i> Advertisement Space</p>
+            </div>
+
+            <article class="blog-article">
+                <h1>How to Use PowerPoint to PDF Converter: Complete Guide</h1>
+                <div class="blog-meta">
+                    <span><i class="fas fa-calendar"></i> Published: <time datetime="2024-01-15">January 15, 2024</time></span>
+                    <span><i class="fas fa-user"></i> Author: Admin</span>
+                    <span><i class="fas fa-clock"></i> Read Time: 5 min</span>
+                    <span><i class="fas fa-tag"></i> Category: Tutorial</span>
+                </div>
+
+                <div class="blog-content">
+                    <p>Using our PowerPoint to PDF tool is straightforward and efficient. This comprehensive guide will walk you through everything you need to know about using our tool effectively, from basic operations to advanced features.</p>
+
+                    <h2>Why Use PowerPoint to PDF?</h2><p>Our PowerPoint to PDF tool offers numerous advantages including improved productivity, better file organization, and professional results. Whether you're a student, professional, or business owner, this tool can significantly enhance your document management workflow.</p>
+
+                    <div class="feature-box">
+                        <h3>Key Benefits of PowerPoint to PDF</h3>
+                        <ul style="color: white;">
+                            <li>Improved productivity and time management</li>
+                            <li>Professional quality results</li>
+                            <li>Easy to use interface</li>
+                            <li>Secure and private processing</li>
+                            <li>Free and accessible online</li>
+                        </ul>
+                    </div>
+
+                    <!-- Advertisement Space -->
+                    <div class="ad-banner-inline">
+                        <p><i class="fas fa-ad"></i> Advertisement Space</p>
+                    </div>
+
+                    <h2>Step-by-Step Guide</h2>
+                    
+                    <div class="step-box">
+                        <h3>Step 1: Access the Tool</h3>
+                        <p>Navigate to our PowerPoint to PDF tool by clicking on the appropriate option in the main menu or visiting the tool page directly from our homepage.</p>
+                    </div>
+
+                    <div class="step-box">
+                        <h3>Step 2: Upload Your Files</h3>
+                        <p>Click on the upload area or drag and drop your files. Our tool supports various file formats and allows batch processing for multiple files at once.</p>
+                    </div>
+
+                    <div class="step-box">
+                        <h3>Step 3: Configure Settings</h3>
+                        <p>Choose your preferred settings and options. Our tool offers various customization options to tailor the output according to your specific needs and requirements.</p>
+                    </div>
+
+                    <div class="step-box">
+                        <h3>Step 4: Process and Review</h3>
+                        <p>Click the process button and wait for the operation to complete. Review the preview or output to ensure everything meets your expectations before proceeding.</p>
+                    </div>
+
+                    <div class="step-box">
+                        <h3>Step 5: Download Your Results</h3>
+                        <p>Once processing is complete, download your files. The tool maintains high quality and ensures your documents are ready for use immediately.</p>
+                    </div>
+
+                    <!-- Advertisement Space -->
+                    <div class="ad-banner-inline">
+                        <p><i class="fas fa-ad"></i> Advertisement Space</p>
+                    </div>
+
+                    <h2>Time Management Benefits</h2>
+                    <p>Our PowerPoint to PDF tool significantly improves your time management by automating complex tasks that would otherwise take hours. The batch processing capability allows you to handle multiple files simultaneously, saving valuable time that can be better spent on other important tasks. This efficiency is especially valuable for professionals handling large volumes of documents regularly.</p>
+
+                    <h2>Eco-Friendly Contribution</h2>
+                    <p>By using our online PowerPoint to PDF tool, you contribute to environmental sustainability. Digital document management reduces the need for printing and physical storage, which saves paper and reduces carbon footprint. Our cloud-based tool operates efficiently, minimizing energy consumption compared to desktop software installations.</p>
+
+                    <h2>Human Help and Support</h2>
+                    <p>Our tool is designed with user-friendliness in mind, making it accessible to users of all technical levels. The intuitive interface requires no technical expertise, and our comprehensive help documentation ensures you can use the tool effectively. Additionally, our support team is always ready to assist with any questions or issues you may encounter.</p>
+
+                    <h2>Tool Features and Capabilities</h2>
+                    <p>Our PowerPoint to PDF tool offers numerous advanced features including high-quality processing, batch operations, customizable settings, and secure file handling. The tool processes files locally in your browser when possible, ensuring privacy and security of your documents. All operations are performed efficiently without compromising on quality.</p>
+
+                    <h2>Best Practices</h2>
+                    <ul>
+                        <li>Use high-quality source files for best results</li>
+                        <li>Organize files before processing for efficiency</li>
+                        <li>Review settings before finalizing operations</li>
+                        <li>Keep backup copies of original files</li>
+                        <li>Check output quality before downloading</li>
+                    </ul>
+
+                    <!-- Advertisement Space -->
+                    <div class="ad-banner-inline">
+                        <p><i class="fas fa-ad"></i> Advertisement Space</p>
+                    </div>
+
+                    <h2>Common Use Cases</h2>
+                    <p>PowerPoint to PDF is useful in various scenarios including document management, file sharing, professional presentations, academic work, and business operations. Students, professionals, and businesses all benefit from this versatile tool that simplifies complex document tasks.</p>
+
+                    <h2>Conclusion</h2>
+                    <p>Using our PowerPoint to PDF tool is now easier than ever. Whether you're managing personal documents or professional files, our tool provides the efficiency and quality you need. Start using our PowerPoint to PDF tool today and experience the convenience of seamless document processing.</p>
+    </div>
+            </article>
+
+            <!-- Advertisement Banner Bottom -->
+            <div class="ad-banner-inline">
+                <p><i class="fas fa-ad"></i> Advertisement Space</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Comment Trigger Box -->
+    <div class="container">
+        <div class="comment-trigger-box" id="commentTriggerBox">
+            <i class="fas fa-comments"></i>
+            <span class="comment-trigger-text">Add a comment...</span>
+            <i class="fas fa-chevron-right" style="color: #7a8196;"></i>
+        </div>
+    </div>
+
+    <!-- Comment Modal -->
+    <div class="comment-modal" id="commentModal">
+        <div class="comment-modal-content">
+            <div class="comment-modal-header">
+                <h3>Comments</h3>
+                <button class="comment-modal-close" id="commentModalClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="comment-modal-body">
+                <div class="comment-input-box" id="commentInputBox">
+                    <textarea id="commentText" placeholder="Write a comment..."></textarea>
+                    <button class="comment-submit-btn" id="commentSubmitBtn">Post</button>
+                </div>
+                <div class="login-prompt" id="loginPrompt" style="display: none;">
+                    <p>Please <a href="login.html">sign in</a> to post a comment.</p>
+                </div>
+                <ul class="comment-list" id="commentList">
+                    <li class="empty-comments">No comments yet. Be the first to comment!</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+                <a href="dmca-en.html">DMCA</a>
+                <a href="blog.html">Blog</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
+            <p class="footer-credits">
+                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+                <a href="attributions.html">See full acknowledgements</a>.
+            </p>
+        </div>
+    </footer>
+
+    <!-- Voice Assistant Script -->
+    <script src="js/voice-assistant.js"></script>
+    
+    <!-- Comment System Script -->
+    <script>
+        (function() {
+            const storageKey = 'blog_how_to_use_ppt_to_pdf';
+            let scrollPosition = 0;
+            let currentUser = null;
+            let activeReplyTarget = null;
+
+            // Check if user is logged in
+            function checkUserLogin() {
+                // Check Firebase auth if available
+                if (typeof firebase !== 'undefined' && firebase.auth) {
+                    firebase.auth().onAuthStateChanged((user) => {
+                        currentUser = user;
+                        updateCommentUI();
+                    });
+                } else {
+                    // Fallback: check localStorage for user session
+                    const userSession = localStorage.getItem('userSession');
+                    if (userSession) {
+                        try {
+                            currentUser = JSON.parse(userSession);
+                        } catch (e) {
+                            currentUser = null;
+                        }
+                    }
+                    updateCommentUI();
+                }
+            }
+
+            function updateCommentUI() {
+                const commentInputBox = document.getElementById('commentInputBox');
+                const loginPrompt = document.getElementById('loginPrompt');
+                
+                if (currentUser) {
+                    if (commentInputBox) commentInputBox.style.display = 'block';
+                    if (loginPrompt) loginPrompt.style.display = 'none';
+                } else {
+                    if (commentInputBox) commentInputBox.style.display = 'none';
+                    if (loginPrompt) loginPrompt.style.display = 'block';
+                }
+            }
+
+            // Modal functions
+            function openCommentModal() {
+                scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+                const modal = document.getElementById('commentModal');
+                if (modal) {
+                    modal.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                    loadComments();
+                }
+            }
+
+            function closeCommentModal() {
+                const modal = document.getElementById('commentModal');
+                if (modal) {
+                    modal.classList.remove('active');
+                    document.body.style.overflow = '';
+                    // Restore scroll position
+                    window.scrollTo(0, scrollPosition);
+                }
+            }
+
+            // Load comments
+            function loadComments() {
+                const commentList = document.getElementById('commentList');
+                if (!commentList) return;
+
+                const comments = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                
+                if (comments.length === 0) {
+                    commentList.innerHTML = '<li class="empty-comments">No comments yet. Be the first to comment!</li>';
+                    return;
+                }
+
+                commentList.innerHTML = '';
+                comments.forEach(comment => {
+                    const li = createCommentElement(comment);
+                    commentList.appendChild(li);
+                });
+            }
+
+            function createCommentElement(comment) {
+                const li = document.createElement('li');
+                li.className = 'comment-item';
+                li.dataset.commentId = comment.id;
+
+                const author = document.createElement('div');
+                author.className = 'comment-author';
+                author.textContent = comment.author || comment.name || 'Anonymous User';
+
+                const text = document.createElement('div');
+                text.className = 'comment-text';
+                text.textContent = comment.text || comment.comment;
+
+                const meta = document.createElement('div');
+                meta.className = 'comment-meta';
+                const time = document.createElement('span');
+                time.textContent = formatTime(comment.createdAt || comment.timestamp);
+                meta.appendChild(time);
+
+                const replyBtn = document.createElement('button');
+                replyBtn.className = 'comment-reply-btn';
+                replyBtn.innerHTML = '<i class="fas fa-reply"></i> Reply';
+                replyBtn.onclick = () => toggleReplyInput(comment.id);
+                meta.appendChild(replyBtn);
+
+                li.appendChild(author);
+                li.appendChild(text);
+                li.appendChild(meta);
+
+                // Add replies if any
+                if (comment.replies && comment.replies.length > 0) {
+                    const repliesDiv = document.createElement('div');
+                    repliesDiv.className = 'comment-replies';
+                    comment.replies.forEach(reply => {
+                        const replyDiv = document.createElement('div');
+                        replyDiv.className = 'reply-item';
+                        const replyAuthor = document.createElement('div');
+                        replyAuthor.className = 'reply-author';
+                        replyAuthor.textContent = reply.author || reply.name || 'User';
+                        const replyText = document.createElement('div');
+                        replyText.className = 'reply-text';
+                        replyText.textContent = reply.text || reply.comment;
+                        const replyMeta = document.createElement('div');
+                        replyMeta.className = 'reply-meta';
+                        replyMeta.textContent = formatTime(reply.createdAt || reply.timestamp);
+                        replyDiv.appendChild(replyAuthor);
+                        replyDiv.appendChild(replyText);
+                        replyDiv.appendChild(replyMeta);
+                        repliesDiv.appendChild(replyDiv);
+                    });
+                    li.appendChild(repliesDiv);
+                }
+
+                // Add reply input box
+                const replyInputBox = document.createElement('div');
+                replyInputBox.className = 'reply-input-box';
+                replyInputBox.id = `reply-input-${comment.id}`;
+                const replyTextarea = document.createElement('textarea');
+                replyTextarea.placeholder = 'Write a reply...';
+                replyTextarea.id = `reply-text-${comment.id}`;
+                const replySubmitBtn = document.createElement('button');
+                replySubmitBtn.className = 'reply-submit-btn';
+                replySubmitBtn.textContent = 'Reply';
+                replySubmitBtn.onclick = () => submitReply(comment.id);
+                replyInputBox.appendChild(replyTextarea);
+                replyInputBox.appendChild(replySubmitBtn);
+                li.appendChild(replyInputBox);
+
+                return li;
+            }
+
+            function toggleReplyInput(commentId) {
+                if (!currentUser) {
+                    alert('Please sign in to reply');
+                    return;
+                }
+                const replyInputBox = document.getElementById(`reply-input-${commentId}`);
+                if (replyInputBox) {
+                    replyInputBox.classList.toggle('active');
+                    if (replyInputBox.classList.contains('active')) {
+                        const textarea = document.getElementById(`reply-text-${commentId}`);
+                        if (textarea) textarea.focus();
+                    }
+                }
+            }
+
+            function submitReply(commentId) {
+                if (!currentUser) {
+                    alert('Please sign in to reply');
+                    return;
+                }
+
+                const textarea = document.getElementById(`reply-text-${commentId}`);
+                if (!textarea || !textarea.value.trim()) return;
+
+                const comments = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                const commentIndex = comments.findIndex(c => c.id === commentId);
+                
+                if (commentIndex !== -1) {
+                    if (!comments[commentIndex].replies) {
+                        comments[commentIndex].replies = [];
+                    }
+                    comments[commentIndex].replies.push({
+                        id: Date.now(),
+                        author: currentUser.displayName || currentUser.email || 'User',
+                        text: textarea.value.trim(),
+                        timestamp: Date.now(),
+                        createdAt: Date.now()
+                    });
+                    localStorage.setItem(storageKey, JSON.stringify(comments));
+                    loadComments();
+                    textarea.value = '';
+                    const replyInputBox = document.getElementById(`reply-input-${commentId}`);
+                    if (replyInputBox) replyInputBox.classList.remove('active');
+                }
+            }
+
+            function formatTime(timestamp) {
+                if (!timestamp) return 'Just now';
+                const date = new Date(timestamp);
+                const now = new Date();
+                const diff = now - date;
+                const minutes = Math.floor(diff / 60000);
+                const hours = Math.floor(diff / 3600000);
+                const days = Math.floor(diff / 86400000);
+
+                if (minutes < 1) return 'Just now';
+                if (minutes < 60) return `${minutes}m ago`;
+                if (hours < 24) return `${hours}h ago`;
+                if (days < 7) return `${days}d ago`;
+                return date.toLocaleDateString();
+            }
+
+            // Submit comment
+            function submitComment() {
+                if (!currentUser) {
+                    alert('Please sign in to comment');
+                    return;
+                }
+
+                const textarea = document.getElementById('commentText');
+                if (!textarea || !textarea.value.trim()) return;
+
+                const comments = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                comments.push({
+                    id: Date.now(),
+                    author: currentUser.displayName || currentUser.email || 'User',
+                    text: textarea.value.trim(),
+                    timestamp: Date.now(),
+                    createdAt: Date.now(),
+                    replies: []
+                });
+                localStorage.setItem(storageKey, JSON.stringify(comments));
+                textarea.value = '';
+                loadComments();
+            }
+
+            // Event listeners
+            document.addEventListener('DOMContentLoaded', function() {
+                checkUserLogin();
+
+                const triggerBox = document.getElementById('commentTriggerBox');
+                const modal = document.getElementById('commentModal');
+                const closeBtn = document.getElementById('commentModalClose');
+                const submitBtn = document.getElementById('commentSubmitBtn');
+                const commentText = document.getElementById('commentText');
+
+                if (triggerBox) {
+                    triggerBox.addEventListener('click', openCommentModal);
+                }
+
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', closeCommentModal);
+                }
+
+                if (modal) {
+                    modal.addEventListener('click', function(e) {
+                        if (e.target === modal) {
+                            closeCommentModal();
+                        }
+                    });
+                }
+
+                if (submitBtn) {
+                    submitBtn.addEventListener('click', submitComment);
+                }
+
+                if (commentText) {
+                    commentText.addEventListener('keydown', function(e) {
+                        if (e.ctrlKey && e.key === 'Enter') {
+                            submitComment();
+                        }
+                    });
+                }
+
+                // Close on Escape key
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        const modal = document.getElementById('commentModal');
+                        if (modal && modal.classList.contains('active')) {
+                            closeCommentModal();
+                        }
+                    }
+                });
+            });
+        })();
+    </script>
+
+    <script type="module">
+        const isLocalFileProtocol = window.location.protocol === 'file:';
+        if (!isLocalFileProtocol) {
+            import('./js/auth.js').catch(err => {
+                console.error('❌ Failed to load auth.js:', err);
+            });
+        }
+    </script>
+</body>
+</html>
+
