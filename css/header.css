@@ -83,6 +83,35 @@ header .dropdown-content a:hover {
     background-color: var(--light, #f5f7ff);
 }
 
+/* Nested Dropdown Support */
+header .dropdown-content .dropdown {
+    position: relative;
+}
+
+header .dropdown-content .dropdown > a {
+    position: relative;
+}
+
+header .dropdown-content .dropdown > a::after {
+    content: "\f054";
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    position: absolute;
+    right: 15px;
+    font-size: 0.75rem;
+}
+
+header .dropdown-content .dropdown-content {
+    top: 0;
+    left: 100%;
+    margin-left: 5px;
+    min-width: 200px;
+}
+
+header .dropdown-content .dropdown:hover .dropdown-content {
+    display: block;
+}
+
 header .auth-buttons {
     display: flex;
     align-items: center;
