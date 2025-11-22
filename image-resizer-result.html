@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
-<title>Resized Image â€” Result | easyjpgtopdf</title>
+<title>Resized Image — Result | easyjpgtopdf</title>
 <link href="css/footer.css" rel="stylesheet"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <style>
@@ -98,7 +98,7 @@
                         </div>
                     </div>
                     <div class="dropdown">
-                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+                        <a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
                             <a href="resume-maker.html">Resume Maker</a>
                             <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
@@ -181,7 +181,7 @@
       backBtn.addEventListener('click',(e)=>{ e.preventDefault(); history.length>1?history.back():location.href='image-resizer.html'; });
       if(!dataUrl){ document.getElementById('status').textContent='Missing image data. Please resize again.'; return; }
       img.src = dataUrl; dl.href = dataUrl; dl.download = name;
-      dim.textContent = (width&&height)? `${width} Ã— ${height}` : '';
+      dim.textContent = (width&&height)? `${width} × ${height}` : '';
       try{ const bytes = atob(dataUrl.split(',')[1]).length; sizeEl.textContent = `~ ${ (bytes/1024).toFixed(1) } KB`; }catch(_){ }
       enableShare(true);
       function enableShare(on){ shareSection.style.display = on?'block':'none'; ['shareWhatsApp','shareWeb','shareGmail','shareEmail','shareTelegram','sharePrint'].forEach(id=>{const el=document.getElementById(id); if(el) el.disabled=!on;}); }
@@ -205,7 +205,7 @@
 <a href="privacy-policy.html">Privacy Policy</a>
 <a href="terms-of-service.html">Terms of Service</a>
 </div>
-<p class="footer-brand-line">© easyjpgtopdf — Free PDF &amp; Image Tools for everyone.</p>
+<p class="footer-brand-line">� easyjpgtopdf � Free PDF &amp; Image Tools for everyone.</p>
 <p class="footer-credits">
                 Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
                 <a href="attributions.html">See full acknowledgements</a>.

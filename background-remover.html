@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -137,7 +137,7 @@
                         </div>
                     </div>
                     <div class="dropdown">
-                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+                        <a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
                             <a href="resume-maker.html">Resume Maker</a>
                             <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
@@ -193,7 +193,7 @@
       <div class="upload-card" id="dropzone">
         <i class="fas fa-cloud-upload-alt"></i>
         <h2>Drag & drop your JPG/PNG</h2>
-        <p>Free: Up to 10 MB • Premium: Unlimited</p>
+        <p>Free: Up to 10 MB � Premium: Unlimited</p>
         <button class="btn btn-primary" type="button" id="browseBtn"><i class="fas fa-upload"></i> Choose Image</button>
         <input type="file" id="imageInput" accept="image/png,image/jpeg" hidden>
       </div>
@@ -277,7 +277,7 @@
         const img = new Image();
         img.onload = () => {
           const message = `File size: ${sizeMB} MB\n` +
-                         `Image dimensions: ${img.width} × ${img.height} pixels\n\n` +
+                         `Image dimensions: ${img.width} � ${img.height} pixels\n\n` +
                          `Free upload limit: 10 MB\n` +
                          `Your file exceeds the free limit. Upgrade to Premium for unlimited uploads.`;
           
@@ -304,7 +304,7 @@
       // INSTANT UPLOAD - Save immediately, process later
       dropzone.classList.add('uploading');
       dropzone.dataset.pending = 'true';
-      showStatus('⚡ Uploading instantly...');
+      showStatus('? Uploading instantly...');
       
       try {
         // Fast read - no processing delay (instant)
@@ -319,13 +319,13 @@
         sessionStorage.removeItem('bgRemover:dimensions');
         
         // Instant redirect - processing happens in workspace
-        showStatus('✅ Uploaded! Opening workspace...');
+        showStatus('? Uploaded! Opening workspace...');
         setTimeout(() => {
           window.location.href = 'background-workspace.html';
         }, 50); // Minimal delay for status message
       } catch (err) {
         console.error('Failed to read file', err);
-        showStatus('❌ Error: Could not read this image. Please try a different file.');
+        showStatus('? Error: Could not read this image. Please try a different file.');
         sessionStorage.removeItem(STORAGE_KEYS.original);
         dropzone.classList.remove('uploading');
         dropzone.dataset.pending = 'false';

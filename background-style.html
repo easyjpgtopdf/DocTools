@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html lang="en">
 <head>
@@ -171,7 +171,7 @@
                         </div>
                     </div>
                     <div class="dropdown">
-                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+                        <a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
                             <a href="resume-maker.html">Resume Maker</a>
                             <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
@@ -372,12 +372,12 @@
         doc = firestore.doc;
         onAuthStateChanged = firebaseAuth.onAuthStateChanged;
         
-        console.log('✅ Firebase loaded successfully');
+        console.log('? Firebase loaded successfully');
       } catch (error) {
-        console.warn('⚠️ Firebase not available (file:// protocol or network issue):', error.message);
+        console.warn('?? Firebase not available (file:// protocol or network issue):', error.message);
       }
     } else {
-      console.log('ℹ️ Running on file:// protocol - Firebase disabled (download will work without auth)');
+      console.log('?? Running on file:// protocol - Firebase disabled (download will work without auth)');
     }
 
     const STORAGE_KEYS = {
@@ -440,7 +440,7 @@
         }
       });
     } else {
-      console.log('ℹ️ Running without authentication - all features available');
+      console.log('?? Running without authentication - all features available');
     }
 
     const fallbackBackgrounds = {
@@ -670,18 +670,18 @@
       const originalSize = Math.ceil((dataURL.split(',')[1].length * 0.75));
       const originalSizeKB = originalSize / 1024;
       
-      console.log('📊 Original size:', originalSizeKB.toFixed(0), 'KB');
+      console.log('?? Original size:', originalSizeKB.toFixed(0), 'KB');
       
       // If under 100 KB, use as is
       if (originalSize <= FREE_PREVIEW_LIMIT) {
-        console.log('✅ Using original size (under 100 KB)');
+        console.log('? Using original size (under 100 KB)');
         return { dataURL, compressed: false, originalSize };
       }
       
       // Compress to 400 KB for faster editing
-      console.log('⚙️ Compressing preview to 400 KB for faster editing...');
+      console.log('?? Compressing preview to 400 KB for faster editing...');
       const compressed = await compressImageForFree(dataURL, 400);
-      console.log('✅ Preview compressed to:', (compressed.size / 1024).toFixed(0), 'KB');
+      console.log('? Preview compressed to:', (compressed.size / 1024).toFixed(0), 'KB');
       
       return {
         dataURL: compressed.dataURL,
@@ -808,7 +808,7 @@
           const previewData = await compressPreviewForRemoval(foregroundDataUrl);
           if (previewData.compressed) {
             previewUrl = previewData.dataURL;
-            setStatus('ℹ️ Preview optimized for faster editing (400 KB). Original quality saved for download.');
+            setStatus('?? Preview optimized for faster editing (400 KB). Original quality saved for download.');
             setTimeout(() => {
               setStatus('Background set to transparent. Choose a new style.');
             }, 3000);
@@ -840,7 +840,7 @@
         div.appendChild(img);
         div.appendChild(label);
         div.addEventListener('click', async () => {
-          setStatus('Applying backgroundâ€¦');
+          setStatus('Applying background…');
           try {
             await loadImage(backgroundImage, item.url + '&auto=compress&fit=crop&w=1200&q=80');
             document.querySelectorAll('.thumb').forEach((el) => el.classList.remove('selected'));
@@ -945,7 +945,7 @@
       const originalSize = imageInfo.size;
       const originalSizeKB = parseInt(imageInfo.sizeKB);
       
-      console.log('📥 Download requested');
+      console.log('?? Download requested');
       console.log('   Original size:', originalSizeKB, 'KB');
       console.log('   Dimensions:', imageInfo.width, 'x', imageInfo.height);
       
@@ -966,7 +966,7 @@
       // Calculate compressed size info (will be used for Free option)
       let compressedInfo = null;
       if (originalSizeKB > 500) {
-        setStatus('⚙️ Calculating compressed size...');
+        setStatus('?? Calculating compressed size...');
         const compressed = await compressImageForFree(originalResultURL, 500);
         compressedInfo = {
           dataURL: compressed.dataURL,
@@ -994,10 +994,10 @@
         <div class="download-option-details">
           ${compressedInfo ? 
             `<strong>${compressedInfo.sizeKB} KB</strong> (${compressedInfo.sizeMB} MB)<br>` +
-            `${compressedInfo.width} × ${compressedInfo.height} pixels<br>` +
+            `${compressedInfo.width} � ${compressedInfo.height} pixels<br>` +
             `<small>Auto-compressed to under 500 KB</small>` :
             `<strong>${imageInfo.sizeKB} KB</strong> (${imageInfo.sizeMB} MB)<br>` +
-            `${imageInfo.width} × ${imageInfo.height} pixels<br>` +
+            `${imageInfo.width} � ${imageInfo.height} pixels<br>` +
             `<small>Already under 500 KB limit</small>`
           }
         </div>
@@ -1021,10 +1021,10 @@
         </div>
         <div class="download-option-details">
           <strong>${imageInfo.sizeKB} KB</strong> (${imageInfo.sizeMB} MB)<br>
-          ${imageInfo.width} × ${imageInfo.height} pixels<br>
+          ${imageInfo.width} � ${imageInfo.height} pixels<br>
           ${!isPremium ? 
-            `<small style="color: #dc2626;">🔒 Requires active Pro/Premium plan</small>` :
-            `<small style="color: #059669;">✓ Full quality, no compression</small>`
+            `<small style="color: #dc2626;">?? Requires active Pro/Premium plan</small>` :
+            `<small style="color: #059669;">? Full quality, no compression</small>`
           }
         </div>
       `;
@@ -1036,14 +1036,14 @@
           // Show upgrade message
           const message = `Original Quality Download\n\n` +
                          `Size: ${imageInfo.sizeKB} KB (${imageInfo.sizeMB} MB)\n` +
-                         `Dimensions: ${imageInfo.width} × ${imageInfo.height} pixels\n\n` +
+                         `Dimensions: ${imageInfo.width} � ${imageInfo.height} pixels\n\n` +
                          `Free users: Max 500 KB (compressed)\n` +
                          `Your file: ${imageInfo.sizeKB} KB\n\n` +
                          `Upgrade to Pro/Premium for:\n` +
-                         `✓ Unlimited download size\n` +
-                         `✓ Original quality (no compression)\n` +
-                         `✓ HD resolution\n` +
-                         `✓ Faster processing`;
+                         `? Unlimited download size\n` +
+                         `? Original quality (no compression)\n` +
+                         `? HD resolution\n` +
+                         `? Faster processing`;
           
           if (!auth || !currentUser) {
             if (confirm(message + '\n\nLogin now to upgrade?')) {
@@ -1080,7 +1080,7 @@
           wasCompressed = true;
         } else {
           // Compress now
-          setStatus('⚙️ Compressing to 500 KB...');
+          setStatus('?? Compressing to 500 KB...');
           const compressed = await compressImageForFree(originalResultURL, 500);
           downloadDataURL = compressed.dataURL;
           downloadInfo = {
@@ -1104,7 +1104,7 @@
       link.click();
       
       const sizeLabel = wasCompressed ? `${downloadInfo.sizeKB} KB (compressed from ${originalInfo.sizeKB} KB)` : `${downloadInfo.sizeKB} KB`;
-      setStatus(`✓ Downloaded ${sizeLabel} - Free tier`);
+      setStatus(`? Downloaded ${sizeLabel} - Free tier`);
       setTimeout(() => clearStatus(), 4000);
     }
 
@@ -1117,7 +1117,7 @@
       link.download = filename.endsWith('.png') ? filename : `${filename.replace(/\.[^/.]+$/, '') || 'background-styled'}.png`;
       link.click();
       
-      setStatus(`✓ Downloaded (${imageInfo.sizeKB} KB, ${imageInfo.width}×${imageInfo.height}px) - Premium`);
+      setStatus(`? Downloaded (${imageInfo.sizeKB} KB, ${imageInfo.width}�${imageInfo.height}px) - Premium`);
       setTimeout(() => clearStatus(), 4000);
     }
 
@@ -1206,7 +1206,7 @@
 <a href="privacy-policy.html">Privacy Policy</a>
 <a href="terms-of-service.html">Terms of Service</a>
 </div>
-<p class="footer-brand-line">© easyjpgtopdf — Free PDF &amp; Image Tools for everyone.</p>
+<p class="footer-brand-line">� easyjpgtopdf � Free PDF &amp; Image Tools for everyone.</p>
 <p class="footer-credits">
                 Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
                 <a href="attributions.html">See full acknowledgements</a>.

@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -135,7 +135,7 @@
                         </div>
                     </div>
                     <div class="dropdown">
-                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+                        <a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
                             <a href="resume-maker.html">Resume Maker</a>
                             <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
@@ -180,7 +180,7 @@
       <div class="upload-card" id="dropzone">
         <i class="fas fa-cloud-upload-alt"></i>
         <h2>Drag & drop your JPG/PNG</h2>
-        <p>Max 10MB â€¢ Works entirely in your browser</p>
+        <p>Max 10MB • Works entirely in your browser</p>
         <button class="btn btn-primary" type="button" id="browseBtn"><i class="fas fa-upload"></i> Choose Image</button>
         <input type="file" id="imageInput" accept="image/png,image/jpeg" hidden>
       </div>
@@ -292,17 +292,17 @@
       // Show processing tier info
       const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
       if (file.size < 15 * 1024 * 1024) {
-        showStatus(`⚡ Preparing ${sizeMB} MB image for instant browser processing… 0%`);
+        showStatus(`? Preparing ${sizeMB} MB image for instant browser processing� 0%`);
       } else if (file.size < 50 * 1024 * 1024) {
-        showStatus(`🚀 Preparing ${sizeMB} MB image for professional server AI… 0%`);
+        showStatus(`?? Preparing ${sizeMB} MB image for professional server AI� 0%`);
       } else {
-        showStatus(`⭐ Preparing ${sizeMB} MB image for premium cloud AI… 0%`);
+        showStatus(`? Preparing ${sizeMB} MB image for premium cloud AI� 0%`);
       }
 
       try {
-        showStatus('Processing image… 30%');
+        showStatus('Processing image� 30%');
         const dataUrl = await prepareImage(file);
-        showStatus('Optimizing for quality… 60%');
+        showStatus('Optimizing for quality� 60%');
         const approxBytes = Math.ceil(dataUrl.length * 0.75);
         
         // sessionStorage limit: ~9-10 MB for base64 data
@@ -312,14 +312,14 @@
           return;
         }
         
-        showStatus('Saving… 80%');
+        showStatus('Saving� 80%');
         sessionStorage.setItem(STORAGE_KEYS.original, dataUrl);
         sessionStorage.setItem(STORAGE_KEYS.filename, file.name || 'photo.png');
         sessionStorage.setItem('bgRemover:originalType', file.type);
         sessionStorage.setItem('bgRemover:originalSize', file.size.toString());
         sessionStorage.removeItem('bgRemover:foreground');
         sessionStorage.removeItem('bgRemover:dimensions');
-        showStatus('Opening workspace… 100%');
+        showStatus('Opening workspace� 100%');
         setTimeout(() => {
           window.location.href = 'background-workspace.html';
         }, 150);

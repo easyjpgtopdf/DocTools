@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html lang="en">
 <head>
@@ -486,7 +486,7 @@
                         </div>
                     </div>
                     <div class="dropdown">
-                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+                        <a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
                             <a href="resume-maker.html">Resume Maker</a>
                             <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
@@ -536,11 +536,11 @@
 <main class="container" style="flex: 1;">
 <div class="tool-page">
 <h2>Upload PDF</h2>
-<p class="muted" style="margin-bottom:16px">Select any PDF up to 100 MB. Your file stays on this deviceâ€”no uploads to our servers.</p>
+<p class="muted" style="margin-bottom:16px">Select any PDF up to 100 MB. Your file stays on this device—no uploads to our servers.</p>
 <div aria-label="Upload PDF" class="upload-area" id="dropzone" onclick="document.getElementById('pdf-input').click()" role="button">
 <i class="fas fa-file-upload" style="font-size:42px;color:var(--brand)"></i>
 <h3 style="margin:12px 0 6px">Drag &amp; drop or click to browse</h3>
-<p class="muted">Supports multi-page PDFs â€¢ Works offline after first load</p>
+<p class="muted">Supports multi-page PDFs • Works offline after first load</p>
 <input accept="application/pdf" id="pdf-input" style="display:none" type="file"/>
 </div>
 <div class="muted" id="fileInfo" style="margin-top:10px">No file selected (max 100 MB)</div>
@@ -551,7 +551,7 @@
 <a class="btn secondary" href="index.html"><i class="fas fa-house"></i> Back to Home</a>
 </div>
 <div id="progressWrapper" style="display:none;margin-top:18px">
-<div class="muted" id="progressLabel">Preparing fileâ€¦</div>
+<div class="muted" id="progressLabel">Preparing file…</div>
 <div style="height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-top:8px">
 <div id="progressBar" style="width:0%;height:100%;background:linear-gradient(135deg,var(--primary),var(--secondary));transition:width 0.2s ease"></div>
 </div>
@@ -662,12 +662,12 @@
             r.onprogress = (evt)=>{
               if(evt.lengthComputable){
                 const percent = Math.round((evt.loaded/total)*100);
-                setProgress(percent, `Caching fallback copyâ€¦ ${percent}%`);
+                setProgress(percent, `Caching fallback copy… ${percent}%`);
               }
             };
             r.onload = ()=>{
               try{ sessionStorage.setItem('pdf2jpg_b64', r.result); sessionStorage.setItem('pdf2jpg_name', f.name||'document.pdf'); }catch(_){ }
-              setProgress(100, 'Done! Redirectingâ€¦');
+              setProgress(100, 'Done! Redirecting…');
               res();
             };
             r.onerror = ()=>{ setProgress(null); res(); };
@@ -690,7 +690,7 @@
         setInfo(f);
         continueBtn.disabled = false;
         clearBtn.disabled = false;
-        setProgress(8, 'Saving to secure storageâ€¦');
+        setProgress(8, 'Saving to secure storage…');
         try{ await setPdfToIDB(f, f.name); }
         catch(_){ statusMessage.textContent = 'IndexedDB blocked, using fallback storage. Conversion may be slower.'; statusMessage.className = 'status-message'; }
         await saveFallback(f);
@@ -708,7 +708,7 @@
         setInfo(f);
         continueBtn.disabled = false;
         clearBtn.disabled = false;
-        setProgress(10, 'Saving to secure storageâ€¦');
+        setProgress(10, 'Saving to secure storage…');
         try{ await setPdfToIDB(f, f.name); }
         catch(_){ statusMessage.textContent = 'IndexedDB blocked, using fallback storage. Conversion may be slower.'; statusMessage.className = 'status-message'; }
         await saveFallback(f);
@@ -716,7 +716,7 @@
       });
       continueBtn.addEventListener('click', function(){
         if (continueBtn.disabled) return;
-        statusMessage.textContent = 'Opening previewâ€¦';
+        statusMessage.textContent = 'Opening preview…';
         statusMessage.className = 'status-message';
         setProgress(null);
         location.href = 'pdf-to-jpg-convert.html';
@@ -742,7 +742,7 @@
 <a href="privacy-policy.html">Privacy Policy</a>
 <a href="terms-of-service.html">Terms of Service</a>
 </div>
-<p class="footer-brand-line">© easyjpgtopdf — Free PDF &amp; Image Tools for everyone.</p>
+<p class="footer-brand-line">� easyjpgtopdf � Free PDF &amp; Image Tools for everyone.</p>
 <p class="footer-credits">
                 Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
                 <a href="attributions.html">See full acknowledgements</a>.

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -416,7 +416,7 @@
                         </div>
                     </div>
                     <div class="dropdown">
-                        <a href="resume-maker.html">Design Tools <i class="fas fa-chevron-down"></i></a>
+                        <a href="resume-maker.html">Other Tools <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
                             <a href="resume-maker.html">Resume Maker</a>
                             <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
@@ -462,8 +462,8 @@
             
             <div class="upload-area" id="dropZone">
                 <i class="fas fa-file-excel"></i>
-                <h3>अपनी Excel फ़ाइल यहां अपलोड करें</h3>
-                <p>या फ़ाइल चुनने के लिए क्लिक करें</p>
+                <h3>???? Excel ????? ???? ????? ????</h3>
+                <p>?? ????? ????? ?? ??? ????? ????</p>
                 <input type="file" id="fileInput" accept=".xlsx,.xls,.xlsm,.xlsb,.csv,.ods" style="display: none;">
             </div>
             
@@ -774,7 +774,7 @@
                 const isValidFile = validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
                 
                 if (!isValidFile) {
-                    const errorMsg = 'कृपया एक वैध Excel फ़ाइल चुनें (XLSX, XLS, XLSM, XLSB, CSV, ODS)';
+                    const errorMsg = '????? ?? ??? Excel ????? ????? (XLSX, XLS, XLSM, XLSB, CSV, ODS)';
                     console.error(errorMsg);
                     alert(errorMsg);
                     return;
@@ -783,7 +783,7 @@
                 // Check file size (max 500MB)
                 const maxSize = 500 * 1024 * 1024; // 500MB
                 if (file.size > maxSize) {
-                    const errorMsg = 'फ़ाइल का आकार 500MB से अधिक है। कृपया छोटी फ़ाइल चुनें।';
+                    const errorMsg = '????? ?? ???? 500MB ?? ???? ??? ????? ???? ????? ??????';
                     console.error(errorMsg);
                     alert(errorMsg);
                     return;
@@ -797,7 +797,7 @@
                 fileItems.innerHTML = `
                     <div class="file-item">
                         <span>${file.name} (${formatFileSize(file.size)})</span>
-                        <span class="file-remove" onclick="removeFile(this)">×</span>
+                        <span class="file-remove" onclick="removeFile(this)">�</span>
                     </div>
                 `;
                 
@@ -920,7 +920,7 @@
                         
                     } catch (error) {
                         console.error('Download error:', error);
-                        reject(new Error('डाउनलोड त्रुटि: ' + (error.message || 'फ़ाइल डाउनलोड करने में विफल')));
+                        reject(new Error('??????? ??????: ' + (error.message || '????? ??????? ???? ??? ????')));
                     }
                 });
             }
@@ -928,7 +928,7 @@
             // Completely rewritten protectExcel function
             async function protectExcel() {
                 if (!selectedFile) {
-                    alert('कृपया एक एक्सेल फ़ाइल चुनें');
+                    alert('????? ?? ?????? ????? ?????');
                     return;
                 }
                 
@@ -940,20 +940,20 @@
                 
                 // Validation
                 if (password.length < 4) {
-                    alert('पासवर्ड कम से कम 4 अक्षरों का होना चाहिए');
+                    alert('??????? ?? ?? ?? 4 ??????? ?? ???? ?????');
                     return;
                 }
                 
                 if (password !== confirmPassword) {
-                    alert('पासवर्ड मेल नहीं खाते');
+                    alert('??????? ??? ???? ????');
                     return;
                 }
                 
                 protectBtn.disabled = true;
-                protectBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> प्रोटेक्ट किया जा रहा है...';
+                protectBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ????????? ???? ?? ??? ??...';
                 
                 // Show progress
-                showProgress(true, 'फ़ाइल पढ़ी जा रही है...');
+                showProgress(true, '????? ???? ?? ??? ??...');
                 updateProgress(10);
                 
                 try {
@@ -962,26 +962,26 @@
                     const fileExt = selectedFile.name.split('.').pop().toLowerCase();
                     
                     if (!validExtensions.some(ext => selectedFile.name.toLowerCase().endsWith(ext))) {
-                        throw new Error('अमान्य फ़ाइल प्रकार। कृपया एक वैध एक्सेल फ़ाइल अपलोड करें।');
+                        throw new Error('?????? ????? ??????? ????? ?? ??? ?????? ????? ????? ?????');
                     }
                     
                     // Check file size (increased to 50MB)
                     const maxSize = 50 * 1024 * 1024; // 50MB
                     if (selectedFile.size > maxSize) {
-                        throw new Error(`फ़ाइल का आकार बहुत बड़ा है। अधिकतम आकार ${formatFileSize(maxSize)} है।`);
+                        throw new Error(`????? ?? ???? ???? ???? ??? ?????? ???? ${formatFileSize(maxSize)} ???`);
                     }
                     
                     updateProgress(20);
-                    showProgress(true, 'फ़ाइल प्रोसेस की जा रही है...');
+                    showProgress(true, '????? ??????? ?? ?? ??? ??...');
                     
                     // Read file as array buffer
                     const arrayBuffer = await readFileAsArrayBuffer(selectedFile);
                     if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-                        throw new Error('फ़ाइल खाली है या पढ़ी नहीं जा सकी');
+                        throw new Error('????? ???? ?? ?? ???? ???? ?? ???');
                     }
                     
                     updateProgress(40);
-                    showProgress(true, 'फ़ाइल सुरक्षित की जा रही है...');
+                    showProgress(true, '????? ???????? ?? ?? ??? ??...');
                     
                     // Process the Excel file
                     const excelBuffer = await processExcelFile(
@@ -993,11 +993,11 @@
                     );
                     
                     if (!excelBuffer || excelBuffer.byteLength === 0) {
-                        throw new Error('फ़ाइल बनाने में त्रुटि हुई');
+                        throw new Error('????? ????? ??? ?????? ???');
                     }
                     
                     updateProgress(80);
-                    showProgress(true, 'डाउनलोड तैयार किया जा रहा है...');
+                    showProgress(true, '??????? ????? ???? ?? ??? ??...');
                     
                     // Prepare download
                     const fileExtension = outputFormat === 'xls' ? 'xls' : 'xlsx';
@@ -1018,7 +1018,7 @@
                     
                     // Show success message
                     updateProgress(100);
-                    showProgress(true, 'फ़ाइल सफलतापूर्वक डाउनलोड हो गई!');
+                    showProgress(true, '????? ??????????? ??????? ?? ??!');
                     
                     // Wait a bit before showing success message
                     setTimeout(() => {
@@ -1039,21 +1039,21 @@
                     showProgress(false);
                     
                     // More detailed error messages
-                    let errorMessage = 'फ़ाइल को सुरक्षित करने में विफल।';
+                    let errorMessage = '????? ?? ???????? ???? ??? ?????';
                     
                     if (error.message) {
-                        errorMessage += '\n\nविवरण: ' + error.message;
+                        errorMessage += '\n\n?????: ' + error.message;
                     }
                     
                     if (error.message && error.message.includes('download')) {
-                        errorMessage += '\n\nसुझाव: कृपया अपने ब्राउज़र की डाउनलोड सेटिंग्स जांचें और पॉप-अप ब्लॉकर अक्षम करें।';
+                        errorMessage += '\n\n?????: ????? ???? ???????? ?? ??????? ???????? ?????? ?? ???-?? ?????? ????? ?????';
                     }
                     
                     alert(errorMessage);
                 } finally {
                     // Reset button state
                     protectBtn.disabled = false;
-                    protectBtn.innerHTML = '<i class="fas fa-lock"></i> एक्सेल फ़ाइल सुरक्षित करें';
+                    protectBtn.innerHTML = '<i class="fas fa-lock"></i> ?????? ????? ???????? ????';
                 }    
             }
             
@@ -1063,7 +1063,7 @@
                     console.log('Starting to process Excel file...');
                     
                     if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-                        throw new Error('खाली फ़ाइल अपलोड की गई है');
+                        throw new Error('???? ????? ????? ?? ?? ??');
                     }
                     
                     // Read the workbook with error handling
@@ -1078,12 +1078,12 @@
                         });
                         console.log('Workbook read successfully');
                     } catch (readError) {
-                        console.error('Excel फ़ाइल पढ़ने में त्रुटि:', readError);
-                        throw new Error('अमान्य Excel फ़ाइल। कृपया एक वैध Excel फ़ाइल (XLSX, XLS, आदि) अपलोड करें');
+                        console.error('Excel ????? ????? ??? ??????:', readError);
+                        throw new Error('?????? Excel ?????? ????? ?? ??? Excel ????? (XLSX, XLS, ???) ????? ????');
                     }
                     
                     if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
-                        throw new Error('Excel फ़ाइल में कोई वर्कशीट नहीं मिली');
+                        throw new Error('Excel ????? ??? ??? ??????? ???? ????');
                     }
                     
                     console.log('Creating new workbook...');
@@ -1160,8 +1160,8 @@
                             console.log(`Sheet ${sheetName} processed successfully`);
                             
                         } catch (sheetError) {
-                            console.error(`शीट ${sheetName} को प्रोसेस करने में त्रुटि:`, sheetError);
-                            throw new Error(`शीट '${sheetName}' को प्रोसेस करने में विफल: ${sheetError.message}`);
+                            console.error(`??? ${sheetName} ?? ??????? ???? ??? ??????:`, sheetError);
+                            throw new Error(`??? '${sheetName}' ?? ??????? ???? ??? ????: ${sheetError.message}`);
                         }
                     }
                     
@@ -1202,12 +1202,12 @@
                         
                         return result;
                     } catch (writeError) {
-                        console.error('Excel फ़ाइल लिखने में त्रुटि:', writeError);
-                        throw new Error('सुरक्षित फ़ाइल बनाने में विफल: ' + (writeError.message || 'अज्ञात त्रुटि'));
+                        console.error('Excel ????? ????? ??? ??????:', writeError);
+                        throw new Error('???????? ????? ????? ??? ????: ' + (writeError.message || '?????? ??????'));
                     }
                 } catch (error) {
-                    console.error('Excel प्रोसेसिंग में त्रुटि:', error);
-                    throw error instanceof Error ? error : new Error('Excel फ़ाइल को प्रोसेस करने में विफल: ' + (error.message || ''));
+                    console.error('Excel ?????????? ??? ??????:', error);
+                    throw error instanceof Error ? error : new Error('Excel ????? ?? ??????? ???? ??? ????: ' + (error.message || ''));
                 }
             }
             
@@ -1217,7 +1217,7 @@
                     console.log('Reading file:', file.name, 'Size:', file.size, 'bytes');
                     
                     if (!file) {
-                        const error = new Error('कोई फ़ाइल नहीं चुनी गई है');
+                        const error = new Error('??? ????? ???? ???? ?? ??');
                         console.error(error);
                         return reject(error);
                     }
@@ -1225,7 +1225,7 @@
                     // Check file size
                     const maxSize = 50 * 1024 * 1024; // 50MB
                     if (file.size > maxSize) {
-                        const error = new Error(`फ़ाइल का आकार बहुत बड़ा है। अधिकतम आकार ${formatFileSize(maxSize)} है।`);
+                        const error = new Error(`????? ?? ???? ???? ???? ??? ?????? ???? ${formatFileSize(maxSize)} ???`);
                         console.error(error);
                         return reject(error);
                     }
@@ -1235,7 +1235,7 @@
                     reader.onload = (event) => {
                         console.log('File read successfully, size:', event.total, 'bytes');
                         if (!event.target || !event.target.result) {
-                            const error = new Error('फ़ाइल पढ़ने में विफल: कोई डेटा नहीं मिला');
+                            const error = new Error('????? ????? ??? ????: ??? ???? ???? ????');
                             console.error(error);
                             return reject(error);
                         }
@@ -1243,12 +1243,12 @@
                     };
                     
                     reader.onerror = (error) => {
-                        console.error('फ़ाइल पढ़ने में त्रुटि:', error);
-                        reject(new Error(`फ़ाइल पढ़ने में विफल: ${error.message || 'अज्ञात त्रुटि'}`));
+                        console.error('????? ????? ??? ??????:', error);
+                        reject(new Error(`????? ????? ??? ????: ${error.message || '?????? ??????'}`));
                     };
                     
                     reader.onabort = () => {
-                        const error = new Error('फ़ाइल पढ़ना रद्द कर दिया गया');
+                        const error = new Error('????? ????? ???? ?? ???? ???');
                         console.error(error);
                         reject(error);
                     };
@@ -1257,8 +1257,8 @@
                     try {
                         reader.readAsArrayBuffer(file);
                     } catch (error) {
-                        console.error('फ़ाइल पढ़ने में अपवाद:', error);
-                        reject(new Error(`फ़ाइल पढ़ने में त्रुटि: ${error.message}`));
+                        console.error('????? ????? ??? ?????:', error);
+                        reject(new Error(`????? ????? ??? ??????: ${error.message}`));
                     }
                 });
             }

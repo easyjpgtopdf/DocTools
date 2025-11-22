@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -169,7 +169,7 @@
                         </div>
                     </div>
                     <div class="dropdown">
-                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+                        <a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
                             <a href="resume-maker.html">Resume Maker</a>
                             <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
@@ -247,11 +247,11 @@
               <div class="settings-group">
                 <h3>Preset Sizes</h3>
                 <div class="preset-sizes">
-                  <div class="preset-size" data-width="800" data-height="600">800Ã—600</div>
-                  <div class="preset-size" data-width="1024" data-height="768">1024Ã—768</div>
-                  <div class="preset-size" data-width="1920" data-height="1080">1920Ã—1080</div>
-                  <div class="preset-size" data-width="1280" data-height="720">1280Ã—720</div>
-                  <div class="preset-size" data-width="640" data-height="480">640Ã—480</div>
+                  <div class="preset-size" data-width="800" data-height="600">800×600</div>
+                  <div class="preset-size" data-width="1024" data-height="768">1024×768</div>
+                  <div class="preset-size" data-width="1920" data-height="1080">1920×1080</div>
+                  <div class="preset-size" data-width="1280" data-height="720">1280×720</div>
+                  <div class="preset-size" data-width="640" data-height="480">640×480</div>
                 </div>
               </div>
               <div class="settings-group">
@@ -410,8 +410,8 @@
 
     function updateSizeInfo() {
       if (!originalResizeImage) return;
-      originalSizeDisplay.textContent = `${originalResizeImage.width} Ã— ${originalResizeImage.height}`;
-      newSizeDisplay.textContent = `${resizeWidth.value} Ã— ${resizeHeight.value}`;
+      originalSizeDisplay.textContent = `${originalResizeImage.width} × ${originalResizeImage.height}`;
+      newSizeDisplay.textContent = `${resizeWidth.value} × ${resizeHeight.value}`;
       if (originalResizeFile) {
         const quality = parseInt(resizeQuality.value) / 100;
         const sizeFactor = (resizeWidth.value * resizeHeight.value) / (originalResizeImage.width * originalResizeImage.height);
@@ -432,7 +432,7 @@
   function mimeForFormat(fmt){ const f = canonicalFormat(fmt); if(f === 'jpeg') return 'image/jpeg'; if(f === 'png') return 'image/png'; if(f === 'webp') return 'image/webp'; return `image/${f}`; }
   function encodeAtQuality(canvas, q){ const mime = mimeForFormat(currentFormat); return canvas.toDataURL(mime, Math.min(Math.max(q,0.05),1)); }
   async function findQualityForTarget(canvas, tBytes){ if(tBytes<=0) return encodeAtQuality(canvas, parseInt(resizeQuality.value)/100); if(canonicalFormat(currentFormat)==='png'){ return encodeAtQuality(canvas, 1); } let lo=0.05, hi=1.0, best=encodeAtQuality(canvas, parseInt(resizeQuality.value)/100), bestDiff=Infinity; for(let i=0;i<9;i++){ const mid=(lo+hi)/2; const d=encodeAtQuality(canvas, mid); const b=dataUrlBytes(d); const diff=Math.abs(b - tBytes); if(diff<bestDiff){ best=d; bestDiff=diff; } if(b>tBytes) { hi=mid; } else { lo=mid; } } return best; }
-    function updateTargetNote(actualBytes){ const t=targetBytes(); if(!t){ targetNote.style.display='none'; return; } targetNote.style.display='block'; if(actualBytes){ const diff=actualBytes-t; const sign=diff>0?'+':''; const pct=Math.abs(diff)/t*100; targetNote.textContent=`Target: ${formatFileSize(t)} Ã¢â‚¬Â¢ Actual: ${formatFileSize(actualBytes)} (${sign}${pct.toFixed(1)}%)`; } else { targetNote.textContent=`Target: ${formatFileSize(t)} (will try to match on Apply)`; } }
+    function updateTargetNote(actualBytes){ const t=targetBytes(); if(!t){ targetNote.style.display='none'; return; } targetNote.style.display='block'; if(actualBytes){ const diff=actualBytes-t; const sign=diff>0?'+':''; const pct=Math.abs(diff)/t*100; targetNote.textContent=`Target: ${formatFileSize(t)} â€¢ Actual: ${formatFileSize(actualBytes)} (${sign}${pct.toFixed(1)}%)`; } else { targetNote.textContent=`Target: ${formatFileSize(t)} (will try to match on Apply)`; } }
     function resetAll(){ resizeQuality.value=85; resizeQualityValue.textContent='85%'; targetSizeInput.value=''; targetUnitSelect.value='KB'; targetNote.style.display='none'; lastAppliedDataUrl=null; if(originalResizeImage){ currentResizeImage=originalResizeImage; updateResizePreview(); } updateSizeInfo(); }
 
     

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html lang="en">
 <head>
@@ -166,7 +166,7 @@
       position: relative;
     }
     .preview-frame::after {
-      content: '6.5 cm Ã— 4.9 cm frame';
+      content: '6.5 cm × 4.9 cm frame';
       position: absolute;
       bottom: 8px;
       right: 12px;
@@ -339,7 +339,7 @@
                         </div>
                     </div>
                     <div class="dropdown">
-                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+                        <a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
                             <a href="resume-maker.html">Resume Maker</a>
                             <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
@@ -394,7 +394,7 @@
 <div aria-label="Upload PDF" class="upload-area" id="dropzone" role="button" tabindex="0">
 <i class="fas fa-cloud-upload-alt" style="font-size:42px;color:var(--primary);"></i>
 <h3 style="margin:12px 0 6px;">Drag &amp; drop or click to choose</h3>
-<p style="color:var(--muted);">Supports Unicode text Â· up to 50 MB PDFs Â· processing happens in your browser.</p>
+<p style="color:var(--muted);">Supports Unicode text · up to 50 MB PDFs · processing happens in your browser.</p>
 <input accept="application/pdf" hidden="" id="pdf-input" type="file"/>
 </div>
 <div class="badge-row" id="fileInfo" style="margin-top:14px; display:none;"></div>
@@ -422,7 +422,7 @@
 </div>
 <div id="progressWrapper" style="margin-top:20px; display:none;">
 <div style="display:flex;justify-content:space-between;font-size:0.9rem;color:var(--muted);margin-bottom:6px;">
-<span id="progressLabel">Preparingâ€¦</span>
+<span id="progressLabel">Preparing…</span>
 <span id="progressPercent">0%</span>
 </div>
 <div class="progress"><span id="progressBar"></span></div>
@@ -437,7 +437,7 @@
 <span class="badge" id="modeBadge" style="display:none;"></span>
 </div>
 <div aria-label="Page thumbnails" class="page-slider" id="pageSlider"></div>
-<div class="slider-hint">Tick the pages you want and choose â€œSelectedâ€ above to export only those pages.</div>
+<div class="slider-hint">Tick the pages you want and choose “Selected” above to export only those pages.</div>
 </div>
 </div>
 <div class="ocr-results" id="ocrResults">
@@ -454,7 +454,7 @@
 <p>We normalise PDF glyphs and export using Unicode text runs to keep every script legible in Word.</p>
 <ul>
 <li><i class="fas fa-check-circle"></i> Hindi, Marathi, Tamil and more</li>
-<li><i class="fas fa-check-circle"></i> RTL languages via Wordâ€™s layout engine</li>
+<li><i class="fas fa-check-circle"></i> RTL languages via Word’s layout engine</li>
 <li><i class="fas fa-check-circle"></i> Automatic fallback to images if text is embedded</li>
 </ul>
 </div>
@@ -490,7 +490,7 @@
 <ul>
 <li><i class="fas fa-check-circle"></i> For very large PDFs, convert in batches of 200 pages.</li>
 <li><i class="fas fa-check-circle"></i> Smart mode gives best balance of selectable text and layout.</li>
-<li><i class="fas fa-check-circle"></i> Use Wordâ€™s font replacement to match your brand typeface.</li>
+<li><i class="fas fa-check-circle"></i> Use Word’s font replacement to match your brand typeface.</li>
 </ul>
 </div>
 </aside>
@@ -761,11 +761,11 @@
       }
 
       async function loadPdf(file){
-        setProgress(5, 'Loading PDFâ€¦');
+        setProgress(5, 'Loading PDF…');
         const arrayBuffer = await file.arrayBuffer();
         pdfBytes = arrayBuffer;
         pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        setProgress(30, 'Rendering previewâ€¦');
+        setProgress(30, 'Rendering preview…');
         await renderPreview();
         await renderThumbnails();
         updateBadges();
@@ -802,20 +802,20 @@
         ocrText.value = '';
         downloadOcrDocx.disabled = true;
         updateOcrStatus('Running OCR...', 'info');
-        setProgress(5, 'Preparing OCRâ€¦');
+        setProgress(5, 'Preparing OCR…');
         try {
           const worker = await Tesseract.createWorker('eng+hin+ara+ben+kan+tel+tam+mal+mar+pan+guj', 1, {
             logger: m => {
               if (m.status === 'recognizing text' && m.progress){
                 const pct = Math.round(m.progress * 100);
-                setProgress(Math.min(95, pct), 'OCR Progressâ€¦');
+                setProgress(Math.min(95, pct), 'OCR Progress…');
               }
             }
           });
           const parts = [];
           for (let i = 0; i < selected.length; i++){
             const pageNumber = selected[i];
-            setProgress((i / selected.length) * 90 + 5, `OCR page ${pageNumber}â€¦`);
+            setProgress((i / selected.length) * 90 + 5, `OCR page ${pageNumber}…`);
             const page = await pdfDoc.getPage(pageNumber);
             const viewport = page.getViewport({ scale: 2 });
             const canvas = document.createElement('canvas');
@@ -929,7 +929,7 @@
         }
         for (let idx = 0; idx < total; idx++){
           const pageNumber = selectedPages[idx];
-          setProgress((idx / total) * 100, `Processing page ${idx + 1} of ${total}â€¦`);
+          setProgress((idx / total) * 100, `Processing page ${idx + 1} of ${total}…`);
           const page = await pdfDoc.getPage(pageNumber);
           const textContent = await page.getTextContent({ includeMarkedContent: true });
           const lines = buildLineGroups(textContent);
@@ -951,7 +951,7 @@
             children.push(new docxLib.Paragraph({ children: [imageRun] }));
           }
         }
-        setProgress(95, 'Packaging DOCXâ€¦');
+        setProgress(95, 'Packaging DOCX…');
         const doc = new docxLib.Document({
           creator: 'easyjpgtopdf',
           description: 'Converted with Unicode-aware extractor',
@@ -971,7 +971,7 @@
         fileName = file.name;
         fileInfo.style.display = 'flex';
         fileInfo.innerHTML = `<span class="badge"><i class="fas fa-file-pdf"></i> ${file.name}</span><span class="badge">${formatBytes(file.size)}</span>`;
-        setStatus('Loading PDFâ€¦');
+        setStatus('Loading PDF…');
         loadPdf(file).catch(err => {
           console.error('PDF load failed', err);
           setStatus('Unable to read this PDF. It may be encrypted or corrupted.', 'error');
@@ -1007,7 +1007,7 @@
         if (!pdfDoc) return;
         convertBtn.disabled = true;
         clearBtn.disabled = true;
-        setStatus('Convertingâ€¦ please wait. Large documents may take a moment.');
+        setStatus('Converting… please wait. Large documents may take a moment.');
         try {
           await convertPdfToDocx();
         } catch (err) {
@@ -1067,7 +1067,7 @@
 <a href="privacy-policy.html">Privacy Policy</a>
 <a href="terms-of-service.html">Terms of Service</a>
 </div>
-<p class="footer-brand-line">© easyjpgtopdf — Free PDF &amp; Image Tools for everyone.</p>
+<p class="footer-brand-line">� easyjpgtopdf � Free PDF &amp; Image Tools for everyone.</p>
 <p class="footer-credits">
                 Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
                 <a href="attributions.html">See full acknowledgements</a>.

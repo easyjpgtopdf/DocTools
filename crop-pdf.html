@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html lang="en">
 <head>
@@ -798,7 +798,7 @@
                         </div>
                     </div>
                     <div class="dropdown">
-                        <a href="#">Design Tools <i class="fas fa-chevron-down"></i></a>
+                        <a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
                             <a href="resume-maker.html">Resume Maker</a>
                             <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
@@ -850,7 +850,7 @@
 <input accept="application/pdf" hidden="" id="pdfInput" type="file"/>
 <i aria-hidden="true" class="fas fa-cloud-upload-alt"></i>
 <h3>Drag &amp; drop or click to browse</h3>
-<p>PDF files only Ã¢â‚¬Â¢ Max 50 MB recommended</p>
+<p>PDF files only â€¢ Max 50 MB recommended</p>
 </div>
 <div class="file-meta hidden" id="fileMeta">
 <span><i class="fas fa-file-pdf"></i> <strong id="fileName">sample.pdf</strong></span>
@@ -1106,7 +1106,7 @@
         previewStatus.textContent = message;
       }
 
-      setStatus('Preparing PDF toolsÃ¢â‚¬Â¦');
+      setStatus('Preparing PDF toolsâ€¦');
 
       let pdfjsLibGlobal = null;
       let pdfJsWorkerSrc = null;
@@ -1119,7 +1119,7 @@
         pdfjsLibGlobal.GlobalWorkerOptions.workerSrc = pdfJsWorkerSrc;
       } catch (error) {
         console.warn('[Crop PDF] pdf.js unavailable', error);
-        setStatus('PDF preview unavailable Ã¢â‚¬â€ check your internet connection and reload.');
+        setStatus('PDF preview unavailable â€” check your internet connection and reload.');
       }
 
       try {
@@ -1127,13 +1127,13 @@
       } catch (error) {
         console.warn('[Crop PDF] pdf-lib unavailable', error);
         downloadButton.disabled = true;
-        setStatus('Cropping engine unavailable Ã¢â‚¬â€ reload the page to try again.');
+        setStatus('Cropping engine unavailable â€” reload the page to try again.');
       }
 
       if (pdfjsLibGlobal && pdfLibGlobal) {
         setStatus('Upload a PDF to begin.');
       } else if (pdfjsLibGlobal && !pdfLibGlobal) {
-        setStatus('Cropping engine unavailable Ã¢â‚¬â€ reload the page to try again.');
+        setStatus('Cropping engine unavailable â€” reload the page to try again.');
       } else if (!pdfjsLibGlobal && pdfLibGlobal) {
         setStatus('Preview unavailable. Upload a PDF to crop and download.');
       }
@@ -1368,7 +1368,7 @@
           return;
         }
         try {
-          setStatus('Loading PDFÃ¢â‚¬Â¦');
+          setStatus('Loading PDFâ€¦');
           downloadButton.disabled = true;
           pageSelect.disabled = true;
 
