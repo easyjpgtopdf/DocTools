@@ -209,17 +209,108 @@ template_file = 'blog-how-to-use-jpg-to-pdf.html'
 with open(template_file, 'r', encoding='utf-8') as f:
     template = f.read()
 
+# Tool to page mapping
+tool_page_map = {
+    'JPG to PDF': 'jpg-to-pdf.html',
+    'Word to PDF': 'word-to-pdf.html',
+    'Excel to PDF': 'excel-to-pdf.html',
+    'PowerPoint to PDF': 'ppt-to-pdf.html',
+    'PDF to JPG': 'pdf-to-jpg.html',
+    'PDF to Word': 'pdf-to-word.html',
+    'PDF to Excel': 'pdf-to-excel.html',
+    'PDF to PowerPoint': 'pdf-to-ppt.html',
+    'Merge PDF': 'merge-pdf.html',
+    'Split PDF': 'split-pdf.html',
+    'Compress PDF': 'compress-pdf.html',
+    'Edit PDF': 'edit-pdf.html',
+    'Protect PDF': 'protect-pdf.html',
+    'Unlock PDF': 'unlock-pdf.html',
+    'Watermark PDF': 'watermark-pdf.html',
+    'Crop PDF': 'crop-pdf.html',
+    'Add Page Numbers': 'add-page-numbers.html',
+    'Compress Image': 'image-compressor.html',
+    'Resize Image': 'image-resizer.html',
+    'Edit Image': 'image-editor.html',
+    'Remove Background': 'background-remover.html',
+    'OCR Image': 'ocr-image.html',
+    'Watermark Image': 'image-watermark.html',
+    'Resume Maker': 'resume-maker.html',
+    'Biodata Maker': 'biodata-maker.html',
+    'AI Image Generator': 'ai-image-generator.html',
+    'Marriage Card': 'marriage-card.html',
+    'Protect Excel': 'protect-excel.html',
+}
+
+# Related tools mapping
+related_tools_map = {
+    'JPG to PDF': ['PDF to JPG', 'Compress PDF', 'Merge PDF', 'Image Compressor'],
+    'Word to PDF': ['PDF to Word', 'Merge PDF', 'Compress PDF', 'Edit PDF'],
+    'Excel to PDF': ['PDF to Excel', 'Merge PDF', 'Compress PDF'],
+    'PowerPoint to PDF': ['PDF to PowerPoint', 'Merge PDF', 'Compress PDF'],
+    'PDF to JPG': ['JPG to PDF', 'Image Compressor', 'Image Resizer'],
+    'PDF to Word': ['Word to PDF', 'Edit PDF', 'Merge PDF'],
+    'PDF to Excel': ['Excel to PDF', 'Merge PDF'],
+    'PDF to PowerPoint': ['PowerPoint to PDF', 'Merge PDF'],
+    'Merge PDF': ['Split PDF', 'Compress PDF', 'Edit PDF'],
+    'Split PDF': ['Merge PDF', 'Compress PDF'],
+    'Compress PDF': ['Merge PDF', 'Edit PDF', 'Protect PDF'],
+    'Edit PDF': ['Merge PDF', 'Watermark PDF', 'Protect PDF'],
+    'Protect PDF': ['Unlock PDF', 'Edit PDF', 'Watermark PDF'],
+    'Unlock PDF': ['Protect PDF', 'Edit PDF'],
+    'Watermark PDF': ['Edit PDF', 'Protect PDF'],
+    'Crop PDF': ['Edit PDF', 'Merge PDF'],
+    'Add Page Numbers': ['Edit PDF', 'Merge PDF'],
+    'Compress Image': ['Image Resizer', 'JPG to PDF'],
+    'Resize Image': ['Image Compressor', 'JPG to PDF'],
+    'Edit Image': ['Image Compressor', 'Image Resizer'],
+    'Remove Background': ['Image Editor', 'Image Compressor'],
+    'OCR Image': ['PDF to Word', 'Edit PDF'],
+    'Watermark Image': ['Image Editor', 'Image Compressor'],
+}
+
+# Related blog articles mapping
+related_blog_map = {
+    'JPG to PDF': ['blog-how-to-use-word-to-pdf.html', 'blog-why-user-pdf-to-jpg.html', 'blog-how-to-compress-pdf.html'],
+    'Word to PDF': ['blog-how-to-use-jpg-to-pdf.html', 'blog-why-user-pdf-to-word.html', 'blog-how-to-merge-pdf.html'],
+    'Excel to PDF': ['blog-how-to-use-word-to-pdf.html', 'blog-why-user-pdf-to-excel.html', 'blog-how-to-compress-pdf.html'],
+    'PowerPoint to PDF': ['blog-how-to-use-word-to-pdf.html', 'blog-why-user-pdf-to-ppt.html', 'blog-how-to-merge-pdf.html'],
+    'PDF to JPG': ['blog-how-to-use-jpg-to-pdf.html', 'blog-how-to-compress-image.html', 'blog-how-to-resize-image.html'],
+    'PDF to Word': ['blog-how-to-use-word-to-pdf.html', 'blog-how-to-edit-pdf.html', 'blog-how-to-merge-pdf.html'],
+    'PDF to Excel': ['blog-how-to-use-excel-to-pdf.html', 'blog-how-to-merge-pdf.html'],
+    'PDF to PowerPoint': ['blog-how-to-use-ppt-to-pdf.html', 'blog-how-to-merge-pdf.html'],
+    'Merge PDF': ['blog-how-to-split-pdf.html', 'blog-how-to-compress-pdf.html', 'blog-how-to-edit-pdf.html'],
+    'Split PDF': ['blog-how-to-merge-pdf.html', 'blog-how-to-compress-pdf.html'],
+    'Compress PDF': ['blog-how-to-merge-pdf.html', 'blog-how-to-edit-pdf.html', 'blog-how-to-protect-pdf.html'],
+    'Edit PDF': ['blog-how-to-merge-pdf.html', 'blog-how-to-watermark-pdf.html', 'blog-how-to-protect-pdf.html'],
+    'Protect PDF': ['blog-how-to-unlock-pdf.html', 'blog-how-to-edit-pdf.html', 'blog-how-to-watermark-pdf.html'],
+    'Unlock PDF': ['blog-how-to-protect-pdf.html', 'blog-how-to-edit-pdf.html'],
+    'Watermark PDF': ['blog-how-to-edit-pdf.html', 'blog-how-to-protect-pdf.html'],
+    'Crop PDF': ['blog-how-to-edit-pdf.html', 'blog-how-to-merge-pdf.html'],
+    'Add Page Numbers': ['blog-how-to-edit-pdf.html', 'blog-how-to-merge-pdf.html'],
+    'Compress Image': ['blog-how-to-resize-image.html', 'blog-how-to-use-jpg-to-pdf.html'],
+    'Resize Image': ['blog-how-to-compress-image.html', 'blog-how-to-use-jpg-to-pdf.html'],
+    'Edit Image': ['blog-how-to-compress-image.html', 'blog-how-to-resize-image.html'],
+    'Remove Background': ['blog-how-to-edit-image.html', 'blog-how-to-compress-image.html'],
+    'OCR Image': ['blog-why-user-pdf-to-word.html', 'blog-how-to-edit-pdf.html'],
+    'Watermark Image': ['blog-how-to-edit-image.html', 'blog-how-to-compress-image.html'],
+}
+
 # Generate content variations based on tool type
 def generate_content(tool):
+    tool_name = tool['tool_name']
+    tool_page = tool_page_map.get(tool_name, '#')
+    related_tools = related_tools_map.get(tool_name, [])
+    related_blogs = related_blog_map.get(tool_name, [])
+    
     if 'why' in tool['filename']:
         # For "why use" articles
-        intro = f"Converting {tool['tool_name']} is an essential task for professionals, students, and individuals managing digital documents. Our {tool['tool_name']} converter tool makes this process quick, easy, and efficient. This comprehensive guide will explain why you should use this tool and how it can benefit your workflow."
-        why_section = f"<h2>Why Convert {tool['tool_name']}?</h2><p>There are numerous compelling reasons to use our {tool['tool_name']} converter. This tool provides better file management, maintains document quality, and offers universal compatibility across different devices and platforms. Understanding the benefits helps you make informed decisions about your document workflow.</p>"
+        intro = f"Converting {tool_name} is an essential task for professionals, students, and individuals managing digital documents. Our {tool_name} converter tool makes this process quick, easy, and efficient. This comprehensive guide will explain why you should use this tool and how it can benefit your workflow. Understanding the value and applications of this conversion tool will help you make informed decisions about your document management needs."
+        why_section = f"<h2>Why Convert {tool_name}?</h2><p>There are numerous compelling reasons to use our {tool_name} converter. This tool provides better file management, maintains document quality, and offers universal compatibility across different devices and platforms. Understanding the benefits helps you make informed decisions about your document workflow. The conversion process is designed to preserve important document elements while making files more accessible and manageable.</p>"
         steps_title = "How to Use the Tool"
     else:
         # For "how to use" articles
-        intro = f"Using our {tool['tool_name']} tool is straightforward and efficient. This comprehensive guide will walk you through everything you need to know about using our tool effectively, from basic operations to advanced features."
-        why_section = f"<h2>Why Use {tool['tool_name']}?</h2><p>Our {tool['tool_name']} tool offers numerous advantages including improved productivity, better file organization, and professional results. Whether you're a student, professional, or business owner, this tool can significantly enhance your document management workflow.</p>"
+        intro = f"Using our {tool_name} tool is straightforward and efficient. This comprehensive guide will walk you through everything you need to know about using our tool effectively, from basic operations to advanced features. Whether you're a beginner or an experienced user, this tutorial provides valuable insights to maximize your productivity and achieve professional results with minimal effort."
+        why_section = f"<h2>Why Use {tool_name}?</h2><p>Our {tool_name} tool offers numerous advantages including improved productivity, better file organization, and professional results. Whether you're a student, professional, or business owner, this tool can significantly enhance your document management workflow. The intuitive interface and powerful features make complex tasks simple and accessible to users of all technical levels.</p>"
         steps_title = "Step-by-Step Guide"
     
     content = f"""
