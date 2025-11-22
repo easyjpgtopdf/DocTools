@@ -123,6 +123,40 @@
             box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
             text-decoration: none;
         }
+        
+        /* Modern AI Search Bar - Same styles as blog.html */
+        .blog-search-container { margin: 30px 0 40px; width: 100%; }
+        .blog-search-wrapper { position: relative; max-width: 800px; margin: 0 auto; }
+        .blog-search-input-wrapper { position: relative; display: flex; align-items: center; background: white; border: 2px solid rgba(67, 97, 238, 0.2); border-radius: 999px; padding: 12px 20px; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.1); transition: all 0.3s; }
+        .blog-search-input-wrapper:focus-within { border-color: #4361ee; box-shadow: 0 6px 20px rgba(67, 97, 238, 0.2); transform: translateY(-2px); }
+        .blog-search-icon { color: #4361ee; font-size: 1.2rem; margin-right: 12px; }
+        .blog-search-input { flex: 1; border: none; outline: none; font-size: 1rem; color: #0b1630; background: transparent; font-weight: 500; }
+        .blog-search-input::placeholder { color: #7a8196; }
+        .blog-search-clear { background: none; border: none; color: #7a8196; cursor: pointer; padding: 4px 8px; border-radius: 50%; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+        .blog-search-clear:hover { background: rgba(67, 97, 238, 0.1); color: #4361ee; }
+        .blog-search-results { position: absolute; top: calc(100% + 10px); left: 0; right: 0; background: white; border-radius: 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15); max-height: 500px; overflow-y: auto; z-index: 1000; margin-top: 8px; }
+        .blog-search-results-header { padding: 16px 20px; border-bottom: 1px solid rgba(0, 0, 0, 0.08); font-size: 0.9rem; color: #56607a; background: #f8f9ff; border-radius: 16px 16px 0 0; }
+        .blog-search-results-header strong { color: #4361ee; }
+        .blog-search-result-item { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid rgba(0, 0, 0, 0.05); text-decoration: none; color: inherit; transition: all 0.2s; cursor: pointer; }
+        .blog-search-result-item:hover { background: #f8f9ff; transform: translateX(4px); }
+        .blog-search-result-item:last-child { border-bottom: none; }
+        .blog-search-result-icon { width: 48px; height: 48px; background: linear-gradient(135deg, rgba(67, 97, 238, 0.1), rgba(67, 97, 238, 0.15)); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #4361ee; font-size: 1.2rem; margin-right: 16px; flex-shrink: 0; }
+        .blog-search-result-content { flex: 1; min-width: 0; }
+        .blog-search-result-title { font-size: 1.1rem; font-weight: 700; color: #0b1630; margin-bottom: 4px; }
+        .blog-search-result-title mark { background: rgba(67, 97, 238, 0.2); color: #4361ee; padding: 0 2px; border-radius: 3px; font-weight: 800; }
+        .blog-search-result-description { font-size: 0.9rem; color: #56607a; margin-bottom: 6px; line-height: 1.4; }
+        .blog-search-result-category { display: inline-block; font-size: 0.75rem; padding: 4px 10px; background: rgba(67, 97, 238, 0.1); color: #4361ee; border-radius: 999px; font-weight: 600; }
+        .blog-search-result-arrow { color: #7a8196; font-size: 0.9rem; margin-left: 12px; flex-shrink: 0; }
+        .blog-search-result-item:hover .blog-search-result-arrow { color: #4361ee; transform: translateX(4px); }
+        .blog-search-no-results { padding: 60px 20px; text-align: center; }
+        .blog-search-no-results i { font-size: 3rem; color: #7a8196; margin-bottom: 16px; }
+        .blog-search-no-results h3 { font-size: 1.3rem; color: #0b1630; margin-bottom: 8px; }
+        .blog-search-no-results p { color: #56607a; margin-bottom: 24px; }
+        .blog-search-suggestions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; align-items: center; }
+        .blog-search-suggestions span { color: #56607a; font-weight: 600; }
+        .blog-search-suggestions a { padding: 8px 16px; background: rgba(67, 97, 238, 0.1); color: #4361ee; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; }
+        .blog-search-suggestions a:hover { background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white; transform: translateY(-2px); }
+        @media (max-width: 768px) { .blog-search-container { margin: 20px 0 30px; } .blog-search-results { max-height: 400px; } .blog-search-result-item { padding: 12px 16px; } .blog-search-result-icon { width: 40px; height: 40px; font-size: 1rem; margin-right: 12px; } }
     </style>
 </head>
 <body>
@@ -274,6 +308,9 @@
 
     <!-- Blog Common Script -->
     <script src="js/blog-common.js"></script>
+    
+    <!-- Blog Search Script -->
+    <script src="js/blog-search.js"></script>
     
     <script type="module">
         const isLocalFileProtocol = window.location.protocol === 'file:';
