@@ -65,6 +65,8 @@
             cursor: pointer;
             font-weight: 600;
             transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
         }
         
         .filter-btn:hover,
@@ -74,6 +76,7 @@
             border-color: #4361ee;
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+            text-decoration: none;
         }
         
         /* Blog Grid */
@@ -415,11 +418,11 @@
 
             <!-- Filter Tabs -->
             <div class="blog-filters">
-                <button class="filter-btn active" data-filter="all">All Articles</button>
-                <button class="filter-btn" data-filter="tutorials">Tutorials</button>
-                <button class="filter-btn" data-filter="tips">Tips & Tricks</button>
-                <button class="filter-btn" data-filter="news">News & Updates</button>
-                <button class="filter-btn" data-filter="guides">Guides</button>
+                <a href="blog-articles.html" class="filter-btn" data-filter="all">All Articles</a>
+                <a href="blog-tutorials.html" class="filter-btn" data-filter="tutorials">Tutorials</a>
+                <a href="blog-tips.html" class="filter-btn" data-filter="tips">Tips & Tricks</a>
+                <a href="blog-news.html" class="filter-btn" data-filter="news">News & Updates</a>
+                <a href="blog-guides.html" class="filter-btn" data-filter="guides">Guides</a>
             </div>
 
             <!-- Coming Soon Message -->
@@ -489,31 +492,24 @@
         </div>
     </footer>
 
-    <!-- Scripts -->
-    <script>
-        // Filter functionality
-        const filterBtns = document.querySelectorAll('.filter-btn');
-        filterBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                filterBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                // Filter logic will be added when articles are available
-            });
-        });
+  <!-- Scripts -->
+  <!-- Blog Common Script -->
+  <script src="js/blog-common.js"></script>
+  
+  <script>
+      // Scroll to newsletter
+      function scrollToNewsletter() {
+          document.getElementById('newsletter').scrollIntoView({ behavior: 'smooth' });
+      }
 
-        // Scroll to newsletter
-        function scrollToNewsletter() {
-            document.getElementById('newsletter').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        // Newsletter submission
-        function handleNewsletterSubmit(event) {
-            event.preventDefault();
-            const email = event.target.querySelector('input[type="email"]').value;
-            alert('Thank you for subscribing! We\'ll notify you when we publish new articles.');
-            event.target.reset();
-        }
-    </script>
+      // Newsletter submission
+      function handleNewsletterSubmit(event) {
+          event.preventDefault();
+          const email = event.target.querySelector('input[type="email"]').value;
+          alert('Thank you for subscribing! We\'ll notify you when we publish new articles.');
+          event.target.reset();
+      }
+  </script>
 
     <!-- Auth Script -->
     <script type="module">

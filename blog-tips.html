@@ -90,6 +90,39 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
         }
+        
+        /* Blog Filter Buttons */
+        .blog-filters {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+            margin-top: 30px;
+        }
+        
+        .filter-btn {
+            padding: 10px 24px;
+            border: 2px solid rgba(67, 97, 238, 0.2);
+            background: white;
+            color: #4361ee;
+            border-radius: 999px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .filter-btn:hover,
+        .filter-btn.active {
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            color: white;
+            border-color: #4361ee;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
@@ -202,6 +235,15 @@
                 <p>Quick tips and clever tricks to boost your productivity.</p>
             </div>
 
+            <!-- Blog Filter Buttons -->
+            <div class="blog-filters">
+                <a href="blog-articles.html" class="filter-btn" data-filter="all">All Articles</a>
+                <a href="blog-tutorials.html" class="filter-btn" data-filter="tutorials">Tutorials</a>
+                <a href="blog-tips.html" class="filter-btn active" data-filter="tips">Tips & Tricks</a>
+                <a href="blog-news.html" class="filter-btn" data-filter="news">News & Updates</a>
+                <a href="blog-guides.html" class="filter-btn" data-filter="guides">Guides</a>
+            </div>
+
             <div class="coming-soon">
                 <i class="fas fa-magic"></i>
                 <h2>Tips & Tricks Coming Soon!</h2>
@@ -230,6 +272,9 @@
         </div>
     </footer>
 
+    <!-- Blog Common Script -->
+    <script src="js/blog-common.js"></script>
+    
     <script type="module">
         const isLocalFileProtocol = window.location.protocol === 'file:';
         if (!isLocalFileProtocol) {
