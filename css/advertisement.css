@@ -1,0 +1,191 @@
+/* Advertisement Spaces for All Pages */
+/* Future-ready spaces for banners and ads */
+
+/* Top Banner Advertisement Space */
+.ad-banner-top {
+    width: 100%;
+    min-height: 90px;
+    background: linear-gradient(135deg, #f8f9ff 0%, #e5e9ff 100%);
+    border: 2px dashed rgba(67, 97, 238, 0.2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 20px auto;
+    padding: 16px;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+}
+
+.ad-banner-top::before {
+    content: 'Advertisement Space';
+    position: absolute;
+    color: rgba(67, 97, 238, 0.4);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.ad-banner-top.hidden,
+.ad-banner-top:empty {
+    display: none;
+}
+
+/* Sidebar Advertisement Space */
+.ad-sidebar {
+    width: 100%;
+    min-height: 250px;
+    background: linear-gradient(135deg, #f8f9ff 0%, #e5e9ff 100%);
+    border: 2px dashed rgba(67, 97, 238, 0.2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 20px 0;
+    padding: 16px;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+    position: sticky;
+    top: 90px;
+    max-height: 600px;
+}
+
+.ad-sidebar::before {
+    content: 'Advertisement Space';
+    position: absolute;
+    color: rgba(67, 97, 238, 0.4);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transform: rotate(-90deg);
+    white-space: nowrap;
+}
+
+.ad-sidebar.hidden,
+.ad-sidebar:empty {
+    display: none;
+}
+
+/* Bottom Banner Advertisement Space */
+.ad-banner-bottom {
+    width: 100%;
+    min-height: 90px;
+    background: linear-gradient(135deg, #f8f9ff 0%, #e5e9ff 100%);
+    border: 2px dashed rgba(67, 97, 238, 0.2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 30px auto 20px;
+    padding: 16px;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+}
+
+.ad-banner-bottom::before {
+    content: 'Advertisement Space';
+    position: absolute;
+    color: rgba(67, 97, 238, 0.4);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.ad-banner-bottom.hidden,
+.ad-banner-bottom:empty {
+    display: none;
+}
+
+/* In-content Advertisement Space (Square/Rectangle) */
+.ad-in-content {
+    width: 100%;
+    min-height: 200px;
+    background: linear-gradient(135deg, #f8f9ff 0%, #e5e9ff 100%);
+    border: 2px dashed rgba(67, 97, 238, 0.2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 24px auto;
+    padding: 16px;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+}
+
+.ad-in-content::before {
+    content: 'Advertisement';
+    position: absolute;
+    color: rgba(67, 97, 238, 0.4);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.ad-in-content.hidden,
+.ad-in-content:empty {
+    display: none;
+}
+
+/* When advertisement is loaded, hide placeholder */
+.ad-banner-top:has(> img),
+.ad-banner-top:has(> iframe),
+.ad-sidebar:has(> img),
+.ad-sidebar:has(> iframe),
+.ad-banner-bottom:has(> img),
+.ad-banner-bottom:has(> iframe),
+.ad-in-content:has(> img),
+.ad-in-content:has(> iframe) {
+    border: none;
+    background: transparent;
+    min-height: auto;
+}
+
+.ad-banner-top:has(> img)::before,
+.ad-banner-top:has(> iframe)::before,
+.ad-sidebar:has(> img)::before,
+.ad-sidebar:has(> iframe)::before,
+.ad-banner-bottom:has(> img)::before,
+.ad-banner-bottom:has(> iframe)::before,
+.ad-in-content:has(> img)::before,
+.ad-in-content:has(> iframe)::before {
+    display: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .ad-banner-top,
+    .ad-banner-bottom {
+        min-height: 70px;
+        margin: 16px auto;
+    }
+    
+    .ad-sidebar {
+        position: static;
+        min-height: 200px;
+        margin: 20px 0;
+    }
+    
+    .ad-in-content {
+        min-height: 150px;
+        margin: 16px auto;
+    }
+}
+
+/* Container max-width for ads */
+.container {
+    position: relative;
+}
+
+.ad-banner-top img,
+.ad-banner-bottom img,
+.ad-sidebar img,
+.ad-in-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+

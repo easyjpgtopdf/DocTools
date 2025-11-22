@@ -254,13 +254,7 @@
 <div class="overlay-deck">
 <section class="panel overlay-panel">
 <div class="overlay-controls">
-<header>
-<div>Overlay Controls
-            <label style="float:right; font-weight:600;">
-<input id="overlayToggle" style="margin-right:8px; vertical-align:middle;" type="checkbox"/> Enable Overlay
-            </label>
-</div>
-</header>
+
 <div class="overlay-fields hidden" id="overlayFields">
 <label>
             Text (multiline supported)
@@ -840,7 +834,7 @@
         div.appendChild(img);
         div.appendChild(label);
         div.addEventListener('click', async () => {
-          setStatus('Applying backgroundâ€¦');
+          setStatus('Applying backgroundÃ¢Â€Â¦');
           try {
             await loadImage(backgroundImage, item.url + '&auto=compress&fit=crop&w=1200&q=80');
             document.querySelectorAll('.thumb').forEach((el) => el.classList.remove('selected'));
@@ -994,10 +988,10 @@
         <div class="download-option-details">
           ${compressedInfo ? 
             `<strong>${compressedInfo.sizeKB} KB</strong> (${compressedInfo.sizeMB} MB)<br>` +
-            `${compressedInfo.width} × ${compressedInfo.height} pixels<br>` +
+            `${compressedInfo.width} Ã— ${compressedInfo.height} pixels<br>` +
             `<small>Auto-compressed to under 500 KB</small>` :
             `<strong>${imageInfo.sizeKB} KB</strong> (${imageInfo.sizeMB} MB)<br>` +
-            `${imageInfo.width} × ${imageInfo.height} pixels<br>` +
+            `${imageInfo.width} Ã— ${imageInfo.height} pixels<br>` +
             `<small>Already under 500 KB limit</small>`
           }
         </div>
@@ -1021,7 +1015,7 @@
         </div>
         <div class="download-option-details">
           <strong>${imageInfo.sizeKB} KB</strong> (${imageInfo.sizeMB} MB)<br>
-          ${imageInfo.width} × ${imageInfo.height} pixels<br>
+          ${imageInfo.width} Ã— ${imageInfo.height} pixels<br>
           ${!isPremium ? 
             `<small style="color: #dc2626;">?? Requires active Pro/Premium plan</small>` :
             `<small style="color: #059669;">? Full quality, no compression</small>`
@@ -1036,7 +1030,7 @@
           // Show upgrade message
           const message = `Original Quality Download\n\n` +
                          `Size: ${imageInfo.sizeKB} KB (${imageInfo.sizeMB} MB)\n` +
-                         `Dimensions: ${imageInfo.width} × ${imageInfo.height} pixels\n\n` +
+                         `Dimensions: ${imageInfo.width} Ã— ${imageInfo.height} pixels\n\n` +
                          `Free users: Max 500 KB (compressed)\n` +
                          `Your file: ${imageInfo.sizeKB} KB\n\n` +
                          `Upgrade to Pro/Premium for:\n` +
@@ -1117,7 +1111,7 @@
       link.download = filename.endsWith('.png') ? filename : `${filename.replace(/\.[^/.]+$/, '') || 'background-styled'}.png`;
       link.click();
       
-      setStatus(`? Downloaded (${imageInfo.sizeKB} KB, ${imageInfo.width}×${imageInfo.height}px) - Premium`);
+      setStatus(`? Downloaded (${imageInfo.sizeKB} KB, ${imageInfo.width}Ã—${imageInfo.height}px) - Premium`);
       setTimeout(() => clearStatus(), 4000);
     }
 
@@ -1197,22 +1191,27 @@
   const footerYearEl = document.getElementById('footerYear');
   if (footerYearEl) footerYearEl.textContent = new Date().getFullYear();
   </script>
-<footer>
-<div class="container footer-inner">
-<div class="footer-company-links">
-<span>Company</span>
-<a href="index.html#about">About Us</a>
-<a href="index.html#contact">Contact</a>
-<a href="privacy-policy.html">Privacy Policy</a>
-<a href="terms-of-service.html">Terms of Service</a>
-</div>
-<p class="footer-brand-line">© easyjpgtopdf — Free PDF &amp; Image Tools for everyone.</p>
-<p class="footer-credits">
+    
+<script src="js/auth.js" type="module">
+
+    <footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+                <a href="dmca-en.html">DMCA</a>
+                <a href="blog.html">Blog</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
+            <p class="footer-credits">
                 Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
                 <a href="attributions.html">See full acknowledgements</a>.
             </p>
-</div>
-</footer>
-<script src="js/auth.js" type="module"></script>
+        </div>
+    </footer>
 </body>
 </html>

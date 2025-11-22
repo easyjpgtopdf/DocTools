@@ -635,7 +635,7 @@
 <div aria-label="Upload image dropzone" class="dropzone" id="uploadDropzone" role="button" tabindex="0">
 <i class="fas fa-file-arrow-up"></i>
 <div><strong>Drag &amp; drop your image</strong></div>
-<p>Supports PNG, JPG, WEBP â€¢ Max 10 MB â€¢ Works offline after first load</p>
+<p>Supports PNG, JPG, WEBP Ã¢â¬Â¢ Max 10 MB Ã¢â¬Â¢ Works offline after first load</p>
 <button class="btn btn-outline" id="browseBtn" type="button"><i class="fas fa-folder-open"></i> Browse Files</button>
 <input accept="image/*" hidden="" id="imageInput" type="file"/>
 </div>
@@ -649,11 +649,11 @@
 <span id="previewPlaceholder">No image selected yet</span>
 </div>
 <div class="meta-list">
-<span><strong>File:</strong> <span id="fileName">â€”</span></span>
-<span><strong>Resolution:</strong> <span id="fileResolution">â€”</span></span>
-<span><strong>Size:</strong> <span id="fileSize">â€”</span></span>
+<span><strong>File:</strong> <span id="fileName">Ã¢â¬â</span></span>
+<span><strong>Resolution:</strong> <span id="fileResolution">Ã¢â¬â</span></span>
+<span><strong>Size:</strong> <span id="fileSize">Ã¢â¬â</span></span>
 </div>
-<div class="status-chip" id="statusChip"><i class="fas fa-info-circle"></i> Waiting for imageâ€¦</div>
+<div class="status-chip" id="statusChip"><i class="fas fa-info-circle"></i> Waiting for imageÃ¢â¬Â¦</div>
 <div class="progress-track">
 <div class="progress-bar" id="progressBar"></div>
 </div>
@@ -712,7 +712,7 @@
 <div class="result-summary">
 <span><strong>Words:</strong> <span id="wordCount">0</span></span>
 <span><strong>Characters:</strong> <span id="charCount">0</span></span>
-<span><strong>Last updated:</strong> <span id="lastUpdated">â€”</span></span>
+<span><strong>Last updated:</strong> <span id="lastUpdated">Ã¢â¬â</span></span>
 </div>
 </section>
 <section class="tools-section"><div class="section-title"><h2>More Image Tools</h2></div><div class="tools-grid"><a class="tool-card" href="image-repair.html"><div class="tool-icon"><i class="fas fa-magic"></i></div><div class="tool-content"><h3>AI Image Repair</h3><p>Fix blurry, scratched, or damaged photos with AI</p></div></a><a class="tool-card" href="image-compressor.html"><div class="tool-icon"><i class="fas fa-compress-arrows-alt"></i></div><div class="tool-content"><h3>Image Compressor</h3><p>Reduce image file size without losing quality</p></div></a><a class="tool-card" href="image-resizer.html"><div class="tool-icon"><i class="fas fa-expand-arrows-alt"></i></div><div class="tool-content"><h3>Image Resizer</h3><p>Resize images to any dimension</p></div></a><a class="tool-card" href="image-editor.html"><div class="tool-icon"><i class="fas fa-edit"></i></div><div class="tool-content"><h3>Image Editor</h3><p>Edit and enhance your images online</p></div></a><a class="tool-card" href="background-remover.html"><div class="tool-icon"><i class="fas fa-eraser"></i></div><div class="tool-content"><h3>Background Remover</h3><p>Remove background from images automatically</p></div></a><a class="tool-card active" href="ocr-image.html"><div class="tool-icon"><i class="fas fa-font"></i></div><div class="tool-content"><h3>OCR Image</h3><p>Extract text from images with OCR technology</p></div></a><a class="tool-card" href="image-watermark.html"><div class="tool-icon"><i class="fas fa-water"></i></div><div class="tool-content"><h3>Image Watermark</h3><p>Add watermarks to protect your images</p></div></a></div></section></main>
@@ -783,11 +783,11 @@
         imagePreview.hidden = true;
         previewPlaceholder.hidden = false;
         imagePreview.src = '';
-        fileNameEl.textContent = 'â€”';
-        fileSizeEl.textContent = 'â€”';
-        fileResolutionEl.textContent = 'â€”';
+        fileNameEl.textContent = 'Ã¢â¬â';
+        fileSizeEl.textContent = 'Ã¢â¬â';
+        fileResolutionEl.textContent = 'Ã¢â¬â';
         resetProgress();
-        setStatus('Waiting for imageâ€¦');
+        setStatus('Waiting for imageÃ¢â¬Â¦');
       }
 
       function resetWorkspace(clearText = true) {
@@ -797,7 +797,7 @@
         if (clearText) {
           ocrOutput.innerHTML = '';
           updateCounts();
-          lastUpdatedEl.textContent = 'â€”';
+          lastUpdatedEl.textContent = 'Ã¢â¬â';
         }
       }
 
@@ -809,7 +809,7 @@
       }
 
       function formatBytes(bytes) {
-        if (!bytes && bytes !== 0) return 'â€”';
+        if (!bytes && bytes !== 0) return 'Ã¢â¬â';
         if (bytes === 0) return '0 B';
         const units = ['B', 'KB', 'MB', 'GB'];
         const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
@@ -828,7 +828,7 @@
         previewPlaceholder.hidden = true;
         fileNameEl.textContent = label || file.name || 'Untitled';
         fileSizeEl.textContent = formatBytes(file.size);
-        fileResolutionEl.textContent = `${width}Ã—${height}px`;
+        fileResolutionEl.textContent = `${width}Ãâ${height}px`;
         currentFile = file;
         setStatus('Image ready for OCR', 'success');
         resetProgress();
@@ -845,7 +845,7 @@
           return;
         }
 
-        setStatus('Loading imageâ€¦');
+        setStatus('Loading imageÃ¢â¬Â¦');
         try {
           await displayFile(file);
         } catch (error) {
@@ -861,7 +861,7 @@
           return;
         }
         try {
-          setStatus('Fetching remote imageâ€¦');
+          setStatus('Fetching remote imageÃ¢â¬Â¦');
           const response = await fetch(url, { mode: 'cors' });
           if (!response.ok) throw new Error('Network response was not ok');
           const blob = await response.blob();
@@ -892,7 +892,7 @@
 
         isProcessing = true;
         extractBtn.disabled = true;
-        setStatus('Initializing OCR engineâ€¦');
+        setStatus('Initializing OCR engineÃ¢â¬Â¦');
         progressBar.style.width = '8%';
 
         try {
@@ -902,7 +902,7 @@
               if (message.status === 'recognizing text' && typeof message.progress === 'number') {
                 const percent = Math.max(8, Math.round(message.progress * 100));
                 progressBar.style.width = `${percent}%`;
-                setStatus(`Recognizing textâ€¦ ${percent}%`);
+                setStatus(`Recognizing textÃ¢â¬Â¦ ${percent}%`);
               }
             }
           });
@@ -976,7 +976,7 @@
       function clearText() {
         ocrOutput.innerHTML = '';
         updateCounts();
-        lastUpdatedEl.textContent = 'â€”';
+        lastUpdatedEl.textContent = 'Ã¢â¬â';
         setStatus('Text cleared');
       }
 
@@ -1047,25 +1047,30 @@
 
       document.getElementById('footerYear').textContent = new Date().getFullYear();
       updateCounts();
-      setStatus('Waiting for imageâ€¦');
+      setStatus('Waiting for imageÃ¢â¬Â¦');
     });
   </script>
-<footer>
-<div class="container footer-inner">
-<div class="footer-company-links">
-<span>Company</span>
-<a href="index.html#about">About Us</a>
-<a href="index.html#contact">Contact</a>
-<a href="privacy-policy.html">Privacy Policy</a>
-<a href="terms-of-service.html">Terms of Service</a>
-</div>
-<p class="footer-brand-line">� easyjpgtopdf � Free PDF &amp; Image Tools for everyone.</p>
-<p class="footer-credits">
+    
+<script src="js/auth.js" type="module"></script>
+
+    <footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+                <a href="dmca-en.html">DMCA</a>
+                <a href="blog.html">Blog</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
+            <p class="footer-credits">
                 Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
                 <a href="attributions.html">See full acknowledgements</a>.
             </p>
-</div>
-</footer>
-<script src="js/auth.js" type="module"></script>
+        </div>
+    </footer>
 </body>
 </html>

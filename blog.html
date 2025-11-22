@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blog & Articles - easyjpgtopdf</title>
+    <title>Blog & Articles - easyjpgtopdf Blog</title>
     <meta name="description" content="Read our latest articles, tutorials, and tips about PDF tools, image editing, and document management.">
     <link rel="stylesheet" href="css/footer.css">
     <link rel="stylesheet" href="css/header.css">
     <link rel="stylesheet" href="css/theme-modern.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Blog Page Specific Styles */
         body {
             background: #f5f7ff;
             min-height: 100vh;
@@ -20,7 +19,7 @@
         
         main {
             flex: 1;
-            padding: 40px 24px;
+            padding: 24px 24px;
         }
         
         .container {
@@ -28,34 +27,37 @@
             margin: 0 auto;
         }
         
-        .blog-header {
+        .page-header {
             text-align: center;
-            margin-bottom: 50px;
+            margin-bottom: 24px;
         }
         
-        .blog-header h1 {
-            font-size: 2.8rem;
+        .blog-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        
+        .page-header h1, .blog-header h1 {
+            font-size: 2.5rem;
             color: #0b1630;
             margin-bottom: 16px;
             font-weight: 700;
         }
         
-        .blog-header p {
-            font-size: 1.2rem;
+        .page-header p, .blog-header p {
+            font-size: 1.1rem;
             color: #56607a;
-            max-width: 700px;
-            margin: 0 auto;
         }
         
         /* Modern AI Search Bar */
         .blog-search-container {
-            margin: 30px 0 40px;
+            margin: 20px 0 25px;
             width: 100%;
         }
         
         .blog-search-wrapper {
             position: relative;
-            max-width: 800px;
+            max-width: 650px;
             margin: 0 auto;
         }
         
@@ -79,8 +81,8 @@
         
         .blog-search-icon {
             color: #4361ee;
-            font-size: 1.2rem;
-            margin-right: 12px;
+            font-size: 1rem;
+            margin-right: 10px;
         }
         
         .blog-search-input {
@@ -129,182 +131,47 @@
             margin-top: 8px;
         }
         
-        .blog-search-results-header {
-            padding: 16px 20px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-            font-size: 0.9rem;
-            color: #56607a;
-            background: #f8f9ff;
-            border-radius: 16px 16px 0 0;
-        }
-        
-        .blog-search-results-header strong {
-            color: #4361ee;
-        }
-        
-        .blog-search-result-item {
-            display: flex;
-            align-items: center;
-            padding: 16px 20px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            text-decoration: none;
-            color: inherit;
-            transition: all 0.2s;
-            cursor: pointer;
-        }
-        
-        .blog-search-result-item:hover {
-            background: #f8f9ff;
-            transform: translateX(4px);
-        }
-        
-        .blog-search-result-item:last-child {
-            border-bottom: none;
-        }
-        
-        .blog-search-result-icon {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, rgba(67, 97, 238, 0.1), rgba(67, 97, 238, 0.15));
+        /* Advertisement Space */
+        .ad-banner-top {
+            width: 100%;
+            min-height: 100px;
+            background: #f5f7ff;
+            border: 2px dashed #dbe2ef;
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #4361ee;
-            font-size: 1.2rem;
-            margin-right: 16px;
-            flex-shrink: 0;
-        }
-        
-        .blog-search-result-content {
-            flex: 1;
-            min-width: 0;
-        }
-        
-        .blog-search-result-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #0b1630;
-            margin-bottom: 4px;
-        }
-        
-        .blog-search-result-title mark {
-            background: rgba(67, 97, 238, 0.2);
-            color: #4361ee;
-            padding: 0 2px;
-            border-radius: 3px;
-            font-weight: 800;
-        }
-        
-        .blog-search-result-description {
+            color: #64748b;
             font-size: 0.9rem;
-            color: #56607a;
-            margin-bottom: 6px;
-            line-height: 1.4;
-        }
-        
-        .blog-search-result-category {
-            display: inline-block;
-            font-size: 0.75rem;
-            padding: 4px 10px;
-            background: rgba(67, 97, 238, 0.1);
-            color: #4361ee;
-            border-radius: 999px;
-            font-weight: 600;
-        }
-        
-        .blog-search-result-arrow {
-            color: #7a8196;
-            font-size: 0.9rem;
-            margin-left: 12px;
-            flex-shrink: 0;
-        }
-        
-        .blog-search-result-item:hover .blog-search-result-arrow {
-            color: #4361ee;
-            transform: translateX(4px);
-        }
-        
-        .blog-search-no-results {
-            padding: 60px 20px;
+            margin: 30px 0;
+            padding: 20px;
             text-align: center;
         }
         
-        .blog-search-no-results i {
-            font-size: 3rem;
-            color: #7a8196;
-            margin-bottom: 16px;
-        }
-        
-        .blog-search-no-results h3 {
-            font-size: 1.3rem;
-            color: #0b1630;
-            margin-bottom: 8px;
-        }
-        
-        .blog-search-no-results p {
-            color: #56607a;
-            margin-bottom: 24px;
-        }
-        
-        .blog-search-suggestions {
+        .ad-banner-bottom {
+            width: 100%;
+            min-height: 100px;
+            background: #f5f7ff;
+            border: 2px dashed #dbe2ef;
+            border-radius: 12px;
             display: flex;
-            gap: 12px;
-            justify-content: center;
-            flex-wrap: wrap;
             align-items: center;
-        }
-        
-        .blog-search-suggestions span {
-            color: #56607a;
-            font-weight: 600;
-        }
-        
-        .blog-search-suggestions a {
-            padding: 8px 16px;
-            background: rgba(67, 97, 238, 0.1);
-            color: #4361ee;
-            border-radius: 999px;
-            text-decoration: none;
-            font-weight: 600;
+            justify-content: center;
+            color: #64748b;
             font-size: 0.9rem;
-            transition: all 0.2s;
+            margin: 30px 0;
+            padding: 20px;
+            text-align: center;
         }
         
-        .blog-search-suggestions a:hover {
-            background: linear-gradient(135deg, #4361ee, #3a0ca3);
-            color: white;
-            transform: translateY(-2px);
-        }
-        
-        @media (max-width: 768px) {
-            .blog-search-container {
-                margin: 20px 0 30px;
-            }
-            
-            .blog-search-results {
-                max-height: 400px;
-            }
-            
-            .blog-search-result-item {
-                padding: 12px 16px;
-            }
-            
-            .blog-search-result-icon {
-                width: 40px;
-                height: 40px;
-                font-size: 1rem;
-                margin-right: 12px;
-            }
-        }
-        
-        /* Filter Tabs */
+        /* Blog Filter Buttons */
         .blog-filters {
             display: flex;
             gap: 12px;
             justify-content: center;
             flex-wrap: wrap;
             margin-bottom: 40px;
+            margin-top: 30px;
         }
         
         .filter-btn {
@@ -330,232 +197,26 @@
             text-decoration: none;
         }
         
-        /* Blog Grid */
-        .blog-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 32px;
-            margin-bottom: 50px;
-        }
-        
-        .blog-card {
-            background: white;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            transition: transform 0.3s, box-shadow 0.3s;
-            cursor: pointer;
-        }
-        
-        .blog-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 28px rgba(67, 97, 238, 0.2);
-        }
-        
-        .blog-card-image {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 3rem;
-        }
-        
-        .blog-card-content {
-            padding: 24px;
-        }
-        
-        .blog-card-category {
-            display: inline-block;
-            padding: 4px 12px;
-            background: rgba(67, 97, 238, 0.1);
-            color: #4361ee;
-            border-radius: 999px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 12px;
-        }
-        
-        .blog-card-title {
-            font-size: 1.4rem;
-            color: #0b1630;
-            margin-bottom: 12px;
-            font-weight: 700;
-            line-height: 1.4;
-        }
-        
-        .blog-card-excerpt {
-            color: #56607a;
-            line-height: 1.6;
-            margin-bottom: 16px;
-        }
-        
-        .blog-card-meta {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            font-size: 0.85rem;
-            color: #7a8196;
-        }
-        
-        .blog-card-meta i {
-            color: #4361ee;
-        }
-        
-        .blog-card-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-top: 16px;
-            border-top: 1px solid rgba(0, 0, 0, 0.05);
-        }
-        
-        .read-more {
-            color: #4361ee;
-            font-weight: 600;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: gap 0.3s;
-        }
-        
-        .read-more:hover {
-            gap: 10px;
-        }
-        
-        /* Coming Soon Message */
-        .coming-soon {
-            text-align: center;
-            padding: 60px 24px;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        }
-        
-        .coming-soon i {
-            font-size: 4rem;
-            color: #4361ee;
-            margin-bottom: 24px;
-        }
-        
-        .coming-soon h2 {
-            font-size: 2rem;
-            color: #0b1630;
-            margin-bottom: 16px;
-        }
-        
-        .coming-soon p {
-            font-size: 1.1rem;
-            color: #56607a;
-            max-width: 600px;
-            margin: 0 auto 32px;
-            line-height: 1.6;
-        }
-        
-        .notify-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 14px 32px;
-            background: linear-gradient(135deg, #4361ee, #3a0ca3);
-            color: white;
-            border: none;
-            border-radius: 999px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
-        }
-        
-        .notify-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
-        }
-        
-        /* Newsletter Section */
-        .newsletter-section {
-            background: linear-gradient(135deg, #4361ee, #3a0ca3);
-            color: white;
-            padding: 50px 24px;
-            border-radius: 20px;
-            text-align: center;
-            margin-top: 50px;
-        }
-        
-        .newsletter-section h2 {
-            font-size: 2rem;
-            margin-bottom: 12px;
-        }
-        
-        .newsletter-section p {
-            font-size: 1.1rem;
-            margin-bottom: 32px;
-            opacity: 0.9;
-        }
-        
-        .newsletter-form {
-            display: flex;
-            gap: 12px;
-            max-width: 500px;
-            margin: 0 auto;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        
-        .newsletter-input {
-            flex: 1;
-            min-width: 250px;
-            padding: 14px 20px;
-            border: none;
-            border-radius: 999px;
-            font-size: 1rem;
-            outline: none;
-        }
-        
-        .newsletter-submit {
-            padding: 14px 32px;
-            background: white;
-            color: #4361ee;
-            border: none;
-            border-radius: 999px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .newsletter-submit:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
-        }
-        
         @media (max-width: 768px) {
-            .blog-header h1 {
+            .blog-search-container {
+                margin: 15px 0 20px;
+            }
+            
+            .page-header h1, .blog-header h1 {
                 font-size: 2rem;
             }
             
-            .blog-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .newsletter-form {
-                flex-direction: column;
-            }
-            
-            .newsletter-input {
-                width: 100%;
+            .ad-banner-top,
+            .ad-banner-bottom {
+                min-height: 80px;
+                margin: 20px 0;
             }
         }
     </style>
+
+    <link rel="stylesheet" href="css/voice-assistant.css">
 </head>
 <body>
-    <!-- Header -->
     <header>
         <div class="container">
             <nav class="navbar">
@@ -596,7 +257,6 @@
                     <div class="dropdown">
                         <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
-                            <a href="image-repair.html">AI Image Repair</a>
                             <a href="image-compressor.html">Image Compressor</a>
                             <a href="image-resizer.html">Image Resizer</a>
                             <a href="image-editor.html">Image Editor</a>
@@ -638,18 +298,18 @@
                 </div>
                 <div class="auth-buttons">
                     <a href="login.html" class="auth-link">Sign In</a>
-                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Signup</span></a>
+                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus"></i><span>Signup</span></a>
                 </div>
                 <div id="user-menu" class="user-menu" data-open="false">
-                    <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
-                        <span class="user-initial" aria-hidden="true">U</span>
-                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                    <button id="user-menu-toggle" class="user-menu-toggle" type="button">
+                        <span class="user-initial">U</span>
+                        <i class="fas fa-chevron-down"></i>
                     </button>
                     <div class="user-dropdown" id="user-dropdown" hidden>
-                        <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
-                        <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
-                        <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
-                        <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders & Subscriptions</a>
+                        <a href="dashboard.html#dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+                        <a href="dashboard.html#dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+                        <a href="dashboard.html#dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+                        <a href="dashboard.html#dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders & Subscriptions</a>
                         <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
                         <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
                     </div>
@@ -658,16 +318,39 @@
         </div>
     </header>
 
-    <!-- Main Content -->
     <main>
         <div class="container">
-            <!-- Blog Header -->
             <div class="blog-header">
                 <h1><i class="fas fa-newspaper"></i> Blog & Articles</h1>
-                <p>Discover tips, tutorials, and insights about PDF tools, image editing, and document management.</p>
+                <p>Read our latest articles, tutorials, and tips about PDF tools, image editing, and document management.</p>
+            </div>
+            <!-- Blog Search Bar -->
+            <div class="blog-search-container">
+                <div class="blog-search-wrapper">
+                    <div class="blog-search-input-wrapper">
+                        <i class="fas fa-search blog-search-icon"></i>
+                        <input 
+                            type="text" 
+                            class="blog-search-input" 
+                            id="blogSearchInput"
+                            placeholder="Search all tools and pages..." 
+                            autocomplete="off"
+                        />
+                        <button class="blog-search-clear" id="blogSearchClear" style="display: none;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="blog-search-results" id="blogSearchResults" style="display: none;"></div>
+                </div>
+            </div>
+            
+
+            <!-- Advertisement Banner Top -->
+            <div class="ad-banner-top">
+                <p><i class="fas fa-ad"></i> Advertisement Space</p>
             </div>
 
-            <!-- Filter Tabs -->
+            <!-- Blog Filter Buttons -->
             <div class="blog-filters">
                 <a href="blog-articles.html" class="filter-btn" data-filter="all">All Articles</a>
                 <a href="blog-tutorials.html" class="filter-btn" data-filter="tutorials">Tutorials</a>
@@ -676,96 +359,24 @@
                 <a href="blog-guides.html" class="filter-btn" data-filter="guides">Guides</a>
             </div>
 
-            <!-- Coming Soon Message -->
-            <div class="coming-soon">
-                <i class="fas fa-rocket"></i>
-                <h2>Coming Soon!</h2>
-                <p>We're working hard to bring you valuable content about PDF tools, image editing, document management, and productivity tips. Stay tuned for our first articles!</p>
-                <button class="notify-btn" onclick="scrollToNewsletter()">
-                    <i class="fas fa-bell"></i> Notify Me When Published
-                </button>
+            <!-- Blog Content Area -->
+            <div class="blog-content-area" style="margin-top: 40px; text-align: center; padding: 60px 20px; color: #56607a;">
+                <i class="fas fa-newspaper" style="font-size: 4rem; color: #dbe2ef; margin-bottom: 20px;"></i>
+                <h2 style="font-size: 1.5rem; color: #0b1630; margin-bottom: 10px;">Content Coming Soon</h2>
+                <p style="font-size: 1rem; max-width: 600px; margin: 0 auto;">We're working on adding great content here. Check back soon!</p>
             </div>
-
-            <!-- Sample Blog Grid (Hidden for now, will be shown when articles are added) -->
-            <div class="blog-grid" style="display: none;">
-                <!-- Sample Blog Card -->
-                <div class="blog-card">
-                    <div class="blog-card-image">
-                        <i class="fas fa-file-pdf"></i>
-                    </div>
-                    <div class="blog-card-content">
-                        <span class="blog-card-category">Tutorial</span>
-                        <h3 class="blog-card-title">How to Convert JPG to PDF in Seconds</h3>
-                        <p class="blog-card-excerpt">Learn the easiest way to convert your images to PDF format with our step-by-step guide.</p>
-                        <div class="blog-card-footer">
-                            <div class="blog-card-meta">
-                                <span><i class="far fa-calendar"></i> Dec 15, 2024</span>
-                                <span><i class="far fa-clock"></i> 5 min read</span>
-                            </div>
-                            <a href="#" class="read-more">Read More <i class="fas fa-arrow-right"></i></a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Newsletter Section -->
-            <div class="newsletter-section" id="newsletter">
-                <h2><i class="fas fa-envelope"></i> Subscribe to Our Newsletter</h2>
-                <p>Get the latest articles, tips, and updates delivered straight to your inbox.</p>
-                <form class="newsletter-form" onsubmit="handleNewsletterSubmit(event)">
-                    <input type="email" class="newsletter-input" placeholder="Enter your email address" required>
-                    <button type="submit" class="newsletter-submit">
-                        <i class="fas fa-paper-plane"></i> Subscribe
-                    </button>
-                </form>
-                <p style="margin-top: 16px; font-size: 0.9rem; opacity: 0.8;">
-                    <i class="fas fa-lock"></i> We respect your privacy. Unsubscribe anytime.
-                </p>
-            </div>
-        </div>
+            
     </main>
 
-    <!-- Footer -->
-    <footer>
-        <div class="container footer-inner">
-            <div class="footer-company-links">
-                <span>Company</span>
-                <a href="index.html#about">About Us</a>
-                <a href="index.html#contact">Contact</a>
-                <a href="privacy-policy.html">Privacy Policy</a>
-                <a href="terms-of-service.html">Terms of Service</a>
-            </div>
-            <p class="footer-brand-line">© easyjpgtopdf — Free PDF & Image Tools for everyone.</p>
-            <p class="footer-credits">
-                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
-                <a href="attributions.html">See full acknowledgements</a>.
-            </p>
-        </div>
-    </footer>
-
-  <!-- Scripts -->
-  <!-- Blog Common Script -->
-  <script src="js/blog-common.js"></script>
-  
-  <!-- Blog Search Script -->
-  <script src="js/blog-search.js"></script>
-  
-  <script>
-      // Scroll to newsletter
-      function scrollToNewsletter() {
-          document.getElementById('newsletter').scrollIntoView({ behavior: 'smooth' });
-      }
-
-      // Newsletter submission
-      function handleNewsletterSubmit(event) {
-          event.preventDefault();
-          const email = event.target.querySelector('input[type="email"]').value;
-          alert('Thank you for subscribing! We\'ll notify you when we publish new articles.');
-          event.target.reset();
-      }
-  </script>
-
-    <!-- Auth Script -->
+    <!-- Blog Common Script -->
+    <script src="js/blog-common.js"></script>
+    
+    <!-- Blog Search Script -->
+    <script src="js/blog-search.js"></script>
+    
+    <!-- Voice Assistant Script -->
+    <script src="js/voice-assistant.js"></script>
+    
     <script type="module">
         const isLocalFileProtocol = window.location.protocol === 'file:';
         if (!isLocalFileProtocol) {
@@ -774,6 +385,147 @@
             });
         }
     </script>
+
+    
+    <!-- Advertisement Banner Bottom -->
+    <div class="ad-banner-bottom">
+        <p><i class="fas fa-ad"></i> Advertisement Space</p>
+    </div>
+
+    <footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+                <a href="dmca-en.html">DMCA</a>
+                <a href="blog.html">Blog</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
+            <p class="footer-credits">
+                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+                <a href="attributions.html">See full acknowledgements</a>.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Voice Assistant + Blog Search Integration
+        document.addEventListener('DOMContentLoaded', function() {
+            const voiceBtn = document.getElementById('voiceAssistantBtn');
+            const blogSearchInput = document.getElementById('blogSearchInput');
+            const blogSearchInstance = window.blogSearchInstance;
+            
+            if (voiceBtn && blogSearchInput && blogSearchInstance) {
+                // Listen for voice recognition results
+                document.addEventListener('voiceCommand', function(event) {
+                    const command = event.detail.command.toLowerCase();
+                    
+                    // Search in blog using voice command
+                    if (blogSearchInput && blogSearchInstance) {
+                        blogSearchInput.value = command;
+                        blogSearchInstance.handleSearch(command);
+                        
+                        // Show search results
+                        const resultsContainer = document.getElementById('blogSearchResults');
+                        if (resultsContainer) {
+                            resultsContainer.style.display = 'block';
+                        }
+                    }
+                });
+                
+                // Enhanced voice commands for blog functions
+                const blogVoiceCommands = {
+                    'all articles': 'blog-articles.html',
+                    'articles': 'blog-articles.html',
+                    'all article': 'blog-articles.html',
+                    'tutorials': 'blog-tutorials.html',
+                    'tutorial': 'blog-tutorials.html',
+                    'tips': 'blog-tips.html',
+                    'tips and tricks': 'blog-tips.html',
+                    'tips & tricks': 'blog-tips.html',
+                    'news': 'blog-news.html',
+                    'updates': 'blog-news.html',
+                    'news and updates': 'blog-news.html',
+                    'news & updates': 'blog-news.html',
+                    'guides': 'blog-guides.html',
+                    'guide': 'blog-guides.html',
+                    'search': function(cmd) {
+                        if (blogSearchInput) {
+                            blogSearchInput.focus();
+                        }
+                    },
+                    'search for': function(cmd) {
+                        if (blogSearchInput && blogSearchInstance) {
+                            const searchTerm = cmd.replace('search for', '').trim();
+                            blogSearchInput.value = searchTerm;
+                            blogSearchInstance.handleSearch(searchTerm);
+                        }
+                    },
+                    'find': function(cmd) {
+                        if (blogSearchInput && blogSearchInstance) {
+                            const searchTerm = cmd.replace('find', '').trim();
+                            blogSearchInput.value = searchTerm;
+                            blogSearchInstance.handleSearch(searchTerm);
+                        }
+                    },
+                    'pdf tools': function(cmd) {
+                        if (blogSearchInput && blogSearchInstance) {
+                            blogSearchInput.value = 'pdf';
+                            blogSearchInstance.handleSearch('pdf');
+                        }
+                    },
+                    'image tools': function(cmd) {
+                        if (blogSearchInput && blogSearchInstance) {
+                            blogSearchInput.value = 'image';
+                            blogSearchInstance.handleSearch('image');
+                        }
+                    },
+                };
+                
+                // Override voice command handler if needed
+                if (window.voiceAssistant) {
+                    const originalHandler = window.voiceAssistant.handleVoiceCommand;
+                    window.voiceAssistant.handleVoiceCommand = function(command) {
+                        // Check blog-specific commands first
+                        const cmd = command.toLowerCase().trim();
+                        
+                        if (blogVoiceCommands[cmd]) {
+                            const target = blogVoiceCommands[cmd];
+                            if (typeof target === 'function') {
+                                target(cmd);
+                            } else if (target.startsWith('blog-')) {
+                                window.location.href = target;
+                            } else {
+                                // Search keyword
+                                if (blogSearchInput && blogSearchInstance) {
+                                    blogSearchInput.value = target;
+                                    blogSearchInstance.handleSearch(target);
+                                }
+                            }
+                            return true;
+                        }
+                        
+                        // Default voice command handling
+                        if (originalHandler) {
+                            return originalHandler.call(this, command);
+                        }
+                        
+                        // Fallback: search in blog
+                        if (blogSearchInput && blogSearchInstance) {
+                            blogSearchInput.value = command;
+                            blogSearchInstance.handleSearch(command);
+                            return true;
+                        }
+                        
+                        return false;
+                    };
+                }
+            }
+        });
+    </script>
 </body>
 </html>
-

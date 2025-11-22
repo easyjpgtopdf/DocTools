@@ -200,11 +200,11 @@ def remove_background():
             input_image = input_image.convert('RGB')
 
         # === PREMIUM BACKGROUND REMOVAL WITH U²-NET + ALPHA MATTING ===
-        # Enhanced remove.bg quality settings for 100% accuracy
+        # Enhanced quality settings for maximum accuracy
         # Optimized to prevent over-cleaning and ensure complete background removal
         logger.info("🎨 Starting ENHANCED background removal with U²-Net Latest (100% Accuracy Mode)...")
         try:
-            # ULTRA ENHANCED settings for 100% accuracy like remove.bg magic brush:
+            # ULTRA ENHANCED settings for maximum accuracy:
             # - Optimized thresholds for complete background removal while preserving foreground
             # - Advanced alpha matting for perfect edges
             # - Multi-pass processing for clean results
@@ -295,15 +295,15 @@ def remove_background():
         gc.collect()
 
         # === OUTPUT OPTIMIZATION (FAST COMPRESSION + SPEED) ===
-        # Remove.bg uses fast compression for speed
-        logger.info("💾 Optimizing PNG output (remove.bg speed)...")
+        # Fast compression for optimal speed
+        logger.info("💾 Optimizing PNG output...")
         output_buffer = io.BytesIO()
         
         output_image.save(
             output_buffer, 
             format='PNG', 
             optimize=False,  # Fast - no optimization delay
-            compress_level=1  # Fast compression like remove.bg
+            compress_level=1  # Fast compression for optimal speed
         )
         
         output_buffer.seek(0)

@@ -19,7 +19,7 @@
         
         main {
             flex: 1;
-            padding: 40px 24px;
+            padding: 24px 24px;
         }
         
         .container {
@@ -29,7 +29,7 @@
         
         .page-header {
             text-align: center;
-            margin-bottom: 50px;
+            margin-bottom: 24px;
         }
         
         .page-header h1 {
@@ -40,37 +40,17 @@
         }
         
         .page-header p {
-            font-size: 1.1rem;
+            font-size: 1rem;
             color: #56607a;
         }
         
-        .coming-soon {
-            text-align: center;
-            padding: 80px 24px;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        }
         
-        .coming-soon i {
-            font-size: 5rem;
-            color: #4361ee;
-            margin-bottom: 24px;
-        }
         
-        .coming-soon h2 {
-            font-size: 2rem;
-            color: #0b1630;
-            margin-bottom: 16px;
-        }
         
-        .coming-soon p {
-            font-size: 1.1rem;
-            color: #56607a;
-            max-width: 600px;
-            margin: 0 auto;
-            line-height: 1.6;
-        }
+        
+        
+        
+        
         
         .back-btn {
             display: inline-flex;
@@ -126,13 +106,13 @@
         
         /* Modern AI Search Bar */
         .blog-search-container {
-            margin: 30px 0 40px;
+            margin: 20px 0 25px;
             width: 100%;
         }
         
         .blog-search-wrapper {
             position: relative;
-            max-width: 800px;
+            max-width: 650px;
             margin: 0 auto;
         }
         
@@ -156,8 +136,8 @@
         
         .blog-search-icon {
             color: #4361ee;
-            font-size: 1.2rem;
-            margin-right: 12px;
+            font-size: 1rem;
+            margin-right: 10px;
         }
         
         .blog-search-input {
@@ -209,7 +189,7 @@
         .blog-search-results-header {
             padding: 16px 20px;
             border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-            font-size: 0.9rem;
+            font-size: 1rem;
             color: #56607a;
             background: #f8f9ff;
             border-radius: 16px 16px 0 0;
@@ -248,7 +228,7 @@
             align-items: center;
             justify-content: center;
             color: #4361ee;
-            font-size: 1.2rem;
+            font-size: 1rem;
             margin-right: 16px;
             flex-shrink: 0;
         }
@@ -259,7 +239,7 @@
         }
         
         .blog-search-result-title {
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: 700;
             color: #0b1630;
             margin-bottom: 4px;
@@ -274,7 +254,7 @@
         }
         
         .blog-search-result-description {
-            font-size: 0.9rem;
+            font-size: 1rem;
             color: #56607a;
             margin-bottom: 6px;
             line-height: 1.4;
@@ -292,7 +272,7 @@
         
         .blog-search-result-arrow {
             color: #7a8196;
-            font-size: 0.9rem;
+            font-size: 1rem;
             margin-left: 12px;
             flex-shrink: 0;
         }
@@ -338,13 +318,13 @@
         }
         
         .blog-search-suggestions a {
-            padding: 8px 16px;
+            padding: 12px 20px;
             background: rgba(67, 97, 238, 0.1);
             color: #4361ee;
             border-radius: 999px;
             text-decoration: none;
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 1rem;
             transition: all 0.2s;
         }
         
@@ -371,11 +351,70 @@
                 width: 40px;
                 height: 40px;
                 font-size: 1rem;
-                margin-right: 12px;
+                margin-right: 10px;
             }
         }
+    
+        /* Advertisement Space */
+        .ad-banner-top {
+            width: 100%;
+            min-height: 100px;
+            background: #f5f7ff;
+            border: 2px dashed #dbe2ef;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 0.9rem;
+            margin: 30px 0;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .ad-banner-sidebar {
+            width: 100%;
+            min-height: 250px;
+            background: #f5f7ff;
+            border: 2px dashed #dbe2ef;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 0.9rem;
+            margin: 20px 0;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .ad-banner-bottom {
+            width: 100%;
+            min-height: 100px;
+            background: #f5f7ff;
+            border: 2px dashed #dbe2ef;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 0.9rem;
+            margin: 30px 0;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .ad-banner-top,
+            .ad-banner-bottom {
+                min-height: 80px;
+                margin: 20px 0;
+            }
+        }
+
     </style>
-</head>
+
+    <link rel="stylesheet" href="css/voice-assistant.css"></head>
 <body>
     <header>
         <div class="container">
@@ -485,6 +524,34 @@
                 <h1><i class="fas fa-newspaper"></i> All Articles</h1>
                 <p>Browse all our articles about PDF tools, image editing, and productivity.</p>
             </div>
+            <!-- Blog Search Bar -->
+            <div class="blog-search-container">
+                <div class="blog-search-wrapper">
+                    <div class="blog-search-input-wrapper">
+                        <i class="fas fa-search blog-search-icon"></i>
+                        <input 
+                            type="text" 
+                            class="blog-search-input" 
+                            id="blogSearchInput"
+                            placeholder="Search all tools and pages..." 
+                            autocomplete="off"
+                        />
+                        <button class="blog-search-clear" id="blogSearchClear" style="display: none;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="blog-search-results" id="blogSearchResults" style="display: none;"></div>
+                </div>
+            </div>
+            
+
+            <!-- Advertisement Banner Top -->
+            <div class="ad-banner-top">
+                <p><i class="fas fa-ad"></i> Advertisement Space</p>
+            </div>
+
+
+
 
             <!-- Blog Filter Buttons -->
             <div class="blog-filters">
@@ -495,39 +562,19 @@
                 <a href="blog-guides.html" class="filter-btn" data-filter="guides">Guides</a>
             </div>
 
-            <div class="coming-soon">
-                <i class="fas fa-file-alt"></i>
-                <h2>Articles Coming Soon!</h2>
-                <p>We're preparing comprehensive articles covering all aspects of PDF tools and image editing. Check back soon for valuable content!</p>
-                <a href="blog.html" class="back-btn">
-                    <i class="fas fa-arrow-left"></i> Back to Blog Home
-                </a>
-            </div>
-        </div>
+            
     </main>
 
-    <footer>
-        <div class="container footer-inner">
-            <div class="footer-company-links">
-                <span>Company</span>
-                <a href="index.html#about">About Us</a>
-                <a href="index.html#contact">Contact</a>
-                <a href="privacy-policy.html">Privacy Policy</a>
-                <a href="terms-of-service.html">Terms of Service</a>
-            </div>
-            <p class="footer-brand-line">© easyjpgtopdf — Free PDF & Image Tools for everyone.</p>
-            <p class="footer-credits">
-                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
-                <a href="attributions.html">See full acknowledgements</a>.
-            </p>
-        </div>
-    </footer>
+        
 
     <!-- Blog Common Script -->
     <script src="js/blog-common.js"></script>
     
     <!-- Blog Search Script -->
     <script src="js/blog-search.js"></script>
+    
+    <!-- Voice Assistant Script -->
+    <script src="js/voice-assistant.js"></script>
     
     <script type="module">
         const isLocalFileProtocol = window.location.protocol === 'file:';
@@ -536,6 +583,166 @@
                 console.error('❌ Failed to load auth.js:', err);
             });
         }
+    </script>
+
+    
+    <!-- Advertisement Banner Bottom -->
+    <div class="ad-banner-bottom">
+        <p><i class="fas fa-ad"></i> Advertisement Space</p>
+    </div>
+
+<footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+                <a href="dmca-en.html">DMCA</a>
+                <a href="blog.html">Blog</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
+            <p class="footer-credits">
+                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+                <a href="attributions.html">See full acknowledgements</a>.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Voice Assistant + Blog Search Integration
+        document.addEventListener('DOMContentLoaded', function() {
+            const voiceBtn = document.getElementById('voiceAssistantBtn');
+            const blogSearchInput = document.getElementById('blogSearchInput');
+            const blogSearchInstance = window.blogSearchInstance;
+            
+            if (voiceBtn && blogSearchInput && blogSearchInstance) {
+                // Listen for voice recognition results
+                document.addEventListener('voiceCommand', function(event) {
+                    const command = event.detail.command.toLowerCase();
+                    
+                    // Search in blog using voice command
+                    if (blogSearchInput && blogSearchInstance) {
+                        blogSearchInput.value = command;
+                        blogSearchInstance.handleSearch(command);
+                        
+                        // Show search results
+                        const resultsContainer = document.getElementById('blogSearchResults');
+                        if (resultsContainer) {
+                            resultsContainer.style.display = 'block';
+                        }
+                    }
+                });
+                
+                // Enhanced voice commands for blog functions
+                                const blogVoiceCommands = {
+                    'all articles': 'blog-articles.html',
+                    'articles': 'blog-articles.html',
+                    'all article': 'blog-articles.html',
+                    'tutorials': 'blog-tutorials.html',
+                    'tutorial': 'blog-tutorials.html',
+                    'tips': 'blog-tips.html',
+                    'tips and tricks': 'blog-tips.html',
+                    'tips & tricks': 'blog-tips.html',
+                    'news': 'blog-news.html',
+                    'updates': 'blog-news.html',
+                    'news and updates': 'blog-news.html',
+                    'news & updates': 'blog-news.html',
+                    'guides': 'blog-guides.html',
+                    'guide': 'blog-guides.html',
+                    'search': function(cmd) {
+                        if (blogSearchInput) {
+                            blogSearchInput.focus();
+                        }
+                    },
+                    'search for': function(cmd) {
+                        if (blogSearchInput && blogSearchInstance) {
+                            const searchTerm = cmd.replace('search for', '').trim();
+                            blogSearchInput.value = searchTerm;
+                            blogSearchInstance.handleSearch(searchTerm);
+                        }
+                    },
+                    'find': function(cmd) {
+                        if (blogSearchInput && blogSearchInstance) {
+                            const searchTerm = cmd.replace('find', '').trim();
+                            blogSearchInput.value = searchTerm;
+                            blogSearchInstance.handleSearch(searchTerm);
+                        }
+                    },
+                    'pdf tools': function(cmd) {
+                        if (blogSearchInput && blogSearchInstance) {
+                            blogSearchInput.value = 'pdf';
+                            blogSearchInstance.handleSearch('pdf');
+                        }
+                    },
+                    'image tools': function(cmd) {
+                        if (blogSearchInput && blogSearchInstance) {
+                            blogSearchInput.value = 'image';
+                            blogSearchInstance.handleSearch('image');
+                        }
+                    },
+                    'convert pdf': function(cmd) {
+                        if (blogSearchInput && blogSearchInstance) {
+                            blogSearchInput.value = 'convert pdf';
+                            blogSearchInstance.handleSearch('convert pdf');
+                        }
+                    },
+                    'edit pdf': function(cmd) {
+                        if (blogSearchInput && blogSearchInstance) {
+                            blogSearchInput.value = 'edit pdf';
+                            blogSearchInstance.handleSearch('edit pdf');
+                        }
+                    },
+                };
+                    },
+                    'pdf tools': 'pdf',
+                    'image tools': 'image',
+                    'convert pdf': 'pdf',
+                    'edit pdf': 'pdf',
+                };
+                
+                // Override voice command handler if needed
+                if (window.voiceAssistant) {
+                    const originalHandler = window.voiceAssistant.handleVoiceCommand;
+                    window.voiceAssistant.handleVoiceCommand = function(command) {
+                        // Check blog-specific commands first
+                        const cmd = command.toLowerCase().trim();
+                        
+                        if (blogVoiceCommands[cmd]) {
+                            const target = blogVoiceCommands[cmd];
+                            if (typeof target === 'function') {
+                                target(cmd);
+                            } else if (target.startsWith('blog-')) {
+                                window.location.href = target;
+                            } else {
+                                // Search keyword
+                                if (blogSearchInput && blogSearchInstance) {
+                                    blogSearchInput.value = target;
+                                    blogSearchInstance.handleSearch(target);
+                                }
+                            }
+                            return true;
+                        }
+                        
+                        // Default voice command handling
+                        if (originalHandler) {
+                            return originalHandler.call(this, command);
+                        }
+                        
+                        // Fallback: search in blog
+                        if (blogSearchInput && blogSearchInstance) {
+                            blogSearchInput.value = command;
+                            blogSearchInstance.handleSearch(command);
+                            return true;
+                        }
+                        
+                        return false;
+                    };
+                }
+            }
+        });
     </script>
 </body>
 </html>

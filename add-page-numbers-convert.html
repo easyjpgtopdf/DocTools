@@ -6,7 +6,7 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Add Page Numbers to PDF - easyjpgtopdf</title>
 <link href="css/footer.css" rel="stylesheet"/>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"></link>
 <style>
     *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif}
     :root{--primary:#4361ee;--secondary:#3a0ca3;--accent:#4cc9f0;--light:#f8f9fa;--dark:#212529;--gray:#6c757d}
@@ -107,7 +107,7 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
       }
     </script>
-</link></head>
+</head>
 <body>
 <header>
         <div class="container">
@@ -336,7 +336,7 @@
         // Load and preview original PDF
         const pdfDoc = await PDFDocument.load(originalPdfData);
         const pageCount = pdfDoc.getPageCount();
-        document.getElementById('meta').textContent = `${fileName} • ${pageCount} page(s)`;
+        document.getElementById('meta').textContent = `${fileName} Â• ${pageCount} page(s)`;
         
         // Show message in preview panel
         const previewContainer = document.getElementById('previewContainer');
@@ -600,22 +600,27 @@
       updatePreview();
     });
   </script>
-<footer>
-<div class="container footer-inner">
-<div class="footer-company-links">
-<span>Company</span>
-<a href="index.html#about">About Us</a>
-<a href="index.html#contact">Contact</a>
-<a href="privacy-policy.html">Privacy Policy</a>
-<a href="terms-of-service.html">Terms of Service</a>
-</div>
-<p class="footer-brand-line">© easyjpgtopdf — Free PDF &amp; Image Tools for everyone.</p>
-<p class="footer-credits">
+    
+<script src="js/auth.js" type="module">
+
+    <footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+                <a href="dmca-en.html">DMCA</a>
+                <a href="blog.html">Blog</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
+            <p class="footer-credits">
                 Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
                 <a href="attributions.html">See full acknowledgements</a>.
             </p>
-</div>
-</footer>
-<script src="js/auth.js" type="module"></script>
+        </div>
+    </footer>
 </body>
 </html>

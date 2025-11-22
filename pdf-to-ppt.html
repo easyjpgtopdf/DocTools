@@ -579,7 +579,7 @@
 <div class="file-info" id="fileInfo"></div>
 <div class="progress-wrapper" id="progressWrapper">
 <div style="display:flex;justify-content:space-between;font-size:0.9rem;color:var(--muted);">
-<span id="progressLabel">Preparing…</span>
+<span id="progressLabel">Preparingâ¦</span>
 <span id="progressPercent">0%</span>
 </div>
 <div class="progress-track">
@@ -751,7 +751,7 @@
             reader.onprogress = function (event) {
               if (event.lengthComputable) {
                 const percent = Math.round((event.loaded / total) * 100);
-                setProgress(percent, "Caching fallback copy…");
+                setProgress(percent, "Caching fallback copyâ¦");
               }
             };
             reader.onload = function () {
@@ -812,8 +812,8 @@
 
         continueBtn.disabled = false;
         clearBtn.disabled = false;
-        setStatus("Caching file securely in your browser…");
-        setProgress(8, "Saving to secure storage…");
+        setStatus("Caching file securely in your browserâ¦");
+        setProgress(8, "Saving to secure storageâ¦");
 
         try {
           await storeInIndexedDB(file);
@@ -866,7 +866,7 @@
           return;
         }
         setProgress(null);
-        setStatus("Opening preview…");
+        setStatus("Opening previewâ¦");
         window.location.href = "pdf-to-ppt-convert.html";
       });
 
@@ -880,22 +880,27 @@
       document.getElementById("year").textContent = new Date().getFullYear();
     })();
   </script>
-<footer>
-<div class="container footer-inner">
-<div class="footer-company-links">
-<span>Company</span>
-<a href="index.html#about">About Us</a>
-<a href="index.html#contact">Contact</a>
-<a href="privacy-policy.html">Privacy Policy</a>
-<a href="terms-of-service.html">Terms of Service</a>
-</div>
-<p class="footer-brand-line">� easyjpgtopdf � Free PDF &amp; Image Tools for everyone.</p>
-<p class="footer-credits">
+    
+<script src="js/auth.js" type="module"></script>
+
+    <footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+                <a href="dmca-en.html">DMCA</a>
+                <a href="blog.html">Blog</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
+            <p class="footer-credits">
                 Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
                 <a href="attributions.html">See full acknowledgements</a>.
             </p>
-</div>
-</footer>
-<script src="js/auth.js" type="module"></script>
+        </div>
+    </footer>
 </body>
 </html>

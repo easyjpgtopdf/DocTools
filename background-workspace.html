@@ -222,7 +222,7 @@
 <section class="panel">
 <h2><i class="fas fa-wand-magic-sparkles"></i> Background Removed</h2>
 
-<!-- Inline Tool Bar - Photopea/Canva Style -->
+<!-- Inline Tool Bar - Modern Interface -->
 <div class="inline-tool-bar" id="inlineToolBar">
   <div class="tool-bar-row">
     <button class="tool-bar-btn" id="eraserToolInline" title="Click objects to remove them instantly">
@@ -280,7 +280,7 @@
 <i class="fas fa-plus"></i>
         </button>
 </div>
-<!-- File Preview Gallery (like remove.bg) -->
+<!-- File Preview Gallery -->
 <div id="fileGallery" style="display: none; margin-top: 24px; padding: 16px; background: rgba(67,97,238,0.05); border-radius: 12px;">
   <h3 style="margin-bottom: 12px; font-size: 1rem; color: #1e254d;">Processed Files</h3>
   <div id="galleryContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px;"></div>
@@ -701,7 +701,7 @@
           const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'photo.png';
           const fileForProcessing = new File([blob], filename, { type: blob.type || 'image/png' });
 
-          // Process with ENHANCED remove.bg quality settings for 100% accuracy
+          // Process with enhanced quality settings for maximum accuracy
           // Using advanced settings to prevent over-cleaning and ensure complete background removal
           const result = await removeBackgroundFn(fileForProcessing, {
             publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
@@ -1169,7 +1169,7 @@
       addToGallery(resultDataURL, filename, imageInfo);
     }
 
-    // File Gallery Functions (like remove.bg)
+    // File Gallery Functions
     let processedFiles = [];
     
     function addToGallery(dataURL, filename, imageInfo) {
@@ -1882,22 +1882,7 @@
       footerYearEl.textContent = new Date().getFullYear();
     }
   </script>
-<footer>
-<div class="container footer-inner">
-<div class="footer-company-links">
-<span>Company</span>
-<a href="index.html#about">About Us</a>
-<a href="index.html#contact">Contact</a>
-<a href="privacy-policy.html">Privacy Policy</a>
-<a href="terms-of-service.html">Terms of Service</a>
-</div>
-<p class="footer-brand-line">© easyjpgtopdf — Free PDF &amp; Image Tools for everyone.</p>
-<p class="footer-credits">
-                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
-                <a href="attributions.html">See full acknowledgements</a>.
-            </p>
-</div>
-</footer>
+        
 <script type="module">
   const isLocalFileProtocol = window.location.protocol === 'file:';
   if (isLocalFileProtocol) {
@@ -1908,5 +1893,25 @@
     });
   }
 </script>
+
+    <footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+                <a href="dmca-en.html">DMCA</a>
+                <a href="blog.html">Blog</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
+            <p class="footer-credits">
+                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+                <a href="attributions.html">See full acknowledgements</a>.
+            </p>
+        </div>
+    </footer>
 </body>
 </html>

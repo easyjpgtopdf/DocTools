@@ -379,7 +379,7 @@
                     previewHTML += `<div style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed #ccc;"><strong>Speaker Notes:</strong><p style="margin-top: 5px; font-style: italic;">${slide.notes}</p></div>`;
                 }
                 previewHTML += `</div>`;
-                previewContainer.innerHTML = previewHTML; previewSection.style.display = 'block'; previewNote.textContent = ` • Slide: ${slideNumber}`;
+                previewContainer.innerHTML = previewHTML; previewSection.style.display = 'block'; previewNote.textContent = ` â¢ Slide: ${slideNumber}`;
             } catch (e) { console.error('Preview render error:', e); showError('Unable to render preview. Please try another file.'); }
         }
         async function convertToWord() {
@@ -392,7 +392,7 @@
                 const includeImages = document.getElementById('include-images').checked;
                 const preserveFormatting = document.getElementById('preserve-formatting').checked;
                 let documentContent = `<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>${currentFile.name.replace(/\.[^/.]+$/, '')}</title>
-    <link rel="stylesheet" href="css/footer.css"><style>body{font-family:Arial, sans-serif; line-height:1.6; margin:40px}.slide{margin-bottom:30px; padding-bottom:20px; border-bottom:1px solid #eee}.slide-title{font-size:24px; font-weight:bold; color:#d35400; margin-bottom:15px}.notes{background:#f9f9f9; padding:15px; border-left:4px solid #d35400; margin-top:15px; font-style:italic}ul,ol{margin-left:20px}</style>    
+    <link rel="stylesheet" href="css/footer.css"></link><style>body{font-family:Arial, sans-serif; line-height:1.6; margin:40px}.slide{margin-bottom:30px; padding-bottom:20px; border-bottom:1px solid #eee}.slide-title{font-size:24px; font-weight:bold; color:#d35400; margin-bottom:15px}.notes{background:#f9f9f9; padding:15px; border-left:4px solid #d35400; margin-top:15px; font-style:italic}ul,ol{margin-left:20px}</style>    
 
     
     
@@ -400,8 +400,8 @@
     
     
 
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/theme-modern.css">
+    <link rel="stylesheet" href="css/header.css"></link>
+    <link rel="stylesheet" href="css/theme-modern.css"></link>
 </head><body><h1>${currentFile.name.replace(/\.[^/.]+$/, '')}</h1><p>Converted from PowerPoint presentation on ${new Date().toLocaleDateString()}</p><hr>`;
                 for (let i = 0; i < selectedSlides.length; i++) {
                     const num = selectedSlides[i]; const slide = presentationData[num - 1];
@@ -411,7 +411,28 @@
                     documentContent += `</div>`;
                     await new Promise(r => setTimeout(r, 200));
                 }
-                documentContent += `</body></html>`;
+                documentContent += `
+    </script>
+    <footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+                <a href="dmca-en.html">DMCA</a>
+                <a href="blog.html">Blog</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
+            <p class="footer-credits">
+                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+                <a href="attributions.html">See full acknowledgements</a>.
+            </p>
+        </div>
+    </footer>
+</body></html>`;
                 updateProgress(95, 'Finalizing document...');
                 let downloadUrl, downloadName;
                 if (outputFormat === 'pdf') {
@@ -450,22 +471,7 @@
         function hideMessages() { successMessage.style.display = 'none'; errorMessage.style.display = 'none'; }
         document.getElementById('include-notes').addEventListener('change', () =&gt; { if (selectedSlides.length === 1) { renderPreview(selectedSlides[0]); } });
     
-<footer>
-<div class="container footer-inner">
-<div class="footer-company-links">
-<span>Company</span>
-<a href="index.html#about">About Us</a>
-<a href="index.html#contact">Contact</a>
-<a href="privacy-policy.html">Privacy Policy</a>
-<a href="terms-of-service.html">Terms of Service</a>
-</div>
-<p class="footer-brand-line">� easyjpgtopdf � Free PDF &amp; Image Tools for everyone.</p>
-<p class="footer-credits">
-                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
-                <a href="attributions.html">See full acknowledgements</a>.
-            </p>
-</div>
-</footer>
+    
 <script src="js/auth.js" type="module"></script>
 
 

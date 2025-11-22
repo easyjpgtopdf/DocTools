@@ -746,7 +746,7 @@
             if(tbAlignCenter) tbAlignCenter.addEventListener('click', ()=>{ if(selectedTextElement){ selectedTextElement.style.textAlign='center'; saveTextAnnotation(selectedTextElement);} });
             if(tbAlignRight) tbAlignRight.addEventListener('click', ()=>{ if(selectedTextElement){ selectedTextElement.style.textAlign='right'; saveTextAnnotation(selectedTextElement);} });
             
-            // Highlight color buttons (left panel) — set active color and apply immediately if a text element is selected/editing
+            // Highlight color buttons (left panel) â set active color and apply immediately if a text element is selected/editing
             highlightBtns.forEach(btn => {
                 btn.addEventListener('click', () => {
                     highlightBtns.forEach(b => b.classList.remove('active'));
@@ -1173,8 +1173,8 @@
             if(!w){ showError('Popup blocked. Please allow popups for this site.'); return; }
             const d = w.document; d.open();
             d.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>OCR Editor</title>
-    <link rel="stylesheet" href="css/footer.css">');
-            d.write('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">');
+    <link rel="stylesheet" href="css/footer.css"></link>');
+            d.write('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></link>');
             d.write('<style>body{margin:16px;background:#f5f7ff;font-family:Segoe UI,Tahoma,Arial,sans-serif}.toolbar{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px;margin-bottom:10px}.toolbar select,.toolbar input[type=color]{padding:6px 8px;border:1px solid #ddd;border-radius:8px;background:#fff}.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer}.page{width:595px;min-height:842px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.12);margin:0 auto;position:relative}#text-layer{position:absolute;inset:0}.editable-text{position:absolute;cursor:text;padding:2px 4px;border:1px dashed transparent;user-select:text;white-space:pre-wrap;z-index:2}.editable-text.selected{border-color:#4361ee;background:rgba(67,97,238,.08)}.editable-text.editing{border:2px solid #4361ee;background:#fff;z-index:3;outline:none}</style>');
             d.write('    
 
@@ -1184,20 +1184,41 @@
     
     
 
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/theme-modern.css">
+    <link rel="stylesheet" href="css/header.css"></link>
+    <link rel="stylesheet" href="css/theme-modern.css"></link>
 </head><body>');
             d.write('<div class="toolbar">'
               + '<select id="ff"><option>Inter</option><option>Roboto</option><option>Open Sans</option><option>Lato</option><option>Poppins</option><option>Montserrat</option><option>Source Sans 3</option><option>Noto Sans</option><option>PT Sans</option><option>PT Serif</option><option>Merriweather</option><option>Georgia</option><option>Verdana</option><option>Courier New</option><option>Times New Roman</option><option selected>Arial</option></select>'
               + '<select id="fs"><option>10</option><option>12</option><option selected>14</option><option>16</option><option>18</option><option>24</option><option>32</option></select>'
-              + '<input id="tc" type="color" value="#111827" title="Text Color">'
+              + '<input id="tc" type="color" value="#111827" title="Text Color"></input>'
               + '<button id="bBold" class="btn" title="Bold"><i class="fas fa-bold"></i></button>'
               + '<button id="bItalic" class="btn" title="Italic"><i class="fas fa-italic"></i></button>'
               + '<button id="bUnderline" class="btn" title="Underline"><i class="fas fa-underline"></i></button>'
               + '<button id="bSave" class="btn" title="Save"><i class="fas fa-download"></i> Save</button>'
               + '</div>');
             d.write('<div class="page"><div id="text-layer"></div></div>');
-            d.write('</body></html>');
+            d.write('
+    </script>
+    <footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+                <a href="dmca-en.html">DMCA</a>
+                <a href="blog.html">Blog</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
+            <p class="footer-credits">
+                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+                <a href="attributions.html">See full acknowledgements</a>.
+            </p>
+        </div>
+    </footer>
+</body></html>');
             d.close();
             function addScript(src){ return new Promise((res,rej)=&gt;{ const s=d.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; d.body.appendChild(s); }); }
             (async ()=&gt;{
@@ -1782,22 +1803,7 @@
         // Initialize when page loads
         window.addEventListener('load', init);
     
-<footer>
-<div class="container footer-inner">
-<div class="footer-company-links">
-<span>Company</span>
-<a href="index.html#about">About Us</a>
-<a href="index.html#contact">Contact</a>
-<a href="privacy-policy.html">Privacy Policy</a>
-<a href="terms-of-service.html">Terms of Service</a>
-</div>
-<p class="footer-brand-line">� easyjpgtopdf � Free PDF &amp; Image Tools for everyone.</p>
-<p class="footer-credits">
-                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
-                <a href="attributions.html">See full acknowledgements</a>.
-            </p>
-</div>
-</footer>
+    
 <script src="js/auth.js" type="module"></script>
 
 

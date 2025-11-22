@@ -169,14 +169,47 @@ class BlogSearch {
     }
 
     // Initialize search bar
+        // Initialize search bar
     init() {
+        // Check if search box already exists in DOM
+        if (document.getElementById('blogSearchInput')) {
+            // Search box already exists, just initialize event listeners
+            this.searchInput = document.getElementById('blogSearchInput');
+            this.resultsContainer = document.getElementById('blogSearchResults');
+            const clearBtn = document.getElementById('blogSearchClear');
+            
+            if (!this.searchInput || !this.resultsContainer) return;
+            
+            // Add event listeners
+            this.searchInput.addEventListener('input', (e) => {
+                this.handleSearch(e.target.value);
+            });
+            
+            this.searchInput.addEventListener('focus', () => {
+                if (this.searchResults.length > 0) {
+                    this.showResults();
+                }
+            });
+            
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    this.searchInput.value = '';
+                    this.searchInput.focus();
+                    this.clearResults();
+                    clearBtn.style.display = 'none';
+                });
+            }
+            
+            return; // Exit early, search box already exists
+        }
+        
         const main = document.querySelector('main .container') || document.querySelector('main');
         if (!main) return;
 
         const pageHeader = main.querySelector('.page-header') || main.querySelector('h1');
         if (!pageHeader) return;
 
-        // Create search bar
+        // Create search bar only if it doesn't exist
         const searchHTML = this.createSearchBar();
         const searchDiv = document.createElement('div');
         searchDiv.innerHTML = searchHTML;
@@ -186,41 +219,6 @@ class BlogSearch {
         this.searchInput = document.getElementById('blogSearchInput');
         this.resultsContainer = document.getElementById('blogSearchResults');
         const clearBtn = document.getElementById('blogSearchClear');
-
-        if (!this.searchInput || !this.resultsContainer) return;
-
-        // Add event listeners
-        this.searchInput.addEventListener('input', (e) => {
-            this.handleSearch(e.target.value);
-        });
-
-        this.searchInput.addEventListener('focus', () => {
-            if (this.searchResults.length > 0) {
-                this.showResults();
-            }
-        });
-
-        clearBtn.addEventListener('click', () => {
-            this.clearSearch();
-        });
-
-        // Close results when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.blog-search-container')) {
-                this.hideResults();
-            }
-        });
-
-        // Handle keyboard shortcuts
-        this.searchInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                this.clearSearch();
-                this.searchInput.blur();
-            } else if (e.key === 'Enter' && this.searchResults.length > 0) {
-                window.location.href = this.searchResults[0].url;
-            }
-        });
-    }
 
     // Handle search input
     handleSearch(query) {

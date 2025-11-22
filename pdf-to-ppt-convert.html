@@ -396,7 +396,7 @@
     </header>
 <section class="hero">
 <div class="container">
-<span class="badge"><i class="fas fa-clone"></i> Step 2 · Preview &amp; export</span>
+<span class="badge"><i class="fas fa-clone"></i> Step 2 Â· Preview &amp; export</span>
 <h1>Preview your PDF slides</h1>
 <p>Select the pages you want and export crisp PPTX decks without leaving your browser.</p>
 </div>
@@ -409,7 +409,7 @@
 <h2 style="font-size:1.3rem">PDF Pages</h2>
 <p class="muted">Click a thumbnail to include or exclude it from the PowerPoint export.</p>
 </div>
-<div class="badge" id="currentFile">Current file: <span id="pdfName">Loading…</span></div>
+<div class="badge" id="currentFile">Current file: <span id="pdfName">Loadingâ¦</span></div>
 </div>
 <div class="preview-grid" id="preview"></div>
 <div class="option-row" style="justify-content:flex-end;margin-top:16px">
@@ -440,7 +440,7 @@
 <div class="panel option-card" style="gap:10px">
 <h3 class="section-title"><i class="fas fa-lightbulb"></i> Tips</h3>
 <ul style="list-style:none;display:grid;gap:8px;color:var(--muted);font-size:0.93rem;padding-left:0">
-<li><i class="fas fa-check-circle" style="color:var(--primary);"></i> Slides are rendered locally—no uploads needed.</li>
+<li><i class="fas fa-check-circle" style="color:var(--primary);"></i> Slides are rendered locallyâno uploads needed.</li>
 <li><i class="fas fa-check-circle" style="color:var(--primary);"></i> Selected pages become individual slides in order.</li>
 <li><i class="fas fa-check-circle" style="color:var(--primary);"></i> Use Reload to reopen the most recent PDF quickly.</li>
 </ul>
@@ -483,7 +483,7 @@
     }
     const entry = pageImages.get(page);
     if(!entry || !entry.dataUrl){
-      renderPreviewMessage('Rendering slide preview…');
+      renderPreviewMessage('Rendering slide previewâ¦');
       return;
     }
     slidePreview.innerHTML = `<img src="${entry.dataUrl}" alt="Slide preview">`;
@@ -581,7 +581,7 @@
     }
     const firstPage = Array.from(selected).sort((a,b)=>a-b)[0];
     if(!pageImages.has(firstPage)){
-      renderPreviewMessage('Rendering slide preview…');
+      renderPreviewMessage('Rendering slide previewâ¦');
       await ensureSlideImages([firstPage]);
     }
     renderSlideImage(firstPage);
@@ -634,7 +634,7 @@
     pdfDoc = await loadingTask.promise;
     pageImages = new Map();
     selected = new Set(Array.from({length: pdfDoc.numPages}, (_,idx)=>idx+1));
-    renderPreviewMessage('Rendering slide preview…');
+    renderPreviewMessage('Rendering slide previewâ¦');
     await renderPreview();
     await refreshSlidePreview();
   }
@@ -734,22 +734,27 @@
   });
 })();
 </script>
-<footer>
-<div class="container footer-inner">
-<div class="footer-company-links">
-<span>Company</span>
-<a href="index.html#about">About Us</a>
-<a href="index.html#contact">Contact</a>
-<a href="privacy-policy.html">Privacy Policy</a>
-<a href="terms-of-service.html">Terms of Service</a>
-</div>
-<p class="footer-brand-line">� easyjpgtopdf � Free PDF &amp; Image Tools for everyone.</p>
-<p class="footer-credits">
+    
+<script src="js/auth.js" type="module"></script>
+
+    <footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+                <a href="dmca-en.html">DMCA</a>
+                <a href="blog.html">Blog</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
+            <p class="footer-credits">
                 Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
                 <a href="attributions.html">See full acknowledgements</a>.
             </p>
-</div>
-</footer>
-<script src="js/auth.js" type="module"></script>
+        </div>
+    </footer>
 </body>
 </html>

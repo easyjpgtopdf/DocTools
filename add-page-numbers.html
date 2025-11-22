@@ -168,17 +168,31 @@ body{background:linear-gradient(135deg,#f5f7ff 0%,#e9ecef 100%);min-height:100vh
 <div class="feature-card"><div class="feature-icon"><i class="fas fa-list-ol"></i></div><h3>Multiple Formats</h3><p>Numbers, Roman numerals, or alphabets - your choice</p></div>
 <div class="feature-card"><div class="feature-icon"><i class="fas fa-shield-alt"></i></div><h3>Secure &amp; Private</h3><p>Your files are processed securely in your browser</p></div>
 </div></div>
-<footer>
-<div class="container footer-inner">
-<div class="footer-company-links"><span>Company</span><a href="index.html#about">About Us</a><a href="index.html#contact">Contact</a><a href="privacy-policy.html">Privacy Policy</a><a href="terms-of-service.html">Terms of Service</a></div>
-<p class="footer-brand-line">© easyjpgtopdf — Free PDF &amp; Image Tools for everyone.</p>
-<p class="footer-credits">Thanks to Font Awesome, Google Fonts, pdf-lib, FileSaver.js, Firebase, and every open-source contributor. <a href="attributions.html">See full acknowledgements</a>.</p>
-</div>
-</footer>
+    
 <script src="js/global-components.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded',function(){const a=document.getElementById('upload-area'),b=document.getElementById('file-input'),c=document.getElementById('file-info'),d=document.getElementById('file-name'),e=document.getElementById('file-size'),f=document.getElementById('next-btn'),g=document.getElementById('clear-btn');let h=null;['dragenter','dragover','dragleave','drop'].forEach(i=>{a.addEventListener(i,j=>{ j.preventDefault();j.stopPropagation()},false)});['dragenter','dragover'].forEach(i=>{a.addEventListener(i,()=>a.classList.add('dragover'),false)});['dragleave','drop'].forEach(i=>{a.addEventListener(i,()=>a.classList.remove('dragover'),false)});a.addEventListener('drop',j=>{const k=j.dataTransfer.files;l(k)});a.addEventListener('click',()=>b.click());b.addEventListener('change',()=>{if(b.files.length)l(b.files)});g.addEventListener('click',()=>{h=null;b.value='';c.style.display='none';f.disabled=true});f.addEventListener('click',()=>{if(h){const m=new FileReader();m.onload=function(n){try{sessionStorage.setItem('pdfFile',n.target.result);sessionStorage.setItem('pdfFileName',h.name);window.location.href='add-page-numbers-convert.html'}catch(o){alert('File too large. Try a smaller file.')}};m.readAsDataURL(h)}});function l(p){const q=p[0];if(!q.type.includes('pdf')&&!q.name.toLowerCase().endsWith('.pdf')){alert('Please upload a valid PDF file.');return}if(q.size>500*1024*1024){alert('File size exceeds 500MB limit.');return}h=q;d.textContent=q.name;e.textContent=r(q.size);c.style.display='block';f.disabled=false}function r(s){if(s===0)return'0 Bytes';const t=1024,u=['Bytes','KB','MB','GB'],v=Math.floor(Math.log(s)/Math.log(t));return parseFloat((s/Math.pow(t,v)).toFixed(2))+' '+u[v]}});
 </script>
 <script src="js/auth.js" type="module"></script>
+
+    <footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+                <a href="dmca-en.html">DMCA</a>
+                <a href="blog.html">Blog</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
+            <p class="footer-credits">
+                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+                <a href="attributions.html">See full acknowledgements</a>.
+            </p>
+        </div>
+    </footer>
 </body>
 </html>

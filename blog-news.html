@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>News & Updates - easyjpgtopdf Blog</title>
-    <meta name="description" content="Latest news and updates about our PDF tools and features.">
+    <meta name="description" content="Latest news, updates, and announcements about our tools and features.">
     <link rel="stylesheet" href="css/footer.css">
     <link rel="stylesheet" href="css/header.css">
     <link rel="stylesheet" href="css/theme-modern.css">
@@ -19,7 +19,7 @@
         
         main {
             flex: 1;
-            padding: 40px 24px;
+            padding: 24px 24px;
         }
         
         .container {
@@ -29,66 +29,139 @@
         
         .page-header {
             text-align: center;
-            margin-bottom: 50px;
+            margin-bottom: 24px;
         }
         
-        .page-header h1 {
+        .blog-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        
+        .page-header h1, .blog-header h1 {
             font-size: 2.5rem;
             color: #0b1630;
             margin-bottom: 16px;
             font-weight: 700;
         }
         
-        .page-header p {
+        .page-header p, .blog-header p {
             font-size: 1.1rem;
             color: #56607a;
         }
         
-        .coming-soon {
-            text-align: center;
-            padding: 80px 24px;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        /* Modern AI Search Bar */
+        .blog-search-container {
+            margin: 20px 0 25px;
+            width: 100%;
         }
         
-        .coming-soon i {
-            font-size: 5rem;
-            color: #4361ee;
-            margin-bottom: 24px;
-        }
-        
-        .coming-soon h2 {
-            font-size: 2rem;
-            color: #0b1630;
-            margin-bottom: 16px;
-        }
-        
-        .coming-soon p {
-            font-size: 1.1rem;
-            color: #56607a;
-            max-width: 600px;
+        .blog-search-wrapper {
+            position: relative;
+            max-width: 650px;
             margin: 0 auto;
-            line-height: 1.6;
         }
         
-        .back-btn {
-            display: inline-flex;
+        .blog-search-input-wrapper {
+            position: relative;
+            display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #4361ee, #3a0ca3);
-            color: white;
-            text-decoration: none;
+            background: white;
+            border: 2px solid rgba(67, 97, 238, 0.2);
             border-radius: 999px;
-            font-weight: 600;
-            margin-top: 24px;
+            padding: 12px 20px;
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.1);
             transition: all 0.3s;
         }
         
-        .back-btn:hover {
+        .blog-search-input-wrapper:focus-within {
+            border-color: #4361ee;
+            box-shadow: 0 6px 20px rgba(67, 97, 238, 0.2);
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+        }
+        
+        .blog-search-icon {
+            color: #4361ee;
+            font-size: 1rem;
+            margin-right: 10px;
+        }
+        
+        .blog-search-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 1rem;
+            color: #0b1630;
+            background: transparent;
+            font-weight: 500;
+        }
+        
+        .blog-search-input::placeholder {
+            color: #7a8196;
+        }
+        
+        .blog-search-clear {
+            background: none;
+            border: none;
+            color: #7a8196;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 50%;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .blog-search-clear:hover {
+            background: rgba(67, 97, 238, 0.1);
+            color: #4361ee;
+        }
+        
+        .blog-search-results {
+            position: absolute;
+            top: calc(100% + 10px);
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            max-height: 500px;
+            overflow-y: auto;
+            z-index: 1000;
+            margin-top: 8px;
+        }
+        
+        /* Advertisement Space */
+        .ad-banner-top {
+            width: 100%;
+            min-height: 100px;
+            background: #f5f7ff;
+            border: 2px dashed #dbe2ef;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 0.9rem;
+            margin: 30px 0;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .ad-banner-bottom {
+            width: 100%;
+            min-height: 100px;
+            background: #f5f7ff;
+            border: 2px dashed #dbe2ef;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 0.9rem;
+            margin: 30px 0;
+            padding: 20px;
+            text-align: center;
         }
         
         /* Blog Filter Buttons */
@@ -124,40 +197,24 @@
             text-decoration: none;
         }
         
-        /* Modern AI Search Bar */
-        .blog-search-container { margin: 30px 0 40px; width: 100%; }
-        .blog-search-wrapper { position: relative; max-width: 800px; margin: 0 auto; }
-        .blog-search-input-wrapper { position: relative; display: flex; align-items: center; background: white; border: 2px solid rgba(67, 97, 238, 0.2); border-radius: 999px; padding: 12px 20px; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.1); transition: all 0.3s; }
-        .blog-search-input-wrapper:focus-within { border-color: #4361ee; box-shadow: 0 6px 20px rgba(67, 97, 238, 0.2); transform: translateY(-2px); }
-        .blog-search-icon { color: #4361ee; font-size: 1.2rem; margin-right: 12px; }
-        .blog-search-input { flex: 1; border: none; outline: none; font-size: 1rem; color: #0b1630; background: transparent; font-weight: 500; }
-        .blog-search-input::placeholder { color: #7a8196; }
-        .blog-search-clear { background: none; border: none; color: #7a8196; cursor: pointer; padding: 4px 8px; border-radius: 50%; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
-        .blog-search-clear:hover { background: rgba(67, 97, 238, 0.1); color: #4361ee; }
-        .blog-search-results { position: absolute; top: calc(100% + 10px); left: 0; right: 0; background: white; border-radius: 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15); max-height: 500px; overflow-y: auto; z-index: 1000; margin-top: 8px; }
-        .blog-search-results-header { padding: 16px 20px; border-bottom: 1px solid rgba(0, 0, 0, 0.08); font-size: 0.9rem; color: #56607a; background: #f8f9ff; border-radius: 16px 16px 0 0; }
-        .blog-search-results-header strong { color: #4361ee; }
-        .blog-search-result-item { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid rgba(0, 0, 0, 0.05); text-decoration: none; color: inherit; transition: all 0.2s; cursor: pointer; }
-        .blog-search-result-item:hover { background: #f8f9ff; transform: translateX(4px); }
-        .blog-search-result-item:last-child { border-bottom: none; }
-        .blog-search-result-icon { width: 48px; height: 48px; background: linear-gradient(135deg, rgba(67, 97, 238, 0.1), rgba(67, 97, 238, 0.15)); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #4361ee; font-size: 1.2rem; margin-right: 16px; flex-shrink: 0; }
-        .blog-search-result-content { flex: 1; min-width: 0; }
-        .blog-search-result-title { font-size: 1.1rem; font-weight: 700; color: #0b1630; margin-bottom: 4px; }
-        .blog-search-result-title mark { background: rgba(67, 97, 238, 0.2); color: #4361ee; padding: 0 2px; border-radius: 3px; font-weight: 800; }
-        .blog-search-result-description { font-size: 0.9rem; color: #56607a; margin-bottom: 6px; line-height: 1.4; }
-        .blog-search-result-category { display: inline-block; font-size: 0.75rem; padding: 4px 10px; background: rgba(67, 97, 238, 0.1); color: #4361ee; border-radius: 999px; font-weight: 600; }
-        .blog-search-result-arrow { color: #7a8196; font-size: 0.9rem; margin-left: 12px; flex-shrink: 0; }
-        .blog-search-result-item:hover .blog-search-result-arrow { color: #4361ee; transform: translateX(4px); }
-        .blog-search-no-results { padding: 60px 20px; text-align: center; }
-        .blog-search-no-results i { font-size: 3rem; color: #7a8196; margin-bottom: 16px; }
-        .blog-search-no-results h3 { font-size: 1.3rem; color: #0b1630; margin-bottom: 8px; }
-        .blog-search-no-results p { color: #56607a; margin-bottom: 24px; }
-        .blog-search-suggestions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; align-items: center; }
-        .blog-search-suggestions span { color: #56607a; font-weight: 600; }
-        .blog-search-suggestions a { padding: 8px 16px; background: rgba(67, 97, 238, 0.1); color: #4361ee; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; }
-        .blog-search-suggestions a:hover { background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white; transform: translateY(-2px); }
-        @media (max-width: 768px) { .blog-search-container { margin: 20px 0 30px; } .blog-search-results { max-height: 400px; } .blog-search-result-item { padding: 12px 16px; } .blog-search-result-icon { width: 40px; height: 40px; font-size: 1rem; margin-right: 12px; } }
+        @media (max-width: 768px) {
+            .blog-search-container {
+                margin: 15px 0 20px;
+            }
+            
+            .page-header h1, .blog-header h1 {
+                font-size: 2rem;
+            }
+            
+            .ad-banner-top,
+            .ad-banner-bottom {
+                min-height: 80px;
+                margin: 20px 0;
+            }
+        }
     </style>
+
+    <link rel="stylesheet" href="css/voice-assistant.css">
 </head>
 <body>
     <header>
@@ -200,7 +257,6 @@
                     <div class="dropdown">
                         <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
-                            <a href="image-repair.html">AI Image Repair</a>
                             <a href="image-compressor.html">Image Compressor</a>
                             <a href="image-resizer.html">Image Resizer</a>
                             <a href="image-editor.html">Image Editor</a>
@@ -265,8 +321,33 @@
     <main>
         <div class="container">
             <div class="page-header">
-                <h1><i class="fas fa-bullhorn"></i> News & Updates</h1>
-                <p>Stay updated with the latest features and improvements.</p>
+                <h1><i class="fas fa-newspaper"></i> News & Updates</h1>
+                <p>Latest news, updates, and announcements about our tools and features.</p>
+            </div>
+            <!-- Blog Search Bar -->
+            <div class="blog-search-container">
+                <div class="blog-search-wrapper">
+                    <div class="blog-search-input-wrapper">
+                        <i class="fas fa-search blog-search-icon"></i>
+                        <input 
+                            type="text" 
+                            class="blog-search-input" 
+                            id="blogSearchInput"
+                            placeholder="Search all tools and pages..." 
+                            autocomplete="off"
+                        />
+                        <button class="blog-search-clear" id="blogSearchClear" style="display: none;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="blog-search-results" id="blogSearchResults" style="display: none;"></div>
+                </div>
+            </div>
+            
+
+            <!-- Advertisement Banner Top -->
+            <div class="ad-banner-top">
+                <p><i class="fas fa-ad"></i> Advertisement Space</p>
             </div>
 
             <!-- Blog Filter Buttons -->
@@ -278,39 +359,23 @@
                 <a href="blog-guides.html" class="filter-btn" data-filter="guides">Guides</a>
             </div>
 
-            <div class="coming-soon">
-                <i class="fas fa-newspaper"></i>
-                <h2>News & Updates Coming Soon!</h2>
-                <p>We'll keep you informed about new features, updates, and improvements to our tools. Stay tuned for the latest news!</p>
-                <a href="blog.html" class="back-btn">
-                    <i class="fas fa-arrow-left"></i> Back to Blog Home
-                </a>
+            <!-- Blog Content Area -->
+            <div class="blog-content-area" style="margin-top: 40px; text-align: center; padding: 60px 20px; color: #56607a;">
+                <i class="fas fa-newspaper" style="font-size: 4rem; color: #dbe2ef; margin-bottom: 20px;"></i>
+                <h2 style="font-size: 1.5rem; color: #0b1630; margin-bottom: 10px;">Content Coming Soon</h2>
+                <p style="font-size: 1rem; max-width: 600px; margin: 0 auto;">We're working on adding great content here. Check back soon!</p>
             </div>
-        </div>
+            
     </main>
-
-    <footer>
-        <div class="container footer-inner">
-            <div class="footer-company-links">
-                <span>Company</span>
-                <a href="index.html#about">About Us</a>
-                <a href="index.html#contact">Contact</a>
-                <a href="privacy-policy.html">Privacy Policy</a>
-                <a href="terms-of-service.html">Terms of Service</a>
-            </div>
-            <p class="footer-brand-line">© easyjpgtopdf — Free PDF & Image Tools for everyone.</p>
-            <p class="footer-credits">
-                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
-                <a href="attributions.html">See full acknowledgements</a>.
-            </p>
-        </div>
-    </footer>
 
     <!-- Blog Common Script -->
     <script src="js/blog-common.js"></script>
     
     <!-- Blog Search Script -->
     <script src="js/blog-search.js"></script>
+    
+    <!-- Voice Assistant Script -->
+    <script src="js/voice-assistant.js"></script>
     
     <script type="module">
         const isLocalFileProtocol = window.location.protocol === 'file:';
@@ -320,6 +385,147 @@
             });
         }
     </script>
+
+    
+    <!-- Advertisement Banner Bottom -->
+    <div class="ad-banner-bottom">
+        <p><i class="fas fa-ad"></i> Advertisement Space</p>
+    </div>
+
+    <footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+                <a href="dmca-en.html">DMCA</a>
+                <a href="blog.html">Blog</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
+            <p class="footer-credits">
+                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+                <a href="attributions.html">See full acknowledgements</a>.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Voice Assistant + Blog Search Integration
+        document.addEventListener('DOMContentLoaded', function() {
+            const voiceBtn = document.getElementById('voiceAssistantBtn');
+            const blogSearchInput = document.getElementById('blogSearchInput');
+            const blogSearchInstance = window.blogSearchInstance;
+            
+            if (voiceBtn && blogSearchInput && blogSearchInstance) {
+                // Listen for voice recognition results
+                document.addEventListener('voiceCommand', function(event) {
+                    const command = event.detail.command.toLowerCase();
+                    
+                    // Search in blog using voice command
+                    if (blogSearchInput && blogSearchInstance) {
+                        blogSearchInput.value = command;
+                        blogSearchInstance.handleSearch(command);
+                        
+                        // Show search results
+                        const resultsContainer = document.getElementById('blogSearchResults');
+                        if (resultsContainer) {
+                            resultsContainer.style.display = 'block';
+                        }
+                    }
+                });
+                
+                // Enhanced voice commands for blog functions
+                const blogVoiceCommands = {
+                    'all articles': 'blog-articles.html',
+                    'articles': 'blog-articles.html',
+                    'all article': 'blog-articles.html',
+                    'tutorials': 'blog-tutorials.html',
+                    'tutorial': 'blog-tutorials.html',
+                    'tips': 'blog-tips.html',
+                    'tips and tricks': 'blog-tips.html',
+                    'tips & tricks': 'blog-tips.html',
+                    'news': 'blog-news.html',
+                    'updates': 'blog-news.html',
+                    'news and updates': 'blog-news.html',
+                    'news & updates': 'blog-news.html',
+                    'guides': 'blog-guides.html',
+                    'guide': 'blog-guides.html',
+                    'search': function(cmd) {
+                        if (blogSearchInput) {
+                            blogSearchInput.focus();
+                        }
+                    },
+                    'search for': function(cmd) {
+                        if (blogSearchInput && blogSearchInstance) {
+                            const searchTerm = cmd.replace('search for', '').trim();
+                            blogSearchInput.value = searchTerm;
+                            blogSearchInstance.handleSearch(searchTerm);
+                        }
+                    },
+                    'find': function(cmd) {
+                        if (blogSearchInput && blogSearchInstance) {
+                            const searchTerm = cmd.replace('find', '').trim();
+                            blogSearchInput.value = searchTerm;
+                            blogSearchInstance.handleSearch(searchTerm);
+                        }
+                    },
+                    'pdf tools': function(cmd) {
+                        if (blogSearchInput && blogSearchInstance) {
+                            blogSearchInput.value = 'pdf';
+                            blogSearchInstance.handleSearch('pdf');
+                        }
+                    },
+                    'image tools': function(cmd) {
+                        if (blogSearchInput && blogSearchInstance) {
+                            blogSearchInput.value = 'image';
+                            blogSearchInstance.handleSearch('image');
+                        }
+                    },
+                };
+                
+                // Override voice command handler if needed
+                if (window.voiceAssistant) {
+                    const originalHandler = window.voiceAssistant.handleVoiceCommand;
+                    window.voiceAssistant.handleVoiceCommand = function(command) {
+                        // Check blog-specific commands first
+                        const cmd = command.toLowerCase().trim();
+                        
+                        if (blogVoiceCommands[cmd]) {
+                            const target = blogVoiceCommands[cmd];
+                            if (typeof target === 'function') {
+                                target(cmd);
+                            } else if (target.startsWith('blog-')) {
+                                window.location.href = target;
+                            } else {
+                                // Search keyword
+                                if (blogSearchInput && blogSearchInstance) {
+                                    blogSearchInput.value = target;
+                                    blogSearchInstance.handleSearch(target);
+                                }
+                            }
+                            return true;
+                        }
+                        
+                        // Default voice command handling
+                        if (originalHandler) {
+                            return originalHandler.call(this, command);
+                        }
+                        
+                        // Fallback: search in blog
+                        if (blogSearchInput && blogSearchInstance) {
+                            blogSearchInput.value = command;
+                            blogSearchInstance.handleSearch(command);
+                            return true;
+                        }
+                        
+                        return false;
+                    };
+                }
+            }
+        });
+    </script>
 </body>
 </html>
-

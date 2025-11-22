@@ -180,7 +180,7 @@
       <div class="upload-card" id="dropzone">
         <i class="fas fa-cloud-upload-alt"></i>
         <h2>Drag & drop your JPG/PNG</h2>
-        <p>Max 10MB â€¢ Works entirely in your browser</p>
+        <p>Max 10MB Ã¢Â€Â¢ Works entirely in your browser</p>
         <button class="btn btn-primary" type="button" id="browseBtn"><i class="fas fa-upload"></i> Choose Image</button>
         <input type="file" id="imageInput" accept="image/png,image/jpeg" hidden>
       </div>
@@ -204,6 +204,8 @@
   
 
   <script type="module">
+    // Google Cloud Run API URL - Connected to u2net rembg backend
+    const CLOUDRUN_API_URL = 'https://bg-remover-api-iwumaktavq-uc.a.run.app/remove-background';
     const STORAGE_KEYS = {
       original: 'bgRemover:original',
       filename: 'bgRemover:filename'
@@ -292,17 +294,17 @@
       // Show processing tier info
       const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
       if (file.size < 15 * 1024 * 1024) {
-        showStatus(`? Preparing ${sizeMB} MB image for instant browser processing… 0%`);
+        showStatus(`? Preparing ${sizeMB} MB image for instant browser processingÂ… 0%`);
       } else if (file.size < 50 * 1024 * 1024) {
-        showStatus(`?? Preparing ${sizeMB} MB image for professional server AI… 0%`);
+        showStatus(`?? Preparing ${sizeMB} MB image for professional server AIÂ… 0%`);
       } else {
-        showStatus(`? Preparing ${sizeMB} MB image for premium cloud AI… 0%`);
+        showStatus(`? Preparing ${sizeMB} MB image for premium cloud AIÂ… 0%`);
       }
 
       try {
-        showStatus('Processing image… 30%');
+        showStatus('Processing imageÂ… 30%');
         const dataUrl = await prepareImage(file);
-        showStatus('Optimizing for quality… 60%');
+        showStatus('Optimizing for qualityÂ… 60%');
         const approxBytes = Math.ceil(dataUrl.length * 0.75);
         
         // sessionStorage limit: ~9-10 MB for base64 data
@@ -312,14 +314,14 @@
           return;
         }
         
-        showStatus('Saving… 80%');
+        showStatus('SavingÂ… 80%');
         sessionStorage.setItem(STORAGE_KEYS.original, dataUrl);
         sessionStorage.setItem(STORAGE_KEYS.filename, file.name || 'photo.png');
         sessionStorage.setItem('bgRemover:originalType', file.type);
         sessionStorage.setItem('bgRemover:originalSize', file.size.toString());
         sessionStorage.removeItem('bgRemover:foreground');
         sessionStorage.removeItem('bgRemover:dimensions');
-        showStatus('Opening workspace… 100%');
+        showStatus('Opening workspaceÂ… 100%');
         setTimeout(() => {
           window.location.href = 'background-workspace.html';
         }, 150);
@@ -376,23 +378,30 @@
 
 
 
-<footer>
+    
+    <script type="module" src="js/auth.js"></script>
+
+    <script src="js/firebase-init.js"></script>
+
+    <footer>
         <div class="container footer-inner">
             <div class="footer-company-links">
                 <span>Company</span>
                 <a href="index.html#about">About Us</a>
                 <a href="index.html#contact">Contact</a>
+                <a href="pricing.html">Pricing</a>
                 <a href="privacy-policy.html">Privacy Policy</a>
                 <a href="terms-of-service.html">Terms of Service</a>
+                <a href="dmca-en.html">DMCA</a>
+                <a href="blog.html">Blog</a>
             </div>
-            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone.</p>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
             <p class="footer-credits">
                 Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
                 <a href="attributions.html">See full acknowledgements</a>.
             </p>
         </div>
     </footer>
-    <script type="module" src="js/auth.js"></script>
 </body>
 </html>
 

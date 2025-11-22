@@ -6,7 +6,7 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Watermark PDF | easyjpgtopdf</title>
 <link href="css/footer.css" rel="stylesheet"/>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"></link>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -86,7 +86,7 @@
   </style>
 <link href="css/header.css" rel="stylesheet"/>
 <link href="css/theme-modern.css" rel="stylesheet"/>
-</link></head>
+</head>
 <body>
 <header>
         <div class="container">
@@ -244,8 +244,8 @@
 <!-- Logo watermark options -->
 <div class="option-group">
 <label class="inline" for="enable-logo"><input id="enable-logo" style="margin-right:8px;" type="checkbox"/> Add Logo Watermark</label>
-<input accept="image/png,image/jpeg" class="option-input" id="wm-logo-file" type="file">
-</input></div>
+<input accept="image/png,image/jpeg" class="option-input" id="wm-logo-file" type="file"></input>
+</div>
 <div class="option-group">
 <label for="wm-logo-scale">Logo Size (% of page width)</label>
 <input class="option-input" id="wm-logo-scale" max="100" min="5" step="1" type="number" value="30"/>
@@ -453,22 +453,27 @@
     function showError(message){ errorText.textContent = message; errorMessage.style.display='block'; }
     function hideMessages(){ successMessage.style.display='none'; errorMessage.style.display='none'; }
   </script>
-<footer>
-<div class="container footer-inner">
-<div class="footer-company-links">
-<span>Company</span>
-<a href="index.html#about">About Us</a>
-<a href="index.html#contact">Contact</a>
-<a href="privacy-policy.html">Privacy Policy</a>
-<a href="terms-of-service.html">Terms of Service</a>
-</div>
-<p class="footer-brand-line">© easyjpgtopdf — Free PDF &amp; Image Tools for everyone.</p>
-<p class="footer-credits">
+    
+<script src="js/auth.js" type="module">
+
+    <footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+                <a href="dmca-en.html">DMCA</a>
+                <a href="blog.html">Blog</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
+            <p class="footer-credits">
                 Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
                 <a href="attributions.html">See full acknowledgements</a>.
             </p>
-</div>
-</footer>
-<script src="js/auth.js" type="module"></script>
+        </div>
+    </footer>
 </body>
 </html>
