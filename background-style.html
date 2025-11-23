@@ -862,19 +862,48 @@
       }
 
       if (foregroundImage.complete && foregroundImage.naturalWidth > 0) {
-        previewContext.drawImage(foregroundImage, 0, 0, previewCanvas.width, previewCanvas.height);
-        console.log('Foreground image drawn to canvas');
+        try {
+          previewContext.drawImage(foregroundImage, 0, 0, previewCanvas.width, previewCanvas.height);
+          console.log('Foreground image drawn to canvas successfully', {
+            canvasWidth: previewCanvas.width,
+            canvasHeight: previewCanvas.height,
+            imageWidth: foregroundImage.naturalWidth,
+            imageHeight: foregroundImage.naturalHeight
+          });
+        } catch (drawErr) {
+          console.error('Error drawing image to canvas:', drawErr);
+        }
       } else {
         console.error('drawComposite: Foreground image not ready', {
           complete: foregroundImage.complete,
           naturalWidth: foregroundImage.naturalWidth,
-          src: foregroundImage.src ? 'set' : 'not set'
+          naturalHeight: foregroundImage.naturalHeight,
+          src: foregroundImage.src ? foregroundImage.src.substring(0, 50) + '...' : 'not set'
         });
+        // Try to wait and retry
+        if (!foregroundImage.complete) {
+          console.log('Waiting for image to load...');
+          await new Promise((resolve) => {
+            const timeout = setTimeout(resolve, 2000);
+            foregroundImage.onload = () => {
+              clearTimeout(timeout);
+              resolve();
+            };
+            foregroundImage.onerror = () => {
+              clearTimeout(timeout);
+              resolve();
+            };
+          });
+          if (foregroundImage.complete && foregroundImage.naturalWidth > 0) {
+            previewContext.drawImage(foregroundImage, 0, 0, previewCanvas.width, previewCanvas.height);
+            console.log('Foreground image drawn after wait');
+          }
+        }
       }
       
       applyOverlay();
-      downloadBtn.disabled = false;
-      resetBtn.disabled = false;
+      if (downloadBtn) downloadBtn.disabled = false;
+      if (resetBtn) resetBtn.disabled = false;
     }
 
     async function init() {
@@ -935,7 +964,17 @@
               }
             }
             
+            // Force canvas update
             await drawComposite('transparent');
+            console.log('Preview drawn to canvas');
+            
+            // Force a repaint to ensure visibility
+            if (previewCanvas) {
+              previewCanvas.style.display = 'none';
+              previewCanvas.offsetHeight; // Trigger reflow
+              previewCanvas.style.display = 'block';
+            }
+            
             if (isPremium || !previewUrl || previewUrl === foregroundDataUrl) {
               setStatus('Background set to transparent. Choose a new style.');
             }
@@ -1247,70 +1286,86 @@
       setTimeout(() => clearStatus(), 4000);
     }
 
-    downloadBtn.addEventListener('click', handleDownload);
+    if (downloadBtn) {
+      downloadBtn.addEventListener('click', handleDownload);
+    }
 
-    backToPreview.addEventListener('click', () => {
-      window.location.href = 'background-workspace.html';
-    });
+    if (backToPreview) {
+      backToPreview.addEventListener('click', () => {
+        window.location.href = 'background-workspace.html';
+      });
+    }
 
-    overlayToggle.addEventListener('change', () => {
-      overlayState.enabled = overlayToggle.checked;
-      overlayFields.classList.toggle('hidden', !overlayState.enabled);
-      if (overlayState.enabled) {
-        overlayTextInput.focus();
-      } else {
-        overlayState.text = '';
-        overlayTextInput.value = '';
-      }
-      drawComposite(currentBackgroundRef ?? 'transparent');
-    });
+    if (overlayToggle) {
+      overlayToggle.addEventListener('change', () => {
+        overlayState.enabled = overlayToggle.checked;
+        if (overlayFields) {
+          overlayFields.classList.toggle('hidden', !overlayState.enabled);
+        }
+        if (overlayState.enabled && overlayTextInput) {
+          overlayTextInput.focus();
+        } else {
+          overlayState.text = '';
+          if (overlayTextInput) {
+            overlayTextInput.value = '';
+          }
+        }
+        drawComposite(currentBackgroundRef ?? 'transparent');
+      });
+    }
 
     function updateOverlayAndRender() {
-      overlayState.text = overlayTextInput.value;
-      overlayState.fontFamily = overlayFontSelect.value;
-      overlayState.fontWeight = Number(overlayWeightSelect.value);
-      overlayState.fontSize = Number(overlaySizeRange.value);
-      overlayState.position = overlayPositionSelect.value;
-      overlayState.offsetX = Number(overlayOffsetX.value);
-      overlayState.offsetY = Number(overlayOffsetY.value);
-      overlayState.color = overlayColorInput.value;
-      overlayState.shadow = Number(overlayShadowRange.value);
-      overlaySizeValue.textContent = `${overlayState.fontSize}px`;
-      overlayShadowValue.textContent = `${overlayState.shadow}px`;
-      overlayOffsetXValue.textContent = `${overlayState.offsetX}%`;
-      overlayOffsetYValue.textContent = `${overlayState.offsetY}%`;
+      if (overlayTextInput) overlayState.text = overlayTextInput.value;
+      if (overlayFontSelect) overlayState.fontFamily = overlayFontSelect.value;
+      if (overlayWeightSelect) overlayState.fontWeight = Number(overlayWeightSelect.value);
+      if (overlaySizeRange) overlayState.fontSize = Number(overlaySizeRange.value);
+      if (overlayPositionSelect) overlayState.position = overlayPositionSelect.value;
+      if (overlayOffsetX) overlayState.offsetX = Number(overlayOffsetX.value);
+      if (overlayOffsetY) overlayState.offsetY = Number(overlayOffsetY.value);
+      if (overlayColorInput) overlayState.color = overlayColorInput.value;
+      if (overlayShadowRange) overlayState.shadow = Number(overlayShadowRange.value);
+      if (overlaySizeValue) overlaySizeValue.textContent = `${overlayState.fontSize}px`;
+      if (overlayShadowValue) overlayShadowValue.textContent = `${overlayState.shadow}px`;
+      if (overlayOffsetXValue) overlayOffsetXValue.textContent = `${overlayState.offsetX}%`;
+      if (overlayOffsetYValue) overlayOffsetYValue.textContent = `${overlayState.offsetY}%`;
       drawComposite(currentBackgroundRef ?? 'transparent');
     }
 
-    overlayTextInput.addEventListener('input', updateOverlayAndRender);
-    overlayFontSelect.addEventListener('change', updateOverlayAndRender);
-    overlayWeightSelect.addEventListener('change', updateOverlayAndRender);
-    overlaySizeRange.addEventListener('input', updateOverlayAndRender);
-    overlayPositionSelect.addEventListener('change', updateOverlayAndRender);
-    overlayOffsetX.addEventListener('input', updateOverlayAndRender);
-    overlayOffsetY.addEventListener('input', updateOverlayAndRender);
-    overlayColorInput.addEventListener('input', updateOverlayAndRender);
-    overlayShadowRange.addEventListener('input', updateOverlayAndRender);
+    if (overlayTextInput) overlayTextInput.addEventListener('input', updateOverlayAndRender);
+    if (overlayFontSelect) overlayFontSelect.addEventListener('change', updateOverlayAndRender);
+    if (overlayWeightSelect) overlayWeightSelect.addEventListener('change', updateOverlayAndRender);
+    if (overlaySizeRange) overlaySizeRange.addEventListener('input', updateOverlayAndRender);
+    if (overlayPositionSelect) overlayPositionSelect.addEventListener('change', updateOverlayAndRender);
+    if (overlayOffsetX) overlayOffsetX.addEventListener('input', updateOverlayAndRender);
+    if (overlayOffsetY) overlayOffsetY.addEventListener('input', updateOverlayAndRender);
+    if (overlayColorInput) overlayColorInput.addEventListener('input', updateOverlayAndRender);
+    if (overlayShadowRange) overlayShadowRange.addEventListener('input', updateOverlayAndRender);
 
     let currentBackgroundRef = 'transparent';
 
     function toggleManualControls() {
       const isManual = overlayState.position === 'manual';
-      overlayManualX.classList.toggle('hidden', !isManual);
-      overlayManualY.classList.toggle('hidden', !isManual);
+      if (overlayManualX) overlayManualX.classList.toggle('hidden', !isManual);
+      if (overlayManualY) overlayManualY.classList.toggle('hidden', !isManual);
     }
 
-    overlayPositionSelect.addEventListener('change', () => {
-      overlayState.position = overlayPositionSelect.value;
-      toggleManualControls();
-    });
+    if (overlayPositionSelect) {
+      overlayPositionSelect.addEventListener('change', () => {
+        overlayState.position = overlayPositionSelect.value;
+        toggleManualControls();
+      });
+    }
 
-    overlayOffsetX.addEventListener('input', () => {
-      overlayOffsetXValue.textContent = `${overlayOffsetX.value}%`;
-    });
-    overlayOffsetY.addEventListener('input', () => {
-      overlayOffsetYValue.textContent = `${overlayOffsetY.value}%`;
-    });
+    if (overlayOffsetX && overlayOffsetXValue) {
+      overlayOffsetX.addEventListener('input', () => {
+        overlayOffsetXValue.textContent = `${overlayOffsetX.value}%`;
+      });
+    }
+    if (overlayOffsetY && overlayOffsetYValue) {
+      overlayOffsetY.addEventListener('input', () => {
+        overlayOffsetYValue.textContent = `${overlayOffsetY.value}%`;
+      });
+    }
 
     toggleManualControls();
 
