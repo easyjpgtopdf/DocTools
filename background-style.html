@@ -783,7 +783,11 @@
     }
 
     async function init() {
-      if (!foregroundDataUrl || !dimensions) return;
+      if (!foregroundDataUrl || !dimensions) {
+        console.error('Missing data:', { foregroundDataUrl: !!foregroundDataUrl, dimensions: !!dimensions });
+        setStatus('Missing image data. Please go back and process the image again.');
+        return;
+      }
       try {
         // Check if user is premium
         let isPremium = false;
@@ -798,25 +802,34 @@
         
         // For free users, compress preview for faster background styling
         let previewUrl = foregroundDataUrl;
-        if (!isPremium) {
-          const previewData = await compressPreviewForRemoval(foregroundDataUrl);
-          if (previewData.compressed) {
-            previewUrl = previewData.dataURL;
-            setStatus('?? Preview optimized for faster editing (400 KB). Original quality saved for download.');
-            setTimeout(() => {
-              setStatus('Background set to transparent. Choose a new style.');
-            }, 3000);
+        if (!isPremium && foregroundDataUrl) {
+          try {
+            const previewData = await compressPreviewForRemoval(foregroundDataUrl);
+            if (previewData.compressed) {
+              previewUrl = previewData.dataURL;
+              setStatus('Preview optimized for faster editing (400 KB). Original quality saved for download.');
+              setTimeout(() => {
+                setStatus('Background set to transparent. Choose a new style.');
+              }, 3000);
+            }
+          } catch (compressErr) {
+            console.warn('Compression failed, using original:', compressErr);
+            previewUrl = foregroundDataUrl;
           }
         }
         
-        await loadImage(foregroundImage, previewUrl);
-        await drawComposite('transparent');
-        if (isPremium || !previewUrl || previewUrl === foregroundDataUrl) {
-          setStatus('Background set to transparent. Choose a new style.');
+        if (previewUrl) {
+          await loadImage(foregroundImage, previewUrl);
+          await drawComposite('transparent');
+          if (isPremium || !previewUrl || previewUrl === foregroundDataUrl) {
+            setStatus('Background set to transparent. Choose a new style.');
+          }
+        } else {
+          throw new Error('No preview URL available');
         }
       } catch (err) {
         console.error('Failed to load foreground', err);
-        setStatus('Failed to load the removed background. Try uploading again.');
+        setStatus('Failed to load the removed background. Please go back to workspace and process again.');
       }
     }
 
