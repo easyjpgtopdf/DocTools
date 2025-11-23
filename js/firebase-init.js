@@ -25,10 +25,44 @@ async function initMessaging() {
     return null;
   }
 
-  const messaging = getMessaging(app);
-  return messaging;
+  try {
+    const messaging = getMessaging(app);
+    
+    // Request notification permission
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      console.log('Notification permission granted');
+      
+      // Get FCM token
+      try {
+        const token = await messaging.getToken({
+          vapidKey: 'YOUR_VAPID_KEY_HERE' // Replace with your VAPID key from Firebase Console
+        });
+        if (token) {
+          console.log('FCM Token:', token);
+          // You can send this token to your server to store it
+        }
+      } catch (tokenError) {
+        console.warn('Failed to get FCM token:', tokenError);
+      }
+    } else {
+      console.warn('Notification permission denied');
+    }
+    
+    return messaging;
+  } catch (error) {
+    console.error("Failed to initialize Firebase Messaging", error);
+    return null;
+  }
 }
 
-initMessaging().catch((error) => {
-  console.error("Failed to initialise Firebase Messaging", error);
-});
+// Initialize messaging when service worker is ready
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.ready.then(() => {
+    initMessaging().catch((error) => {
+      console.error("Failed to initialise Firebase Messaging", error);
+    });
+  });
+} else {
+  console.warn("Service Workers not supported in this browser.");
+}

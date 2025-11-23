@@ -1738,6 +1738,11 @@
         <div class="container">
             <nav class="navbar">
                 <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
+                <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle mobile menu" aria-expanded="false">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
                 <div class="nav-links">
                     <div class="dropdown">
                         <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
@@ -1825,6 +1830,99 @@
             </nav>
         </div>
     </header>
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobile-menu-overlay">
+        <div class="mobile-menu-content">
+            <div class="mobile-menu-header">
+                <a href="index.html" class="mobile-logo"><img src="images/logo.png" alt="Logo" style="height:40px;"></a>
+                <button class="mobile-menu-close" id="mobile-menu-close" aria-label="Close mobile menu">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <nav class="mobile-nav-links">
+                <div class="mobile-dropdown">
+                    <button class="mobile-dropdown-toggle" aria-expanded="false">
+                        Convert to PDF <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="mobile-dropdown-content">
+                        <a href="jpg-to-pdf.html">JPG to PDF</a>
+                        <a href="word-to-pdf.html">Word to PDF</a>
+                        <a href="excel-to-pdf.html">Excel to PDF</a>
+                        <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+                    </div>
+                </div>
+                <div class="mobile-dropdown">
+                    <button class="mobile-dropdown-toggle" aria-expanded="false">
+                        Convert from PDF <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="mobile-dropdown-content">
+                        <a href="pdf-to-jpg.html">PDF to JPG</a>
+                        <a href="pdf-to-word.html">PDF to Word</a>
+                        <a href="pdf-to-excel.html">PDF to Excel</a>
+                        <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+                    </div>
+                </div>
+                <div class="mobile-dropdown">
+                    <button class="mobile-dropdown-toggle" aria-expanded="false">
+                        Pdf Editor <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="mobile-dropdown-content">
+                        <a href="merge-pdf.html">Merge PDF</a>
+                        <a href="split-pdf.html">Split PDF</a>
+                        <a href="compress-pdf.html">Compress PDF</a>
+                        <a href="edit-pdf.html">Pdf Editor</a>
+                        <a href="protect-pdf.html">Protect PDF</a>
+                        <a href="unlock-pdf.html">Unlock PDF</a>
+                        <a href="watermark-pdf.html">Watermark PDF</a>
+                        <a href="crop-pdf.html">Crop PDF</a>
+                        <a href="add-page-numbers.html">Add Page Numbers</a>
+                    </div>
+                </div>
+                <div class="mobile-dropdown">
+                    <button class="mobile-dropdown-toggle" aria-expanded="false">
+                        Image Tools <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="mobile-dropdown-content">
+                        <a href="image-repair.html">AI Image Repair</a>
+                        <a href="image-compressor.html">Image Compressor</a>
+                        <a href="image-resizer.html">Image Resizer</a>
+                        <a href="image-editor.html">Image Editor</a>
+                        <a href="background-remover.html">Image Background Remover</a>
+                        <a href="ocr-image.html">OCR Image</a>
+                        <a href="image-watermark.html">Image Watermark Tool</a>
+                    </div>
+                </div>
+                <div class="mobile-dropdown">
+                    <button class="mobile-dropdown-toggle" aria-expanded="false">
+                        Other Tools <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="mobile-dropdown-content">
+                        <a href="resume-maker.html">Resume Maker</a>
+                        <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+                        <a href="ai-image-generator.html">AI Image Generator</a>
+                        <a href="marriage-card.html">Marriage Card</a>
+                        <a href="excel-unlocker/" target="_blank">Excel Unlocker</a>
+                        <a href="protect-excel.html">Protect Excel Sheet</a>
+                    </div>
+                </div>
+                <div class="mobile-dropdown">
+                    <button class="mobile-dropdown-toggle" aria-expanded="false">
+                        More <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="mobile-dropdown-content">
+                        <a href="pricing.html">Pricing</a>
+                        <a href="blog.html">Blog/Articles</a>
+                        <a href="https://apnaonlineservic.com" target="_blank">Shop-ApnaOnline</a>
+                        <a href="https://aimathmaster.com" target="_blank">AI-Math Master</a>
+                    </div>
+                </div>
+                <div class="mobile-menu-auth">
+                    <a href="login.html" class="mobile-auth-link">Sign In</a>
+                    <a href="signup.html" class="mobile-auth-btn">Signup</a>
+                </div>
+            </nav>
+        </div>
+    </div>
 
     <nav aria-label="Breadcrumb" style="padding: 15px 0; background: #f8f9ff; border-bottom: 1px solid #e2e6ff;">
         <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 24px;">
@@ -4453,7 +4551,7 @@
     </script>
 
     <script type="module">
-        import { initializeApp, getApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { initializeApp, getApp, getApps } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
         import {
             getFirestore,
             collection,
@@ -4462,8 +4560,12 @@
             query,
             orderBy,
             limit,
-            onSnapshot
-        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+            onSnapshot,
+            doc,
+            updateDoc,
+            arrayUnion,
+            getDoc
+        } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
         const ui = {
             form: document.getElementById('feedback-form'),
@@ -4612,21 +4714,27 @@
                 }
             });
 
-            if (ui.form) {
+            if (ui.form && ui.rating && ui.comment && ui.submit && ui.formMessage) {
                 ui.form.addEventListener('submit', async event => {
                     event.preventDefault();
                     if (!ui.rating.value || !ui.comment.value.trim()) {
-                        ui.formMessage.textContent = 'Please add both rating and comment.';
+                        if (ui.formMessage) {
+                            ui.formMessage.textContent = 'Please add both rating and comment.';
+                        }
                         return;
                     }
 
-                    ui.submit.disabled = true;
-                    ui.submit.textContent = 'Sharing...';
-                    ui.formMessage.textContent = 'Saving your feedback...';
+                    if (ui.submit) {
+                        ui.submit.disabled = true;
+                        ui.submit.textContent = 'Sharing...';
+                    }
+                    if (ui.formMessage) {
+                        ui.formMessage.textContent = 'Saving your feedback...';
+                    }
 
                     const payload = {
-                        name: ui.name.value.trim() || 'Anonymous',
-                        email: ui.email.value.trim() || null,
+                        name: (ui.name && ui.name.value) ? ui.name.value.trim() : 'Anonymous',
+                        email: (ui.email && ui.email.value) ? ui.email.value.trim() : null,
                         rating: Number(ui.rating.value),
                         comment: ui.comment.value.trim(),
                         createdAt: serverTimestamp()
@@ -4634,14 +4742,22 @@
 
                     try {
                         await addDoc(feedbackRef, payload);
-                        ui.form.reset();
-                        ui.formMessage.textContent = 'Thank you! Your feedback is now live.';
+                        if (ui.form) {
+                            ui.form.reset();
+                        }
+                        if (ui.formMessage) {
+                            ui.formMessage.textContent = 'Thank you! Your feedback is now live.';
+                        }
                     } catch (error) {
                         console.error('Unable to save feedback:', error);
-                        ui.formMessage.textContent = 'Failed to submit. Please try again in a moment.';
+                        if (ui.formMessage) {
+                            ui.formMessage.textContent = 'Failed to submit. Please try again in a moment.';
+                        }
                     } finally {
-                        ui.submit.disabled = false;
-                        ui.submit.textContent = 'Share Feedback';
+                        if (ui.submit) {
+                            ui.submit.disabled = false;
+                            ui.submit.textContent = 'Share Feedback';
+                        }
                     }
                 });
             }
@@ -4791,9 +4907,9 @@
             });
         }
 
-        if (ui.replySubmit) {
+        if (ui.replySubmit && ui.replyText) {
             ui.replySubmit.addEventListener('click', async () => {
-                if (!activeReplyTarget || !ui.replyText.value.trim()) {
+                if (!activeReplyTarget || !ui.replyText || !ui.replyText.value || !ui.replyText.value.trim()) {
                     if (ui.replyMessage) {
                         ui.replyMessage.textContent = 'Type a reply before sending.';
                     }
@@ -4831,17 +4947,36 @@
 
         async function handleFirestoreReply(replyEntry) {
             try {
+                if (!activeReplyTarget || !activeReplyTarget.id) {
+                    closeReplyPanel('Unable to find comment to reply to.');
+                    return;
+                }
+
                 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
                 const db = getFirestore(app);
-                const feedbackRef = collection(db, 'feedback');
-                const q = query(feedbackRef, orderBy('createdAt', 'desc'), limit(20));
-                // Firestore SDK requires replies stored as array field; updating requires doc ref.
-                // For simplicity, log guidance until backend endpoint exists.
-                console.warn('Firestore reply support requires backend update to merge array fields.');
-                closeReplyPanel('Firestore replies require server-side merge logic.');
+                const commentDocRef = doc(db, 'feedback', activeReplyTarget.id);
+                
+                // Check if document exists
+                const commentDoc = await getDoc(commentDocRef);
+                if (!commentDoc.exists()) {
+                    closeReplyPanel('Comment not found. It may have been deleted.');
+                    return;
+                }
+
+                // Use arrayUnion to add reply to the replies array field
+                await updateDoc(commentDocRef, {
+                    replies: arrayUnion({
+                        name: replyEntry.name || 'Anonymous',
+                        comment: replyEntry.comment,
+                        createdAt: serverTimestamp()
+                    })
+                });
+
+                closeReplyPanel('Reply posted successfully!');
+                activeReplyTarget = null;
             } catch (error) {
                 console.error('Unable to post reply to Firestore:', error);
-                closeReplyPanel('Reply failed. Please retry.');
+                closeReplyPanel('Reply failed. Please try again.');
             }
         }
 
@@ -4875,6 +5010,81 @@
     <script type="module" src="js/firebase-init.js"></script>
     <script type="module" src="js/auth.js"></script>
     <script type="module" src="js/donate.js"></script>
+    
+    <!-- Mobile Menu Initialization -->
+    <script>
+        // Initialize mobile menu functionality for index.html
+        (function() {
+            const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+            const mobileMenuClose = document.getElementById('mobile-menu-close');
+            const mobileMenuOverlay = document.getElementById('mobile-menu-overlay');
+            const mobileDropdownToggles = document.querySelectorAll('.mobile-dropdown-toggle');
+            
+            // Toggle mobile menu
+            if (mobileMenuToggle && mobileMenuOverlay) {
+                mobileMenuToggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    mobileMenuOverlay.classList.add('active');
+                    mobileMenuToggle.setAttribute('aria-expanded', 'true');
+                    document.body.style.overflow = 'hidden';
+                });
+            }
+            
+            // Close mobile menu
+            if (mobileMenuClose && mobileMenuOverlay) {
+                mobileMenuClose.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    mobileMenuOverlay.classList.remove('active');
+                    if (mobileMenuToggle) mobileMenuToggle.setAttribute('aria-expanded', 'false');
+                    document.body.style.overflow = '';
+                });
+            }
+            
+            // Close menu when clicking overlay
+            if (mobileMenuOverlay) {
+                mobileMenuOverlay.addEventListener('click', function(e) {
+                    if (e.target === mobileMenuOverlay) {
+                        mobileMenuOverlay.classList.remove('active');
+                        if (mobileMenuToggle) mobileMenuToggle.setAttribute('aria-expanded', 'false');
+                        document.body.style.overflow = '';
+                    }
+                });
+            }
+            
+            // Mobile dropdown toggles (touch-friendly)
+            mobileDropdownToggles.forEach(toggle => {
+                toggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const dropdown = this.parentElement;
+                    const isExpanded = this.getAttribute('aria-expanded') === 'true';
+                    
+                    // Close all other dropdowns
+                    mobileDropdownToggles.forEach(otherToggle => {
+                        if (otherToggle !== this) {
+                            otherToggle.setAttribute('aria-expanded', 'false');
+                            otherToggle.parentElement.classList.remove('active');
+                        }
+                    });
+                    
+                    // Toggle current dropdown
+                    this.setAttribute('aria-expanded', !isExpanded);
+                    dropdown.classList.toggle('active', !isExpanded);
+                });
+            });
+            
+            // Close menu on escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && mobileMenuOverlay && mobileMenuOverlay.classList.contains('active')) {
+                    mobileMenuOverlay.classList.remove('active');
+                    if (mobileMenuToggle) mobileMenuToggle.setAttribute('aria-expanded', 'false');
+                    document.body.style.overflow = '';
+                }
+            });
+        })();
+    </script>
 
     <script>
         // Function to show the selected page and hide others

@@ -1117,7 +1117,7 @@
             // Try to initialize Firebase
             try {
                 // Import Firebase modules
-                const { initializeApp, getApp, getApps } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+                const { initializeApp, getApp, getApps } = await import("https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js");
                 const {
                     getFirestore,
                     collection,
@@ -1130,11 +1130,11 @@
                     doc,
                     updateDoc,
                     arrayUnion
-                } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+                } = await import("https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js");
                 const {
                     getAuth,
                     onAuthStateChanged
-                } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+                } = await import("https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js");
 
                 // Initialize Firebase
                 const firebaseConfig = window.FIREBASE_CONFIG || {};

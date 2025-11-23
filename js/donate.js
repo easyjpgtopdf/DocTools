@@ -6,8 +6,8 @@ import { db } from "./firebase-init.js";
 const donateForm = document.getElementById("donate-form");
 const amountInput = document.getElementById("donate-amount");
 const currencySelect = document.getElementById("donate-currency");
-const gatewayOptions = Array.from(document.querySelectorAll('input[name="donate-gateway"]'));
-const typeOptions = Array.from(document.querySelectorAll('input[name="donate-type"]'));
+const gatewayOptions = document.querySelectorAll('input[name="donate-gateway"]') ? Array.from(document.querySelectorAll('input[name="donate-gateway"]')) : [];
+const typeOptions = document.querySelectorAll('input[name="donate-type"]') ? Array.from(document.querySelectorAll('input[name="donate-type"]')) : [];
 const messageEl = document.getElementById("donate-message");
 
 let pendingDonation = null;
@@ -23,13 +23,29 @@ function showMessage(text, { hidden = false } = {}) {
   messageEl.textContent = text;
 }
 
+// Safe element getter with null check
+function safeGetElementById(id) {
+  const element = document.getElementById(id);
+  if (!element) {
+    console.warn(`Element with id "${id}" not found`);
+  }
+  return element;
+}
+
 function selectGateway() {
+  if (!gatewayOptions || gatewayOptions.length === 0) {
+    return "razorpay";
+  }
   const selected = gatewayOptions.find((option) => option.checked);
   return selected ? selected.value : "razorpay";
 }
 
 function highlightGatewaySelection() {
-  document.querySelectorAll('.donate-gateway-option').forEach((label) => {
+  const labels = document.querySelectorAll('.donate-gateway-option');
+  if (!labels || labels.length === 0) return;
+  
+  labels.forEach((label) => {
+    if (!label) return;
     const input = label.querySelector('input[type="radio"]');
     if (input && input.checked) {
       label.classList.add('selected');
@@ -83,7 +99,9 @@ async function initiateRazorpayDonation(user, donation) {
   }
 
   if (!window.Razorpay) {
-    showMessage("Razorpay checkout is still loading. Please try again in a moment.");
+    if (messageEl) {
+      showMessage("Razorpay checkout is still loading. Please try again in a moment.");
+    }
     return;
   }
 
@@ -391,12 +409,19 @@ async function initiateDonation(user, donation) {
 }
 
 function selectDonationType() {
-  const selected = typeOptions.find((option) => option.checked);
+  if (!typeOptions || typeOptions.length === 0) {
+    return "project";
+  }
+  const selected = typeOptions.find((option) => option && option.checked);
   return selected ? selected.value : "project";
 }
 
 function highlightTypeSelection() {
-  document.querySelectorAll('.donate-type-option').forEach((label) => {
+  const labels = document.querySelectorAll('.donate-type-option');
+  if (!labels || labels.length === 0) return;
+  
+  labels.forEach((label) => {
+    if (!label) return;
     const input = label.querySelector('input[type="radio"]');
     if (input && input.checked) {
       label.classList.add('selected');
@@ -456,26 +481,39 @@ if (!window.Razorpay) {
   document.head.appendChild(script);
 }
 
-if (donateForm) {
-  gatewayOptions.forEach((option) => {
-    option.addEventListener("change", highlightGatewaySelection);
-  });
-  highlightGatewaySelection();
+  if (donateForm) {
+    if (gatewayOptions && gatewayOptions.length > 0) {
+      gatewayOptions.forEach((option) => {
+        if (option) {
+          option.addEventListener("change", highlightGatewaySelection);
+        }
+      });
+      highlightGatewaySelection();
+    }
 
-  typeOptions.forEach((option) => {
-    option.addEventListener("change", highlightTypeSelection);
-  });
-  highlightTypeSelection();
+    if (typeOptions && typeOptions.length > 0) {
+      typeOptions.forEach((option) => {
+        if (option) {
+          option.addEventListener("change", highlightTypeSelection);
+        }
+      });
+      highlightTypeSelection();
+    }
 
-  donateForm.addEventListener("submit", async (event) => {
+    donateForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    const amountValue = parseFloat(amountInput?.value ?? "0");
-    const currencyValue = currencySelect?.value || "INR";
+    if (!amountInput) {
+      showMessage("Donation form not properly initialized. Please refresh the page.");
+      return;
+    }
+
+    const amountValue = parseFloat(amountInput.value || "0");
+    const currencyValue = currencySelect ? (currencySelect.value || "INR") : "INR";
 
     if (Number.isNaN(amountValue) || amountValue <= 0) {
       showMessage("Please enter a valid donation amount (greater than zero).");
-      amountInput?.focus();
+      amountInput.focus();
       return;
     }
 
@@ -535,8 +573,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user) {
           // User is logged in, auto-trigger Razorpay payment
           setTimeout(() => {
-            const donateBtn = donateForm?.querySelector('button[type="submit"]');
-            if (donateBtn && amountInput?.value) {
+            const donateBtn = donateForm ? donateForm.querySelector('button[type="submit"]') : null;
+            if (donateBtn && amountInput && amountInput.value) {
               // Highlight the form briefly
               if (donateForm) {
                 donateForm.style.boxShadow = '0 0 20px rgba(67, 97, 238, 0.4)';

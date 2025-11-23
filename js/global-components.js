@@ -20,6 +20,11 @@ const globalHeaderHTML = `
     <div class="container">
         <nav class="navbar">
             <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
+            <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle mobile menu" aria-expanded="false">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
             <div class="nav-links">
                 <div class="dropdown">
                     <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
@@ -101,6 +106,87 @@ const globalHeaderHTML = `
             </div>
         </nav>
     </div>
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobile-menu-overlay">
+        <div class="mobile-menu-content">
+            <div class="mobile-menu-header">
+                <a href="index.html" class="mobile-logo"><img src="images/logo.png" alt="Logo" style="height:40px;"></a>
+                <button class="mobile-menu-close" id="mobile-menu-close" aria-label="Close mobile menu">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <nav class="mobile-nav-links">
+                <div class="mobile-dropdown">
+                    <button class="mobile-dropdown-toggle" aria-expanded="false">
+                        Convert to PDF <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="mobile-dropdown-content">
+                        <a href="jpg-to-pdf.html">JPG to PDF</a>
+                        <a href="word-to-pdf.html">Word to PDF</a>
+                        <a href="excel-to-pdf.html">Excel to PDF</a>
+                        <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+                    </div>
+                </div>
+                <div class="mobile-dropdown">
+                    <button class="mobile-dropdown-toggle" aria-expanded="false">
+                        Convert from PDF <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="mobile-dropdown-content">
+                        <a href="pdf-to-jpg.html">PDF to JPG</a>
+                        <a href="pdf-to-word.html">PDF to Word</a>
+                        <a href="pdf-to-excel.html">PDF to Excel</a>
+                        <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+                    </div>
+                </div>
+                <div class="mobile-dropdown">
+                    <button class="mobile-dropdown-toggle" aria-expanded="false">
+                        Pdf Editor <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="mobile-dropdown-content">
+                        <a href="merge-pdf.html">Merge PDF</a>
+                        <a href="split-pdf.html">Split PDF</a>
+                        <a href="compress-pdf.html">Compress PDF</a>
+                        <a href="edit-pdf.html">Pdf Editor</a>
+                        <a href="protect-pdf.html">Protect PDF</a>
+                        <a href="unlock-pdf.html">Unlock PDF</a>
+                        <a href="watermark-pdf.html">Watermark PDF</a>
+                        <a href="crop-pdf.html">Crop PDF</a>
+                        <a href="add-page-numbers.html">Add Page Numbers</a>
+                    </div>
+                </div>
+                <div class="mobile-dropdown">
+                    <button class="mobile-dropdown-toggle" aria-expanded="false">
+                        Image Tools <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="mobile-dropdown-content">
+                        <a href="image-compressor.html">Image Compressor</a>
+                        <a href="image-resizer.html">Image Resizer</a>
+                        <a href="image-editor.html">Image Editor</a>
+                        <a href="background-remover.html">Image Background Remover</a>
+                        <a href="ocr-image.html">OCR Image</a>
+                        <a href="image-watermark.html">Image Watermark Tool</a>
+                    </div>
+                </div>
+                <div class="mobile-dropdown">
+                    <button class="mobile-dropdown-toggle" aria-expanded="false">
+                        Other Tools <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="mobile-dropdown-content">
+                        <a href="resume-maker.html">Resume Maker</a>
+                        <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+                        <a href="ai-image-generator.html">AI Image Generator</a>
+                        <a href="marriage-card.html">Marriage Card</a>
+                        <a href="excel-unlocker/" target="_blank">Excel Unlocker</a>
+                        <a href="protect-excel.html">Protect Excel Sheet</a>
+                    </div>
+                </div>
+                <div class="mobile-menu-auth">
+                    <a href="login.html" class="mobile-auth-link">Sign In</a>
+                    <a href="signup.html" class="mobile-auth-btn">Signup</a>
+                </div>
+            </nav>
+        </div>
+    </div>
 </header>
 `;
 
@@ -134,7 +220,80 @@ function loadGlobalHeader() {
     if (headerPlaceholder) {
         headerPlaceholder.outerHTML = globalHeaderHTML;
         highlightActiveLink();
+        initializeMobileMenu();
     }
+}
+
+// Initialize mobile menu functionality
+function initializeMobileMenu() {
+    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    const mobileMenuClose = document.getElementById('mobile-menu-close');
+    const mobileMenuOverlay = document.getElementById('mobile-menu-overlay');
+    const mobileDropdownToggles = document.querySelectorAll('.mobile-dropdown-toggle');
+    
+    // Toggle mobile menu
+    if (mobileMenuToggle && mobileMenuOverlay) {
+        mobileMenuToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            mobileMenuOverlay.classList.add('active');
+            mobileMenuToggle.setAttribute('aria-expanded', 'true');
+            document.body.style.overflow = 'hidden'; // Prevent body scroll
+        });
+    }
+    
+    // Close mobile menu
+    if (mobileMenuClose && mobileMenuOverlay) {
+        mobileMenuClose.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            mobileMenuOverlay.classList.remove('active');
+            if (mobileMenuToggle) mobileMenuToggle.setAttribute('aria-expanded', 'false');
+            document.body.style.overflow = ''; // Restore body scroll
+        });
+    }
+    
+    // Close menu when clicking overlay
+    if (mobileMenuOverlay) {
+        mobileMenuOverlay.addEventListener('click', function(e) {
+            if (e.target === mobileMenuOverlay) {
+                mobileMenuOverlay.classList.remove('active');
+                if (mobileMenuToggle) mobileMenuToggle.setAttribute('aria-expanded', 'false');
+                document.body.style.overflow = ''; // Restore body scroll
+            }
+        });
+    }
+    
+    // Mobile dropdown toggles (touch-friendly)
+    mobileDropdownToggles.forEach(toggle => {
+        toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const dropdown = this.parentElement;
+            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+            
+            // Close all other dropdowns
+            mobileDropdownToggles.forEach(otherToggle => {
+                if (otherToggle !== this) {
+                    otherToggle.setAttribute('aria-expanded', 'false');
+                    otherToggle.parentElement.classList.remove('active');
+                }
+            });
+            
+            // Toggle current dropdown
+            this.setAttribute('aria-expanded', !isExpanded);
+            dropdown.classList.toggle('active', !isExpanded);
+        });
+    });
+    
+    // Close menu on escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && mobileMenuOverlay && mobileMenuOverlay.classList.contains('active')) {
+            mobileMenuOverlay.classList.remove('active');
+            if (mobileMenuToggle) mobileMenuToggle.setAttribute('aria-expanded', 'false');
+            document.body.style.overflow = '';
+        }
+    });
 }
 
 // Function to load footer
