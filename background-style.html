@@ -48,7 +48,14 @@
     .panel { background: var(--surface); border-radius: 24px; padding: 28px; box-shadow: 0 22px 45px rgba(16, 30, 70, 0.08); border: 1px solid var(--border); }
     .panel h2 { font-size: 1.25rem; margin-bottom: 18px; color: #121a4c; display: flex; align-items: center; gap: 10px; }
     .preview-frame { border-radius: 20px; width: 8.6cm; height: 8.6cm; max-width: 100%; max-height: 100%; overflow: hidden; position: relative; background: #f1f1ff; margin: 0 auto; display: flex; align-items: center; justify-content: center; }
-    .preview-frame canvas { width: 100%; height: 100%; object-fit: contain; }
+    .preview-frame canvas { 
+      width: 100%; 
+      height: 100%; 
+      object-fit: contain; 
+      display: block;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+    }
     .category-tabs { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
     .tab-button { border-radius: 999px; padding: 8px 18px; border: 1px solid var(--border); background: var(--chip-bg); color: #243163; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, background 0.2s; }
     .tab-button.active { background: linear-gradient(135deg, #4361ee, #3a0ca3); color: #fff; box-shadow: 0 16px 30px rgba(67, 97, 238, 0.2); }
@@ -535,10 +542,20 @@
     const downloadBtn = document.getElementById('downloadImage');
     const backToPreview = document.getElementById('backToPreview');
 
-    let previewContext = previewCanvas.getContext('2d');
+    if (!previewCanvas) {
+      console.error('Preview canvas not found!');
+    }
+
+    let previewContext = previewCanvas ? previewCanvas.getContext('2d') : null;
     let originalDataUrl = sessionStorage.getItem(STORAGE_KEYS.original);
     let foregroundDataUrl = sessionStorage.getItem(STORAGE_KEYS.foreground);
     let dimensions = sessionStorage.getItem(STORAGE_KEYS.dimensions);
+    
+    console.log('SessionStorage data:', {
+      original: !!originalDataUrl,
+      foreground: !!foregroundDataUrl,
+      dimensions: dimensions
+    });
 
     if (!originalDataUrl || !foregroundDataUrl || !dimensions) {
       statusEl.textContent = 'Missing image data. Please upload again.';
@@ -546,10 +563,26 @@
       downloadBtn.disabled = true;
     }
 
-    if (dimensions) {
-      const { width, height } = JSON.parse(dimensions);
-      previewCanvas.width = width;
-      previewCanvas.height = height;
+    if (previewCanvas && dimensions) {
+      try {
+        const { width, height } = JSON.parse(dimensions);
+        if (width > 0 && height > 0) {
+          previewCanvas.width = width;
+          previewCanvas.height = height;
+          console.log('Canvas dimensions set:', { width, height });
+        } else {
+          console.warn('Invalid dimensions:', { width, height });
+        }
+      } catch (e) {
+        console.error('Error parsing dimensions:', e, dimensions);
+      }
+    } else {
+      if (!previewCanvas) {
+        console.error('Preview canvas not available');
+      }
+      if (!dimensions) {
+        console.warn('No dimensions found in sessionStorage');
+      }
     }
 
     const backgroundImage = new Image();
@@ -753,11 +786,61 @@
     }
 
     async function drawComposite(background) {
-      if (!foregroundDataUrl) return;
+      if (!foregroundDataUrl) {
+        console.error('drawComposite: No foregroundDataUrl');
+        return;
+      }
+      
+      if (!previewCanvas || !previewContext) {
+        console.error('drawComposite: Canvas or context not available');
+        return;
+      }
+      
+      if (!foregroundImage.complete || foregroundImage.naturalWidth === 0) {
+        console.warn('drawComposite: Foreground image not loaded yet, waiting...');
+        await new Promise((resolve) => {
+          if (foregroundImage.complete) {
+            resolve();
+          } else {
+            foregroundImage.onload = resolve;
+            foregroundImage.onerror = () => {
+              console.error('drawComposite: Failed to load foreground image');
+              resolve();
+            };
+            // Timeout after 5 seconds
+            setTimeout(() => {
+              console.warn('drawComposite: Image load timeout');
+              resolve();
+            }, 5000);
+          }
+        });
+      }
+      
       clearStatus();
       if (typeof background !== 'undefined') {
         currentBackgroundRef = background;
       }
+      
+      if (previewCanvas.width === 0 || previewCanvas.height === 0) {
+        console.error('drawComposite: Canvas dimensions are zero!', {
+          width: previewCanvas.width,
+          height: previewCanvas.height,
+          imageWidth: foregroundImage.naturalWidth,
+          imageHeight: foregroundImage.naturalHeight
+        });
+        // Try to set dimensions from image
+        if (foregroundImage.naturalWidth > 0 && foregroundImage.naturalHeight > 0) {
+          previewCanvas.width = foregroundImage.naturalWidth;
+          previewCanvas.height = foregroundImage.naturalHeight;
+          console.log('Canvas dimensions set from image:', {
+            width: previewCanvas.width,
+            height: previewCanvas.height
+          });
+        } else {
+          return;
+        }
+      }
+      
       previewContext.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
 
       if (background === 'transparent') {
@@ -773,10 +856,22 @@
         previewContext.fillStyle = background;
         previewContext.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
       } else if (background instanceof HTMLImageElement) {
-        previewContext.drawImage(background, 0, 0, previewCanvas.width, previewCanvas.height);
+        if (background.complete && background.naturalWidth > 0) {
+          previewContext.drawImage(background, 0, 0, previewCanvas.width, previewCanvas.height);
+        }
       }
 
-      previewContext.drawImage(foregroundImage, 0, 0, previewCanvas.width, previewCanvas.height);
+      if (foregroundImage.complete && foregroundImage.naturalWidth > 0) {
+        previewContext.drawImage(foregroundImage, 0, 0, previewCanvas.width, previewCanvas.height);
+        console.log('Foreground image drawn to canvas');
+      } else {
+        console.error('drawComposite: Foreground image not ready', {
+          complete: foregroundImage.complete,
+          naturalWidth: foregroundImage.naturalWidth,
+          src: foregroundImage.src ? 'set' : 'not set'
+        });
+      }
+      
       applyOverlay();
       downloadBtn.disabled = false;
       resetBtn.disabled = false;
@@ -819,10 +914,34 @@
         }
         
         if (previewUrl) {
-          await loadImage(foregroundImage, previewUrl);
-          await drawComposite('transparent');
-          if (isPremium || !previewUrl || previewUrl === foregroundDataUrl) {
-            setStatus('Background set to transparent. Choose a new style.');
+          console.log('Loading foreground image from URL...');
+          try {
+            await loadImage(foregroundImage, previewUrl);
+            console.log('Foreground image loaded:', {
+              complete: foregroundImage.complete,
+              naturalWidth: foregroundImage.naturalWidth,
+              naturalHeight: foregroundImage.naturalHeight
+            });
+            
+            // Ensure canvas dimensions match image if not already set
+            if (previewCanvas.width === 0 || previewCanvas.height === 0) {
+              if (foregroundImage.naturalWidth > 0 && foregroundImage.naturalHeight > 0) {
+                previewCanvas.width = foregroundImage.naturalWidth;
+                previewCanvas.height = foregroundImage.naturalHeight;
+                console.log('Canvas dimensions set from image:', {
+                  width: previewCanvas.width,
+                  height: previewCanvas.height
+                });
+              }
+            }
+            
+            await drawComposite('transparent');
+            if (isPremium || !previewUrl || previewUrl === foregroundDataUrl) {
+              setStatus('Background set to transparent. Choose a new style.');
+            }
+          } catch (loadErr) {
+            console.error('Error loading foreground image:', loadErr);
+            setStatus('Failed to load image. Please try again.');
           }
         } else {
           throw new Error('No preview URL available');
@@ -1195,11 +1314,28 @@
 
     toggleManualControls();
 
-    renderGrid('magicGrid', fallbackBackgrounds.magic);
-    renderGrid('photoGrid', fallbackBackgrounds.photos);
-    renderGrid('techGrid', fallbackBackgrounds.tech);
-    renderColours();
-    init();
+    // Initialize after DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        renderGrid('magicGrid', fallbackBackgrounds.magic);
+        renderGrid('photoGrid', fallbackBackgrounds.photos);
+        renderGrid('techGrid', fallbackBackgrounds.tech);
+        renderColours();
+        // Wait a bit for canvas to be ready
+        setTimeout(() => {
+          init();
+        }, 100);
+      });
+    } else {
+      renderGrid('magicGrid', fallbackBackgrounds.magic);
+      renderGrid('photoGrid', fallbackBackgrounds.photos);
+      renderGrid('techGrid', fallbackBackgrounds.tech);
+      renderColours();
+      // Wait a bit for canvas to be ready
+      setTimeout(() => {
+        init();
+      }, 100);
+    }
 
   const footerYearEl = document.getElementById('footerYear');
   if (footerYearEl) footerYearEl.textContent = new Date().getFullYear();
