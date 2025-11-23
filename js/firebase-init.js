@@ -36,7 +36,7 @@ async function initMessaging() {
       // Get FCM token
       try {
         const token = await messaging.getToken({
-          vapidKey: 'YOUR_VAPID_KEY_HERE' // Replace with your VAPID key from Firebase Console
+          vapidKey: 'BDk6o7yvBjffvWVojOOGxM75EdJBMNsihu5XH8QDDXE9it_PQkQ3PI2xeds0IjzUKF-_NfsNJ7fJbxWWfmWxeh0'
         });
         if (token) {
           console.log('FCM Token:', token);
