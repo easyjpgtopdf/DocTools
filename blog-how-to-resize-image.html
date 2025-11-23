@@ -1258,6 +1258,7 @@
             function openCommentModal() {
                 // Check if user is logged in before opening
                 if (!isUserLoggedIn()) {
+                console.log(\'Opening comment modal - user not logged in\');
                     const currentUrl = window.location.href;
                     sessionStorage.setItem('openCommentModalAfterLogin', 'true');
                     sessionStorage.setItem('returnUrl', currentUrl);
@@ -1265,6 +1266,7 @@
                     return;
                 }
 
+                console.log(\'Opening comment modal\');
                 scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
                 const modal = document.getElementById('commentModal');
                 if (modal) {
@@ -1603,6 +1605,84 @@
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/lazysizes/5.3.2/lazysizes.min.js';
         document.body.appendChild(script);
     }
+    
+            // Always attach event listeners, even if Firebase fails
+            function attachEventListenersAlways() {
+                const triggerBox = document.getElementById('commentTriggerBox');
+                if (triggerBox) {
+                    // Remove existing listeners by cloning
+                    const newBox = triggerBox.cloneNode(true);
+                    triggerBox.parentNode.replaceChild(newBox, triggerBox);
+                    
+                    newBox.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Comment box clicked');
+                        
+                        // Check login status
+                        const userSession = localStorage.getItem('userSession');
+                        const isLoggedIn = userSession !== null;
+                        
+                        if (!isLoggedIn) {
+                            const currentUrl = window.location.href;
+                            sessionStorage.setItem('openCommentModalAfterLogin', 'true');
+                            sessionStorage.setItem('returnUrl', currentUrl);
+                            window.location.href = 'login.html?returnUrl=' + encodeURIComponent(currentUrl);
+                            return;
+                        }
+                        
+                        // Open modal
+                        const modal = document.getElementById('commentModal');
+                        if (modal) {
+                            modal.classList.add('active');
+                            document.body.style.overflow = 'hidden';
+                            
+                            // Try to load comments if Firebase is ready
+                            if (typeof loadComments === 'function') {
+                                try {
+                                    loadComments();
+                                } catch (err) {
+                                    console.error('Error loading comments:', err);
+                                }
+                            }
+                        } else {
+                            console.error('Comment modal not found');
+                            alert('Comment system unavailable. Please refresh the page.');
+                        }
+                    });
+                }
+                
+                // Close button
+                const closeBtn = document.getElementById('commentModalClose');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', function() {
+                        const modal = document.getElementById('commentModal');
+                        if (modal) {
+                            modal.classList.remove('active');
+                            document.body.style.overflow = '';
+                        }
+                    });
+                }
+                
+                // Close on outside click
+                const modal = document.getElementById('commentModal');
+                if (modal) {
+                    modal.addEventListener('click', function(e) {
+                        if (e.target === modal) {
+                            modal.classList.remove('active');
+                            document.body.style.overflow = '';
+                        }
+                    });
+                }
+            }
+            
+            // Attach listeners immediately
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', attachEventListenersAlways);
+            } else {
+                attachEventListenersAlways();
+            }
+
     </script>
 </body>
 </html>

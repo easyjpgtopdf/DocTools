@@ -1606,7 +1606,10 @@
             // Event listeners - Attach when DOM is ready
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', initializeCommentSystem);
+            }
             } else {
+                // DOM already loaded
+                initializeCommentSystem(); else {
                 // DOM already loaded
                 initializeCommentSystem();
             }
