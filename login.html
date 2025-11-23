@@ -693,9 +693,13 @@
                 const storedReturnUrl = sessionStorage.getItem('returnUrl');
                 if (storedReturnUrl) {
                     sessionStorage.removeItem('returnUrl');
-                    // Small delay to ensure auth is fully processed
-                    setTimeout(() => {
-                        window.location.href = storedReturnUrl;
+                    // Check if we need to open comment modal
+                    const shouldOpenCommentModal = sessionStorage.getItem('openCommentModalAfterLogin');
+                    if (shouldOpenCommentModal === 'true') {
+                        // Keep the flag, will be handled by the blog page
+                        // Just redirect
+                    }
+                    window.location.href = storedReturnUrl;
                     }, 500);
                 }
             }

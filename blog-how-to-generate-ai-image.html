@@ -1146,6 +1146,9 @@
     
     <!-- Comment System Script -->
     <script>
+        // Scroll position for modal
+        let scrollPosition = 0;
+
         // Firebase configuration
         window.FIREBASE_CONFIG = window.FIREBASE_CONFIG || {
             apiKey: "AIzaSyBch3tJoeFqio3IA4MbPoh2GHZE2qKVzGc",
@@ -1256,9 +1259,32 @@
 
             // Modal functions
             function openCommentModal() {
-                // Check if user is logged in before opening
-                if (!isUserLoggedIn()) {
-                console.log(\'Opening comment modal - user not logged in\');
+                // Check login status from multiple sources
+                let isLoggedIn = false;
+                
+                // Check Firebase auth
+                if (typeof isUserLoggedIn === 'function') {
+                    isLoggedIn = isUserLoggedIn();
+                }
+                
+                // Also check localStorage
+                if (!isLoggedIn) {
+                    const userSession = localStorage.getItem('userSession');
+                    if (userSession) {
+                        try {
+                            const user = JSON.parse(userSession);
+                            if (user && user.uid) {
+                                isLoggedIn = true;
+                                currentUser = user;
+                            }
+                        } catch (e) {
+                            console.error('Error parsing user session:', e);
+                        }
+                    }
+                }
+                
+                // If not logged in, redirect to login
+                if (!isLoggedIn) {
                     const currentUrl = window.location.href;
                     sessionStorage.setItem('openCommentModalAfterLogin', 'true');
                     sessionStorage.setItem('returnUrl', currentUrl);
@@ -1266,13 +1292,15 @@
                     return;
                 }
 
-                console.log(\'Opening comment modal\');
+                // User is logged in, open modal
                 scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
                 const modal = document.getElementById('commentModal');
                 if (modal) {
                     modal.classList.add('active');
                     document.body.style.overflow = 'hidden';
                     loadComments();
+                } else {
+                    console.error('Comment modal not found!');
                 }
             }
 
@@ -1281,8 +1309,12 @@
                 if (modal) {
                     modal.classList.remove('active');
                     document.body.style.overflow = '';
-                    window.scrollTo(0, scrollPosition);
+                    // Restore scroll position
+                    if (typeof scrollPosition !== 'undefined') {
+                        window.scrollTo(0, scrollPosition);
+                    }
                 }
+            }
             }
 
             // Load comments from Firestore
