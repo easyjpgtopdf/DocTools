@@ -615,6 +615,36 @@
 <script src="js/firebase-init.js" type="module"></script>
 <script src="js/auth.js" type="module"></script>
     
+    <script type="module">
+        // Handle returnUrl after login
+        import { onAuthStateChanged, getAuth } from './js/firebase-init.js';
+        
+        const auth = getAuth();
+        
+        // Check for returnUrl in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const returnUrl = urlParams.get('returnUrl');
+        
+        if (returnUrl) {
+            // Store returnUrl in sessionStorage
+            sessionStorage.setItem('returnUrl', returnUrl);
+        }
+        
+        // Listen for auth state changes
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // User just logged in
+                const storedReturnUrl = sessionStorage.getItem('returnUrl');
+                if (storedReturnUrl) {
+                    sessionStorage.removeItem('returnUrl');
+                    // Small delay to ensure auth is fully processed
+                    setTimeout(() => {
+                        window.location.href = storedReturnUrl;
+                    }, 500);
+                }
+            }
+        });
+    </script>
 
     <footer>
         <div class="container footer-inner">

@@ -913,13 +913,26 @@
             let currentUser = null;
             let activeReplyTarget = null;
 
+            // Flag to track if we should open modal after login
+            let shouldOpenModalAfterLogin = false;
+
             // Check if user is logged in
             function checkUserLogin() {
                 // Check Firebase auth if available
                 if (typeof firebase !== 'undefined' && firebase.auth) {
                     firebase.auth().onAuthStateChanged((user) => {
+                        const wasLoggedOut = !currentUser && user;
                         currentUser = user;
                         updateCommentUI();
+                        
+                        // If user just logged in and we need to open modal
+                        if (wasLoggedOut && shouldOpenModalAfterLogin) {
+                            shouldOpenModalAfterLogin = false;
+                            // Small delay to ensure UI is updated
+                            setTimeout(() => {
+                                openCommentModal();
+                            }, 300);
+                        }
                     });
                 } else {
                     // Fallback: check localStorage for user session
@@ -948,8 +961,28 @@
                 }
             }
 
+            // Check if user is currently logged in (synchronous check)
+            function isUserLoggedIn() {
+                if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+                    return true;
+                }
+                // Fallback check
+                const userSession = localStorage.getItem('userSession');
+                return userSession !== null;
+            }
+
             // Modal functions
             function openCommentModal() {
+                // Check if user is logged in before opening
+                if (!isUserLoggedIn()) {
+                    // User not logged in - redirect to login with return URL
+                    const currentUrl = window.location.href;
+                    sessionStorage.setItem('openCommentModalAfterLogin', 'true');
+                    sessionStorage.setItem('returnUrl', currentUrl);
+                    window.location.href = 'login.html?returnUrl=' + encodeURIComponent(currentUrl);
+                    return;
+                }
+
                 scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
                 const modal = document.getElementById('commentModal');
                 if (modal) {
@@ -1149,6 +1182,21 @@
             document.addEventListener('DOMContentLoaded', function() {
                 checkUserLogin();
 
+                // Check if we need to open modal after returning from login
+                const shouldOpenModal = sessionStorage.getItem('openCommentModalAfterLogin');
+                if (shouldOpenModal === 'true') {
+                    sessionStorage.removeItem('openCommentModalAfterLogin');
+                    // Wait a bit for auth state to update
+                    setTimeout(() => {
+                        if (isUserLoggedIn()) {
+                            openCommentModal();
+                        } else {
+                            // Still not logged in, set flag to open after login
+                            shouldOpenModalAfterLogin = true;
+                        }
+                    }, 500);
+                }
+
                 const triggerBox = document.getElementById('commentTriggerBox');
                 const modal = document.getElementById('commentModal');
                 const closeBtn = document.getElementById('commentModalClose');
@@ -1156,7 +1204,12 @@
                 const commentText = document.getElementById('commentText');
 
                 if (triggerBox) {
-                    triggerBox.addEventListener('click', openCommentModal);
+                    triggerBox.addEventListener('click', function() {
+                        if (!isUserLoggedIn()) {
+                            shouldOpenModalAfterLogin = true;
+                        }
+                        openCommentModal();
+                    });
                 }
 
                 if (closeBtn) {
