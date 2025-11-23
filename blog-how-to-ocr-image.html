@@ -8,7 +8,7 @@
     <meta http-equiv="Expires" content="31536000">
 
     <title>How to Extract Text from Images - OCR Guide | easyjpgtopdf</title>
-    <meta name="description" content="Learn how to extract text from images using OCR technology. Convert image text to editable format.">
+    <meta name="description" content="Extract text from images using OCR technology. Learn how to convert image text to editable text, scan documents, and extract text from photos with our guide.">
     <meta name="keywords" content="ocr image, extract text from image, image to text, ocr converter">
     <meta property="og:title" content="How to Extract Text from Images - OCR Guide | easyjpgtopdf">
     <meta property="og:description" content="Learn how to extract text from images using OCR technology. Convert image text to editable format.">
@@ -516,7 +516,7 @@
     <header>
         <div class="container">
             <nav class="navbar">
-                <a href="index.html" class="logo"><img src="images/logo.png" loading="lazy" alt="Logo" style="height:54px;"></a>
+                <a href="index.html" class="logo"><img src="images/logo.png" loading="lazy" alt="Logo" style="height:54px;" /></a>
                 <div class="nav-links">
                     <div class="dropdown">
                         <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
@@ -796,7 +796,7 @@
     <section class="author-bio" style="margin: 40px 0; padding: 30px; background: #f8f9ff; border-radius: 16px; border-left: 4px solid #4361ee;">
         <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
             <div style="flex-shrink: 0;">
-                <img src="https://easyjpgtopdf.com/images/logo.png" alt="easyjpgtopdf Team" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #4361ee;">
+                <img src="https://easyjpgtopdf.com/images/logo.png" alt="easyjpgtopdf Team" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #4361ee;" />
             </div>
             <div style="flex: 1;">
                 <h3 style="font-size: 1.5rem; color: #0b1630; margin-bottom: 10px;">
@@ -830,9 +830,94 @@
         </div>
     </section>
 
+    
+    <!-- User Feedback Section -->
+    <section class="user-feedback-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">Share Your Experience</h2>
+        <p style="text-align: center; color: #56607a; margin-bottom: 30px;">We value your feedback! Help us improve by sharing your experience with this tool.</p>
+        
+        <form id="feedback-form" style="max-width: 600px; margin: 0 auto;" onsubmit="return submitFeedback(event)">
+            <div style="margin-bottom: 20px;">
+                <label for="feedback-name" style="display: block; margin-bottom: 8px; color: #0b1630; font-weight: 600;">Your Name (Optional)</label>
+                <input type="text" id="feedback-name" name="name" style="width: 100%; padding: 12px; border: 2px solid #e2e6ff; border-radius: 8px; font-size: 1rem;">
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label for="feedback-rating" style="display: block; margin-bottom: 8px; color: #0b1630; font-weight: 600;">Rating</label>
+                <select id="feedback-rating" name="rating" required style="width: 100%; padding: 12px; border: 2px solid #e2e6ff; border-radius: 8px; font-size: 1rem;">
+                    <option value="">Select Rating</option>
+                    <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
+                    <option value="4">⭐⭐⭐⭐ Very Good</option>
+                    <option value="3">⭐⭐⭐ Good</option>
+                    <option value="2">⭐⭐ Fair</option>
+                    <option value="1">⭐ Poor</option>
+                </select>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label for="feedback-comment" style="display: block; margin-bottom: 8px; color: #0b1630; font-weight: 600;">Your Feedback</label>
+                <textarea id="feedback-comment" name="comment" rows="5" required style="width: 100%; padding: 12px; border: 2px solid #e2e6ff; border-radius: 8px; font-size: 1rem; resize: vertical;"></textarea>
+            </div>
+            
+            <button type="submit" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                Submit Feedback
+            </button>
+        </form>
+        
+        <div id="feedback-thankyou" style="display: none; text-align: center; padding: 20px; background: #d4edda; border-radius: 8px; margin-top: 20px;">
+            <p style="color: #155724; font-weight: 600;">Thank you for your feedback! We appreciate your input.</p>
+        </div>
+    </section>
+    
+    <script>
+    function submitFeedback(event) {
+        event.preventDefault();
+        const form = document.getElementById('feedback-form');
+        const thankyou = document.getElementById('feedback-thankyou');
+        
+        // Here you would send feedback to your backend
+        // For now, just show thank you message
+        form.style.display = 'none';
+        thankyou.style.display = 'block';
+        
+        // In production, send to your backend:
+        // fetch('/api/feedback', {
+        //     method: 'POST',
+        //     body: new FormData(form)
+        // });
+        
+        return false;
+    }
+    </script>
+    
+
     <section class="faq-section" style="margin-top: 50px; padding: 40px; background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
         <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">Frequently Asked Questions</h2>
         <div class="faq-container" style="max-width: 800px; margin: 0 auto;">
+
+
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee;">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'">
+                    <i class="fas fa-question-circle" style="color: #4361ee; margin-right: 8px;"></i>
+                    Is this tool really free?
+                </h3>
+                <p style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: block;">
+                    Yes, 100% free! There are no hidden charges and no registration required.
+                </p>
+            </div>
+
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee;">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'">
+                    <i class="fas fa-question-circle" style="color: #4361ee; margin-right: 8px;"></i>
+                    How many images can I convert at once?
+                </h3>
+                <p style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: block;">
+                    Currently, our tool supports converting one image at a time. But you can use it as many times as you need.
+                </p>
+            </div>
+
+
+            
 
             <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee;">
                 <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'">
@@ -1061,7 +1146,7 @@
                 commentsCollection = collection(db, storageKey);
                 firebaseInitialized = true;
             } catch (error) {
-                console.error('Firebase initialization error:', error);
+                // console.error(...); // Removed for production
                 firebaseInitialized = false;
             }
 
@@ -1138,7 +1223,7 @@
                                 currentUser = user;
                             }
                         } catch (e) {
-                            console.error('Error parsing user session:', e);
+                            // console.error(...); // Removed for production
                         }
                     }
                 }
@@ -1160,7 +1245,7 @@
                     document.body.style.overflow = 'hidden';
                     loadComments();
                 } else {
-                    console.error('Comment modal not found!');
+                    // console.error(...); // Removed for production
                 }
             }
 
@@ -1227,11 +1312,11 @@
                         commentList.appendChild(li);
                     });
                 }, (error) => {
-                    console.error('Error loading comments:', error);
+                    // console.error(...); // Removed for production
                     commentList.innerHTML = '<li class="empty-comments">Error loading comments. Please refresh the page.</li>';
                 });
                 } catch (error) {
-                    console.error('Error setting up comment listener:', error);
+                    // console.error(...); // Removed for production
                     commentList.innerHTML = '<li class="empty-comments">Error loading comments. Please refresh the page.</li>';
                 }
             }
@@ -1353,7 +1438,7 @@
                     const replyInputBox = document.getElementById(`reply-input-${commentId}`);
                     if (replyInputBox) replyInputBox.classList.remove('active');
                 } catch (error) {
-                    console.error('Error submitting reply:', error);
+                    // console.error(...); // Removed for production
                     alert('Failed to submit reply. Please try again.');
                 }
             }
@@ -1401,7 +1486,7 @@
                     await addDoc(commentsCollection, commentData);
                     textarea.value = '';
                 } catch (error) {
-                    console.error('Error submitting comment:', error);
+                    // console.error(...); // Removed for production
                     alert('Failed to submit comment. Please try again.');
                 }
             }
@@ -1479,7 +1564,7 @@
         const isLocalFileProtocol = window.location.protocol === 'file:';
         if (!isLocalFileProtocol) {
             import('./js/auth.js').catch(err => {
-                console.error('❌ Failed to load auth.js:', err);
+                // console.error(...); // Removed for production
             });
         }
     </script>
@@ -1534,11 +1619,11 @@
                                 try {
                                     loadComments();
                                 } catch (err) {
-                                    console.error('Error loading comments:', err);
+                                    // console.error(...); // Removed for production
                                 }
                             }
                         } else {
-                            console.error('Comment modal not found');
+                            // console.error(...); // Removed for production
                             alert('Comment system unavailable. Please refresh the page.');
                         }
                     });

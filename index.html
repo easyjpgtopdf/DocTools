@@ -1449,7 +1449,7 @@
     <header>
         <div class="container">
             <nav class="navbar">
-                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
+                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;" /></a>
                 <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle mobile menu" aria-expanded="false">
                     <span></span>
                     <span></span>
@@ -1546,7 +1546,7 @@
     <div class="mobile-menu-overlay" id="mobile-menu-overlay">
         <div class="mobile-menu-content">
             <div class="mobile-menu-header">
-                <a href="index.html" class="mobile-logo"><img src="images/logo.png" alt="Logo" style="height:40px;"></a>
+                <a href="index.html" class="mobile-logo"><img src="images/logo.png" alt="Logo" style="height:40px;" /></a>
                 <button class="mobile-menu-close" id="mobile-menu-close" aria-label="Close mobile menu">
                     <i class="fas fa-times"></i>
                 </button>
@@ -4332,7 +4332,7 @@
                 const parsed = JSON.parse(raw);
                 return Array.isArray(parsed) ? parsed : [];
             } catch (error) {
-                console.warn('Unable to read local feedback cache:', error);
+                // console.warn(...); // Removed for production
                 return [];
             }
         }
@@ -4341,7 +4341,7 @@
             try {
                 localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(entries));
             } catch (error) {
-                console.warn('Unable to persist local feedback cache:', error);
+                // console.warn(...); // Removed for production
             }
         }
 
@@ -4350,7 +4350,7 @@
             try {
                 app = getApps().length ? getApp() : initializeApp(config);
             } catch (error) {
-                console.error('Firebase initialization failed:', error);
+                // console.error(...); // Removed for production
                 if (ui.status) {
                     ui.status.textContent = 'Unable to initialize Firebase. Check console for details.';
                 }
@@ -4361,7 +4361,7 @@
             try {
                 db = getFirestore(app);
             } catch (error) {
-                console.error('Firestore initialization failed:', error);
+                // console.error(...); // Removed for production
                 if (ui.status) {
                     ui.status.textContent = 'Unable to connect to Firestore. Check console for details.';
                 }
@@ -4376,7 +4376,7 @@
                 updateCommentList(entries);
                 updateRatingOverview(entries);
             }, error => {
-                console.error('Live comments failed:', error);
+                // console.error(...); // Removed for production
                 if (ui.status) {
                     ui.status.textContent = 'Live updates unavailable. Showing cached data if any.';
                 }
@@ -4417,7 +4417,7 @@
                             ui.formMessage.textContent = 'Thank you! Your feedback is now live.';
                         }
                     } catch (error) {
-                        console.error('Unable to save feedback:', error);
+                        // console.error(...); // Removed for production
                         if (ui.formMessage) {
                             ui.formMessage.textContent = 'Failed to submit. Please try again in a moment.';
                         }
@@ -4643,7 +4643,7 @@
                 closeReplyPanel('Reply posted successfully!');
                 activeReplyTarget = null;
             } catch (error) {
-                console.error('Unable to post reply to Firestore:', error);
+                // console.error(...); // Removed for production
                 closeReplyPanel('Reply failed. Please try again.');
             }
         }
@@ -4768,7 +4768,7 @@
             if (targetPage) {
                 targetPage.classList.add('active');
             } else if (!isHome) {
-                console.error('Page not found:', pageId);
+                // console.error(...); // Removed for production
                 return;
             }
 
@@ -4928,7 +4928,7 @@
     
     <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin: 20px 0; flex-wrap: wrap;">
         <div style="text-align: center;">
-            <img src="https://www.ssllabs.com/images/badges/ssl_rating_a_plus.png" alt="SSL A+ Rating" style="height: 40px; width: auto;">
+            <img src="https://www.ssllabs.com/images/badges/ssl_rating_a_plus.png" alt="SSL A+ Rating" style="height: 40px; width: auto;" />
         </div>
         <div style="text-align: center;">
             <span style="display: inline-block; padding: 8px 15px; background: #4CAF50; color: white; border-radius: 5px; font-size: 0.9rem; font-weight: 600;">

@@ -516,7 +516,7 @@
     <header>
         <div class="container">
             <nav class="navbar">
-                <a href="index.html" class="logo"><img src="images/logo.png" loading="lazy" alt="Logo" style="height:54px;"></a>
+                <a href="index.html" class="logo"><img src="images/logo.png" loading="lazy" alt="Logo" style="height:54px;" /></a>
                 <div class="nav-links">
                     <div class="dropdown">
                         <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
@@ -783,6 +783,67 @@
                     <p>Ready to get started? Visit our <a href="jpg-to-pdf.html" style="color: #4361ee; text-decoration: underline; font-weight: 600;">JPG to PDF tool</a> and begin exploring the powerful capabilities it offers. Whether you're processing a single file or managing large batches, this tool provides the functionality and ease of use needed for professional document management.</p>
                 </div>
             </article>
+
+
+    <!-- User Feedback Section -->
+    <section class="user-feedback-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">Share Your Experience</h2>
+        <p style="text-align: center; color: #56607a; margin-bottom: 30px;">We value your feedback! Help us improve by sharing your experience with this tool.</p>
+        
+        <form id="feedback-form" style="max-width: 600px; margin: 0 auto;" onsubmit="return submitFeedback(event)">
+            <div style="margin-bottom: 20px;">
+                <label for="feedback-name" style="display: block; margin-bottom: 8px; color: #0b1630; font-weight: 600;">Your Name (Optional)</label>
+                <input type="text" id="feedback-name" name="name" style="width: 100%; padding: 12px; border: 2px solid #e2e6ff; border-radius: 8px; font-size: 1rem;">
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label for="feedback-rating" style="display: block; margin-bottom: 8px; color: #0b1630; font-weight: 600;">Rating</label>
+                <select id="feedback-rating" name="rating" required style="width: 100%; padding: 12px; border: 2px solid #e2e6ff; border-radius: 8px; font-size: 1rem;">
+                    <option value="">Select Rating</option>
+                    <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
+                    <option value="4">⭐⭐⭐⭐ Very Good</option>
+                    <option value="3">⭐⭐⭐ Good</option>
+                    <option value="2">⭐⭐ Fair</option>
+                    <option value="1">⭐ Poor</option>
+                </select>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label for="feedback-comment" style="display: block; margin-bottom: 8px; color: #0b1630; font-weight: 600;">Your Feedback</label>
+                <textarea id="feedback-comment" name="comment" rows="5" required style="width: 100%; padding: 12px; border: 2px solid #e2e6ff; border-radius: 8px; font-size: 1rem; resize: vertical;"></textarea>
+            </div>
+            
+            <button type="submit" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                Submit Feedback
+            </button>
+        </form>
+        
+        <div id="feedback-thankyou" style="display: none; text-align: center; padding: 20px; background: #d4edda; border-radius: 8px; margin-top: 20px;">
+            <p style="color: #155724; font-weight: 600;">Thank you for your feedback! We appreciate your input.</p>
+        </div>
+    </section>
+    
+    <script>
+    function submitFeedback(event) {
+        event.preventDefault();
+        const form = document.getElementById('feedback-form');
+        const thankyou = document.getElementById('feedback-thankyou');
+        
+        // Here you would send feedback to your backend
+        // For now, just show thank you message
+        form.style.display = 'none';
+        thankyou.style.display = 'block';
+        
+        // In production, send to your backend:
+        // fetch('/api/feedback', {
+        //     method: 'POST',
+        //     body: new FormData(form)
+        // });
+        
+        return false;
+    }
+    </script>
+    
 
     <section class="related-posts" style="margin-top: 50px; padding-top: 40px; border-top: 2px solid #e2e6ff;">
         <h2 style="font-size: 2rem; color: #0b1630; margin-bottom: 30px;">Related Articles</h2>
