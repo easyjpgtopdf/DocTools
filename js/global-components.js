@@ -116,6 +116,7 @@ const globalFooterHTML = `
             <a href="privacy-policy.html">Privacy Policy</a>
             <a href="terms-of-service.html">Terms of Service</a>
             <a href="disclaimer.html">Disclaimer</a>
+            <a href="dmca.html">DMCA</a>
             <a href="blog.html">Blog</a>
         </div>
         <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>

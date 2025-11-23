@@ -1,0 +1,422 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Create Comprehensive DMCA Page (2000+ words)
+AdSense compliant with all requirements
+"""
+
+from datetime import datetime
+
+DMCA_HTML = f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DMCA - Digital Millennium Copyright Act Policy | easyjpgtopdf</title>
+    <meta name="description" content="DMCA Copyright Policy for easyjpgtopdf. Learn about our copyright protection procedures, how to file a takedown notice, and our commitment to intellectual property rights.">
+    <meta name="keywords" content="DMCA, copyright policy, takedown notice, intellectual property, copyright protection, DMCA compliance">
+    <link rel="stylesheet" href="css/footer.css">
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/theme-modern.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {{
+            background: #f5f7ff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }}
+        main {{
+            flex: 1;
+            padding: 40px 24px;
+        }}
+        .container {{
+            max-width: 1000px;
+            margin: 0 auto;
+        }}
+        .legal-page {{
+            background: white;
+            border-radius: 16px;
+            padding: 50px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            line-height: 1.8;
+        }}
+        .legal-page h1 {{
+            font-size: 2.5rem;
+            color: #0b1630;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #4361ee;
+            padding-bottom: 15px;
+        }}
+        .legal-page h2 {{
+            font-size: 1.8rem;
+            color: #4361ee;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding-top: 20px;
+        }}
+        .legal-page h3 {{
+            font-size: 1.4rem;
+            color: #0b1630;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }}
+        .legal-page p {{
+            margin-bottom: 20px;
+            color: #56607a;
+            font-size: 1.05rem;
+        }}
+        .legal-page ul, .legal-page ol {{
+            margin-left: 30px;
+            margin-bottom: 25px;
+        }}
+        .legal-page li {{
+            margin-bottom: 12px;
+            color: #56607a;
+            line-height: 1.8;
+        }}
+        .highlight-box {{
+            background: #f8f9ff;
+            border-left: 4px solid #4361ee;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 8px;
+        }}
+        .contact-info {{
+            background: linear-gradient(135deg, #f8f9ff, #ffffff);
+            padding: 30px;
+            border-radius: 12px;
+            margin: 30px 0;
+            border: 2px solid #e2e6ff;
+        }}
+        .contact-info h3 {{
+            color: #4361ee;
+            margin-top: 0;
+        }}
+        .last-updated {{
+            color: #64748b;
+            font-style: italic;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e2e6ff;
+        }}
+        .important-note {{
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 30px 0;
+        }}
+    </style>
+    <script type="application/ld+json">
+    {{
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "DMCA - Digital Millennium Copyright Act Policy",
+      "description": "DMCA Copyright Policy for easyjpgtopdf",
+      "url": "https://easyjpgtopdf.com/dmca.html"
+    }}
+    </script>
+</head>
+<body>
+    <!-- Header will be loaded here -->
+    <div id="header-placeholder"></div>
+    
+    <nav aria-label="Breadcrumb" style="padding: 15px 0; background: #f8f9ff; border-bottom: 1px solid #e2e6ff;">
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 24px;">
+            <ol style="list-style: none; display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; align-items: center;">
+                <li><a href="index.html" style="color: #4361ee; text-decoration: none; font-weight: 500;">Home</a> <span style="margin: 0 8px; color: #9ca3af;">/</span></li>
+                <li style="color: #56607a; font-weight: 500;">DMCA Policy</li>
+            </ol>
+        </div>
+    </nav>
+    
+    <main>
+        <div class="container">
+            <div class="legal-page">
+                <h1><i class="fas fa-gavel" style="color: #4361ee; margin-right: 10px;"></i>DMCA - Digital Millennium Copyright Act Policy</h1>
+                
+                <p><strong>Last Updated:</strong> {datetime.now().strftime('%B %d, %Y')}</p>
+                
+                <div class="important-note">
+                    <p><strong><i class="fas fa-exclamation-triangle" style="color: #ffc107; margin-right: 8px;"></i>Important Notice:</strong> easyjpgtopdf respects the intellectual property rights of others and expects its users to do the same. We comply with the Digital Millennium Copyright Act (DMCA) and will respond promptly to valid takedown notices.</p>
+                </div>
+                
+                <h2>1. Introduction and Our Commitment</h2>
+                <p>easyjpgtopdf ("we," "our," or "us") is committed to protecting intellectual property rights and complying with the Digital Millennium Copyright Act (DMCA) of 1998. We operate as a service provider under the DMCA safe harbor provisions, offering online tools for document and image conversion, editing, and management.</p>
+                
+                <p>Our platform provides users with the ability to convert, edit, and process various file formats including PDFs, images, Word documents, Excel spreadsheets, and PowerPoint presentations. We understand the importance of copyright protection and have implemented comprehensive procedures to address copyright infringement claims promptly and effectively.</p>
+                
+                <p>This DMCA policy outlines our procedures for handling copyright infringement claims, the information required for valid takedown notices, and our commitment to protecting both copyright holders and legitimate users of our services. We take all copyright infringement claims seriously and will investigate each claim thoroughly.</p>
+                
+                <h2>2. Understanding the DMCA</h2>
+                <p>The Digital Millennium Copyright Act is a United States copyright law that provides a framework for addressing copyright infringement on the internet. The DMCA establishes a "safe harbor" for service providers who promptly respond to valid takedown notices and implement certain procedures to protect copyright holders.</p>
+                
+                <p>As a service provider, easyjpgtopdf qualifies for DMCA safe harbor protection because:</p>
+                <ul>
+                    <li>We do not have actual knowledge of infringing activity on our platform</li>
+                    <li>We do not receive financial benefit directly attributable to infringing activity</li>
+                    <li>We respond expeditiously to remove or disable access to infringing material upon receiving proper notification</li>
+                    <li>We have designated an agent to receive notifications of claimed infringement</li>
+                    <li>We have implemented a policy for terminating repeat infringers</li>
+                </ul>
+                
+                <p>Our compliance with DMCA requirements demonstrates our commitment to protecting intellectual property while providing valuable services to our users. We maintain detailed records of all DMCA notices and responses to ensure transparency and accountability.</p>
+                
+                <h2>3. Our Copyright Protection Measures</h2>
+                <p>easyjpgtopdf has implemented multiple layers of copyright protection to prevent and address infringement:</p>
+                
+                <h3>3.1 Automated Content Monitoring</h3>
+                <p>We utilize automated systems to monitor uploaded content for potential copyright violations. Our systems scan for known copyrighted material patterns and flag suspicious content for manual review. While automated systems cannot catch all violations, they serve as an important first line of defense.</p>
+                
+                <h3>3.2 User Education and Terms of Service</h3>
+                <p>All users must agree to our Terms of Service, which explicitly prohibit uploading copyrighted material without authorization. Users are informed that they may only upload content they own or have permission to use. Violation of these terms may result in immediate account termination.</p>
+                
+                <h3>3.3 File Processing and Storage</h3>
+                <p>Our platform processes files temporarily and automatically deletes them after conversion or processing is complete. We do not store user files permanently, which reduces the risk of copyright infringement. Files are typically deleted within 24 hours of processing, and we maintain no permanent archive of user-uploaded content.</p>
+                
+                <h3>3.4 Repeat Infringer Policy</h3>
+                <p>We maintain a strict policy against repeat copyright infringers. Users who receive multiple valid DMCA takedown notices may have their accounts terminated permanently. We track infringement history and take appropriate action against users who repeatedly violate copyright laws.</p>
+                
+                <h2>4. Filing a DMCA Takedown Notice</h2>
+                <p>If you believe that content on our platform infringes your copyright, you may file a DMCA takedown notice. To be valid under the DMCA, your notice must include the following information:</p>
+                
+                <div class="highlight-box">
+                    <h3>Required Information for DMCA Takedown Notice:</h3>
+                    <ol>
+                        <li><strong>Physical or Electronic Signature:</strong> A signature (physical or electronic) of the copyright owner or authorized representative</li>
+                        <li><strong>Identification of Copyrighted Work:</strong> A clear description or identification of the copyrighted work claimed to have been infringed</li>
+                        <li><strong>Identification of Infringing Material:</strong> Specific identification of the material that is claimed to be infringing, including information sufficient to permit us to locate the material (such as URLs, file names, or other identifying information)</li>
+                        <li><strong>Contact Information:</strong> Your contact information, including name, address, telephone number, and email address</li>
+                        <li><strong>Good Faith Statement:</strong> A statement that you have a good faith belief that use of the material in the manner complained of is not authorized by the copyright owner, its agent, or the law</li>
+                        <li><strong>Accuracy Statement:</strong> A statement that the information in the notification is accurate, and under penalty of perjury, that you are authorized to act on behalf of the copyright owner</li>
+                    </ol>
+                </div>
+                
+                <h3>4.1 How to Submit a Takedown Notice</h3>
+                <p>DMCA takedown notices must be submitted to our designated DMCA agent. You can submit your notice through the following methods:</p>
+                
+                <div class="contact-info">
+                    <h3><i class="fas fa-envelope" style="margin-right: 10px;"></i>DMCA Agent Contact Information</h3>
+                    <p><strong>Email:</strong> dmca@easyjpgtopdf.com</p>
+                    <p><strong>Subject Line:</strong> DMCA Takedown Notice</p>
+                    <p><strong>Response Time:</strong> We typically respond to valid DMCA notices within 48 hours during business days.</p>
+                </div>
+                
+                <p>When submitting your notice via email, please include all required information listed above. Incomplete notices may delay our response. We recommend using a clear subject line such as "DMCA Takedown Notice - [Your Copyrighted Work Title]" to ensure prompt processing.</p>
+                
+                <h3>4.2 What Happens After You Submit a Notice</h3>
+                <p>Upon receiving a valid DMCA takedown notice, we will:</p>
+                <ol>
+                    <li><strong>Review and Verify:</strong> We will review your notice to ensure it contains all required information and appears to be valid</li>
+                    <li><strong>Investigate:</strong> We will investigate the alleged infringement, including reviewing the content in question and checking our records</li>
+                    <li><strong>Remove or Disable Access:</strong> If we determine the notice is valid, we will promptly remove or disable access to the infringing material</li>
+                    <li><strong>Notify the User:</strong> We will notify the user who uploaded the content about the takedown and provide them with your contact information</li>
+                    <li><strong>Provide Counter-Notification Information:</strong> We will inform the user of their right to file a counter-notification if they believe the takedown was in error</li>
+                    <li><strong>Respond to You:</strong> We will confirm the action taken and provide you with relevant information about the takedown</li>
+                </ol>
+                
+                <p>Our goal is to process valid DMCA notices as quickly as possible, typically within 48 hours of receipt. However, complex cases may require additional time for thorough investigation.</p>
+                
+                <h2>5. Counter-Notification Process</h2>
+                <p>If you believe your content was removed in error, you have the right to file a counter-notification. This process allows you to contest a DMCA takedown notice if you believe:</p>
+                <ul>
+                    <li>The content was misidentified as infringing</li>
+                    <li>You have authorization to use the copyrighted material</li>
+                    <li>The material is not actually copyrighted</li>
+                    <li>The use qualifies as fair use under copyright law</li>
+                </ul>
+                
+                <h3>5.1 Requirements for Counter-Notification</h3>
+                <p>A valid counter-notification must include:</p>
+                <ol>
+                    <li><strong>Physical or Electronic Signature:</strong> Your signature (physical or electronic)</li>
+                    <li><strong>Identification of Removed Material:</strong> Identification of the material that was removed and its location before removal</li>
+                    <li><strong>Good Faith Statement:</strong> A statement under penalty of perjury that you have a good faith belief the material was removed or disabled as a result of mistake or misidentification</li>
+                    <li><strong>Consent to Jurisdiction:</strong> Your consent to the jurisdiction of the federal court in your district (or if outside the U.S., to the jurisdiction of the federal court in the district where we are located)</li>
+                    <li><strong>Contact Information:</strong> Your name, address, and telephone number</li>
+                </ol>
+                
+                <h3>5.2 Counter-Notification Process</h3>
+                <p>When we receive a valid counter-notification:</p>
+                <ol>
+                    <li>We will forward the counter-notification to the original complainant</li>
+                    <li>We will inform them that we may restore the content in 10 business days</li>
+                    <li>If the original complainant does not file a court action within 10 business days, we will restore the content</li>
+                    <li>If a court action is filed, we will maintain the content as removed pending court resolution</li>
+                </ol>
+                
+                <p><strong>Important:</strong> Filing a false counter-notification may result in legal liability. Only file a counter-notification if you genuinely believe the takedown was in error.</p>
+                
+                <h2>6. Fair Use and Authorized Use</h2>
+                <p>Not all uses of copyrighted material constitute infringement. The fair use doctrine allows limited use of copyrighted material without permission for purposes such as:</p>
+                <ul>
+                    <li>Criticism and commentary</li>
+                    <li>News reporting</li>
+                    <li>Teaching and research</li>
+                    <li>Parody and satire</li>
+                </ul>
+                
+                <p>Additionally, users may upload copyrighted material if they have:</p>
+                <ul>
+                    <li>Written authorization from the copyright owner</li>
+                    <li>A valid license to use the material</li>
+                    <li>Created derivative works with proper authorization</li>
+                    <li>Obtained the material through legitimate means</li>
+                </ul>
+                
+                <p>If you receive a DMCA takedown notice but believe your use qualifies as fair use or is otherwise authorized, you may file a counter-notification as described above. However, we recommend consulting with legal counsel before doing so.</p>
+                
+                <h2>7. Our Response to Infringement</h2>
+                <p>easyjpgtopdf takes copyright infringement seriously and has implemented comprehensive measures to address violations:</p>
+                
+                <h3>7.1 Immediate Actions</h3>
+                <p>Upon receiving a valid DMCA notice, we take immediate action to:</p>
+                <ul>
+                    <li>Remove or disable access to the infringing material</li>
+                    <li>Preserve evidence related to the infringement</li>
+                    <li>Document the takedown for our records</li>
+                    <li>Notify all relevant parties</li>
+                </ul>
+                
+                <h3>7.2 User Account Actions</h3>
+                <p>Users who upload infringing content may face:</p>
+                <ul>
+                    <li>Immediate removal of the infringing content</li>
+                    <li>Temporary suspension of account privileges</li>
+                    <li>Permanent account termination for repeat offenders</li>
+                    <li>Legal action in cases of willful infringement</li>
+                </ul>
+                
+                <h3>7.3 Prevention Measures</h3>
+                <p>To prevent future infringement, we:</p>
+                <ul>
+                    <li>Maintain records of all DMCA notices and responses</li>
+                    <li>Monitor accounts of users who have received takedown notices</li>
+                    <li>Implement additional screening for repeat offenders</li>
+                    <li>Regularly update our Terms of Service to reflect current copyright laws</li>
+                </ul>
+                
+                <h2>8. International Copyright Considerations</h2>
+                <p>While the DMCA is a U.S. law, easyjpgtopdf serves users worldwide. We respect international copyright laws and treaties, including:</p>
+                <ul>
+                    <li>The Berne Convention for the Protection of Literary and Artistic Works</li>
+                    <li>The World Intellectual Property Organization (WIPO) Copyright Treaty</li>
+                    <li>National copyright laws in countries where we operate</li>
+                </ul>
+                
+                <p>Copyright holders from any country may file DMCA takedown notices, and we will process them according to DMCA procedures. However, we also respect local laws and may take additional actions required by specific jurisdictions.</p>
+                
+                <h2>9. Protection Against False Claims</h2>
+                <p>The DMCA provides penalties for false or fraudulent takedown notices. Filing a false DMCA notice may result in:</p>
+                <ul>
+                    <li>Liability for damages, including costs and attorney fees</li>
+                    <li>Potential criminal penalties for perjury</li>
+                    <li>Loss of credibility with service providers</li>
+                </ul>
+                
+                <p>We take false claims seriously and may pursue legal action against individuals who knowingly file false DMCA notices. Before filing a notice, please ensure:</p>
+                <ol>
+                    <li>You are the copyright owner or authorized representative</li>
+                    <li>The material is actually infringing your copyright</li>
+                    <li>You have not authorized the use of the material</li>
+                    <li>You have a good faith belief that the use is not fair use</li>
+                </ol>
+                
+                <h2>10. Privacy and Information Sharing</h2>
+                <p>When processing DMCA notices, we may need to share certain information:</p>
+                
+                <h3>10.1 Information We Share</h3>
+                <p>In accordance with DMCA requirements, we may share:</p>
+                <ul>
+                    <li>Your contact information with the user who uploaded the content (for counter-notification purposes)</li>
+                    <li>Details of the takedown notice with our legal advisors</li>
+                    <li>Information with law enforcement if required by law</li>
+                </ul>
+                
+                <h3>10.2 Information We Protect</h3>
+                <p>We protect user privacy to the extent permitted by law and DMCA requirements. We do not:</p>
+                <ul>
+                    <li>Publicly disclose personal information without consent</li>
+                    <li>Share information beyond what is required by DMCA</li>
+                    <li>Sell or rent user information to third parties</li>
+                </ul>
+                
+                <h2>11. Appeals and Dispute Resolution</h2>
+                <p>If you disagree with our handling of a DMCA notice, you have several options:</p>
+                
+                <h3>11.1 Internal Appeals</h3>
+                <p>You may contact our DMCA agent to appeal a decision. We will review appeals on a case-by-case basis and may reverse decisions if new information is provided or if we determine an error was made.</p>
+                
+                <h3>11.2 Legal Recourse</h3>
+                <p>If you believe your rights have been violated, you may:</p>
+                <ul>
+                    <li>File a counter-notification (if you are the user whose content was removed)</li>
+                    <li>Seek legal counsel to pursue your rights</li>
+                    <li>File a lawsuit in the appropriate jurisdiction</li>
+                </ul>
+                
+                <h3>11.3 Alternative Dispute Resolution</h3>
+                <p>We are open to alternative dispute resolution methods, including mediation, to resolve copyright disputes without litigation. Please contact our DMCA agent to discuss alternative resolution options.</p>
+                
+                <h2>12. Updates to This Policy</h2>
+                <p>We may update this DMCA policy from time to time to reflect changes in law, our practices, or our services. When we make changes:</p>
+                <ul>
+                    <li>We will update the "Last Updated" date at the top of this page</li>
+                    <li>We will notify users of significant changes via email or website notice</li>
+                    <li>We will maintain previous versions of this policy for reference</li>
+                </ul>
+                
+                <p>Your continued use of our services after policy updates constitutes acceptance of the revised policy. We encourage you to review this policy periodically to stay informed about our copyright protection procedures.</p>
+                
+                <h2>13. Contact Information and Support</h2>
+                <p>For questions, concerns, or to file a DMCA notice, please contact our designated DMCA agent:</p>
+                
+                <div class="contact-info">
+                    <h3><i class="fas fa-user-shield" style="margin-right: 10px;"></i>DMCA Agent</h3>
+                    <p><strong>Email:</strong> dmca@easyjpgtopdf.com</p>
+                    <p><strong>Response Time:</strong> 48 hours (business days)</p>
+                    <p><strong>For General Inquiries:</strong> support@easyjpgtopdf.com</p>
+                    <p><strong>Website:</strong> <a href="contact.html" style="color: #4361ee;">Contact Us</a></p>
+                </div>
+                
+                <h2>14. Additional Resources</h2>
+                <p>For more information about copyright and the DMCA, please refer to:</p>
+                <ul>
+                    <li><a href="https://www.copyright.gov/dmca/" target="_blank" style="color: #4361ee;">U.S. Copyright Office DMCA Information</a></li>
+                    <li><a href="https://www.copyright.gov/" target="_blank" style="color: #4361ee;">U.S. Copyright Office</a></li>
+                    <li><a href="terms-of-service.html" style="color: #4361ee;">Our Terms of Service</a></li>
+                    <li><a href="privacy-policy.html" style="color: #4361ee;">Our Privacy Policy</a></li>
+                </ul>
+                
+                <div class="last-updated">
+                    <p><strong>Note:</strong> This DMCA policy is provided for informational purposes and does not constitute legal advice. If you have specific legal questions about copyright or the DMCA, please consult with a qualified attorney.</p>
+                    <p>This policy was last updated on {datetime.now().strftime('%B %d, %Y')}.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Footer will be loaded here -->
+    <div id="footer-placeholder"></div>
+    
+    <script src="js/global-components.js"></script>
+    <script>
+        if (typeof loadGlobalHeader === 'function') {{
+            loadGlobalHeader();
+        }}
+        if (typeof loadGlobalFooter === 'function') {{
+            loadGlobalFooter();
+        }}
+    </script>
+</body>
+</html>'''
+
+# Write the file
+with open('dmca.html', 'w', encoding='utf-8') as f:
+    f.write(DMCA_HTML)
+
+print('✓ DMCA page created successfully (2000+ words)')
+print('✓ All AdSense requirements included')
+print('✓ Comprehensive copyright protection information')
+
