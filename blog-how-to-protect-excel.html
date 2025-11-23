@@ -897,45 +897,72 @@
     
     <!-- Comment System Script -->
     <script>
-        (function() {
-            const storageKey = 'blog_how_to_protect_excel';
+        // Firebase configuration
+        window.FIREBASE_CONFIG = window.FIREBASE_CONFIG || {
+            apiKey: "AIzaSyBch3tJoeFqio3IA4MbPoh2GHZE2qKVzGc",
+            authDomain: "easyjpgtopdf-de346.firebaseapp.com",
+            projectId: "easyjpgtopdf-de346",
+            storageBucket: "easyjpgtopdf-de346.appspot.com",
+            messagingSenderId: "564572183797",
+            appId: "1:564572183797:web:9c204df018c150f02f79bc"
+        };
+    </script>
+    
+    <script type="module">
+        (async function() {
+            const storageKey = 'blog-comments-blog-protect-excel';
             let scrollPosition = 0;
             let currentUser = null;
             let activeReplyTarget = null;
+            let db = null;
+            let commentsCollection = null;
+            let unsubscribeComments = null;
+
+            // Import Firebase modules
+            const { initializeApp, getApp, getApps } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+            const {
+                getFirestore,
+                collection,
+                addDoc,
+                serverTimestamp,
+                query,
+                orderBy,
+                limit,
+                onSnapshot,
+                doc,
+                updateDoc,
+                arrayUnion
+            } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+            const {
+                getAuth,
+                onAuthStateChanged
+            } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+
+            // Initialize Firebase
+            const firebaseConfig = window.FIREBASE_CONFIG || {};
+            const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            const auth = getAuth(app);
+            commentsCollection = collection(db, storageKey);
 
             // Flag to track if we should open modal after login
             let shouldOpenModalAfterLogin = false;
 
             // Check if user is logged in
             function checkUserLogin() {
-                // Check Firebase auth if available
-                if (typeof firebase !== 'undefined' && firebase.auth) {
-                    firebase.auth().onAuthStateChanged((user) => {
-                        const wasLoggedOut = !currentUser && user;
-                        currentUser = user;
-                        updateCommentUI();
-                        
-                        // If user just logged in and we need to open modal
-                        if (wasLoggedOut && shouldOpenModalAfterLogin) {
-                            shouldOpenModalAfterLogin = false;
-                            // Small delay to ensure UI is updated
-                            setTimeout(() => {
-                                openCommentModal();
-                            }, 300);
-                        }
-                    });
-                } else {
-                    // Fallback: check localStorage for user session
-                    const userSession = localStorage.getItem('userSession');
-                    if (userSession) {
-                        try {
-                            currentUser = JSON.parse(userSession);
-                        } catch (e) {
-                            currentUser = null;
-                        }
-                    }
+                onAuthStateChanged(auth, (user) => {
+                    const wasLoggedOut = !currentUser && user;
+                    currentUser = user;
                     updateCommentUI();
-                }
+                    
+                    // If user just logged in and we need to open modal
+                    if (wasLoggedOut && shouldOpenModalAfterLogin) {
+                        shouldOpenModalAfterLogin = false;
+                        setTimeout(() => {
+                            openCommentModal();
+                        }, 300);
+                    }
+                });
             }
 
             function updateCommentUI() {
@@ -953,19 +980,13 @@
 
             // Check if user is currently logged in (synchronous check)
             function isUserLoggedIn() {
-                if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
-                    return true;
-                }
-                // Fallback check
-                const userSession = localStorage.getItem('userSession');
-                return userSession !== null;
+                return currentUser !== null;
             }
 
             // Modal functions
             function openCommentModal() {
                 // Check if user is logged in before opening
                 if (!isUserLoggedIn()) {
-                    // User not logged in - redirect to login with return URL
                     const currentUrl = window.location.href;
                     sessionStorage.setItem('openCommentModalAfterLogin', 'true');
                     sessionStorage.setItem('returnUrl', currentUrl);
@@ -987,27 +1008,50 @@
                 if (modal) {
                     modal.classList.remove('active');
                     document.body.style.overflow = '';
-                    // Restore scroll position
                     window.scrollTo(0, scrollPosition);
                 }
             }
 
-            // Load comments
+            // Load comments from Firestore
             function loadComments() {
                 const commentList = document.getElementById('commentList');
                 if (!commentList) return;
 
-                const comments = JSON.parse(localStorage.getItem(storageKey) || '[]');
-                
-                if (comments.length === 0) {
-                    commentList.innerHTML = '<li class="empty-comments">No comments yet. Be the first to comment!</li>';
-                    return;
+                // Unsubscribe from previous listener
+                if (unsubscribeComments) {
+                    unsubscribeComments();
                 }
 
-                commentList.innerHTML = '';
-                comments.forEach(comment => {
-                    const li = createCommentElement(comment);
-                    commentList.appendChild(li);
+                // Set up real-time listener
+                const commentsQuery = query(commentsCollection, orderBy('createdAt', 'desc'), limit(50));
+                
+                unsubscribeComments = onSnapshot(commentsQuery, (snapshot) => {
+                    const comments = [];
+                    snapshot.forEach((doc) => {
+                        const data = doc.data();
+                        comments.push({
+                            id: doc.id,
+                            author: data.author || data.name || 'Anonymous User',
+                            text: data.text || data.comment || '',
+                            timestamp: data.createdAt?.toMillis() || data.timestamp || Date.now(),
+                            createdAt: data.createdAt?.toMillis() || data.createdAt || Date.now(),
+                            replies: data.replies || []
+                        });
+                    });
+
+                    if (comments.length === 0) {
+                        commentList.innerHTML = '<li class="empty-comments">No comments yet. Be the first to comment!</li>';
+                        return;
+                    }
+
+                    commentList.innerHTML = '';
+                    comments.forEach(comment => {
+                        const li = createCommentElement(comment);
+                        commentList.appendChild(li);
+                    });
+                }, (error) => {
+                    console.error('Error loading comments:', error);
+                    commentList.innerHTML = '<li class="empty-comments">Error loading comments. Please refresh the page.</li>';
                 });
             }
 
@@ -1097,7 +1141,7 @@
                 }
             }
 
-            function submitReply(commentId) {
+            async function submitReply(commentId) {
                 if (!currentUser) {
                     alert('Please sign in to reply');
                     return;
@@ -1106,25 +1150,25 @@
                 const textarea = document.getElementById(`reply-text-${commentId}`);
                 if (!textarea || !textarea.value.trim()) return;
 
-                const comments = JSON.parse(localStorage.getItem(storageKey) || '[]');
-                const commentIndex = comments.findIndex(c => c.id === commentId);
-                
-                if (commentIndex !== -1) {
-                    if (!comments[commentIndex].replies) {
-                        comments[commentIndex].replies = [];
-                    }
-                    comments[commentIndex].replies.push({
-                        id: Date.now(),
+                try {
+                    const replyData = {
                         author: currentUser.displayName || currentUser.email || 'User',
                         text: textarea.value.trim(),
-                        timestamp: Date.now(),
-                        createdAt: Date.now()
+                        createdAt: serverTimestamp(),
+                        timestamp: Date.now()
+                    };
+
+                    const commentDoc = doc(db, storageKey, commentId);
+                    await updateDoc(commentDoc, {
+                        replies: arrayUnion(replyData)
                     });
-                    localStorage.setItem(storageKey, JSON.stringify(comments));
-                    loadComments();
+
                     textarea.value = '';
                     const replyInputBox = document.getElementById(`reply-input-${commentId}`);
                     if (replyInputBox) replyInputBox.classList.remove('active');
+                } catch (error) {
+                    console.error('Error submitting reply:', error);
+                    alert('Failed to submit reply. Please try again.');
                 }
             }
 
@@ -1145,7 +1189,7 @@
             }
 
             // Submit comment
-            function submitComment() {
+            async function submitComment() {
                 if (!currentUser) {
                     alert('Please sign in to comment');
                     return;
@@ -1154,18 +1198,21 @@
                 const textarea = document.getElementById('commentText');
                 if (!textarea || !textarea.value.trim()) return;
 
-                const comments = JSON.parse(localStorage.getItem(storageKey) || '[]');
-                comments.push({
-                    id: Date.now(),
-                    author: currentUser.displayName || currentUser.email || 'User',
-                    text: textarea.value.trim(),
-                    timestamp: Date.now(),
-                    createdAt: Date.now(),
-                    replies: []
-                });
-                localStorage.setItem(storageKey, JSON.stringify(comments));
-                textarea.value = '';
-                loadComments();
+                try {
+                    const commentData = {
+                        author: currentUser.displayName || currentUser.email || 'User',
+                        text: textarea.value.trim(),
+                        createdAt: serverTimestamp(),
+                        timestamp: Date.now(),
+                        replies: []
+                    };
+
+                    await addDoc(commentsCollection, commentData);
+                    textarea.value = '';
+                } catch (error) {
+                    console.error('Error submitting comment:', error);
+                    alert('Failed to submit comment. Please try again.');
+                }
             }
 
             // Event listeners
@@ -1176,12 +1223,10 @@
                 const shouldOpenModal = sessionStorage.getItem('openCommentModalAfterLogin');
                 if (shouldOpenModal === 'true') {
                     sessionStorage.removeItem('openCommentModalAfterLogin');
-                    // Wait a bit for auth state to update
                     setTimeout(() => {
                         if (isUserLoggedIn()) {
                             openCommentModal();
                         } else {
-                            // Still not logged in, set flag to open after login
                             shouldOpenModalAfterLogin = true;
                         }
                     }, 500);
