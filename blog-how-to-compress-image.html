@@ -922,39 +922,61 @@
             let db = null;
             let commentsCollection = null;
             let unsubscribeComments = null;
+            let firebaseInitialized = false;
 
-            // Import Firebase modules
-            const { initializeApp, getApp, getApps } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
-            const {
-                getFirestore,
-                collection,
-                addDoc,
-                serverTimestamp,
-                query,
-                orderBy,
-                limit,
-                onSnapshot,
-                doc,
-                updateDoc,
-                arrayUnion
-            } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-            const {
-                getAuth,
-                onAuthStateChanged
-            } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+            // Try to initialize Firebase
+            try {
+                // Import Firebase modules
+                const { initializeApp, getApp, getApps } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+                const {
+                    getFirestore,
+                    collection,
+                    addDoc,
+                    serverTimestamp,
+                    query,
+                    orderBy,
+                    limit,
+                    onSnapshot,
+                    doc,
+                    updateDoc,
+                    arrayUnion
+                } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+                const {
+                    getAuth,
+                    onAuthStateChanged
+                } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
 
-            // Initialize Firebase
-            const firebaseConfig = window.FIREBASE_CONFIG || {};
-            const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            const auth = getAuth(app);
-            commentsCollection = collection(db, storageKey);
+                // Initialize Firebase
+                const firebaseConfig = window.FIREBASE_CONFIG || {};
+                const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                commentsCollection = collection(db, storageKey);
+                firebaseInitialized = true;
+            } catch (error) {
+                console.error('Firebase initialization error:', error);
+                firebaseInitialized = false;
+            }
 
             // Flag to track if we should open modal after login
             let shouldOpenModalAfterLogin = false;
 
             // Check if user is logged in
             function checkUserLogin() {
+                if (!firebaseInitialized || !auth) {
+                    // Fallback: check localStorage
+                    const userSession = localStorage.getItem('userSession');
+                    if (userSession) {
+                        try {
+                            currentUser = JSON.parse(userSession);
+                        } catch (e) {
+                            currentUser = null;
+                        }
+                    }
+                    updateCommentUI();
+                    return;
+                }
+                
                 onAuthStateChanged(auth, (user) => {
                     const wasLoggedOut = !currentUser && user;
                     currentUser = user;
@@ -1022,6 +1044,18 @@
                 const commentList = document.getElementById('commentList');
                 if (!commentList) return;
 
+                if (!firebaseInitialized || !commentsCollection) {
+                    commentList.innerHTML = '<li class="empty-comments">Comments unavailable. Please refresh the page.</li>';
+                    return;
+                }
+
+                // Unsubscribe from previous listener
+                if (unsubscribeComments) {
+                    unsubscribeComments();
+                }
+
+                try {
+
                 // Unsubscribe from previous listener
                 if (unsubscribeComments) {
                     unsubscribeComments();
@@ -1058,6 +1092,10 @@
                     console.error('Error loading comments:', error);
                     commentList.innerHTML = '<li class="empty-comments">Error loading comments. Please refresh the page.</li>';
                 });
+                } catch (error) {
+                    console.error('Error setting up comment listener:', error);
+                    commentList.innerHTML = '<li class="empty-comments">Error loading comments. Please refresh the page.</li>';
+                }
             }
 
             function createCommentElement(comment) {
@@ -1152,6 +1190,11 @@
                     return;
                 }
 
+                if (!firebaseInitialized || !db) {
+                    alert('Comments unavailable. Please refresh the page.');
+                    return;
+                }
+
                 const textarea = document.getElementById(`reply-text-${commentId}`);
                 if (!textarea || !textarea.value.trim()) return;
 
@@ -1197,6 +1240,11 @@
             async function submitComment() {
                 if (!currentUser) {
                     alert('Please sign in to comment');
+                    return;
+                }
+
+                if (!firebaseInitialized || !commentsCollection) {
+                    alert('Comments unavailable. Please refresh the page.');
                     return;
                 }
 
