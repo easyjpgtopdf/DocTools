@@ -46,7 +46,9 @@ module.exports = async function handler(req, res) {
       plan,
       billing,
       userId,
-      orderId
+      orderId,
+      currency,
+      amount
     } = req.body;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !plan || !billing || !userId) {
@@ -82,6 +84,10 @@ module.exports = async function handler(req, res) {
       try {
         const db = admin.firestore();
         
+        // Get actual currency and amount from request (or fallback to defaults)
+        const actualCurrency = currency || 'USD';
+        const actualAmount = amount || planDetails.price;
+        
         // Update subscription
         await db.collection('subscriptions').doc(userId).set({
           plan: plan,
@@ -91,17 +97,19 @@ module.exports = async function handler(req, res) {
           billing: billing,
           paymentId: razorpay_payment_id,
           orderId: razorpay_order_id,
+          currency: actualCurrency, // Store actual currency used
           autopay: false,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
           updatedAt: admin.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
 
-        // Record payment
+        // Record payment with actual currency and amount
         await db.collection('payments').doc(razorpay_payment_id).set({
           userId: userId,
           plan: plan,
-          amount: planDetails.price,
-          currency: 'INR',
+          amount: actualAmount, // Actual amount paid in user's currency
+          currency: actualCurrency, // Actual currency used (not hardcoded)
+          originalPriceUSD: planDetails.price, // Original USD price for reference
           billing: billing,
           status: 'completed',
           paymentId: razorpay_payment_id,

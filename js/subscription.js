@@ -221,7 +221,7 @@ export async function initiateSubscriptionPurchase(planKey, billing = 'monthly',
       },
       handler: async function(response) {
         // Payment successful
-        await handlePaymentSuccess(response, planKey, billing, userId, orderData.orderId);
+        await handlePaymentSuccess(response, planKey, billing, userId, orderData.orderId, orderData.currency, orderData.convertedPrice);
       },
       modal: {
         ondismiss: function() {
@@ -242,7 +242,7 @@ export async function initiateSubscriptionPurchase(planKey, billing = 'monthly',
 /**
  * Handle successful payment
  */
-async function handlePaymentSuccess(paymentResponse, planKey, billing, userId, orderId) {
+async function handlePaymentSuccess(paymentResponse, planKey, billing, userId, orderId, currency, convertedAmount) {
   try {
     // Verify payment on server
     const verifyResponse = await fetch('/api/subscriptions/verify-payment', {
@@ -258,7 +258,9 @@ async function handlePaymentSuccess(paymentResponse, planKey, billing, userId, o
         plan: planKey,
         billing: billing,
         userId: userId,
-        orderId: orderId
+        orderId: orderId,
+        currency: currency,
+        amount: convertedAmount
       })
     });
     
@@ -269,8 +271,8 @@ async function handlePaymentSuccess(paymentResponse, planKey, billing, userId, o
     const result = await verifyResponse.json();
     
     if (result.success) {
-      // Update subscription in Firestore
-      await activateSubscription(userId, planKey, billing, paymentResponse.razorpay_payment_id);
+      // Update subscription in Firestore with actual currency and amount
+      await activateSubscription(userId, planKey, billing, paymentResponse.razorpay_payment_id, currency, convertedAmount);
       
       // Redirect to dashboard
       window.location.href = 'dashboard.html#dashboard-overview';
@@ -286,12 +288,15 @@ async function handlePaymentSuccess(paymentResponse, planKey, billing, userId, o
 /**
  * Activate subscription after payment
  */
-async function activateSubscription(userId, planKey, billing, paymentId) {
+async function activateSubscription(userId, planKey, billing, paymentId, currency = 'USD', amount = null) {
   if (!db) return;
   
   const plan = billing === 'yearly' ? YEARLY_PLANS[planKey] : PLANS[planKey];
   const now = new Date();
   const expiresAt = new Date(now.getTime() + plan.duration * 24 * 60 * 60 * 1000);
+  
+  // Use provided amount or fallback to plan price (in USD)
+  const actualAmount = amount !== null ? amount : plan.price;
   
   await setDoc(doc(db, 'subscriptions', userId), {
     plan: planKey,
@@ -300,17 +305,19 @@ async function activateSubscription(userId, planKey, billing, paymentId) {
     expiresAt: Timestamp.fromDate(expiresAt),
     billing: billing,
     paymentId: paymentId,
+    currency: currency, // Store actual currency used
     autopay: false, // Can be enabled later
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   }, { merge: true });
   
-  // Record payment
+  // Record payment with actual currency and amount
   await setDoc(doc(db, 'payments', paymentId), {
     userId: userId,
     plan: planKey,
-    amount: plan.price,
-    currency: 'INR',
+    amount: actualAmount, // Actual amount paid in user's currency
+    currency: currency, // Actual currency used (not hardcoded)
+    originalPriceUSD: plan.price, // Original USD price for reference
     billing: billing,
     status: 'completed',
     paymentDate: serverTimestamp(),
