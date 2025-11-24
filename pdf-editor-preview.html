@@ -744,74 +744,103 @@
         // Load PDF from IndexedDB or sessionStorage
         async function loadPDF() {
             try {
-                loadingOverlay.style.display = 'flex';
+                if (loadingOverlay) loadingOverlay.style.display = 'flex';
                 
                 let pdfData = null;
                 let fileName = 'document.pdf';
                 
                 // Try IndexedDB first
-                const request = indexedDB.open('PDFEditorDB', 1);
-                request.onsuccess = async function() {
-                    const db = request.result;
-                    if (db.objectStoreNames.contains('pdfFiles')) {
-                        const transaction = db.transaction(['pdfFiles'], 'readonly');
-                        const store = transaction.objectStore('pdfFiles');
-                        const getAllRequest = store.getAll();
-                        getAllRequest.onsuccess = async function() {
-                            const allFiles = getAllRequest.result;
-                            if (allFiles && allFiles.length > 0) {
-                                const latestFile = allFiles.sort((a, b) => {
-                                    const idA = a.id || a.timestamp || 0;
-                                    const idB = b.id || b.timestamp || 0;
-                                    return idB - idA;
-                                })[0];
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open('PDFEditorDB', 1);
+                    
+                    request.onerror = function() {
+                        console.warn('IndexedDB error, trying sessionStorage');
+                        loadFromSessionStorage().then(resolve).catch(reject);
+                    };
+                    
+                    request.onsuccess = async function() {
+                        try {
+                            const db = request.result;
+                            if (db.objectStoreNames.contains('pdfFiles')) {
+                                const transaction = db.transaction(['pdfFiles'], 'readonly');
+                                const store = transaction.objectStore('pdfFiles');
+                                const getAllRequest = store.getAll();
                                 
-                                if (latestFile && latestFile.data) {
-                                    pdfData = latestFile.data;
-                                    fileName = latestFile.name || 'document.pdf';
-                                    await renderPDF(pdfData);
-                                    return;
-                                }
+                                getAllRequest.onsuccess = async function() {
+                                    try {
+                                        const allFiles = getAllRequest.result;
+                                        if (allFiles && allFiles.length > 0) {
+                                            const latestFile = allFiles.sort((a, b) => {
+                                                const idA = a.id || a.timestamp || 0;
+                                                const idB = b.id || b.timestamp || 0;
+                                                return idB - idA;
+                                            })[0];
+                                            
+                                            if (latestFile && latestFile.data) {
+                                                pdfData = latestFile.data;
+                                                fileName = latestFile.name || 'document.pdf';
+                                                await renderPDF(pdfData);
+                                                resolve();
+                                                return;
+                                            }
+                                        }
+                                        // Fallback to sessionStorage
+                                        await loadFromSessionStorage();
+                                        resolve();
+                                    } catch (error) {
+                                        console.error('Error processing IndexedDB files:', error);
+                                        await loadFromSessionStorage();
+                                        resolve();
+                                    }
+                                };
+                                
+                                getAllRequest.onerror = function() {
+                                    console.warn('Error getting files from IndexedDB, trying sessionStorage');
+                                    loadFromSessionStorage().then(resolve).catch(reject);
+                                };
+                            } else {
+                                // No object store, try sessionStorage
+                                await loadFromSessionStorage();
+                                resolve();
                             }
-                            // Fallback to sessionStorage
-                            loadFromSessionStorage();
-                        };
-                    } else {
-                        loadFromSessionStorage();
-                    }
-                };
-                
-                request.onerror = function() {
-                    loadFromSessionStorage();
-                };
-                
-                request.onupgradeneeded = function(event) {
-                    const db = event.target.result;
-                    if (!db.objectStoreNames.contains('pdfFiles')) {
-                        db.createObjectStore('pdfFiles', { keyPath: 'id', autoIncrement: true });
-                    }
-                };
+                        } catch (error) {
+                            console.error('Error in IndexedDB success handler:', error);
+                            loadFromSessionStorage().then(resolve).catch(reject);
+                        }
+                    };
+                    
+                    request.onupgradeneeded = function(event) {
+                        const db = event.target.result;
+                        if (!db.objectStoreNames.contains('pdfFiles')) {
+                            db.createObjectStore('pdfFiles', { keyPath: 'id', autoIncrement: true });
+                        }
+                    };
+                });
             } catch (error) {
                 console.error('Error loading PDF:', error);
+                if (loadingOverlay) loadingOverlay.style.display = 'none';
                 alert('Error loading PDF. Please upload a file again.');
-                window.location.href = 'pdf-editor.html';
+                window.location.href = 'edit-pdf.html';
             }
         }
         
-        function loadFromSessionStorage() {
+        async function loadFromSessionStorage() {
             const pdfFileURL = sessionStorage.getItem('pdfFileURL');
             if (pdfFileURL) {
-                fetch(pdfFileURL)
-                    .then(response => response.arrayBuffer())
-                    .then(data => renderPDF(data))
-                    .catch(error => {
-                        console.error('Error loading from sessionStorage:', error);
-                        alert('Error loading PDF. Please upload a file again.');
-                        window.location.href = 'pdf-editor.html';
-                    });
+                try {
+                    const response = await fetch(pdfFileURL);
+                    const data = await response.arrayBuffer();
+                    await renderPDF(data);
+                } catch (error) {
+                    console.error('Error loading from sessionStorage:', error);
+                    if (loadingOverlay) loadingOverlay.style.display = 'none';
+                    alert('Error loading PDF. Please upload a file again.');
+                    window.location.href = 'edit-pdf.html';
+                }
             } else {
+                if (loadingOverlay) loadingOverlay.style.display = 'none';
                 alert('No PDF file found. Please upload a file first.');
-                window.location.href = 'pdf-editor.html';
+                window.location.href = 'edit-pdf.html';
             }
         }
         
@@ -859,7 +888,8 @@
                 const textContent = await page.getTextContent();
                 renderTextLayer(textContent, viewport);
                 
-                this.pageNum = pageNum;
+                // Update current page number
+                currentPage = pageNum;
                 updatePageButtons();
             } catch (error) {
                 console.error('Error rendering page:', error);
