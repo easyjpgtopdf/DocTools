@@ -26,9 +26,6 @@ const globalHeaderHTML = `
                 <span></span>
             </button>
             <div class="nav-links">
-                <a href="index.html" class="nav-link">Home</a>
-                <a href="login.html" class="nav-link">Sign In</a>
-                <a href="signup.html" class="nav-link">Signup</a>
                 <div class="dropdown">
                     <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
                     <div class="dropdown-content">
