@@ -149,59 +149,7 @@
         .context-menu-item:hover { background: #f5f5f5; }
         
         @media (max-width: 1024px) {
-
             .a4-preview { width: 100%; max-width: 595px; }
-        }
-
-        // Insert Image handlers
-        let selectedImageEl = null;
-        function onImageChosen(e){
-            const f = e.target.files && e.target.files[0]; if(!f) return;
-            const reader = new FileReader();
-            reader.onload = function(){
-                const img = new Image();
-                img.onload = function(){
-                    img.className = 'overlay-image';
-                    img.src = reader.result;
-                    img.dataset.baseW = Math.min(img.naturalWidth, 400);
-                    img.dataset.baseH = img.naturalHeight * (img.dataset.baseW / img.naturalWidth);
-                    img.style.left = '50px';
-                    img.style.top = '50px';
-                    img.style.width = img.dataset.baseW + 'px';
-                    img.style.height = 'auto';
-                    img.tabIndex = 0;
-                    img.addEventListener('click', (ev)=>{ ev.stopPropagation(); selectImage(img); });
-                    img.addEventListener('dblclick', (ev)=>{ ev.stopPropagation(); selectImage(img); });
-                    // Drag with Ctrl
-                    img.addEventListener('mousedown', (ev)=>{
-                        if(!ev.ctrlKey) return; ev.preventDefault(); selectImage(img);
-                        const sx=ev.clientX, sy=ev.clientY; const l=parseFloat(img.style.left)||0; const t=parseFloat(img.style.top)||0;
-                        function mm(e2){ img.style.left = (l + e2.clientX - sx) + 'px'; img.style.top = (t + e2.clientY - sy) + 'px'; }
-                        function mu(){ window.removeEventListener('mousemove', mm); window.removeEventListener('mouseup', mu); }
-                        window.addEventListener('mousemove', mm); window.addEventListener('mouseup', mu);
-                    });
-                    textLayer.appendChild(img);
-                    selectImage(img);
-                    imgFileInput.value = '';
-                };
-                img.src = reader.result;
-            };
-            reader.readAsDataURL(f);
-        }
-        function selectImage(el){
-            document.querySelectorAll('.overlay-image.selected').forEach(x=>x.classList.remove('selected'));
-            el.classList.add('selected'); selectedImageEl = el;
-            if(tbImageScale){
-                const baseW = parseFloat(el.dataset.baseW)||parseFloat(el.style.width)||100;
-                const curW = parseFloat(el.style.width)||baseW;
-                tbImageScale.value = Math.round((curW/baseW)*100);
-            }
-        }
-        function onImageScaleChange(){
-            if(!selectedImageEl) return;
-            const baseW = parseFloat(selectedImageEl.dataset.baseW)||parseFloat(selectedImageEl.style.width)||100;
-            const scale = Math.max(10, Math.min(300, parseInt(tbImageScale.value||'100',10)))/100;
-            selectedImageEl.style.width = (baseW * scale) + 'px';
         }
         @media (max-width: 768px) { 
             .nav-links { display: none; } 
@@ -1007,9 +955,7 @@
             // Page navigation
             prevPageBtn.addEventListener('click', prevPage);
             nextPageBtn.addEventListener('click', nextPage);
-            // OCR
-            if(ocrBtn){ ocrBtn.addEventListener('click', openCleanOcrEditor); }
-            if(ocrRegionBtn){ ocrRegionBtn.addEventListener('click', enableOcrRegionMode); }
+            // OCR - ocrRegionBtn already handled above in init()
             
             // Canvas setup
             ctx = pdfCanvas.getContext('2d');
@@ -1871,3 +1817,4 @@
         </div>
     </footer>
 </body>
+</html>
