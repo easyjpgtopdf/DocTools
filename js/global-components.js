@@ -186,10 +186,6 @@ const globalHeaderHTML = `
                         <a href="protect-excel.html">Protect Excel Sheet</a>
                     </div>
                 </div>
-                <div class="mobile-menu-auth">
-                    <a href="login.html" class="mobile-auth-link">Sign In</a>
-                    <a href="signup.html" class="mobile-auth-btn">Signup</a>
-                </div>
             </nav>
         </div>
     </div>
