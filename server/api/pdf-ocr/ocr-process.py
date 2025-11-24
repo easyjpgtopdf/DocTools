@@ -9,10 +9,52 @@ import sys
 import json
 import base64
 import io
+import os
+import platform
 from PIL import Image
 import pytesseract
 import cv2
 import numpy as np
+
+# Auto-detect Tesseract path on Windows
+if platform.system() == 'Windows':
+    # Common Tesseract installation paths
+    tesseract_paths = [
+        r'C:\Program Files\Tesseract-OCR\tesseract.exe',
+        r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe',
+        r'C:\Users\{}\AppData\Local\Programs\Tesseract-OCR\tesseract.exe'.format(os.getenv('USERNAME', '')),
+        r'C:\tesseract-ocr\tesseract.exe',
+    ]
+    
+    # Check if tesseract is in PATH first
+    tesseract_found = False
+    try:
+        import shutil
+        tesseract_cmd = shutil.which('tesseract')
+        if tesseract_cmd:
+            pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
+            tesseract_found = True
+    except:
+        pass
+    
+    # If not in PATH, try common installation paths
+    if not tesseract_found:
+        for path in tesseract_paths:
+            if os.path.exists(path):
+                pytesseract.pytesseract.tesseract_cmd = path
+                tesseract_found = True
+                break
+    
+    # If still not found, try to find in Program Files
+    if not tesseract_found:
+        try:
+            import subprocess
+            result = subprocess.run(['where', 'tesseract'], capture_output=True, text=True, shell=True)
+            if result.returncode == 0 and result.stdout.strip():
+                pytesseract.pytesseract.tesseract_cmd = result.stdout.strip().split('\n')[0]
+                tesseract_found = True
+        except:
+            pass
 
 def preprocess_image(image_data):
     """Preprocess image for better OCR accuracy"""
