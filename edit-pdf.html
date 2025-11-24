@@ -342,11 +342,11 @@
         </div>
     </nav>
 
-<div class="container page-wrap">
-<div class="editor-header">
+<div class="container page-wrap"><div class="editor-header">
 <h1>PDF Editor Online Free - Edit PDF Files Online Without Installation</h1>
 <p>Edit PDF files online for free with our advanced PDF editor tool. Add text, images, annotations, highlight content, modify PDF documents, and more - all without software installation. Best free online PDF editor 2024.</p>
 </div>
+
 <div class="editor-card">
 <div aria-label="Upload your PDF" class="upload-area" id="upload-area" role="button" tabindex="0">
 <div class="upload-icon"><i class="fas fa-file-pdf"></i></div>
@@ -358,6 +358,7 @@
 </div>
 <input accept="application/pdf,.pdf" class="file-input" id="file-input" type="file"/>
 </div>
+
 <div class="file-info" id="file-info" style="display: none;">
 <div class="file-details">
 <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
@@ -367,6 +368,7 @@
 </div>
 </div>
 </div>
+
 <h2 style="text-align: center; font-size: 1.8rem; color: var(--primary); margin: 30px 0 20px; font-weight: 700;">Features of Our Free PDF Editor</h2>
 <div class="features">
 <div class="feature-card">
@@ -391,928 +393,190 @@
 </div>
 </div>
 </div>
-<!-- Context Menu -->
-<div class="context-menu" id="context-menu">
-<div class="context-menu-item" id="edit-text">Edit Text</div>
-<div class="context-menu-item" id="change-font">Change Font</div>
-<div class="context-menu-item" id="change-color">Change Color</div>
-<div class="context-menu-item" id="highlight-text">Highlight</div>
-<div class="context-menu-item" id="remove-text">Remove Text</div>
-</div>
+
 <script>
-        const STABLE_MODE = false; // enable full tools, including Insert Image
-        // Set PDF.js worker path
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        
-        // DOM elements
-        const uploadArea = document.getElementById('upload-area');
-        const fileInput = document.getElementById('file-input');
-        const fileInfo = document.getElementById('file-info');
-        const fileName = document.getElementById('file-name');
-        const fileSize = document.getElementById('file-size');
-        const pdfCanvas = document.getElementById('pdf-canvas');
-        const overlayCanvas = document.getElementById('overlay-canvas');
-        const textLayer = document.getElementById('text-layer');
-        const a4Preview = document.getElementById('a4-preview');
-        const zoomInBtn = document.getElementById('zoom-in');
-        const zoomOutBtn = document.getElementById('zoom-out');
-        const zoomFitBtn = document.getElementById('zoom-fit');
-        const zoomPct = document.getElementById('zoom-pct');
-        // Top edit toolbar refs
-        const tbAddText = document.getElementById('tb-add-text');
-        const tbFontFamily = document.getElementById('tb-font-family');
-        const tbFontSize = document.getElementById('tb-font-size');
-        const tbColor = document.getElementById('tb-color');
-        const tbColorPreset = document.getElementById('tb-color-preset');
-        const tbBold = document.getElementById('tb-bold');
-        const tbItalic = document.getElementById('tb-italic');
-        const tbUnderline = document.getElementById('tb-underline');
-        const tbAlignLeft = document.getElementById('tb-align-left');
-        const tbAlignCenter = document.getElementById('tb-align-center');
-        const tbAlignRight = document.getElementById('tb-align-right');
-        const highlightBtns = document.querySelectorAll('.highlight-btn');
-        const prevPageBtn = document.getElementById('prev-page');
-        const nextPageBtn = document.getElementById('next-page');
-        const pageNum = document.getElementById('page-num');
-        const pageCount = document.getElementById('page-count');
-        const saveBtn = document.getElementById('save-btn');
-        const saveOcrOnlyBtn = document.getElementById('save-ocr-only-btn');
-        const saveSelectableBtn = document.getElementById('save-selectable-btn');
-        const newFileBtn = document.getElementById('new-file-btn');
-        const addFontInput = document.getElementById('add-font-input');
-        // Image controls
-        const tbInsertImage = document.getElementById('tb-insert-image');
-        const imgFileInput = document.getElementById('img-file-input');
-        const tbImageScale = document.getElementById('tb-image-scale');
-        const progressContainer = document.getElementById('progress-container');
-        const progressBar = document.getElementById('progress-bar');
-        const progressText = document.getElementById('progress-text');
-        const loading = document.getElementById('loading');
-        const successMessage = document.getElementById('success-message');
-        const errorMessage = document.getElementById('error-message');
-        const errorText = document.getElementById('error-text');
-        const contextMenu = document.getElementById('context-menu');
-        // OCR controls
-        const ocrLang = document.getElementById('ocr-lang');
-        const ocrAuto = document.getElementById('ocr-auto');
-        
-        // Tool elements
-        const selectTool = document.getElementById('select-tool');
-        const textTool = document.getElementById('text-tool');
-        const highlightTool = document.getElementById('highlight-tool');
-        const colorPicker = document.getElementById('color-picker');
-        const fontSizeSelect = document.getElementById('font-size');
-        const fontFamilySelect = document.getElementById('font-family');
-        // Left panel action buttons
-        const undoBtn = document.getElementById('undo-btn');
-        const redoBtn = document.getElementById('redo-btn');
-        const clearBtn = document.getElementById('clear-btn');
-        
-        const ocrBtn = document.getElementById('ocr-btn');
-        const ocrRegionBtn = document.getElementById('ocr-region-btn');
-        
-        // PDF state
-        let pdfDoc = null;
-        let currentPage = 1;
-        let currentScale = 1.0;
-        let currentFile = null;
-        let textAnnotations = [];
-        let annotationHistory = [];
-        let redoHistory = [];
-        let activeTool = 'select';
-        let ctx, overlayCtx;
-        let uiZoom = 1;
-        let selectedTextElement = null;
-        let highlightColor = '#FFFF00';
-        let lastRenderMetrics = { xOffset:0, yOffset:0, scale:1, pageWidth:595, pageHeight:842 };
-        const embeddedFonts = {}; // key: family(lowercase) or filename -> {name, data}
-        let lastExtractedOverlayCount = 0; // overlays created from PDF.js text extraction for current page
-        
-        // Initialize
-        function init() {
-            // Ensure canvases and contexts are ready early
-            if (!ctx && pdfCanvas) ctx = pdfCanvas.getContext('2d');
-            if (!overlayCtx && overlayCanvas) overlayCtx = overlayCanvas.getContext('2d');
-            // Set up event listeners
-            uploadArea.addEventListener('click', () => fileInput.click());
-            uploadArea.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); fileInput.click(); }});
-            uploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadArea.classList.add('dragover');
-            });
-            uploadArea.addEventListener('dragleave', () => {
-                uploadArea.classList.remove('dragover');
-            });
-            uploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadArea.classList.remove('dragover');
-                handleFile(e.dataTransfer.files[0]);
-            });
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) handleFile(e.target.files[0]);
-            });
-            
-            // Tool event listeners
-            selectTool.addEventListener('click', () => setActiveTool('select'));
-            textTool.addEventListener('click', () => setActiveTool('text'));
-            highlightTool.addEventListener('click', () => setActiveTool('highlight'));
-            if(undoBtn) undoBtn.addEventListener('click', undo);
-            if(redoBtn) redoBtn.addEventListener('click', redo);
-            if(clearBtn) clearBtn.addEventListener('click', clearAnnotations);
-            saveBtn.addEventListener('click', savePDF);
-            if(saveOcrOnlyBtn) saveOcrOnlyBtn.addEventListener('click', saveOCROnlyPDF);
-            if(saveSelectableBtn) saveSelectableBtn.addEventListener('click', saveSelectablePDF);
-            newFileBtn.addEventListener('click', resetEditor);
-            if(!STABLE_MODE){
-                if(tbInsertImage) tbInsertImage.addEventListener('click', ()=>{ if(imgFileInput) imgFileInput.click(); });
-                if(imgFileInput) imgFileInput.addEventListener('change', (e)=>{ if(typeof onImageChosen==='function') onImageChosen(e); });
-                if(tbImageScale) tbImageScale.addEventListener('input', ()=>{ if(typeof onImageScaleChange==='function') onImageScaleChange(); });
-            }
+// Set PDF.js worker path
+if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
 
-            // Custom Font Upload -> store for selectable export and apply in UI list
-            if(addFontInput){
-                addFontInput.addEventListener('change', async (e)=>{
-                    try{
-                        const f = e.target.files && e.target.files[0];
-                        if(!f) return;
-                        const buf = await f.arrayBuffer();
-                        // Derive a family name from filename (without extension)
-                        const name = (f.name||'custom').replace(/\.[^.]+$/,'');
-                        const key = name.trim().toLowerCase();
-                        embeddedFonts[key] = { name, data: new Uint8Array(buf) };
-                        // Add to font family dropdowns if present
-                        if(tbFontFamily){
-                            const opt = document.createElement('option');
-                            opt.textContent = name; opt.value = name;
-                            tbFontFamily.appendChild(opt);
-                            tbFontFamily.value = name;
-                        }
-                        if(fontFamilySelect){
-                            const opt2 = document.createElement('option');
-                            opt2.textContent = name; opt2.value = name;
-                            fontFamilySelect.appendChild(opt2);
-                            fontFamilySelect.value = name;
-                        }
-                        // Prefer this font for new text overlays
-                        if(tbFontFamily) tbFontFamily.dispatchEvent(new Event('change'));
-                    }catch(err){ console.error('Font add failed', err); showError('Failed to add font'); }
-                    finally{ addFontInput.value = ''; }
-                });
-            }
+// DOM elements
+const uploadArea = document.getElementById('upload-area');
+const fileInput = document.getElementById('file-input');
+const fileInfo = document.getElementById('file-info');
+const fileName = document.getElementById('file-name');
+const fileSize = document.getElementById('file-size');
 
-            // Page navigation
-            prevPageBtn.addEventListener('click', prevPage);
-            nextPageBtn.addEventListener('click', nextPage);
-            // OCR
-            if(ocrBtn){ ocrBtn.addEventListener('click', openCleanOcrEditor); }
-            if(ocrRegionBtn){ ocrRegionBtn.addEventListener('click', enableOcrRegionMode); }
-            
-            // Canvas setup
-            ctx = pdfCanvas.getContext('2d');
-            overlayCtx = overlayCanvas.getContext('2d');
-            
-            // Set A4 dimensions (595x842 pixels at 72 DPI)
-            pdfCanvas.width = 595;
-            pdfCanvas.height = 842;
-            overlayCanvas.width = 595;
-            overlayCanvas.height = 842;
-            // Zoom controls
-            if(zoomInBtn) zoomInBtn.addEventListener('click', ()=> setUiZoom(uiZoom + 0.1));
-            if(zoomOutBtn) zoomOutBtn.addEventListener('click', ()=> setUiZoom(uiZoom - 0.1));
-            if(zoomFitBtn) zoomFitBtn.addEventListener('click', fitPreviewToWidth);
-            window.addEventListener('resize', ()=>{ if(zoomFitBtn) fitPreviewToWidth(); });
-            // Edit toolbar actions
-            // Helper to get current target element (editing or selected)
-            function getCurrentTextEl(){
-                return selectedTextElement || document.querySelector('.editable-text.editing') || document.querySelector('.editable-text.selected');
-            }
-            if(tbAddText) tbAddText.addEventListener('click', ()=> setActiveTool('text'));
-            if(tbFontFamily) tbFontFamily.addEventListener('change', ()=>{ const el=getCurrentTextEl(); if(el){ el.style.fontFamily = tbFontFamily.value; saveTextAnnotation(el); updateMask(el);} });
-            if(tbFontSize) tbFontSize.addEventListener('change', ()=>{ const el=getCurrentTextEl(); if(el){ el.style.fontSize = tbFontSize.value + 'px'; saveTextAnnotation(el); updateMask(el);} });
-            if(tbColor) tbColor.addEventListener('input', ()=>{ const el=getCurrentTextEl(); if(el){ el.style.color = tbColor.value; saveTextAnnotation(el); }});
-            if(tbColorPreset) tbColorPreset.addEventListener('change', ()=>{ const v = tbColorPreset.value; if(tbColor) tbColor.value = v; const el=getCurrentTextEl(); if(el){ el.style.color = v; saveTextAnnotation(el); }});
-            if(tbBold) tbBold.addEventListener('click', ()=>{ const el=getCurrentTextEl(); if(el){ const w=getComputedStyle(el).fontWeight; el.style.fontWeight = (w==='700'||w==='bold')?'400':'700'; saveTextAnnotation(el); updateMask(el);} });
-            if(tbItalic) tbItalic.addEventListener('click', ()=>{ const el=getCurrentTextEl(); if(el){ const s=getComputedStyle(el).fontStyle; el.style.fontStyle = (s==='italic')?'normal':'italic'; saveTextAnnotation(el); updateMask(el);} });
-            if(tbUnderline) tbUnderline.addEventListener('click', ()=>{ const el=getCurrentTextEl(); if(el){ const d=getComputedStyle(el).textDecorationLine; el.style.textDecoration = (d.includes('underline'))?'none':'underline'; saveTextAnnotation(el); updateMask(el);} });
-            if(tbAlignLeft) tbAlignLeft.addEventListener('click', ()=>{ if(selectedTextElement){ selectedTextElement.style.textAlign='left'; saveTextAnnotation(selectedTextElement);} });
-            if(tbAlignCenter) tbAlignCenter.addEventListener('click', ()=>{ if(selectedTextElement){ selectedTextElement.style.textAlign='center'; saveTextAnnotation(selectedTextElement);} });
-            if(tbAlignRight) tbAlignRight.addEventListener('click', ()=>{ if(selectedTextElement){ selectedTextElement.style.textAlign='right'; saveTextAnnotation(selectedTextElement);} });
-            
-            // Highlight color buttons (left panel) â set active color and apply immediately if a text element is selected/editing
-            highlightBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    highlightBtns.forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    highlightColor = btn.dataset.color;
-                    const el=getCurrentTextEl();
-                    if(el){ el.style.backgroundColor = highlightColor; saveTextAnnotation(el); updateMask(el); }
-                });
-            });
-            
-            // Context menu event listeners (guard for null)
-            const cmEdit = document.getElementById('edit-text');
-            const cmFont = document.getElementById('change-font');
-            const cmColor = document.getElementById('change-color');
-            const cmHighlight = document.getElementById('highlight-text');
-            const cmRemove = document.getElementById('remove-text');
-            if(cmEdit) cmEdit.addEventListener('click', editSelectedText);
-            if(cmFont) cmFont.addEventListener('click', changeSelectedFont);
-            if(cmColor) cmColor.addEventListener('click', changeSelectedColor);
-            if(cmHighlight) cmHighlight.addEventListener('click', highlightSelectedText);
-            if(cmRemove) cmRemove.addEventListener('click', removeSelectedText);
-            
-            // Close context menu when clicking elsewhere
-            document.addEventListener('click', (e) => {
-                if (!contextMenu.contains(e.target)) {
-                    contextMenu.style.display = 'none';
-                }
-            });
-            
-            // Set initial tool
-            setActiveTool('select');
+// Format file size
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+// Handle file selection
+function handleFile(file) {
+    console.log("File selected:", file);
+    
+    // Validate file type
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+        alert('Please select a valid PDF file');
+        return;
+    }
+    
+    // Check file size (50MB limit)
+    if (file.size > 50 * 1024 * 1024) {
+        if(!confirm('This file is larger than 50MB. It may be slow to load. Continue?')){ 
+            return; 
         }
+    }
+    
+    // Show file info
+    fileName.textContent = file.name;
+    fileSize.textContent = formatFileSize(file.size);
+    fileInfo.style.display = 'block';
+    
+    // Store file data and redirect to preview page
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        // Use IndexedDB for large files (better than sessionStorage)
+        const request = indexedDB.open('PDFEditorDB', 1);
         
-        // Handle file upload
-        function handleFile(file) {
-            console.log("File selected:", file);
+        request.onerror = function() {
+            // Fallback: use blob URL if IndexedDB fails
+            const blob = new Blob([e.target.result], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            sessionStorage.setItem('pdfFileURL', url);
+            sessionStorage.setItem('pdfFileName', file.name);
+            sessionStorage.setItem('pdfFileSize', file.size.toString());
+            window.location.href = 'edit-pdf-preview.html';
+        };
+        
+        request.onsuccess = function() {
+            const db = request.result;
             
-            // Validate file type
-            if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-                showError('Please select a valid PDF file');
-                return;
-            }
-            
-            // Check file size
-            if (file.size > 50 * 1024 * 1024) {
-                if(!confirm('This file is larger than 50MB. It may be slow to load. Continue?')){ 
-                    return; 
-                }
-            }
-            
-            // Store file data and redirect to preview page
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                // Use IndexedDB for large files (better than sessionStorage)
-                const request = indexedDB.open('PDFEditorDB', 1);
-                request.onerror = function() {
-                    // Fallback: use blob URL if IndexedDB fails
-                    const blob = new Blob([e.target.result], { type: 'application/pdf' });
-                    const url = URL.createObjectURL(blob);
-                    sessionStorage.setItem('pdfFileURL', url);
-                    sessionStorage.setItem('pdfFileName', file.name);
-                    sessionStorage.setItem('pdfFileSize', file.size.toString());
-                    window.location.href = 'edit-pdf-preview.html';
-                };
-                request.onsuccess = function() {
-                    const db = request.result;
-                    const transaction = db.transaction(['pdfFiles'], 'readwrite');
-                    const store = transaction.objectStore('pdfFiles');
-                    const fileData = {
-                        name: file.name,
-                        size: file.size,
-                        type: file.type,
-                        data: e.target.result,
-                        timestamp: Date.now()
-                    };
-                    store.put(fileData, 'current');
-                    transaction.oncomplete = function() {
-                        window.location.href = 'edit-pdf-preview.html';
-                    };
-                    transaction.onerror = function() {
-                        // Fallback to blob URL if transaction fails
-                        const blob = new Blob([e.target.result], { type: 'application/pdf' });
-                        const url = URL.createObjectURL(blob);
-                        sessionStorage.setItem('pdfFileURL', url);
-                        sessionStorage.setItem('pdfFileName', file.name);
-                        sessionStorage.setItem('pdfFileSize', file.size.toString());
-                        window.location.href = 'edit-pdf-preview.html';
-                    };
-                };
-                request.onupgradeneeded = function() {
-                    const db = request.result;
+            // Create object store if it doesn't exist
+            if (!db.objectStoreNames.contains('pdfFiles')) {
+                db.close();
+                const upgradeRequest = indexedDB.open('PDFEditorDB', 2);
+                upgradeRequest.onupgradeneeded = function(event) {
+                    const db = event.target.result;
                     if (!db.objectStoreNames.contains('pdfFiles')) {
-                        db.createObjectStore('pdfFiles');
+                        db.createObjectStore('pdfFiles', { keyPath: 'id', autoIncrement: true });
                     }
                 };
-            };
-            reader.onerror = function() {
-                showError('Error reading file. Please try again.');
-            };
-            reader.readAsArrayBuffer(file);
-        }
-        
-        // Load PDF document
-        function loadPDF(file) {
-            progressContainer.style.display = 'block';
-            updateProgress(10, 'Loading PDF...');
-            
-            const fileReader = new FileReader();
-            
-            fileReader.onload = function() {
-                const typedArray = new Uint8Array(this.result);
-                
-                // Use pdfjsLib from the global scope
-                // If opened via file:// protocol, disable worker (browser may block cross-origin worker)
-                try{
-                    if(location && location.protocol === 'file:'){
-                        pdfjsLib.GlobalWorkerOptions.workerSrc = null; // ensure no remote worker
-                    }else{
-                        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-                    }
-                }catch(_){ }
-                const docOpts = (location && location.protocol === 'file:') ? { data: typedArray, disableWorker: true } : { data: typedArray };
-                pdfjsLib.getDocument(docOpts).promise.then(function(pdf) {
-                    pdfDoc = pdf;
-                    pageCount.textContent = pdf.numPages;
-                    updateProgress(50, 'Rendering PDF...');
-                    
-                    // Render first page
-                    renderPage(currentPage);
-                    
-                    // Show editor section
-                    editorSection.style.display = 'block';
-                    saveBtn.disabled = false;
-                    if(saveOcrOnlyBtn) saveOcrOnlyBtn.disabled = false;
-                    updateProgress(100, 'PDF loaded successfully');
-                    
-                    setTimeout(() => {
-                        progressContainer.style.display = 'none';
-                    }, 1000);
-                    
-                }).catch(function(error) {
-                    console.error('Error loading PDF:', error);
-                    showError('Failed to load PDF. If you opened this page from your disk (file://), please try again or run with a local server.');
-                    progressContainer.style.display = 'none';
-                });
-            };
-            
-            fileReader.onerror = function() {
-                console.error('Error reading file');
-                showError('Error reading file. Please try again.');
-                progressContainer.style.display = 'none';
-            };
-            
-            fileReader.readAsArrayBuffer(file);
-        }
-        
-        // Render PDF page
-        function renderPage(pageNum) {
-            if (!pdfDoc) return;
-            // Ensure contexts exist
-            if (!ctx && pdfCanvas) ctx = pdfCanvas.getContext('2d');
-            if (!overlayCtx && overlayCanvas) overlayCtx = overlayCanvas.getContext('2d');
-            if (!ctx) { console.error('Canvas context not ready'); showError('Preview not ready. Please retry upload.'); return; }
-            pdfDoc.getPage(pageNum).then(function(page) {
-                const viewport = page.getViewport({ scale: 1.0 });
-                const scaleX = 595 / viewport.width;
-                const scaleY = 842 / viewport.height;
-                currentScale = Math.min(scaleX, scaleY);
-                const scaledViewport = page.getViewport({ scale: currentScale });
-                // Prepare target canvases
-                pdfCanvas.width = 595; pdfCanvas.height = 842;
-                overlayCanvas.width = 595; overlayCanvas.height = 842;
-                // re-acquire contexts after size change (some browsers drop state)
-                if (pdfCanvas) ctx = pdfCanvas.getContext('2d');
-                if (overlayCanvas) overlayCtx = overlayCanvas.getContext('2d');
-                if (!ctx) { console.error('Canvas context not ready after resize'); showError('Preview not ready. Please retry upload.'); return; }
-                const xOffset = (595 - scaledViewport.width) / 2;
-                const yOffset = (842 - scaledViewport.height) / 2;
-                lastRenderMetrics = { xOffset, yOffset, scale: currentScale, pageWidth: scaledViewport.width, pageHeight: scaledViewport.height };
-                // Clear base/overlay to white background
-                ctx.setTransform(1,0,0,1,0,0);
-                ctx.clearRect(0,0,pdfCanvas.width,pdfCanvas.height);
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(0,0,pdfCanvas.width,pdfCanvas.height);
-                if(overlayCtx){ overlayCtx.clearRect(0,0,overlayCanvas.width, overlayCanvas.height); }
-                // Render into an offscreen canvas to avoid transform issues
-                const off = document.createElement('canvas');
-                off.width = Math.ceil(scaledViewport.width);
-                off.height = Math.ceil(scaledViewport.height);
-                const offctx = off.getContext('2d');
-                const task = page.render({ canvasContext: offctx, viewport: scaledViewport });
-                task.promise.then(function(){
-                    // Blit to A4 canvas centered
-                    ctx.drawImage(off, Math.round(xOffset), Math.round(yOffset));
-                    document.getElementById('page-num').textContent = currentPage;
-                    // Build editable text overlays from PDF content (OCR fallback if none)
-                    lastExtractedOverlayCount = 0;
-                    extractTextContent(page, xOffset, yOffset, currentScale);
-                    renderTextAnnotations();
-                    fitPreviewToWidth();
-                    // If no selectable text was found (likely scanned PDF), fallback to OCR automatically
-                    if(lastExtractedOverlayCount === 0){
-                        runOcrOnCurrentPage();
-                    } else if(ocrAuto && ocrAuto.checked){
-                        runOcrOnCurrentPage();
-                    }
-                }).catch(function(err){
-                    console.error('PDF render (offscreen) error:', err);
-                    showError('Failed to render PDF page.');
-                });
-            }).catch(function(err){
-                console.error('PDF getPage error:', err);
-                showError('Failed to load PDF page.');
-            });
-        }
-
-        // Save selectable PDF by embedding fonts and writing text via pdf-lib
-        async function saveSelectablePDF(){
-            if(!pdfDoc || !currentFile) return;
-            loading.style.display = 'block'; hideMessages();
-            try{
-                const fileBytes = await currentFile.arrayBuffer();
-                const pdfDocW = await PDFLib.PDFDocument.load(fileBytes);
-                const page = pdfDocW.getPage(currentPage-1);
-                if(!page){ throw new Error('Page not found'); }
-                // Prepare font cache in this doc
-                const fontCache = {};
-                async function getFontForFamily(family){
-                    if(!family) family = 'Arial';
-                    const key = family.split(',')[0].trim().replace(/"/g,'').toLowerCase();
-                    if(fontCache[key]) return fontCache[key];
-                    // Try embedded custom
-                    if(embeddedFonts[key]){
-                        fontCache[key] = await pdfDocW.embedFont(embeddedFonts[key].data, { subset:true });
-                        return fontCache[key];
-                    }
-                    // Fallback map
-                    const std = PDFLib.StandardFonts;
-                    const pref = key.includes('times')?std.TimesRoman: key.includes('courier')?std.Courier: std.Helvetica;
-                    fontCache[key] = await pdfDocW.embedFont(pref);
-                    return fontCache[key];
-                }
-                // Write each editable text (await fonts and draw in order)
-                const nodes = Array.from(textLayer.querySelectorAll('.editable-text'));
-                const { xOffset, yOffset, scale } = lastRenderMetrics;
-                const ph = page.getHeight();
-                for(const el of nodes){
-                    const left = parseFloat(el.style.left)||0;
-                    const top = parseFloat(el.style.top)||0;
-                    const fs = parseFloat(el.style.fontSize)||14;
-                    const fam = (el.style.fontFamily||'Helvetica');
-                    const col = el.style.color || '#000000';
-                    const lines = (el.textContent||'').split('\n');
-                    const pdfX = (left - xOffset)/scale;
-                    const yTop = (top - yOffset)/scale;
-                    const baseY = ph - (yTop + fs/scale);
-                    const rgb = hexToRgb01(col);
-                    const font = await getFontForFamily(fam);
-                    const sizePt = fs/scale;
-                    for(let idx=0; idx<lines.length; idx++){
-                        const line = lines[idx];
-                        const y = baseY + (lines.length-1-idx)*(fs*1.2/scale);
-                        page.drawText(line, { x: pdfX, y, font, size: sizePt, color: PDFLib.rgb(rgb.r, rgb.g, rgb.b) });
-                    }
-                }
-                const outBytes = await pdfDocW.save();
-                const blob = new Blob([outBytes], { type:'application/pdf' });
-                const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-                a.download = 'selectable-' + (currentFile.name.replace(/\.pdf$/i,'') || 'document') + '.pdf'; a.click();
-                loading.style.display = 'none'; successMessage.style.display = 'block';
-            }catch(err){
-                console.error(err);
-                loading.style.display = 'none'; showError('Selectable save failed.');
+                upgradeRequest.onsuccess = function() {
+                    storeFileAndRedirect(upgradeRequest.result, e.target.result, file);
+                };
+            } else {
+                storeFileAndRedirect(db, e.target.result, file);
             }
-        }
+        };
+        
+        request.onupgradeneeded = function(event) {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains('pdfFiles')) {
+                db.createObjectStore('pdfFiles', { keyPath: 'id', autoIncrement: true });
+            }
+        };
+    };
+    
+    reader.readAsArrayBuffer(file);
+}
 
-        function hexToRgb01(hex){
-            const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex||'#000000');
-            if(!m) return {r:0,g:0,b:0};
-            return { r: parseInt(m[1],16)/255, g: parseInt(m[2],16)/255, b: parseInt(m[3],16)/255 };
-        }
+// Store file in IndexedDB and redirect
+function storeFileAndRedirect(db, fileData, file) {
+    const transaction = db.transaction(['pdfFiles'], 'readwrite');
+    const store = transaction.objectStore('pdfFiles');
+    
+    // Clear old files
+    store.clear().onsuccess = function() {
+        // Store new file
+        const request = store.add({
+            data: fileData,
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            timestamp: Date.now()
+        });
         
-        // Extract text content from PDF for editing
-        function extractTextContent(page, xOffset, yOffset, scale) {
-            textLayer.innerHTML = '';
-            page.getTextContent().then(function(textContent) {
-                const items = textContent.items || [];
-                if(!items.length){ lastExtractedOverlayCount = 0; return; }
-                items.forEach(function(textItem) {
-                    const tx = xOffset + (textItem.transform[4] * scale);
-                    const ty = 842 - (yOffset + (textItem.transform[5] * scale));
-                    
-                    // Create editable text element
-                    const textEl = document.createElement('div');
-                    textEl.className = 'editable-text';
-                    textEl.textContent = textItem.str;
-                    textEl.style.left = tx + 'px';
-                    textEl.style.top = (ty - 15) + 'px'; // Adjust for text height
-                    textEl.style.fontSize = (textItem.height * scale) + 'px';
-                    textEl.style.color = '#000000';
-                    textEl.style.fontFamily = 'Noto Sans, Arial, sans-serif';
-                    textEl.style.cursor = 'text';
-                    textEl.tabIndex = 0;
-                    
-                    // Store original properties
-                    textEl.dataset.originalText = textItem.str;
-                    textEl.dataset.originalFont = textItem.fontName;
-                    textEl.dataset.originalSize = (textItem.height * scale);
-                    textEl.dataset.originalX = tx;
-                    textEl.dataset.originalY = ty;
-                    
-                    // Add event listeners
-                    textEl.addEventListener('dblclick', function(e) {
-                        e.stopPropagation();
-                        makeTextEditable(textEl, e);
-                    });
-                    
-                    textEl.addEventListener('contextmenu', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        showContextMenu(e, textEl);
-                    });
-                    
-                    textEl.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        selectTextElement(textEl);
-                        // Enter edit mode on single click for faster editing
-                        makeTextEditable(textEl, e);
-                    });
-                    
-                    textLayer.appendChild(textEl);
-                    lastExtractedOverlayCount++;
-                });
-            });
-        }
-        
-        // Make text element editable (contentEditable inline)
-        function makeTextEditable(textEl, clickEvent) {
-            document.querySelectorAll('.editable-text.selected').forEach(el => {
-                el.classList.remove('selected', 'editing');
-                el.contentEditable = 'false';
-            });
-            textEl.classList.add('selected', 'editing');
-            selectedTextElement = textEl;
-            textEl.contentEditable = 'true';
-            // place caret at click position if possible, otherwise at end
-            const sel = window.getSelection();
-            sel.removeAllRanges();
-            let range = document.createRange();
-            try{
-                if(clickEvent && document.caretRangeFromPoint){
-                    const r = document.caretRangeFromPoint(clickEvent.clientX, clickEvent.clientY);
-                    if(r){ range = r; }
-                    else { range.selectNodeContents(textEl); range.collapse(false); }
-                } else if(clickEvent && document.caretPositionFromPoint){
-                    const pos = document.caretPositionFromPoint(clickEvent.clientX, clickEvent.clientY);
-                    if(pos){ range.setStart(pos.offsetNode, pos.offset); range.collapse(true); }
-                    else { range.selectNodeContents(textEl); range.collapse(false); }
-                } else {
-                    range.selectNodeContents(textEl); range.collapse(false);
-                }
-            }catch(_){ range.selectNodeContents(textEl); range.collapse(false); }
-            sel.addRange(range);
-            textEl.focus();
-            // stop propagation to avoid page click handlers
-            textEl.addEventListener('keydown', (e)=>{
-                // allow natural typing/backspace/delete; prevent bubbling for navigation keys
-                e.stopPropagation();
-            });
-            // ensure underlying mask to hide original canvas text
-            ensureMask(textEl);
-            textEl.addEventListener('input', ()=> updateMask(textEl));
-            textEl.addEventListener('blur', ()=>{
-                textEl.classList.remove('editing');
-                textEl.contentEditable = 'false';
-                saveTextAnnotation(textEl);
-            }, { once: true });
-        }
-        
-        // Finish editing text no longer needed (handled on blur)
-        
-        // Save text annotation
-        function saveTextAnnotation(textEl) {
-            const annotation = {
-                type: 'text',
-                text: textEl.textContent,
-                x: parseFloat(textEl.style.left),
-                y: parseFloat(textEl.style.top),
-                fontSize: parseFloat(textEl.style.fontSize),
-                fontFamily: textEl.style.fontFamily || 'Arial',
-                color: textEl.style.color,
-                page: currentPage,
-                timestamp: Date.now()
-            };
+        request.onsuccess = function() {
+            // Store metadata in sessionStorage for quick access
+            sessionStorage.setItem('pdfFileId', request.result.toString());
+            sessionStorage.setItem('pdfFileName', file.name);
+            sessionStorage.setItem('pdfFileSize', file.size.toString());
+            sessionStorage.setItem('pdfFileType', file.type);
             
-            addAnnotation(annotation);
-        }
+            // Redirect to preview page
+            window.location.href = 'edit-pdf-preview.html';
+        };
         
-        // Show context menu for text element
-        function showContextMenu(e, textEl) {
+        request.onerror = function() {
+            console.error('Failed to store file in IndexedDB');
+            // Fallback to blob URL
+            const blob = new Blob([fileData], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            sessionStorage.setItem('pdfFileURL', url);
+            sessionStorage.setItem('pdfFileName', file.name);
+            sessionStorage.setItem('pdfFileSize', file.size.toString());
+            window.location.href = 'edit-pdf-preview.html';
+        };
+    };
+}
+
+// Event listeners
+if (fileInput) {
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            handleFile(file);
+        }
+    });
+}
+
+if (uploadArea) {
+    // Click to browse
+    uploadArea.addEventListener('click', function() {
+        fileInput.click();
+    });
+    
+    // Keyboard support
+    uploadArea.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            selectedTextElement = textEl;
-            
-            contextMenu.style.left = e.pageX + 'px';
-            contextMenu.style.top = e.pageY + 'px';
-            contextMenu.style.display = 'block';
+            fileInput.click();
         }
-        
-        // Edit selected text
-        function editSelectedText() {
-            if (selectedTextElement) {
-                makeTextEditable(selectedTextElement);
-                contextMenu.style.display = 'none';
-            }
-        }
-
-        // Save OCR-Only (no background image), Unicode-safe by rasterizing text via Canvas
-        async function saveOCROnlyPDF(){
-            if (!pdfDoc || !currentFile) return;
-            loading.style.display = 'block';
-            hideMessages();
-            try{
-                // Build an offscreen canvas with white background
-                const w = 595, h = 842;
-                const out = document.createElement('canvas'); out.width = w; out.height = h;
-                const octx = out.getContext('2d');
-                octx.fillStyle = '#FFFFFF';
-                octx.fillRect(0,0,w,h);
-                // Draw text overlays using browser font stack (Unicode-friendly)
-                const nodes = Array.from(textLayer.querySelectorAll('.editable-text'));
-                nodes.forEach(el => {
-                    const left = parseFloat(el.style.left)||0;
-                    const top = parseFloat(el.style.top)||0;
-                    const fs = parseFloat(el.style.fontSize)||14;
-                    const fam = el.style.fontFamily || 'Noto Sans, Arial';
-                    const col = el.style.color || '#000';
-                    const cs = getComputedStyle(el);
-                    const fw = cs.fontWeight;
-                    const it = cs.fontStyle;
-                    octx.fillStyle = col;
-                    octx.textBaseline = 'top';
-                    octx.font = `${it==='italic'?'italic ':''}${(fw==='700'||fw==='bold')?'bold ':''}${fs}px ${fam}`;
-                    const lines = (el.textContent||'').split('\n');
-                    let y = top; const lh = fs*1.2;
-                    lines.forEach(line=>{ octx.fillText(line, left, y); y += lh; });
-                });
-                // Draw overlay images
-                const imgs = Array.from(textLayer.querySelectorAll('.overlay-image'));
-                await Promise.all(imgs.map(el=> new Promise((res)=>{ const im = new Image(); im.onload=()=>{ const left=parseFloat(el.style.left)||0; const top=parseFloat(el.style.top)||0; const wv=parseFloat(el.style.width)||im.naturalWidth; const hv=im.naturalHeight*(wv/im.naturalWidth); octx.drawImage(im, left, top, wv, hv); res(); }; im.src = el.src; })));
-                // Export to PDF as a single image
-                const imgData = out.toDataURL('image/png');
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF({ unit:'pt', format:[w,h], compress:true });
-                doc.addImage(imgData, 'PNG', 0, 0, w, h);
-                const fname = 'ocr-only-' + (currentFile.name.replace(/\.pdf$/i,'') || 'document') + '.pdf';
-                doc.save(fname);
-                loading.style.display = 'none';
-                successMessage.style.display = 'block';
-            }catch(err){
-                console.error(err);
-                loading.style.display = 'none';
-                showError('Save failed.');
-            }
-        }
-
-        // Open a clean OCR-only editor in a new tab/window (no background shadow)
-        function openCleanOcrEditor(){
-            if(!pdfDoc){ showError('Please upload a PDF first'); return; }
-            const img = pdfCanvas.toDataURL('image/png');
-            const w = window.open('about:blank', '_blank');
-            if(!w){ showError('Popup blocked. Please allow popups for this site.'); return; }
-            const d = w.document; d.open();
-            d.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>PDF Editor Online Free - Edit PDF Files Online Without Installation | easyjpgtopdf</title>
-    <meta name="description" content="Edit PDF files online for free. Add text, images, annotations, modify PDF documents, highlight content - all without software installation. Best free online PDF editor 2024.">
-    <meta name="keywords" content="pdf editor online free, edit pdf online, free pdf editor, online pdf editor, edit pdf files, pdf editing tool, modify pdf, edit pdf documents, pdf editor free online, best pdf editor online, edit pdf online free no download, pdf editor website, free online pdf editor, edit pdf text, pdf editor tool">
-    <link rel="stylesheet" href="css/footer.css"></link>');
-            d.write('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></link>');
-            d.write('<style>body{margin:16px;background:#f5f7ff;font-family:Segoe UI,Tahoma,Arial,sans-serif}.toolbar select,.toolbar input[type=color]{padding:6px 8px;border:1px solid #ddd;border-radius:8px;background:#fff}.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer}.page{width:595px;min-height:842px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.12);margin:0 auto;position:relative}#text-layer{position:absolute;inset:0}.editable-text{position:absolute;cursor:text;padding:2px 4px;border:1px dashed transparent;user-select:text;white-space:pre-wrap;z-index:2}.editable-text.selected{border-color:#4361ee;background:rgba(67,97,238,.08)}.editable-text.editing{border:2px solid #4361ee;background:#fff;z-index:3;outline:none}</style>');
-            d.write('    
-
-    <link rel="stylesheet" href="css/header.css"></link>
-    <link rel="stylesheet" href="css/theme-modern.css"></link>
-        <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "PDF Editor Online Free",
-      "description": "Edit PDF files online for free. Add text, images, annotations, modify PDF documents, highlight content - all without software installation. Best free online PDF editor 2024.",
-      "url": "https://easyjpgtopdf.com/edit-pdf.html",
-      "applicationCategory": "UtilityApplication",
-      "operatingSystem": "Any",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
-      },
-      "featureList": [
-        "Edit PDF text online",
-        "Add images to PDF",
-        "OCR text recognition",
-        "Real-time PDF editing",
-        "Full A4 preview",
-        "No software installation required"
-      ],
-      "inLanguage": "en-US",
-      "isPartOf": {
-        "@type": "WebSite",
-        "name": "easyjpgtopdf",
-        "url": "https://easyjpgtopdf.com"
-      },
-      "publisher": {
-        "@type": "Organization",
-        "name": "easyjpgtopdf",
-        "url": "https://easyjpgtopdf.com"
-      },
-      "author": {
-        "@type": "Person",
-        "name": "Riyaz Mohammad"
-      }
-    }
-    </script>
-</head><body>');
-            d.write('<div class="toolbar">'
-              + '<select id="ff"><option>Inter</option><option>Roboto</option><option>Open Sans</option><option>Lato</option><option>Poppins</option><option>Montserrat</option><option>Source Sans 3</option><option>Noto Sans</option><option>PT Sans</option><option>PT Serif</option><option>Merriweather</option><option>Georgia</option><option>Verdana</option><option>Courier New</option><option>Times New Roman</option><option selected>Arial</option></select>'
-              + '<select id="fs"><option>10</option><option>12</option><option selected>14</option><option>16</option><option>18</option><option>24</option><option>32</option></select>'
-              + '<input id="tc" type="color" value="#111827" title="Text Color"></input>'
-              + '<button id="bBold" class="btn" title="Bold"><i class="fas fa-bold"></i></button>'
-              + '<button id="bItalic" class="btn" title="Italic"><i class="fas fa-italic"></i></button>'
-              + '<button id="bUnderline" class="btn" title="Underline"><i class="fas fa-underline"></i></button>'
-              + '<button id="bSave" class="btn" title="Save"><i class="fas fa-download"></i> Save</button>'
-              + '</div>');
-            d.write('<div class="page"><div id="text-layer"></div></div>');
-            d.write('
-    </script>
+    });
     
-    <section class="how-to-guide" style="margin: 40px 0; padding: 40px; background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
-            <i class="fas fa-book-open" style="margin-right: 10px;"></i>
-            How to Use Free PDF Editor Online - Edit PDF Files Online Step by Step
-        </h2>
-        <div class="steps-container" style="max-width: 800px; margin: 0 auto;">
-            <ol style="list-style: none; padding: 0; counter-reset: step-counter;">
-
-                <li style="counter-increment: step-counter; margin-bottom: 25px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee; position: relative; padding-left: 60px;">
-                    <span style="position: absolute; left: 15px; top: 20px; background: #4361ee; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">
-                        1
-                    </span>
-                    <p style="font-size: 1.1rem; color: #0b1630; line-height: 1.6; margin: 0;">
-                        Upload the PDF file you want to edit
-                    </p>
-                </li>
-
-                <li style="counter-increment: step-counter; margin-bottom: 25px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee; position: relative; padding-left: 60px;">
-                    <span style="position: absolute; left: 15px; top: 20px; background: #4361ee; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">
-                        2
-                    </span>
-                    <p style="font-size: 1.1rem; color: #0b1630; line-height: 1.6; margin: 0;">
-                        Use the editing tools to add or modify content
-                    </p>
-                </li>
-
-                <li style="counter-increment: step-counter; margin-bottom: 25px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee; position: relative; padding-left: 60px;">
-                    <span style="position: absolute; left: 15px; top: 20px; background: #4361ee; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">
-                        3
-                    </span>
-                    <p style="font-size: 1.1rem; color: #0b1630; line-height: 1.6; margin: 0;">
-                        Add text, images, shapes, or annotations
-                    </p>
-                </li>
-
-                <li style="counter-increment: step-counter; margin-bottom: 25px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee; position: relative; padding-left: 60px;">
-                    <span style="position: absolute; left: 15px; top: 20px; background: #4361ee; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">
-                        4
-                    </span>
-                    <p style="font-size: 1.1rem; color: #0b1630; line-height: 1.6; margin: 0;">
-                        Preview your changes in real-time
-                    </p>
-                </li>
-
-                <li style="counter-increment: step-counter; margin-bottom: 25px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee; position: relative; padding-left: 60px;">
-                    <span style="position: absolute; left: 15px; top: 20px; background: #4361ee; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">
-                        5
-                    </span>
-                    <p style="font-size: 1.1rem; color: #0b1630; line-height: 1.6; margin: 0;">
-                        Download your edited PDF
-                    </p>
-                </li>
-
-            </ol>
-        </div>
-    </section>
-
-    <section 
-    <section class="related-tools" style="margin: 40px 0; padding: 40px; background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
-            <i class="fas fa-tools" style="margin-right: 10px;"></i>
-            Related PDF Tools - Edit, Convert, and Manage PDF Files Online
-        </h2>
-        <div class="tools-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
-
-            <a href="watermark-pdf.html" style="display: block; padding: 20px; background: #f8f9ff; border-radius: 12px; text-decoration: none; text-align: center; transition: transform 0.3s, box-shadow 0.3s; border: 2px solid transparent;" 
-               onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(67,97,238,0.2)'; this.style.borderColor='#4361ee';"
-               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.borderColor='transparent';">
-                <i class="fas fa-file-alt" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
-                <h3 style="font-size: 1.1rem; color: #0b1630; margin: 0;">Watermark Pdf</h3>
-            </a>
-
-            <a href="protect-pdf.html" style="display: block; padding: 20px; background: #f8f9ff; border-radius: 12px; text-decoration: none; text-align: center; transition: transform 0.3s, box-shadow 0.3s; border: 2px solid transparent;" 
-               onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(67,97,238,0.2)'; this.style.borderColor='#4361ee';"
-               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.borderColor='transparent';">
-                <i class="fas fa-file-alt" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
-                <h3 style="font-size: 1.1rem; color: #0b1630; margin: 0;">Protect Pdf</h3>
-            </a>
-
-            <a href="add-page-numbers.html" style="display: block; padding: 20px; background: #f8f9ff; border-radius: 12px; text-decoration: none; text-align: center; transition: transform 0.3s, box-shadow 0.3s; border: 2px solid transparent;" 
-               onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(67,97,238,0.2)'; this.style.borderColor='#4361ee';"
-               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.borderColor='transparent';">
-                <i class="fas fa-file-alt" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
-                <h3 style="font-size: 1.1rem; color: #0b1630; margin: 0;">Add Page Numbers</h3>
-            </a>
-
-        </div>
-    </section>
-
-    <section class="faq-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
-            <i class="fas fa-question-circle" style="margin-right: 10px;"></i>
-            PDF Editor Online Free - Frequently Asked Questions
-        </h2>
-        <div class="faq-container" style="max-width: 800px; margin: 0 auto;">
-
-            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
-                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
-                    Can I edit PDFs without Adobe?
-                </h3>
-                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    Yes! Our online PDF editor works in any browser without requiring software installation.
-                </div>
-            </div>
-
-            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
-                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
-                    What editing features are available?
-                </h3>
-                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    You can add text, images, annotations, highlight, draw shapes, and more. All editing is done online.
-                </div>
-            </div>
-
-            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
-                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
-                    Will formatting be preserved?
-                </h3>
-                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    Yes, our editor maintains all original formatting, fonts, and layout while allowing edits.
-                </div>
-            </div>
-
-            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
-                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
-                    Can I undo changes?
-                </h3>
-                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    Yes, our editor includes undo/redo functionality for easy editing.
-                </div>
-            </div>
-
-            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
-                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
-                    Is there a file size limit?
-                </h3>
-                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    Free users can edit PDFs up to 10MB. Premium users can edit files up to 100MB.
-                </div>
-            </div>
-
-        </div>
-    </section>
+    // Drag and drop
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
     
-    <script>
-    function toggleFaq(element) {
-        const answer = element.nextElementSibling;
-        const icon = element.querySelector('i');
-        const isOpen = answer.style.display === 'block';
+    uploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+    });
+    
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
         
-        answer.style.display = isOpen ? 'none' : 'block';
-        icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
-    }
-    </script>
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            handleFile(file);
+        }
+    });
+}
+</script>
 
-    <div class="trust-badges" style="text-align: center; padding: 20px; background: linear-gradient(135deg, #f8f9ff, #ffffff); border-radius: 12px; margin: 30px 0; border: 2px solid #e2e6ff;">
-        <div style="display: flex; justify-content: center; align-items: center; gap: 40px; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <i class="fas fa-shield-alt" style="font-size: 2rem; color: #4361ee;"></i>
-                <div style="text-align: left;">
-                    <div style="color: #0b1630; font-weight: 600; font-size: 1.1rem;">SSL Secured</div>
-                    <div style="color: #56607a; font-size: 0.9rem;">256-bit Encryption</div>
-                </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <i class="fas fa-lock" style="font-size: 2rem; color: #4361ee;"></i>
-                <div style="text-align: left;">
-                    <div style="color: #0b1630; font-weight: 600; font-size: 1.1rem;">100% Secure</div>
-                    <div style="color: #56607a; font-size: 0.9rem;">Files Auto-Deleted</div>
-                </div>
-            </div>
-            
-        </div>
-    </div>
+<script src="js/auth.js" type="module"></script>
+</div>
+</div>
+
 <footer>
         <div class="container footer-inner">
             <div class="footer-company-links">
