@@ -282,14 +282,16 @@ header .user-dropdown button.dropdown-logout {
     display: none;
     flex-direction: column;
     justify-content: space-around;
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     background: transparent;
     border: none;
     cursor: pointer;
     padding: 0;
     z-index: 1001;
     gap: 5px;
+    flex-shrink: 0;
+    margin-left: auto;
 }
 
 .mobile-menu-toggle span {
@@ -495,17 +497,33 @@ header .user-dropdown button.dropdown-logout {
 @media (max-width: 768px) {
     /* Show hamburger menu on mobile */
     .mobile-menu-toggle {
+        display: flex !important;
+        order: 2; /* Show after logo */
+    }
+    
+    /* Ensure navbar is properly laid out on mobile */
+    header .navbar {
         display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: 12px;
+    }
+    
+    /* Logo should be first */
+    header .logo {
+        order: 1;
+        flex-shrink: 0;
     }
     
     /* Hide desktop nav links on mobile */
     header .nav-links {
-        display: none;
+        display: none !important;
     }
     
     /* Show mobile menu overlay on mobile */
     .mobile-menu-overlay {
-        display: block;
+        display: block !important;
     }
     
     /* Make dropdowns touch-friendly on mobile (add click handler via JS) */
@@ -513,14 +531,27 @@ header .user-dropdown button.dropdown-logout {
         position: static;
     }
     
-    /* Ensure auth buttons are hidden (already done, but ensuring) */
+    /* Ensure auth buttons are hidden on mobile */
     header .auth-buttons {
-        display: none;
+        display: none !important;
     }
     
-    /* User menu adjustments for mobile */
+    /* User menu adjustments for mobile - show if logged in */
     header .user-menu {
-        margin-left: auto;
+        display: none !important; /* Hide on mobile, use mobile menu instead */
+    }
+    
+    /* Ensure header is visible and properly positioned */
+    header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        width: 100%;
+    }
+    
+    /* Container padding for mobile */
+    header .container {
+        padding: 0 16px;
     }
 }
 
