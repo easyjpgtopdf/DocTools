@@ -1073,6 +1073,65 @@ app.get('/api/download/:filename', (req, res) => {
   }
 });
 
+// PDF OCR API endpoint - High accuracy server-side OCR processing
+app.post('/api/pdf-ocr/process', express.json({ limit: '50mb' }), async (req, res) => {
+  try {
+    const { image, language = 'eng' } = req.body;
+    
+    if (!image) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No image data provided' 
+      });
+    }
+    
+    // Get Python executable path
+    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+    const ocrScriptPath = path.join(__dirname, 'api', 'pdf-ocr', 'ocr-process.py');
+    
+    // Prepare input data
+    const inputData = JSON.stringify({ image, language });
+    
+    // Execute Python OCR script
+    exec(
+      `${pythonCmd} "${ocrScriptPath}"`,
+      { 
+        input: inputData,
+        maxBuffer: 50 * 1024 * 1024 // 50MB buffer
+      },
+      (error, stdout, stderr) => {
+        if (error) {
+          console.error('OCR processing error:', error);
+          console.error('Stderr:', stderr);
+          return res.status(500).json({ 
+            success: false, 
+            error: 'OCR processing failed: ' + error.message 
+          });
+        }
+        
+        try {
+          const result = JSON.parse(stdout);
+          res.json(result);
+        } catch (parseError) {
+          console.error('Failed to parse OCR result:', parseError);
+          console.error('Stdout:', stdout);
+          res.status(500).json({ 
+            success: false, 
+            error: 'Failed to parse OCR result' 
+          });
+        }
+      }
+    );
+    
+  } catch (error) {
+    console.error('OCR API error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'OCR API error: ' + error.message 
+    });
+  }
+});
+
 // User-provided error handler
 app.use((error, req, res, next) => {
   console.error('Server error:', error);

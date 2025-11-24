@@ -2059,6 +2059,7 @@
         }
 
         // OCR: create editable text overlays from current canvas
+        // Uses high-accuracy server-side OCR processing for better results
         async function runOcrOnCurrentPage(customDataUrl, offsetX=0, offsetY=0){
             try{
                 if(!pdfDoc){ showError('Please upload a PDF first'); return; }
@@ -2066,18 +2067,40 @@
                 updateProgress(5, 'Preparing OCR...');
                 // Use the visible canvas as image source
                 const dataUrl = customDataUrl || pdfCanvas.toDataURL('image/png');
-                updateProgress(10, 'Running OCR on page...');
+                updateProgress(15, 'Sending to OCR service...');
                 const lang = (ocrLang &amp;&amp; ocrLang.value) ? ocrLang.value : 'eng';
-                const result = await Tesseract.recognize(dataUrl, lang, {
-                    logger: m =&gt; { if(m.status &amp;&amp; m.progress!=null){ updateProgress(10 + Math.round(m.progress*80), m.status.replace(/_/g,' ') + '...'); } }
+                
+                // Use backend API for high-accuracy OCR processing
+                updateProgress(25, 'Processing with high-accuracy OCR engine...');
+                const response = await fetch('/api/pdf-ocr/process', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        image: dataUrl,
+                        language: lang
+                    })
                 });
+                
+                if(!response.ok){
+                    throw new Error('OCR API request failed');
+                }
+                
+                const result = await response.json();
+                
+                if(!result.success){
+                    throw new Error(result.error || 'OCR processing failed');
+                }
+                
                 updateProgress(95, 'Placing editable text...');
-                const { lines } = result.data;
+                const { lines } = result;
                 if(!lines || !lines.length){ updateProgress(100, 'No text found'); setTimeout(()=&gt;{progressContainer.style.display='none';}, 800); return; }
                 // Add overlays for each OCR line
                 lines.forEach(line =&gt; {
-                    if(!line.text) return;
-                    const { x0, y0, x1, y1 } = line.bbox || {};
+                    if(!line.text || !line.text.trim()) return;
+                    const bbox = line.bbox || {};
+                    const { x0, y0, x1, y1 } = bbox;
                     if(x0==null||y0==null||x1==null||y1==null) return;
                     const left = offsetX + x0;
                     const top = offsetY + y0;
