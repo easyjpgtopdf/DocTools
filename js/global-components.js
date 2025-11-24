@@ -196,6 +196,21 @@ const globalHeaderHTML = `
 </header>
 `;
 
+// Global Breadcrumb HTML
+const globalBreadcrumbHTML = `
+    <nav aria-label="Breadcrumb" style="padding: 15px 0; background: #f8f9ff; border-bottom: 1px solid #e2e6ff;">
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 24px;">
+            <ol style="list-style: none; display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; align-items: center;">
+                <li><a href="index.html" style="color: #4361ee; text-decoration: none; font-weight: 500; transition: color 0.3s;" onmouseover="this.style.color='#3a0ca3'" onmouseout="this.style.color='#4361ee'">Home</a></li>
+                <li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
+                <li><a href="login.html" style="color: #56607a; font-weight: 500; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#4361ee'" onmouseout="this.style.color='#56607a'">Sign In</a></li>
+                <li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
+                <li><a href="signup.html" style="color: #56607a; font-weight: 500; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#4361ee'" onmouseout="this.style.color='#56607a'">Signup</a></li>
+            </ol>
+        </div>
+    </nav>
+`;
+
 // Global Footer HTML
 const globalFooterHTML = `
 <footer>
@@ -227,6 +242,24 @@ function loadGlobalHeader() {
         headerPlaceholder.outerHTML = globalHeaderHTML;
         highlightActiveLink();
         initializeMobileMenu();
+        // Also load breadcrumb if placeholder exists
+        loadGlobalBreadcrumb();
+    }
+}
+
+// Function to load breadcrumb
+function loadGlobalBreadcrumb() {
+    const breadcrumbPlaceholder = document.getElementById('global-breadcrumb-placeholder');
+    if (breadcrumbPlaceholder) {
+        breadcrumbPlaceholder.outerHTML = globalBreadcrumbHTML;
+    } else {
+        // If no placeholder, try to add breadcrumb after header
+        const header = document.querySelector('header');
+        if (header && !document.querySelector('nav[aria-label="Breadcrumb"]')) {
+            const breadcrumbDiv = document.createElement('div');
+            breadcrumbDiv.innerHTML = globalBreadcrumbHTML.trim();
+            header.insertAdjacentElement('afterend', breadcrumbDiv.firstElementChild);
+        }
     }
 }
 
