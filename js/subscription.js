@@ -39,7 +39,7 @@ const PLANS = {
   },
   premium50: {
     name: 'Premium 50',
-    price: 5,
+    price: 3, // $3/month
     duration: 30, // 30 days
     features: {
       maxFileSize: 50 * 1024 * 1024, // 50 MB
@@ -52,7 +52,7 @@ const PLANS = {
   },
   premium500: {
     name: 'Premium 500',
-    price: 10,
+    price: 5, // $5/month
     duration: 30, // 30 days
     features: {
       maxFileSize: 500 * 1024 * 1024, // 500 MB
@@ -67,8 +67,8 @@ const PLANS = {
 
 // Yearly plans (12 months)
 const YEARLY_PLANS = {
-  premium50: { ...PLANS.premium50, price: 60, duration: 365 },
-  premium500: { ...PLANS.premium500, price: 100, duration: 365 }
+  premium50: { ...PLANS.premium50, price: 20, duration: 365 }, // $20/year
+  premium500: { ...PLANS.premium500, price: 50, duration: 365 } // $50/year
 };
 
 /**

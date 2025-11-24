@@ -14,10 +14,10 @@ const razorpay = razorpayKeyId && razorpayKeySecret
   ? new Razorpay({ key_id: razorpayKeyId, key_secret: razorpayKeySecret })
   : null;
 
-// Plan configurations
+// Plan configurations (prices in USD)
 const PLANS = {
-  premium50: { monthly: { price: 5, duration: 30 }, yearly: { price: 60, duration: 365 } },
-  premium500: { monthly: { price: 10, duration: 30 }, yearly: { price: 100, duration: 365 } }
+  premium50: { monthly: { price: 3, duration: 30 }, yearly: { price: 20, duration: 365 } },
+  premium500: { monthly: { price: 5, duration: 30 }, yearly: { price: 50, duration: 365 } }
 };
 
 module.exports = async function handler(req, res) {

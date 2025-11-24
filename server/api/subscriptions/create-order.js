@@ -13,11 +13,63 @@ const razorpay = razorpayKeyId && razorpayKeySecret
   ? new Razorpay({ key_id: razorpayKeyId, key_secret: razorpayKeySecret })
   : null;
 
-// Plan configurations
+// Plan configurations (prices in USD)
 const PLANS = {
-  premium50: { monthly: 5, yearly: 60 },
-  premium500: { monthly: 10, yearly: 100 }
+  premium50: { monthly: 3, yearly: 20 },
+  premium500: { monthly: 5, yearly: 50 }
 };
+
+// Currency conversion rates (update these regularly)
+// Base currency is USD
+const CURRENCY_RATES = {
+  USD: 1,
+  INR: 83.5, // 1 USD = 83.5 INR (update regularly)
+  EUR: 0.92,
+  GBP: 0.79,
+  JPY: 150.5,
+  RUB: 92.0,
+  AUD: 1.52,
+  CAD: 1.35,
+  // Add more currencies as needed
+};
+
+/**
+ * Get user's currency based on location or accept header
+ */
+function getUserCurrency(req) {
+  // Check Accept-Language header for currency preference
+  const acceptLanguage = req.headers['accept-language'] || '';
+  
+  // Check for currency in query params
+  if (req.query.currency) {
+    return req.query.currency.toUpperCase();
+  }
+  
+  // Detect from Accept-Language header
+  if (acceptLanguage.includes('en-IN') || acceptLanguage.includes('hi')) {
+    return 'INR';
+  }
+  if (acceptLanguage.includes('en-US') || acceptLanguage.includes('en')) {
+    return 'USD';
+  }
+  if (acceptLanguage.includes('ja')) {
+    return 'JPY';
+  }
+  if (acceptLanguage.includes('ru')) {
+    return 'RUB';
+  }
+  
+  // Default to USD
+  return 'USD';
+}
+
+/**
+ * Convert price to user's currency
+ */
+function convertPrice(usdPrice, targetCurrency) {
+  const rate = CURRENCY_RATES[targetCurrency] || 1;
+  return Math.round(usdPrice * rate * 100) / 100; // Round to 2 decimal places
+}
 
 module.exports = async function handler(req, res) {
   // Enable CORS
@@ -41,20 +93,27 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { plan, billing, amount, currency = 'INR', userId } = req.body;
+    const { plan, billing, amount, currency, userId } = req.body;
 
     if (!plan || !billing || !userId) {
       return res.status(400).json({ error: 'Missing required fields: plan, billing, userId' });
     }
 
-    // Get plan price
-    const planPrice = PLANS[plan]?.[billing];
-    if (!planPrice) {
+    // Get user's currency (auto-detect or use provided)
+    const userCurrency = currency || getUserCurrency(req);
+    
+    // Get plan price in USD
+    const planPriceUSD = PLANS[plan]?.[billing];
+    if (!planPriceUSD) {
       return res.status(400).json({ error: 'Invalid plan or billing cycle' });
     }
 
-    // Use plan price if amount not provided
-    const orderAmount = amount || planPrice;
+    // Convert to user's currency
+    const orderAmount = amount || convertPrice(planPriceUSD, userCurrency);
+    
+    // Razorpay supported currencies
+    const razorpaySupportedCurrencies = ['INR', 'USD', 'EUR', 'GBP', 'JPY', 'RUB', 'AUD', 'CAD', 'SGD', 'AED', 'SAR'];
+    const finalCurrency = razorpaySupportedCurrencies.includes(userCurrency) ? userCurrency : 'USD';
 
     // Get user info from Firebase
     let userEmail = '';
@@ -74,16 +133,21 @@ module.exports = async function handler(req, res) {
     }
 
     // Create Razorpay order
+    // Razorpay expects amount in smallest currency unit (paise for INR, cents for USD, etc.)
+    const currencyMultiplier = finalCurrency === 'INR' ? 100 : (finalCurrency === 'JPY' ? 1 : 100);
     const orderOptions = {
-      amount: Math.round(orderAmount * 100), // Convert to paise
-      currency: currency,
+      amount: Math.round(orderAmount * currencyMultiplier),
+      currency: finalCurrency,
       receipt: `sub_${plan}_${billing}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       payment_capture: 1,
       notes: {
         plan: plan,
         billing: billing,
         userId: userId,
-        type: 'subscription'
+        type: 'subscription',
+        originalPriceUSD: planPriceUSD,
+        currency: finalCurrency,
+        exchangeRate: CURRENCY_RATES[finalCurrency] || 1
       }
     };
 
@@ -119,7 +183,10 @@ module.exports = async function handler(req, res) {
       receipt: order.receipt,
       key_id: razorpayKeyId,
       userEmail: userEmail,
-      userName: userName
+      userName: userName,
+      originalPriceUSD: planPriceUSD,
+      convertedPrice: orderAmount,
+      exchangeRate: CURRENCY_RATES[finalCurrency] || 1
     });
 
   } catch (error) {
