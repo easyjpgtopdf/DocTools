@@ -418,6 +418,17 @@ function formatFileSize(bytes) {
 
 // Handle file selection
 function handleFile(file) {
+    // Prevent double upload
+    if (uploadArea && uploadArea.style.pointerEvents === 'none') {
+        return; // Already processing
+    }
+    
+    // Disable upload area immediately
+    if (uploadArea) {
+        uploadArea.style.pointerEvents = 'none';
+        uploadArea.style.opacity = '0.6';
+    }
+    
     console.log("File selected:", file);
     
     // Validate file type

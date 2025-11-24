@@ -209,6 +209,165 @@
             .btn { width: 100%; justify-content: center; } 
 
         }
+    
+        /* 3-Panel Layout: Left (3 inch), Middle (preview), Right (2 inch) */
+        .editor-main-container {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+            max-width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .left-toolbar-panel {
+            width: 228px; /* 3 inches at 96 DPI */
+            min-width: 228px;
+            max-width: 228px;
+            background: #fff;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: var(--box-shadow);
+            overflow-y: auto;
+            max-height: calc(100vh - 200px);
+        }
+        
+        .middle-preview-panel {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: var(--box-shadow);
+        }
+        
+        .right-tools-panel {
+            width: 152px; /* 2 inches at 96 DPI */
+            min-width: 152px;
+            max-width: 152px;
+            background: #fff;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: var(--box-shadow);
+            overflow-y: auto;
+            max-height: calc(100vh - 200px);
+        }
+        
+        .toolbar-section {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .toolbar-section:last-child {
+            border-bottom: none;
+        }
+        
+        .toolbar-section-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+        
+        .toolbar-btn {
+            width: 100%;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #fff;
+            color: var(--dark);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .toolbar-btn:hover {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+        
+        .toolbar-btn.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+        
+        .toolbar-btn i {
+            font-size: 1rem;
+        }
+        
+        .toolbar-select, .toolbar-input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #fff;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        
+        .color-picker-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .color-picker-wrapper input[type="color"] {
+            width: 50px;
+            height: 40px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .highlight-colors {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .highlight-color-btn {
+            width: 100%;
+            height: 35px;
+            border: 2px solid transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .highlight-color-btn.active {
+            border-color: var(--dark);
+            transform: scale(1.1);
+        }
+        
+        /* Hide old ribbon, use new panels */
+        .ribbon {
+            display: none;
+        }
+        
+        @media (max-width: 1200px) {
+            .editor-main-container {
+                flex-direction: column;
+            }
+            .left-toolbar-panel, .right-tools-panel {
+                width: 100%;
+                max-width: 100%;
+                min-width: 100%;
+            }
+        }
+
     </style>
 <link href="css/header.css" rel="stylesheet"/>
 <link href="css/theme-modern.css" rel="stylesheet"/>
@@ -369,12 +528,33 @@
 </div>
 </div>
 <h2 style="text-align: center; font-size: 1.8rem; color: var(--primary); margin: 30px 0 20px; font-weight: 700;">Real-Time PDF Editing Features</h2>
-<div class="preview-container">
-<div class="ribbon">
-<div class="ribbon-row">
-<div class="ribbon-group">
-<div class="group-title">Font</div>
-<select id="tb-font-family">
+
+<div class="editor-main-container">
+<!-- Left Toolbar Panel (3 inch) -->
+<div class="left-toolbar-panel">
+<div class="toolbar-section">
+<div class="toolbar-section-title"><i class="fas fa-mouse-pointer"></i> Tools</div>
+<button class="toolbar-btn active" id="select-tool" title="Select Text">
+<i class="fas fa-mouse-pointer"></i>
+<span>Select</span>
+</button>
+<button class="toolbar-btn" id="text-tool" title="Add Text">
+<i class="fas fa-font"></i>
+<span>Add Text</span>
+</button>
+<button class="toolbar-btn" id="highlight-tool" title="Highlight">
+<i class="fas fa-highlighter"></i>
+<span>Highlight</span>
+</button>
+<button class="toolbar-btn" id="ocr-region-btn" title="OCR Region">
+<i class="fas fa-vector-square"></i>
+<span>OCR Region</span>
+</button>
+</div>
+
+<div class="toolbar-section">
+<div class="toolbar-section-title"><i class="fas fa-palette"></i> Font</div>
+<select class="toolbar-select" id="tb-font-family">
 <option>Inter</option>
 <option>Roboto</option>
 <option>Open Sans</option>
@@ -390,18 +570,24 @@
 <option>Verdana</option>
 <option>Courier New</option>
 <option>Times New Roman</option>
-<option>Arial</option>
+<option selected>Arial</option>
 </select>
-<select id="tb-font-size">
+<select class="toolbar-select" id="tb-font-size">
 <option>10</option>
 <option>12</option>
-<option selected="">14</option>
+<option selected>14</option>
 <option>16</option>
 <option>18</option>
 <option>24</option>
 <option>32</option>
 </select>
-<select id="tb-color-preset" title="Font Color Presets">
+</div>
+
+<div class="toolbar-section">
+<div class="toolbar-section-title"><i class="fas fa-paint-brush"></i> Color</div>
+<div class="color-picker-wrapper">
+<input type="color" id="tb-color" value="#111827" title="Text Color"/>
+<select class="toolbar-select" id="tb-color-preset" style="flex: 1;">
 <option value="#111827">Black</option>
 <option value="#ff0000">Red</option>
 <option value="#0057ff">Blue</option>
@@ -411,52 +597,79 @@
 <option value="#808080">Gray</option>
 <option value="#ffff00">Yellow</option>
 </select>
-<input id="tb-color" title="Custom Color" type="color" value="#111827"/>
-</div>
-<div class="ribbon-group">
-<div class="group-title">Style</div>
-<button class="btn" id="tb-bold" title="Bold"><i class="fas fa-bold"></i></button>
-<button class="btn" id="tb-italic" title="Italic"><i class="fas fa-italic"></i></button>
-<button class="btn" id="tb-underline" title="Underline"><i class="fas fa-underline"></i></button>
-</div>
-<div class="ribbon-group">
-<div class="group-title">Align</div>
-<button class="btn" id="tb-align-left" title="Align Left"><i class="fas fa-align-left"></i></button>
-<button class="btn" id="tb-align-center" title="Align Center"><i class="fas fa-align-center"></i></button>
-<button class="btn" id="tb-align-right" title="Align Right"><i class="fas fa-align-right"></i></button>
 </div>
 </div>
-<div class="ribbon-row">
-<div class="ribbon-group">
-<div class="group-title">Edit</div>
-<button class="btn" id="tb-undo" title="Undo"><i class="fas fa-undo"></i></button>
-<button class="btn" id="tb-redo" title="Redo"><i class="fas fa-redo"></i></button>
-<button class="btn" id="tb-clear" title="Clear All"><i class="fas fa-trash"></i></button>
+
+<div class="toolbar-section">
+<div class="toolbar-section-title"><i class="fas fa-text-height"></i> Style</div>
+<button class="toolbar-btn" id="tb-bold" title="Bold">
+<i class="fas fa-bold"></i>
+<span>Bold</span>
+</button>
+<button class="toolbar-btn" id="tb-italic" title="Italic">
+<i class="fas fa-italic"></i>
+<span>Italic</span>
+</button>
+<button class="toolbar-btn" id="tb-underline" title="Underline">
+<i class="fas fa-underline"></i>
+<span>Underline</span>
+</button>
 </div>
-<div class="ribbon-group">
-<div class="group-title">Insert</div>
-<button class="btn" id="tb-insert-image" title="Insert Image"><i class="fas fa-image"></i></button>
-<input accept="image/*" id="img-file-input" style="display:none" type="file"/>
-<label class="group-title" for="tb-image-scale" style="margin-left:8px">Image Size</label>
-<input id="tb-image-scale" max="300" min="10" style="width:140px" type="range" value="100"/>
+
+<div class="toolbar-section">
+<div class="toolbar-section-title"><i class="fas fa-align-left"></i> Align</div>
+<button class="toolbar-btn" id="tb-align-left" title="Align Left">
+<i class="fas fa-align-left"></i>
+<span>Left</span>
+</button>
+<button class="toolbar-btn" id="tb-align-center" title="Align Center">
+<i class="fas fa-align-center"></i>
+<span>Center</span>
+</button>
+<button class="toolbar-btn" id="tb-align-right" title="Align Right">
+<i class="fas fa-align-right"></i>
+<span>Right</span>
+</button>
 </div>
-<div class="ribbon-group">
-<div class="group-title">Save</div>
-<button class="btn btn-primary" disabled="" id="save-btn"><i class="fas fa-download"></i> Save Edited PDF</button>
-<button class="btn" disabled="" id="save-ocr-only-btn"><i class="fas fa-file-export"></i> OCR-Only (No BG)</button>
-<button class="btn" disabled="" id="save-selectable-btn" title="Embed fonts to keep selectable text"><i class="fas fa-file-signature"></i> Save Selectable (Embed Fonts)</button>
-<label class="btn" for="add-font-input" title="Add TTF/OTF font to embed"><i class="fas fa-font"></i> Add Font</label>
-<input accept=".ttf,.otf,.ttc,.woff,.woff2" id="add-font-input" style="display:none" type="file"/>
-</div>
-<div class="ribbon-group" style="margin-left:auto">
-<div class="group-title">Zoom</div>
-<button class="btn" id="zoom-out" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
-<button class="btn" id="zoom-in" title="Zoom In"><i class="fas fa-search-plus"></i></button>
-<button class="btn" id="zoom-fit" title="Fit to Width"><i class="fas fa-expand"></i></button>
-<span class="zoom-label" id="zoom-pct">100%</span>
+
+<div class="toolbar-section">
+<div class="toolbar-section-title"><i class="fas fa-magic"></i> Highlight Colors</div>
+<div class="highlight-colors">
+<div class="highlight-color-btn active" data-color="#FFFF00" style="background-color: #FFFF00;" title="Yellow"></div>
+<div class="highlight-color-btn" data-color="#00FF00" style="background-color: #00FF00;" title="Green"></div>
+<div class="highlight-color-btn" data-color="#00FFFF" style="background-color: #00FFFF;" title="Cyan"></div>
+<div class="highlight-color-btn" data-color="#FF00FF" style="background-color: #FF00FF;" title="Magenta"></div>
+<div class="highlight-color-btn" data-color="#FFA500" style="background-color: #FFA500;" title="Orange"></div>
+<div class="highlight-color-btn" data-color="#FFC0CB" style="background-color: #FFC0CB;" title="Pink"></div>
 </div>
 </div>
+
+<div class="toolbar-section">
+<div class="toolbar-section-title"><i class="fas fa-language"></i> OCR Language</div>
+<select class="toolbar-select" id="ocr-lang">
+<option selected value="eng">English</option>
+<option value="hin">Hindi</option>
+<option value="ben">Bengali</option>
+<option value="guj">Gujarati</option>
+<option value="mar">Marathi</option>
+<option value="pan">Punjabi</option>
+<option value="tam">Tamil</option>
+<option value="tel">Telugu</option>
+<option value="kan">Kannada</option>
+<option value="mal">Malayalam</option>
+<option value="urd">Urdu</option>
+<option value="eng+hin">English + Hindi</option>
+</select>
+<label style="display: flex; align-items: center; gap: 8px; color: var(--dark); margin-top: 8px; font-size: 0.85rem;">
+<input id="ocr-auto" type="checkbox" style="width: 18px; height: 18px; cursor: pointer;"/>
+<span>Auto OCR each page</span>
+</label>
 </div>
+</div>
+
+<!-- Middle Preview Panel -->
+<div class="middle-preview-panel">
+<div class="preview-container">
 <div class="preview-area">
 <div class="a4-preview" id="a4-preview">
 <canvas id="pdf-canvas"></canvas>
@@ -469,6 +682,80 @@
 <span class="page-info">Page <span id="page-num">1</span> of <span id="page-count">1</span></span>
 <button class="page-btn" id="next-page"><i class="fas fa-chevron-right"></i></button>
 </div>
+</div>
+
+<!-- Right Tools Panel (2 inch) -->
+<div class="right-tools-panel">
+<div class="toolbar-section">
+<div class="toolbar-section-title"><i class="fas fa-undo"></i> Edit</div>
+<button class="toolbar-btn" id="tb-undo" title="Undo">
+<i class="fas fa-undo"></i>
+<span>Undo</span>
+</button>
+<button class="toolbar-btn" id="tb-redo" title="Redo">
+<i class="fas fa-redo"></i>
+<span>Redo</span>
+</button>
+<button class="toolbar-btn" id="tb-clear" title="Clear All">
+<i class="fas fa-trash"></i>
+<span>Clear</span>
+</button>
+</div>
+
+<div class="toolbar-section">
+<div class="toolbar-section-title"><i class="fas fa-image"></i> Insert</div>
+<button class="toolbar-btn" id="tb-insert-image" title="Insert Image">
+<i class="fas fa-image"></i>
+<span>Image</span>
+</button>
+<input accept="image/*" id="img-file-input" style="display:none" type="file"/>
+<label class="toolbar-section-title" for="tb-image-scale" style="margin-top: 10px; display: block; font-size: 0.8rem;">Image Scale</label>
+<input id="tb-image-scale" max="300" min="10" style="width:100%; margin-top: 5px;" type="range" value="100"/>
+<span id="image-scale-value" style="font-size: 0.8rem; color: var(--gray);">100%</span>
+</div>
+
+<div class="toolbar-section">
+<div class="toolbar-section-title"><i class="fas fa-download"></i> Save</div>
+<button class="toolbar-btn btn-primary" disabled id="save-btn" style="background: var(--primary); color: #fff; width: 100%;">
+<i class="fas fa-download"></i>
+<span>Save PDF</span>
+</button>
+<button class="toolbar-btn" disabled id="save-ocr-only-btn" style="width: 100%; margin-top: 8px;">
+<i class="fas fa-file-export"></i>
+<span>OCR Only</span>
+</button>
+<button class="toolbar-btn" disabled id="save-selectable-btn" style="width: 100%; margin-top: 8px;" title="Embed fonts">
+<i class="fas fa-file-signature"></i>
+<span>Selectable</span>
+</button>
+</div>
+
+<div class="toolbar-section">
+<div class="toolbar-section-title"><i class="fas fa-search"></i> Zoom</div>
+<button class="toolbar-btn" id="zoom-out" title="Zoom Out">
+<i class="fas fa-search-minus"></i>
+<span>Zoom Out</span>
+</button>
+<button class="toolbar-btn" id="zoom-in" title="Zoom In">
+<i class="fas fa-search-plus"></i>
+<span>Zoom In</span>
+</button>
+<button class="toolbar-btn" id="zoom-fit" title="Fit to Width">
+<i class="fas fa-expand"></i>
+<span>Fit Width</span>
+</button>
+<span class="zoom-label" id="zoom-pct" style="display: block; text-align: center; margin-top: 10px; font-weight: 600; color: var(--primary);">100%</span>
+</div>
+
+<div class="toolbar-section">
+<div class="toolbar-section-title"><i class="fas fa-file"></i> File</div>
+<button class="toolbar-btn" id="new-file-btn" style="width: 100%;">
+<i class="fas fa-file"></i>
+<span>New File</span>
+</button>
+</div>
+</div>
+
 </div>
 </div>
 </div>
@@ -624,22 +911,67 @@
             // Auto-load PDF from IndexedDB or blob URL
             autoLoadPDF();
             
-            // Tool event listeners
-            selectTool.addEventListener('click', () => setActiveTool('select'));
-            textTool.addEventListener('click', () => setActiveTool('text'));
-            highlightTool.addEventListener('click', () => setActiveTool('highlight'));
+            // Tool event listeners (Left Panel)
+            if(selectTool) selectTool.addEventListener('click', () => setActiveTool('select'));
+            if(textTool) textTool.addEventListener('click', () => setActiveTool('text'));
+            if(highlightTool) highlightTool.addEventListener('click', () => setActiveTool('highlight'));
+            if(ocrRegionBtn) ocrRegionBtn.addEventListener('click', enableOcrRegionMode);
+            
+            // Font controls (Left Panel)
+            if(tbFontFamily) tbFontFamily.addEventListener('change', ()=>{ const el=getCurrentTextEl(); if(el){ el.style.fontFamily = tbFontFamily.value; saveTextAnnotation(el); updateMask(el);} });
+            if(tbFontSize) tbFontSize.addEventListener('change', ()=>{ const el=getCurrentTextEl(); if(el){ el.style.fontSize = tbFontSize.value + 'px'; saveTextAnnotation(el); updateMask(el);} });
+            if(tbColor) tbColor.addEventListener('input', ()=>{ const el=getCurrentTextEl(); if(el){ el.style.color = tbColor.value; saveTextAnnotation(el); }});
+            if(tbColorPreset) tbColorPreset.addEventListener('change', ()=>{ const v = tbColorPreset.value; if(tbColor) tbColor.value = v; const el=getCurrentTextEl(); if(el){ el.style.color = v; saveTextAnnotation(el); }});
+            if(tbBold) tbBold.addEventListener('click', ()=>{ const el=getCurrentTextEl(); if(el){ const w=getComputedStyle(el).fontWeight; el.style.fontWeight = (w==='700'||w==='bold')?'400':'700'; saveTextAnnotation(el); updateMask(el);} });
+            if(tbItalic) tbItalic.addEventListener('click', ()=>{ const el=getCurrentTextEl(); if(el){ const s=getComputedStyle(el).fontStyle; el.style.fontStyle = (s==='italic')?'normal':'italic'; saveTextAnnotation(el); updateMask(el);} });
+            if(tbUnderline) tbUnderline.addEventListener('click', ()=>{ const el=getCurrentTextEl(); if(el){ const d=getComputedStyle(el).textDecorationLine; el.style.textDecoration = (d.includes('underline'))?'none':'underline'; saveTextAnnotation(el); updateMask(el);} });
+            if(tbAlignLeft) tbAlignLeft.addEventListener('click', ()=>{ if(selectedTextElement){ selectedTextElement.style.textAlign='left'; saveTextAnnotation(selectedTextElement);} });
+            if(tbAlignCenter) tbAlignCenter.addEventListener('click', ()=>{ if(selectedTextElement){ selectedTextElement.style.textAlign='center'; saveTextAnnotation(selectedTextElement);} });
+            if(tbAlignRight) tbAlignRight.addEventListener('click', ()=>{ if(selectedTextElement){ selectedTextElement.style.textAlign='right'; saveTextAnnotation(selectedTextElement);} });
+            
+            // Highlight colors (Left Panel)
+            if(highlightColorBtns && highlightColorBtns.length > 0) {
+                highlightColorBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        highlightColorBtns.forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        highlightColor = btn.dataset.color || '#FFFF00';
+                        const el = getCurrentTextEl();
+                        if(el){ el.style.backgroundColor = highlightColor; saveTextAnnotation(el); updateMask(el); }
+                    });
+                });
+            }
+            
+            // Right Panel - Edit buttons
             if(undoBtn) undoBtn.addEventListener('click', undo);
             if(redoBtn) redoBtn.addEventListener('click', redo);
             if(clearBtn) clearBtn.addEventListener('click', clearAnnotations);
-            saveBtn.addEventListener('click', savePDF);
+            
+            // Right Panel - Insert Image
+            if(tbInsertImage) tbInsertImage.addEventListener('click', ()=>{ if(imgFileInput) imgFileInput.click(); });
+            if(imgFileInput) imgFileInput.addEventListener('change', (e)=>{ if(typeof onImageChosen==='function') onImageChosen(e); });
+            if(tbImageScale) {
+                tbImageScale.addEventListener('input', ()=>{
+                    if(imageScaleValue) imageScaleValue.textContent = tbImageScale.value + '%';
+                    if(typeof onImageScaleChange==='function') onImageScaleChange();
+                });
+            }
+            
+            // Right Panel - Save buttons
+            if(saveBtn) saveBtn.addEventListener('click', savePDF);
             if(saveOcrOnlyBtn) saveOcrOnlyBtn.addEventListener('click', saveOCROnlyPDF);
             if(saveSelectableBtn) saveSelectableBtn.addEventListener('click', saveSelectablePDF);
-            newFileBtn.addEventListener('click', resetEditor);
-            if(!STABLE_MODE){
-                if(tbInsertImage) tbInsertImage.addEventListener('click', ()=>{ if(imgFileInput) imgFileInput.click(); });
-                if(imgFileInput) imgFileInput.addEventListener('change', (e)=>{ if(typeof onImageChosen==='function') onImageChosen(e); });
-                if(tbImageScale) tbImageScale.addEventListener('input', ()=>{ if(typeof onImageScaleChange==='function') onImageScaleChange(); });
-            }
+            if(newFileBtn) newFileBtn.addEventListener('click', resetEditor);
+            
+            // Zoom controls (Right Panel)
+            if(zoomInBtn) zoomInBtn.addEventListener('click', ()=> setUiZoom(uiZoom + 0.1));
+            if(zoomOutBtn) zoomOutBtn.addEventListener('click', ()=> setUiZoom(uiZoom - 0.1));
+            if(zoomFitBtn) zoomFitBtn.addEventListener('click', fitPreviewToWidth);
+            window.addEventListener('resize', ()=>{ if(zoomFitBtn) fitPreviewToWidth(); });
+            
+            // Page navigation
+            if(prevPageBtn) prevPageBtn.addEventListener('click', prevPage);
+            if(nextPageBtn) nextPageBtn.addEventListener('click', nextPage);
 
             // Custom Font Upload -> store for selectable export and apply in UI list
             if(addFontInput){
@@ -834,25 +1166,36 @@
                     }
                     const transaction = db.transaction(['pdfFiles'], 'readonly');
                     const store = transaction.objectStore('pdfFiles');
-                    const getRequest = store.get('current');
-                    getRequest.onsuccess = function() {
-                        const fileData = getRequest.result;
-                        if (fileData && fileData.data) {
-                            updateProgress(20, 'PDF found in storage...');
-                            // Create File object from stored data
-                            const blob = new Blob([fileData.data], { type: 'application/pdf' });
-                            const file = new File([blob], fileData.name || 'document.pdf', { type: 'application/pdf' });
-                            currentFile = file;
-                            fileName.textContent = fileData.name || 'document.pdf';
-                            fileSize.textContent = formatFileSize(fileData.size || 0);
-                            fileInfo.style.display = 'block';
-                            loadPDF(file);
-                        } else {
-                            // No data in IndexedDB, try blob URL
-                            loadFromBlobURL();
+                    
+                    // Get all records and use the latest one (highest ID)
+                    const getAllRequest = store.getAll();
+                    getAllRequest.onsuccess = function() {
+                        const allFiles = getAllRequest.result;
+                        if (allFiles && allFiles.length > 0) {
+                            // Sort by ID (or timestamp) and get the latest
+                            const latestFile = allFiles.sort((a, b) => {
+                                const idA = a.id || a.timestamp || 0;
+                                const idB = b.id || b.timestamp || 0;
+                                return idB - idA;
+                            })[0];
+                            
+                            if (latestFile && latestFile.data) {
+                                updateProgress(20, 'PDF found in storage...');
+                                // Create File object from stored data
+                                const blob = new Blob([latestFile.data], { type: 'application/pdf' });
+                                const file = new File([blob], latestFile.name || 'document.pdf', { type: 'application/pdf' });
+                                currentFile = file;
+                                fileName.textContent = latestFile.name || 'document.pdf';
+                                fileSize.textContent = formatFileSize(latestFile.size || 0);
+                                fileInfo.style.display = 'block';
+                                loadPDF(file);
+                                return;
+                            }
                         }
+                        // No data found, try blob URL
+                        loadFromBlobURL();
                     };
-                    getRequest.onerror = function() {
+                    getAllRequest.onerror = function() {
                         loadFromBlobURL();
                     };
                 };
@@ -1527,605 +1870,4 @@
             </p>
         </div>
     </footer>
-</body></html>');
-            d.close();
-            function addScript(src){ return new Promise((res,rej)=&gt;{ const s=d.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; d.body.appendChild(s); }); }
-            (async ()=&gt;{
-                try{
-                    await addScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-                    // OCR functionality moved to backend API - see runOcrOnCurrentPage function
-                    // This iframe code is for legacy preview - OCR now handled via /api/pdf-ocr/process
-                    // toolbar handlers
-                    d.getElementById('ff').addEventListener('change',()=&gt;{ if(selected){ selected.style.fontFamily=d.getElementById('ff').value; }});
-                    d.getElementById('fs').addEventListener('change',()=&gt;{ if(selected){ selected.style.fontSize=d.getElementById('fs').value+'px'; }});
-                    d.getElementById('tc').addEventListener('input',()=&gt;{ if(selected){ selected.style.color=d.getElementById('tc').value; }});
-                    d.getElementById('bBold').addEventListener('click',()=&gt;{ if(selected){ const wgt=w.getComputedStyle(selected).fontWeight; selected.style.fontWeight=(wgt==='700'||wgt==='bold')?'400':'700'; }});
-                    d.getElementById('bItalic').addEventListener('click',()=&gt;{ if(selected){ const st=w.getComputedStyle(selected).fontStyle; selected.style.fontStyle=(st==='italic')?'normal':'italic'; }});
-                    d.getElementById('bUnderline').addEventListener('click',()=&gt;{ if(selected){ const dec=w.getComputedStyle(selected).textDecorationLine; selected.style.textDecoration=(dec.includes('underline'))?'none':'underline'; }});
-                    // drag with Ctrl
-                    layer.addEventListener('mousedown',e=&gt;{ const t=e.target; if(!(t&amp;&amp;t.classList&amp;&amp;t.classList.contains('editable-text'))) return; if(t.isContentEditable||!e.ctrlKey) return; e.preventDefault(); select(t); const sx=e.clientX, sy=e.clientY; const l=parseFloat(t.style.left)||0; const tp=parseFloat(t.style.top)||0; function mm(ev){ t.style.left=(l+ev.clientX-sx)+'px'; t.style.top=(tp+ev.clientY-sy)+'px'; } function mu(){ w.removeEventListener('mousemove',mm); w.removeEventListener('mouseup',mu);} w.addEventListener('mousemove',mm); w.addEventListener('mouseup',mu); });
-                    // save
-                    d.getElementById('bSave').addEventListener('click',()=&gt;{ const { jsPDF }=w.jspdf; const pdf=new jsPDF({unit:'pt',format:[595,842]}); const nodes=[...d.querySelectorAll('.editable-text')]; nodes.forEach(el=&gt;{ const left=parseFloat(el.style.left)||0; const top=parseFloat(el.style.top)||0; const fs=parseFloat(el.style.fontSize)||14; const fam=el.style.fontFamily||'Arial'; const col=el.style.color||'#000'; pdf.setTextColor(col); pdf.setFont(fam,'normal'); pdf.setFontSize(fs); const lines=(el.textContent||'').split('\n'); let y=top+fs*0.1; lines.forEach(line=&gt;{ pdf.text(line,left,y); y+=fs*1.2; }); }); pdf.save('ocr-edited.pdf'); });
-                }catch(e){ console.error(e); }
-            })();
-        }
-        
-        // Change font of selected text
-        function changeSelectedFont() {
-            if (selectedTextElement) {
-                const newFont = prompt('Enter font family:', selectedTextElement.style.fontFamily || 'Arial');
-                if (newFont) {
-                    selectedTextElement.style.fontFamily = newFont;
-                    saveTextAnnotation(selectedTextElement);
-                }
-                contextMenu.style.display = 'none';
-            }
-        }
-        
-        // Change color of selected text
-        function changeSelectedColor() {
-            if (selectedTextElement) {
-                const newColor = prompt('Enter color (hex or name):', selectedTextElement.style.color || '#000000');
-                if (newColor) {
-                    selectedTextElement.style.color = newColor;
-                    saveTextAnnotation(selectedTextElement);
-                }
-                contextMenu.style.display = 'none';
-            }
-        }
-        
-        // Highlight selected text
-        function highlightSelectedText() {
-            if (selectedTextElement) {
-                selectedTextElement.style.backgroundColor = highlightColor;
-                saveTextAnnotation(selectedTextElement);
-                contextMenu.style.display = 'none';
-            }
-        }
-        
-        // Remove selected text
-        function removeSelectedText() {
-            if (selectedTextElement) {
-                if (confirm('Are you sure you want to remove this text?')) {
-                    selectedTextElement.remove();
-                    // Remove from annotations
-                    textAnnotations = textAnnotations.filter(ann =&gt; 
-                        !(ann.x === parseFloat(selectedTextElement.style.left) &amp;&amp; 
-                          ann.y === parseFloat(selectedTextElement.style.top))
-                    );
-                    annotationHistory.push([...textAnnotations]);
-                    redoHistory = [];
-                    updateUndoRedoButtons();
-                }
-                contextMenu.style.display = 'none';
-            }
-        }
-        
-        // Select text element
-        function selectTextElement(textEl) {
-            document.querySelectorAll('.editable-text.selected').forEach(el =&gt; {
-                el.classList.remove('selected');
-            });
-            textEl.classList.add('selected');
-            selectedTextElement = textEl;
-        }
-        
-        // Add new text at click position
-        function addNewText(x, y) {
-            const textEl = document.createElement('div');
-            textEl.className = 'editable-text';
-            textEl.textContent = 'New Text';
-            textEl.style.left = x + 'px';
-            textEl.style.top = y + 'px';
-            const defSize = (tbFontSize &amp;&amp; tbFontSize.value) ? tbFontSize.value : (fontSizeSelect &amp;&amp; fontSizeSelect.value ? fontSizeSelect.value : '14');
-            const defFamily = (tbFontFamily &amp;&amp; tbFontFamily.value) ? tbFontFamily.value : (fontFamilySelect &amp;&amp; fontFamilySelect.value ? fontFamilySelect.value : 'Noto Sans, Arial, sans-serif');
-            const defColor = (tbColor &amp;&amp; tbColor.value) ? tbColor.value : (colorPicker &amp;&amp; colorPicker.value ? colorPicker.value : '#000');
-            textEl.style.fontSize = defSize + 'px';
-            textEl.style.fontFamily = defFamily;
-            textEl.style.color = defColor;
-            textEl.style.cursor = 'text';
-            
-            // Add event listeners
-            textEl.addEventListener('dblclick', function(e) {
-                e.stopPropagation();
-                makeTextEditable(textEl);
-            });
-            
-            textEl.addEventListener('contextmenu', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                showContextMenu(e, textEl);
-            });
-            
-            textEl.addEventListener('click', function(e) {
-                e.stopPropagation();
-                selectTextElement(textEl);
-            });
-            
-            textLayer.appendChild(textEl);
-            ensureMask(textEl);
-            makeTextEditable(textEl);
-        }
-        
-        // Handle canvas click for adding new text
-        function handleCanvasClick(e) {
-            if (activeTool === 'text') {
-                const rect = a4Preview.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                
-                addNewText(x, y);
-            } else if (activeTool === 'highlight' &amp;&amp; selectedTextElement) {
-                selectedTextElement.style.backgroundColor = highlightColor;
-                saveTextAnnotation(selectedTextElement);
-            }
-        }
-        
-        // Add event listener for canvas click
-        a4Preview.addEventListener('click', handleCanvasClick);
-
-        // Deselect when clicking outside any text element
-        a4Preview.addEventListener('mousedown', (e)=&gt;{
-            if(!(e.target &amp;&amp; e.target.classList &amp;&amp; e.target.classList.contains('editable-text'))){
-                document.querySelectorAll('.editable-text.selected').forEach(el =&gt; { el.classList.remove('selected','editing'); el.contentEditable='false'; });
-                selectedTextElement = null;
-            }
-        });
-
-        // Drag to move when not editing (hold Ctrl to move to avoid text selection)
-        let dragInfo = null;
-        textLayer.addEventListener('mousedown', (e)=&gt;{
-            const target = e.target;
-            if(!(target &amp;&amp; target.classList &amp;&amp; target.classList.contains('editable-text'))) return;
-            // Start drag only if not in editing mode and Ctrl pressed
-            if(target.isContentEditable || !e.ctrlKey) return;
-            e.preventDefault();
-            selectTextElement(target);
-            const startX = e.clientX, startY = e.clientY;
-            const origLeft = parseFloat(target.style.left)||0;
-            const origTop = parseFloat(target.style.top)||0;
-            dragInfo = { target, startX, startY, origLeft, origTop };
-            const onMove = (ev)=&gt;{
-                if(!dragInfo) return;
-                const dx = ev.clientX - dragInfo.startX;
-                const dy = ev.clientY - dragInfo.startY;
-                dragInfo.target.style.left = (dragInfo.origLeft + dx) + 'px';
-                dragInfo.target.style.top = (dragInfo.origTop + dy) + 'px';
-                updateMask(dragInfo.target);
-            };
-            const onUp = ()=&gt;{
-                if(dragInfo){ saveTextAnnotation(dragInfo.target); }
-                dragInfo = null; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp);
-            };
-            window.addEventListener('mousemove', onMove);
-            window.addEventListener('mouseup', onUp);
-        });
-
-        // Key handling for selected element when not editing
-        document.addEventListener('keydown', (e)=&gt;{
-            if(!selectedTextElement) return;
-            const isEditing = selectedTextElement.isContentEditable &amp;&amp; selectedTextElement.classList.contains('editing');
-            if(isEditing) return; // already inline editing
-
-            // Ctrl/Cmd + Delete/Backspace =&gt; remove entire block
-            if((e.key === 'Delete' || e.key === 'Backspace') &amp;&amp; (e.ctrlKey || e.metaKey)){
-                e.preventDefault();
-                const tgt = selectedTextElement; selectedTextElement = null;
-                // remove mask if present
-                const prev = tgt.previousElementSibling; if(prev &amp;&amp; prev.classList.contains('mask-block')) prev.remove();
-                tgt.remove();
-                textAnnotations = textAnnotations.filter(ann =&gt; !(ann.x === parseFloat(tgt.style.left) &amp;&amp; ann.y === parseFloat(tgt.style.top)));
-                annotationHistory.push([...textAnnotations]);
-                redoHistory = [];
-                updateUndoRedoButtons();
-                return;
-            }
-
-            // Character typing -&gt; enter edit mode and insert char
-            if(e.key &amp;&amp; e.key.length === 1 &amp;&amp; !e.altKey &amp;&amp; !e.ctrlKey &amp;&amp; !e.metaKey){
-                e.preventDefault();
-                makeTextEditable(selectedTextElement);
-                // insert the typed character at caret
-                try{ document.execCommand('insertText', false, e.key); }catch(_){ /* ignore */ }
-                updateMask(selectedTextElement);
-                return;
-            }
-
-            // Backspace/Delete -&gt; enter edit mode and delete one character
-            if(e.key === 'Backspace' || e.key === 'Delete'){
-                e.preventDefault();
-                makeTextEditable(selectedTextElement);
-                // simulate deletion
-                setTimeout(()=&gt;{
-                    try{ document.execCommand(e.key === 'Delete' ? 'forwardDelete' : 'delete'); }catch(_){ /* ignore */ }
-                    updateMask(selectedTextElement);
-                },0);
-                return;
-            }
-        });
-
-        // Apply formatting to selected element (guard missing left controls)
-        if(fontFamilySelect){
-            fontFamilySelect.addEventListener('change', ()=&gt;{
-                if(selectedTextElement){ selectedTextElement.style.fontFamily = fontFamilySelect.value; saveTextAnnotation(selectedTextElement); }
-            });
-        }
-        if(fontSizeSelect){
-            fontSizeSelect.addEventListener('change', ()=&gt;{
-                if(selectedTextElement){ selectedTextElement.style.fontSize = fontSizeSelect.value + 'px'; saveTextAnnotation(selectedTextElement); }
-            });
-        }
-        if(colorPicker){
-            colorPicker.addEventListener('input', ()=&gt;{
-                if(selectedTextElement){ selectedTextElement.style.color = colorPicker.value; saveTextAnnotation(selectedTextElement); }
-            });
-        }
-        
-        // Set active tool
-        function setActiveTool(tool) {
-            activeTool = tool;
-            
-            // Update UI
-            document.querySelectorAll(');
-            
-            switch(tool) {
-                case 'select':
-                    selectTool.classList.add('active');
-                    a4Preview.style.cursor = 'default';
-                    break;
-                case 'text':
-                    textTool.classList.add('active');
-                    a4Preview.style.cursor = 'text';
-                    break;
-                case 'highlight':
-                    highlightTool.classList.add('active');
-                    a4Preview.style.cursor = 'pointer';
-                    break;
-            }
-        }
-        
-        // Add annotation to history
-        function addAnnotation(annotation) {
-            textAnnotations.push(annotation);
-            annotationHistory.push([...textAnnotations]);
-            redoHistory = [];
-            updateUndoRedoButtons();
-        }
-        
-        // Render text annotations
-        function renderTextAnnotations() {
-            // This would render the text annotations on the overlay canvas
-            // For now, we're using DOM elements for text editing
-        }
-
-        // Mask helpers to hide original PDF text below overlays
-        function ensureMask(el){
-            if(!el || !el.parentNode) return;
-            const prev = el.previousElementSibling;
-            if(!(prev &amp;&amp; prev.classList &amp;&amp; prev.classList.contains('mask-block'))){
-                const m = document.createElement('div');
-                m.className = 'mask-block';
-                el.parentNode.insertBefore(m, el);
-            }
-            updateMask(el);
-        }
-        function updateMask(el){
-            if(!el) return;
-            const m = el.previousElementSibling;
-            if(!(m &amp;&amp; m.classList &amp;&amp; m.classList.contains('mask-block'))) return;
-            // padding to fully hide glyph descenders/overshoot
-            const padX = 4, padY = 4;
-            const left = parseFloat(el.style.left||'0');
-            const top = parseFloat(el.style.top||'0');
-            const fs = parseFloat(el.style.fontSize)||14;
-            // compute width/height using both box size and text length heuristic
-            const wBox = el.offsetWidth; const hBox = el.offsetHeight;
-            const wHeu = Math.max(1, (el.textContent||'').length) * (fs * 0.62);
-            const hHeu = fs * 1.6;
-            const w = Math.max(wBox||0, wHeu) + padX*2;
-            const h = Math.max(hBox||0, hHeu) + padY*2;
-            m.style.left = (left - padX) + 'px';
-            m.style.top = (top - padY) + 'px';
-            m.style.width = w + 'px';
-            m.style.height = h + 'px';
-        }
-        
-        // Undo last action
-        function undo() {
-            if (annotationHistory.length &gt; 1) {
-                redoHistory.push(textAnnotations);
-                annotationHistory.pop();
-                textAnnotations = [...annotationHistory[annotationHistory.length - 1]];
-                updateUndoRedoButtons();
-                // In a real implementation, we would re-render the annotations
-            }
-        }
-        
-        // Redo last undone action
-        function redo() {
-            if (redoHistory.length &gt; 0) {
-                textAnnotations = redoHistory.pop();
-                annotationHistory.push([...textAnnotations]);
-                updateUndoRedoButtons();
-                // In a real implementation, we would re-render the annotations
-            }
-        }
-        
-        // Clear all annotations
-        function clearAnnotations() {
-            if (confirm('Are you sure you want to clear all annotations?')) {
-                textAnnotations = [];
-                annotationHistory.push([...textAnnotations]);
-                redoHistory = [];
-                textLayer.innerHTML = '';
-                updateUndoRedoButtons();
-            }
-        }
-        
-        // Update undo/redo button states
-        function updateUndoRedoButtons() {
-            if(undoBtn) undoBtn.disabled = annotationHistory.length &lt;= 1;
-            if(redoBtn) redoBtn.disabled = redoHistory.length === 0;
-        }
-        
-        // Save edited PDF (exports the currently visible page with overlays)
-        async function savePDF() {
-            if (!pdfDoc || !currentFile) return;
-            loading.style.display = 'block';
-            hideMessages();
-            try{
-                // Compose a snapshot of current page: base PDF canvas + overlays
-                const w = pdfCanvas.width; const h = pdfCanvas.height;
-                const out = document.createElement('canvas'); out.width = w; out.height = h;
-                const octx = out.getContext('2d');
-                // Draw base PDF
-                octx.drawImage(pdfCanvas, 0, 0);
-                // Draw overlays from DOM (first mask white, then optional highlight, then text)
-                const nodes = Array.from(textLayer.querySelectorAll('.editable-text'));
-                nodes.forEach(el =&gt; {
-                    const left = parseFloat(el.style.left)||0;
-                    const top = parseFloat(el.style.top)||0;
-                    const fs = parseFloat(el.style.fontSize)||14;
-                    const fam = el.style.fontFamily || 'Arial';
-                    const col = el.style.color || '#000';
-                    const cs = getComputedStyle(el);
-                    const fw = cs.fontWeight;
-                    const it = cs.fontStyle;
-                    const bg = el.style.backgroundColor;
-                    const padX=4, padY=4;
-                    const textW = Math.max(el.offsetWidth||0, (el.textContent||'').length * fs*0.62);
-                    const textH = Math.max(el.offsetHeight||0, fs*1.6);
-                    // 1) White mask to remove original PDF text shadow
-                    octx.fillStyle = '#FFFFFF';
-                    octx.fillRect(left-padX, top-padY, textW+padX*2, textH+padY*2);
-                    // 2) Optional highlight background over the mask
-                    if(bg &amp;&amp; bg !== 'transparent'){
-                        octx.fillStyle = bg;
-                        octx.fillRect(left-padX, top-padY, textW+padX*2, textH+padY*2);
-                    }
-                    // 3) Draw text on top
-                    octx.fillStyle = col;
-                    octx.textBaseline = 'top';
-                    octx.font = `${it==='italic'?'italic ':''}${(fw==='700'||fw==='bold')?'bold ':''}${fs}px ${fam}`;
-                    const lines = (el.textContent||'').split('\n');
-                    let y = top; const lh = fs * 1.2;
-                    lines.forEach(line=&gt;{ octx.fillText(line, left, y); y += lh; });
-                });
-                // Draw overlay images
-                const imgs = Array.from(textLayer.querySelectorAll('.overlay-image'));
-                await Promise.all(imgs.map(el=&gt; new Promise((res)=&gt;{ const im = new Image(); im.onload=()=&gt;{ const left=parseFloat(el.style.left)||0; const top=parseFloat(el.style.top)||0; const wv=parseFloat(el.style.width)||im.naturalWidth; const hv=im.naturalHeight*(wv/im.naturalWidth); octx.drawImage(im, left, top, wv, hv); res(); }; im.src = el.src; })));
-                // Export to PDF via jsPDF with A4 points matching our 595x842 canvas
-                const imgData = out.toDataURL('image/png');
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF({ unit:'pt', format:[595, 842], compress:true });
-                doc.addImage(imgData, 'PNG', 0, 0, 595, 842);
-                const fname = 'edited-' + (currentFile.name.replace(/\.pdf$/i,'') || 'document') + '.pdf';
-                doc.save(fname);
-                loading.style.display = 'none';
-                successMessage.style.display = 'block';
-            }catch(err){
-                console.error(err);
-                loading.style.display = 'none';
-                showError('Save failed.');
-            }
-        }
-        
-        // Reset editor
-        function resetEditor() {
-            pdfDoc = null;
-            currentPage = 1;
-            textAnnotations = [];
-            annotationHistory = [];
-            redoHistory = [];
-            
-            fileInfo.style.display = 'none';
-            editorSection.style.display = 'none';
-            saveBtn.disabled = true;
-            if(saveOcrOnlyBtn) saveOcrOnlyBtn.disabled = true;
-            hideMessages();
-            
-            // Clear canvases and text layer
-            ctx.clearRect(0, 0, pdfCanvas.width, pdfCanvas.height);
-            if(overlayCtx) overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-            textLayer.innerHTML = '';
-            
-            // Reset file input
-            fileInput.value = '';
-            
-            // Hide context menu
-            contextMenu.style.display = 'none';
-        }
-        
-        // Navigation functions
-        function prevPage() {
-            if (currentPage &lt;= 1) return;
-            currentPage--;
-            renderPage(currentPage);
-        }
-        
-        function nextPage() {
-            if (!pdfDoc || currentPage &gt;= pdfDoc.numPages) return;
-            currentPage++;
-            renderPage(currentPage);
-        }
-        
-        // Utility functions
-        function formatFileSize(bytes) {
-            if (bytes &lt; 1024) return bytes + ' bytes';
-            else if (bytes &lt; 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-            else return (bytes / 1048576).toFixed(1) + ' MB';
-        }
-        
-        function updateProgress(percent, text) {
-            progressBar.style.width = percent + '%';
-            progressText.textContent = text;
-        }
-        
-        function showError(message) {
-            errorText.textContent = message;
-            errorMessage.style.display = 'block';
-        }
-        
-        function hideMessages() {
-            successMessage.style.display = 'none';
-            errorMessage.style.display = 'none';
-        }
-
-        // Zoom helpers
-        function setUiZoom(z){
-            uiZoom = Math.max(0.2, Math.min(z, 3));
-            a4Preview.style.transform = `scale(${uiZoom})`;
-            if(zoomPct) zoomPct.textContent = Math.round(uiZoom*100) + '%';
-        }
-        function fitPreviewToWidth(){
-            const container = a4Preview.parentElement; if(!container) return;
-            const cs = getComputedStyle(container);
-            const padX = parseFloat(cs.paddingLeft||'0') + parseFloat(cs.paddingRight||'0');
-            const avail = container.clientWidth - padX;
-            const baseWidth = 595; // CSS width of a4-preview
-            if(baseWidth&gt;0){ setUiZoom(avail / baseWidth); }
-        }
-
-        // OCR: create editable text overlays from current canvas
-        // Uses high-accuracy server-side OCR processing for better results
-        async function runOcrOnCurrentPage(customDataUrl, offsetX=0, offsetY=0){
-            try{
-                if(!pdfDoc){ showError('Please upload a PDF first'); return; }
-                progressContainer.style.display = 'block';
-                updateProgress(5, 'Preparing OCR...');
-                // Use the visible canvas as image source
-                const dataUrl = customDataUrl || pdfCanvas.toDataURL('image/png');
-                updateProgress(15, 'Sending to OCR service...');
-                const lang = (ocrLang &amp;&amp; ocrLang.value) ? ocrLang.value : 'eng';
-                
-                // Use backend API for high-accuracy OCR processing
-                updateProgress(25, 'Processing with high-accuracy OCR engine...');
-                const response = await fetch('/api/pdf-ocr/process', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        image: dataUrl,
-                        language: lang
-                    })
-                });
-                
-                if(!response.ok){
-                    throw new Error('OCR API request failed');
-                }
-                
-                const result = await response.json();
-                
-                if(!result.success){
-                    throw new Error(result.error || 'OCR processing failed');
-                }
-                
-                updateProgress(95, 'Placing editable text...');
-                const { lines } = result;
-                if(!lines || !lines.length){ updateProgress(100, 'No text found'); setTimeout(()=&gt;{progressContainer.style.display='none';}, 800); return; }
-                // Add overlays for each OCR line
-                lines.forEach(line =&gt; {
-                    if(!line.text || !line.text.trim()) return;
-                    const bbox = line.bbox || {};
-                    const { x0, y0, x1, y1 } = bbox;
-                    if(x0==null||y0==null||x1==null||y1==null) return;
-                    const left = offsetX + x0;
-                    const top = offsetY + y0;
-                    const width = x1 - x0;
-                    const height = y1 - y0;
-                    const fontPx = Math.max(10, Math.round(height * 0.8));
-                    const el = document.createElement('div');
-                    el.className = 'editable-text';
-                    el.textContent = line.text.trim();
-                    el.style.left = left + 'px';
-                    el.style.top = top + 'px';
-                    el.style.fontSize = fontPx + 'px';
-                    el.style.fontFamily = (tbFontFamily &amp;&amp; tbFontFamily.value) ? tbFontFamily.value : (fontFamilySelect &amp;&amp; fontFamilySelect.value ? fontFamilySelect.value : 'Arial');
-                    el.style.color = (tbColor &amp;&amp; tbColor.value) ? tbColor.value : (colorPicker &amp;&amp; colorPicker.value ? colorPicker.value : '#000');
-                    // interactions
-                    el.addEventListener('dblclick', (e)=&gt;{ e.stopPropagation(); makeTextEditable(el); });
-                    el.addEventListener('contextmenu', (e)=&gt;{ e.preventDefault(); e.stopPropagation(); showContextMenu(e, el); });
-                    el.addEventListener('click', (e)=&gt;{ e.stopPropagation(); selectTextElement(el); });
-                    textLayer.appendChild(el);
-                    ensureMask(el);
-                    saveTextAnnotation(el);
-                });
-                updateProgress(100, 'OCR completed');
-                setTimeout(()=&gt;{progressContainer.style.display='none';}, 800);
-            }catch(err){
-                console.error(err);
-                progressContainer.style.display='none';
-                showError('OCR failed. Please try again.');
-            }
-        }
-        
-        // OCR Region selection
-        let ocrRegionMode = false;
-        let selStart = null; let selRect = null;
-        function enableOcrRegionMode(){
-            ocrRegionMode = true;
-            a4Preview.style.cursor = 'crosshair';
-        }
-        a4Preview.addEventListener('mousedown', (e)=&gt;{
-            if(!ocrRegionMode) return;
-            const r = a4Preview.getBoundingClientRect();
-            selStart = { x: e.clientX - r.left, y: e.clientY - r.top };
-            // draw via overlay canvas
-            if(overlayCtx) overlayCtx.clearRect(0,0,overlayCanvas.width, overlayCanvas.height);
-        });
-        a4Preview.addEventListener('mousemove', (e)=&gt;{
-            if(!ocrRegionMode || !selStart) return;
-            const r = a4Preview.getBoundingClientRect();
-            const x = e.clientX - r.left; const y = e.clientY - r.top;
-            const x0 = Math.min(selStart.x, x), y0 = Math.min(selStart.y, y);
-            const w = Math.abs(x - selStart.x), h = Math.abs(y - selStart.y);
-            selRect = { x:x0, y:y0, w, h };
-            if(overlayCtx) overlayCtx.clearRect(0,0,overlayCanvas.width, overlayCanvas.height);
-            if(overlayCtx){ overlayCtx.strokeStyle = '#3a0ca3'; overlayCtx.lineWidth = 2; overlayCtx.setLineDash([6,4]); overlayCtx.strokeRect(x0, y0, w, h); }
-        });
-        a4Preview.addEventListener('mouseup', async (e)=&gt;{
-            if(!ocrRegionMode) return;
-            a4Preview.style.cursor = 'default';
-            ocrRegionMode = false;
-            if(!selRect || selRect.w&lt;5 || selRect.h&lt;5){ if(overlayCtx) overlayCtx.clearRect(0,0,overlayCanvas.width, overlayCanvas.height); return; }
-            try{
-                // crop region from pdfCanvas
-                const sx = Math.round(selRect.x), sy = Math.round(selRect.y);
-                const sw = Math.round(selRect.w), sh = Math.round(selRect.h);
-                const tmp = document.createElement('canvas'); tmp.width = sw; tmp.height = sh;
-                const tctx = tmp.getContext('2d');
-                tctx.drawImage(pdfCanvas, sx, sy, sw, sh, 0, 0, sw, sh);
-                const dataUrl = tmp.toDataURL('image/png');
-                await runOcrOnCurrentPage(dataUrl, sx, sy);
-            }finally{
-                if(overlayCtx) overlayCtx.clearRect(0,0,overlayCanvas.width, overlayCanvas.height);
-                selStart = null; selRect = null;
-            }
-        });
-        
-        // Initialize when page loads
-        window.addEventListener('load', init);
-
-<script src="js/auth.js" type="module"></script>
-
+</body>
