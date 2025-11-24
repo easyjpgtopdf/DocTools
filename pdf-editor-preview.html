@@ -700,7 +700,18 @@
     <input type="file" id="image-input" accept="image/*" style="display: none;">
     
     <script src="js/mobile-menu-init.js"></script>
-    <script src="js/auth.js" type="module"></script>
+    <script>
+        // Load auth.js only if we're not in file:// protocol (to avoid CORS errors)
+        if (window.location.protocol !== 'file:') {
+            const authScript = document.createElement('script');
+            authScript.src = 'js/auth.js';
+            authScript.type = 'module';
+            authScript.onerror = function() {
+                console.warn('Could not load auth.js - this is OK if you are not logged in');
+            };
+            document.head.appendChild(authScript);
+        }
+    </script>
     <script>
         // Set PDF.js worker
         if (typeof pdfjsLib !== 'undefined') {
