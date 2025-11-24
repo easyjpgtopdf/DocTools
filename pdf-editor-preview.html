@@ -847,29 +847,44 @@
         // Render PDF
         async function renderPDF(pdfData) {
             try {
+                if (!pdfjsLib) {
+                    throw new Error('PDF.js library not loaded');
+                }
+                
                 const loadingTask = pdfjsLib.getDocument({ data: pdfData });
                 pdfDoc = await loadingTask.promise;
                 totalPages = pdfDoc.numPages;
-                pageCount.textContent = totalPages;
+                
+                if (pageCount) pageCount.textContent = totalPages;
                 
                 await renderPage(currentPage);
                 
-                loadingOverlay.style.display = 'none';
-                pdfPageWrapper.style.display = 'block';
-                downloadBtn.disabled = false;
+                if (loadingOverlay) loadingOverlay.style.display = 'none';
+                if (pdfPageWrapper) pdfPageWrapper.style.display = 'block';
+                if (downloadBtn) downloadBtn.disabled = false;
                 
                 updatePageButtons();
             } catch (error) {
                 console.error('Error rendering PDF:', error);
-                loadingOverlay.style.display = 'none';
+                if (loadingOverlay) loadingOverlay.style.display = 'none';
                 alert('Error rendering PDF: ' + error.message);
             }
         }
         
         // Render specific page
-        async function renderPage(pageNum) {
+        async function renderPage(pageNumber) {
             try {
-                const page = await pdfDoc.getPage(pageNum);
+                if (!pdfDoc) {
+                    console.error('PDF document not loaded');
+                    return;
+                }
+                
+                if (!pdfCanvas || !textLayer) {
+                    console.error('Canvas or text layer not found');
+                    return;
+                }
+                
+                const page = await pdfDoc.getPage(pageNumber);
                 const viewport = page.getViewport({ scale: scale });
                 
                 pdfCanvas.height = viewport.height;
@@ -889,10 +904,11 @@
                 renderTextLayer(textContent, viewport);
                 
                 // Update current page number
-                currentPage = pageNum;
+                currentPage = pageNumber;
                 updatePageButtons();
             } catch (error) {
                 console.error('Error rendering page:', error);
+                if (loadingOverlay) loadingOverlay.style.display = 'none';
             }
         }
         
