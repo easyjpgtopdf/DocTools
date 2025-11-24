@@ -53,7 +53,8 @@
         // Close menu when clicking overlay (but not on menu content)
         mobileMenuOverlay.addEventListener('click', function(e) {
             // Only close if clicking the overlay background, not the menu content
-            if (e.target === mobileMenuOverlay || e.target.classList.contains('mobile-menu-overlay')) {
+            const menuContent = mobileMenuOverlay.querySelector('.mobile-menu-content');
+            if (e.target === mobileMenuOverlay && !menuContent.contains(e.target)) {
                 mobileMenuOverlay.classList.remove('active');
                 mobileMenuToggle.setAttribute('aria-expanded', 'false');
                 document.body.style.overflow = '';
@@ -68,6 +69,11 @@
             mobileMenuContent.addEventListener('click', function(e) {
                 e.stopPropagation(); // Prevent event from bubbling to overlay
             });
+            
+            // Also prevent touch events from bubbling
+            mobileMenuContent.addEventListener('touchstart', function(e) {
+                e.stopPropagation();
+            }, { passive: true });
         }
         
         // Mobile dropdown toggles (touch-friendly)
