@@ -2,12 +2,26 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>easyjpgtopdf - All PDF Tools You Need</title>
     <meta name="description" content="Free online PDF tools - Convert JPG to PDF, Word to PDF, Excel to PDF, merge, split, compress, edit, protect PDFs. Professional document processing tools for all your needs.">
     <meta name="keywords" content="pdf converter, jpg to pdf, word to pdf, excel to pdf, merge pdf, split pdf, compress pdf, edit pdf, pdf tools, online pdf converter">
+    
+    <!-- Resource Hints for Performance -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    
+    <!-- Preload Critical CSS -->
+    <link rel="preload" href="css/header.css" as="style">
+    <link rel="preload" href="css/footer.css" as="style">
+    
     <link rel="stylesheet" href="css/footer.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/header.css">
+    <!-- Defer Font Awesome to prevent render blocking -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <style>
         /* Reset and Base Styles */
         * {
@@ -1449,7 +1463,7 @@
     <header>
         <div class="container">
             <nav class="navbar">
-                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;" /></a>
+                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;" width="200" height="54" loading="eager" /></a>
                 <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle mobile menu" aria-expanded="false">
                     <span></span>
                     <span></span>
