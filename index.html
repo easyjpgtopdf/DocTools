@@ -1449,7 +1449,12 @@
     <header>
         <div class="container">
             <nav class="navbar">
-                <a href="index.html" class="logo"><img src="images/logo.png" loading="lazy" alt="Logo" style="height:54px;" /></a>
+                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;" /></a>
+                <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle mobile menu" aria-expanded="false">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
                 <div class="nav-links">
                     <div class="dropdown">
                         <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
@@ -1486,6 +1491,7 @@
                     <div class="dropdown">
                         <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
+                            <a href="image-repair.html">AI Image Repair</a>
                             <a href="image-compressor.html">Image Compressor</a>
                             <a href="image-resizer.html">Image Resizer</a>
                             <a href="image-editor.html">Image Editor</a>
@@ -1509,17 +1515,7 @@
                         <a href="#">More <i class="fas fa-chevron-down"></i></a>
                         <div class="dropdown-content">
                             <a href="pricing.html">Pricing</a>
-                            <div class="dropdown">
-                                <a href="#">Blog/Articles <i class="fas fa-chevron-down"></i></a>
-                                <div class="dropdown-content">
-                                    <a href="blog.html">Blog Home</a>
-                                    <a href="blog-articles.html">All Articles</a>
-                                    <a href="blog-tutorials.html">Tutorials</a>
-                                    <a href="blog-tips.html">Tips & Tricks</a>
-                                    <a href="blog-news.html">News & Updates</a>
-                                    <a href="blog-guides.html">Guides</a>
-                                </div>
-                            </div>
+                            <a href="blog.html">Blog/Articles</a>
                             
                             
                         </div>
@@ -1527,18 +1523,18 @@
                 </div>
                 <div class="auth-buttons">
                     <a href="login.html" class="auth-link">Sign In</a>
-                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus"></i><span>Signup</span></a>
+                    <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Signup</span></a>
                 </div>
                 <div id="user-menu" class="user-menu" data-open="false">
-                    <button id="user-menu-toggle" class="user-menu-toggle" type="button">
-                        <span class="user-initial">U</span>
-                        <i class="fas fa-chevron-down"></i>
+                    <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
+                        <span class="user-initial" aria-hidden="true">U</span>
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
                     </button>
                     <div class="user-dropdown" id="user-dropdown" hidden>
-                        <a href="dashboard.html#dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
-                        <a href="dashboard.html#dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
-                        <a href="dashboard.html#dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
-                        <a href="dashboard.html#dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders & Subscriptions</a>
+                        <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+                        <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+                        <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+                        <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
                         <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
                         <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
                     </div>
