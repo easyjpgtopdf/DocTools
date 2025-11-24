@@ -674,16 +674,20 @@
         
         // Handle file selection
         function handleFile(file) {
+            // Validate file type first (before any processing)
             if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
                 alert('Please select a valid PDF file');
-                return;
+                return; // Return early on validation failure - upload area remains enabled
             }
             
+            // Validate file size
             if (file.size > 50 * 1024 * 1024) {
                 if(!confirm('This file is larger than 50MB. It may be slow to load. Continue?')){ 
-                    return; 
+                    return; // Return early if user cancels - upload area remains enabled
                 }
             }
+            
+            // All validations passed - proceed with file processing
             
             fileName.textContent = file.name;
             fileSize.textContent = formatFileSize(file.size);

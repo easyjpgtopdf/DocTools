@@ -737,6 +737,10 @@
         const redoBtn = document.getElementById('redo-btn');
         const imageInput = document.getElementById('image-input');
         
+        // Additional DOM elements with null checks
+        const imageScaleValue = document.getElementById('image-scale-value'); // For future image scale feature
+        const highlightColorBtns = document.querySelectorAll('.highlight-color-btn'); // For future highlight colors feature
+        
         // Load PDF from IndexedDB or sessionStorage
         async function loadPDF() {
             try {
@@ -941,22 +945,31 @@
             pageNum.textContent = currentPage;
         }
         
-        prevPageBtn.addEventListener('click', async function() {
-            if (currentPage > 1) {
-                currentPage--;
-                await renderPage(currentPage);
-            }
-        });
+        // Page navigation event listeners (with null checks to prevent duplicate registration)
+        if (prevPageBtn && !prevPageBtn.hasAttribute('data-listener-attached')) {
+            prevPageBtn.setAttribute('data-listener-attached', 'true');
+            prevPageBtn.addEventListener('click', async function() {
+                if (currentPage > 1) {
+                    currentPage--;
+                    await renderPage(currentPage);
+                }
+            });
+        }
         
-        nextPageBtn.addEventListener('click', async function() {
-            if (currentPage < totalPages) {
-                currentPage++;
-                await renderPage(currentPage);
-            }
-        });
+        if (nextPageBtn && !nextPageBtn.hasAttribute('data-listener-attached')) {
+            nextPageBtn.setAttribute('data-listener-attached', 'true');
+            nextPageBtn.addEventListener('click', async function() {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    await renderPage(currentPage);
+                }
+            });
+        }
         
-        // Tool buttons
-        ocrBtn.addEventListener('click', async function() {
+        // Tool buttons (with null checks to prevent errors)
+        if (ocrBtn && !ocrBtn.hasAttribute('data-listener-attached')) {
+            ocrBtn.setAttribute('data-listener-attached', 'true');
+            ocrBtn.addEventListener('click', async function() {
             if (!pdfDoc) return;
             
             try {
@@ -1007,15 +1020,21 @@
         });
         
         addTextBtn.addEventListener('click', function() {
-            activeTool = 'text';
-            alert('Click on the PDF to add text at that location.');
-        });
+                activeTool = 'text';
+                alert('Click on the PDF to add text at that location.');
+            });
+        }
         
-        addImageBtn.addEventListener('click', function() {
-            imageInput.click();
-        });
+        if (addImageBtn && !addImageBtn.hasAttribute('data-listener-attached')) {
+            addImageBtn.setAttribute('data-listener-attached', 'true');
+            addImageBtn.addEventListener('click', function() {
+                if (imageInput) imageInput.click();
+            });
+        }
         
-        imageInput.addEventListener('change', function(e) {
+        if (imageInput && !imageInput.hasAttribute('data-listener-attached')) {
+            imageInput.setAttribute('data-listener-attached', 'true');
+            imageInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
@@ -1031,36 +1050,72 @@
                 };
                 reader.readAsDataURL(file);
             }
-        });
+            });
+        }
         
-        highlightBtn.addEventListener('click', function() {
-            activeTool = 'highlight';
-            if (selectedTextElement) {
-                selectedTextElement.style.backgroundColor = '#FFFF00';
-            }
-        });
+        if (highlightBtn && !highlightBtn.hasAttribute('data-listener-attached')) {
+            highlightBtn.setAttribute('data-listener-attached', 'true');
+            highlightBtn.addEventListener('click', function() {
+                activeTool = 'highlight';
+                if (selectedTextElement) {
+                    selectedTextElement.style.backgroundColor = '#FFFF00';
+                }
+            });
+        }
         
-        undoBtn.addEventListener('click', function() {
-            if (annotationHistory.length > 0) {
-                redoHistory.push(annotationHistory.pop());
-                // Restore previous state
-                updateUndoRedoButtons();
-            }
-        });
+        if (undoBtn && !undoBtn.hasAttribute('data-listener-attached')) {
+            undoBtn.setAttribute('data-listener-attached', 'true');
+            undoBtn.addEventListener('click', function() {
+                if (annotationHistory.length > 0) {
+                    redoHistory.push(annotationHistory.pop());
+                    // Restore previous state
+                    updateUndoRedoButtons();
+                }
+            });
+        }
         
-        redoBtn.addEventListener('click', function() {
-            if (redoHistory.length > 0) {
-                annotationHistory.push(redoHistory.pop());
-                // Restore next state
-                updateUndoRedoButtons();
-            }
-        });
+        if (redoBtn && !redoBtn.hasAttribute('data-listener-attached')) {
+            redoBtn.setAttribute('data-listener-attached', 'true');
+            redoBtn.addEventListener('click', function() {
+                if (redoHistory.length > 0) {
+                    annotationHistory.push(redoHistory.pop());
+                    // Restore next state
+                    updateUndoRedoButtons();
+                }
+            });
+        }
         
-        downloadBtn.addEventListener('click', async function() {
-            // This would generate and download the edited PDF
-            // For now, just show a message
-            alert('Download feature will be implemented with PDF generation from edited content.');
-        });
+        if (downloadBtn && !downloadBtn.hasAttribute('data-listener-attached')) {
+            downloadBtn.setAttribute('data-listener-attached', 'true');
+            downloadBtn.addEventListener('click', async function() {
+                // This would generate and download the edited PDF
+                // For now, just show a message
+                alert('Download feature will be implemented with PDF generation from edited content.');
+            });
+        }
+        
+        // Initialize highlight color buttons if they exist (for future feature)
+        if (highlightColorBtns && highlightColorBtns.length > 0) {
+            highlightColorBtns.forEach(btn => {
+                if (!btn.hasAttribute('data-listener-attached')) {
+                    btn.setAttribute('data-listener-attached', 'true');
+                    btn.addEventListener('click', function() {
+                        highlightColorBtns.forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        const color = btn.dataset.color || '#FFFF00';
+                        if (selectedTextElement) {
+                            selectedTextElement.style.backgroundColor = color;
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Initialize image scale value display if it exists (for future feature)
+        if (imageScaleValue) {
+            // This will be used when image scale slider is added
+            console.log('Image scale value element found, ready for future feature');
+        }
         
         // Feedback submission
         function submitFeedback() {
