@@ -1016,11 +1016,7 @@
                 el.textContent = user.email || '—';
             });
             
-            // Update user plan (default to Free)
-            const planEl = document.querySelector('.user-plan');
-            if (planEl) {
-                planEl.textContent = 'Free'; // Can be extended to fetch from Firestore
-            }
+            // Update user plan will be handled by dashboard-subscription.js
         }
 
         // Load user statistics from Firestore
@@ -1303,5 +1299,8 @@
             </p>
         </div>
     </footer>
+
+    <!-- Subscription Management Script -->
+    <script type="module" src="js/dashboard-subscription.js"></script>
 </body>
 </html>

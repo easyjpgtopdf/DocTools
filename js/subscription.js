@@ -1,0 +1,368 @@
+/**
+ * Complete Subscription Management System
+ * Handles Razorpay payments, plan management, auto-expiry, and activity tracking
+ */
+
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+// Initialize Firebase (use existing config)
+let db;
+let auth;
+
+try {
+  const firebaseConfig = JSON.parse(sessionStorage.getItem('firebaseConfig') || '{}');
+  if (firebaseConfig.apiKey) {
+    const app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    auth = getAuth(app);
+  }
+} catch (e) {
+  console.warn('Firebase not initialized, subscription features may be limited');
+}
+
+// Plan configurations
+const PLANS = {
+  free: {
+    name: 'Free',
+    price: 0,
+    duration: Infinity, // Never expires
+    features: {
+      maxFileSize: 6 * 1024 * 1024, // 6 MB
+      bgRemoverQuota: 1 * 1024 * 1024, // 1 MB
+      totalTransferCap: 5 * 1024 * 1024 * 1024, // 5 GB
+      priorityProcessing: false,
+      emailInvoicing: false,
+      premiumSupport: false
+    }
+  },
+  premium50: {
+    name: 'Premium 50',
+    price: 5,
+    duration: 30, // 30 days
+    features: {
+      maxFileSize: 50 * 1024 * 1024, // 50 MB
+      bgRemoverQuota: Infinity,
+      totalTransferCap: Infinity,
+      priorityProcessing: true,
+      emailInvoicing: true,
+      premiumSupport: true
+    }
+  },
+  premium500: {
+    name: 'Premium 500',
+    price: 10,
+    duration: 30, // 30 days
+    features: {
+      maxFileSize: 500 * 1024 * 1024, // 500 MB
+      bgRemoverQuota: Infinity,
+      totalTransferCap: Infinity,
+      priorityProcessing: true,
+      emailInvoicing: true,
+      premiumSupport: true
+    }
+  }
+};
+
+// Yearly plans (12 months)
+const YEARLY_PLANS = {
+  premium50: { ...PLANS.premium50, price: 60, duration: 365 },
+  premium500: { ...PLANS.premium500, price: 100, duration: 365 }
+};
+
+/**
+ * Get current user subscription
+ */
+export async function getCurrentSubscription(userId) {
+  if (!db || !userId) return { plan: 'free', status: 'active', expiresAt: null };
+  
+  try {
+    const subDoc = await getDoc(doc(db, 'subscriptions', userId));
+    if (!subDoc.exists()) {
+      return { plan: 'free', status: 'active', expiresAt: null };
+    }
+    
+    const data = subDoc.data();
+    const expiresAt = data.expiresAt?.toDate();
+    const now = new Date();
+    
+    // Check if subscription expired
+    if (expiresAt && expiresAt < now && data.plan !== 'free') {
+      // Auto-expire subscription
+      await updateDoc(doc(db, 'subscriptions', userId), {
+        plan: 'free',
+        status: 'expired',
+        expiredAt: serverTimestamp(),
+        previousPlan: data.plan
+      });
+      return { plan: 'free', status: 'expired', expiresAt: null };
+    }
+    
+    return {
+      plan: data.plan || 'free',
+      status: data.status || 'active',
+      expiresAt: expiresAt,
+      startDate: data.startDate?.toDate(),
+      autopay: data.autopay || false,
+      razorpaySubscriptionId: data.razorpaySubscriptionId || null
+    };
+  } catch (error) {
+    console.error('Error getting subscription:', error);
+    return { plan: 'free', status: 'active', expiresAt: null };
+  }
+}
+
+/**
+ * Get plan features for current user
+ */
+export async function getUserPlanFeatures(userId) {
+  const subscription = await getCurrentSubscription(userId);
+  const planKey = subscription.plan;
+  return PLANS[planKey]?.features || PLANS.free.features;
+}
+
+/**
+ * Check if user has access to a feature
+ */
+export async function hasFeatureAccess(userId, feature) {
+  const features = await getUserPlanFeatures(userId);
+  return features[feature] !== undefined && features[feature] !== false;
+}
+
+/**
+ * Initiate subscription purchase with Razorpay
+ */
+export async function initiateSubscriptionPurchase(planKey, billing = 'monthly', userId) {
+  if (!userId) {
+    // Store pending purchase and redirect to login
+    sessionStorage.setItem('pendingSubscription', JSON.stringify({ plan: planKey, billing }));
+    window.location.href = `login.html?returnTo=${encodeURIComponent('pricing.html')}`;
+    return;
+  }
+  
+  const plan = billing === 'yearly' ? YEARLY_PLANS[planKey] : PLANS[planKey];
+  if (!plan) {
+    throw new Error('Invalid plan selected');
+  }
+  
+  // Create Razorpay order
+  try {
+    const response = await fetch('/api/subscriptions/create-order', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${await getAuthToken()}`
+      },
+      body: JSON.stringify({
+        plan: planKey,
+        billing: billing,
+        amount: plan.price,
+        currency: 'INR',
+        userId: userId
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to create order');
+    }
+    
+    const orderData = await response.json();
+    
+    // Initialize Razorpay checkout
+    const options = {
+      key: orderData.key_id || process.env.RAZORPAY_KEY_ID,
+      amount: orderData.amount,
+      currency: orderData.currency,
+      name: 'easyjpgtopdf',
+      description: `${plan.name} Plan - ${billing === 'yearly' ? 'Yearly' : 'Monthly'}`,
+      order_id: orderData.orderId,
+      prefill: {
+        email: orderData.userEmail || '',
+        name: orderData.userName || ''
+      },
+      theme: {
+        color: '#4361ee'
+      },
+      handler: async function(response) {
+        // Payment successful
+        await handlePaymentSuccess(response, planKey, billing, userId, orderData.orderId);
+      },
+      modal: {
+        ondismiss: function() {
+          console.log('Payment cancelled');
+        }
+      }
+    };
+    
+    const razorpay = new Razorpay(options);
+    razorpay.open();
+    
+  } catch (error) {
+    console.error('Error initiating subscription:', error);
+    alert('Failed to initiate payment. Please try again.');
+  }
+}
+
+/**
+ * Handle successful payment
+ */
+async function handlePaymentSuccess(paymentResponse, planKey, billing, userId, orderId) {
+  try {
+    // Verify payment on server
+    const verifyResponse = await fetch('/api/subscriptions/verify-payment', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${await getAuthToken()}`
+      },
+      body: JSON.stringify({
+        razorpay_order_id: paymentResponse.razorpay_order_id,
+        razorpay_payment_id: paymentResponse.razorpay_payment_id,
+        razorpay_signature: paymentResponse.razorpay_signature,
+        plan: planKey,
+        billing: billing,
+        userId: userId,
+        orderId: orderId
+      })
+    });
+    
+    if (!verifyResponse.ok) {
+      throw new Error('Payment verification failed');
+    }
+    
+    const result = await verifyResponse.json();
+    
+    if (result.success) {
+      // Update subscription in Firestore
+      await activateSubscription(userId, planKey, billing, paymentResponse.razorpay_payment_id);
+      
+      // Redirect to dashboard
+      window.location.href = 'dashboard.html#dashboard-overview';
+    } else {
+      throw new Error('Payment verification failed');
+    }
+  } catch (error) {
+    console.error('Error handling payment:', error);
+    alert('Payment verification failed. Please contact support.');
+  }
+}
+
+/**
+ * Activate subscription after payment
+ */
+async function activateSubscription(userId, planKey, billing, paymentId) {
+  if (!db) return;
+  
+  const plan = billing === 'yearly' ? YEARLY_PLANS[planKey] : PLANS[planKey];
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + plan.duration * 24 * 60 * 60 * 1000);
+  
+  await setDoc(doc(db, 'subscriptions', userId), {
+    plan: planKey,
+    status: 'active',
+    startDate: Timestamp.fromDate(now),
+    expiresAt: Timestamp.fromDate(expiresAt),
+    billing: billing,
+    paymentId: paymentId,
+    autopay: false, // Can be enabled later
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+  
+  // Record payment
+  await setDoc(doc(db, 'payments', paymentId), {
+    userId: userId,
+    plan: planKey,
+    amount: plan.price,
+    currency: 'INR',
+    billing: billing,
+    status: 'completed',
+    paymentDate: serverTimestamp(),
+    orderId: paymentId
+  });
+}
+
+/**
+ * Enable/disable autopay
+ */
+export async function toggleAutopay(userId, enable) {
+  if (!db) return;
+  
+  await updateDoc(doc(db, 'subscriptions', userId), {
+    autopay: enable,
+    updatedAt: serverTimestamp()
+  });
+}
+
+/**
+ * Track user activity
+ */
+export async function trackActivity(userId, activityType, details = {}) {
+  if (!db) return;
+  
+  try {
+    await setDoc(doc(collection(db, 'activities'), `${userId}_${Date.now()}`), {
+      userId: userId,
+      type: activityType,
+      details: details,
+      timestamp: serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Error tracking activity:', error);
+  }
+}
+
+/**
+ * Get user activity history
+ */
+export async function getUserActivity(userId, limit = 50) {
+  if (!db) return [];
+  
+  try {
+    const q = query(
+      collection(db, 'activities'),
+      where('userId', '==', userId)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })).sort((a, b) => b.timestamp - a.timestamp).slice(0, limit);
+  } catch (error) {
+    console.error('Error getting activity:', error);
+    return [];
+  }
+}
+
+/**
+ * Get auth token (helper function)
+ */
+async function getAuthToken() {
+  if (!auth) return null;
+  const user = auth.currentUser;
+  if (!user) return null;
+  return await user.getIdToken();
+}
+
+// Load Razorpay script
+if (typeof Razorpay === 'undefined') {
+  const script = document.createElement('script');
+  script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+  script.async = true;
+  document.head.appendChild(script);
+}
+
+// Export for use in other files
+window.subscriptionService = {
+  getCurrentSubscription,
+  getUserPlanFeatures,
+  hasFeatureAccess,
+  initiateSubscriptionPurchase,
+  toggleAutopay,
+  trackActivity,
+  getUserActivity,
+  PLANS,
+  YEARLY_PLANS
+};
+

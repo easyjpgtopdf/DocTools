@@ -12,6 +12,9 @@ const admin = require('firebase-admin');
 const Stripe = require('stripe');
 const Razorpay = require('razorpay');
 
+// Subscription routes
+const subscriptionRoutes = require('./api/subscriptions/routes');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -1257,6 +1260,14 @@ app.post('/convert/word-to-pdf/msword', upload.any(), async (req, res) => {
   req.query.engine = 'msword';
   return app._router.handle(req, res, () => {});
 });
+
+// Initialize subscription routes
+try {
+  subscriptionRoutes(app);
+  console.log('Subscription routes initialized');
+} catch (error) {
+  console.warn('Failed to initialize subscription routes:', error.message);
+}
 
 app.listen(PORT, () => {
   console.log(`Word2PDF server listening on http://localhost:${PORT}`);

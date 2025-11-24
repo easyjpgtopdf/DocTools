@@ -431,48 +431,112 @@
   </script>
 
   <script type="module">
-      import { initiatePurchase } from './js/limits.js';
+      import { initiateSubscriptionPurchase } from './js/subscription.js';
+      import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 
-      // When user clicks buy: if not signed in, store pending purchase and redirect to login/signup flow
+      // Initialize Firebase auth
+      let auth;
+      try {
+        const firebaseConfig = JSON.parse(sessionStorage.getItem('firebaseConfig') || '{}');
+        if (firebaseConfig.apiKey) {
+          const app = initializeApp(firebaseConfig);
+          auth = getAuth(app);
+        }
+      } catch (e) {
+        console.warn('Firebase not initialized');
+      }
+
+      // When user clicks buy: check if logged in, redirect to login if not
       document.querySelectorAll('button[data-plan]').forEach(b => {
-        b.addEventListener('click', () => {
+        b.addEventListener('click', async () => {
           const plan = b.getAttribute('data-plan');
           const billing = b.getAttribute('data-billing');
-          const userId = sessionStorage.getItem('userId') || sessionStorage.getItem('user') || null;
-          // If coming from an upload redirect, preserve that context
-          const urlParams = new URLSearchParams(window.location.search || '');
-          const fromUpload = urlParams.get('from') === 'upload';
-          const size = urlParams.get('size') || null;
+          
+          // Check if user is logged in
+          let userId = null;
+          if (auth) {
+            const user = auth.currentUser;
+            userId = user ? user.uid : null;
+            
+            // Wait for auth state if not immediately available
+            if (!userId) {
+              await new Promise((resolve) => {
+                const unsubscribe = onAuthStateChanged(auth, (user) => {
+                  unsubscribe();
+                  userId = user ? user.uid : null;
+                  resolve();
+                });
+                setTimeout(resolve, 1000); // Timeout after 1 second
+              });
+            }
+          }
+          
+          // Fallback to sessionStorage
+          if (!userId) {
+            userId = sessionStorage.getItem('userId') || sessionStorage.getItem('user') || null;
+          }
 
           if (!userId) {
-            // store pending purchase intent and redirect to login
-            const pending = { plan, billing, fromUpload: fromUpload ? true : false, size: size || null };
-            try { sessionStorage.setItem('pendingPurchase', JSON.stringify(pending)); } catch (e) {}
-            // redirect to login and return to this page after sign-in
-            const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+            // Store pending subscription and redirect to login
+            sessionStorage.setItem('pendingSubscription', JSON.stringify({ plan, billing }));
+            const returnUrl = encodeURIComponent(window.location.pathname);
             window.location.href = `login.html?returnTo=${returnUrl}`;
             return;
           }
 
-          // signed in: proceed to initiate purchase immediately
-          initiatePurchase(plan, billing);
+          // User is logged in: proceed to payment
+          try {
+            await initiateSubscriptionPurchase(plan, billing, userId);
+          } catch (error) {
+            console.error('Error initiating subscription:', error);
+            alert('Failed to start payment. Please try again.');
+          }
         });
       });
 
-      // If user returned from login and there is a pending purchase, auto-start it
-      (function(){
+      // If user returned from login and there is a pending subscription, auto-start it
+      (async function(){
         try {
-          const pendingRaw = sessionStorage.getItem('pendingPurchase');
-          const userId = sessionStorage.getItem('userId') || sessionStorage.getItem('user') || null;
+          const pendingRaw = sessionStorage.getItem('pendingSubscription');
+          if (!pendingRaw) return;
+          
+          let userId = null;
+          if (auth) {
+            const user = auth.currentUser;
+            userId = user ? user.uid : null;
+            
+            if (!userId) {
+              await new Promise((resolve) => {
+                const unsubscribe = onAuthStateChanged(auth, (user) => {
+                  unsubscribe();
+                  userId = user ? user.uid : null;
+                  resolve();
+                });
+                setTimeout(resolve, 1000);
+              });
+            }
+          }
+          
+          if (!userId) {
+            userId = sessionStorage.getItem('userId') || sessionStorage.getItem('user') || null;
+          }
+          
           if (pendingRaw && userId) {
             const pending = JSON.parse(pendingRaw);
-            sessionStorage.removeItem('pendingPurchase');
-            // small delay to let page finish loading
-            setTimeout(()=>{
-              initiatePurchase(pending.plan, pending.billing);
-            }, 400);
+            sessionStorage.removeItem('pendingSubscription');
+            // Small delay to let page finish loading
+            setTimeout(async () => {
+              try {
+                await initiateSubscriptionPurchase(pending.plan, pending.billing, userId);
+              } catch (error) {
+                console.error('Error auto-starting subscription:', error);
+              }
+            }, 500);
           }
-        } catch (e) { /* ignore */ }
+        } catch (e) {
+          console.error('Error processing pending subscription:', e);
+        }
       })();
     </script>
   </div>
