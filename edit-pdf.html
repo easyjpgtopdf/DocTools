@@ -43,13 +43,16 @@
         .editor-header h1 { font-size: 2.2rem; color: var(--primary); margin-bottom: 10px; }
         .editor-header p { font-size: 1.05rem; color: var(--gray); max-width: 700px; margin: 0 auto; }
         .editor-card { background: #fff; border-radius: var(--border-radius); padding: 30px; box-shadow: var(--box-shadow); margin-bottom: 30px; }
-        .upload-area { border: 3px dashed #ddd; border-radius: var(--border-radius); padding: 40px 20px; text-align: center; cursor: pointer; margin-bottom: 20px; transition: var(--transition); position: relative; }
-        .upload-area:hover { border-color: var(--primary); background: rgba(67, 97, 238, 0.03); }
-        .upload-area.dragover { border-color: var(--primary); background: rgba(67, 97, 238, 0.08); }
-        .upload-icon { font-size: 64px; color: var(--primary); margin-bottom: 15px; }
-        .upload-area h3 { font-size: 1.5rem; margin-bottom: 10px; color: var(--dark); }
-        .upload-area p { color: var(--gray); margin-bottom: 5px; }
+        .upload-area { border: 4px dashed #ddd; border-radius: var(--border-radius); padding: 80px 40px; text-align: center; cursor: pointer; margin-bottom: 30px; transition: var(--transition); position: relative; min-height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .upload-area:hover { border-color: var(--primary); background: rgba(67, 97, 238, 0.05); }
+        .upload-area.dragover { border-color: var(--primary); background: rgba(67, 97, 238, 0.12); }
+        .upload-icon { font-size: 120px; color: var(--primary); margin-bottom: 30px; }
+        .upload-area h3 { font-size: 2.2rem; margin-bottom: 15px; color: var(--dark); font-weight: 700; }
+        .upload-area p { color: var(--gray); margin-bottom: 8px; font-size: 1.1rem; }
         .file-input { display: none; }
+        #browse-btn { font-size: 1.4rem; padding: 20px 50px; min-height: 70px; min-width: 280px; font-weight: 700; border-radius: 50px; margin-top: 30px; display: inline-flex; align-items: center; justify-content: center; gap: 15px; box-shadow: 0 8px 20px rgba(67, 97, 238, 0.25); }
+        #browse-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(67, 97, 238, 0.35); }
+        #browse-btn i { font-size: 1.6rem; }
         .file-info { background: var(--light); border-radius: var(--border-radius); padding: 20px; margin: 20px 0; display: none; }
         .file-details { display: flex; align-items: center; gap: 15px; }
         .file-icon { font-size: 40px; color: var(--primary); }
@@ -351,198 +354,13 @@
 </div>
 <input accept="application/pdf,.pdf" class="file-input" id="file-input" type="file"/>
 </div>
-<div class="file-info" id="file-info">
+<div class="file-info" id="file-info" style="display: none;">
 <div class="file-details">
 <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
 <div class="file-text">
 <h4 id="file-name">document.pdf</h4>
 <p id="file-size">0 KB</p>
 </div>
-</div>
-</div>
-<div class="editor-section" id="editor-section">
-<h3>Pdf Editor Text</h3>
-<div class="editor-container">
-<div class="toolbar">
-<div class="tool-group">
-<div class="tool-group-title">Text Tools</div>
-<button class="tool-btn active" id="select-tool">
-<i class="fas fa-mouse-pointer"></i>
-<span>Select Text</span>
-</button>
-<button class="tool-btn" id="text-tool">
-<i class="fas fa-font"></i>
-<span>Add Text</span>
-</button>
-<button class="tool-btn" id="highlight-tool">
-<i class="fas fa-highlighter"></i>
-<span>Highlight</span>
-</button>
-<button class="tool-btn" id="ocr-region-btn" title="Drag a box on the page to OCR only that region">
-<i class="fas fa-vector-square"></i>
-<span>OCR Region</span>
-</button>
-<div class="font-controls">
-<label style="font-size:.9rem;color:var(--dark)">OCR Language</label>
-<select class="font-select" id="ocr-lang">
-<option selected="" value="eng">English (eng)</option>
-<option value="hin">Hindi (hin)</option>
-<option value="ben">Bengali (ben)</option>
-<option value="guj">Gujarati (guj)</option>
-<option value="mar">Marathi (mar)</option>
-<option value="pan">Punjabi (pan)</option>
-<option value="tam">Tamil (tam)</option>
-<option value="tel">Telugu (tel)</option>
-<option value="kan">Kannada (kan)</option>
-<option value="mal">Malayalam (mal)</option>
-<option value="urd">Urdu (urd)</option>
-<option value="asm">Assamese (asm)</option>
-<option value="ori">Odia (ori)</option>
-<option value="nep">Nepali (nep)</option>
-<option value="snd">Sindhi (snd)</option>
-<option value="eng+hin">English + Hindi</option>
-</select>
-<label style="display:flex;align-items:center;gap:8px;color:var(--dark);margin-top:6px">
-<input id="ocr-auto" type="checkbox"/> Auto OCR each page
-                                </label>
-</div>
-</div>
-<div class="tool-group">
-<div class="tool-group-title">Highlight Colors</div>
-<div class="highlight-controls">
-<div class="highlight-color">
-<div class="highlight-btn active" data-color="#FFFF00" style="background-color: #FFFF00;"></div>
-<div class="highlight-btn" data-color="#00FF00" style="background-color: #00FF00;"></div>
-<div class="highlight-btn" data-color="#00FFFF" style="background-color: #00FFFF;"></div>
-<div class="highlight-btn" data-color="#FF00FF" style="background-color: #FF00FF;"></div>
-<div class="highlight-btn" data-color="#FFA500" style="background-color: #FFA500;"></div>
-</div>
-</div>
-</div>
-</div>
-<div class="preview-container">
-<div class="ribbon">
-<div class="ribbon-row">
-<div class="ribbon-group">
-<div class="group-title">Font</div>
-<select id="tb-font-family">
-<option>Inter</option>
-<option>Roboto</option>
-<option>Open Sans</option>
-<option>Lato</option>
-<option>Poppins</option>
-<option>Montserrat</option>
-<option>Source Sans 3</option>
-<option>Noto Sans</option>
-<option>PT Sans</option>
-<option>PT Serif</option>
-<option>Merriweather</option>
-<option>Georgia</option>
-<option>Verdana</option>
-<option>Courier New</option>
-<option>Times New Roman</option>
-<option>Arial</option>
-</select>
-<select id="tb-font-size">
-<option>10</option>
-<option>12</option>
-<option selected="">14</option>
-<option>16</option>
-<option>18</option>
-<option>24</option>
-<option>32</option>
-</select>
-<select id="tb-color-preset" title="Font Color Presets">
-<option value="#111827">Black</option>
-<option value="#ff0000">Red</option>
-<option value="#0057ff">Blue</option>
-<option value="#00a650">Green</option>
-<option value="#ff8c00">Orange</option>
-<option value="#800080">Purple</option>
-<option value="#808080">Gray</option>
-<option value="#ffff00">Yellow</option>
-</select>
-<input id="tb-color" title="Custom Color" type="color" value="#111827"/>
-</div>
-<div class="ribbon-group">
-<div class="group-title">Style</div>
-<button class="btn" id="tb-bold" title="Bold"><i class="fas fa-bold"></i></button>
-<button class="btn" id="tb-italic" title="Italic"><i class="fas fa-italic"></i></button>
-<button class="btn" id="tb-underline" title="Underline"><i class="fas fa-underline"></i></button>
-</div>
-<div class="ribbon-group">
-<div class="group-title">Align</div>
-<button class="btn" id="tb-align-left" title="Align Left"><i class="fas fa-align-left"></i></button>
-<button class="btn" id="tb-align-center" title="Align Center"><i class="fas fa-align-center"></i></button>
-<button class="btn" id="tb-align-right" title="Align Right"><i class="fas fa-align-right"></i></button>
-</div>
-</div>
-<div class="ribbon-row">
-<div class="ribbon-group">
-<div class="group-title">Edit</div>
-<button class="btn" id="tb-undo" title="Undo"><i class="fas fa-undo"></i></button>
-<button class="btn" id="tb-redo" title="Redo"><i class="fas fa-redo"></i></button>
-<button class="btn" id="tb-clear" title="Clear All"><i class="fas fa-trash"></i></button>
-</div>
-<div class="ribbon-group">
-<div class="group-title">Insert</div>
-<button class="btn" id="tb-insert-image" title="Insert Image"><i class="fas fa-image"></i></button>
-<input accept="image/*" id="img-file-input" style="display:none" type="file"/>
-<label class="group-title" for="tb-image-scale" style="margin-left:8px">Image Size</label>
-<input id="tb-image-scale" max="300" min="10" style="width:140px" type="range" value="100"/>
-</div>
-<div class="ribbon-group">
-<div class="group-title">Save</div>
-<button class="btn btn-primary" disabled="" id="save-btn"><i class="fas fa-download"></i> Save Edited PDF</button>
-<button class="btn" disabled="" id="save-ocr-only-btn"><i class="fas fa-file-export"></i> OCR-Only (No BG)</button>
-<button class="btn" disabled="" id="save-selectable-btn" title="Embed fonts to keep selectable text like Acrobat"><i class="fas fa-file-signature"></i> Save Selectable (Embed Fonts)</button>
-<label class="btn" for="add-font-input" title="Add TTF/OTF font to embed"><i class="fas fa-font"></i> Add Font</label>
-<input accept=".ttf,.otf,.ttc,.woff,.woff2" id="add-font-input" style="display:none" type="file"/>
-</div>
-<div class="ribbon-group" style="margin-left:auto">
-<div class="group-title">Zoom</div>
-<button class="btn" id="zoom-out" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
-<button class="btn" id="zoom-in" title="Zoom In"><i class="fas fa-search-plus"></i></button>
-<button class="btn" id="zoom-fit" title="Fit to Width"><i class="fas fa-expand"></i></button>
-<span class="zoom-label" id="zoom-pct">100%</span>
-</div>
-</div>
-</div>
-<div class="preview-area">
-<div class="a4-preview" id="a4-preview">
-<canvas id="pdf-canvas"></canvas>
-<canvas id="overlay-canvas"></canvas>
-<div id="text-layer"></div>
-</div>
-</div>
-<div class="page-navigation">
-<button class="page-btn" id="prev-page"><i class="fas fa-chevron-left"></i></button>
-<span class="page-info">Page <span id="page-num">1</span> of <span id="page-count">1</span></span>
-<button class="page-btn" id="next-page"><i class="fas fa-chevron-right"></i></button>
-</div>
-</div>
-</div>
-</div>
-<div class="progress-container" id="progress-container">
-<div class="progress-bar">
-<div class="progress" id="progress-bar"></div>
-</div>
-<div class="progress-text" id="progress-text">Loading PDF...</div>
-</div>
-<div class="loading" id="loading">
-<div class="loading-spinner"></div>
-<p>Processing your PDF file...</p>
-</div>
-<div class="success-message message" id="success-message">
-<i class="fas fa-check-circle"></i> Your PDF has been successfully edited!
-            </div>
-<div class="error-message message" id="error-message">
-<i class="fas fa-exclamation-circle"></i> <span id="error-text">An error occurred during processing</span>
-</div>
-<div class="action-buttons">
-<button class="btn btn-secondary" id="new-file-btn">
-<i class="fas fa-file"></i> New File
-                </button>
 </div>
 </div>
 <div class="features">
@@ -815,6 +633,34 @@
         // Handle file upload
         function handleFile(file) {
             console.log("File selected:", file);
+            
+            // Store file data and redirect to preview page
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Store file data in sessionStorage for preview page
+                const fileData = {
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    data: e.target.result
+                };
+                sessionStorage.setItem('pdfFileData', JSON.stringify({
+                    name: fileData.name,
+                    size: fileData.size,
+                    type: fileData.type
+                }));
+                // Store ArrayBuffer as base64 for transfer
+                const base64 = btoa(String.fromCharCode(...new Uint8Array(e.target.result)));
+                sessionStorage.setItem('pdfFileBase64', base64);
+                
+                // Redirect to preview page
+                window.location.href = 'edit-pdf-preview.html';
+            };
+            reader.onerror = function() {
+                showError('Error reading file. Please try again.');
+            };
+            reader.readAsArrayBuffer(file);
+            return; // Exit early - don't process inline
             
             if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
                 showError('Please select a valid PDF file');
