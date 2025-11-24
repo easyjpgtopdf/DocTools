@@ -49,8 +49,17 @@ header .nav-links a {
     transition: color 0.3s;
 }
 
+header .nav-links a.nav-link {
+    text-decoration: none;
+    color: var(--dark, #212529);
+    font-weight: 500;
+    transition: color 0.3s;
+    padding: 8px 0;
+}
+
 header .nav-links a:hover,
-header .nav-links a.active {
+header .nav-links a.active,
+header .nav-links a.nav-link:hover {
     color: var(--primary, #4361ee);
 }
 
@@ -543,8 +552,13 @@ header .user-dropdown button.dropdown-logout {
         margin-right: auto;
     }
     
-    /* Hide desktop nav links on mobile */
+    /* Hide desktop nav links on mobile (but keep auth buttons visible in mobile menu) */
     header .nav-links {
+        display: none !important;
+    }
+    
+    /* Hide auth buttons on mobile (they're in mobile menu now) */
+    header .auth-buttons {
         display: none !important;
     }
     

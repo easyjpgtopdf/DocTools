@@ -26,6 +26,9 @@ const globalHeaderHTML = `
                 <span></span>
             </button>
             <div class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="login.html" class="nav-link">Sign In</a>
+                <a href="signup.html" class="nav-link">Signup</a>
                 <div class="dropdown">
                     <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
                     <div class="dropdown-content">
@@ -85,10 +88,6 @@ const globalHeaderHTML = `
                         <a href="protect-excel.html">Protect Excel Sheet</a>
                     </div>
                 </div>
-            </div>
-            <div class="auth-buttons">
-                <a href="login.html" class="auth-link">Sign In</a>
-                <a href="signup.html" class="auth-btn"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Signup</span></a>
             </div>
             <div id="user-menu" class="user-menu" data-open="false">
                 <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
