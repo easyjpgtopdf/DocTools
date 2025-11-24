@@ -25,6 +25,16 @@ const globalHeaderHTML = `
                 <span></span>
                 <span></span>
             </button>
+            <!-- Mobile Tool Summary - Shows tool categories in header -->
+            <div class="nav-links-summary" style="display: none;">
+                <a href="jpg-to-pdf.html">JPG to PDF</a>
+                <a href="word-to-pdf.html">Word to PDF</a>
+                <a href="merge-pdf.html">Merge PDF</a>
+                <a href="split-pdf.html">Split PDF</a>
+                <a href="compress-pdf.html">Compress PDF</a>
+                <a href="image-compressor.html">Image Tools</a>
+                <a href="pricing.html">Pricing</a>
+            </div>
             <div class="nav-links">
                 <div class="dropdown">
                     <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>

@@ -50,14 +50,25 @@
             });
         }
         
-        // Close menu when clicking overlay
+        // Close menu when clicking overlay (but not on menu content)
         mobileMenuOverlay.addEventListener('click', function(e) {
-            if (e.target === mobileMenuOverlay) {
+            // Only close if clicking the overlay background, not the menu content
+            if (e.target === mobileMenuOverlay || e.target.classList.contains('mobile-menu-overlay')) {
                 mobileMenuOverlay.classList.remove('active');
                 mobileMenuToggle.setAttribute('aria-expanded', 'false');
                 document.body.style.overflow = '';
+                e.preventDefault();
+                e.stopPropagation();
             }
         });
+        
+        // Prevent menu content clicks from closing the menu
+        const mobileMenuContent = mobileMenuOverlay.querySelector('.mobile-menu-content');
+        if (mobileMenuContent) {
+            mobileMenuContent.addEventListener('click', function(e) {
+                e.stopPropagation(); // Prevent event from bubbling to overlay
+            });
+        }
         
         // Mobile dropdown toggles (touch-friendly)
         mobileDropdownToggles.forEach(toggle => {
