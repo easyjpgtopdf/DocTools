@@ -264,25 +264,43 @@ function initializeMobileMenu() {
         });
     }
     
-    // Mobile dropdown toggles (touch-friendly)
+    // Mobile dropdown toggles (touch-friendly) - support both click and touch
     mobileDropdownToggles.forEach(toggle => {
-        toggle.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const dropdown = this.parentElement;
-            const isExpanded = this.getAttribute('aria-expanded') === 'true';
-            
-            // Close all other dropdowns
-            mobileDropdownToggles.forEach(otherToggle => {
-                if (otherToggle !== this) {
-                    otherToggle.setAttribute('aria-expanded', 'false');
-                    otherToggle.parentElement.classList.remove('active');
+        ['click', 'touchstart'].forEach(eventType => {
+            toggle.addEventListener(eventType, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const dropdown = this.parentElement;
+                const isExpanded = this.getAttribute('aria-expanded') === 'true';
+                
+                // Close all other dropdowns
+                mobileDropdownToggles.forEach(otherToggle => {
+                    if (otherToggle !== this) {
+                        otherToggle.setAttribute('aria-expanded', 'false');
+                        otherToggle.parentElement.classList.remove('active');
+                    }
+                });
+                
+                // Toggle current dropdown
+                const newState = !isExpanded;
+                this.setAttribute('aria-expanded', newState);
+                dropdown.classList.toggle('active', newState);
+                
+                // Ensure dropdown content is visible when active
+                const dropdownContent = dropdown.querySelector('.mobile-dropdown-content');
+                if (dropdownContent) {
+                    if (newState) {
+                        dropdownContent.style.display = 'block';
+                    } else {
+                        // Use setTimeout to allow transition to complete
+                        setTimeout(() => {
+                            if (!dropdown.classList.contains('active')) {
+                                dropdownContent.style.display = '';
+                            }
+                        }, 300);
+                    }
                 }
-            });
-            
-            // Toggle current dropdown
-            this.setAttribute('aria-expanded', !isExpanded);
-            dropdown.classList.toggle('active', !isExpanded);
+            }, { passive: false });
         });
     });
     
