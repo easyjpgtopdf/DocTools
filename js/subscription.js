@@ -131,6 +131,37 @@ export async function hasFeatureAccess(userId, feature) {
 }
 
 /**
+ * Get user's currency based on browser locale
+ */
+function getUserCurrency() {
+  // Try to detect from browser
+  const locale = navigator.language || navigator.userLanguage || 'en-US';
+  
+  // Check if currency is stored in session
+  const storedCurrency = sessionStorage.getItem('userCurrency');
+  if (storedCurrency) {
+    return storedCurrency;
+  }
+  
+  // Detect from locale
+  if (locale.includes('en-IN') || locale.includes('hi')) {
+    return 'INR';
+  }
+  if (locale.includes('ja')) {
+    return 'JPY';
+  }
+  if (locale.includes('ru')) {
+    return 'RUB';
+  }
+  if (locale.includes('en-US') || locale.includes('en')) {
+    return 'USD';
+  }
+  
+  // Default to USD
+  return 'USD';
+}
+
+/**
  * Initiate subscription purchase with Razorpay
  */
 export async function initiateSubscriptionPurchase(planKey, billing = 'monthly', userId) {
@@ -146,19 +177,23 @@ export async function initiateSubscriptionPurchase(planKey, billing = 'monthly',
     throw new Error('Invalid plan selected');
   }
   
+  // Get user's currency (auto-detect)
+  const userCurrency = getUserCurrency();
+  
   // Create Razorpay order
   try {
     const response = await fetch('/api/subscriptions/create-order', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${await getAuthToken()}`
+        'Authorization': `Bearer ${await getAuthToken()}`,
+        'Accept-Language': navigator.language || 'en-US'
       },
       body: JSON.stringify({
         plan: planKey,
         billing: billing,
-        amount: plan.price,
-        currency: 'INR',
+        amount: plan.price, // Price in USD (will be converted on server)
+        currency: userCurrency, // User's preferred currency
         userId: userId
       })
     });
