@@ -1193,7 +1193,26 @@
         
         // Initialize on page load
         window.addEventListener('load', function() {
-            loadPDF();
+            // Wait for PDF.js to load
+            if (typeof pdfjsLib === 'undefined') {
+                console.error('PDF.js library not loaded');
+                if (loadingOverlay) loadingOverlay.style.display = 'none';
+                alert('PDF.js library failed to load. Please refresh the page.');
+                return;
+            }
+            
+            // Set PDF.js worker if not already set
+            if (pdfjsLib.GlobalWorkerOptions) {
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            }
+            
+            // Load PDF after a short delay to ensure DOM is ready
+            setTimeout(() => {
+                loadPDF().catch(error => {
+                    console.error('Failed to load PDF:', error);
+                    if (loadingOverlay) loadingOverlay.style.display = 'none';
+                });
+            }, 100);
         });
     </script>
 </body>
