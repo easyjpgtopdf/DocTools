@@ -634,50 +634,69 @@
         function handleFile(file) {
             console.log("File selected:", file);
             
-            // Store file data and redirect to preview page
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                // Store file data in sessionStorage for preview page
-                const fileData = {
-                    name: file.name,
-                    size: file.size,
-                    type: file.type,
-                    data: e.target.result
-                };
-                sessionStorage.setItem('pdfFileData', JSON.stringify({
-                    name: fileData.name,
-                    size: fileData.size,
-                    type: fileData.type
-                }));
-                // Store ArrayBuffer as base64 for transfer
-                const base64 = btoa(String.fromCharCode(...new Uint8Array(e.target.result)));
-                sessionStorage.setItem('pdfFileBase64', base64);
-                
-                // Redirect to preview page
-                window.location.href = 'edit-pdf-preview.html';
-            };
-            reader.onerror = function() {
-                showError('Error reading file. Please try again.');
-            };
-            reader.readAsArrayBuffer(file);
-            return; // Exit early - don't process inline
-            
+            // Validate file type
             if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
                 showError('Please select a valid PDF file');
                 return;
             }
             
+            // Check file size
             if (file.size > 50 * 1024 * 1024) {
-                if(!confirm('This file is larger than 50MB. It may be slow to load. Continue?')){ return; }
+                if(!confirm('This file is larger than 50MB. It may be slow to load. Continue?')){ 
+                    return; 
+                }
             }
             
-            currentFile = file;
-            fileName.textContent = file.name;
-            fileSize.textContent = formatFileSize(file.size);
-            fileInfo.style.display = 'block';
-            hideMessages();
-            
-            loadPDF(file);
+            // Store file data and redirect to preview page
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Use IndexedDB for large files (better than sessionStorage)
+                const request = indexedDB.open('PDFEditorDB', 1);
+                request.onerror = function() {
+                    // Fallback: use blob URL if IndexedDB fails
+                    const blob = new Blob([e.target.result], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+                    sessionStorage.setItem('pdfFileURL', url);
+                    sessionStorage.setItem('pdfFileName', file.name);
+                    sessionStorage.setItem('pdfFileSize', file.size.toString());
+                    window.location.href = 'edit-pdf-preview.html';
+                };
+                request.onsuccess = function() {
+                    const db = request.result;
+                    const transaction = db.transaction(['pdfFiles'], 'readwrite');
+                    const store = transaction.objectStore('pdfFiles');
+                    const fileData = {
+                        name: file.name,
+                        size: file.size,
+                        type: file.type,
+                        data: e.target.result,
+                        timestamp: Date.now()
+                    };
+                    store.put(fileData, 'current');
+                    transaction.oncomplete = function() {
+                        window.location.href = 'edit-pdf-preview.html';
+                    };
+                    transaction.onerror = function() {
+                        // Fallback to blob URL if transaction fails
+                        const blob = new Blob([e.target.result], { type: 'application/pdf' });
+                        const url = URL.createObjectURL(blob);
+                        sessionStorage.setItem('pdfFileURL', url);
+                        sessionStorage.setItem('pdfFileName', file.name);
+                        sessionStorage.setItem('pdfFileSize', file.size.toString());
+                        window.location.href = 'edit-pdf-preview.html';
+                    };
+                };
+                request.onupgradeneeded = function() {
+                    const db = request.result;
+                    if (!db.objectStoreNames.contains('pdfFiles')) {
+                        db.createObjectStore('pdfFiles');
+                    }
+                };
+            };
+            reader.onerror = function() {
+                showError('Error reading file. Please try again.');
+            };
+            reader.readAsArrayBuffer(file);
         }
         
         // Load PDF document
