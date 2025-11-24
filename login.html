@@ -398,6 +398,52 @@
             font-weight: 600;
         }
 
+        /* SSL Security Badges - Below Login Form */
+        .ssl-security-badges {
+            text-align: center;
+            padding: 24px 20px;
+            background: linear-gradient(135deg, #f8f9ff, #ffffff);
+            border-radius: 16px;
+            margin-top: 24px;
+            border: 2px solid #e2e6ff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 32px;
+            flex-wrap: wrap;
+        }
+
+        .ssl-badge-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 180px;
+            justify-content: center;
+        }
+
+        .ssl-badge-item i {
+            font-size: 2rem;
+            color: #4361ee;
+            flex-shrink: 0;
+        }
+
+        .ssl-badge-text {
+            text-align: left;
+        }
+
+        .ssl-badge-title {
+            color: #0b1630;
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 2px;
+        }
+
+        .ssl-badge-subtitle {
+            color: #56607a;
+            font-size: 0.85rem;
+        }
+
         footer {
             padding: 16px 0 32px;
             text-align: center;
@@ -436,6 +482,34 @@
 
             .social-auth {
                 flex-direction: column;
+            }
+
+            /* Mobile SSL Badges */
+            .ssl-security-badges {
+                flex-direction: column;
+                gap: 20px;
+                padding: 20px 16px;
+                margin-top: 20px;
+            }
+
+            .ssl-badge-item {
+                min-width: 100%;
+                justify-content: flex-start;
+                padding: 12px;
+                background: rgba(255, 255, 255, 0.6);
+                border-radius: 12px;
+            }
+
+            .ssl-badge-item i {
+                font-size: 1.75rem;
+            }
+
+            .ssl-badge-title {
+                font-size: 0.95rem;
+            }
+
+            .ssl-badge-subtitle {
+                font-size: 0.8rem;
             }
         }
 
@@ -639,28 +713,33 @@
                         Need an account? <a href="signup.html">Create one now</a>
 </div>
 </form>
-</section>
-</div>
 
-    <div class="trust-badges" style="text-align: center; padding: 20px; background: linear-gradient(135deg, #f8f9ff, #ffffff); border-radius: 12px; margin: 30px 0; border: 2px solid #e2e6ff;">
-        <div style="display: flex; justify-content: center; align-items: center; gap: 40px; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <i class="fas fa-shield-alt" style="font-size: 2rem; color: #4361ee;"></i>
-                <div style="text-align: left;">
-                    <div style="color: #0b1630; font-weight: 600; font-size: 1.1rem;">SSL Secured</div>
-                    <div style="color: #56607a; font-size: 0.9rem;">256-bit Encryption</div>
-                </div>
+    <!-- SSL Security Badge - Below Login Form -->
+    <div class="ssl-security-badges">
+        <div class="ssl-badge-item">
+            <i class="fas fa-shield-alt"></i>
+            <div class="ssl-badge-text">
+                <div class="ssl-badge-title">SSL Secured</div>
+                <div class="ssl-badge-subtitle">256-bit Encryption</div>
             </div>
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <i class="fas fa-lock" style="font-size: 2rem; color: #4361ee;"></i>
-                <div style="text-align: left;">
-                    <div style="color: #0b1630; font-weight: 600; font-size: 1.1rem;">100% Secure</div>
-                    <div style="color: #56607a; font-size: 0.9rem;">Files Auto-Deleted</div>
-                </div>
+        </div>
+        <div class="ssl-badge-item">
+            <i class="fas fa-lock"></i>
+            <div class="ssl-badge-text">
+                <div class="ssl-badge-title">100% Secure</div>
+                <div class="ssl-badge-subtitle">Files Auto-Deleted</div>
             </div>
-            
+        </div>
+        <div class="ssl-badge-item">
+            <i class="fas fa-check-circle"></i>
+            <div class="ssl-badge-text">
+                <div class="ssl-badge-title">Privacy Protected</div>
+                <div class="ssl-badge-subtitle">A+ Security Rating</div>
+            </div>
         </div>
     </div>
+</section>
+</div>
 </main>
 <script src="js/firebase-init.js" type="module"></script>
 <script src="js/auth.js" type="module"></script>
