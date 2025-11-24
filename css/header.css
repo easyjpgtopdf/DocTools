@@ -501,22 +501,28 @@ header .user-dropdown button.dropdown-logout {
     /* Show hamburger menu on mobile */
     .mobile-menu-toggle {
         display: flex !important;
-        order: 2; /* Show after logo */
+        visibility: visible !important;
+        opacity: 1 !important;
+        order: 999;
+        margin-left: auto;
     }
     
     /* Ensure navbar is properly laid out on mobile */
     header .navbar {
-        display: flex;
+        display: flex !important;
         justify-content: space-between;
         align-items: center;
         flex-wrap: nowrap;
         gap: 12px;
+        width: 100%;
+        position: relative;
     }
     
-    /* Logo should be first */
+    /* Logo should be first and not shrink */
     header .logo {
         order: 1;
         flex-shrink: 0;
+        margin-right: auto;
     }
     
     /* Hide desktop nav links on mobile */
