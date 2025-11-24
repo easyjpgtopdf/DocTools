@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>PDF Editor Online Free - Edit PDF Files Online Without Installation | easyjpgtopdf</title>
+    <meta name="description" content="Edit PDF files online for free. Add text, images, annotations, modify PDF documents, highlight content - all without software installation. Best free online PDF editor 2024.">
+    <meta name="keywords" content="pdf editor online free, edit pdf online, free pdf editor, online pdf editor, edit pdf files, pdf editing tool, modify pdf, edit pdf documents, pdf editor free online, best pdf editor online, edit pdf online free no download, pdf editor website, free online pdf editor, edit pdf text, pdf editor tool">
+    
+    <!-- Resource Hints for Performance -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    
+    <!-- Preload Critical CSS -->
+    <link rel="preload" href="css/header.css" as="style">
+    <link rel="preload" href="css/footer.css" as="style">
+    
+    <link rel="stylesheet" href="css/footer.css">
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/theme-modern.css">
+    <!-- Defer Font Awesome to prevent render blocking -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+    
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "PDF Editor Online Free",
+      "description": "Edit PDF files online for free. Add text, images, annotations, modify PDF documents, highlight content - all without software installation. Best free online PDF editor 2024.",
+      "url": "https://easyjpgtopdf.com/pdf-editor.html",
+      "applicationCategory": "ProductivityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires HTML5 support",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Edit PDF text online",
+        "Add images to PDF",
+        "OCR text recognition",
+        "Real-time PDF editing",
+        "Full A4 preview",
+        "No software installation required"
+      ],
+      "inLanguage": "en-US",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "easyjpgtopdf",
+        "url": "https://easyjpgtopdf.com"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "easyjpgtopdf",
+        "url": "https://easyjpgtopdf.com"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Riyaz Mohammad"
+      }
+    }
+    </script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: #f5f7ff;
+            color: #0b1630;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+        
+        main {
+            flex: 1;
+            padding: 40px 0;
+        }
+        
+        .page-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .page-header h1 {
+            font-size: 2.5rem;
+            color: #0b1630;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        
+        .page-header p {
+            font-size: 1.1rem;
+            color: #56607a;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .upload-section {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .upload-area {
+            border: 3px dashed #4361ee;
+            border-radius: 16px;
+            padding: 60px 40px;
+            text-align: center;
+            cursor: pointer;
+            background: linear-gradient(145deg, #f8f9ff, #ffffff);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .upload-area:hover {
+            border-color: #3a0ca3;
+            box-shadow: 0 8px 24px rgba(67, 97, 238, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .upload-area.dragover {
+            border-color: #3a0ca3;
+            background: #eef2ff;
+        }
+        
+        .upload-icon {
+            font-size: 64px;
+            color: #4361ee;
+            margin-bottom: 20px;
+        }
+        
+        .upload-area h3 {
+            font-size: 1.5rem;
+            color: #0b1630;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .upload-area p {
+            color: #56607a;
+            font-size: 1rem;
+            margin-bottom: 5px;
+        }
+        
+        .browse-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: #4361ee;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .browse-btn:hover {
+            background: #3a0ca3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .file-info {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 12px;
+            display: none;
+        }
+        
+        .file-info.show {
+            display: block;
+        }
+        
+        .file-details {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .file-icon {
+            font-size: 48px;
+            color: #4361ee;
+        }
+        
+        .file-text h4 {
+            font-size: 1.2rem;
+            color: #0b1630;
+            margin-bottom: 5px;
+        }
+        
+        .file-text p {
+            color: #56607a;
+            font-size: 0.9rem;
+        }
+        
+        .continue-btn-container {
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        .continue-btn {
+            display: inline-block;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+        }
+        
+        .continue-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+        }
+        
+        .continue-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .tools-roadmap {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .tools-roadmap h2 {
+            font-size: 2rem;
+            color: #0b1630;
+            margin-bottom: 30px;
+            text-align: center;
+            font-weight: 700;
+        }
+        
+        .roadmap-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+        
+        .roadmap-card {
+            background: linear-gradient(135deg, #f8f9ff, #ffffff);
+            padding: 25px;
+            border-radius: 12px;
+            border: 2px solid #e2e6ff;
+            transition: all 0.3s ease;
+        }
+        
+        .roadmap-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(67, 97, 238, 0.15);
+            border-color: #4361ee;
+        }
+        
+        .roadmap-icon {
+            font-size: 36px;
+            color: #4361ee;
+            margin-bottom: 15px;
+        }
+        
+        .roadmap-card h3 {
+            font-size: 1.3rem;
+            color: #0b1630;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .roadmap-card p {
+            color: #56607a;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        
+        .user-feedback {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .user-feedback h2 {
+            font-size: 2rem;
+            color: #0b1630;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 700;
+        }
+        
+        .feedback-form {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #0b1630;
+            font-weight: 600;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e2e6ff;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #4361ee;
+        }
+        
+        textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        .submit-btn {
+            padding: 12px 30px;
+            background: #4361ee;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .submit-btn:hover {
+            background: #3a0ca3;
+            transform: translateY(-2px);
+        }
+        
+        .ssl-badges {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #f8f9ff, #ffffff);
+            border-radius: 12px;
+            margin: 30px 0;
+            border: 2px solid #e2e6ff;
+        }
+        
+        .ssl-badges-grid {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .ssl-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .ssl-badge i {
+            font-size: 2rem;
+            color: #4361ee;
+        }
+        
+        .ssl-badge-text h4 {
+            color: #0b1630;
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 3px;
+        }
+        
+        .ssl-badge-text p {
+            color: #56607a;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .page-header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .upload-area {
+                padding: 40px 20px;
+            }
+            
+            .upload-icon {
+                font-size: 48px;
+            }
+            
+            .roadmap-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .ssl-badges-grid {
+                flex-direction: column;
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <script src="js/global-components.js"></script>
+    <script>
+        // Load header dynamically
+        document.addEventListener('DOMContentLoaded', function() {
+            const headerPlaceholder = document.getElementById('header-placeholder');
+            if (headerPlaceholder && typeof globalHeaderHTML !== 'undefined') {
+                headerPlaceholder.innerHTML = globalHeaderHTML;
+            }
+        });
+    </script>
+    <div id="header-placeholder"></div>
+    
+    <nav aria-label="Breadcrumb" style="padding: 15px 0; background: #f8f9ff; border-bottom: 1px solid #e2e6ff;">
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 24px;">
+            <ol style="list-style: none; display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; align-items: center;">
+                <li><a href="index.html" style="color: #4361ee; text-decoration: none; font-weight: 500; transition: color 0.3s;" onmouseover="this.style.color='#3a0ca3'" onmouseout="this.style.color='#4361ee'">Home</a></li>
+                <li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
+                <li><a href="login.html" style="color: #56607a; font-weight: 500; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#4361ee'" onmouseout="this.style.color='#56607a'">Sign In</a></li>
+                <li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
+                <li><a href="signup.html" style="color: #56607a; font-weight: 500; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#4361ee'" onmouseout="this.style.color='#56607a'">Signup</a></li>
+            </ol>
+        </div>
+    </nav>
+    
+    <main>
+        <div class="container">
+            <div class="page-header">
+                <h1>PDF Editor Online Free - Edit PDF Files Online Without Installation</h1>
+                <p>Edit PDF files online for free with our advanced PDF editor tool. Add text, images, annotations, highlight content, modify PDF documents, and more - all without software installation. Best free online PDF editor 2024.</p>
+            </div>
+            
+            <div class="upload-section">
+                <div class="upload-area" id="upload-area">
+                    <div class="upload-icon">
+                        <i class="fas fa-file-pdf"></i>
+                    </div>
+                    <h3>Upload Your PDF File</h3>
+                    <p>Drag & drop your PDF file here</p>
+                    <p>or click to browse files</p>
+                    <label for="file-input" class="browse-btn">
+                        <i class="fas fa-folder-open"></i> Browse Files
+                    </label>
+                    <input type="file" id="file-input" class="file-input" accept="application/pdf,.pdf">
+                </div>
+                
+                <div class="file-info" id="file-info">
+                    <div class="file-details">
+                        <div class="file-icon">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <div class="file-text">
+                            <h4 id="file-name">document.pdf</h4>
+                            <p id="file-size">0 KB</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="continue-btn-container">
+                    <button class="continue-btn" id="continue-btn" disabled>
+                        <i class="fas fa-arrow-right"></i> Continue to Editor
+                    </button>
+                </div>
+            </div>
+            
+            <div class="tools-roadmap">
+                <h2>How Our PDF Editor Works</h2>
+                <div class="roadmap-grid">
+                    <div class="roadmap-card">
+                        <div class="roadmap-icon">
+                            <i class="fas fa-upload"></i>
+                        </div>
+                        <h3>Upload PDF</h3>
+                        <p>Simply drag and drop your PDF file or click to browse. Our system supports all standard PDF formats up to 50MB.</p>
+                    </div>
+                    <div class="roadmap-card">
+                        <div class="roadmap-icon">
+                            <i class="fas fa-edit"></i>
+                        </div>
+                        <h3>Edit Every Word</h3>
+                        <p>Click on any text in your PDF to edit it directly. Every word is fully editable with real-time preview, just like Adobe Acrobat Pro.</p>
+                    </div>
+                    <div class="roadmap-card">
+                        <div class="roadmap-icon">
+                            <i class="fas fa-magic"></i>
+                        </div>
+                        <h3>Advanced Features</h3>
+                        <p>Add images, highlight text, insert annotations, change fonts, adjust colors, and more. All changes are visible in real-time.</p>
+                    </div>
+                    <div class="roadmap-card">
+                        <div class="roadmap-icon">
+                            <i class="fas fa-download"></i>
+                        </div>
+                        <h3>Download & Save</h3>
+                        <p>Once you're done editing, download your modified PDF instantly. Your original file remains untouched.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tools-roadmap">
+                <h2>Key Features & Characteristics</h2>
+                <div class="roadmap-grid">
+                    <div class="roadmap-card">
+                        <div class="roadmap-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h3>100% Free</h3>
+                        <p>No hidden charges, no registration required. Edit PDFs completely free with unlimited usage.</p>
+                    </div>
+                    <div class="roadmap-card">
+                        <div class="roadmap-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h3>Secure & Private</h3>
+                        <p>Your files are processed securely. All files are automatically deleted after processing for your privacy.</p>
+                    </div>
+                    <div class="roadmap-card">
+                        <div class="roadmap-icon">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                        <h3>Mobile Friendly</h3>
+                        <p>Works perfectly on desktop, tablet, and mobile devices. Edit PDFs on the go from any device.</p>
+                    </div>
+                    <div class="roadmap-card">
+                        <div class="roadmap-icon">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <h3>Fast Processing</h3>
+                        <p>Powered by Google Cloud infrastructure for lightning-fast editing and OCR processing with 100% accuracy.</p>
+                    </div>
+                    <div class="roadmap-card">
+                        <div class="roadmap-icon">
+                            <i class="fas fa-language"></i>
+                        </div>
+                        <h3>Multi-Language OCR</h3>
+                        <p>Extract text from scanned PDFs in multiple languages using advanced Google Cloud Vision API OCR technology.</p>
+                    </div>
+                    <div class="roadmap-card">
+                        <div class="roadmap-icon">
+                            <i class="fas fa-paint-brush"></i>
+                        </div>
+                        <h3>Professional Tools</h3>
+                        <p>Full-featured editor with font selection, color picker, text alignment, highlighting, and image insertion capabilities.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="user-feedback">
+                <h2>Share Your Feedback</h2>
+                <div class="feedback-form">
+                    <div class="form-group">
+                        <label for="feedback-name">Your Name</label>
+                        <input type="text" id="feedback-name" class="form-control" placeholder="Enter your name">
+                    </div>
+                    <div class="form-group">
+                        <label for="feedback-email">Email Address</label>
+                        <input type="email" id="feedback-email" class="form-control" placeholder="Enter your email">
+                    </div>
+                    <div class="form-group">
+                        <label for="feedback-message">Your Feedback</label>
+                        <textarea id="feedback-message" class="form-control" placeholder="Share your experience with our PDF editor"></textarea>
+                    </div>
+                    <button class="submit-btn" onclick="submitFeedback()">
+                        <i class="fas fa-paper-plane"></i> Submit Feedback
+                    </button>
+                </div>
+            </div>
+            
+            <div class="ssl-badges">
+                <div class="ssl-badges-grid">
+                    <div class="ssl-badge">
+                        <i class="fas fa-shield-alt"></i>
+                        <div class="ssl-badge-text">
+                            <h4>SSL Secured</h4>
+                            <p>256-bit Encryption</p>
+                        </div>
+                    </div>
+                    <div class="ssl-badge">
+                        <i class="fas fa-lock"></i>
+                        <div class="ssl-badge-text">
+                            <h4>100% Secure</h4>
+                            <p>Files Auto-Deleted</p>
+                        </div>
+                    </div>
+                    <div class="ssl-badge">
+                        <i class="fas fa-check-circle"></i>
+                        <div class="ssl-badge-text">
+                            <h4>Privacy Protected</h4>
+                            <p>No Data Storage</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+                <a href="dmca.html">DMCA</a>
+                <a href="blog.html">Blog</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
+            <p class="footer-credits">
+                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Google Cloud Vision API, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+                <a href="attributions.html">See full acknowledgements</a>.
+            </p>
+        </div>
+    </footer>
+    
+    <script src="js/mobile-menu-init.js"></script>
+    <script src="js/auth.js" type="module"></script>
+    <script>
+        // File upload handling
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('file-input');
+        const fileInfo = document.getElementById('file-info');
+        const fileName = document.getElementById('file-name');
+        const fileSize = document.getElementById('file-size');
+        const continueBtn = document.getElementById('continue-btn');
+        
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+        
+        // Handle file selection
+        function handleFile(file) {
+            if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+                alert('Please select a valid PDF file');
+                return;
+            }
+            
+            if (file.size > 50 * 1024 * 1024) {
+                if(!confirm('This file is larger than 50MB. It may be slow to load. Continue?')){ 
+                    return; 
+                }
+            }
+            
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            fileInfo.classList.add('show');
+            continueBtn.disabled = false;
+            
+            // Store file in IndexedDB
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const request = indexedDB.open('PDFEditorDB', 1);
+                
+                request.onerror = function() {
+                    const blob = new Blob([e.target.result], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+                    sessionStorage.setItem('pdfFileURL', url);
+                    sessionStorage.setItem('pdfFileName', file.name);
+                    sessionStorage.setItem('pdfFileSize', file.size.toString());
+                };
+                
+                request.onsuccess = function() {
+                    const db = request.result;
+                    
+                    if (!db.objectStoreNames.contains('pdfFiles')) {
+                        db.close();
+                        const upgradeRequest = indexedDB.open('PDFEditorDB', 2);
+                        upgradeRequest.onupgradeneeded = function(event) {
+                            const db = event.target.result;
+                            if (!db.objectStoreNames.contains('pdfFiles')) {
+                                db.createObjectStore('pdfFiles', { keyPath: 'id', autoIncrement: true });
+                            }
+                        };
+                        upgradeRequest.onsuccess = function() {
+                            storeFileAndRedirect(upgradeRequest.result, e.target.result, file);
+                        };
+                    } else {
+                        storeFileAndRedirect(db, e.target.result, file);
+                    }
+                };
+                
+                request.onupgradeneeded = function(event) {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains('pdfFiles')) {
+                        db.createObjectStore('pdfFiles', { keyPath: 'id', autoIncrement: true });
+                    }
+                };
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+        
+        function storeFileAndRedirect(db, fileData, file) {
+            const transaction = db.transaction(['pdfFiles'], 'readwrite');
+            const store = transaction.objectStore('pdfFiles');
+            
+            store.clear().onsuccess = function() {
+                const request = store.add({
+                    data: fileData,
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    timestamp: Date.now()
+                });
+                
+                request.onsuccess = function() {
+                    sessionStorage.setItem('pdfFileId', request.result.toString());
+                    sessionStorage.setItem('pdfFileName', file.name);
+                    sessionStorage.setItem('pdfFileSize', file.size.toString());
+                    sessionStorage.setItem('pdfFileType', file.type);
+                };
+            };
+        }
+        
+        // Event listeners
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        });
+        
+        uploadArea.addEventListener('click', function() {
+            fileInput.click();
+        });
+        
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        });
+        
+        continueBtn.addEventListener('click', function() {
+            if (!continueBtn.disabled) {
+                window.location.href = 'pdf-editor-preview.html';
+            }
+        });
+        
+        // Feedback submission
+        function submitFeedback() {
+            const name = document.getElementById('feedback-name').value;
+            const email = document.getElementById('feedback-email').value;
+            const message = document.getElementById('feedback-message').value;
+            
+            if (!name || !email || !message) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            // Here you would send feedback to your backend
+            // For now, just show a thank you message
+            alert('Thank you for your feedback! We appreciate your input.');
+            document.getElementById('feedback-name').value = '';
+            document.getElementById('feedback-email').value = '';
+            document.getElementById('feedback-message').value = '';
+        }
+    </script>
+</body>
+</html>
+

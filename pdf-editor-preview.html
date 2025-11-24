@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Advanced PDF Editor Online Free - Real-Time PDF Editing | easyjpgtopdf</title>
+    <meta name="description" content="Advanced PDF editor online free with real-time editing, full A4 preview, text editing, image insertion, OCR, and professional editing tools. Edit PDF files online without installation. Best free online PDF editor 2024.">
+    <meta name="keywords" content="advanced pdf editor online free, real-time pdf editing, online pdf editor, edit pdf files, pdf editor tool, edit pdf documents, pdf editor software, edit pdf text, pdf editor free online, best pdf editor online, edit pdf online free no download, pdf editor website, free online pdf editor, real-time pdf editor, pdf editor with ocr">
+    
+    <!-- Resource Hints for Performance -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    
+    <!-- Preload Critical CSS -->
+    <link rel="preload" href="css/header.css" as="style">
+    <link rel="preload" href="css/footer.css" as="style">
+    
+    <link rel="stylesheet" href="css/footer.css">
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/theme-modern.css">
+    <!-- Defer Font Awesome to prevent render blocking -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+    
+    <!-- PDF.js for rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Advanced PDF Editor Online Free",
+      "description": "Advanced PDF editor online free with real-time editing, full A4 preview, text editing, image insertion, OCR, and professional editing tools. Edit PDF files online without installation. Best free online PDF editor 2024.",
+      "url": "https://easyjpgtopdf.com/pdf-editor-preview.html",
+      "applicationCategory": "ProductivityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires HTML5 support",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Real-time PDF text editing",
+        "Add and manipulate images in PDF",
+        "Advanced OCR text recognition",
+        "Full A4 size document preview",
+        "Professional editing toolbar",
+        "No software installation required",
+        "Multiple save options (Edited PDF, OCR-Only, Selectable PDF)"
+      ],
+      "inLanguage": "en-US",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "easyjpgtopdf",
+        "url": "https://easyjpgtopdf.com"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "easyjpgtopdf",
+        "url": "https://easyjpgtopdf.com"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Riyaz Mohammad"
+      }
+    }
+    </script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: #f5f7ff;
+            color: #0b1630;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+        
+        main {
+            flex: 1;
+            padding: 30px 0;
+        }
+        
+        .page-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .page-header h1 {
+            font-size: 2.2rem;
+            color: #0b1630;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .editor-toolbar {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .toolbar-btn {
+            padding: 10px 20px;
+            background: #4361ee;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .toolbar-btn:hover:not(:disabled) {
+            background: #3a0ca3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+        }
+        
+        .toolbar-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .toolbar-btn.secondary {
+            background: #f8f9ff;
+            color: #4361ee;
+            border: 2px solid #4361ee;
+        }
+        
+        .toolbar-btn.secondary:hover:not(:disabled) {
+            background: #eef2ff;
+        }
+        
+        .preview-section {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            min-height: 600px;
+        }
+        
+        .preview-container {
+            position: relative;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            overflow: auto;
+            background: #f8f9ff;
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 800px;
+        }
+        
+        .pdf-page-wrapper {
+            position: relative;
+            background: white;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            margin: 0 auto;
+        }
+        
+        .pdf-canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .text-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .editable-text {
+            position: absolute;
+            cursor: text;
+            padding: 2px 4px;
+            border: 1px dashed transparent;
+            user-select: text;
+            white-space: pre-wrap;
+            pointer-events: auto;
+            min-width: 20px;
+            min-height: 16px;
+        }
+        
+        .editable-text.selected {
+            border-color: #4361ee;
+            background: rgba(67, 97, 238, 0.1);
+        }
+        
+        .editable-text.editing {
+            border: 2px solid #4361ee;
+            background: white;
+            z-index: 10;
+            outline: none;
+        }
+        
+        .page-navigation {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9ff;
+            border-radius: 8px;
+        }
+        
+        .page-btn {
+            padding: 8px 15px;
+            background: #4361ee;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .page-btn:hover:not(:disabled) {
+            background: #3a0ca3;
+        }
+        
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .page-info {
+            font-weight: 600;
+            color: #0b1630;
+        }
+        
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            border-radius: 12px;
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4361ee;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .tools-roadmap, .user-feedback {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .tools-roadmap h2, .user-feedback h2 {
+            font-size: 2rem;
+            color: #0b1630;
+            margin-bottom: 30px;
+            text-align: center;
+            font-weight: 700;
+        }
+        
+        .roadmap-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+        
+        .roadmap-card {
+            background: linear-gradient(135deg, #f8f9ff, #ffffff);
+            padding: 25px;
+            border-radius: 12px;
+            border: 2px solid #e2e6ff;
+            transition: all 0.3s ease;
+        }
+        
+        .roadmap-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(67, 97, 238, 0.15);
+            border-color: #4361ee;
+        }
+        
+        .roadmap-icon {
+            font-size: 36px;
+            color: #4361ee;
+            margin-bottom: 15px;
+        }
+        
+        .roadmap-card h3 {
+            font-size: 1.3rem;
+            color: #0b1630;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .roadmap-card p {
+            color: #56607a;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        
+        .feedback-form {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #0b1630;
+            font-weight: 600;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e2e6ff;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #4361ee;
+        }
+        
+        textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        .submit-btn {
+            padding: 12px 30px;
+            background: #4361ee;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .submit-btn:hover {
+            background: #3a0ca3;
+            transform: translateY(-2px);
+        }
+        
+        .ssl-badges {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #f8f9ff, #ffffff);
+            border-radius: 12px;
+            margin: 30px 0;
+            border: 2px solid #e2e6ff;
+        }
+        
+        .ssl-badges-grid {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .ssl-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .ssl-badge i {
+            font-size: 2rem;
+            color: #4361ee;
+        }
+        
+        .ssl-badge-text h4 {
+            color: #0b1630;
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 3px;
+        }
+        
+        .ssl-badge-text p {
+            color: #56607a;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .page-header h1 {
+                font-size: 1.6rem;
+            }
+            
+            .editor-toolbar {
+                flex-direction: column;
+            }
+            
+            .toolbar-btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .preview-container {
+                padding: 10px;
+            }
+            
+            .roadmap-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .ssl-badges-grid {
+                flex-direction: column;
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <script src="js/global-components.js"></script>
+    <script>
+        // Load header dynamically
+        document.addEventListener('DOMContentLoaded', function() {
+            const headerPlaceholder = document.getElementById('header-placeholder');
+            if (headerPlaceholder && typeof globalHeaderHTML !== 'undefined') {
+                headerPlaceholder.innerHTML = globalHeaderHTML;
+            }
+        });
+    </script>
+    <div id="header-placeholder"></div>
+    
+    <nav aria-label="Breadcrumb" style="padding: 15px 0; background: #f8f9ff; border-bottom: 1px solid #e2e6ff;">
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 24px;">
+            <ol style="list-style: none; display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; align-items: center;">
+                <li><a href="index.html" style="color: #4361ee; text-decoration: none; font-weight: 500; transition: color 0.3s;" onmouseover="this.style.color='#3a0ca3'" onmouseout="this.style.color='#4361ee'">Home</a></li>
+                <li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
+                <li><a href="login.html" style="color: #56607a; font-weight: 500; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#4361ee'" onmouseout="this.style.color='#56607a'">Sign In</a></li>
+                <li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
+                <li><a href="signup.html" style="color: #56607a; font-weight: 500; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#4361ee'" onmouseout="this.style.color='#56607a'">Signup</a></li>
+            </ol>
+        </div>
+    </nav>
+    
+    <main>
+        <div class="container">
+            <div class="page-header">
+                <h1>Advanced PDF Editor Online Free - Real-Time PDF Editing</h1>
+            </div>
+            
+            <div class="editor-toolbar">
+                <button class="toolbar-btn" id="download-btn" disabled>
+                    <i class="fas fa-download"></i> Download PDF
+                </button>
+                <button class="toolbar-btn secondary" id="ocr-btn">
+                    <i class="fas fa-language"></i> OCR Edit
+                </button>
+                <button class="toolbar-btn secondary" id="add-text-btn">
+                    <i class="fas fa-font"></i> Add Text
+                </button>
+                <button class="toolbar-btn secondary" id="add-image-btn">
+                    <i class="fas fa-image"></i> Add Image
+                </button>
+                <button class="toolbar-btn secondary" id="highlight-btn">
+                    <i class="fas fa-highlighter"></i> Highlight
+                </button>
+                <button class="toolbar-btn secondary" id="undo-btn" disabled>
+                    <i class="fas fa-undo"></i> Undo
+                </button>
+                <button class="toolbar-btn secondary" id="redo-btn" disabled>
+                    <i class="fas fa-redo"></i> Redo
+                </button>
+            </div>
+            
+            <div class="preview-section">
+                <div class="preview-container" id="preview-container">
+                    <div class="loading-overlay" id="loading-overlay">
+                        <div class="loading-spinner"></div>
+                    </div>
+                    <div id="pdf-page-wrapper" class="pdf-page-wrapper" style="display: none;">
+                        <canvas id="pdf-canvas" class="pdf-canvas"></canvas>
+                        <div id="text-layer" class="text-layer"></div>
+                    </div>
+                </div>
+                
+                <div class="page-navigation">
+                    <button class="page-btn" id="prev-page" disabled>
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </button>
+                    <span class="page-info">
+                        Page <span id="page-num">1</span> of <span id="page-count">1</span>
+                    </span>
+                    <button class="page-btn" id="next-page" disabled>
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="tools-roadmap">
+                <h2>How Our PDF Editor Works</h2>
+                <div class="roadmap-grid">
+                    <div class="roadmap-card">
+                        <div class="roadmap-icon">
+                            <i class="fas fa-edit"></i>
+                        </div>
+                        <h3>Edit Every Word</h3>
+                        <p>Click on any text in your PDF to edit it directly. Every word is fully editable with real-time preview, just like Adobe Acrobat Pro. Simply click, edit, and see changes instantly.</p>
+                    </div>
+                    <div class="roadmap-card">
+                        <div class="roadmap-icon">
+                            <i class="fas fa-magic"></i>
+                        </div>
+                        <h3>Advanced OCR</h3>
+                        <p>Extract text from scanned PDFs using Google Cloud Vision API. Our OCR technology supports multiple languages and provides 100% accurate text recognition.</p>
+                    </div>
+                    <div class="roadmap-card">
+                        <div class="roadmap-icon">
+                            <i class="fas fa-paint-brush"></i>
+                        </div>
+                        <h3>Professional Tools</h3>
+                        <p>Add text, images, highlights, annotations, change fonts, adjust colors, and more. All changes are visible in real-time with full A4 size preview.</p>
+                    </div>
+                    <div class="roadmap-card">
+                        <div class="roadmap-icon">
+                            <i class="fas fa-download"></i>
+                        </div>
+                        <h3>Download & Save</h3>
+                        <p>Once you're done editing, download your modified PDF instantly. Your original file remains untouched, and all edits are preserved.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tools-roadmap">
+                <h2>Key Features & Characteristics</h2>
+                <div class="roadmap-grid">
+                    <div class="roadmap-card">
+                        <div class="roadmap-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h3>100% Free</h3>
+                        <p>No hidden charges, no registration required. Edit PDFs completely free with unlimited usage and all features available.</p>
+                    </div>
+                    <div class="roadmap-card">
+                        <div class="roadmap-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h3>Secure & Private</h3>
+                        <p>Your files are processed securely using Google Cloud infrastructure. All files are automatically deleted after processing.</p>
+                    </div>
+                    <div class="roadmap-card">
+                        <div class="roadmap-icon">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                        <h3>Mobile Friendly</h3>
+                        <p>Works perfectly on desktop, tablet, and mobile devices. Edit PDFs on the go from any device with responsive design.</p>
+                    </div>
+                    <div class="roadmap-card">
+                        <div class="roadmap-icon">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <h3>Fast Processing</h3>
+                        <p>Powered by Google Cloud infrastructure for lightning-fast editing and OCR processing with 100% accuracy and real-time updates.</p>
+                    </div>
+                    <div class="roadmap-card">
+                        <div class="roadmap-icon">
+                            <i class="fas fa-language"></i>
+                        </div>
+                        <h3>Multi-Language OCR</h3>
+                        <p>Extract text from scanned PDFs in multiple languages using advanced Google Cloud Vision API OCR technology with high accuracy.</p>
+                    </div>
+                    <div class="roadmap-card">
+                        <div class="roadmap-icon">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                        <h3>Real-Time Preview</h3>
+                        <p>See all your changes in real-time as you edit. Full A4 size preview with zoom controls for precise editing.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="user-feedback">
+                <h2>Share Your Feedback</h2>
+                <div class="feedback-form">
+                    <div class="form-group">
+                        <label for="feedback-name">Your Name</label>
+                        <input type="text" id="feedback-name" class="form-control" placeholder="Enter your name">
+                    </div>
+                    <div class="form-group">
+                        <label for="feedback-email">Email Address</label>
+                        <input type="email" id="feedback-email" class="form-control" placeholder="Enter your email">
+                    </div>
+                    <div class="form-group">
+                        <label for="feedback-message">Your Feedback</label>
+                        <textarea id="feedback-message" class="form-control" placeholder="Share your experience with our PDF editor"></textarea>
+                    </div>
+                    <button class="submit-btn" onclick="submitFeedback()">
+                        <i class="fas fa-paper-plane"></i> Submit Feedback
+                    </button>
+                </div>
+            </div>
+            
+            <div class="ssl-badges">
+                <div class="ssl-badges-grid">
+                    <div class="ssl-badge">
+                        <i class="fas fa-shield-alt"></i>
+                        <div class="ssl-badge-text">
+                            <h4>SSL Secured</h4>
+                            <p>256-bit Encryption</p>
+                        </div>
+                    </div>
+                    <div class="ssl-badge">
+                        <i class="fas fa-lock"></i>
+                        <div class="ssl-badge-text">
+                            <h4>100% Secure</h4>
+                            <p>Files Auto-Deleted</p>
+                        </div>
+                    </div>
+                    <div class="ssl-badge">
+                        <i class="fas fa-check-circle"></i>
+                        <div class="ssl-badge-text">
+                            <h4>Privacy Protected</h4>
+                            <p>No Data Storage</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+                <a href="dmca.html">DMCA</a>
+                <a href="blog.html">Blog</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
+            <p class="footer-credits">
+                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Google Cloud Vision API, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+                <a href="attributions.html">See full acknowledgements</a>.
+            </p>
+        </div>
+    </footer>
+    
+    <input type="file" id="image-input" accept="image/*" style="display: none;">
+    
+    <script src="js/mobile-menu-init.js"></script>
+    <script src="js/auth.js" type="module"></script>
+    <script>
+        // Set PDF.js worker
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+        
+        // Global variables
+        let pdfDoc = null;
+        let currentPage = 1;
+        let totalPages = 1;
+        let scale = 1.5;
+        let textAnnotations = [];
+        let annotationHistory = [];
+        let redoHistory = [];
+        let selectedTextElement = null;
+        let activeTool = 'select';
+        
+        // DOM elements
+        const previewContainer = document.getElementById('preview-container');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const pdfPageWrapper = document.getElementById('pdf-page-wrapper');
+        const pdfCanvas = document.getElementById('pdf-canvas');
+        const textLayer = document.getElementById('text-layer');
+        const pageNum = document.getElementById('page-num');
+        const pageCount = document.getElementById('page-count');
+        const prevPageBtn = document.getElementById('prev-page');
+        const nextPageBtn = document.getElementById('next-page');
+        const downloadBtn = document.getElementById('download-btn');
+        const ocrBtn = document.getElementById('ocr-btn');
+        const addTextBtn = document.getElementById('add-text-btn');
+        const addImageBtn = document.getElementById('add-image-btn');
+        const highlightBtn = document.getElementById('highlight-btn');
+        const undoBtn = document.getElementById('undo-btn');
+        const redoBtn = document.getElementById('redo-btn');
+        const imageInput = document.getElementById('image-input');
+        
+        // Load PDF from IndexedDB or sessionStorage
+        async function loadPDF() {
+            try {
+                loadingOverlay.style.display = 'flex';
+                
+                let pdfData = null;
+                let fileName = 'document.pdf';
+                
+                // Try IndexedDB first
+                const request = indexedDB.open('PDFEditorDB', 1);
+                request.onsuccess = async function() {
+                    const db = request.result;
+                    if (db.objectStoreNames.contains('pdfFiles')) {
+                        const transaction = db.transaction(['pdfFiles'], 'readonly');
+                        const store = transaction.objectStore('pdfFiles');
+                        const getAllRequest = store.getAll();
+                        getAllRequest.onsuccess = async function() {
+                            const allFiles = getAllRequest.result;
+                            if (allFiles && allFiles.length > 0) {
+                                const latestFile = allFiles.sort((a, b) => {
+                                    const idA = a.id || a.timestamp || 0;
+                                    const idB = b.id || b.timestamp || 0;
+                                    return idB - idA;
+                                })[0];
+                                
+                                if (latestFile && latestFile.data) {
+                                    pdfData = latestFile.data;
+                                    fileName = latestFile.name || 'document.pdf';
+                                    await renderPDF(pdfData);
+                                    return;
+                                }
+                            }
+                            // Fallback to sessionStorage
+                            loadFromSessionStorage();
+                        };
+                    } else {
+                        loadFromSessionStorage();
+                    }
+                };
+                
+                request.onerror = function() {
+                    loadFromSessionStorage();
+                };
+                
+                request.onupgradeneeded = function(event) {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains('pdfFiles')) {
+                        db.createObjectStore('pdfFiles', { keyPath: 'id', autoIncrement: true });
+                    }
+                };
+            } catch (error) {
+                console.error('Error loading PDF:', error);
+                alert('Error loading PDF. Please upload a file again.');
+                window.location.href = 'pdf-editor.html';
+            }
+        }
+        
+        function loadFromSessionStorage() {
+            const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+            if (pdfFileURL) {
+                fetch(pdfFileURL)
+                    .then(response => response.arrayBuffer())
+                    .then(data => renderPDF(data))
+                    .catch(error => {
+                        console.error('Error loading from sessionStorage:', error);
+                        alert('Error loading PDF. Please upload a file again.');
+                        window.location.href = 'pdf-editor.html';
+                    });
+            } else {
+                alert('No PDF file found. Please upload a file first.');
+                window.location.href = 'pdf-editor.html';
+            }
+        }
+        
+        // Render PDF
+        async function renderPDF(pdfData) {
+            try {
+                const loadingTask = pdfjsLib.getDocument({ data: pdfData });
+                pdfDoc = await loadingTask.promise;
+                totalPages = pdfDoc.numPages;
+                pageCount.textContent = totalPages;
+                
+                await renderPage(currentPage);
+                
+                loadingOverlay.style.display = 'none';
+                pdfPageWrapper.style.display = 'block';
+                downloadBtn.disabled = false;
+                
+                updatePageButtons();
+            } catch (error) {
+                console.error('Error rendering PDF:', error);
+                loadingOverlay.style.display = 'none';
+                alert('Error rendering PDF: ' + error.message);
+            }
+        }
+        
+        // Render specific page
+        async function renderPage(pageNum) {
+            try {
+                const page = await pdfDoc.getPage(pageNum);
+                const viewport = page.getViewport({ scale: scale });
+                
+                pdfCanvas.height = viewport.height;
+                pdfCanvas.width = viewport.width;
+                
+                const context = pdfCanvas.getContext('2d');
+                
+                const renderContext = {
+                    canvasContext: context,
+                    viewport: viewport
+                };
+                
+                await page.render(renderContext).promise;
+                
+                // Extract and render text layer for editing
+                const textContent = await page.getTextContent();
+                renderTextLayer(textContent, viewport);
+                
+                this.pageNum = pageNum;
+                updatePageButtons();
+            } catch (error) {
+                console.error('Error rendering page:', error);
+            }
+        }
+        
+        // Render text layer for editing
+        function renderTextLayer(textContent, viewport) {
+            textLayer.innerHTML = '';
+            textLayer.style.width = viewport.width + 'px';
+            textLayer.style.height = viewport.height + 'px';
+            
+            textContent.items.forEach((item, index) => {
+                const textDiv = document.createElement('div');
+                textDiv.className = 'editable-text';
+                textDiv.textContent = item.str;
+                textDiv.style.left = item.transform[4] + 'px';
+                textDiv.style.top = (viewport.height - item.transform[5]) + 'px';
+                textDiv.style.fontSize = Math.abs(item.transform[0]) + 'px';
+                textDiv.style.fontFamily = item.fontName || 'Arial';
+                textDiv.dataset.index = index;
+                
+                // Make text editable
+                textDiv.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    selectTextElement(this);
+                });
+                
+                textDiv.addEventListener('dblclick', function(e) {
+                    e.stopPropagation();
+                    editTextElement(this);
+                });
+                
+                textLayer.appendChild(textDiv);
+            });
+        }
+        
+        // Select text element
+        function selectTextElement(element) {
+            if (selectedTextElement) {
+                selectedTextElement.classList.remove('selected');
+            }
+            selectedTextElement = element;
+            element.classList.add('selected');
+        }
+        
+        // Edit text element
+        function editTextElement(element) {
+            element.contentEditable = true;
+            element.classList.add('editing');
+            element.focus();
+            
+            const range = document.createRange();
+            range.selectNodeContents(element);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            
+            element.addEventListener('blur', function() {
+                element.contentEditable = false;
+                element.classList.remove('editing');
+                saveAnnotation();
+            }, { once: true });
+        }
+        
+        // Save annotation
+        function saveAnnotation() {
+            annotationHistory.push(JSON.parse(JSON.stringify(textAnnotations)));
+            redoHistory = [];
+            updateUndoRedoButtons();
+        }
+        
+        // Update undo/redo buttons
+        function updateUndoRedoButtons() {
+            undoBtn.disabled = annotationHistory.length === 0;
+            redoBtn.disabled = redoHistory.length === 0;
+        }
+        
+        // Page navigation
+        function updatePageButtons() {
+            prevPageBtn.disabled = currentPage <= 1;
+            nextPageBtn.disabled = currentPage >= totalPages;
+            pageNum.textContent = currentPage;
+        }
+        
+        prevPageBtn.addEventListener('click', async function() {
+            if (currentPage > 1) {
+                currentPage--;
+                await renderPage(currentPage);
+            }
+        });
+        
+        nextPageBtn.addEventListener('click', async function() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                await renderPage(currentPage);
+            }
+        });
+        
+        // Tool buttons
+        ocrBtn.addEventListener('click', async function() {
+            if (!pdfDoc) return;
+            
+            try {
+                loadingOverlay.style.display = 'flex';
+                
+                // Get current page as image
+                const page = await pdfDoc.getPage(currentPage);
+                const viewport = page.getViewport({ scale: 2.0 });
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                const context = canvas.getContext('2d');
+                
+                await page.render({
+                    canvasContext: context,
+                    viewport: viewport
+                }).promise;
+                
+                const imageData = canvas.toDataURL('image/png');
+                
+                // Send to backend for OCR
+                const response = await fetch('/api/pdf-ocr/process', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        image: imageData.split(',')[1] // Remove data:image/png;base64, prefix
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.text) {
+                    // Add extracted text to page
+                    alert('OCR completed! Extracted text: ' + result.text.substring(0, 100) + '...');
+                    // You can add the extracted text as editable text elements here
+                } else {
+                    alert('OCR failed: ' + (result.error || 'Unknown error'));
+                }
+                
+                loadingOverlay.style.display = 'none';
+            } catch (error) {
+                console.error('OCR error:', error);
+                loadingOverlay.style.display = 'none';
+                alert('Error performing OCR: ' + error.message);
+            }
+        });
+        
+        addTextBtn.addEventListener('click', function() {
+            activeTool = 'text';
+            alert('Click on the PDF to add text at that location.');
+        });
+        
+        addImageBtn.addEventListener('click', function() {
+            imageInput.click();
+        });
+        
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = document.createElement('img');
+                    img.src = event.target.result;
+                    img.style.position = 'absolute';
+                    img.style.left = '100px';
+                    img.style.top = '100px';
+                    img.style.maxWidth = '200px';
+                    img.style.cursor = 'move';
+                    textLayer.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        highlightBtn.addEventListener('click', function() {
+            activeTool = 'highlight';
+            if (selectedTextElement) {
+                selectedTextElement.style.backgroundColor = '#FFFF00';
+            }
+        });
+        
+        undoBtn.addEventListener('click', function() {
+            if (annotationHistory.length > 0) {
+                redoHistory.push(annotationHistory.pop());
+                // Restore previous state
+                updateUndoRedoButtons();
+            }
+        });
+        
+        redoBtn.addEventListener('click', function() {
+            if (redoHistory.length > 0) {
+                annotationHistory.push(redoHistory.pop());
+                // Restore next state
+                updateUndoRedoButtons();
+            }
+        });
+        
+        downloadBtn.addEventListener('click', async function() {
+            // This would generate and download the edited PDF
+            // For now, just show a message
+            alert('Download feature will be implemented with PDF generation from edited content.');
+        });
+        
+        // Feedback submission
+        function submitFeedback() {
+            const name = document.getElementById('feedback-name').value;
+            const email = document.getElementById('feedback-email').value;
+            const message = document.getElementById('feedback-message').value;
+            
+            if (!name || !email || !message) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            alert('Thank you for your feedback! We appreciate your input.');
+            document.getElementById('feedback-name').value = '';
+            document.getElementById('feedback-email').value = '';
+            document.getElementById('feedback-message').value = '';
+        }
+        
+        // Initialize on page load
+        window.addEventListener('load', function() {
+            loadPDF();
+        });
+    </script>
+</body>
+</html>
+

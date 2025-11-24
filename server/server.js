@@ -1073,10 +1073,10 @@ app.get('/api/download/:filename', (req, res) => {
   }
 });
 
-// PDF OCR API endpoint - High accuracy server-side OCR processing
+// PDF OCR API endpoint - High accuracy server-side OCR processing with Google Cloud Vision API
 app.post('/api/pdf-ocr/process', express.json({ limit: '50mb' }), async (req, res) => {
   try {
-    const { image, language = 'eng' } = req.body;
+    const { image, language = 'en' } = req.body;
     
     if (!image) {
       return res.status(400).json({ 
@@ -1085,7 +1085,50 @@ app.post('/api/pdf-ocr/process', express.json({ limit: '50mb' }), async (req, re
       });
     }
     
-    // Get Python executable path
+    // Try Google Cloud Vision API first (preferred method)
+    try {
+      const googleCloudOCR = require('./api/pdf-ocr/google-cloud-ocr');
+      
+      if (googleCloudOCR.isAvailable()) {
+        // Map language codes (e.g., 'eng' -> 'en', 'hin' -> 'hi')
+        const langMap = {
+          'eng': 'en',
+          'en': 'en',
+          'hin': 'hi',
+          'hi': 'hi',
+          'guj': 'gu',
+          'mar': 'mr',
+          'nep': 'ne',
+          'san': 'sa',
+          'tam': 'ta',
+          'tel': 'te',
+          'kan': 'kn',
+          'mal': 'ml',
+          'ben': 'bn',
+          'pun': 'pa',
+          'urd': 'ur'
+        };
+        
+        const mappedLang = langMap[language] || language || 'en';
+        
+        // Use document text detection for better structure
+        const result = await googleCloudOCR.processDocumentTextDetection(image, mappedLang);
+        
+        return res.json({
+          success: true,
+          text: result.text,
+          words: result.words,
+          blocks: result.blocks,
+          confidence: result.confidence,
+          language: mappedLang,
+          method: 'google-cloud-vision'
+        });
+      }
+    } catch (googleError) {
+      console.warn('Google Cloud Vision API not available, falling back to Python OCR:', googleError.message);
+    }
+    
+    // Fallback to Python Tesseract OCR
     const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
     const ocrScriptPath = path.join(__dirname, 'api', 'pdf-ocr', 'ocr-process.py');
     
