@@ -27,7 +27,7 @@
 <!-- PDF.js libraries -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js"></script>
+
 <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         :root { --primary: #4361ee; --primary-dark: #3a0ca3; --secondary: #f72585; --success: #4cc9f0; --light: #f8f9fa; --dark: #212529; --gray: #6c757d; --border-radius: 12px; --box-shadow: 0 5px 15px rgba(0,0,0,0.08); --transition: all 0.3s ease; }
@@ -69,21 +69,11 @@
         .file-icon { font-size: 40px; color: var(--primary); }
         .file-text h4 { font-size: 1.2rem; margin-bottom: 5px; }
         .file-text p { color: var(--gray); font-size: 0.9rem; }
-        .editor-section { margin: 25px 0; display: none; }
-        .editor-section h3 { margin-bottom: 15px; color: var(--primary); }
-        .editor-container { display: flex; gap: 20px; }
-        .toolbar { display: flex; flex-direction: column; gap: 15px; width: 280px; padding: 20px; background: white; border-radius: var(--border-radius); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .tool-group { display: flex; flex-direction: column; gap: 10px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
-        .tool-group:last-child { border-bottom: none; }
-        .tool-group-title { font-weight: 600; color: var(--dark); margin-bottom: 5px; }
-        .tool-btn { display: flex; align-items: center; gap: 10px; padding: 10px 15px; border: none; border-radius: 8px; background: white; color: var(--dark); cursor: pointer; transition: var(--transition); font-size: 0.95rem; text-align: left; }
-        .tool-btn:hover { background: var(--primary); color: white; }
-        .tool-btn.active { background: var(--primary); color: white; }
-        .color-picker-container { display: flex; align-items: center; gap: 10px; }
+
         .color-picker { width: 40px; height: 40px; border: none; border-radius: 8px; cursor: pointer; }
-        .font-controls { display: flex; flex-direction: column; gap: 10px; }
+        
         .font-select, .font-size-select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; background: white; }
-        .highlight-controls { display: flex; flex-direction: column; gap: 10px; }
+        
         .highlight-color { display: flex; gap: 10px; flex-wrap: wrap; }
         .highlight-btn { width: 30px; height: 30px; border: 2px solid transparent; border-radius: 4px; cursor: pointer; }
         .highlight-btn.active { border-color: var(--dark); }
@@ -159,9 +149,7 @@
         .context-menu-item:hover { background: #f5f5f5; }
         
         @media (max-width: 1024px) {
-            .editor-container { flex-direction: column; }
-            .toolbar { width: 100%; flex-direction: row; flex-wrap: wrap; }
-            .tool-group { flex: 1; min-width: 200px; }
+
             .a4-preview { width: 100%; max-width: 595px; }
         }
 
@@ -219,20 +207,33 @@
             .nav-links { display: none; } 
             .action-buttons { flex-direction: column; } 
             .btn { width: 100%; justify-content: center; } 
-            .toolbar { flex-direction: column; }
-            .tool-group { border-right: none; border-bottom: 1px solid #eee; padding-right: 0; padding-bottom: 15px; width: 100%; } 
-            .tool-group:last-child { border-bottom: none; padding-bottom: 0; } 
+
         }
     </style>
 <link href="css/header.css" rel="stylesheet"/>
 <link href="css/theme-modern.css" rel="stylesheet"/>
-    <script type="application/ld+json">
+        <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "PDF Editor - Edit PDF Documents Online Free | easyjpgtopdf",
-      "description": "Edit PDF files online for free. Add text, images, annotations, and modify PDF content. No software installation required.",
-      "url": "https://easyjpgtopdf.com/edit-pdf.html",
+      "@type": "WebApplication",
+      "name": "Advanced PDF Editor Online",
+      "description": "Advanced PDF editor online with real-time editing, full A4 preview, text editing, image insertion, OCR, and professional editing tools. Edit PDF files online free without installation.",
+      "url": "https://easyjpgtopdf.com/edit-pdf-preview.html",
+      "applicationCategory": "UtilityApplication",
+      "operatingSystem": "Any",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Edit PDF text online",
+        "Add images to PDF",
+        "OCR text recognition",
+        "Real-time PDF editing",
+        "Full A4 preview",
+        "No software installation required"
+      ],
       "inLanguage": "en-US",
       "isPartOf": {
         "@type": "WebSite",
@@ -243,6 +244,10 @@
         "@type": "Organization",
         "name": "easyjpgtopdf",
         "url": "https://easyjpgtopdf.com"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Riyaz Mohammad"
       }
     }
     </script>
@@ -313,8 +318,7 @@
                         <div class="dropdown-content">
                             <a href="pricing.html">Pricing</a>
                             <a href="blog.html">Blog/Articles</a>
-                            
-                            
+
                         </div>
                     </div>
                 </div>
@@ -351,7 +355,7 @@
 
 <div class="container page-wrap">
 <div class="editor-header">
-<h1>Advanced PDF Editor Online Free - Edit PDF Files with Real-Time Preview</h1>
+<h1>Advanced PDF Editor Online - Edit PDF Files with Real-Time Preview</h1>
 <p>Edit PDF files online for free with our advanced PDF editor tool. Real-time editing, full A4 preview, text editing, image insertion, OCR support, and professional editing tools - all without software installation. Best free online PDF editor 2024.</p>
 </div>
 <div class="editor-card">
@@ -364,66 +368,7 @@
 </div>
 </div>
 </div>
-<div class="editor-section" id="editor-section" style="display: block;">
-<h3>PDF Editor</h3>
-<div class="editor-container">
-<div class="toolbar">
-<div class="tool-group">
-<div class="tool-group-title">Text Tools</div>
-<button class="tool-btn active" id="select-tool">
-<i class="fas fa-mouse-pointer"></i>
-<span>Select Text</span>
-</button>
-<button class="tool-btn" id="text-tool">
-<i class="fas fa-font"></i>
-<span>Add Text</span>
-</button>
-<button class="tool-btn" id="highlight-tool">
-<i class="fas fa-highlighter"></i>
-<span>Highlight</span>
-</button>
-<button class="tool-btn" id="ocr-region-btn" title="Drag a box on the page to OCR only that region">
-<i class="fas fa-vector-square"></i>
-<span>OCR Region</span>
-</button>
-<div class="font-controls">
-<label style="font-size:.9rem;color:var(--dark)">OCR Language</label>
-<select class="font-select" id="ocr-lang">
-<option selected="" value="eng">English (eng)</option>
-<option value="hin">Hindi (hin)</option>
-<option value="ben">Bengali (ben)</option>
-<option value="guj">Gujarati (guj)</option>
-<option value="mar">Marathi (mar)</option>
-<option value="pan">Punjabi (pan)</option>
-<option value="tam">Tamil (tam)</option>
-<option value="tel">Telugu (tel)</option>
-<option value="kan">Kannada (kan)</option>
-<option value="mal">Malayalam (mal)</option>
-<option value="urd">Urdu (urd)</option>
-<option value="asm">Assamese (asm)</option>
-<option value="ori">Odia (ori)</option>
-<option value="nep">Nepali (nep)</option>
-<option value="snd">Sindhi (snd)</option>
-<option value="eng+hin">English + Hindi</option>
-</select>
-<label style="display:flex;align-items:center;gap:8px;color:var(--dark);margin-top:6px">
-<input id="ocr-auto" type="checkbox"/> Auto OCR each page
-                                </label>
-</div>
-</div>
-<div class="tool-group">
-<div class="tool-group-title">Highlight Colors</div>
-<div class="highlight-controls">
-<div class="highlight-color">
-<div class="highlight-btn active" data-color="#FFFF00" style="background-color: #FFFF00;"></div>
-<div class="highlight-btn" data-color="#00FF00" style="background-color: #00FF00;"></div>
-<div class="highlight-btn" data-color="#00FFFF" style="background-color: #00FFFF;"></div>
-<div class="highlight-btn" data-color="#FF00FF" style="background-color: #FF00FF;"></div>
-<div class="highlight-btn" data-color="#FFA500" style="background-color: #FFA500;"></div>
-</div>
-</div>
-</div>
-</div>
+<h2 style="text-align: center; font-size: 1.8rem; color: var(--primary); margin: 30px 0 20px; font-weight: 700;">Real-Time PDF Editing Features</h2>
 <div class="preview-container">
 <div class="ribbon">
 <div class="ribbon-row">
@@ -726,9 +671,7 @@
                     finally{ addFontInput.value = ''; }
                 });
             }
-            
-            
-            
+
             // Page navigation
             prevPageBtn.addEventListener('click', prevPage);
             nextPageBtn.addEventListener('click', nextPage);
@@ -1323,29 +1266,38 @@
             const w = window.open('about:blank', '_blank');
             if(!w){ showError('Popup blocked. Please allow popups for this site.'); return; }
             const d = w.document; d.open();
-            d.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>PDF Editor - Edit PDF Documents Online Free | easyjpgtopdf</title>
-    <meta name="description" content="Edit PDF files online for free. Add text, images, annotations, and modify PDF content. No software installation required.">
-    <meta name="keywords" content="pdf editor, edit pdf, edit pdf online, pdf editing tool, modify pdf, free pdf editor">
+            d.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Advanced PDF Editor Online - Edit PDF Files with Real-Time Preview | easyjpgtopdf</title>
+    <meta name="description" content="Advanced PDF editor online with real-time editing, full A4 preview, text editing, image insertion, OCR, and professional editing tools. Edit PDF files online free without installation.">
+    <meta name="keywords" content="advanced pdf editor online, pdf editor online free, edit pdf online, free pdf editor, online pdf editor, edit pdf files online, pdf editor tool, edit pdf documents, pdf editor software, edit pdf text, pdf editor free online, best pdf editor online, edit pdf online free no download, pdf editor website, edit pdf online tool, free online pdf editor, real-time pdf editor">
     <link rel="stylesheet" href="css/footer.css"></link>');
             d.write('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></link>');
-            d.write('<style>body{margin:16px;background:#f5f7ff;font-family:Segoe UI,Tahoma,Arial,sans-serif}.toolbar{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px;margin-bottom:10px}.toolbar select,.toolbar input[type=color]{padding:6px 8px;border:1px solid #ddd;border-radius:8px;background:#fff}.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer}.page{width:595px;min-height:842px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.12);margin:0 auto;position:relative}#text-layer{position:absolute;inset:0}.editable-text{position:absolute;cursor:text;padding:2px 4px;border:1px dashed transparent;user-select:text;white-space:pre-wrap;z-index:2}.editable-text.selected{border-color:#4361ee;background:rgba(67,97,238,.08)}.editable-text.editing{border:2px solid #4361ee;background:#fff;z-index:3;outline:none}</style>');
+            d.write('<style>body{margin:16px;background:#f5f7ff;font-family:Segoe UI,Tahoma,Arial,sans-serif}.toolbar select,.toolbar input[type=color]{padding:6px 8px;border:1px solid #ddd;border-radius:8px;background:#fff}.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer}.page{width:595px;min-height:842px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.12);margin:0 auto;position:relative}#text-layer{position:absolute;inset:0}.editable-text{position:absolute;cursor:text;padding:2px 4px;border:1px dashed transparent;user-select:text;white-space:pre-wrap;z-index:2}.editable-text.selected{border-color:#4361ee;background:rgba(67,97,238,.08)}.editable-text.editing{border:2px solid #4361ee;background:#fff;z-index:3;outline:none}</style>');
             d.write('    
-
-    
-    
-
-    
-    
 
     <link rel="stylesheet" href="css/header.css"></link>
     <link rel="stylesheet" href="css/theme-modern.css"></link>
-    <script type="application/ld+json">
+        <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "PDF Editor - Edit PDF Documents Online Free | easyjpgtopdf",
-      "description": "Edit PDF files online for free. Add text, images, annotations, and modify PDF content. No software installation required.",
-      "url": "https://easyjpgtopdf.com/edit-pdf.html",
+      "@type": "WebApplication",
+      "name": "Advanced PDF Editor Online",
+      "description": "Advanced PDF editor online with real-time editing, full A4 preview, text editing, image insertion, OCR, and professional editing tools. Edit PDF files online free without installation.",
+      "url": "https://easyjpgtopdf.com/edit-pdf-preview.html",
+      "applicationCategory": "UtilityApplication",
+      "operatingSystem": "Any",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Edit PDF text online",
+        "Add images to PDF",
+        "OCR text recognition",
+        "Real-time PDF editing",
+        "Full A4 preview",
+        "No software installation required"
+      ],
       "inLanguage": "en-US",
       "isPartOf": {
         "@type": "WebSite",
@@ -1356,6 +1308,10 @@
         "@type": "Organization",
         "name": "easyjpgtopdf",
         "url": "https://easyjpgtopdf.com"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Riyaz Mohammad"
       }
     }
     </script>
@@ -1577,14 +1533,8 @@
             (async ()=&gt;{
                 try{
                     await addScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-                    await addScript('https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js');
-                    const layer = d.getElementById('text-layer');
-                    let selected=null;
-                    function select(el){ d.querySelectorAll('.editable-text.selected').forEach(e=&gt;e.classList.remove('selected')); el.classList.add('selected'); selected=el; }
-                    function makeEditable(el){ d.querySelectorAll('.editable-text.editing').forEach(e=&gt;{e.classList.remove('editing'); e.contentEditable='false';}); el.classList.add('editing'); el.contentEditable='true'; el.focus(); }
-                    function place(line){ const b=line.bbox; const x0=b.x0, y0=b.y0, x1=b.x1, y1=b.y1; const fs=Math.max(10, Math.round((y1-y0)*0.8)); const el=d.createElement('div'); el.className='editable-text'; el.textContent=(line.text||'').trim(); el.style.left=x0+'px'; el.style.top=y0+'px'; el.style.fontSize=fs+'px'; el.style.fontFamily=d.getElementById('ff').value; el.style.color=d.getElementById('tc').value; el.addEventListener('dblclick',e=&gt;{e.stopPropagation(); makeEditable(el);}); el.addEventListener('click',e=&gt;{e.stopPropagation(); select(el);}); layer.appendChild(el); }
-                    const res = await w.Tesseract.recognize(img,'eng',{logger:()=&gt;{}});
-                    const lines = (res.data &amp;&amp; res.data.lines)||[]; lines.forEach(l=&gt;{ if(l &amp;&amp; l.bbox) place(l); });
+                    // OCR functionality moved to backend API - see runOcrOnCurrentPage function
+                    // This iframe code is for legacy preview - OCR now handled via /api/pdf-ocr/process
                     // toolbar handlers
                     d.getElementById('ff').addEventListener('change',()=&gt;{ if(selected){ selected.style.fontFamily=d.getElementById('ff').value; }});
                     d.getElementById('fs').addEventListener('change',()=&gt;{ if(selected){ selected.style.fontSize=d.getElementById('fs').value+'px'; }});
@@ -1816,9 +1766,7 @@
             activeTool = tool;
             
             // Update UI
-            document.querySelectorAll('.tool-btn').forEach(btn =&gt; {
-                btn.classList.remove('active');
-            });
+            document.querySelectorAll(');
             
             switch(tool) {
                 case 'select':
@@ -2178,7 +2126,6 @@
         
         // Initialize when page loads
         window.addEventListener('load', init);
-    
-    
+
 <script src="js/auth.js" type="module"></script>
 
