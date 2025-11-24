@@ -542,6 +542,32 @@ header .user-dropdown button.dropdown-logout {
         position: static;
     }
     
+    /* Ensure mobile dropdowns are touch-friendly */
+    .mobile-dropdown-toggle {
+        -webkit-tap-highlight-color: rgba(67, 97, 238, 0.2);
+        touch-action: manipulation;
+        user-select: none;
+        cursor: pointer;
+    }
+    
+    /* Ensure mobile menu overlay is properly displayed */
+    .mobile-menu-overlay {
+        display: block !important;
+        visibility: visible !important;
+    }
+    
+    /* Ensure mobile menu content is scrollable */
+    .mobile-menu-content {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+    
+    /* Ensure mobile dropdown content is visible when active */
+    .mobile-dropdown.active .mobile-dropdown-content {
+        display: block !important;
+        visibility: visible !important;
+    }
+    
     /* Ensure auth buttons are hidden on mobile */
     header .auth-buttons {
         display: none !important;
