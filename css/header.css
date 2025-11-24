@@ -125,50 +125,18 @@ header .dropdown-content .dropdown:hover .dropdown-content {
     display: block;
 }
 
+/* Hide all auth buttons in header - moved to breadcrumb navigation below header */
 header .auth-buttons {
+    display: none !important;
+}
+
+header .auth-link,
+header .auth-btn,
+header nav .auth-link,
+header nav .auth-btn,
+header .navbar .auth-link,
+header .navbar .auth-btn {
     display: none !important; /* Hidden - auth buttons moved to breadcrumb navigation below header */
-}
-
-header .auth-link {
-    display: inline-flex;
-    align-items: center;
-    padding: 10px 18px;
-    border-radius: 999px;
-    border: 1px solid rgba(67, 97, 238, 0.28);
-    color: var(--primary, #4361ee);
-    font-weight: 600;
-    text-decoration: none;
-    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
-}
-
-header .auth-link:hover {
-    background: rgba(67, 97, 238, 0.1);
-    color: var(--secondary, #3a0ca3);
-    box-shadow: 0 8px 18px rgba(67, 97, 238, 0.15);
-}
-
-header .auth-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 10px 22px;
-    min-height: 44px; /* Minimum tap target size for mobile */
-    min-width: 44px;
-    border-radius: 999px;
-    border: none;
-    background: linear-gradient(135deg, #ff5a5f, #ff2d55);
-    color: white;
-    font-weight: 600;
-    font-size: 0.95rem;
-    text-decoration: none;
-    cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-header .auth-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 22px rgba(255, 90, 95, 0.35);
 }
 
 header .auth-btn i {
@@ -638,8 +606,15 @@ header .user-dropdown button.dropdown-logout {
         display: flex !important;
     }
     
-    header .auth-buttons {
-        display: flex !important;
+    /* Auth buttons remain hidden on desktop - moved to breadcrumb navigation */
+    header .auth-buttons,
+    header .auth-link,
+    header .auth-btn,
+    header nav .auth-link,
+    header nav .auth-btn,
+    header .navbar .auth-link,
+    header .navbar .auth-btn {
+        display: none !important;
     }
     
     /* Desktop dropdowns work with hover */
