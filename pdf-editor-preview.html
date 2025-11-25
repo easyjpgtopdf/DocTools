@@ -2367,8 +2367,23 @@
                         
                         makeTextDraggable(textElement);
                         textLayer.appendChild(textElement);
+                        
+                        // Store for PDF embedding (Adobe Acrobat Pro style)
+                        if (!window.ocrTextsForPDF) {
+                            window.ocrTextsForPDF = [];
+                        }
+                        window.ocrTextsForPDF.push({
+                            pageIndex: currentPage - 1,
+                            text: result.text.trim(),
+                            x: 50,
+                            y: 50,
+                            fontSize: 14,
+                            fontColor: [0, 0, 0],
+                            fontName: 'Helvetica'
+                        });
+                        
                         saveAnnotation();
-                        alert('OCR completed! Extracted text added. Click to edit or drag to reposition.');
+                        alert('OCR completed! Extracted text added. This will be embedded into PDF structure when you download (Adobe Acrobat Pro style).');
                     }
                 } else {
                     alert('OCR failed: ' + (result.error || 'Unknown error'));
