@@ -1576,6 +1576,19 @@
                 const textContent = await page.getTextContent();
                 renderTextLayer(textContent, viewport);
                 
+                // Extract fonts from PDF and update font selector (Adobe Acrobat Pro style)
+                // Only do this once per PDF load, not on every page render
+                if (pageNumber === 1 && !window.pdfFontsExtracted) {
+                    window.pdfFontsExtracted = true;
+                    setTimeout(async () => {
+                        try {
+                            await extractAndSetPDFFonts();
+                        } catch (e) {
+                            console.warn('Could not extract PDF fonts:', e);
+                        }
+                    }, 500); // Small delay to ensure PDF is fully loaded
+                }
+                
                 // Update current page number
                 currentPage = pageNumber;
                 setCurrentPage(pageNumber);
@@ -1712,8 +1725,78 @@
             return null;
         }
         
-        // Edit text element
+        // Extract fonts from PDF and update font selector (Adobe Acrobat Pro style)
+        async function extractAndSetPDFFonts() {
+            if (!pdfDoc || !fontFamilySelect) return;
+            
+            try {
+                // Get PDF data
+                const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                if (!pdfFileURL) return;
+                
+                const response = await fetch(pdfFileURL);
+                const pdfArrayBuffer = await response.arrayBuffer();
+                const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                
+                // Call API to extract fonts
+                let apiUrl = '/api/pdf/get-fonts';
+                if (window.location.protocol === 'file:') {
+                    apiUrl = 'http://localhost:3000/api/pdf/get-fonts';
+                }
+                
+                const fontResponse = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        pdfData: pdfBase64
+                    })
+                });
+                
+                if (fontResponse.ok) {
+                    const fontData = await fontResponse.json();
+                    if (fontData.success && fontData.fonts && fontData.fonts.length > 0) {
+                        // Clear existing options
+                        fontFamilySelect.innerHTML = '';
+                        
+                        // Add extracted fonts
+                        fontData.fonts.forEach(fontName => {
+                            const option = document.createElement('option');
+                            option.value = fontName;
+                            option.textContent = fontName;
+                            fontFamilySelect.appendChild(option);
+                        });
+                        
+                        // Add standard fonts if not present
+                        const standardFonts = ['Helvetica', 'Times-Roman', 'Courier', 'Arial'];
+                        standardFonts.forEach(fontName => {
+                            if (!fontData.fonts.includes(fontName)) {
+                                const option = document.createElement('option');
+                                option.value = fontName;
+                                option.textContent = fontName;
+                                fontFamilySelect.appendChild(option);
+                            }
+                        });
+                        
+                        console.log('PDF fonts extracted and loaded:', fontData.fonts);
+                    }
+                }
+            } catch (error) {
+                console.warn('Font extraction failed:', error);
+            }
+        }
+        
+        // Store original text for replacement tracking
+        const originalTexts = new WeakMap();
+        
+        // Edit text element with replacement tracking (Adobe Acrobat Pro style)
         function editTextElement(element) {
+            // Store original text for replacement
+            if (!originalTexts.has(element)) {
+                originalTexts.set(element, element.textContent);
+            }
+            
             element.contentEditable = true;
             element.classList.add('editing');
             element.focus();
@@ -1742,6 +1825,15 @@
                 element.removeEventListener('keydown', handleKeyDown);
                 element.contentEditable = false;
                 element.classList.remove('editing');
+                
+                // Track text replacement (Adobe Acrobat Pro style)
+                const originalText = originalTexts.get(element);
+                const newText = element.textContent;
+                if (originalText && originalText !== newText) {
+                    element.dataset.originalText = originalText;
+                    element.dataset.isReplacement = 'true';
+                }
+                
                 saveAnnotation();
             }, { once: true });
         }
@@ -2177,11 +2269,15 @@
                             }
                         });
                         
+                        // Store OCR texts for embedding into PDF structure (Adobe Acrobat Pro style)
+                        const ocrTextsForEmbedding = [];
+                        
                         // Render text blocks on PDF canvas
                         textBlocks.forEach((block, blockIndex) => {
                             // Convert OCR image coordinates to PDF canvas coordinates
                             const canvasX = block.x * scaleX;
                             const canvasY = block.y * scaleY;
+                            const fontSize = Math.max(12, Math.min(block.height * scaleY, 18));
                             
                             // Create text element positioned correctly on PDF
                             const textElement = document.createElement('div');
@@ -2194,7 +2290,7 @@
                             textElement.style.position = 'absolute';
                             textElement.style.left = canvasX + 'px';
                             textElement.style.top = canvasY + 'px';
-                            textElement.style.fontSize = Math.max(12, Math.min(block.height * scaleY, 18)) + 'px';
+                            textElement.style.fontSize = fontSize + 'px';
                             textElement.style.color = '#000000';
                             textElement.style.cursor = 'text';
                             textElement.style.backgroundColor = 'transparent'; // No background - Adobe Acrobat Pro style
@@ -2203,6 +2299,17 @@
                             textElement.style.lineHeight = '1.2';
                             textElement.style.whiteSpace = 'nowrap';
                             textElement.style.userSelect = 'text';
+                            
+                            // Store for PDF embedding (not just overlay) - Adobe Acrobat Pro style
+                            ocrTextsForEmbedding.push({
+                                pageIndex: currentPage - 1,
+                                text: block.text,
+                                x: canvasX,
+                                y: canvasY,
+                                fontSize: fontSize,
+                                fontColor: [0, 0, 0],
+                                fontName: 'Helvetica'
+                            });
                             
                             // Make editable and draggable
                             textElement.addEventListener('click', function(e) {
@@ -2221,8 +2328,14 @@
                             textLayer.appendChild(textElement);
                         });
                         
+                        // Store OCR texts for embedding when downloading (Adobe Acrobat Pro style)
+                        if (!window.ocrTextsForPDF) {
+                            window.ocrTextsForPDF = [];
+                        }
+                        window.ocrTextsForPDF = window.ocrTextsForPDF.concat(ocrTextsForEmbedding);
+                        
                         saveAnnotation();
-                        alert('OCR completed! Extracted ' + textBlocks.length + ' text blocks. Click on any text to edit or drag to reposition.');
+                        alert('OCR completed! Extracted ' + textBlocks.length + ' text blocks. These will be embedded into PDF structure when you download (Adobe Acrobat Pro style).');
                     } else if (result.text) {
                         // Fallback: show full text as single block
                         const textElement = document.createElement('div');
@@ -2866,12 +2979,34 @@
                     const response = await fetch(pdfFileURL);
                     const pdfArrayBuffer = await response.arrayBuffer();
                     
-                    // Collect all edits (text + images + deletions)
+                    // Collect all edits (text + images + deletions + OCR + replacements)
                     const edits = {
                         textEdits: [],
+                        textReplacements: [], // Real text replacement (find and replace)
                         imageInserts: [],
-                        deletions: [] // White rectangles to cover deleted text
+                        deletions: [], // White rectangles to cover deleted text
+                        ocrTexts: [] // OCR text to embed into PDF structure
                     };
+                    
+                    // Add OCR texts for embedding (Adobe Acrobat Pro style)
+                    if (window.ocrTextsForPDF && window.ocrTextsForPDF.length > 0) {
+                        // Filter OCR texts for current page
+                        const pageOcrTexts = window.ocrTextsForPDF.filter(ocr => ocr.pageIndex === currentPage - 1);
+                        edits.ocrTexts = pageOcrTexts.map(ocr => {
+                            // Convert to PDF coordinates using viewport
+                            const pdfX = (ocr.x / viewport.width) * viewport.width;
+                            const pdfY = viewport.height - ((ocr.y + ocr.fontSize) / viewport.height) * viewport.height;
+                            return {
+                                pageIndex: ocr.pageIndex,
+                                text: ocr.text,
+                                x: pdfX,
+                                y: pdfY,
+                                fontSize: ocr.fontSize,
+                                fontColor: ocr.fontColor,
+                                fontName: ocr.fontName
+                            };
+                        });
+                    }
                     
                     // Get current page viewport for accurate coordinate mapping
                     const page = await pdfDoc.getPage(currentPage);
@@ -2903,15 +3038,21 @@
                     }
                     
                     // Get text annotations with accurate coordinates
+                    // Separate into replacements and new additions (Adobe Acrobat Pro style)
                     const textElements = textLayer.querySelectorAll('.editable-text');
                     textElements.forEach((el, index) => {
+                        // Skip OCR texts (they're handled separately)
+                        if (el.dataset.ocrBlock === 'true') {
+                            return;
+                        }
+                        
                         // Get position from style (more accurate)
                         const x = parseFloat(el.style.left) || 0;
                         const y = parseFloat(el.style.top) || 0;
                         const fontSize = parseFloat(el.style.fontSize) || 12;
                         const fontFamily = el.style.fontFamily || 'Helvetica';
                         
-                        // Convert to PDF coordinates
+                        // Convert to PDF coordinates using viewport
                         const pdfX = (x / viewport.width) * viewport.width;
                         const pdfY = viewport.height - ((y + fontSize) / viewport.height) * viewport.height;
                         
@@ -2924,15 +3065,32 @@
                             parseInt(rgbMatch[2]) || 0
                         ] : [0, 0, 0];
                         
-                        edits.textEdits.push({
-                            pageIndex: currentPage - 1,
-                            x: pdfX,
-                            y: pdfY,
-                            text: el.textContent,
-                            fontSize: fontSize,
-                            fontName: fontFamily,
-                            fontColor: fontColor
-                        });
+                        // Check if this is a replacement (Adobe Acrobat Pro style)
+                        const originalText = el.dataset.originalText || originalTexts.get(el);
+                        if (originalText && el.dataset.isReplacement === 'true') {
+                            // Real text replacement
+                            edits.textReplacements.push({
+                                pageIndex: currentPage - 1,
+                                oldText: originalText,
+                                newText: el.textContent,
+                                x: pdfX,
+                                y: pdfY,
+                                fontSize: fontSize,
+                                fontName: fontFamily,
+                                fontColor: fontColor
+                            });
+                        } else {
+                            // New text addition
+                            edits.textEdits.push({
+                                pageIndex: currentPage - 1,
+                                x: pdfX,
+                                y: pdfY,
+                                text: el.textContent,
+                                fontSize: fontSize,
+                                fontName: fontFamily,
+                                fontColor: fontColor
+                            });
+                        }
                     });
                     
                     // Get image elements

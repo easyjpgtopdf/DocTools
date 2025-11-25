@@ -1101,13 +1101,18 @@ app.post('/api/pdf/edit', express.json({ limit: '100mb' }), async (req, res) => 
     }
     
     // Apply edits using advanced editing (Adobe Acrobat Pro style)
-    // This handles deletions, replacements, and additions properly
+    // This handles deletions, replacements, additions, and OCR integration
     let editedBuffer;
-    if (edits.deletions && edits.deletions.length > 0) {
-      // Use advanced editing if deletions are present
+    
+    // Always use advanced editing for professional results
+    // It handles all cases: deletions, replacements, OCR integration
+    if (edits.deletions || edits.textReplacements || edits.ocrTexts) {
+      editedBuffer = await pdfEditAdvanced.editPDFAdvanced(pdfBuffer, edits || {});
+    } else if (edits.textEdits || edits.imageInserts) {
+      // Use advanced editing for better font matching and coordinates
       editedBuffer = await pdfEditAdvanced.editPDFAdvanced(pdfBuffer, edits || {});
     } else {
-      // Use standard editing for simple cases
+      // Fallback to standard editing
       editedBuffer = await pdfEditModule.editPDF(pdfBuffer, edits || {});
     }
     
@@ -1210,6 +1215,90 @@ app.post('/api/pdf/insert-image', express.json({ limit: '100mb' }), async (req, 
     res.status(500).json({
       success: false,
       error: 'PDF image insertion failed: ' + error.message
+    });
+  }
+});
+
+// PDF Content Extraction Endpoints (Adobe Acrobat Pro style)
+app.post('/api/pdf/extract-text', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData } = req.body;
+    
+    if (!pdfData) {
+      return res.status(400).json({
+        success: false,
+        error: 'No PDF data provided'
+      });
+    }
+    
+    // Convert base64 to buffer
+    let pdfBuffer;
+    if (typeof pdfData === 'string') {
+      if (pdfData.startsWith('data:application/pdf')) {
+        pdfData = pdfData.split(',')[1];
+      }
+      pdfBuffer = Buffer.from(pdfData, 'base64');
+    } else {
+      pdfBuffer = Buffer.from(pdfData);
+    }
+    
+    // Extract text with positions
+    const pdfContentParser = require('./api/pdf-edit/pdf-content-parser');
+    const textItems = await pdfContentParser.extractTextWithPositions(pdfBuffer);
+    const fonts = await pdfContentParser.getFontsFromPDF(pdfBuffer);
+    
+    res.json({
+      success: true,
+      textItems: textItems,
+      fonts: fonts,
+      message: 'Text extracted successfully'
+    });
+  } catch (error) {
+    console.error('PDF text extraction error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'PDF text extraction failed: ' + error.message
+    });
+  }
+});
+
+// Get fonts from PDF
+app.post('/api/pdf/get-fonts', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData } = req.body;
+    
+    if (!pdfData) {
+      return res.status(400).json({
+        success: false,
+        error: 'No PDF data provided'
+      });
+    }
+    
+    // Convert base64 to buffer
+    let pdfBuffer;
+    if (typeof pdfData === 'string') {
+      if (pdfData.startsWith('data:application/pdf')) {
+        pdfData = pdfData.split(',')[1];
+      }
+      pdfBuffer = Buffer.from(pdfData, 'base64');
+    } else {
+      pdfBuffer = Buffer.from(pdfData);
+    }
+    
+    // Get fonts
+    const pdfContentParser = require('./api/pdf-edit/pdf-content-parser');
+    const fonts = await pdfContentParser.getFontsFromPDF(pdfBuffer);
+    
+    res.json({
+      success: true,
+      fonts: fonts,
+      message: 'Fonts extracted successfully'
+    });
+  } catch (error) {
+    console.error('PDF font extraction error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'PDF font extraction failed: ' + error.message
     });
   }
 });
