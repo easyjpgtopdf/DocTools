@@ -675,14 +675,22 @@
         }
     </script>
     <script>
+        // Prevent duplicate execution
+        if (window.pdfEditorInitialized) {
+            console.warn('PDF Editor already initialized, skipping duplicate execution');
+        } else {
+            window.pdfEditorInitialized = true;
+        }
+        
         // Set PDF.js worker
         if (typeof pdfjsLib !== 'undefined') {
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         }
         
-        // Global variables
+        // Global variables - use window object to prevent scope issues
         let pdfDoc = null;
-        let currentPage = 1;
+        let currentPage = (typeof window.currentPage === 'undefined') ? 1 : window.currentPage;
+        window.currentPage = currentPage; // Store in window for global access
         let totalPages = 1;
         let scale = 1.5;
         let textAnnotations = [];
@@ -913,6 +921,7 @@
                 
                 // Update current page number
                 currentPage = pageNumber;
+                window.currentPage = pageNumber; // Sync with window object
                 updatePageButtons();
             } catch (error) {
                 console.error('Error rendering page:', error);
@@ -1005,6 +1014,7 @@
             prevPageBtn.addEventListener('click', async function() {
                 if (currentPage > 1) {
                     currentPage--;
+                    window.currentPage = currentPage;
                     await renderPage(currentPage);
                 }
             });
@@ -1015,6 +1025,7 @@
             nextPageBtn.addEventListener('click', async function() {
                 if (currentPage < totalPages) {
                     currentPage++;
+                    window.currentPage = currentPage;
                     await renderPage(currentPage);
                 }
             });
