@@ -103,9 +103,17 @@ echo ""
 echo "🪣 Creating Cloud Storage bucket..."
 if gsutil ls -b gs://${BUCKET_NAME} &>/dev/null; then
     echo "⚠️ Bucket already exists, skipping creation..."
+    echo "   Bucket: gs://${BUCKET_NAME}"
 else
+    echo "   Creating bucket: gs://${BUCKET_NAME}"
     gsutil mb -p $PROJECT_ID -c STANDARD -l $REGION gs://${BUCKET_NAME}
-    echo "✅ Bucket created: gs://${BUCKET_NAME}"
+    if [ $? -eq 0 ]; then
+        echo "✅ Bucket created: gs://${BUCKET_NAME}"
+        echo "   Storage API: storage-component.googleapis.com"
+        echo "   Region: $REGION"
+    else
+        echo "❌ Failed to create bucket. Check Storage API is enabled."
+    fi
 fi
 echo ""
 
