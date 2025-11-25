@@ -2873,40 +2873,65 @@
                         deletions: [] // White rectangles to cover deleted text
                     };
                     
+                    // Get current page viewport for accurate coordinate mapping
+                    const page = await pdfDoc.getPage(currentPage);
+                    const viewport = page.getViewport({ scale: scale });
+                    
                     // Get deletion rectangles (white rectangles covering deleted PDF text)
+                    // Adobe Acrobat Pro style - real deletion using white rectangles
                     if (deletionLayer) {
                         const deletionRects = deletionLayer.querySelectorAll('.deletion-rect');
                         deletionRects.forEach((rectEl) => {
-                            const rect = rectEl.getBoundingClientRect();
-                            const canvasRect = pdfCanvas.getBoundingClientRect();
-                            const scaleX = pdfCanvas.width / canvasRect.width;
-                            const scaleY = pdfCanvas.height / canvasRect.height;
+                            // Get position from style (more accurate than getBoundingClientRect)
+                            const x = parseFloat(rectEl.style.left) || 0;
+                            const y = parseFloat(rectEl.style.top) || 0;
+                            const width = parseFloat(rectEl.style.width) || 0;
+                            const height = parseFloat(rectEl.style.height) || 0;
+                            
+                            // Convert to PDF coordinates (PDF uses bottom-left origin)
+                            const pdfX = (x / viewport.width) * viewport.width;
+                            const pdfY = viewport.height - ((y + height) / viewport.height) * viewport.height;
                             
                             edits.deletions.push({
                                 pageIndex: currentPage - 1,
-                                x: (rect.left - canvasRect.left) * scaleX,
-                                y: (canvasRect.height - (rect.top - canvasRect.top)) * scaleY,
-                                width: rect.width * scaleX,
-                                height: rect.height * scaleY
+                                x: pdfX,
+                                y: pdfY,
+                                width: (width / viewport.width) * viewport.width,
+                                height: (height / viewport.height) * viewport.height
                             });
                         });
                     }
                     
-                    // Get text annotations
+                    // Get text annotations with accurate coordinates
                     const textElements = textLayer.querySelectorAll('.editable-text');
                     textElements.forEach((el, index) => {
-                        const rect = el.getBoundingClientRect();
-                        const canvasRect = pdfCanvas.getBoundingClientRect();
-                        const scaleX = pdfCanvas.width / canvasRect.width;
-                        const scaleY = pdfCanvas.height / canvasRect.height;
+                        // Get position from style (more accurate)
+                        const x = parseFloat(el.style.left) || 0;
+                        const y = parseFloat(el.style.top) || 0;
+                        const fontSize = parseFloat(el.style.fontSize) || 12;
+                        const fontFamily = el.style.fontFamily || 'Helvetica';
+                        
+                        // Convert to PDF coordinates
+                        const pdfX = (x / viewport.width) * viewport.width;
+                        const pdfY = viewport.height - ((y + fontSize) / viewport.height) * viewport.height;
+                        
+                        // Get color
+                        const color = el.style.color || '#000000';
+                        const rgbMatch = color.match(/\d+/g);
+                        const fontColor = rgbMatch ? [
+                            parseInt(rgbMatch[0]) || 0,
+                            parseInt(rgbMatch[1]) || 0,
+                            parseInt(rgbMatch[2]) || 0
+                        ] : [0, 0, 0];
                         
                         edits.textEdits.push({
                             pageIndex: currentPage - 1,
-                            x: (rect.left - canvasRect.left) * scaleX,
-                            y: (canvasRect.height - (rect.top - canvasRect.top)) * scaleY,
+                            x: pdfX,
+                            y: pdfY,
                             text: el.textContent,
-                            fontSize: parseInt(getComputedStyle(el).fontSize) || 12,
-                            fontColor: [0, 0, 0]
+                            fontSize: fontSize,
+                            fontName: fontFamily,
+                            fontColor: fontColor
                         });
                     });
                     

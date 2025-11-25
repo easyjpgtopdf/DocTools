@@ -1075,6 +1075,7 @@ app.get('/api/download/:filename', (req, res) => {
 
 // PDF Editing API endpoints
 const pdfEditModule = require('./api/pdf-edit/edit-pdf');
+const pdfEditAdvanced = require('./api/pdf-edit/edit-pdf-advanced');
 
 // Edit PDF (text + images)
 app.post('/api/pdf/edit', express.json({ limit: '100mb' }), async (req, res) => {
@@ -1099,8 +1100,16 @@ app.post('/api/pdf/edit', express.json({ limit: '100mb' }), async (req, res) => 
       pdfBuffer = Buffer.from(pdfData);
     }
     
-    // Apply edits
-    const editedBuffer = await pdfEditModule.editPDF(pdfBuffer, edits || {});
+    // Apply edits using advanced editing (Adobe Acrobat Pro style)
+    // This handles deletions, replacements, and additions properly
+    let editedBuffer;
+    if (edits.deletions && edits.deletions.length > 0) {
+      // Use advanced editing if deletions are present
+      editedBuffer = await pdfEditAdvanced.editPDFAdvanced(pdfBuffer, edits || {});
+    } else {
+      // Use standard editing for simple cases
+      editedBuffer = await pdfEditModule.editPDF(pdfBuffer, edits || {});
+    }
     
     // Convert to base64 for response
     const editedBase64 = editedBuffer.toString('base64');
