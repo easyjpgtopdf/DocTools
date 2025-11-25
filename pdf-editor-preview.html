@@ -717,7 +717,13 @@
         // Load PDF from IndexedDB or sessionStorage
         async function loadPDF() {
             try {
+                console.log('Starting PDF load process...');
                 if (loadingOverlay) loadingOverlay.style.display = 'flex';
+                
+                // Ensure preview container is visible
+                if (previewContainer) {
+                    previewContainer.style.display = 'flex';
+                }
                 
                 let pdfData = null;
                 let fileName = 'document.pdf';
@@ -799,10 +805,17 @@
         
         async function loadFromSessionStorage() {
             const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+            console.log('Loading from sessionStorage, URL:', pdfFileURL ? 'Found' : 'Not found');
+            
             if (pdfFileURL) {
                 try {
+                    console.log('Fetching PDF from Blob URL...');
                     const response = await fetch(pdfFileURL);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch PDF from Blob URL');
+                    }
                     const data = await response.arrayBuffer();
+                    console.log('PDF data fetched, size:', data.byteLength);
                     await renderPDF(data);
                 } catch (error) {
                     console.error('Error loading from sessionStorage:', error);
@@ -811,6 +824,7 @@
                     window.location.href = 'edit-pdf.html';
                 }
             } else {
+                console.error('No pdfFileURL found in sessionStorage');
                 if (loadingOverlay) loadingOverlay.style.display = 'none';
                 alert('No PDF file found. Please upload a file first.');
                 window.location.href = 'edit-pdf.html';
