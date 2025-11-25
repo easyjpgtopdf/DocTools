@@ -1099,9 +1099,54 @@
                 const result = await response.json();
                 
                 if (result.success && result.text) {
-                    // Add extracted text to page
-                    alert('OCR completed! Extracted text: ' + result.text.substring(0, 100) + '...');
-                    // You can add the extracted text as editable text elements here
+                    // Add extracted text as editable elements
+                    if (result.words && result.words.length > 0) {
+                        result.words.forEach((word, index) => {
+                            if (word.text && word.boundingBox) {
+                                const textElement = document.createElement('div');
+                                textElement.className = 'editable-text';
+                                textElement.textContent = word.text;
+                                
+                                // Convert bounding box coordinates to canvas coordinates
+                                const viewport = page.getViewport({ scale: scale });
+                                const canvasRect = pdfCanvas.getBoundingClientRect();
+                                const scaleX = canvasRect.width / viewport.width;
+                                const scaleY = canvasRect.height / viewport.height;
+                                
+                                textElement.style.left = (word.boundingBox.x * scaleX) + 'px';
+                                textElement.style.top = (word.boundingBox.y * scaleY) + 'px';
+                                textElement.style.fontSize = '14px';
+                                textElement.style.color = '#000000';
+                                textElement.style.cursor = 'text';
+                                
+                                // Make editable
+                                textElement.addEventListener('click', function() {
+                                    editTextElement(textElement);
+                                });
+                                
+                                textLayer.appendChild(textElement);
+                            }
+                        });
+                        
+                        saveAnnotation();
+                        alert('OCR completed! Extracted ' + result.words.length + ' words. Click on any text to edit.');
+                    } else {
+                        // Fallback: show full text
+                        const textElement = document.createElement('div');
+                        textElement.className = 'editable-text';
+                        textElement.textContent = result.text;
+                        textElement.style.left = '50px';
+                        textElement.style.top = '50px';
+                        textElement.style.fontSize = '14px';
+                        textElement.style.color = '#000000';
+                        textElement.style.cursor = 'text';
+                        textElement.addEventListener('click', function() {
+                            editTextElement(textElement);
+                        });
+                        textLayer.appendChild(textElement);
+                        saveAnnotation();
+                        alert('OCR completed! Extracted text added. Click to edit.');
+                    }
                 } else {
                     alert('OCR failed: ' + (result.error || 'Unknown error'));
                 }
@@ -1114,9 +1159,53 @@
             }
         });
         
-        addTextBtn.addEventListener('click', function() {
+        if (addTextBtn && !addTextBtn.hasAttribute('data-listener-attached')) {
+            addTextBtn.setAttribute('data-listener-attached', 'true');
+            addTextBtn.addEventListener('click', function() {
                 activeTool = 'text';
                 alert('Click on the PDF to add text at that location.');
+                
+                // Add click listener to canvas for text insertion
+                pdfCanvas.style.cursor = 'text';
+                pdfCanvas.addEventListener('click', async function addTextHandler(e) {
+                    if (activeTool !== 'text') {
+                        pdfCanvas.removeEventListener('click', addTextHandler);
+                        pdfCanvas.style.cursor = 'default';
+                        return;
+                    }
+                    
+                    const text = prompt('Enter text to add:');
+                    if (!text) {
+                        activeTool = 'select';
+                        pdfCanvas.style.cursor = 'default';
+                        pdfCanvas.removeEventListener('click', addTextHandler);
+                        return;
+                    }
+                    
+                    const rect = pdfCanvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    // Create editable text element
+                    const textElement = document.createElement('div');
+                    textElement.className = 'editable-text';
+                    textElement.textContent = text;
+                    textElement.style.left = x + 'px';
+                    textElement.style.top = y + 'px';
+                    textElement.style.fontSize = '16px';
+                    textElement.style.color = '#000000';
+                    textLayer.appendChild(textElement);
+                    
+                    // Make it editable
+                    editTextElement(textElement);
+                    
+                    // Save annotation
+                    saveAnnotation();
+                    
+                    activeTool = 'select';
+                    pdfCanvas.style.cursor = 'default';
+                    pdfCanvas.removeEventListener('click', addTextHandler);
+                }, { once: false });
             });
         }
         
@@ -1130,21 +1219,74 @@
         if (imageInput && !imageInput.hasAttribute('data-listener-attached')) {
             imageInput.setAttribute('data-listener-attached', 'true');
             imageInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const img = document.createElement('img');
-                    img.src = event.target.result;
-                    img.style.position = 'absolute';
-                    img.style.left = '100px';
-                    img.style.top = '100px';
-                    img.style.maxWidth = '200px';
-                    img.style.cursor = 'move';
-                    textLayer.appendChild(img);
-                };
-                reader.readAsDataURL(file);
-            }
+                const file = e.target.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        activeTool = 'image';
+                        pdfCanvas.style.cursor = 'crosshair';
+                        
+                        // Add click listener to canvas for image insertion
+                        pdfCanvas.addEventListener('click', async function addImageHandler(clickEvent) {
+                            if (activeTool !== 'image') {
+                                pdfCanvas.removeEventListener('click', addImageHandler);
+                                pdfCanvas.style.cursor = 'default';
+                                return;
+                            }
+                            
+                            const rect = pdfCanvas.getBoundingClientRect();
+                            const x = clickEvent.clientX - rect.left;
+                            const y = clickEvent.clientY - rect.top;
+                            
+                            // Create image element
+                            const img = document.createElement('img');
+                            img.src = event.target.result;
+                            img.style.position = 'absolute';
+                            img.style.left = x + 'px';
+                            img.style.top = y + 'px';
+                            img.style.maxWidth = '200px';
+                            img.style.maxHeight = '200px';
+                            img.style.cursor = 'move';
+                            img.style.zIndex = '10';
+                            textLayer.appendChild(img);
+                            
+                            // Make image draggable
+                            let isDragging = false;
+                            let startX, startY, initialX, initialY;
+                            
+                            img.addEventListener('mousedown', function(e) {
+                                isDragging = true;
+                                startX = e.clientX;
+                                startY = e.clientY;
+                                initialX = img.offsetLeft;
+                                initialY = img.offsetTop;
+                            });
+                            
+                            document.addEventListener('mousemove', function(e) {
+                                if (isDragging) {
+                                    const dx = e.clientX - startX;
+                                    const dy = e.clientY - startY;
+                                    img.style.left = (initialX + dx) + 'px';
+                                    img.style.top = (initialY + dy) + 'px';
+                                }
+                            });
+                            
+                            document.addEventListener('mouseup', function() {
+                                isDragging = false;
+                            });
+                            
+                            // Save annotation
+                            saveAnnotation();
+                            
+                            activeTool = 'select';
+                            pdfCanvas.style.cursor = 'default';
+                            pdfCanvas.removeEventListener('click', addImageHandler);
+                        }, { once: false });
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    alert('Please select a valid image file');
+                }
             });
         }
         
@@ -1183,9 +1325,107 @@
         if (downloadBtn && !downloadBtn.hasAttribute('data-listener-attached')) {
             downloadBtn.setAttribute('data-listener-attached', 'true');
             downloadBtn.addEventListener('click', async function() {
-                // This would generate and download the edited PDF
-                // For now, just show a message
-                alert('Download feature will be implemented with PDF generation from edited content.');
+                if (!pdfDoc) {
+                    alert('No PDF loaded');
+                    return;
+                }
+                
+                try {
+                    loadingOverlay.style.display = 'flex';
+                    
+                    // Get current PDF data
+                    const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                    if (!pdfFileURL) {
+                        throw new Error('PDF file not found in storage');
+                    }
+                    
+                    const response = await fetch(pdfFileURL);
+                    const pdfArrayBuffer = await response.arrayBuffer();
+                    
+                    // Collect all edits (text + images)
+                    const edits = {
+                        textEdits: [],
+                        imageInserts: []
+                    };
+                    
+                    // Get text annotations
+                    const textElements = textLayer.querySelectorAll('.editable-text');
+                    textElements.forEach((el, index) => {
+                        const rect = el.getBoundingClientRect();
+                        const canvasRect = pdfCanvas.getBoundingClientRect();
+                        const scaleX = pdfCanvas.width / canvasRect.width;
+                        const scaleY = pdfCanvas.height / canvasRect.height;
+                        
+                        edits.textEdits.push({
+                            pageIndex: currentPage - 1,
+                            x: (rect.left - canvasRect.left) * scaleX,
+                            y: (canvasRect.height - (rect.top - canvasRect.top)) * scaleY,
+                            text: el.textContent,
+                            fontSize: parseInt(getComputedStyle(el).fontSize) || 12,
+                            fontColor: [0, 0, 0]
+                        });
+                    });
+                    
+                    // Get image elements
+                    const imageElements = textLayer.querySelectorAll('img');
+                    imageElements.forEach((img) => {
+                        const rect = img.getBoundingClientRect();
+                        const canvasRect = pdfCanvas.getBoundingClientRect();
+                        const scaleX = pdfCanvas.width / canvasRect.width;
+                        const scaleY = pdfCanvas.height / canvasRect.height;
+                        
+                        edits.imageInserts.push({
+                            pageIndex: currentPage - 1,
+                            imageData: img.src.split(',')[1],
+                            x: (rect.left - canvasRect.left) * scaleX,
+                            y: (canvasRect.height - (rect.top - canvasRect.top)) * scaleY,
+                            width: rect.width * scaleX,
+                            height: rect.height * scaleY
+                        });
+                    });
+                    
+                    // Convert PDF to base64
+                    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                    
+                    // Send to backend for editing
+                    const editResponse = await fetch('/api/pdf/edit', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            pdfData: pdfBase64,
+                            edits: edits
+                        })
+                    });
+                    
+                    const editResult = await editResponse.json();
+                    
+                    if (editResult.success) {
+                        // Download edited PDF
+                        const editedPdfBase64 = editResult.pdfData.split(',')[1];
+                        const editedPdfBytes = Uint8Array.from(atob(editedPdfBase64), c => c.charCodeAt(0));
+                        const blob = new Blob([editedPdfBytes], { type: 'application/pdf' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = sessionStorage.getItem('pdfFileName') || 'edited-document.pdf';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        
+                        alert('PDF downloaded successfully!');
+                    } else {
+                        throw new Error(editResult.error || 'PDF editing failed');
+                    }
+                    
+                    loadingOverlay.style.display = 'none';
+                } catch (error) {
+                    console.error('Download error:', error);
+                    loadingOverlay.style.display = 'none';
+                    alert('Error downloading PDF: ' + error.message);
+                }
             });
         }
         

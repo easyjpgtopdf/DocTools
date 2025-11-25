@@ -11,26 +11,37 @@ let visionClient = null;
 
 try {
   // Try to initialize with service account from environment variable
+  // First try GOOGLE_CLOUD_SERVICE_ACCOUNT, then FIREBASE_SERVICE_ACCOUNT (same credentials work for both)
+  let serviceAccount = null;
+  
   if (process.env.GOOGLE_CLOUD_SERVICE_ACCOUNT) {
-    const serviceAccount = JSON.parse(process.env.GOOGLE_CLOUD_SERVICE_ACCOUNT);
+    serviceAccount = JSON.parse(process.env.GOOGLE_CLOUD_SERVICE_ACCOUNT);
+    console.log('Google Cloud Vision API: Using GOOGLE_CLOUD_SERVICE_ACCOUNT');
+  } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    // Firebase service account can also be used for Google Cloud Vision API
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    console.log('Google Cloud Vision API: Using FIREBASE_SERVICE_ACCOUNT (shared credentials)');
+  }
+  
+  if (serviceAccount) {
     visionClient = new Vision({
       credentials: serviceAccount
     });
-    console.log('Google Cloud Vision API initialized with service account');
+    console.log('✓ Google Cloud Vision API initialized with service account');
   } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     // Use credentials file path
     visionClient = new Vision({
       keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
     });
-    console.log('Google Cloud Vision API initialized with credentials file');
+    console.log('✓ Google Cloud Vision API initialized with credentials file');
   } else {
     // Try default credentials (for local development or GCP environment)
     visionClient = new Vision();
-    console.log('Google Cloud Vision API initialized with default credentials');
+    console.log('✓ Google Cloud Vision API initialized with default credentials');
   }
 } catch (error) {
-  console.warn('Google Cloud Vision API initialization failed:', error.message);
-  console.warn('OCR will fall back to alternative method if available');
+  console.warn('⚠ Google Cloud Vision API initialization failed:', error.message);
+  console.warn('OCR will fall back to Python Tesseract if available');
 }
 
 /**

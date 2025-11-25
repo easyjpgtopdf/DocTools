@@ -1073,6 +1073,138 @@ app.get('/api/download/:filename', (req, res) => {
   }
 });
 
+// PDF Editing API endpoints
+const pdfEditModule = require('./api/pdf-edit/edit-pdf');
+
+// Edit PDF (text + images)
+app.post('/api/pdf/edit', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData, edits } = req.body;
+    
+    if (!pdfData) {
+      return res.status(400).json({
+        success: false,
+        error: 'No PDF data provided'
+      });
+    }
+    
+    // Convert base64 to buffer
+    let pdfBuffer;
+    if (typeof pdfData === 'string') {
+      if (pdfData.startsWith('data:application/pdf')) {
+        pdfData = pdfData.split(',')[1];
+      }
+      pdfBuffer = Buffer.from(pdfData, 'base64');
+    } else {
+      pdfBuffer = Buffer.from(pdfData);
+    }
+    
+    // Apply edits
+    const editedBuffer = await pdfEditModule.editPDF(pdfBuffer, edits || {});
+    
+    // Convert to base64 for response
+    const editedBase64 = editedBuffer.toString('base64');
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${editedBase64}`,
+      message: 'PDF edited successfully'
+    });
+  } catch (error) {
+    console.error('PDF editing error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'PDF editing failed: ' + error.message
+    });
+  }
+});
+
+// Edit PDF text only
+app.post('/api/pdf/edit-text', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData, textEdits } = req.body;
+    
+    if (!pdfData || !textEdits || !Array.isArray(textEdits)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request: pdfData and textEdits array required'
+      });
+    }
+    
+    // Convert base64 to buffer
+    let pdfBuffer;
+    if (typeof pdfData === 'string') {
+      if (pdfData.startsWith('data:application/pdf')) {
+        pdfData = pdfData.split(',')[1];
+      }
+      pdfBuffer = Buffer.from(pdfData, 'base64');
+    } else {
+      pdfBuffer = Buffer.from(pdfData);
+    }
+    
+    // Apply text edits
+    const editedBuffer = await pdfEditModule.editPDFText(pdfBuffer, textEdits);
+    
+    // Convert to base64 for response
+    const editedBase64 = editedBuffer.toString('base64');
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${editedBase64}`,
+      message: 'PDF text edited successfully'
+    });
+  } catch (error) {
+    console.error('PDF text editing error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'PDF text editing failed: ' + error.message
+    });
+  }
+});
+
+// Insert image into PDF
+app.post('/api/pdf/insert-image', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData, imageInserts } = req.body;
+    
+    if (!pdfData || !imageInserts || !Array.isArray(imageInserts)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request: pdfData and imageInserts array required'
+      });
+    }
+    
+    // Convert base64 to buffer
+    let pdfBuffer;
+    if (typeof pdfData === 'string') {
+      if (pdfData.startsWith('data:application/pdf')) {
+        pdfData = pdfData.split(',')[1];
+      }
+      pdfBuffer = Buffer.from(pdfData, 'base64');
+    } else {
+      pdfBuffer = Buffer.from(pdfData);
+    }
+    
+    // Apply image inserts
+    const editedBuffer = await pdfEditModule.insertImageIntoPDF(pdfBuffer, imageInserts);
+    
+    // Convert to base64 for response
+    const editedBase64 = editedBuffer.toString('base64');
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${editedBase64}`,
+      message: 'Image inserted into PDF successfully'
+    });
+  } catch (error) {
+    console.error('PDF image insertion error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'PDF image insertion failed: ' + error.message
+    });
+  }
+});
+
 // PDF OCR API endpoint - High accuracy server-side OCR processing with Google Cloud Vision API
 app.post('/api/pdf-ocr/process', express.json({ limit: '50mb' }), async (req, res) => {
   try {
