@@ -27,6 +27,9 @@
     <!-- PDF.js for rendering -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     
+    <!-- Tesseract.js for client-side OCR fallback -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js"></script>
+    
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -1809,57 +1812,91 @@
                 
                 const imageData = canvas.toDataURL('image/png');
                 
+                // Try server-side OCR first, fallback to client-side OCR
+                let result = null;
+                let useClientSideOCR = false;
+                
                 // Determine API URL based on protocol
                 let apiUrl = '/api/pdf-ocr/process';
                 if (window.location.protocol === 'file:') {
-                    // For local file:// protocol, use localhost or relative path
-                    // Try to detect if server is running locally
                     apiUrl = 'http://localhost:3000/api/pdf-ocr/process';
-                    // If localhost fails, show message to user
                 } else {
-                    // For http/https, use relative URL
                     apiUrl = '/api/pdf-ocr/process';
                 }
                 
-                // Send to backend for OCR
-                let response;
+                // Try server-side OCR first
                 try {
-                    response = await fetch(apiUrl, {
+                    const response = await fetch(apiUrl, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            image: imageData.split(',')[1], // Remove data:image/png;base64, prefix
+                            image: imageData.split(',')[1],
                             language: 'en'
                         })
                     });
-                } catch (fetchError) {
-                    // If fetch fails (CORS or server not running), show helpful message
-                    if (window.location.protocol === 'file:') {
-                        alert('OCR requires a running server. Please:\n1. Start the Node.js server (npm start in server folder)\n2. Access this page via http://localhost:3000/pdf-editor-preview.html\n\nOr use the online version at easyjpgtopdf.com');
-                        loadingOverlay.style.display = 'none';
-                        return;
+                    
+                    if (response.ok) {
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('application/json')) {
+                            result = await response.json();
+                            console.log('Server-side OCR successful');
+                        } else {
+                            throw new Error('Invalid response type from server');
+                        }
+                    } else {
+                        // Server returned error, use client-side OCR
+                        console.warn('Server OCR failed, using client-side OCR fallback');
+                        useClientSideOCR = true;
                     }
-                    throw fetchError;
+                } catch (fetchError) {
+                    // Network error or server not available, use client-side OCR
+                    console.warn('Server OCR unavailable, using client-side OCR fallback:', fetchError.message);
+                    useClientSideOCR = true;
                 }
                 
-                // Check if response is OK
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('OCR API error:', response.status, errorText);
-                    throw new Error(`OCR API returned ${response.status}: ${response.statusText}. Please check if the server is running and the API endpoint exists.`);
+                // Fallback to client-side OCR using Tesseract.js
+                if (useClientSideOCR || !result) {
+                    if (typeof Tesseract === 'undefined') {
+                        throw new Error('OCR service unavailable. Please ensure you have an internet connection for client-side OCR.');
+                    }
+                    
+                    console.log('Starting client-side OCR with Tesseract.js...');
+                    
+                    try {
+                        const { data } = await Tesseract.recognize(imageData, 'eng', {
+                            logger: m => {
+                                if (m.status === 'recognizing text') {
+                                    console.log(`OCR progress: ${Math.round(m.progress * 100)}%`);
+                                }
+                            }
+                        });
+                        
+                        // Convert Tesseract result to our format
+                        result = {
+                            success: true,
+                            text: data.text,
+                            words: data.words.map(word => ({
+                                text: word.text,
+                                boundingBox: {
+                                    x: word.bbox.x0,
+                                    y: word.bbox.y0,
+                                    width: word.bbox.x1 - word.bbox.x0,
+                                    height: word.bbox.y1 - word.bbox.y0
+                                },
+                                confidence: word.confidence
+                            })),
+                            confidence: data.confidence,
+                            method: 'tesseract-js-client'
+                        };
+                        
+                        console.log('Client-side OCR completed successfully');
+                    } catch (ocrError) {
+                        console.error('Client-side OCR error:', ocrError);
+                        throw new Error('OCR processing failed. Please try again or check your internet connection.');
+                    }
                 }
-                
-                // Check if response is JSON
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    const errorText = await response.text();
-                    console.error('OCR API returned non-JSON:', contentType, errorText.substring(0, 200));
-                    throw new Error('OCR API returned invalid response. Server may be returning an error page. Please check server logs.');
-                }
-                
-                const result = await response.json();
                 
                 if (result.success && result.text) {
                     // Add extracted text as editable elements
