@@ -45,13 +45,20 @@ echo ""
 
 # Enable APIs
 echo "🔌 Enabling required APIs..."
+echo "   Enabling Vision API (vision.googleapis.com)..."
 gcloud services enable vision.googleapis.com --project=$PROJECT_ID
+echo "   Enabling Language API (language.googleapis.com)..."
+gcloud services enable language.googleapis.com --project=$PROJECT_ID
+echo "   Enabling Storage API..."
 gcloud services enable storage-component.googleapis.com --project=$PROJECT_ID
+echo "   Enabling Cloud Run API..."
 gcloud services enable run.googleapis.com --project=$PROJECT_ID
+echo "   Enabling Cloud Build API..."
 gcloud services enable cloudbuild.googleapis.com --project=$PROJECT_ID
+echo "   Enabling Firebase API..."
 gcloud services enable firebase.googleapis.com --project=$PROJECT_ID
 
-echo "✅ APIs enabled"
+echo "✅ All APIs enabled"
 echo ""
 
 # Create service account

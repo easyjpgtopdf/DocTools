@@ -3,6 +3,8 @@
 # Deploys main server with all PDF editing features
 
 # Configuration
+# Project: EasyJpgtoPdf
+# Project Number: 564572183797
 PROJECT_ID="easyjpgtopdf-de346"
 SERVICE_NAME="pdf-editor-server"
 REGION="us-central1"
@@ -33,7 +35,7 @@ gcloud config set project $PROJECT_ID
 
 # Enable required APIs
 echo "🔧 Enabling required APIs..."
-gcloud services enable cloudbuild.googleapis.com run.googleapis.com containerregistry.googleapis.com vision.googleapis.com storage-component.googleapis.com
+gcloud services enable cloudbuild.googleapis.com run.googleapis.com containerregistry.googleapis.com vision.googleapis.com language.googleapis.com storage-component.googleapis.com
 
 # Build Docker image
 echo ""

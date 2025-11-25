@@ -33,6 +33,7 @@ echo ""
 
 echo "2️⃣ Checking Other Required APIs..."
 APIS=(
+    "language.googleapis.com"
     "storage-component.googleapis.com"
     "run.googleapis.com"
     "cloudbuild.googleapis.com"
