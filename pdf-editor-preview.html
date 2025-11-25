@@ -1324,34 +1324,75 @@
             }
         }
         
-        // Render text layer for editing
+        // Render text layer for editing - Adobe Acrobat Pro style (every word editable)
         function renderTextLayer(textContent, viewport) {
+            if (!textLayer) return;
+            
             textLayer.innerHTML = '';
             textLayer.style.width = viewport.width + 'px';
             textLayer.style.height = viewport.height + 'px';
             
             textContent.items.forEach((item, index) => {
-                const textDiv = document.createElement('div');
-                textDiv.className = 'editable-text';
-                textDiv.textContent = item.str;
-                textDiv.style.left = item.transform[4] + 'px';
-                textDiv.style.top = (viewport.height - item.transform[5]) + 'px';
-                textDiv.style.fontSize = Math.abs(item.transform[0]) + 'px';
-                textDiv.style.fontFamily = item.fontName || 'Arial';
-                textDiv.dataset.index = index;
-                
-                // Make text editable
-                textDiv.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    selectTextElement(this);
-                });
-                
-                textDiv.addEventListener('dblclick', function(e) {
-                    e.stopPropagation();
-                    editTextElement(this);
-                });
-                
-                textLayer.appendChild(textDiv);
+                if (item.str && item.str.trim()) {
+                    // Split text into words for individual editing (Adobe Acrobat Pro style)
+                    const words = item.str.split(/(\s+)/);
+                    let currentX = item.transform[4];
+                    const baseY = viewport.height - item.transform[5];
+                    const fontSize = Math.abs(item.transform[0]) || 12;
+                    const fontFamily = item.fontName || 'Arial';
+                    
+                    words.forEach((word, wordIndex) => {
+                        if (word.trim()) {
+                            const wordDiv = document.createElement('div');
+                            wordDiv.className = 'editable-text';
+                            wordDiv.textContent = word;
+                            wordDiv.dataset.wordIndex = wordIndex;
+                            wordDiv.dataset.itemIndex = index;
+                            
+                            // Calculate position for each word
+                            const wordWidth = word.length * (fontSize * 0.6); // Approximate width
+                            wordDiv.style.left = currentX + 'px';
+                            wordDiv.style.top = (baseY - fontSize) + 'px';
+                            wordDiv.style.fontSize = fontSize + 'px';
+                            wordDiv.style.fontFamily = fontFamily;
+                            wordDiv.style.cursor = 'text';
+                            wordDiv.style.color = '#000000';
+                            wordDiv.style.lineHeight = '1.2';
+                            
+                            // Make word editable on click (Adobe Acrobat Pro style)
+                            wordDiv.addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                selectTextElement(wordDiv);
+                            });
+                            
+                            wordDiv.addEventListener('dblclick', function(e) {
+                                e.stopPropagation();
+                                editTextElement(wordDiv);
+                            });
+                            
+                            // Show edit indicator on hover
+                            wordDiv.addEventListener('mouseenter', function() {
+                                if (!wordDiv.classList.contains('editing')) {
+                                    wordDiv.style.borderColor = '#4361ee';
+                                    wordDiv.style.backgroundColor = 'rgba(67, 97, 238, 0.05)';
+                                }
+                            });
+                            
+                            wordDiv.addEventListener('mouseleave', function() {
+                                if (!wordDiv.classList.contains('editing') && !wordDiv.classList.contains('selected')) {
+                                    wordDiv.style.borderColor = 'transparent';
+                                    wordDiv.style.backgroundColor = 'transparent';
+                                }
+                            });
+                            
+                            textLayer.appendChild(wordDiv);
+                            currentX += wordWidth + (fontSize * 0.2); // Add spacing
+                        } else if (word) {
+                            // Handle spaces
+                            currentX += fontSize * 0.3;
+                        }
+                    });
+                }
             });
         }
         
