@@ -51,6 +51,8 @@ echo "   Enabling Language API (language.googleapis.com)..."
 gcloud services enable language.googleapis.com --project=$PROJECT_ID
 echo "   Enabling Storage API..."
 gcloud services enable storage-component.googleapis.com --project=$PROJECT_ID
+echo "   Enabling Datastore API (datastore.googleapis.com)..."
+gcloud services enable datastore.googleapis.com --project=$PROJECT_ID
 echo "   Enabling Cloud Run API..."
 gcloud services enable run.googleapis.com --project=$PROJECT_ID
 echo "   Enabling Cloud Build API..."

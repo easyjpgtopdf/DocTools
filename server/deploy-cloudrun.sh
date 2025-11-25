@@ -35,7 +35,7 @@ gcloud config set project $PROJECT_ID
 
 # Enable required APIs
 echo "🔧 Enabling required APIs..."
-gcloud services enable cloudbuild.googleapis.com run.googleapis.com containerregistry.googleapis.com vision.googleapis.com language.googleapis.com storage-component.googleapis.com
+gcloud services enable cloudbuild.googleapis.com run.googleapis.com containerregistry.googleapis.com vision.googleapis.com language.googleapis.com storage-component.googleapis.com datastore.googleapis.com
 
 # Build Docker image
 echo ""

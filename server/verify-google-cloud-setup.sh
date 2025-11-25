@@ -35,6 +35,7 @@ echo "2️⃣ Checking Other Required APIs..."
 APIS=(
     "language.googleapis.com"
     "storage-component.googleapis.com"
+    "datastore.googleapis.com"
     "run.googleapis.com"
     "cloudbuild.googleapis.com"
     "firebase.googleapis.com"
