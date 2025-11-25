@@ -1546,27 +1546,6 @@
         
         // Initialize on page load - load immediately for instant preview
         (function initPDFEditor() {
-            // Start loading as soon as possible
-            function init() {
-                // Ensure DOM elements exist
-                if (!previewContainer || !pdfCanvas) {
-                    // Wait a bit if DOM not ready
-                    if (document.readyState === 'loading') {
-                        document.addEventListener('DOMContentLoaded', init);
-                        return;
-                    }
-                }
-                startPDFLoad();
-            }
-            
-            // Start immediately if DOM is ready, otherwise wait
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', init);
-            } else {
-                // DOM already loaded, start immediately
-                init();
-            }
-            
             function startPDFLoad() {
                 console.log('startPDFLoad called, pdfjsLib available:', typeof pdfjsLib !== 'undefined');
                 
@@ -1611,73 +1590,27 @@
                 });
             }
             
-            // Initialize on page load - load immediately for instant preview
-            (function initPDFEditor() {
-                // Start loading as soon as possible
-                function init() {
-                    // Ensure DOM elements exist
-                    if (!previewContainer || !pdfCanvas) {
-                        // Wait a bit if DOM not ready
-                        if (document.readyState === 'loading') {
-                            document.addEventListener('DOMContentLoaded', init);
-                            return;
-                        }
-                    }
-                    startPDFLoad();
-                }
-                
-                function startPDFLoad() {
-                    console.log('startPDFLoad called, pdfjsLib available:', typeof pdfjsLib !== 'undefined');
-                    
-                    // Ensure preview container is visible immediately
-                    if (previewContainer) {
-                        previewContainer.style.display = 'flex';
-                        previewContainer.style.visibility = 'visible';
-                    }
-                    if (pdfPageWrapper) {
-                        pdfPageWrapper.style.display = 'block';
-                        pdfPageWrapper.style.visibility = 'visible';
-                    }
-                    
-                    // Wait for PDF.js to load
-                    if (typeof pdfjsLib === 'undefined') {
-                        console.warn('PDF.js library not loaded yet, retrying...');
-                        // Retry after a short delay in case script is still loading
-                        setTimeout(() => {
-                            if (typeof pdfjsLib !== 'undefined') {
-                                console.log('PDF.js loaded, starting PDF load');
-                                startPDFLoad();
-                            } else {
-                                console.error('PDF.js library failed to load after retry');
-                                if (loadingOverlay) loadingOverlay.style.display = 'none';
-                                alert('PDF.js library failed to load. Please refresh the page.');
-                            }
-                        }, 100);
+            // Start loading as soon as possible
+            function init() {
+                // Ensure DOM elements exist
+                if (!previewContainer || !pdfCanvas) {
+                    // Wait a bit if DOM not ready
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', init);
                         return;
                     }
-                    
-                    // Set PDF.js worker if not already set
-                    if (pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
-                        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-                        console.log('PDF.js worker configured');
-                    }
-                    
-                    // Load PDF immediately - no delay for instant preview
-                    console.log('Calling loadPDF()...');
-                    loadPDF().catch(error => {
-                        console.error('Failed to load PDF:', error);
-                        if (loadingOverlay) loadingOverlay.style.display = 'none';
-                    });
                 }
-                
-                // Start immediately if DOM is ready, otherwise wait
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', init);
-                } else {
-                    // DOM already loaded, start immediately
-                    init();
-                }
-            })();
+                startPDFLoad();
+            }
+            
+            // Start immediately if DOM is ready, otherwise wait
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                // DOM already loaded, start immediately
+                init();
+            }
+        })();
         })(); // Close the outer IIFE
     </script>
 </body>
