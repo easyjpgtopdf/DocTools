@@ -233,6 +233,13 @@ const globalFooterHTML = `
 
 // Function to load header
 function loadGlobalHeader() {
+    // Prevent duplicate headers
+    const existingHeaders = document.querySelectorAll('header');
+    if (existingHeaders.length > 0) {
+        console.warn('Header already exists, skipping duplicate load');
+        return;
+    }
+    
     const headerPlaceholder = document.getElementById('global-header-placeholder');
     if (headerPlaceholder) {
         headerPlaceholder.outerHTML = globalHeaderHTML;
@@ -245,6 +252,13 @@ function loadGlobalHeader() {
 
 // Function to load breadcrumb
 function loadGlobalBreadcrumb() {
+    // Prevent duplicate breadcrumbs
+    const existingBreadcrumbs = document.querySelectorAll('nav[aria-label="Breadcrumb"]');
+    if (existingBreadcrumbs.length > 0) {
+        console.warn('Breadcrumb already exists, skipping duplicate load');
+        return;
+    }
+    
     const breadcrumbPlaceholder = document.getElementById('global-breadcrumb-placeholder');
     if (breadcrumbPlaceholder) {
         breadcrumbPlaceholder.outerHTML = globalBreadcrumbHTML;

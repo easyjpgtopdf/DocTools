@@ -654,6 +654,48 @@
 </head>
 <body>
     <script src="js/global-components.js"></script>
+    <script>
+        // Prevent duplicate headers - ensure only one header is loaded
+        (function() {
+            // Remove any existing headers before loading new one
+            const existingHeaders = document.querySelectorAll('header');
+            if (existingHeaders.length > 1) {
+                // Keep only the first header, remove others
+                for (let i = 1; i < existingHeaders.length; i++) {
+                    existingHeaders[i].remove();
+                }
+            }
+            
+            // Wait for global-components to load, then ensure single header
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
+                    setTimeout(ensureSingleHeader, 100);
+                });
+            } else {
+                setTimeout(ensureSingleHeader, 100);
+            }
+            
+            function ensureSingleHeader() {
+                const headers = document.querySelectorAll('header');
+                if (headers.length > 1) {
+                    // Keep the first one (from global-components), remove duplicates
+                    for (let i = 1; i < headers.length; i++) {
+                        console.warn('Removing duplicate header #' + (i + 1));
+                        headers[i].remove();
+                    }
+                }
+                
+                // Also check for duplicate breadcrumbs
+                const breadcrumbs = document.querySelectorAll('nav[aria-label="Breadcrumb"]');
+                if (breadcrumbs.length > 1) {
+                    for (let i = 1; i < breadcrumbs.length; i++) {
+                        console.warn('Removing duplicate breadcrumb #' + (i + 1));
+                        breadcrumbs[i].remove();
+                    }
+                }
+            }
+        })();
+    </script>
     <div id="global-header-placeholder"></div>
     <div id="global-breadcrumb-placeholder"></div>
     
@@ -1627,6 +1669,21 @@
                         return;
                     }
                     throw fetchError;
+                }
+                
+                // Check if response is OK
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('OCR API error:', response.status, errorText);
+                    throw new Error(`OCR API returned ${response.status}: ${response.statusText}. Please check if the server is running and the API endpoint exists.`);
+                }
+                
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const errorText = await response.text();
+                    console.error('OCR API returned non-JSON:', contentType, errorText.substring(0, 200));
+                    throw new Error('OCR API returned invalid response. Server may be returning an error page. Please check server logs.');
                 }
                 
                 const result = await response.json();
