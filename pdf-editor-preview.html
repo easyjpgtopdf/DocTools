@@ -405,31 +405,48 @@
         
         .image-controls {
             position: absolute;
-            top: -30px;
+            top: -35px;
             left: 0;
             background: #4361ee;
-            padding: 4px 8px;
-            border-radius: 4px;
+            padding: 6px 10px;
+            border-radius: 6px;
             display: flex;
-            gap: 5px;
+            gap: 8px;
             z-index: 20;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .image-controls.visible {
+            display: flex !important;
+            opacity: 1;
         }
         
         .image-control-btn {
             background: white;
             border: none;
-            padding: 4px 8px;
-            border-radius: 3px;
+            padding: 6px 10px;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 13px;
             color: #4361ee;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
         
         .image-control-btn:hover {
             background: #eef2ff;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
-        /* Real-time text input box */
+        .image-control-btn:active {
+            transform: translateY(0);
+        }
+        
+        /* Real-time text input box - Adobe Acrobat Pro style */
         .text-input-overlay {
             position: absolute;
             border: 2px solid #4361ee;
@@ -439,6 +456,25 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             z-index: 1000;
             min-width: 200px;
+            cursor: move;
+            user-select: none;
+        }
+        
+        .text-input-overlay .text-input-header {
+            background: #4361ee;
+            color: white;
+            padding: 4px 8px;
+            margin: -8px -8px 8px -8px;
+            border-radius: 4px 4px 0 0;
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+        }
+        
+        .text-input-overlay .text-input-header .drag-handle {
+            cursor: move;
         }
         
         .text-input-overlay input {
@@ -448,6 +484,7 @@
             width: 100%;
             padding: 4px;
             font-family: inherit;
+            background: transparent;
         }
         
         .text-input-overlay .text-input-actions {
@@ -463,6 +500,11 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .text-input-overlay .text-input-btn:hover {
+            transform: translateY(-1px);
         }
         
         .text-input-overlay .text-input-btn.confirm {
@@ -473,6 +515,36 @@
         .text-input-overlay .text-input-btn.cancel {
             background: #e2e6ff;
             color: #4361ee;
+        }
+        
+        /* Editable text box - draggable like Adobe Acrobat Pro */
+        .editable-text-box {
+            position: absolute;
+            border: 2px solid #4361ee;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 100;
+            cursor: move;
+            min-width: 150px;
+            min-height: 30px;
+        }
+        
+        .editable-text-box.selected {
+            border-color: #3a0ca3;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+        
+        .editable-text-box .text-content {
+            width: 100%;
+            min-height: 20px;
+            border: none;
+            outline: none;
+            background: transparent;
+            resize: both;
+            overflow: auto;
+            font-family: inherit;
         }
         
         /* Cursor styles for tools */
@@ -1851,8 +1923,11 @@
             });
         }
         
-        // Text input handler (shared function)
+        // Text input handler (shared function) - Adobe Acrobat Pro style
         let currentTextInputOverlay = null;
+        let isDraggingTextInput = false;
+        let textInputDragStart = { x: 0, y: 0 };
+        let textInputInitialPos = { x: 0, y: 0 };
         
         function createTextInputBox(x, y) {
             // Remove existing text input if any
@@ -1860,10 +1935,33 @@
                 currentTextInputOverlay.remove();
             }
             
+            // Get PDF page wrapper for proper positioning
+            const pageWrapper = pdfPageWrapper || document.getElementById('pdf-page-wrapper');
+            if (!pageWrapper) {
+                console.error('PDF page wrapper not found');
+                return;
+            }
+            
             const overlay = document.createElement('div');
             overlay.className = 'text-input-overlay';
             overlay.style.left = x + 'px';
             overlay.style.top = y + 'px';
+            
+            // Header with drag handle
+            const header = document.createElement('div');
+            header.className = 'text-input-header';
+            header.innerHTML = '<span class="drag-handle"><i class="fas fa-grip-vertical"></i> Drag to move</span>';
+            
+            // Make header draggable
+            header.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                isDraggingTextInput = true;
+                textInputDragStart.x = e.clientX;
+                textInputDragStart.y = e.clientY;
+                textInputInitialPos.x = parseFloat(overlay.style.left) || 0;
+                textInputInitialPos.y = parseFloat(overlay.style.top) || 0;
+                overlay.style.cursor = 'grabbing';
+            });
             
             const input = document.createElement('input');
             input.type = 'text';
@@ -1872,40 +1970,63 @@
             input.style.fontFamily = fontFamilySelect ? fontFamilySelect.value : 'Helvetica';
             input.style.color = textColorInput ? textColorInput.value : '#000000';
             
+            // Real-time font/color updates
+            if (fontSizeInput) {
+                fontSizeInput.addEventListener('input', function() {
+                    input.style.fontSize = this.value + 'px';
+                });
+            }
+            if (fontFamilySelect) {
+                fontFamilySelect.addEventListener('change', function() {
+                    input.style.fontFamily = this.value;
+                });
+            }
+            if (textColorInput) {
+                textColorInput.addEventListener('change', function() {
+                    input.style.color = this.value;
+                });
+            }
+            
             const actions = document.createElement('div');
             actions.className = 'text-input-actions';
             
             const confirmBtn = document.createElement('button');
             confirmBtn.className = 'text-input-btn confirm';
-            confirmBtn.textContent = 'Add';
+            confirmBtn.textContent = 'Add Text';
             confirmBtn.onclick = function() {
                 const text = input.value.trim();
                 if (text) {
-                    // Create editable text element
+                    // Create editable text element directly on PDF page
                     const textElement = document.createElement('div');
                     textElement.className = 'editable-text';
                     textElement.textContent = text;
-                    textElement.style.left = x + 'px';
-                    textElement.style.top = y + 'px';
+                    textElement.style.left = overlay.style.left;
+                    textElement.style.top = overlay.style.top;
                     textElement.style.fontSize = input.style.fontSize;
                     textElement.style.fontFamily = input.style.fontFamily;
                     textElement.style.color = input.style.color;
                     textElement.style.cursor = 'text';
                     
-                    // Make editable
-                    textElement.addEventListener('click', function() {
+                    // Make editable and draggable
+                    textElement.addEventListener('click', function(e) {
+                        e.stopPropagation();
                         selectTextElement(textElement);
                     });
                     
-                    textElement.addEventListener('dblclick', function() {
+                    textElement.addEventListener('dblclick', function(e) {
+                        e.stopPropagation();
                         editTextElement(textElement);
                     });
+                    
+                    // Make text draggable
+                    makeTextDraggable(textElement);
                     
                     textLayer.appendChild(textElement);
                     saveAnnotation();
                 }
                 overlay.remove();
                 currentTextInputOverlay = null;
+                isDraggingTextInput = false;
             };
             
             const cancelBtn = document.createElement('button');
@@ -1914,26 +2035,85 @@
             cancelBtn.onclick = function() {
                 overlay.remove();
                 currentTextInputOverlay = null;
+                isDraggingTextInput = false;
             };
             
             actions.appendChild(confirmBtn);
             actions.appendChild(cancelBtn);
             
+            overlay.appendChild(header);
             overlay.appendChild(input);
             overlay.appendChild(actions);
-            textLayer.appendChild(overlay);
+            
+            // Append to PDF page wrapper (not textLayer) for proper positioning
+            pageWrapper.appendChild(overlay);
             
             currentTextInputOverlay = overlay;
             input.focus();
             
+            // Global mouse move for dragging
+            document.addEventListener('mousemove', function dragTextInput(e) {
+                if (isDraggingTextInput && currentTextInputOverlay) {
+                    const dx = e.clientX - textInputDragStart.x;
+                    const dy = e.clientY - textInputDragStart.y;
+                    currentTextInputOverlay.style.left = (textInputInitialPos.x + dx) + 'px';
+                    currentTextInputOverlay.style.top = (textInputInitialPos.y + dy) + 'px';
+                }
+            });
+            
+            document.addEventListener('mouseup', function() {
+                if (isDraggingTextInput) {
+                    isDraggingTextInput = false;
+                    if (currentTextInputOverlay) {
+                        currentTextInputOverlay.style.cursor = 'move';
+                    }
+                }
+            });
+            
             // Close on Enter key
             input.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
+                if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     confirmBtn.click();
                 } else if (e.key === 'Escape') {
                     e.preventDefault();
                     cancelBtn.click();
+                }
+            });
+        }
+        
+        // Make text elements draggable
+        function makeTextDraggable(textElement) {
+            let isDragging = false;
+            let dragStart = { x: 0, y: 0 };
+            let initialPos = { x: 0, y: 0 };
+            
+            textElement.addEventListener('mousedown', function(e) {
+                if (e.target === textElement || textElement.contains(e.target)) {
+                    isDragging = true;
+                    dragStart.x = e.clientX;
+                    dragStart.y = e.clientY;
+                    initialPos.x = parseFloat(textElement.style.left) || 0;
+                    initialPos.y = parseFloat(textElement.style.top) || 0;
+                    textElement.style.cursor = 'grabbing';
+                    e.preventDefault();
+                }
+            });
+            
+            document.addEventListener('mousemove', function dragText(e) {
+                if (isDragging) {
+                    const dx = e.clientX - dragStart.x;
+                    const dy = e.clientY - dragStart.y;
+                    textElement.style.left = (initialPos.x + dx) + 'px';
+                    textElement.style.top = (initialPos.y + dy) + 'px';
+                }
+            });
+            
+            document.addEventListener('mouseup', function() {
+                if (isDragging) {
+                    isDragging = false;
+                    textElement.style.cursor = 'text';
+                    saveAnnotation();
                 }
             });
         }
@@ -1989,58 +2169,106 @@
         let imageScale = 1;
         
         function createImageControls(img) {
+            // Remove existing controls if any
+            const existingControls = img.parentElement.querySelector('.image-controls');
+            if (existingControls) {
+                existingControls.remove();
+            }
+            
             const controls = document.createElement('div');
             controls.className = 'image-controls';
             controls.style.display = 'none';
             
+            // Store rotation per image
+            if (!img.dataset.rotation) {
+                img.dataset.rotation = '0';
+            }
+            if (!img.dataset.scale) {
+                img.dataset.scale = '1';
+            }
+            
             const rotateBtn = document.createElement('button');
             rotateBtn.className = 'image-control-btn';
-            rotateBtn.innerHTML = '<i class="fas fa-redo"></i>';
-            rotateBtn.title = 'Rotate';
+            rotateBtn.innerHTML = '<i class="fas fa-redo"></i> Rotate';
+            rotateBtn.title = 'Rotate 90°';
             rotateBtn.onclick = function(e) {
                 e.stopPropagation();
-                imageRotation = (imageRotation + 90) % 360;
-                img.style.transform = `rotate(${imageRotation}deg) scale(${imageScale})`;
-                saveAnnotation();
-            };
-            
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'image-control-btn';
-            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
-            deleteBtn.title = 'Delete';
-            deleteBtn.onclick = function(e) {
-                e.stopPropagation();
-                img.remove();
-                controls.remove();
+                const currentRotation = parseInt(img.dataset.rotation) || 0;
+                const newRotation = (currentRotation + 90) % 360;
+                img.dataset.rotation = newRotation.toString();
+                img.style.transform = `rotate(${newRotation}deg)`;
                 saveAnnotation();
             };
             
             const resizeBtn = document.createElement('button');
             resizeBtn.className = 'image-control-btn';
-            resizeBtn.innerHTML = '<i class="fas fa-expand-arrows-alt"></i>';
-            resizeBtn.title = 'Resize';
+            resizeBtn.innerHTML = '<i class="fas fa-expand-arrows-alt"></i> Resize';
+            resizeBtn.title = 'Resize Image';
             resizeBtn.onclick = function(e) {
                 e.stopPropagation();
-                const newWidth = prompt('Enter new width (px):', img.offsetWidth);
-                const newHeight = prompt('Enter new height (px):', img.offsetHeight);
-                if (newWidth && newHeight) {
+                const currentWidth = img.offsetWidth;
+                const currentHeight = img.offsetHeight;
+                const newWidth = prompt('Enter new width (px):', currentWidth);
+                if (newWidth && !isNaN(newWidth) && newWidth > 0) {
+                    const aspectRatio = currentHeight / currentWidth;
+                    const newHeight = Math.round(newWidth * aspectRatio);
                     img.style.width = newWidth + 'px';
                     img.style.height = newHeight + 'px';
                     saveAnnotation();
                 }
             };
             
+            const cropBtn = document.createElement('button');
+            cropBtn.className = 'image-control-btn';
+            cropBtn.innerHTML = '<i class="fas fa-crop"></i> Crop';
+            cropBtn.title = 'Crop Image';
+            cropBtn.onclick = function(e) {
+                e.stopPropagation();
+                alert('Crop feature: Click and drag on image to select crop area. (Full crop editor coming soon)');
+                // TODO: Implement full crop functionality
+            };
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'image-control-btn';
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
+            deleteBtn.title = 'Delete Image';
+            deleteBtn.onclick = function(e) {
+                e.stopPropagation();
+                if (confirm('Delete this image?')) {
+                    img.remove();
+                    controls.remove();
+                    saveAnnotation();
+                }
+            };
+            
             controls.appendChild(rotateBtn);
             controls.appendChild(resizeBtn);
+            controls.appendChild(cropBtn);
             controls.appendChild(deleteBtn);
             
             img.parentElement.appendChild(controls);
             
-            // Show controls on image hover/select
-            img.addEventListener('mouseenter', function() {
+            // Always show controls when image is selected
+            img.addEventListener('click', function(e) {
+                e.stopPropagation();
+                // Deselect all images
+                document.querySelectorAll('.editable-image').forEach(im => {
+                    im.classList.remove('selected');
+                    const imControls = im.parentElement.querySelector('.image-controls');
+                    if (imControls) imControls.style.display = 'none';
+                });
+                // Select this image
+                img.classList.add('selected');
                 controls.style.display = 'flex';
-                controls.style.left = (img.offsetLeft) + 'px';
-                controls.style.top = (img.offsetTop - 30) + 'px';
+                updateControlsPosition(controls, img);
+            });
+            
+            // Show controls on hover
+            img.addEventListener('mouseenter', function() {
+                if (!img.classList.contains('selected')) {
+                    controls.style.display = 'flex';
+                    updateControlsPosition(controls, img);
+                }
             });
             
             img.addEventListener('mouseleave', function() {
@@ -2049,20 +2277,22 @@
                 }
             });
             
-            img.addEventListener('click', function(e) {
-                e.stopPropagation();
-                // Deselect all images
-                document.querySelectorAll('.editable-image').forEach(im => {
-                    im.classList.remove('selected');
-                });
-                // Select this image
-                img.classList.add('selected');
-                controls.style.display = 'flex';
-                controls.style.left = (img.offsetLeft) + 'px';
-                controls.style.top = (img.offsetTop - 30) + 'px';
+            // Update controls position when image moves
+            const observer = new MutationObserver(function() {
+                if (controls.style.display === 'flex') {
+                    updateControlsPosition(controls, img);
+                }
             });
+            observer.observe(img, { attributes: true, attributeFilter: ['style'] });
             
             return controls;
+        }
+        
+        function updateControlsPosition(controls, img) {
+            const rect = img.getBoundingClientRect();
+            const pageWrapperRect = pdfPageWrapper ? pdfPageWrapper.getBoundingClientRect() : { left: 0, top: 0 };
+            controls.style.left = (rect.left - pageWrapperRect.left) + 'px';
+            controls.style.top = (rect.top - pageWrapperRect.top - 35) + 'px';
         }
         
         if (addImageBtn && !addImageBtn.hasAttribute('data-listener-attached')) {
