@@ -12,7 +12,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { Vision } = require('@google-cloud/vision');
+    const vision = require('@google-cloud/vision');
 
     let statusDetails = {
       active: false,
@@ -26,21 +26,35 @@ module.exports = async function handler(req, res) {
       
       if (process.env.GOOGLE_CLOUD_SERVICE_ACCOUNT) {
         serviceAccount = JSON.parse(process.env.GOOGLE_CLOUD_SERVICE_ACCOUNT);
-        visionClient = new Vision({ credentials: serviceAccount });
+        // Use ImageAnnotatorClient for v4+ or Vision for older versions
+        try {
+          visionClient = new vision.ImageAnnotatorClient({ credentials: serviceAccount });
+        } catch (e) {
+          // Fallback for older API versions
+          visionClient = new vision.v1.ImageAnnotatorClient({ credentials: serviceAccount });
+        }
         statusDetails.active = true;
         statusDetails.method = 'GOOGLE_CLOUD_SERVICE_ACCOUNT';
       } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
         serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-        visionClient = new Vision({ credentials: serviceAccount });
+        try {
+          visionClient = new vision.ImageAnnotatorClient({ credentials: serviceAccount });
+        } catch (e) {
+          visionClient = new vision.v1.ImageAnnotatorClient({ credentials: serviceAccount });
+        }
         statusDetails.active = true;
         statusDetails.method = 'FIREBASE_SERVICE_ACCOUNT';
       } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-        visionClient = new Vision({ keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS });
+        try {
+          visionClient = new vision.ImageAnnotatorClient({ keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS });
+        } catch (e) {
+          visionClient = new vision.v1.ImageAnnotatorClient({ keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS });
+        }
         statusDetails.active = true;
         statusDetails.method = 'GOOGLE_APPLICATION_CREDENTIALS';
       } else {
         try {
-          visionClient = new Vision();
+          visionClient = new vision.ImageAnnotatorClient();
           statusDetails.active = true;
           statusDetails.method = 'DEFAULT_CREDENTIALS';
         } catch (e) {

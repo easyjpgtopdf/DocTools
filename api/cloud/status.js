@@ -12,7 +12,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { Vision } = require('@google-cloud/vision');
+    const vision = require('@google-cloud/vision');
     const admin = require('firebase-admin');
 
     // Check Vision API
@@ -28,12 +28,22 @@ module.exports = async function handler(req, res) {
       
       if (process.env.GOOGLE_CLOUD_SERVICE_ACCOUNT) {
         serviceAccount = JSON.parse(process.env.GOOGLE_CLOUD_SERVICE_ACCOUNT);
-        visionClient = new Vision({ credentials: serviceAccount });
+        // Use ImageAnnotatorClient for v4+ or Vision for older versions
+        try {
+          visionClient = new vision.ImageAnnotatorClient({ credentials: serviceAccount });
+        } catch (e) {
+          // Fallback for older API versions
+          visionClient = new vision.v1.ImageAnnotatorClient({ credentials: serviceAccount });
+        }
         visionStatus.active = true;
         visionStatus.method = 'GOOGLE_CLOUD_SERVICE_ACCOUNT';
       } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
         serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-        visionClient = new Vision({ credentials: serviceAccount });
+        try {
+          visionClient = new vision.ImageAnnotatorClient({ credentials: serviceAccount });
+        } catch (e) {
+          visionClient = new vision.v1.ImageAnnotatorClient({ credentials: serviceAccount });
+        }
         visionStatus.active = true;
         visionStatus.method = 'FIREBASE_SERVICE_ACCOUNT';
       } else {
@@ -52,19 +62,30 @@ module.exports = async function handler(req, res) {
 
     try {
       if (admin.apps.length > 0) {
-        const bucket = admin.storage().bucket();
+        // Get bucket name from service account or use default
+        const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT 
+          ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT) 
+          : null;
+        const bucketName = serviceAccount?.project_id 
+          ? `${serviceAccount.project_id}.appspot.com` 
+          : 'pdf-editor-storage';
+        const bucket = admin.storage().bucket(bucketName);
         storageStatus.active = true;
-        storageStatus.bucket = bucket.name || 'pdf-editor-storage';
+        storageStatus.bucket = bucket.name || bucketName;
       } else {
         // Try to initialize Firebase
         if (process.env.FIREBASE_SERVICE_ACCOUNT) {
           const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+          const bucketName = serviceAccount.project_id 
+            ? `${serviceAccount.project_id}.appspot.com` 
+            : 'pdf-editor-storage';
           admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount)
+            credential: admin.credential.cert(serviceAccount),
+            storageBucket: bucketName
           });
-          const bucket = admin.storage().bucket();
+          const bucket = admin.storage().bucket(bucketName);
           storageStatus.active = true;
-          storageStatus.bucket = bucket.name || 'pdf-editor-storage';
+          storageStatus.bucket = bucket.name || bucketName;
         } else {
           storageStatus.error = 'Firebase not initialized';
         }
