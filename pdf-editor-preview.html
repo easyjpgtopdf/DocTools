@@ -835,7 +835,7 @@
                 try {
                     console.log('Fetching PDF from Blob URL:', pdfFileURL);
                     
-                    // Ensure preview is visible before fetching
+                    // Ensure preview is visible immediately
                     if (previewContainer) {
                         previewContainer.style.display = 'flex';
                         previewContainer.style.visibility = 'visible';
@@ -845,27 +845,58 @@
                         pdfPageWrapper.style.visibility = 'visible';
                     }
                     
+                    // Show loading overlay
+                    if (loadingOverlay) {
+                        loadingOverlay.style.display = 'flex';
+                    }
+                    
                     const response = await fetch(pdfFileURL);
                     if (!response.ok) {
                         throw new Error('Failed to fetch PDF from Blob URL: ' + response.status);
                     }
                     const data = await response.arrayBuffer();
                     console.log('PDF data fetched successfully, size:', data.byteLength, 'bytes');
+                    
+                    // Render PDF immediately
                     await renderPDF(data);
                 } catch (error) {
                     console.error('Error loading from sessionStorage:', error);
                     if (loadingOverlay) loadingOverlay.style.display = 'none';
-                    alert('Error loading PDF: ' + error.message + '. Please upload a file again.');
-                    // Don't redirect immediately, let user try again
-                    // window.location.href = 'edit-pdf.html';
+                    
+                    // Try to show helpful error message
+                    const errorMsg = error.message || 'Unknown error';
+                    console.error('PDF loading error details:', errorMsg);
+                    
+                    // Don't redirect immediately - let user try again or upload new file
+                    if (previewContainer) {
+                        previewContainer.innerHTML = `
+                            <div style="text-align: center; padding: 50px; color: #666;">
+                                <h3>PDF Load Error</h3>
+                                <p>${errorMsg}</p>
+                                <button onclick="window.location.href='edit-pdf.html'" style="padding: 10px 20px; background: #4361ee; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 20px;">
+                                    Upload New PDF
+                                </button>
+                            </div>
+                        `;
+                    }
                 }
             } else {
                 console.error('No pdfFileURL found in sessionStorage');
                 console.log('Available sessionStorage keys:', Object.keys(sessionStorage));
                 if (loadingOverlay) loadingOverlay.style.display = 'none';
-                alert('No PDF file found. Please upload a file first.');
-                // Don't redirect immediately
-                // window.location.href = 'edit-pdf.html';
+                
+                // Show helpful message
+                if (previewContainer) {
+                    previewContainer.innerHTML = `
+                        <div style="text-align: center; padding: 50px; color: #666;">
+                            <h3>No PDF Found</h3>
+                            <p>Please upload a PDF file first.</p>
+                            <button onclick="window.location.href='edit-pdf.html'" style="padding: 10px 20px; background: #4361ee; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 20px;">
+                                Upload PDF
+                            </button>
+                        </div>
+                    `;
+                }
             }
         }
         
@@ -895,8 +926,7 @@
                 // Render first page immediately
                 await renderPage(currentPage);
                 
-                // Hide loading overlay and show PDF
-                if (loadingOverlay) loadingOverlay.style.display = 'none';
+                // Ensure everything is visible
                 if (pdfPageWrapper) {
                     pdfPageWrapper.style.display = 'block';
                     pdfPageWrapper.style.visibility = 'visible';
@@ -905,6 +935,12 @@
                     previewContainer.style.display = 'flex';
                     previewContainer.style.visibility = 'visible';
                 }
+                
+                // Hide loading overlay after a brief moment to ensure smooth transition
+                setTimeout(() => {
+                    if (loadingOverlay) loadingOverlay.style.display = 'none';
+                }, 100);
+                
                 if (downloadBtn) downloadBtn.disabled = false;
                 
                 updatePageButtons();
@@ -1157,7 +1193,8 @@
                 loadingOverlay.style.display = 'none';
                 alert('Error performing OCR: ' + error.message);
             }
-        });
+            });
+        }
         
         if (addTextBtn && !addTextBtn.hasAttribute('data-listener-attached')) {
             addTextBtn.setAttribute('data-listener-attached', 'true');
