@@ -989,7 +989,21 @@
                                 }
                             });
                             
-                            alert('OCR completed! Extracted ' + result.words.length + ' words using Google Cloud Vision API.');
+                            // Determine which service was actually used
+                            let serviceName = 'Google Cloud Vision API';
+                            if (result.method) {
+                                if (result.method === 'tesseract-js-client' || result.method.includes('tesseract')) {
+                                    serviceName = 'Tesseract.js (Client-side)';
+                                } else if (result.method.includes('google-cloud') || result.method.includes('vision')) {
+                                    serviceName = 'Google Cloud Vision API';
+                                } else {
+                                    serviceName = result.method;
+                                }
+                            }
+                            
+                            alert('OCR completed! Extracted ' + result.words.length + ' words using ' + serviceName + '.');
+                        } else {
+                            alert('OCR completed but no text found.');
                         }
                     }
                     
