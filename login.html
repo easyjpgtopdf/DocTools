@@ -745,18 +745,45 @@
 <script src="js/auth.js" type="module"></script>
     
     <script type="module">
-        // Handle returnUrl after login
+        // Handle returnTo after login
         import { onAuthStateChanged, getAuth } from './js/firebase-init.js';
+        import { setPendingAction } from './js/auth.js';
         
         const auth = getAuth();
         
-        // Check for returnUrl in URL
+        // Check for returnTo in URL (support both returnTo and returnUrl for compatibility)
         const urlParams = new URLSearchParams(window.location.search);
-        const returnUrl = urlParams.get('returnUrl');
+        const returnTo = urlParams.get('returnTo') || urlParams.get('returnUrl');
         
-        if (returnUrl) {
-            // Store returnUrl in sessionStorage
-            sessionStorage.setItem('returnUrl', returnUrl);
+        if (returnTo) {
+            // Decode the return URL
+            const decodedReturnUrl = decodeURIComponent(returnTo);
+            
+            // Store returnUrl in sessionStorage for backward compatibility
+            sessionStorage.setItem('returnUrl', decodedReturnUrl);
+            
+            // Check if there's a pending subscription
+            const pendingSubscription = sessionStorage.getItem('pendingSubscription');
+            if (pendingSubscription) {
+                try {
+                    const pending = JSON.parse(pendingSubscription);
+                    // Set pending action with subscription details
+                    setPendingAction({
+                        type: 'subscription',
+                        plan: pending.plan,
+                        billing: pending.billing,
+                        redirectTo: decodedReturnUrl
+                    });
+                } catch (e) {
+                    console.warn('Failed to parse pending subscription:', e);
+                }
+            } else {
+                // Set pending action for general redirect
+                setPendingAction({
+                    type: 'redirect',
+                    redirectTo: decodedReturnUrl
+                });
+            }
         }
         
         // Listen for auth state changes
@@ -772,7 +799,9 @@
                         // Keep the flag, will be handled by the blog page
                         // Just redirect
                     }
-                    window.location.href = storedReturnUrl;
+                    // Small delay to ensure auth state is fully propagated
+                    setTimeout(() => {
+                        window.location.href = storedReturnUrl;
                     }, 500);
                 }
             }

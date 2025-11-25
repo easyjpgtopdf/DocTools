@@ -165,10 +165,31 @@ function getUserCurrency() {
  * Initiate subscription purchase with Razorpay
  */
 export async function initiateSubscriptionPurchase(planKey, billing = 'monthly', userId) {
+  // If no userId provided, try to get it from auth
+  if (!userId && auth) {
+    const user = auth.currentUser;
+    if (user) {
+      userId = user.uid;
+    } else {
+      // Wait for auth state
+      userId = await new Promise((resolve) => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+          unsubscribe();
+          resolve(user ? user.uid : null);
+        });
+        setTimeout(() => {
+          unsubscribe();
+          resolve(null);
+        }, 2000);
+      });
+    }
+  }
+  
   if (!userId) {
     // Store pending purchase and redirect to login
+    const currentUrl = window.location.href;
     sessionStorage.setItem('pendingSubscription', JSON.stringify({ plan: planKey, billing }));
-    window.location.href = `login.html?returnTo=${encodeURIComponent('pricing.html')}`;
+    window.location.href = `login.html?returnTo=${encodeURIComponent(currentUrl)}`;
     return;
   }
   
