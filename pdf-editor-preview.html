@@ -109,6 +109,112 @@
             font-weight: 700;
         }
         
+        /* Adobe Acrobat Pro-like Layout */
+        .editor-workspace {
+            display: flex;
+            height: calc(100vh - 200px);
+            min-height: 800px;
+            background: #2b2b2b;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        /* Left Tools Panel (3 inches / ~240px) */
+        .tools-panel {
+            width: 240px;
+            min-width: 240px;
+            background: #1e1e1e;
+            border-right: 1px solid #3a3a3a;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        
+        .tool-group {
+            padding: 10px;
+            border-bottom: 1px solid #3a3a3a;
+        }
+        
+        .tool-group-title {
+            color: #9ca3af;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 8px 12px;
+            margin-bottom: 5px;
+        }
+        
+        .tool-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            color: #e5e5e5;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+        
+        .tool-item:hover {
+            background: #2d2d2d;
+        }
+        
+        .tool-item.active {
+            background: #0078d4;
+            color: white;
+        }
+        
+        .tool-item i {
+            width: 20px;
+            text-align: center;
+        }
+        
+        /* Center Preview Panel */
+        .preview-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #1e1e1e;
+            overflow: hidden;
+        }
+        
+        .preview-toolbar {
+            background: #2b2b2b;
+            border-bottom: 1px solid #3a3a3a;
+            padding: 8px 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .preview-toolbar-btn {
+            padding: 6px 12px;
+            background: transparent;
+            color: #e5e5e5;
+            border: 1px solid #3a3a3a;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .preview-toolbar-btn:hover {
+            background: #3a3a3a;
+            border-color: #4a4a4a;
+        }
+        
+        .preview-toolbar-btn.active {
+            background: #0078d4;
+            border-color: #0078d4;
+            color: white;
+        }
+        
         .editor-toolbar {
             background: white;
             border-radius: 12px;
@@ -161,23 +267,76 @@
         .preview-section {
             background: white;
             border-radius: 16px;
-            padding: 30px;
+            padding: 0;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             margin-bottom: 30px;
             min-height: 600px;
+            overflow: hidden;
         }
         
         .preview-container {
             position: relative;
             width: 100%;
+            height: 100%;
             display: flex;
             justify-content: center;
             align-items: flex-start;
             overflow: auto;
-            background: #f8f9ff;
-            border-radius: 12px;
+            background: #525252;
             padding: 20px;
-            min-height: 800px;
+            min-height: 100%;
+        }
+        
+        /* Right Properties Panel (2 inches / ~160px) */
+        .properties-panel {
+            width: 160px;
+            min-width: 160px;
+            background: #1e1e1e;
+            border-left: 1px solid #3a3a3a;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        
+        .property-group {
+            padding: 10px;
+            border-bottom: 1px solid #3a3a3a;
+        }
+        
+        .property-group-title {
+            color: #9ca3af;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+        }
+        
+        .property-item {
+            padding: 8px 12px;
+            color: #e5e5e5;
+            font-size: 12px;
+        }
+        
+        .property-label {
+            color: #9ca3af;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+        
+        .property-input {
+            width: 100%;
+            padding: 4px 8px;
+            background: #2d2d2d;
+            border: 1px solid #3a3a3a;
+            border-radius: 4px;
+            color: #e5e5e5;
+            font-size: 12px;
+        }
+        
+        .property-input:focus {
+            outline: none;
+            border-color: #0078d4;
         }
         
         .pdf-page-wrapper {
@@ -443,13 +602,39 @@
                 font-size: 1.6rem;
             }
             
-            .editor-toolbar {
+            .editor-workspace {
                 flex-direction: column;
+                height: auto;
+                min-height: auto;
             }
             
-            .toolbar-btn {
+            .tools-panel {
                 width: 100%;
-                justify-content: center;
+                min-width: 100%;
+                flex-direction: row;
+                overflow-x: auto;
+                border-right: none;
+                border-bottom: 1px solid #3a3a3a;
+            }
+            
+            .tool-group {
+                border-bottom: none;
+                border-right: 1px solid #3a3a3a;
+                min-width: 120px;
+            }
+            
+            .preview-panel {
+                order: 2;
+                min-height: 500px;
+            }
+            
+            .properties-panel {
+                width: 100%;
+                min-width: 100%;
+                order: 3;
+                border-left: none;
+                border-top: 1px solid #3a3a3a;
+                max-height: 300px;
             }
             
             .preview-container {
@@ -478,51 +663,139 @@
                 <h1>Advanced PDF Editor Online Free - Real-Time PDF Editing</h1>
             </div>
             
-            <div class="editor-toolbar">
-                <button class="toolbar-btn" id="download-btn" disabled>
-                    <i class="fas fa-download"></i> Download PDF
-                </button>
-                <button class="toolbar-btn secondary" id="ocr-btn">
-                    <i class="fas fa-language"></i> OCR Edit
-                </button>
-                <button class="toolbar-btn secondary" id="add-text-btn">
-                    <i class="fas fa-font"></i> Add Text
-                </button>
-                <button class="toolbar-btn secondary" id="add-image-btn">
-                    <i class="fas fa-image"></i> Add Image
-                </button>
-                <button class="toolbar-btn secondary" id="highlight-btn">
-                    <i class="fas fa-highlighter"></i> Highlight
-                </button>
-                <button class="toolbar-btn secondary" id="undo-btn" disabled>
-                    <i class="fas fa-undo"></i> Undo
-                </button>
-                <button class="toolbar-btn secondary" id="redo-btn" disabled>
-                    <i class="fas fa-redo"></i> Redo
-                </button>
-            </div>
-            
-            <div class="preview-section">
-                <div class="preview-container" id="preview-container" style="display: flex; visibility: visible;">
-                    <div class="loading-overlay" id="loading-overlay">
-                        <div class="loading-spinner"></div>
+            <!-- Adobe Acrobat Pro-like 3-Panel Layout -->
+            <div class="editor-workspace">
+                <!-- Left Tools Panel (3 inches) -->
+                <div class="tools-panel">
+                    <div class="tool-group">
+                        <div class="tool-group-title">File</div>
+                        <div class="tool-item" id="download-btn" title="Download PDF">
+                            <i class="fas fa-download"></i>
+                            <span>Download</span>
+                        </div>
                     </div>
-                    <div id="pdf-page-wrapper" class="pdf-page-wrapper" style="display: block; visibility: visible;">
-                        <canvas id="pdf-canvas" class="pdf-canvas"></canvas>
-                        <div id="text-layer" class="text-layer"></div>
+                    
+                    <div class="tool-group">
+                        <div class="tool-group-title">Edit</div>
+                        <div class="tool-item" id="select-tool" title="Select Tool" data-tool="select">
+                            <i class="fas fa-mouse-pointer"></i>
+                            <span>Select</span>
+                        </div>
+                        <div class="tool-item" id="add-text-btn" title="Add Text" data-tool="text">
+                            <i class="fas fa-font"></i>
+                            <span>Add Text</span>
+                        </div>
+                        <div class="tool-item" id="add-image-btn" title="Add Image" data-tool="image">
+                            <i class="fas fa-image"></i>
+                            <span>Add Image</span>
+                        </div>
+                        <div class="tool-item" id="highlight-btn" title="Highlight" data-tool="highlight">
+                            <i class="fas fa-highlighter"></i>
+                            <span>Highlight</span>
+                        </div>
+                    </div>
+                    
+                    <div class="tool-group">
+                        <div class="tool-group-title">OCR</div>
+                        <div class="tool-item" id="ocr-btn" title="OCR Edit">
+                            <i class="fas fa-language"></i>
+                            <span>OCR Edit</span>
+                        </div>
+                    </div>
+                    
+                    <div class="tool-group">
+                        <div class="tool-group-title">History</div>
+                        <div class="tool-item" id="undo-btn" title="Undo" disabled>
+                            <i class="fas fa-undo"></i>
+                            <span>Undo</span>
+                        </div>
+                        <div class="tool-item" id="redo-btn" title="Redo" disabled>
+                            <i class="fas fa-redo"></i>
+                            <span>Redo</span>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="page-navigation">
-                    <button class="page-btn" id="prev-page" disabled>
-                        <i class="fas fa-chevron-left"></i> Previous
-                    </button>
-                    <span class="page-info">
-                        Page <span id="page-num">1</span> of <span id="page-count">1</span>
-                    </span>
-                    <button class="page-btn" id="next-page" disabled>
-                        Next <i class="fas fa-chevron-right"></i>
-                    </button>
+                <!-- Center Preview Panel -->
+                <div class="preview-panel">
+                    <div class="preview-toolbar">
+                        <button class="preview-toolbar-btn" id="prev-page" disabled>
+                            <i class="fas fa-chevron-left"></i> Prev
+                        </button>
+                        <span class="page-info" style="color: #e5e5e5; font-size: 12px; padding: 0 10px;">
+                            Page <span id="page-num">1</span> of <span id="page-count">1</span>
+                        </span>
+                        <button class="preview-toolbar-btn" id="next-page" disabled>
+                            Next <i class="fas fa-chevron-right"></i>
+                        </button>
+                        <div style="flex: 1;"></div>
+                        <button class="preview-toolbar-btn" id="zoom-out-btn">
+                            <i class="fas fa-search-minus"></i>
+                        </button>
+                        <span style="color: #e5e5e5; font-size: 12px; padding: 0 10px;" id="zoom-level">100%</span>
+                        <button class="preview-toolbar-btn" id="zoom-in-btn">
+                            <i class="fas fa-search-plus"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="preview-container" id="preview-container" style="display: flex; visibility: visible;">
+                        <div class="loading-overlay" id="loading-overlay">
+                            <div class="loading-spinner"></div>
+                        </div>
+                        <div id="pdf-page-wrapper" class="pdf-page-wrapper" style="display: block; visibility: visible;">
+                            <canvas id="pdf-canvas" class="pdf-canvas"></canvas>
+                            <div id="text-layer" class="text-layer"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Properties Panel (2 inches) -->
+                <div class="properties-panel">
+                    <div class="property-group">
+                        <div class="property-group-title">Text Properties</div>
+                        <div class="property-item">
+                            <div class="property-label">Font Size</div>
+                            <input type="number" class="property-input" id="font-size-input" value="12" min="8" max="72">
+                        </div>
+                        <div class="property-item">
+                            <div class="property-label">Font Family</div>
+                            <select class="property-input" id="font-family-select">
+                                <option value="Helvetica">Helvetica</option>
+                                <option value="Times-Roman">Times Roman</option>
+                                <option value="Courier">Courier</option>
+                                <option value="Arial">Arial</option>
+                            </select>
+                        </div>
+                        <div class="property-item">
+                            <div class="property-label">Color</div>
+                            <input type="color" class="property-input" id="text-color-input" value="#000000">
+                        </div>
+                    </div>
+                    
+                    <div class="property-group">
+                        <div class="property-group-title">Image Properties</div>
+                        <div class="property-item">
+                            <div class="property-label">Width</div>
+                            <input type="number" class="property-input" id="image-width-input" value="200" min="50" max="1000">
+                        </div>
+                        <div class="property-item">
+                            <div class="property-label">Height</div>
+                            <input type="number" class="property-input" id="image-height-input" value="150" min="50" max="1000">
+                        </div>
+                        <div class="property-item">
+                            <div class="property-label">Opacity</div>
+                            <input type="range" class="property-input" id="image-opacity-input" min="0" max="100" value="100">
+                        </div>
+                    </div>
+                    
+                    <div class="property-group">
+                        <div class="property-group-title">Page</div>
+                        <div class="property-item">
+                            <div class="property-label">Scale</div>
+                            <input type="range" class="property-input" id="page-scale-input" min="50" max="200" value="150">
+                            <span style="color: #9ca3af; font-size: 11px;" id="scale-value">150%</span>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -760,6 +1033,15 @@
         const undoBtn = document.getElementById('undo-btn');
         const redoBtn = document.getElementById('redo-btn');
         const imageInput = document.getElementById('image-input');
+        const selectTool = document.getElementById('select-tool');
+        const zoomInBtn = document.getElementById('zoom-in-btn');
+        const zoomOutBtn = document.getElementById('zoom-out-btn');
+        const zoomLevel = document.getElementById('zoom-level');
+        const pageScaleInput = document.getElementById('page-scale-input');
+        const scaleValue = document.getElementById('scale-value');
+        const fontSizeInput = document.getElementById('font-size-input');
+        const fontFamilySelect = document.getElementById('font-family-select');
+        const textColorInput = document.getElementById('text-color-input');
         
         // Additional DOM elements with null checks
         const imageScaleValue = document.getElementById('image-scale-value'); // For future image scale feature
@@ -1016,7 +1298,7 @@
                 
                 await page.render(renderContext).promise;
                 
-                // Extract and render text layer for editing
+                // Extract and render text layer for editing - make every word editable
                 const textContent = await page.getTextContent();
                 renderTextLayer(textContent, viewport);
                 
@@ -1025,6 +1307,17 @@
                 setCurrentPage(pageNumber);
                 window.currentPage = pageNumber; // Sync with window object
                 updatePageButtons();
+                
+                // Update zoom level display
+                if (zoomLevel) {
+                    zoomLevel.textContent = Math.round(scale * 100) + '%';
+                }
+                if (scaleValue) {
+                    scaleValue.textContent = Math.round(scale * 100) + '%';
+                }
+                if (pageScaleInput) {
+                    pageScaleInput.value = Math.round(scale * 100);
+                }
             } catch (error) {
                 console.error('Error rendering page:', error);
                 if (loadingOverlay) loadingOverlay.style.display = 'none';
@@ -1092,15 +1385,41 @@
         
         // Save annotation
         function saveAnnotation() {
-            annotationHistory.push(JSON.parse(JSON.stringify(textAnnotations)));
-            redoHistory = [];
+            // Collect current text annotations
+            const currentAnnotations = [];
+            if (textLayer) {
+                const textElements = textLayer.querySelectorAll('.editable-text');
+                textElements.forEach(el => {
+                    currentAnnotations.push({
+                        text: el.textContent,
+                        x: parseFloat(el.style.left) || 0,
+                        y: parseFloat(el.style.top) || 0,
+                        fontSize: parseFloat(el.style.fontSize) || 12,
+                        fontFamily: el.style.fontFamily || 'Arial',
+                        color: el.style.color || '#000000'
+                    });
+                });
+            }
+            
+            const history = getAnnotationHistory();
+            history.push(JSON.parse(JSON.stringify(currentAnnotations)));
+            window.pdfEditorVars.redoHistory = [];
             updateUndoRedoButtons();
         }
         
         // Update undo/redo buttons
         function updateUndoRedoButtons() {
-            undoBtn.disabled = annotationHistory.length === 0;
-            redoBtn.disabled = redoHistory.length === 0;
+            if (undoBtn) undoBtn.disabled = getAnnotationHistory().length === 0;
+            if (redoBtn) redoBtn.disabled = getRedoHistory().length === 0;
+            // Update visual state
+            if (undoBtn) {
+                undoBtn.style.opacity = getAnnotationHistory().length === 0 ? '0.5' : '1';
+                undoBtn.style.cursor = getAnnotationHistory().length === 0 ? 'not-allowed' : 'pointer';
+            }
+            if (redoBtn) {
+                redoBtn.style.opacity = getRedoHistory().length === 0 ? '0.5' : '1';
+                redoBtn.style.cursor = getRedoHistory().length === 0 ? 'not-allowed' : 'pointer';
+            }
         }
         
         // Page navigation
@@ -1135,6 +1454,81 @@
             });
         }
         
+        // Tool selection (Adobe Acrobat Pro style)
+        if (selectTool && !selectTool.hasAttribute('data-listener-attached')) {
+            selectTool.setAttribute('data-listener-attached', 'true');
+            selectTool.addEventListener('click', function() {
+                // Remove active class from all tools
+                document.querySelectorAll('.tool-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                selectTool.classList.add('active');
+                activeTool = 'select';
+                setActiveTool('select');
+                if (pdfCanvas) pdfCanvas.style.cursor = 'default';
+            });
+        }
+        
+        // Zoom controls
+        if (zoomInBtn && !zoomInBtn.hasAttribute('data-listener-attached')) {
+            zoomInBtn.setAttribute('data-listener-attached', 'true');
+            zoomInBtn.addEventListener('click', async function() {
+                scale = Math.min(scale + 0.25, 3.0);
+                setScale(scale);
+                await renderPage(currentPage);
+            });
+        }
+        
+        if (zoomOutBtn && !zoomOutBtn.hasAttribute('data-listener-attached')) {
+            zoomOutBtn.setAttribute('data-listener-attached', 'true');
+            zoomOutBtn.addEventListener('click', async function() {
+                scale = Math.max(scale - 0.25, 0.5);
+                setScale(scale);
+                await renderPage(currentPage);
+            });
+        }
+        
+        if (pageScaleInput && !pageScaleInput.hasAttribute('data-listener-attached')) {
+            pageScaleInput.setAttribute('data-listener-attached', 'true');
+            pageScaleInput.addEventListener('input', async function() {
+                scale = parseInt(this.value) / 100;
+                setScale(scale);
+                if (scaleValue) scaleValue.textContent = this.value + '%';
+                await renderPage(currentPage);
+            });
+        }
+        
+        // Font properties
+        if (fontSizeInput && !fontSizeInput.hasAttribute('data-listener-attached')) {
+            fontSizeInput.setAttribute('data-listener-attached', 'true');
+            fontSizeInput.addEventListener('change', function() {
+                if (selectedTextElement) {
+                    selectedTextElement.style.fontSize = this.value + 'px';
+                    saveAnnotation();
+                }
+            });
+        }
+        
+        if (fontFamilySelect && !fontFamilySelect.hasAttribute('data-listener-attached')) {
+            fontFamilySelect.setAttribute('data-listener-attached', 'true');
+            fontFamilySelect.addEventListener('change', function() {
+                if (selectedTextElement) {
+                    selectedTextElement.style.fontFamily = this.value;
+                    saveAnnotation();
+                }
+            });
+        }
+        
+        if (textColorInput && !textColorInput.hasAttribute('data-listener-attached')) {
+            textColorInput.setAttribute('data-listener-attached', 'true');
+            textColorInput.addEventListener('change', function() {
+                if (selectedTextElement) {
+                    selectedTextElement.style.color = this.value;
+                    saveAnnotation();
+                }
+            });
+        }
+        
         // Tool buttons (with null checks to prevent errors)
         if (ocrBtn && !ocrBtn.hasAttribute('data-listener-attached')) {
             ocrBtn.setAttribute('data-listener-attached', 'true');
@@ -1159,16 +1553,40 @@
                 
                 const imageData = canvas.toDataURL('image/png');
                 
+                // Determine API URL based on protocol
+                let apiUrl = '/api/pdf-ocr/process';
+                if (window.location.protocol === 'file:') {
+                    // For local file:// protocol, use localhost or relative path
+                    // Try to detect if server is running locally
+                    apiUrl = 'http://localhost:3000/api/pdf-ocr/process';
+                    // If localhost fails, show message to user
+                } else {
+                    // For http/https, use relative URL
+                    apiUrl = '/api/pdf-ocr/process';
+                }
+                
                 // Send to backend for OCR
-                const response = await fetch('/api/pdf-ocr/process', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        image: imageData.split(',')[1] // Remove data:image/png;base64, prefix
-                    })
-                });
+                let response;
+                try {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            image: imageData.split(',')[1], // Remove data:image/png;base64, prefix
+                            language: 'en'
+                        })
+                    });
+                } catch (fetchError) {
+                    // If fetch fails (CORS or server not running), show helpful message
+                    if (window.location.protocol === 'file:') {
+                        alert('OCR requires a running server. Please:\n1. Start the Node.js server (npm start in server folder)\n2. Access this page via http://localhost:3000/pdf-editor-preview.html\n\nOr use the online version at easyjpgtopdf.com');
+                        loadingOverlay.style.display = 'none';
+                        return;
+                    }
+                    throw fetchError;
+                }
                 
                 const result = await response.json();
                 
@@ -1237,8 +1655,14 @@
         if (addTextBtn && !addTextBtn.hasAttribute('data-listener-attached')) {
             addTextBtn.setAttribute('data-listener-attached', 'true');
             addTextBtn.addEventListener('click', function() {
+                // Remove active class from all tools
+                document.querySelectorAll('.tool-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                addTextBtn.classList.add('active');
                 activeTool = 'text';
-                alert('Click on the PDF to add text at that location.');
+                setActiveTool('text');
+                if (pdfCanvas) pdfCanvas.style.cursor = 'text';
                 
                 // Add click listener to canvas for text insertion
                 pdfCanvas.style.cursor = 'text';
@@ -1287,6 +1711,13 @@
         if (addImageBtn && !addImageBtn.hasAttribute('data-listener-attached')) {
             addImageBtn.setAttribute('data-listener-attached', 'true');
             addImageBtn.addEventListener('click', function() {
+                // Remove active class from all tools
+                document.querySelectorAll('.tool-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                addImageBtn.classList.add('active');
+                activeTool = 'image';
+                setActiveTool('image');
                 if (imageInput) imageInput.click();
             });
         }
@@ -1368,9 +1799,16 @@
         if (highlightBtn && !highlightBtn.hasAttribute('data-listener-attached')) {
             highlightBtn.setAttribute('data-listener-attached', 'true');
             highlightBtn.addEventListener('click', function() {
+                // Remove active class from all tools
+                document.querySelectorAll('.tool-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                highlightBtn.classList.add('active');
                 activeTool = 'highlight';
+                setActiveTool('highlight');
                 if (selectedTextElement) {
                     selectedTextElement.style.backgroundColor = '#FFFF00';
+                    saveAnnotation();
                 }
             });
         }
@@ -1378,9 +1816,17 @@
         if (undoBtn && !undoBtn.hasAttribute('data-listener-attached')) {
             undoBtn.setAttribute('data-listener-attached', 'true');
             undoBtn.addEventListener('click', function() {
-                if (annotationHistory.length > 0) {
-                    redoHistory.push(annotationHistory.pop());
-                    // Restore previous state
+                if (getAnnotationHistory().length > 0) {
+                    const history = getAnnotationHistory();
+                    const redo = getRedoHistory();
+                    redo.push(history.pop());
+                    // Restore previous state - reload page with previous annotations
+                    if (history.length > 0) {
+                        // Restore text annotations from history
+                        const prevAnnotations = history[history.length - 1];
+                        // Re-render page with previous state
+                        renderPage(currentPage);
+                    }
                     updateUndoRedoButtons();
                 }
             });
@@ -1389,9 +1835,14 @@
         if (redoBtn && !redoBtn.hasAttribute('data-listener-attached')) {
             redoBtn.setAttribute('data-listener-attached', 'true');
             redoBtn.addEventListener('click', function() {
-                if (redoHistory.length > 0) {
-                    annotationHistory.push(redoHistory.pop());
+                const redo = getRedoHistory();
+                if (redo.length > 0) {
+                    const history = getAnnotationHistory();
+                    history.push(redo.pop());
                     // Restore next state
+                    const nextAnnotations = history[history.length - 1];
+                    // Re-render page with next state
+                    renderPage(currentPage);
                     updateUndoRedoButtons();
                 }
             });
@@ -1400,6 +1851,16 @@
         if (downloadBtn && !downloadBtn.hasAttribute('data-listener-attached')) {
             downloadBtn.setAttribute('data-listener-attached', 'true');
             downloadBtn.addEventListener('click', async function() {
+                // Remove active class from all tools
+                document.querySelectorAll('.tool-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                downloadBtn.classList.add('active');
+                
+                if (!pdfDoc) {
+                    alert('No PDF loaded');
+                    return;
+                }
                 if (!pdfDoc) {
                     alert('No PDF loaded');
                     return;
@@ -1462,17 +1923,33 @@
                     // Convert PDF to base64
                     const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
                     
+                    // Determine API URL based on protocol
+                    let editApiUrl = '/api/pdf/edit';
+                    if (window.location.protocol === 'file:') {
+                        editApiUrl = 'http://localhost:3000/api/pdf/edit';
+                    }
+                    
                     // Send to backend for editing
-                    const editResponse = await fetch('/api/pdf/edit', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            pdfData: pdfBase64,
-                            edits: edits
-                        })
-                    });
+                    let editResponse;
+                    try {
+                        editResponse = await fetch(editApiUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                pdfData: pdfBase64,
+                                edits: edits
+                            })
+                        });
+                    } catch (fetchError) {
+                        if (window.location.protocol === 'file:') {
+                            alert('PDF editing requires a running server. Please:\n1. Start the Node.js server (npm start in server folder)\n2. Access this page via http://localhost:3000/pdf-editor-preview.html\n\nOr use the online version at easyjpgtopdf.com');
+                            loadingOverlay.style.display = 'none';
+                            return;
+                        }
+                        throw fetchError;
+                    }
                     
                     const editResult = await editResponse.json();
                     
