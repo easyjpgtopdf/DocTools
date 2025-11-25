@@ -1443,6 +1443,25 @@ app.post('/api/pdf/get-fonts', express.json({ limit: '100mb' }), async (req, res
   }
 });
 
+// Comprehensive Google Cloud Services Status Check
+app.get('/api/cloud/status', async (req, res) => {
+  try {
+    const cloudStatus = require('./cloud-run-status');
+    const status = cloudStatus.getComprehensiveStatus();
+    
+    res.json({
+      success: true,
+      ...status
+    });
+  } catch (error) {
+    console.error('Cloud status check error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Status check failed: ' + error.message
+    });
+  }
+});
+
 // Google Cloud Vision API Status Check Endpoint
 app.get('/api/pdf-ocr/status', async (req, res) => {
   try {
