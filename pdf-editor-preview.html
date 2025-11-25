@@ -2285,6 +2285,7 @@
                             textElement.textContent = block.text;
                             textElement.dataset.ocrBlock = 'true';
                             textElement.dataset.blockIndex = blockIndex;
+                            textElement.dataset.page = (currentPage - 1).toString(); // Track page number
                             
                             // Position relative to PDF canvas
                             textElement.style.position = 'absolute';

@@ -12,6 +12,13 @@ const admin = require('firebase-admin');
 const Stripe = require('stripe');
 const Razorpay = require('razorpay');
 
+// Start Google Cloud Services Permanently
+console.log('\n' + '='.repeat(50));
+console.log('Starting Google Cloud Services...');
+console.log('='.repeat(50));
+require('./start-google-cloud-services');
+console.log('='.repeat(50) + '\n');
+
 // Subscription routes
 const subscriptionRoutes = require('./api/subscriptions/routes');
 
