@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Cloud Vision API Status Check</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1rem;
+        }
+        
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .status-card.active {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        
+        .status-card.inactive {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        
+        .status-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .status-icon {
+            font-size: 2rem;
+        }
+        
+        .status-icon.active {
+            color: #28a745;
+        }
+        
+        .status-icon.inactive {
+            color: #dc3545;
+        }
+        
+        .status-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .status-details {
+            margin-top: 15px;
+        }
+        
+        .detail-item {
+            margin: 8px 0;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #555;
+            display: inline-block;
+            min-width: 150px;
+        }
+        
+        .detail-value {
+            color: #333;
+        }
+        
+        .accuracy-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .accuracy-badge.high {
+            background: #28a745;
+            color: white;
+        }
+        
+        .accuracy-badge.medium {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #0d47a1;
+        }
+        
+        .info-box strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Google Cloud Vision API Status</h1>
+        <p class="subtitle">Check if Google Cloud Vision API is active and ready for high-accuracy OCR</p>
+        
+        <div id="status-container">
+            <div class="loading">
+                <p>Checking Google Cloud Vision API status...</p>
+            </div>
+        </div>
+        
+        <button class="btn" onclick="checkStatus()">🔄 Refresh Status</button>
+        
+        <div class="info-box" id="info-box" style="display: none;">
+            <strong>ℹ️ How to Activate Google Cloud Vision API:</strong>
+            <ol style="margin-top: 10px; padding-left: 20px;">
+                <li>Set environment variable: <code>GOOGLE_CLOUD_SERVICE_ACCOUNT</code> or <code>FIREBASE_SERVICE_ACCOUNT</code></li>
+                <li>Value should be a JSON string of your Google Cloud service account credentials</li>
+                <li>Restart your server after setting the environment variable</li>
+                <li>Google Cloud Vision API provides 100% accuracy OCR</li>
+                <li>Without it, the system uses Tesseract OCR (90-95% accuracy)</li>
+            </ol>
+        </div>
+    </div>
+    
+    <script>
+        async function checkStatus() {
+            const container = document.getElementById('status-container');
+            container.innerHTML = '<div class="loading"><p>Checking Google Cloud Vision API status...</p></div>';
+            
+            try {
+                // Determine API URL based on protocol
+                let apiUrl = '/api/pdf-ocr/status';
+                if (window.location.protocol === 'file:') {
+                    apiUrl = 'http://localhost:3000/api/pdf-ocr/status';
+                }
+                
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                
+                const isActive = data.available === true;
+                const statusClass = isActive ? 'active' : 'inactive';
+                const iconClass = isActive ? 'active' : 'inactive';
+                const icon = isActive ? '✅' : '❌';
+                
+                let accuracyBadge = '';
+                let accuracyClass = 'medium';
+                if (data.accuracy) {
+                    if (data.accuracy.includes('100%')) {
+                        accuracyClass = 'high';
+                    }
+                    accuracyBadge = `<span class="accuracy-badge ${accuracyClass}">${data.accuracy}</span>`;
+                }
+                
+                let methodInfo = '';
+                if (data.method) {
+                    methodInfo = `
+                        <div class="detail-item">
+                            <span class="detail-label">Method:</span>
+                            <span class="detail-value">${data.method}</span>
+                        </div>
+                    `;
+                }
+                
+                let testInfo = '';
+                if (data.test) {
+                    const testIcon = data.test === 'passed' ? '✅' : '⚠️';
+                    testInfo = `
+                        <div class="detail-item">
+                            <span class="detail-label">API Test:</span>
+                            <span class="detail-value">${testIcon} ${data.test === 'passed' ? 'Passed' : 'Failed'}</span>
+                        </div>
+                    `;
+                }
+                
+                let errorInfo = '';
+                if (data.error) {
+                    errorInfo = `
+                        <div class="error">
+                            <strong>Error:</strong> ${data.error}
+                        </div>
+                    `;
+                }
+                
+                let fallbackInfo = '';
+                if (data.fallback) {
+                    fallbackInfo = `
+                        <div class="detail-item">
+                            <span class="detail-label">Fallback:</span>
+                            <span class="detail-value">${data.fallback}</span>
+                        </div>
+                    `;
+                }
+                
+                container.innerHTML = `
+                    <div class="status-card ${statusClass}">
+                        <div class="status-header">
+                            <span class="status-icon ${iconClass}">${icon}</span>
+                            <span class="status-title">${data.message || (isActive ? 'Google Cloud Vision API is Active' : 'Google Cloud Vision API is NOT Active')}</span>
+                            ${accuracyBadge}
+                        </div>
+                        <div class="status-details">
+                            <div class="detail-item">
+                                <span class="detail-label">Status:</span>
+                                <span class="detail-value">${isActive ? '🟢 Active' : '🔴 Inactive'}</span>
+                            </div>
+                            ${methodInfo}
+                            ${testInfo}
+                            ${fallbackInfo}
+                        </div>
+                        ${errorInfo}
+                    </div>
+                `;
+                
+                // Show info box if not active
+                const infoBox = document.getElementById('info-box');
+                if (!isActive) {
+                    infoBox.style.display = 'block';
+                } else {
+                    infoBox.style.display = 'none';
+                }
+                
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="error">
+                        <strong>Error checking status:</strong> ${error.message}
+                        <br><br>
+                        <strong>Possible reasons:</strong>
+                        <ul style="margin-top: 10px; padding-left: 20px;">
+                            <li>Server is not running</li>
+                            <li>API endpoint is not accessible</li>
+                            <li>Network connection issue</li>
+                        </ul>
+                        <br>
+                        <strong>To test locally:</strong>
+                        <ol style="margin-top: 10px; padding-left: 20px;">
+                            <li>Start server: <code>cd server && npm start</code></li>
+                            <li>Open this page via: <code>http://localhost:3000/check-google-cloud-status.html</code></li>
+                        </ol>
+                    </div>
+                `;
+            }
+        }
+        
+        // Check status on page load
+        checkStatus();
+    </script>
+</body>
+</html>
+

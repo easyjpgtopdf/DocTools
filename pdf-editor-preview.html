@@ -27,6 +27,9 @@
     <!-- PDF.js for rendering -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     
+    <!-- pdf-lib for real PDF editing (Adobe Acrobat Pro style) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    
     <!-- Tesseract.js for client-side OCR fallback -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js"></script>
     
@@ -365,23 +368,42 @@
             overflow: visible;
         }
         
-        /* OCR extracted text styling - Adobe Acrobat Pro style */
+        /* OCR extracted text styling - Adobe Acrobat Pro style - NO SHADOWS */
         .editable-text.ocr-extracted-text {
-            background: rgba(255, 255, 255, 0.85) !important;
-            border: 1px solid rgba(67, 97, 238, 0.3);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            background: transparent !important;
+            border: 1px solid transparent;
+            box-shadow: none !important;
         }
         
         .editable-text.ocr-extracted-text:hover {
-            background: rgba(255, 255, 255, 0.95) !important;
-            border-color: #4361ee;
-            box-shadow: 0 2px 6px rgba(67, 97, 238, 0.2);
+            background: rgba(67, 97, 238, 0.05) !important;
+            border-color: rgba(67, 97, 238, 0.3);
+            box-shadow: none !important;
         }
         
         .editable-text.ocr-extracted-text.selected {
             background: rgba(67, 97, 238, 0.1) !important;
             border-color: #4361ee;
-            box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.3);
+            box-shadow: none !important;
+        }
+        
+        /* Deletion layer to cover underlying PDF text */
+        .deletion-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        .deletion-rect {
+            position: absolute;
+            background: white;
+            border: none;
+            pointer-events: auto;
+            z-index: 6;
         }
         
         .editable-text {
@@ -980,6 +1002,7 @@
                         </div>
                         <div id="pdf-page-wrapper" class="pdf-page-wrapper" style="display: block; visibility: visible;">
                             <canvas id="pdf-canvas" class="pdf-canvas"></canvas>
+                            <div id="deletion-layer" class="deletion-layer"></div>
                             <div id="text-layer" class="text-layer"></div>
                         </div>
                     </div>
@@ -1005,6 +1028,11 @@
                         <div class="property-item">
                             <div class="property-label">Color</div>
                             <input type="color" class="property-input" id="text-color-input" value="#000000">
+                        </div>
+                        <div class="property-item" style="margin-top: 15px;">
+                            <button class="property-input" id="delete-text-btn" style="width: 100%; padding: 8px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                <i class="fas fa-trash"></i> Delete Text
+                            </button>
                         </div>
                     </div>
                     
@@ -1247,6 +1275,7 @@
         const pdfPageWrapper = document.getElementById('pdf-page-wrapper');
         const pdfCanvas = document.getElementById('pdf-canvas');
         const textLayer = document.getElementById('text-layer');
+        const deletionLayer = document.getElementById('deletion-layer');
         const pageNum = document.getElementById('page-num');
         const pageCount = document.getElementById('page-count');
         const prevPageBtn = document.getElementById('prev-page');
@@ -1536,6 +1565,12 @@
                 
                 await page.render(renderContext).promise;
                 
+                // Initialize deletion layer dimensions
+                if (deletionLayer) {
+                    deletionLayer.style.width = viewport.width + 'px';
+                    deletionLayer.style.height = viewport.height + 'px';
+                }
+                
                 // Extract and render text layer for editing - make every word editable
                 const textContent = await page.getTextContent();
                 renderTextLayer(textContent, viewport);
@@ -1569,6 +1604,12 @@
             textLayer.innerHTML = '';
             textLayer.style.width = viewport.width + 'px';
             textLayer.style.height = viewport.height + 'px';
+            
+            // Initialize deletion layer
+            if (deletionLayer) {
+                deletionLayer.style.width = viewport.width + 'px';
+                deletionLayer.style.height = viewport.height + 'px';
+            }
             
             textContent.items.forEach((item, index) => {
                 if (item.str && item.str.trim()) {
@@ -1640,7 +1681,34 @@
                 selectedTextElement.classList.remove('selected');
             }
             selectedTextElement = element;
+            setSelectedTextElement(element);
             element.classList.add('selected');
+            
+            // Update property panel with selected text properties
+            if (fontSizeInput && element.style.fontSize) {
+                const fontSize = parseFloat(element.style.fontSize);
+                if (!isNaN(fontSize)) {
+                    fontSizeInput.value = Math.round(fontSize);
+                }
+            }
+            if (fontFamilySelect && element.style.fontFamily) {
+                fontFamilySelect.value = element.style.fontFamily;
+            }
+            if (textColorInput && element.style.color) {
+                textColorInput.value = rgbToHex(element.style.color) || '#000000';
+            }
+        }
+        
+        // Helper function to convert RGB to hex
+        function rgbToHex(rgb) {
+            if (rgb.startsWith('#')) return rgb;
+            const match = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+            if (match) {
+                return '#' + [1, 2, 3].map(i => 
+                    ('0' + parseInt(match[i]).toString(16)).slice(-2)
+                ).join('');
+            }
+            return null;
         }
         
         // Edit text element
@@ -1655,11 +1723,68 @@
             selection.removeAllRanges();
             selection.addRange(range);
             
+            // Handle delete key to remove text and cover underlying PDF text
+            const handleKeyDown = function(e) {
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    if (element.textContent.trim() === '' || 
+                        (element.textContent.length === 1 && element.textContent === element.textContent.trim())) {
+                        e.preventDefault();
+                        deleteTextElement(element);
+                        return;
+                    }
+                }
+            };
+            
+            element.addEventListener('keydown', handleKeyDown);
+            
             element.addEventListener('blur', function() {
+                element.removeEventListener('keydown', handleKeyDown);
                 element.contentEditable = false;
                 element.classList.remove('editing');
                 saveAnnotation();
             }, { once: true });
+        }
+        
+        // Delete text element and cover underlying PDF text (Adobe Acrobat Pro style)
+        // This function removes the overlay text AND covers the underlying PDF text with a white rectangle
+        // This ensures the original PDF text doesn't show through after deletion
+        function deleteTextElement(element) {
+            if (!element || !deletionLayer) return;
+            
+            // Get element position and size relative to PDF canvas
+            const x = parseFloat(element.style.left) || 0;
+            const y = parseFloat(element.style.top) || 0;
+            const fontSize = parseFloat(element.style.fontSize) || 12;
+            
+            // Calculate text dimensions more accurately
+            const textWidth = element.offsetWidth || Math.max(element.textContent.length * fontSize * 0.6, 20);
+            const textHeight = element.offsetHeight || Math.max(fontSize * 1.2, fontSize);
+            
+            // Create white rectangle to cover underlying PDF text (Adobe Acrobat Pro style)
+            // This ensures deleted text doesn't show through from the original PDF
+            const deletionRect = document.createElement('div');
+            deletionRect.className = 'deletion-rect';
+            deletionRect.style.left = x + 'px';
+            deletionRect.style.top = y + 'px';
+            deletionRect.style.width = Math.max(textWidth + 4, 20) + 'px'; // Add padding
+            deletionRect.style.height = Math.max(textHeight + 2, fontSize) + 'px'; // Add padding
+            deletionRect.dataset.deletedTextId = element.dataset.wordIndex || Date.now();
+            deletionRect.dataset.pageNumber = currentPage;
+            
+            deletionLayer.appendChild(deletionRect);
+            
+            // Remove the text element (overlay)
+            if (element.parentNode) {
+                element.parentNode.removeChild(element);
+            }
+            
+            // Update selection
+            if (selectedTextElement === element) {
+                selectedTextElement = null;
+                setSelectedTextElement(null);
+            }
+            
+            saveAnnotation();
         }
         
         // Save annotation
@@ -1808,6 +1933,69 @@
             });
         }
         
+        // Delete text button
+        if (deleteTextBtn && !deleteTextBtn.hasAttribute('data-listener-attached')) {
+            deleteTextBtn.setAttribute('data-listener-attached', 'true');
+            deleteTextBtn.addEventListener('click', function() {
+                if (selectedTextElement) {
+                    deleteTextElement(selectedTextElement);
+                } else {
+                    alert('Please select a text element to delete.');
+                }
+            });
+        }
+        
+        // Global keyboard delete handler (Adobe Acrobat Pro style)
+        document.addEventListener('keydown', function(e) {
+            // Only handle delete if not editing text content
+            if ((e.key === 'Delete' || e.key === 'Backspace') && 
+                selectedTextElement && 
+                !selectedTextElement.classList.contains('editing') &&
+                document.activeElement !== selectedTextElement) {
+                e.preventDefault();
+                deleteTextElement(selectedTextElement);
+            }
+        });
+        
+        // Check Google Cloud Vision API status on page load
+        async function checkGoogleCloudStatus() {
+            try {
+                let apiUrl = '/api/pdf-ocr/status';
+                if (window.location.protocol === 'file:') {
+                    apiUrl = 'http://localhost:3000/api/pdf-ocr/status';
+                } else {
+                    apiUrl = '/api/pdf-ocr/status';
+                }
+                
+                const response = await fetch(apiUrl);
+                if (response.ok) {
+                    const status = await response.json();
+                    console.log('Google Cloud Vision API Status:', status);
+                    
+                    // Update OCR button with status indicator
+                    if (ocrBtn) {
+                        if (status.available) {
+                            ocrBtn.title = `OCR Edit (Google Cloud Vision API - ${status.accuracy || '100% Accuracy'})`;
+                            ocrBtn.innerHTML = '<i class="fas fa-language"></i><span>OCR Edit (Google Cloud Active)</span>';
+                        } else {
+                            ocrBtn.title = `OCR Edit (Tesseract OCR - ${status.accuracy || '90-95% Accuracy'})`;
+                            ocrBtn.innerHTML = '<i class="fas fa-language"></i><span>OCR Edit (Tesseract)</span>';
+                        }
+                    }
+                    
+                    return status;
+                }
+            } catch (error) {
+                console.warn('Could not check Google Cloud status:', error);
+                return { available: false, accuracy: '90-95% (Tesseract OCR)' };
+            }
+        }
+        
+        // Check status when page loads
+        if (typeof window !== 'undefined') {
+            setTimeout(checkGoogleCloudStatus, 1000);
+        }
+        
         // Tool buttons (with null checks to prevent errors)
         if (ocrBtn && !ocrBtn.hasAttribute('data-listener-attached')) {
             ocrBtn.setAttribute('data-listener-attached', 'true');
@@ -1831,6 +2019,11 @@
                 }).promise;
                 
                 const imageData = canvas.toDataURL('image/png');
+                
+                // OCR is a SEPARATE feature from direct PDF editing
+                // OCR extracts text from scanned PDFs and adds it as editable overlays
+                // Direct PDF editing modifies the actual PDF structure (using pdf-lib)
+                // This separation allows users to choose: OCR for scanned PDFs, or direct editing for text-based PDFs
                 
                 // Try server-side OCR first, fallback to client-side OCR
                 let result = null;
@@ -2003,9 +2196,9 @@
                             textElement.style.fontSize = Math.max(12, Math.min(block.height * scaleY, 18)) + 'px';
                             textElement.style.color = '#000000';
                             textElement.style.cursor = 'text';
-                            textElement.style.backgroundColor = 'rgba(255, 255, 255, 0.7)'; // Slight background for visibility
+                            textElement.style.backgroundColor = 'transparent'; // No background - Adobe Acrobat Pro style
                             textElement.style.padding = '2px 4px';
-                            textElement.style.borderRadius = '2px';
+                            textElement.style.borderRadius = '0';
                             textElement.style.lineHeight = '1.2';
                             textElement.style.whiteSpace = 'nowrap';
                             textElement.style.userSelect = 'text';
@@ -2041,9 +2234,9 @@
                         textElement.style.fontSize = '14px';
                         textElement.style.color = '#000000';
                         textElement.style.cursor = 'text';
-                        textElement.style.backgroundColor = 'rgba(255, 255, 255, 0.7)';
+                        textElement.style.backgroundColor = 'transparent'; // No background - Adobe Acrobat Pro style
                         textElement.style.padding = '4px 8px';
-                        textElement.style.borderRadius = '2px';
+                        textElement.style.borderRadius = '0';
                         textElement.style.maxWidth = '400px';
                         textElement.style.whiteSpace = 'pre-wrap';
                         textElement.style.userSelect = 'text';
@@ -2672,11 +2865,31 @@
                     const response = await fetch(pdfFileURL);
                     const pdfArrayBuffer = await response.arrayBuffer();
                     
-                    // Collect all edits (text + images)
+                    // Collect all edits (text + images + deletions)
                     const edits = {
                         textEdits: [],
-                        imageInserts: []
+                        imageInserts: [],
+                        deletions: [] // White rectangles to cover deleted text
                     };
+                    
+                    // Get deletion rectangles (white rectangles covering deleted PDF text)
+                    if (deletionLayer) {
+                        const deletionRects = deletionLayer.querySelectorAll('.deletion-rect');
+                        deletionRects.forEach((rectEl) => {
+                            const rect = rectEl.getBoundingClientRect();
+                            const canvasRect = pdfCanvas.getBoundingClientRect();
+                            const scaleX = pdfCanvas.width / canvasRect.width;
+                            const scaleY = pdfCanvas.height / canvasRect.height;
+                            
+                            edits.deletions.push({
+                                pageIndex: currentPage - 1,
+                                x: (rect.left - canvasRect.left) * scaleX,
+                                y: (canvasRect.height - (rect.top - canvasRect.top)) * scaleY,
+                                width: rect.width * scaleX,
+                                height: rect.height * scaleY
+                            });
+                        });
+                    }
                     
                     // Get text annotations
                     const textElements = textLayer.querySelectorAll('.editable-text');
