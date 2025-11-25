@@ -1,7 +1,8 @@
 // Vercel Serverless Function - OCR Status Check
 // Returns Google Cloud Vision API status
 
-export default async function handler(req, res) {
+// Use CommonJS for Vercel compatibility
+module.exports = async function handler(req, res) {
   // Only allow GET requests
   if (req.method !== 'GET') {
     return res.status(405).json({ 
