@@ -2838,6 +2838,7 @@
                             img.style.cursor = 'move';
                             img.style.zIndex = '10';
                             img.style.objectFit = 'contain';
+                            img.dataset.page = (currentPage - 1).toString(); // Track page number
                             
                             // Initialize rotation and scale
                             imageRotation = 0;
@@ -2994,7 +2995,7 @@
                     const response = await fetch(pdfFileURL);
                     const pdfArrayBuffer = await response.arrayBuffer();
                     
-                    // Collect all edits (text + images + deletions + OCR + replacements)
+                    // Collect all edits from ALL pages (not just current page)
                     const edits = {
                         textEdits: [],
                         textReplacements: [], // Real text replacement (find and replace)
@@ -3003,128 +3004,221 @@
                         ocrTexts: [] // OCR text to embed into PDF structure
                     };
                     
-                    // Add OCR texts for embedding (Adobe Acrobat Pro style)
-                    if (window.ocrTextsForPDF && window.ocrTextsForPDF.length > 0) {
-                        // Filter OCR texts for current page
-                        const pageOcrTexts = window.ocrTextsForPDF.filter(ocr => ocr.pageIndex === currentPage - 1);
-                        edits.ocrTexts = pageOcrTexts.map(ocr => {
-                            // Convert to PDF coordinates using viewport
-                            const pdfX = (ocr.x / viewport.width) * viewport.width;
-                            const pdfY = viewport.height - ((ocr.y + ocr.fontSize) / viewport.height) * viewport.height;
-                            return {
-                                pageIndex: ocr.pageIndex,
-                                text: ocr.text,
+                    // Process ALL pages for complete editing
+                    for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+                        // Get page viewport for accurate coordinates
+                        const page = await pdfDoc.getPage(pageNum);
+                        const pageViewport = page.getViewport({ scale: scale });
+                        
+                        // Add OCR texts for this page
+                        if (window.ocrTextsForPDF && window.ocrTextsForPDF.length > 0) {
+                            const pageOcrTexts = window.ocrTextsForPDF.filter(ocr => ocr.pageIndex === pageNum - 1);
+                            pageOcrTexts.forEach(ocr => {
+                                // Convert to PDF coordinates
+                                const pdfX = (ocr.x / pageViewport.width) * pageViewport.width;
+                                const pdfY = pageViewport.height - ((ocr.y + ocr.fontSize) / pageViewport.height) * pageViewport.height;
+                                edits.ocrTexts.push({
+                                    pageIndex: ocr.pageIndex,
+                                    text: ocr.text,
+                                    x: pdfX,
+                                    y: pdfY,
+                                    fontSize: ocr.fontSize,
+                                    fontColor: ocr.fontColor,
+                                    fontName: ocr.fontName
+                                });
+                            });
+                        }
+                        
+                        // Get deletions for this page
+                        if (deletionLayer) {
+                            const pageDeletions = deletionLayer.querySelectorAll(`[data-page="${pageNum - 1}"].deletion-rect`);
+                            pageDeletions.forEach((rectEl) => {
+                                const x = parseFloat(rectEl.style.left) || 0;
+                                const y = parseFloat(rectEl.style.top) || 0;
+                                const width = parseFloat(rectEl.style.width) || 0;
+                                const height = parseFloat(rectEl.style.height) || 0;
+                                
+                                const pdfX = (x / pageViewport.width) * pageViewport.width;
+                                const pdfY = pageViewport.height - ((y + height) / pageViewport.height) * pageViewport.height;
+                                
+                                edits.deletions.push({
+                                    pageIndex: pageNum - 1,
+                                    x: pdfX,
+                                    y: pdfY,
+                                    width: (width / pageViewport.width) * pageViewport.width,
+                                    height: (height / pageViewport.height) * pageViewport.height
+                                });
+                            });
+                        }
+                        
+                        // Get text elements for this page
+                        const pageTextElements = textLayer.querySelectorAll(`[data-page="${pageNum - 1}"].editable-text`);
+                        pageTextElements.forEach((el) => {
+                            if (el.dataset.ocrBlock === 'true') return;
+                            
+                            const x = parseFloat(el.style.left) || 0;
+                            const y = parseFloat(el.style.top) || 0;
+                            const fontSize = parseFloat(el.style.fontSize) || 12;
+                            const fontFamily = el.style.fontFamily || 'Helvetica';
+                            
+                            const pdfX = (x / pageViewport.width) * pageViewport.width;
+                            const pdfY = pageViewport.height - ((y + fontSize) / pageViewport.height) * pageViewport.height;
+                            
+                            const color = el.style.color || '#000000';
+                            const rgbMatch = color.match(/\d+/g);
+                            const fontColor = rgbMatch ? [
+                                parseInt(rgbMatch[0]) || 0,
+                                parseInt(rgbMatch[1]) || 0,
+                                parseInt(rgbMatch[2]) || 0
+                            ] : [0, 0, 0];
+                            
+                            const originalText = el.dataset.originalText || originalTexts.get(el);
+                            if (originalText && el.dataset.isReplacement === 'true') {
+                                edits.textReplacements.push({
+                                    pageIndex: pageNum - 1,
+                                    oldText: originalText,
+                                    newText: el.textContent,
+                                    x: pdfX,
+                                    y: pdfY,
+                                    fontSize: fontSize,
+                                    fontName: fontFamily,
+                                    fontColor: fontColor
+                                });
+                            } else {
+                                edits.textEdits.push({
+                                    pageIndex: pageNum - 1,
+                                    x: pdfX,
+                                    y: pdfY,
+                                    text: el.textContent,
+                                    fontSize: fontSize,
+                                    fontName: fontFamily,
+                                    fontColor: fontColor
+                                });
+                            }
+                        });
+                        
+                        // Get images for this page
+                        const pageImages = textLayer.querySelectorAll(`[data-page="${pageNum - 1}"] img`);
+                        pageImages.forEach((img) => {
+                            const x = parseFloat(img.style.left) || 0;
+                            const y = parseFloat(img.style.top) || 0;
+                            const width = parseFloat(img.style.width) || 200;
+                            const height = parseFloat(img.style.height) || 200;
+                            
+                            const pdfX = (x / pageViewport.width) * pageViewport.width;
+                            const pdfY = pageViewport.height - ((y + height) / pageViewport.height) * pageViewport.height;
+                            
+                            edits.imageInserts.push({
+                                pageIndex: pageNum - 1,
+                                imageData: img.src.split(',')[1] || img.src,
                                 x: pdfX,
                                 y: pdfY,
-                                fontSize: ocr.fontSize,
-                                fontColor: ocr.fontColor,
-                                fontName: ocr.fontName
-                            };
+                                width: (width / pageViewport.width) * pageViewport.width,
+                                height: (height / pageViewport.height) * pageViewport.height
+                            });
                         });
                     }
                     
-                    // Get current page viewport for accurate coordinate mapping
-                    const page = await pdfDoc.getPage(currentPage);
-                    const viewport = page.getViewport({ scale: scale });
-                    
-                    // Get deletion rectangles (white rectangles covering deleted PDF text)
-                    // Adobe Acrobat Pro style - real deletion using white rectangles
-                    if (deletionLayer) {
-                        const deletionRects = deletionLayer.querySelectorAll('.deletion-rect');
-                        deletionRects.forEach((rectEl) => {
-                            // Get position from style (more accurate than getBoundingClientRect)
-                            const x = parseFloat(rectEl.style.left) || 0;
-                            const y = parseFloat(rectEl.style.top) || 0;
-                            const width = parseFloat(rectEl.style.width) || 0;
-                            const height = parseFloat(rectEl.style.height) || 0;
+                    // Process ALL pages for complete editing (not just current page)
+                    for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+                        const page = await pdfDoc.getPage(pageNum);
+                        const pageViewport = page.getViewport({ scale: scale });
+                        
+                        // Get deletions for this page
+                        if (deletionLayer) {
+                            const pageDeletions = deletionLayer.querySelectorAll(`[data-page="${pageNum - 1}"].deletion-rect`);
+                            pageDeletions.forEach((rectEl) => {
+                                const x = parseFloat(rectEl.style.left) || 0;
+                                const y = parseFloat(rectEl.style.top) || 0;
+                                const width = parseFloat(rectEl.style.width) || 0;
+                                const height = parseFloat(rectEl.style.height) || 0;
+                                
+                                const pdfX = (x / pageViewport.width) * pageViewport.width;
+                                const pdfY = pageViewport.height - ((y + height) / pageViewport.height) * pageViewport.height;
+                                
+                                edits.deletions.push({
+                                    pageIndex: pageNum - 1,
+                                    x: pdfX,
+                                    y: pdfY,
+                                    width: (width / pageViewport.width) * pageViewport.width,
+                                    height: (height / pageViewport.height) * pageViewport.height
+                                });
+                            });
+                        }
+                        
+                        // Get text elements for this page
+                        const pageTextElements = textLayer.querySelectorAll(`[data-page="${pageNum - 1}"].editable-text`);
+                        pageTextElements.forEach((el) => {
+                            if (el.dataset.ocrBlock === 'true') return;
                             
-                            // Convert to PDF coordinates (PDF uses bottom-left origin)
-                            const pdfX = (x / viewport.width) * viewport.width;
-                            const pdfY = viewport.height - ((y + height) / viewport.height) * viewport.height;
+                            const x = parseFloat(el.style.left) || 0;
+                            const y = parseFloat(el.style.top) || 0;
+                            const fontSize = parseFloat(el.style.fontSize) || 12;
+                            const fontFamily = el.style.fontFamily || 'Helvetica';
                             
-                            edits.deletions.push({
-                                pageIndex: currentPage - 1,
+                            const pdfX = (x / pageViewport.width) * pageViewport.width;
+                            const pdfY = pageViewport.height - ((y + fontSize) / pageViewport.height) * pageViewport.height;
+                            
+                            const color = el.style.color || '#000000';
+                            const rgbMatch = color.match(/\d+/g);
+                            const fontColor = rgbMatch ? [
+                                parseInt(rgbMatch[0]) || 0,
+                                parseInt(rgbMatch[1]) || 0,
+                                parseInt(rgbMatch[2]) || 0
+                            ] : [0, 0, 0];
+                            
+                            const originalText = el.dataset.originalText || originalTexts.get(el);
+                            if (originalText && el.dataset.isReplacement === 'true') {
+                                edits.textReplacements.push({
+                                    pageIndex: pageNum - 1,
+                                    oldText: originalText,
+                                    newText: el.textContent,
+                                    x: pdfX,
+                                    y: pdfY,
+                                    fontSize: fontSize,
+                                    fontName: fontFamily,
+                                    fontColor: fontColor
+                                });
+                            } else {
+                                edits.textEdits.push({
+                                    pageIndex: pageNum - 1,
+                                    x: pdfX,
+                                    y: pdfY,
+                                    text: el.textContent,
+                                    fontSize: fontSize,
+                                    fontName: fontFamily,
+                                    fontColor: fontColor
+                                });
+                            }
+                        });
+                        
+                        // Get images for this page
+                        const pageImages = textLayer.querySelectorAll(`[data-page="${pageNum - 1}"] img`);
+                        pageImages.forEach((img) => {
+                            const x = parseFloat(img.style.left) || 0;
+                            const y = parseFloat(img.style.top) || 0;
+                            const width = parseFloat(img.style.width) || 200;
+                            const height = parseFloat(img.style.height) || 200;
+                            
+                            const pdfX = (x / pageViewport.width) * pageViewport.width;
+                            const pdfY = pageViewport.height - ((y + height) / pageViewport.height) * pageViewport.height;
+                            
+                            // Extract base64 image data
+                            let imageData = img.src;
+                            if (imageData.startsWith('data:')) {
+                                imageData = imageData.split(',')[1];
+                            }
+                            
+                            edits.imageInserts.push({
+                                pageIndex: pageNum - 1,
+                                imageData: imageData,
                                 x: pdfX,
                                 y: pdfY,
-                                width: (width / viewport.width) * viewport.width,
-                                height: (height / viewport.height) * viewport.height
+                                width: (width / pageViewport.width) * pageViewport.width,
+                                height: (height / pageViewport.height) * pageViewport.height
                             });
                         });
                     }
-                    
-                    // Get text annotations with accurate coordinates
-                    // Separate into replacements and new additions (Adobe Acrobat Pro style)
-                    const textElements = textLayer.querySelectorAll('.editable-text');
-                    textElements.forEach((el, index) => {
-                        // Skip OCR texts (they're handled separately)
-                        if (el.dataset.ocrBlock === 'true') {
-                            return;
-                        }
-                        
-                        // Get position from style (more accurate)
-                        const x = parseFloat(el.style.left) || 0;
-                        const y = parseFloat(el.style.top) || 0;
-                        const fontSize = parseFloat(el.style.fontSize) || 12;
-                        const fontFamily = el.style.fontFamily || 'Helvetica';
-                        
-                        // Convert to PDF coordinates using viewport
-                        const pdfX = (x / viewport.width) * viewport.width;
-                        const pdfY = viewport.height - ((y + fontSize) / viewport.height) * viewport.height;
-                        
-                        // Get color
-                        const color = el.style.color || '#000000';
-                        const rgbMatch = color.match(/\d+/g);
-                        const fontColor = rgbMatch ? [
-                            parseInt(rgbMatch[0]) || 0,
-                            parseInt(rgbMatch[1]) || 0,
-                            parseInt(rgbMatch[2]) || 0
-                        ] : [0, 0, 0];
-                        
-                        // Check if this is a replacement (Adobe Acrobat Pro style)
-                        const originalText = el.dataset.originalText || originalTexts.get(el);
-                        if (originalText && el.dataset.isReplacement === 'true') {
-                            // Real text replacement
-                            edits.textReplacements.push({
-                                pageIndex: currentPage - 1,
-                                oldText: originalText,
-                                newText: el.textContent,
-                                x: pdfX,
-                                y: pdfY,
-                                fontSize: fontSize,
-                                fontName: fontFamily,
-                                fontColor: fontColor
-                            });
-                        } else {
-                            // New text addition
-                            edits.textEdits.push({
-                                pageIndex: currentPage - 1,
-                                x: pdfX,
-                                y: pdfY,
-                                text: el.textContent,
-                                fontSize: fontSize,
-                                fontName: fontFamily,
-                                fontColor: fontColor
-                            });
-                        }
-                    });
-                    
-                    // Get image elements
-                    const imageElements = textLayer.querySelectorAll('img');
-                    imageElements.forEach((img) => {
-                        const rect = img.getBoundingClientRect();
-                        const canvasRect = pdfCanvas.getBoundingClientRect();
-                        const scaleX = pdfCanvas.width / canvasRect.width;
-                        const scaleY = pdfCanvas.height / canvasRect.height;
-                        
-                        edits.imageInserts.push({
-                            pageIndex: currentPage - 1,
-                            imageData: img.src.split(',')[1],
-                            x: (rect.left - canvasRect.left) * scaleX,
-                            y: (canvasRect.height - (rect.top - canvasRect.top)) * scaleY,
-                            width: rect.width * scaleX,
-                            height: rect.height * scaleY
-                        });
-                    });
                     
                     // Convert PDF to base64
                     const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
