@@ -996,11 +996,11 @@
                         </button>
                     </div>
                     
-                    <div class="preview-container" id="preview-container" style="display: flex; visibility: visible;">
-                        <div class="loading-overlay" id="loading-overlay">
+                    <div class="preview-container" id="preview-container" style="display: flex; visibility: visible; min-height: 600px;">
+                        <div class="loading-overlay" id="loading-overlay" style="display: flex;">
                             <div class="loading-spinner"></div>
                         </div>
-                        <div id="pdf-page-wrapper" class="pdf-page-wrapper" style="display: block; visibility: visible;">
+                        <div id="pdf-page-wrapper" class="pdf-page-wrapper" style="display: block; visibility: visible; position: relative;">
                             <canvas id="pdf-canvas" class="pdf-canvas"></canvas>
                             <div id="deletion-layer" class="deletion-layer"></div>
                             <div id="text-layer" class="text-layer"></div>
@@ -1307,6 +1307,7 @@
         const fontSizeInput = document.getElementById('font-size-input');
         const fontFamilySelect = document.getElementById('font-family-select');
         const textColorInput = document.getElementById('text-color-input');
+        const deleteTextBtn = document.getElementById('delete-text-btn');
         const imageWidthInput = document.getElementById('image-width-input');
         const imageHeightInput = document.getElementById('image-height-input');
         
@@ -3030,10 +3031,8 @@
         
         // Initialize on page load - load immediately for instant preview
         (function initPDFEditor() {
-            function startPDFLoad() {
-                console.log('startPDFLoad called, pdfjsLib available:', typeof pdfjsLib !== 'undefined');
-                
-                // Ensure preview container is visible immediately
+            // Make preview container visible IMMEDIATELY - no waiting
+            function makePreviewVisible() {
                 if (previewContainer) {
                     previewContainer.style.display = 'flex';
                     previewContainer.style.visibility = 'visible';
@@ -3042,6 +3041,19 @@
                     pdfPageWrapper.style.display = 'block';
                     pdfPageWrapper.style.visibility = 'visible';
                 }
+                if (loadingOverlay) {
+                    loadingOverlay.style.display = 'flex';
+                }
+            }
+            
+            // Make visible immediately
+            makePreviewVisible();
+            
+            function startPDFLoad() {
+                console.log('startPDFLoad called, pdfjsLib available:', typeof pdfjsLib !== 'undefined');
+                
+                // Ensure preview container is visible immediately
+                makePreviewVisible();
                 
                 // Wait for PDF.js to load
                 if (typeof pdfjsLib === 'undefined') {
@@ -3084,6 +3096,7 @@
                         return;
                     }
                 }
+                makePreviewVisible();
                 startPDFLoad();
             }
             
@@ -3095,7 +3108,6 @@
                 init();
             }
         })();
-        })(); // Close the outer IIFE
     </script>
 </body>
 </html>
