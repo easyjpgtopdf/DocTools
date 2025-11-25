@@ -7,6 +7,20 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
+// Get API base URL
+function getApiBaseUrl() {
+  const hostname = window.location.hostname;
+  const isDevelopment = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
+  
+  if (isDevelopment) {
+    return 'http://localhost:3000';
+  }
+  
+  return window.location.origin;
+}
+
+const API_BASE_URL = getApiBaseUrl();
+
 // Initialize Firebase (use existing config)
 let db;
 let auth;
@@ -203,7 +217,10 @@ export async function initiateSubscriptionPurchase(planKey, billing = 'monthly',
   
   // Create Razorpay order
   try {
-    const response = await fetch('/api/subscriptions/create-order', {
+    const apiUrl = `${API_BASE_URL}/api/subscriptions/create-order`;
+    console.log('Creating subscription order:', { apiUrl, plan: planKey, billing, userId });
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -220,19 +237,34 @@ export async function initiateSubscriptionPurchase(planKey, billing = 'monthly',
     });
     
     if (!response.ok) {
-      throw new Error('Failed to create order');
+      const errorText = await response.text();
+      console.error('API Error Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      });
+      throw new Error(`Failed to create order: ${response.status} ${response.statusText}`);
     }
     
     const orderData = await response.json();
+    console.log('Order created successfully:', orderData);
+    
+    // Ensure Razorpay script is loaded
+    try {
+      await loadRazorpayScript();
+    } catch (error) {
+      console.error('Failed to load Razorpay script:', error);
+      throw new Error('Razorpay payment gateway is not available. Please refresh the page and try again.');
+    }
     
     // Initialize Razorpay checkout
     const options = {
-      key: orderData.key_id || process.env.RAZORPAY_KEY_ID,
+      key: orderData.key_id || orderData.key || '',
       amount: orderData.amount,
       currency: orderData.currency,
       name: 'easyjpgtopdf',
       description: `${plan.name} Plan - ${billing === 'yearly' ? 'Yearly' : 'Monthly'}`,
-      order_id: orderData.orderId,
+      order_id: orderData.orderId || orderData.id,
       prefill: {
         email: orderData.userEmail || '',
         name: orderData.userName || ''
@@ -240,9 +272,17 @@ export async function initiateSubscriptionPurchase(planKey, billing = 'monthly',
       theme: {
         color: '#4361ee'
       },
-      handler: async function(response) {
+      handler: async function(paymentResponse) {
         // Payment successful
-        await handlePaymentSuccess(response, planKey, billing, userId, orderData.orderId, orderData.currency, orderData.convertedPrice);
+        await handlePaymentSuccess(
+          paymentResponse, 
+          planKey, 
+          billing, 
+          userId, 
+          orderData.orderId || orderData.id, 
+          orderData.currency, 
+          orderData.convertedPrice || orderData.amount
+        );
       },
       modal: {
         ondismiss: function() {
@@ -250,6 +290,14 @@ export async function initiateSubscriptionPurchase(planKey, billing = 'monthly',
         }
       }
     };
+    
+    if (!options.key) {
+      throw new Error('Razorpay key not found. Please contact support.');
+    }
+    
+    if (!options.order_id) {
+      throw new Error('Order ID not found. Please try again.');
+    }
     
     const razorpay = new Razorpay(options);
     razorpay.open();
@@ -266,7 +314,10 @@ export async function initiateSubscriptionPurchase(planKey, billing = 'monthly',
 async function handlePaymentSuccess(paymentResponse, planKey, billing, userId, orderId, currency, convertedAmount) {
   try {
     // Verify payment on server
-    const verifyResponse = await fetch('/api/subscriptions/verify-payment', {
+    const verifyUrl = `${API_BASE_URL}/api/subscriptions/verify-payment`;
+    console.log('Verifying payment:', verifyUrl);
+    
+    const verifyResponse = await fetch(verifyUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -408,13 +459,50 @@ async function getAuthToken() {
   return await user.getIdToken();
 }
 
-// Load Razorpay script
-if (typeof Razorpay === 'undefined') {
-  const script = document.createElement('script');
-  script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-  script.async = true;
-  document.head.appendChild(script);
+// Load Razorpay script if not already loaded
+function loadRazorpayScript() {
+  return new Promise((resolve, reject) => {
+    if (typeof Razorpay !== 'undefined') {
+      resolve();
+      return;
+    }
+    
+    // Check if script is already being loaded
+    const existingScript = document.querySelector('script[src*="checkout.razorpay.com"]');
+    if (existingScript) {
+      existingScript.onload = resolve;
+      existingScript.onerror = reject;
+      return;
+    }
+    
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => {
+      if (typeof Razorpay !== 'undefined') {
+        resolve();
+      } else {
+        reject(new Error('Razorpay script loaded but Razorpay object not found'));
+      }
+    };
+    script.onerror = () => {
+      reject(new Error('Failed to load Razorpay script'));
+    };
+    document.head.appendChild(script);
+    
+    // Timeout after 10 seconds
+    setTimeout(() => {
+      if (typeof Razorpay === 'undefined') {
+        reject(new Error('Razorpay script loading timeout'));
+      }
+    }, 10000);
+  });
 }
+
+// Load Razorpay script immediately
+loadRazorpayScript().catch(err => {
+  console.warn('Razorpay script loading issue:', err);
+});
 
 // Export for use in other files
 window.subscriptionService = {
