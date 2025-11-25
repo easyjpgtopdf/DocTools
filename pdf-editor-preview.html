@@ -385,6 +385,105 @@
             outline: none;
         }
         
+        /* Image editing styles */
+        .editable-image {
+            position: absolute;
+            cursor: move;
+            border: 2px dashed transparent;
+            user-select: none;
+            z-index: 10;
+        }
+        
+        .editable-image.selected {
+            border-color: #4361ee;
+            box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.3);
+        }
+        
+        .editable-image:hover {
+            border-color: #4361ee;
+        }
+        
+        .image-controls {
+            position: absolute;
+            top: -30px;
+            left: 0;
+            background: #4361ee;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: flex;
+            gap: 5px;
+            z-index: 20;
+        }
+        
+        .image-control-btn {
+            background: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #4361ee;
+        }
+        
+        .image-control-btn:hover {
+            background: #eef2ff;
+        }
+        
+        /* Real-time text input box */
+        .text-input-overlay {
+            position: absolute;
+            border: 2px solid #4361ee;
+            background: white;
+            padding: 8px;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            min-width: 200px;
+        }
+        
+        .text-input-overlay input {
+            border: none;
+            outline: none;
+            font-size: 16px;
+            width: 100%;
+            padding: 4px;
+            font-family: inherit;
+        }
+        
+        .text-input-overlay .text-input-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+            justify-content: flex-end;
+        }
+        
+        .text-input-overlay .text-input-btn {
+            padding: 4px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .text-input-overlay .text-input-btn.confirm {
+            background: #4361ee;
+            color: white;
+        }
+        
+        .text-input-overlay .text-input-btn.cancel {
+            background: #e2e6ff;
+            color: #4361ee;
+        }
+        
+        /* Cursor styles for tools */
+        .cursor-crosshair {
+            cursor: crosshair !important;
+        }
+        
+        .cursor-text {
+            cursor: text !important;
+        }
+        
         .page-navigation {
             display: flex;
             justify-content: center;
@@ -1750,6 +1849,93 @@
             });
         }
         
+        // Text input handler (shared function)
+        let currentTextInputOverlay = null;
+        
+        function createTextInputBox(x, y) {
+            // Remove existing text input if any
+            if (currentTextInputOverlay) {
+                currentTextInputOverlay.remove();
+            }
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'text-input-overlay';
+            overlay.style.left = x + 'px';
+            overlay.style.top = y + 'px';
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = 'Type your text here...';
+            input.style.fontSize = fontSizeInput ? fontSizeInput.value + 'px' : '16px';
+            input.style.fontFamily = fontFamilySelect ? fontFamilySelect.value : 'Helvetica';
+            input.style.color = textColorInput ? textColorInput.value : '#000000';
+            
+            const actions = document.createElement('div');
+            actions.className = 'text-input-actions';
+            
+            const confirmBtn = document.createElement('button');
+            confirmBtn.className = 'text-input-btn confirm';
+            confirmBtn.textContent = 'Add';
+            confirmBtn.onclick = function() {
+                const text = input.value.trim();
+                if (text) {
+                    // Create editable text element
+                    const textElement = document.createElement('div');
+                    textElement.className = 'editable-text';
+                    textElement.textContent = text;
+                    textElement.style.left = x + 'px';
+                    textElement.style.top = y + 'px';
+                    textElement.style.fontSize = input.style.fontSize;
+                    textElement.style.fontFamily = input.style.fontFamily;
+                    textElement.style.color = input.style.color;
+                    textElement.style.cursor = 'text';
+                    
+                    // Make editable
+                    textElement.addEventListener('click', function() {
+                        selectTextElement(textElement);
+                    });
+                    
+                    textElement.addEventListener('dblclick', function() {
+                        editTextElement(textElement);
+                    });
+                    
+                    textLayer.appendChild(textElement);
+                    saveAnnotation();
+                }
+                overlay.remove();
+                currentTextInputOverlay = null;
+            };
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'text-input-btn cancel';
+            cancelBtn.textContent = 'Cancel';
+            cancelBtn.onclick = function() {
+                overlay.remove();
+                currentTextInputOverlay = null;
+            };
+            
+            actions.appendChild(confirmBtn);
+            actions.appendChild(cancelBtn);
+            
+            overlay.appendChild(input);
+            overlay.appendChild(actions);
+            textLayer.appendChild(overlay);
+            
+            currentTextInputOverlay = overlay;
+            input.focus();
+            
+            // Close on Enter key
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    confirmBtn.click();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelBtn.click();
+                }
+            });
+        }
+        
         if (addTextBtn && !addTextBtn.hasAttribute('data-listener-attached')) {
             addTextBtn.setAttribute('data-listener-attached', 'true');
             addTextBtn.addEventListener('click', function() {
@@ -1760,50 +1946,121 @@
                 addTextBtn.classList.add('active');
                 activeTool = 'text';
                 setActiveTool('text');
-                if (pdfCanvas) pdfCanvas.style.cursor = 'text';
+                
+                // Change cursor to text cursor
+                if (pdfCanvas) {
+                    pdfCanvas.classList.add('cursor-text');
+                    pdfCanvas.style.cursor = 'text';
+                }
+                if (textLayer) {
+                    textLayer.style.cursor = 'text';
+                }
                 
                 // Add click listener to canvas for text insertion
-                pdfCanvas.style.cursor = 'text';
-                pdfCanvas.addEventListener('click', async function addTextHandler(e) {
+                function addTextHandler(e) {
                     if (activeTool !== 'text') {
                         pdfCanvas.removeEventListener('click', addTextHandler);
-                        pdfCanvas.style.cursor = 'default';
+                        if (pdfCanvas) {
+                            pdfCanvas.classList.remove('cursor-text');
+                            pdfCanvas.style.cursor = 'default';
+                        }
+                        if (textLayer) textLayer.style.cursor = 'default';
                         return;
                     }
                     
-                    const text = prompt('Enter text to add:');
-                    if (!text) {
-                        activeTool = 'select';
-                        pdfCanvas.style.cursor = 'default';
-                        pdfCanvas.removeEventListener('click', addTextHandler);
-                        return;
-                    }
-                    
+                    // Get click position relative to canvas
                     const rect = pdfCanvas.getBoundingClientRect();
                     const x = e.clientX - rect.left;
                     const y = e.clientY - rect.top;
                     
-                    // Create editable text element
-                    const textElement = document.createElement('div');
-                    textElement.className = 'editable-text';
-                    textElement.textContent = text;
-                    textElement.style.left = x + 'px';
-                    textElement.style.top = y + 'px';
-                    textElement.style.fontSize = '16px';
-                    textElement.style.color = '#000000';
-                    textLayer.appendChild(textElement);
-                    
-                    // Make it editable
-                    editTextElement(textElement);
-                    
-                    // Save annotation
-                    saveAnnotation();
-                    
-                    activeTool = 'select';
-                    pdfCanvas.style.cursor = 'default';
-                    pdfCanvas.removeEventListener('click', addTextHandler);
-                }, { once: false });
+                    // Create real-time text input box
+                    createTextInputBox(x, y);
+                }
+                
+                pdfCanvas.addEventListener('click', addTextHandler, { once: false });
             });
+        }
+        
+        // Image editing variables
+        let currentImage = null;
+        let imageRotation = 0;
+        let imageScale = 1;
+        
+        function createImageControls(img) {
+            const controls = document.createElement('div');
+            controls.className = 'image-controls';
+            controls.style.display = 'none';
+            
+            const rotateBtn = document.createElement('button');
+            rotateBtn.className = 'image-control-btn';
+            rotateBtn.innerHTML = '<i class="fas fa-redo"></i>';
+            rotateBtn.title = 'Rotate';
+            rotateBtn.onclick = function(e) {
+                e.stopPropagation();
+                imageRotation = (imageRotation + 90) % 360;
+                img.style.transform = `rotate(${imageRotation}deg) scale(${imageScale})`;
+                saveAnnotation();
+            };
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'image-control-btn';
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            deleteBtn.title = 'Delete';
+            deleteBtn.onclick = function(e) {
+                e.stopPropagation();
+                img.remove();
+                controls.remove();
+                saveAnnotation();
+            };
+            
+            const resizeBtn = document.createElement('button');
+            resizeBtn.className = 'image-control-btn';
+            resizeBtn.innerHTML = '<i class="fas fa-expand-arrows-alt"></i>';
+            resizeBtn.title = 'Resize';
+            resizeBtn.onclick = function(e) {
+                e.stopPropagation();
+                const newWidth = prompt('Enter new width (px):', img.offsetWidth);
+                const newHeight = prompt('Enter new height (px):', img.offsetHeight);
+                if (newWidth && newHeight) {
+                    img.style.width = newWidth + 'px';
+                    img.style.height = newHeight + 'px';
+                    saveAnnotation();
+                }
+            };
+            
+            controls.appendChild(rotateBtn);
+            controls.appendChild(resizeBtn);
+            controls.appendChild(deleteBtn);
+            
+            img.parentElement.appendChild(controls);
+            
+            // Show controls on image hover/select
+            img.addEventListener('mouseenter', function() {
+                controls.style.display = 'flex';
+                controls.style.left = (img.offsetLeft) + 'px';
+                controls.style.top = (img.offsetTop - 30) + 'px';
+            });
+            
+            img.addEventListener('mouseleave', function() {
+                if (!img.classList.contains('selected')) {
+                    controls.style.display = 'none';
+                }
+            });
+            
+            img.addEventListener('click', function(e) {
+                e.stopPropagation();
+                // Deselect all images
+                document.querySelectorAll('.editable-image').forEach(im => {
+                    im.classList.remove('selected');
+                });
+                // Select this image
+                img.classList.add('selected');
+                controls.style.display = 'flex';
+                controls.style.left = (img.offsetLeft) + 'px';
+                controls.style.top = (img.offsetTop - 30) + 'px';
+            });
+            
+            return controls;
         }
         
         if (addImageBtn && !addImageBtn.hasAttribute('data-listener-attached')) {
@@ -1816,6 +2073,16 @@
                 addImageBtn.classList.add('active');
                 activeTool = 'image';
                 setActiveTool('image');
+                
+                // Change cursor to crosshair
+                if (pdfCanvas) {
+                    pdfCanvas.classList.add('cursor-crosshair');
+                    pdfCanvas.style.cursor = 'crosshair';
+                }
+                if (textLayer) {
+                    textLayer.style.cursor = 'crosshair';
+                }
+                
                 if (imageInput) imageInput.click();
             });
         }
@@ -1827,14 +2094,22 @@
                 if (file && file.type.startsWith('image/')) {
                     const reader = new FileReader();
                     reader.onload = function(event) {
-                        activeTool = 'image';
-                        pdfCanvas.style.cursor = 'crosshair';
+                        // Show visual feedback that image is ready to place
+                        if (pdfCanvas) {
+                            pdfCanvas.style.cursor = 'crosshair';
+                            pdfCanvas.title = 'Click on PDF to place image';
+                        }
                         
                         // Add click listener to canvas for image insertion
-                        pdfCanvas.addEventListener('click', async function addImageHandler(clickEvent) {
+                        function addImageHandler(clickEvent) {
                             if (activeTool !== 'image') {
                                 pdfCanvas.removeEventListener('click', addImageHandler);
-                                pdfCanvas.style.cursor = 'default';
+                                if (pdfCanvas) {
+                                    pdfCanvas.classList.remove('cursor-crosshair');
+                                    pdfCanvas.style.cursor = 'default';
+                                    pdfCanvas.title = '';
+                                }
+                                if (textLayer) textLayer.style.cursor = 'default';
                                 return;
                             }
                             
@@ -1842,28 +2117,42 @@
                             const x = clickEvent.clientX - rect.left;
                             const y = clickEvent.clientY - rect.top;
                             
-                            // Create image element
+                            // Create image element with editing capabilities
                             const img = document.createElement('img');
                             img.src = event.target.result;
+                            img.className = 'editable-image';
                             img.style.position = 'absolute';
                             img.style.left = x + 'px';
                             img.style.top = y + 'px';
-                            img.style.maxWidth = '200px';
-                            img.style.maxHeight = '200px';
+                            img.style.width = imageWidthInput ? imageWidthInput.value + 'px' : '200px';
+                            img.style.height = imageHeightInput ? imageHeightInput.value + 'px' : 'auto';
+                            img.style.maxWidth = '500px';
+                            img.style.maxHeight = '500px';
                             img.style.cursor = 'move';
                             img.style.zIndex = '10';
+                            img.style.objectFit = 'contain';
+                            
+                            // Initialize rotation and scale
+                            imageRotation = 0;
+                            imageScale = 1;
+                            
                             textLayer.appendChild(img);
+                            
+                            // Create image controls (rotate, delete, resize)
+                            createImageControls(img);
                             
                             // Make image draggable
                             let isDragging = false;
                             let startX, startY, initialX, initialY;
                             
                             img.addEventListener('mousedown', function(e) {
+                                e.stopPropagation();
                                 isDragging = true;
                                 startX = e.clientX;
                                 startY = e.clientY;
-                                initialX = img.offsetLeft;
-                                initialY = img.offsetTop;
+                                initialX = parseFloat(img.style.left) || 0;
+                                initialY = parseFloat(img.style.top) || 0;
+                                img.style.cursor = 'grabbing';
                             });
                             
                             document.addEventListener('mousemove', function(e) {
@@ -1876,20 +2165,42 @@
                             });
                             
                             document.addEventListener('mouseup', function() {
-                                isDragging = false;
+                                if (isDragging) {
+                                    isDragging = false;
+                                    img.style.cursor = 'move';
+                                    saveAnnotation();
+                                }
                             });
                             
                             // Save annotation
                             saveAnnotation();
                             
+                            // Reset tool
                             activeTool = 'select';
-                            pdfCanvas.style.cursor = 'default';
+                            setActiveTool('select');
+                            if (pdfCanvas) {
+                                pdfCanvas.classList.remove('cursor-crosshair');
+                                pdfCanvas.style.cursor = 'default';
+                                pdfCanvas.title = '';
+                            }
+                            if (textLayer) textLayer.style.cursor = 'default';
                             pdfCanvas.removeEventListener('click', addImageHandler);
-                        }, { once: false });
+                            
+                            // Reset file input
+                            imageInput.value = '';
+                        }
+                        
+                        pdfCanvas.addEventListener('click', addImageHandler, { once: false });
                     };
                     reader.readAsDataURL(file);
                 } else {
                     alert('Please select a valid image file');
+                    activeTool = 'select';
+                    setActiveTool('select');
+                    if (pdfCanvas) {
+                        pdfCanvas.classList.remove('cursor-crosshair');
+                        pdfCanvas.style.cursor = 'default';
+                    }
                 }
             });
         }
