@@ -1173,6 +1173,334 @@ app.post('/api/pdf/upload', uploadPDF.single('pdfFile'), async (req, res) => {
 // Serve uploaded PDFs
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// PDF Page Management Endpoints
+app.post('/api/pdf/pages/rotate', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData, rotations } = req.body;
+    if (!pdfData || !rotations) {
+      return res.status(400).json({ success: false, error: 'Missing required data' });
+    }
+    
+    let pdfBuffer = Buffer.from(pdfData.split(',')[1] || pdfData, 'base64');
+    const pageManagement = require('./api/pdf-edit/page-management');
+    const editedBuffer = await pageManagement.rotatePages(pdfBuffer, rotations);
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${editedBuffer.toString('base64')}`
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/pdf/pages/delete', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData, pageIndices } = req.body;
+    if (!pdfData || !pageIndices) {
+      return res.status(400).json({ success: false, error: 'Missing required data' });
+    }
+    
+    let pdfBuffer = Buffer.from(pdfData.split(',')[1] || pdfData, 'base64');
+    const pageManagement = require('./api/pdf-edit/page-management');
+    const editedBuffer = await pageManagement.deletePages(pdfBuffer, pageIndices);
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${editedBuffer.toString('base64')}`
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/pdf/pages/reorder', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData, newOrder } = req.body;
+    if (!pdfData || !newOrder) {
+      return res.status(400).json({ success: false, error: 'Missing required data' });
+    }
+    
+    let pdfBuffer = Buffer.from(pdfData.split(',')[1] || pdfData, 'base64');
+    const pageManagement = require('./api/pdf-edit/page-management');
+    const editedBuffer = await pageManagement.reorderPages(pdfBuffer, newOrder);
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${editedBuffer.toString('base64')}`
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PDF Forms Endpoints
+app.post('/api/pdf/forms/fill', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData, formFields } = req.body;
+    if (!pdfData || !formFields) {
+      return res.status(400).json({ success: false, error: 'Missing required data' });
+    }
+    
+    let pdfBuffer = Buffer.from(pdfData.split(',')[1] || pdfData, 'base64');
+    const forms = require('./api/pdf-edit/forms');
+    const editedBuffer = await forms.fillFormFields(pdfBuffer, formFields);
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${editedBuffer.toString('base64')}`
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/pdf/forms/get-fields', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData } = req.body;
+    if (!pdfData) {
+      return res.status(400).json({ success: false, error: 'Missing PDF data' });
+    }
+    
+    let pdfBuffer = Buffer.from(pdfData.split(',')[1] || pdfData, 'base64');
+    const forms = require('./api/pdf-edit/forms');
+    const formFields = await forms.getFormFields(pdfBuffer);
+    
+    res.json({
+      success: true,
+      formFields: formFields
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PDF Annotations Endpoints
+app.post('/api/pdf/annotations/highlight', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData, highlights } = req.body;
+    if (!pdfData || !highlights) {
+      return res.status(400).json({ success: false, error: 'Missing required data' });
+    }
+    
+    let pdfBuffer = Buffer.from(pdfData.split(',')[1] || pdfData, 'base64');
+    const annotations = require('./api/pdf-edit/annotations');
+    const editedBuffer = await annotations.addHighlights(pdfBuffer, highlights);
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${editedBuffer.toString('base64')}`
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/pdf/annotations/comment', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData, comments } = req.body;
+    if (!pdfData || !comments) {
+      return res.status(400).json({ success: false, error: 'Missing required data' });
+    }
+    
+    let pdfBuffer = Buffer.from(pdfData.split(',')[1] || pdfData, 'base64');
+    const annotations = require('./api/pdf-edit/annotations');
+    const editedBuffer = await annotations.addComments(pdfBuffer, comments);
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${editedBuffer.toString('base64')}`
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/pdf/annotations/stamp', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData, stamps } = req.body;
+    if (!pdfData || !stamps) {
+      return res.status(400).json({ success: false, error: 'Missing required data' });
+    }
+    
+    let pdfBuffer = Buffer.from(pdfData.split(',')[1] || pdfData, 'base64');
+    const annotations = require('./api/pdf-edit/annotations');
+    const editedBuffer = await annotations.addStamps(pdfBuffer, stamps);
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${editedBuffer.toString('base64')}`
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PDF Export Endpoints
+app.post('/api/pdf/export/word', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData } = req.body;
+    if (!pdfData) {
+      return res.status(400).json({ success: false, error: 'Missing PDF data' });
+    }
+    
+    let pdfBuffer = Buffer.from(pdfData.split(',')[1] || pdfData, 'base64');
+    const exportFormats = require('./api/pdf-edit/export-formats');
+    const docxBuffer = await exportFormats.exportToWord(pdfBuffer);
+    
+    res.json({
+      success: true,
+      fileData: `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${docxBuffer.toString('base64')}`,
+      filename: 'exported-document.docx'
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/pdf/export/excel', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData } = req.body;
+    if (!pdfData) {
+      return res.status(400).json({ success: false, error: 'Missing PDF data' });
+    }
+    
+    let pdfBuffer = Buffer.from(pdfData.split(',')[1] || pdfData, 'base64');
+    const exportFormats = require('./api/pdf-edit/export-formats');
+    const xlsxBuffer = await exportFormats.exportToExcel(pdfBuffer);
+    
+    res.json({
+      success: true,
+      fileData: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${xlsxBuffer.toString('base64')}`,
+      filename: 'exported-document.xlsx'
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/pdf/export/powerpoint', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData } = req.body;
+    if (!pdfData) {
+      return res.status(400).json({ success: false, error: 'Missing PDF data' });
+    }
+    
+    let pdfBuffer = Buffer.from(pdfData.split(',')[1] || pdfData, 'base64');
+    const exportFormats = require('./api/pdf-edit/export-formats');
+    const pptxBuffer = await exportFormats.exportToPowerPoint(pdfBuffer);
+    
+    res.json({
+      success: true,
+      fileData: `data:application/vnd.openxmlformats-officedocument.presentationml.presentation;base64,${pptxBuffer.toString('base64')}`,
+      filename: 'exported-document.pptx'
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/pdf/export/images', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData, options = {} } = req.body;
+    if (!pdfData) {
+      return res.status(400).json({ success: false, error: 'Missing PDF data' });
+    }
+    
+    let pdfBuffer = Buffer.from(pdfData.split(',')[1] || pdfData, 'base64');
+    const exportFormats = require('./api/pdf-edit/export-formats');
+    const images = await exportFormats.exportToImages(pdfBuffer, options);
+    
+    const imageData = images.map(img => ({
+      pageIndex: img.pageIndex,
+      imageData: `data:image/${img.format};base64,${img.image.toString('base64')}`,
+      format: img.format
+    }));
+    
+    res.json({
+      success: true,
+      images: imageData
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PDF Compression Endpoint
+app.post('/api/pdf/compress', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData, options = {} } = req.body;
+    if (!pdfData) {
+      return res.status(400).json({ success: false, error: 'Missing PDF data' });
+    }
+    
+    let pdfBuffer = Buffer.from(pdfData.split(',')[1] || pdfData, 'base64');
+    const compression = require('./api/pdf-edit/compression');
+    const result = await compression.compressPDF(pdfBuffer, options);
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${result.buffer.toString('base64')}`,
+      originalSize: result.originalSize,
+      compressedSize: result.compressedSize,
+      compressionRatio: result.compressionRatio
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PDF Merge Endpoint
+app.post('/api/pdf/merge', express.json({ limit: '200mb' }), async (req, res) => {
+  try {
+    const { pdfDataArray } = req.body;
+    if (!pdfDataArray || !Array.isArray(pdfDataArray) || pdfDataArray.length < 2) {
+      return res.status(400).json({ success: false, error: 'At least 2 PDFs required for merge' });
+    }
+    
+    const pdfBuffers = pdfDataArray.map(data => {
+      const base64 = data.split(',')[1] || data;
+      return Buffer.from(base64, 'base64');
+    });
+    
+    const mergeSplit = require('./api/pdf-edit/merge-split');
+    const mergedBuffer = await mergeSplit.mergePDFs(pdfBuffers);
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${mergedBuffer.toString('base64')}`
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PDF Split Endpoint
+app.post('/api/pdf/split', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData, splitRanges } = req.body;
+    if (!pdfData || !splitRanges) {
+      return res.status(400).json({ success: false, error: 'Missing required data' });
+    }
+    
+    let pdfBuffer = Buffer.from(pdfData.split(',')[1] || pdfData, 'base64');
+    const mergeSplit = require('./api/pdf-edit/merge-split');
+    const splitBuffers = await mergeSplit.splitPDF(pdfBuffer, splitRanges);
+    
+    const splitPdfs = splitBuffers.map((buffer, index) => ({
+      pdfData: `data:application/pdf;base64,${buffer.toString('base64')}`,
+      filename: `split-part-${index + 1}.pdf`
+    }));
+    
+    res.json({
+      success: true,
+      splitPdfs: splitPdfs
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Cloud Save Endpoint
 app.post('/api/pdf/save-cloud', express.json({ limit: '100mb' }), async (req, res) => {
   try {

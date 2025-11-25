@@ -349,6 +349,33 @@
             margin-left: 8px;
         }
         
+        /* Performance Optimizations */
+        .pdf-canvas {
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+        }
+        
+        /* Lazy loading for pages */
+        .pdf-page-wrapper[data-loaded="false"] {
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .pdf-page-wrapper[data-loaded="true"] {
+            opacity: 1;
+        }
+        
+        /* Cache optimization */
+        .tool-item {
+            will-change: transform;
+        }
+        
+        /* Smooth scrolling */
+        .tools-panel, .properties-panel {
+            scroll-behavior: smooth;
+        }
+        
+        /* Mobile Support - Full Responsive */
         @media (max-width: 768px) {
             .editor-workspace {
                 flex-direction: column;
@@ -363,11 +390,21 @@
                 overflow-x: auto;
                 border-right: none;
                 border-bottom: 1px solid #3a3a3a;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .tool-group {
+                min-width: 200px;
+                flex-shrink: 0;
             }
             
             .preview-panel {
                 order: 2;
                 min-height: 500px;
+            }
+            
+            .preview-container {
+                min-height: 400px !important;
             }
             
             .properties-panel {
@@ -377,6 +414,29 @@
                 border-left: none;
                 border-top: 1px solid #3a3a3a;
                 max-height: 300px;
+            }
+            
+            .tool-item {
+                padding: 12px 8px;
+                font-size: 11px;
+            }
+            
+            .tool-item span {
+                display: block;
+                margin-top: 4px;
+            }
+            
+            /* Touch-friendly buttons */
+            .preview-toolbar-btn {
+                padding: 10px 15px;
+                font-size: 14px;
+                min-width: 44px;
+                min-height: 44px;
+            }
+            
+            /* Mobile gestures */
+            .pdf-page-wrapper {
+                touch-action: pan-x pan-y pinch-zoom;
             }
         }
     </style>
@@ -442,6 +502,90 @@
                         <div class="tool-item" id="ocr-server-btn" title="Server-Side Fast OCR">
                             <i class="fas fa-server"></i>
                             <span>Fast Server OCR</span>
+                        </div>
+                    </div>
+                    
+                    <div class="tool-group">
+                        <div class="tool-group-title">Page Management</div>
+                        <div class="tool-item" id="rotate-page-btn" title="Rotate Page">
+                            <i class="fas fa-redo"></i>
+                            <span>Rotate</span>
+                        </div>
+                        <div class="tool-item" id="delete-page-btn" title="Delete Page">
+                            <i class="fas fa-trash"></i>
+                            <span>Delete Page</span>
+                        </div>
+                        <div class="tool-item" id="reorder-pages-btn" title="Reorder Pages">
+                            <i class="fas fa-sort"></i>
+                            <span>Reorder</span>
+                        </div>
+                        <div class="tool-item" id="extract-page-btn" title="Extract Page">
+                            <i class="fas fa-file-export"></i>
+                            <span>Extract</span>
+                        </div>
+                    </div>
+                    
+                    <div class="tool-group">
+                        <div class="tool-group-title">Forms</div>
+                        <div class="tool-item" id="fill-form-btn" title="Fill Form Fields">
+                            <i class="fas fa-edit"></i>
+                            <span>Fill Form</span>
+                        </div>
+                        <div class="tool-item" id="detect-form-btn" title="Detect Form Fields">
+                            <i class="fas fa-search"></i>
+                            <span>Detect Fields</span>
+                        </div>
+                    </div>
+                    
+                    <div class="tool-group">
+                        <div class="tool-group-title">Annotations</div>
+                        <div class="tool-item" id="comment-btn" title="Add Comment">
+                            <i class="fas fa-comment"></i>
+                            <span>Comment</span>
+                        </div>
+                        <div class="tool-item" id="stamp-btn" title="Add Stamp">
+                            <i class="fas fa-stamp"></i>
+                            <span>Stamp</span>
+                        </div>
+                        <div class="tool-item" id="shape-btn" title="Add Shape">
+                            <i class="fas fa-shapes"></i>
+                            <span>Shape</span>
+                        </div>
+                    </div>
+                    
+                    <div class="tool-group">
+                        <div class="tool-group-title">Export</div>
+                        <div class="tool-item" id="export-word-btn" title="Export to Word">
+                            <i class="fas fa-file-word"></i>
+                            <span>Word</span>
+                        </div>
+                        <div class="tool-item" id="export-excel-btn" title="Export to Excel">
+                            <i class="fas fa-file-excel"></i>
+                            <span>Excel</span>
+                        </div>
+                        <div class="tool-item" id="export-ppt-btn" title="Export to PowerPoint">
+                            <i class="fas fa-file-powerpoint"></i>
+                            <span>PowerPoint</span>
+                        </div>
+                        <div class="tool-item" id="export-image-btn" title="Export to Images">
+                            <i class="fas fa-image"></i>
+                            <span>Images</span>
+                        </div>
+                    </div>
+                    
+                    <div class="tool-group">
+                        <div class="tool-group-title">Tools</div>
+                        <div class="tool-item" id="compress-btn" title="Compress PDF">
+                            <i class="fas fa-compress"></i>
+                            <span>Compress</span>
+                        </div>
+                        <div class="tool-item" id="merge-btn" title="Merge PDFs">
+                            <i class="fas fa-layer-group"></i>
+                            <span>Merge</span>
+                        </div>
+                        <div class="tool-item" id="split-btn" title="Split PDF">
+                            <i class="fas fa-cut"></i>
+                            <span>Split</span>
                         </div>
                     </div>
                     
@@ -516,6 +660,48 @@
                         <div class="property-item" style="margin-top: 15px;">
                             <button class="property-input" id="delete-text-btn" style="width: 100%; padding: 8px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
                                 <i class="fas fa-trash"></i> Delete Text
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="property-group">
+                        <div class="property-group-title">Page Actions</div>
+                        <div class="property-item">
+                            <button class="property-input" id="rotate-90-btn" style="width: 100%; padding: 6px; background: #2d2d2d; color: #e5e5e5; border: 1px solid #3a3a3a; border-radius: 4px; cursor: pointer; font-size: 11px; margin-bottom: 5px;">
+                                <i class="fas fa-redo"></i> Rotate 90°
+                            </button>
+                            <button class="property-input" id="delete-current-page-btn" style="width: 100%; padding: 6px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">
+                                <i class="fas fa-trash"></i> Delete Page
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="property-group">
+                        <div class="property-group-title">Export Format</div>
+                        <div class="property-item">
+                            <select class="property-input" id="export-format-select" style="margin-bottom: 5px;">
+                                <option value="pdf">PDF</option>
+                                <option value="word">Word (DOCX)</option>
+                                <option value="excel">Excel (XLSX)</option>
+                                <option value="powerpoint">PowerPoint (PPTX)</option>
+                                <option value="image">Images (PNG)</option>
+                            </select>
+                            <button class="property-input" id="export-btn" style="width: 100%; padding: 8px; background: #0078d4; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="property-group">
+                        <div class="property-group-title">Compression</div>
+                        <div class="property-item">
+                            <select class="property-input" id="compression-quality" style="margin-bottom: 5px;">
+                                <option value="low">Low (Smaller Size)</option>
+                                <option value="medium" selected>Medium (Balanced)</option>
+                                <option value="high">High (Better Quality)</option>
+                            </select>
+                            <button class="property-input" id="compress-pdf-btn" style="width: 100%; padding: 8px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                <i class="fas fa-compress"></i> Compress
                             </button>
                         </div>
                     </div>
@@ -1246,6 +1432,326 @@
                 deleteTextElement(window.pdfEditorVars.selectedTextElement);
             }
         });
+        
+        // ========== NEW FEATURES IMPLEMENTATION ==========
+        
+        // Page Management
+        const rotate90Btn = document.getElementById('rotate-90-btn');
+        const deleteCurrentPageBtn = document.getElementById('delete-current-page-btn');
+        const rotatePageBtn = document.getElementById('rotate-page-btn');
+        const deletePageBtn = document.getElementById('delete-page-btn');
+        const reorderPagesBtn = document.getElementById('reorder-pages-btn');
+        const extractPageBtn = document.getElementById('extract-page-btn');
+        
+        // Forms
+        const fillFormBtn = document.getElementById('fill-form-btn');
+        const detectFormBtn = document.getElementById('detect-form-btn');
+        
+        // Annotations
+        const commentBtn = document.getElementById('comment-btn');
+        const stampBtn = document.getElementById('stamp-btn');
+        const shapeBtn = document.getElementById('shape-btn');
+        
+        // Export
+        const exportBtn = document.getElementById('export-btn');
+        const exportFormatSelect = document.getElementById('export-format-select');
+        const exportWordBtn = document.getElementById('export-word-btn');
+        const exportExcelBtn = document.getElementById('export-excel-btn');
+        const exportPptBtn = document.getElementById('export-ppt-btn');
+        const exportImageBtn = document.getElementById('export-image-btn');
+        
+        // Compression & Merge/Split
+        const compressPdfBtn = document.getElementById('compress-pdf-btn');
+        const compressionQuality = document.getElementById('compression-quality');
+        const compressBtn = document.getElementById('compress-btn');
+        const mergeBtn = document.getElementById('merge-btn');
+        const splitBtn = document.getElementById('split-btn');
+        
+        // Rotate Page 90 degrees
+        if (rotate90Btn) {
+            rotate90Btn.addEventListener('click', async function() {
+                if (!window.pdfEditorVars.pdfDoc) {
+                    alert('No PDF loaded');
+                    return;
+                }
+                
+                try {
+                    loadingOverlay.style.display = 'flex';
+                    const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                    if (!pdfFileURL) throw new Error('PDF file not found');
+                    
+                    const response = await fetch(pdfFileURL);
+                    const pdfArrayBuffer = await response.arrayBuffer();
+                    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                    
+                    let apiUrl = '/api/pdf/pages/rotate';
+                    if (window.location.protocol === 'file:') {
+                        apiUrl = 'http://localhost:3000/api/pdf/pages/rotate';
+                    }
+                    
+                    const rotateResponse = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            pdfData: `data:application/pdf;base64,${pdfBase64}`,
+                            rotations: [{ pageIndex: window.pdfEditorVars.currentPage - 1, angle: 90 }]
+                        })
+                    });
+                    
+                    if (rotateResponse.ok) {
+                        const result = await rotateResponse.json();
+                        if (result.success) {
+                            const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
+                            await renderPDF(pdfData);
+                            alert('Page rotated successfully!');
+                        }
+                    }
+                    loadingOverlay.style.display = 'none';
+                } catch (error) {
+                    console.error('Rotate error:', error);
+                    loadingOverlay.style.display = 'none';
+                    alert('Error rotating page: ' + error.message);
+                }
+            });
+        }
+        
+        // Delete Current Page
+        if (deleteCurrentPageBtn) {
+            deleteCurrentPageBtn.addEventListener('click', async function() {
+                if (!window.pdfEditorVars.pdfDoc) {
+                    alert('No PDF loaded');
+                    return;
+                }
+                
+                if (!confirm('Are you sure you want to delete this page?')) return;
+                
+                try {
+                    loadingOverlay.style.display = 'flex';
+                    const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                    if (!pdfFileURL) throw new Error('PDF file not found');
+                    
+                    const response = await fetch(pdfFileURL);
+                    const pdfArrayBuffer = await response.arrayBuffer();
+                    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                    
+                    let apiUrl = '/api/pdf/pages/delete';
+                    if (window.location.protocol === 'file:') {
+                        apiUrl = 'http://localhost:3000/api/pdf/pages/delete';
+                    }
+                    
+                    const deleteResponse = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            pdfData: `data:application/pdf;base64,${pdfBase64}`,
+                            pageIndices: [window.pdfEditorVars.currentPage - 1]
+                        })
+                    });
+                    
+                    if (deleteResponse.ok) {
+                        const result = await deleteResponse.json();
+                        if (result.success) {
+                            const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
+                            await renderPDF(pdfData);
+                            alert('Page deleted successfully!');
+                        }
+                    }
+                    loadingOverlay.style.display = 'none';
+                } catch (error) {
+                    console.error('Delete page error:', error);
+                    loadingOverlay.style.display = 'none';
+                    alert('Error deleting page: ' + error.message);
+                }
+            });
+        }
+        
+        // Fill Form Fields
+        if (fillFormBtn) {
+            fillFormBtn.addEventListener('click', async function() {
+                if (!window.pdfEditorVars.pdfDoc) {
+                    alert('No PDF loaded');
+                    return;
+                }
+                
+                // First detect form fields
+                try {
+                    loadingOverlay.style.display = 'flex';
+                    const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                    if (!pdfFileURL) throw new Error('PDF file not found');
+                    
+                    const response = await fetch(pdfFileURL);
+                    const pdfArrayBuffer = await response.arrayBuffer();
+                    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                    
+                    let apiUrl = '/api/pdf/forms/get-fields';
+                    if (window.location.protocol === 'file:') {
+                        apiUrl = 'http://localhost:3000/api/pdf/forms/get-fields';
+                    }
+                    
+                    const fieldsResponse = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ pdfData: `data:application/pdf;base64,${pdfBase64}` })
+                    });
+                    
+                    if (fieldsResponse.ok) {
+                        const result = await fieldsResponse.json();
+                        if (result.success && result.formFields && result.formFields.length > 0) {
+                            // Show form fill dialog
+                            let formHtml = '<div style="padding: 20px;"><h3>Fill Form Fields</h3>';
+                            result.formFields.forEach(field => {
+                                formHtml += `<div style="margin: 10px 0;">
+                                    <label>${field.name} (${field.type}):</label>
+                                    <input type="text" id="field-${field.name}" value="${field.value || ''}" style="width: 100%; padding: 5px; margin-top: 5px;">
+                                </div>`;
+                            });
+                            formHtml += '<button onclick="fillFormSubmit()" style="margin-top: 15px; padding: 10px 20px; background: #0078d4; color: white; border: none; border-radius: 4px; cursor: pointer;">Fill Form</button></div>';
+                            
+                            const formDialog = document.createElement('div');
+                            formDialog.id = 'form-fill-dialog';
+                            formDialog.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 10000; max-width: 500px; max-height: 80vh; overflow-y: auto;';
+                            formDialog.innerHTML = formHtml;
+                            document.body.appendChild(formDialog);
+                            
+                            window.fillFormSubmit = async function() {
+                                const formFields = result.formFields.map(field => ({
+                                    fieldName: field.name,
+                                    value: document.getElementById(`field-${field.name}`).value
+                                }));
+                                
+                                let fillUrl = '/api/pdf/forms/fill';
+                                if (window.location.protocol === 'file:') {
+                                    fillUrl = 'http://localhost:3000/api/pdf/forms/fill';
+                                }
+                                
+                                const fillResponse = await fetch(fillUrl, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        pdfData: `data:application/pdf;base64,${pdfBase64}`,
+                                        formFields: formFields
+                                    })
+                                });
+                                
+                                if (fillResponse.ok) {
+                                    const fillResult = await fillResponse.json();
+                                    if (fillResult.success) {
+                                        const pdfData = await fetch(fillResult.pdfData).then(r => r.arrayBuffer());
+                                        await renderPDF(pdfData);
+                                        document.body.removeChild(formDialog);
+                                        alert('Form filled successfully!');
+                                    }
+                                }
+                                loadingOverlay.style.display = 'none';
+                            };
+                        } else {
+                            alert('No form fields found in this PDF.');
+                        }
+                    }
+                    loadingOverlay.style.display = 'none';
+                } catch (error) {
+                    console.error('Form fill error:', error);
+                    loadingOverlay.style.display = 'none';
+                    alert('Error filling form: ' + error.message);
+                }
+            });
+        }
+        
+        // Export to Different Formats
+        if (exportBtn) {
+            exportBtn.addEventListener('click', async function() {
+                if (!window.pdfEditorVars.pdfDoc) {
+                    alert('No PDF loaded');
+                    return;
+                }
+                
+                const format = exportFormatSelect.value;
+                try {
+                    loadingOverlay.style.display = 'flex';
+                    const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                    if (!pdfFileURL) throw new Error('PDF file not found');
+                    
+                    const response = await fetch(pdfFileURL);
+                    const pdfArrayBuffer = await response.arrayBuffer();
+                    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                    
+                    let apiUrl = `/api/pdf/export/${format}`;
+                    if (window.location.protocol === 'file:') {
+                        apiUrl = `http://localhost:3000/api/pdf/export/${format}`;
+                    }
+                    
+                    const exportResponse = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ pdfData: `data:application/pdf;base64,${pdfBase64}` })
+                    });
+                    
+                    if (exportResponse.ok) {
+                        const result = await exportResponse.json();
+                        if (result.success) {
+                            const link = document.createElement('a');
+                            link.href = result.fileData || result.images[0].imageData;
+                            link.download = result.filename || `exported.${format === 'word' ? 'docx' : format === 'excel' ? 'xlsx' : format === 'powerpoint' ? 'pptx' : 'png'}`;
+                            link.click();
+                            alert('Export completed!');
+                        }
+                    }
+                    loadingOverlay.style.display = 'none';
+                } catch (error) {
+                    console.error('Export error:', error);
+                    loadingOverlay.style.display = 'none';
+                    alert('Error exporting: ' + error.message);
+                }
+            });
+        }
+        
+        // Compress PDF
+        if (compressPdfBtn) {
+            compressPdfBtn.addEventListener('click', async function() {
+                if (!window.pdfEditorVars.pdfDoc) {
+                    alert('No PDF loaded');
+                    return;
+                }
+                
+                try {
+                    loadingOverlay.style.display = 'flex';
+                    const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                    if (!pdfFileURL) throw new Error('PDF file not found');
+                    
+                    const response = await fetch(pdfFileURL);
+                    const pdfArrayBuffer = await response.arrayBuffer();
+                    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                    
+                    let apiUrl = '/api/pdf/compress';
+                    if (window.location.protocol === 'file:') {
+                        apiUrl = 'http://localhost:3000/api/pdf/compress';
+                    }
+                    
+                    const compressResponse = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            pdfData: `data:application/pdf;base64,${pdfBase64}`,
+                            options: { quality: compressionQuality.value }
+                        })
+                    });
+                    
+                    if (compressResponse.ok) {
+                        const result = await compressResponse.json();
+                        if (result.success) {
+                            const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
+                            await renderPDF(pdfData);
+                            alert(`PDF compressed! Size reduced by ${result.compressionRatio}%`);
+                        }
+                    }
+                    loadingOverlay.style.display = 'none';
+                } catch (error) {
+                    console.error('Compress error:', error);
+                    loadingOverlay.style.display = 'none';
+                    alert('Error compressing PDF: ' + error.message);
+                }
+            });
+        }
         
         // Initialize - try to load from storage
         (function init() {
