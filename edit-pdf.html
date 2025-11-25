@@ -658,14 +658,22 @@
             // Store file in IndexedDB
             const reader = new FileReader();
             reader.onload = function(e) {
+                const fileData = e.target.result;
+                
+                // Always create Blob URL as fallback for sessionStorage
+                const blob = new Blob([fileData], { type: 'application/pdf' });
+                const blobURL = URL.createObjectURL(blob);
+                sessionStorage.setItem('pdfFileURL', blobURL);
+                sessionStorage.setItem('pdfFileName', file.name);
+                sessionStorage.setItem('pdfFileSize', file.size.toString());
+                sessionStorage.setItem('pdfFileType', file.type);
+                console.log('Blob URL created and stored in sessionStorage');
+                
                 const request = indexedDB.open('PDFEditorDB', 1);
                 
                 request.onerror = function() {
-                    const blob = new Blob([e.target.result], { type: 'application/pdf' });
-                    const url = URL.createObjectURL(blob);
-                    sessionStorage.setItem('pdfFileURL', url);
-                    sessionStorage.setItem('pdfFileName', file.name);
-                    sessionStorage.setItem('pdfFileSize', file.size.toString());
+                    console.warn('IndexedDB open failed, using sessionStorage Blob URL only');
+                    // Blob URL already stored above, so we're good
                 };
                 
                 request.onsuccess = function() {
@@ -681,10 +689,13 @@
                             }
                         };
                         upgradeRequest.onsuccess = function() {
-                            storeFileAndRedirect(upgradeRequest.result, e.target.result, file);
+                            storeFileAndRedirect(upgradeRequest.result, fileData, file);
+                        };
+                        upgradeRequest.onerror = function() {
+                            console.warn('IndexedDB upgrade failed, using sessionStorage only');
                         };
                     } else {
-                        storeFileAndRedirect(db, e.target.result, file);
+                        storeFileAndRedirect(db, fileData, file);
                     }
                 };
                 
@@ -696,12 +707,25 @@
                 };
             };
             
+            reader.onerror = function() {
+                console.error('FileReader error');
+                alert('Error reading file. Please try again.');
+            };
+            
             reader.readAsArrayBuffer(file);
         }
         
         function storeFileAndRedirect(db, fileData, file) {
             const transaction = db.transaction(['pdfFiles'], 'readwrite');
             const store = transaction.objectStore('pdfFiles');
+            
+            // Create Blob URL as fallback for sessionStorage
+            const blob = new Blob([fileData], { type: 'application/pdf' });
+            const blobURL = URL.createObjectURL(blob);
+            sessionStorage.setItem('pdfFileURL', blobURL);
+            sessionStorage.setItem('pdfFileName', file.name);
+            sessionStorage.setItem('pdfFileSize', file.size.toString());
+            sessionStorage.setItem('pdfFileType', file.type);
             
             store.clear().onsuccess = function() {
                 const request = store.add({
@@ -714,9 +738,12 @@
                 
                 request.onsuccess = function() {
                     sessionStorage.setItem('pdfFileId', request.result.toString());
-                    sessionStorage.setItem('pdfFileName', file.name);
-                    sessionStorage.setItem('pdfFileSize', file.size.toString());
-                    sessionStorage.setItem('pdfFileType', file.type);
+                    // File is now stored, ready for preview page
+                    console.log('PDF file stored successfully in IndexedDB');
+                };
+                
+                request.onerror = function() {
+                    console.warn('IndexedDB storage failed, but Blob URL is available in sessionStorage');
                 };
             };
         }

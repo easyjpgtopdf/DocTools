@@ -824,19 +824,35 @@
                     throw new Error('PDF.js library not loaded');
                 }
                 
+                console.log('Starting PDF render, data size:', pdfData.byteLength || pdfData.length);
+                
                 const loadingTask = pdfjsLib.getDocument({ data: pdfData });
                 pdfDoc = await loadingTask.promise;
                 totalPages = pdfDoc.numPages;
                 
+                console.log('PDF loaded successfully, total pages:', totalPages);
+                
                 if (pageCount) pageCount.textContent = totalPages;
+                
+                // Ensure preview container is visible
+                if (previewContainer) {
+                    previewContainer.style.display = 'flex';
+                }
                 
                 await renderPage(currentPage);
                 
                 if (loadingOverlay) loadingOverlay.style.display = 'none';
-                if (pdfPageWrapper) pdfPageWrapper.style.display = 'block';
+                if (pdfPageWrapper) {
+                    pdfPageWrapper.style.display = 'block';
+                } else if (previewContainer) {
+                    // If pdfPageWrapper doesn't exist, ensure preview container shows content
+                    previewContainer.style.display = 'flex';
+                }
                 if (downloadBtn) downloadBtn.disabled = false;
                 
                 updatePageButtons();
+                
+                console.log('PDF rendered successfully');
             } catch (error) {
                 console.error('Error rendering PDF:', error);
                 if (loadingOverlay) loadingOverlay.style.display = 'none';
