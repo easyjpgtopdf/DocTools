@@ -22,7 +22,8 @@ app.use(cors({ exposedHeaders: ['Content-Length', 'Content-Disposition'] }));
 
 app.post('/api/payments/razorpay/webhook', express.raw({ type: 'application/json' }), handleRazorpayWebhook);
 
-app.use(express.json());
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 app.use(express.static('public'));
 app.use('/previews', express.static('previews'));
 app.use('/converted', express.static('converted'));
@@ -1077,6 +1078,145 @@ app.get('/api/download/:filename', (req, res) => {
 const pdfEditModule = require('./api/pdf-edit/edit-pdf');
 const pdfEditAdvanced = require('./api/pdf-edit/edit-pdf-advanced');
 
+// Multer configuration for PDF uploads (Direct file processing)
+const uploadPDF = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadDir = path.join(__dirname, 'uploads', 'pdfs');
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(file.originalname)}`;
+      cb(null, uniqueName);
+    }
+  }),
+  limits: {
+    fileSize: 100 * 1024 * 1024 // 100MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed'), false);
+    }
+  }
+});
+
+// Direct PDF Upload Endpoint (Fast server processing)
+app.post('/api/pdf/upload', uploadPDF.single('pdfFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No PDF file uploaded'
+      });
+    }
+    
+    const filePath = req.file.path;
+    const fileBuffer = fs.readFileSync(filePath);
+    
+    // Process PDF immediately (fast)
+    // Optionally: Extract text, fonts, etc.
+    const pdfContentParser = require('./api/pdf-edit/pdf-content-parser');
+    let textItems = [];
+    let fonts = [];
+    
+    try {
+      textItems = await pdfContentParser.extractTextWithPositions(fileBuffer);
+      fonts = await pdfContentParser.getFontsFromPDF(fileBuffer);
+    } catch (e) {
+      console.warn('Could not extract PDF content:', e.message);
+    }
+    
+    // Create accessible URL
+    const fileUrl = `/uploads/pdfs/${req.file.filename}`;
+    
+    // Clean up after 1 hour (optional)
+    setTimeout(() => {
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (e) {
+        console.warn('Could not delete temp file:', e);
+      }
+    }, 3600000); // 1 hour
+    
+    res.json({
+      success: true,
+      pdfUrl: fileUrl,
+      filename: req.file.originalname,
+      size: req.file.size,
+      textItems: textItems,
+      fonts: fonts,
+      message: 'PDF uploaded and processed successfully'
+    });
+  } catch (error) {
+    console.error('PDF upload error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'PDF upload failed: ' + error.message
+    });
+  }
+});
+
+// Serve uploaded PDFs
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Cloud Save Endpoint
+app.post('/api/pdf/save-cloud', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData, filename = 'document.pdf', cloudProvider = 'firebase' } = req.body;
+    
+    if (!pdfData) {
+      return res.status(400).json({
+        success: false,
+        error: 'No PDF data provided'
+      });
+    }
+    
+    // Convert base64 to buffer
+    let pdfBuffer;
+    if (typeof pdfData === 'string') {
+      if (pdfData.startsWith('data:application/pdf')) {
+        pdfData = pdfData.split(',')[1];
+      }
+      pdfBuffer = Buffer.from(pdfData, 'base64');
+    } else {
+      pdfBuffer = Buffer.from(pdfData);
+    }
+    
+    // Save to cloud
+    const cloudIntegration = require('./api/pdf-edit/cloud-integration');
+    let cloudUrl = null;
+    
+    try {
+      if (cloudProvider === 'google-cloud' || cloudProvider === 'firebase') {
+        cloudUrl = await cloudIntegration.saveToFirebase(pdfBuffer, filename);
+      }
+    } catch (cloudError) {
+      console.warn('Cloud save failed:', cloudError.message);
+      // Continue without cloud save
+    }
+    
+    res.json({
+      success: true,
+      cloudUrl: cloudUrl,
+      message: cloudUrl ? 'PDF saved to cloud successfully' : 'PDF processed (cloud save unavailable)',
+      provider: cloudProvider
+    });
+  } catch (error) {
+    console.error('Cloud save error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Cloud save failed: ' + error.message
+    });
+  }
+});
+
 // Edit PDF (text + images)
 app.post('/api/pdf/edit', express.json({ limit: '100mb' }), async (req, res) => {
   try {
@@ -1367,6 +1507,78 @@ app.get('/api/pdf-ocr/status', async (req, res) => {
       error: error.message,
       message: 'Error checking Google Cloud Vision API status',
       accuracy: '90-95% (Fallback: Tesseract OCR)'
+    });
+  }
+});
+
+// Fast OCR Processing Endpoint (Optimized for speed)
+app.post('/api/pdf-ocr/process-fast', express.json({ limit: '50mb' }), async (req, res) => {
+  try {
+    const { image, language = 'en', fast = true } = req.body;
+    
+    if (!image) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No image data provided' 
+      });
+    }
+    
+    // Fast processing: Use Google Cloud Vision API with optimized settings
+    try {
+      const googleCloudOCR = require('./api/pdf-ocr/google-cloud-ocr');
+      
+      if (googleCloudOCR.isAvailable()) {
+        const langMap = {
+          'eng': 'en', 'en': 'en', 'hin': 'hi', 'hi': 'hi',
+          'guj': 'gu', 'mar': 'mr', 'nep': 'ne', 'san': 'sa',
+          'tam': 'ta', 'tel': 'te', 'kan': 'kn', 'mal': 'ml',
+          'ben': 'bn', 'pun': 'pa', 'urd': 'ur'
+        };
+        
+        const mappedLang = langMap[language] || language || 'en';
+        
+        // Use fast text detection (not document text detection for speed)
+        const result = await googleCloudOCR.processOCRWithGoogleCloud(image, mappedLang);
+        
+        return res.json({
+          success: true,
+          text: result.text,
+          words: result.words,
+          confidence: result.confidence,
+          language: mappedLang,
+          method: 'google-cloud-vision-fast',
+          processingTime: 'instant'
+        });
+      }
+    } catch (googleError) {
+      console.warn('Fast Google Cloud OCR failed:', googleError.message);
+    }
+    
+    // Fallback to standard OCR
+    try {
+      const standardResponse = await fetch('http://localhost:' + PORT + '/api/pdf-ocr/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image, language })
+      });
+      
+      if (standardResponse.ok) {
+        const result = await standardResponse.json();
+        return res.json({
+          ...result,
+          method: 'standard-fallback'
+        });
+      }
+    } catch (fetchError) {
+      console.warn('Standard OCR fallback failed:', fetchError.message);
+    }
+    
+    throw new Error('Fast OCR processing failed');
+  } catch (error) {
+    console.error('Fast OCR error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Fast OCR processing failed: ' + error.message
     });
   }
 });
