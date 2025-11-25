@@ -1059,7 +1059,20 @@
                     
                     if (response.ok) {
                         const result = await response.json();
-                        alert('Fast OCR completed! ' + (result.words ? result.words.length : 0) + ' words extracted.');
+                        
+                        // Determine which service was actually used
+                        let serviceName = 'Fast Server OCR';
+                        if (result.method) {
+                            if (result.method.includes('google-cloud') || result.method.includes('vision')) {
+                                serviceName = 'Google Cloud Vision API (Fast)';
+                            } else if (result.method === 'tesseract-js-client' || result.method.includes('tesseract')) {
+                                serviceName = 'Tesseract.js (Client-side)';
+                            } else {
+                                serviceName = result.method;
+                            }
+                        }
+                        
+                        alert('Fast OCR completed! ' + (result.words ? result.words.length : 0) + ' words extracted using ' + serviceName + '.');
                     }
                     
                     loadingOverlay.style.display = 'none';
