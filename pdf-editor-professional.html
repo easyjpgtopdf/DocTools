@@ -648,14 +648,26 @@
                         }
                     } catch (uploadError) {
                         console.warn('Server upload failed, using client-side processing:', uploadError);
+                        // Continue with client-side processing - no error shown to user
                     }
                     
                     // Option 2: Client-side processing (Fallback)
+                    // This always runs if server upload fails or is skipped
                     const reader = new FileReader();
                     reader.onload = async function(e) {
-                        const pdfData = e.target.result;
-                        await renderPDF(pdfData);
+                        try {
+                            const pdfData = e.target.result;
+                            await renderPDF(pdfData);
+                            loadingOverlay.style.display = 'none';
+                        } catch (renderError) {
+                            console.error('PDF rendering error:', renderError);
+                            loadingOverlay.style.display = 'none';
+                            alert('Error loading PDF: ' + renderError.message);
+                        }
+                    };
+                    reader.onerror = function() {
                         loadingOverlay.style.display = 'none';
+                        alert('Error reading PDF file. Please try again.');
                     };
                     reader.readAsArrayBuffer(file);
                     
@@ -862,20 +874,83 @@
                         apiUrl = 'http://localhost:3000/api/pdf-ocr/process';
                     }
                     
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            image: imageData.split(',')[1],
-                            language: 'en'
-                        })
-                    });
+                    let result = null;
+                    let useClientSideOCR = false;
                     
-                    if (response.ok) {
-                        const result = await response.json();
-                        if (result.success && result.words) {
+                    // Try server-side OCR first
+                    try {
+                        const response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                image: imageData.split(',')[1],
+                                language: 'en'
+                            })
+                        });
+                        
+                        if (response.ok) {
+                            const contentType = response.headers.get('content-type');
+                            if (contentType && contentType.includes('application/json')) {
+                                result = await response.json();
+                                console.log('Server-side OCR successful');
+                            } else {
+                                throw new Error('Invalid response type from server');
+                            }
+                        } else {
+                            console.warn('Server OCR failed, using client-side OCR fallback');
+                            useClientSideOCR = true;
+                        }
+                    } catch (fetchError) {
+                        // Network error or server not available, use client-side OCR
+                        console.warn('Server OCR unavailable, using client-side OCR fallback:', fetchError.message);
+                        useClientSideOCR = true;
+                    }
+                    
+                    // Fallback to client-side OCR using Tesseract.js
+                    if (useClientSideOCR || !result) {
+                        if (typeof Tesseract === 'undefined') {
+                            loadingOverlay.style.display = 'none';
+                            alert('OCR service unavailable. Please ensure you have an internet connection for client-side OCR or start the server for Google Cloud Vision API.');
+                            return;
+                        }
+                        
+                        console.log('Starting client-side OCR with Tesseract.js...');
+                        try {
+                            const { data } = await Tesseract.recognize(imageData, 'eng', {
+                                logger: m => {
+                                    if (m.status === 'recognizing text') {
+                                        console.log(`OCR progress: ${Math.round(m.progress * 100)}%`);
+                                    }
+                                }
+                            });
+                            
+                            result = {
+                                success: true,
+                                text: data.text,
+                                words: data.words.map(word => ({
+                                    text: word.text,
+                                    boundingBox: {
+                                        x: word.bbox.x0,
+                                        y: word.bbox.y0,
+                                        width: word.bbox.x1 - word.bbox.x0,
+                                        height: word.bbox.y1 - word.bbox.y0
+                                    },
+                                    confidence: word.confidence
+                                })),
+                                confidence: data.confidence,
+                                method: 'tesseract-js-client'
+                            };
+                        } catch (ocrError) {
+                            console.error('Client-side OCR error:', ocrError);
+                            loadingOverlay.style.display = 'none';
+                            alert('OCR processing failed. Please try again or check your internet connection.');
+                            return;
+                        }
+                    }
+                    
+                    if (result && result.success && result.words) {
                             // Process OCR results
                             const currentViewport = page.getViewport({ scale: window.pdfEditorVars.scale });
                             const scaleX = pdfCanvas.width / (viewport.width);
