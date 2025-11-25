@@ -840,6 +840,12 @@
                 
                 console.log('Starting PDF render, data size:', pdfData.byteLength || pdfData.length);
                 
+                // Ensure preview container is visible immediately
+                if (previewContainer) {
+                    previewContainer.style.display = 'flex';
+                    previewContainer.style.visibility = 'visible';
+                }
+                
                 const loadingTask = pdfjsLib.getDocument({ data: pdfData });
                 pdfDoc = await loadingTask.promise;
                 totalPages = pdfDoc.numPages;
@@ -848,25 +854,24 @@
                 
                 if (pageCount) pageCount.textContent = totalPages;
                 
-                // Ensure preview container is visible
-                if (previewContainer) {
-                    previewContainer.style.display = 'flex';
-                }
-                
+                // Render first page immediately
                 await renderPage(currentPage);
                 
+                // Hide loading overlay and show PDF
                 if (loadingOverlay) loadingOverlay.style.display = 'none';
                 if (pdfPageWrapper) {
                     pdfPageWrapper.style.display = 'block';
-                } else if (previewContainer) {
-                    // If pdfPageWrapper doesn't exist, ensure preview container shows content
+                    pdfPageWrapper.style.visibility = 'visible';
+                }
+                if (previewContainer) {
                     previewContainer.style.display = 'flex';
+                    previewContainer.style.visibility = 'visible';
                 }
                 if (downloadBtn) downloadBtn.disabled = false;
                 
                 updatePageButtons();
                 
-                console.log('PDF rendered successfully');
+                console.log('PDF rendered successfully and visible');
             } catch (error) {
                 console.error('Error rendering PDF:', error);
                 if (loadingOverlay) loadingOverlay.style.display = 'none';
@@ -1183,29 +1188,46 @@
             document.getElementById('feedback-message').value = '';
         }
         
-        // Initialize on page load
-        window.addEventListener('load', function() {
-            // Wait for PDF.js to load
-            if (typeof pdfjsLib === 'undefined') {
-                console.error('PDF.js library not loaded');
-                if (loadingOverlay) loadingOverlay.style.display = 'none';
-                alert('PDF.js library failed to load. Please refresh the page.');
-                return;
+        // Initialize on page load - load immediately for instant preview
+        (function initPDFEditor() {
+            // Use DOMContentLoaded for faster initialization
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
+                    startPDFLoad();
+                });
+            } else {
+                // DOM already loaded, start immediately
+                startPDFLoad();
             }
             
-            // Set PDF.js worker if not already set
-            if (pdfjsLib.GlobalWorkerOptions) {
-                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-            }
-            
-            // Load PDF after a short delay to ensure DOM is ready
-            setTimeout(() => {
+            function startPDFLoad() {
+                // Wait for PDF.js to load
+                if (typeof pdfjsLib === 'undefined') {
+                    console.error('PDF.js library not loaded');
+                    // Retry after a short delay in case script is still loading
+                    setTimeout(() => {
+                        if (typeof pdfjsLib !== 'undefined') {
+                            startPDFLoad();
+                        } else {
+                            if (loadingOverlay) loadingOverlay.style.display = 'none';
+                            alert('PDF.js library failed to load. Please refresh the page.');
+                        }
+                    }, 200);
+                    return;
+                }
+                
+                // Set PDF.js worker if not already set
+                if (pdfjsLib.GlobalWorkerOptions) {
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                }
+                
+                // Load PDF immediately - no delay for instant preview
                 loadPDF().catch(error => {
                     console.error('Failed to load PDF:', error);
                     if (loadingOverlay) loadingOverlay.style.display = 'none';
                 });
-            }, 100);
-        });
+            }
+        })();
     </script>
 </body>
 </html>
