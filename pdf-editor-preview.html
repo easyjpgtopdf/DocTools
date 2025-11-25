@@ -503,11 +503,11 @@
             </div>
             
             <div class="preview-section">
-                <div class="preview-container" id="preview-container">
+                <div class="preview-container" id="preview-container" style="display: flex; visibility: visible;">
                     <div class="loading-overlay" id="loading-overlay">
                         <div class="loading-spinner"></div>
                     </div>
-                    <div id="pdf-page-wrapper" class="pdf-page-wrapper" style="display: none;">
+                    <div id="pdf-page-wrapper" class="pdf-page-wrapper" style="display: block; visibility: visible;">
                         <canvas id="pdf-canvas" class="pdf-canvas"></canvas>
                         <div id="text-layer" class="text-layer"></div>
                     </div>
@@ -710,6 +710,16 @@
         const prevPageBtn = document.getElementById('prev-page');
         const nextPageBtn = document.getElementById('next-page');
         const downloadBtn = document.getElementById('download-btn');
+        
+        // Ensure preview container is visible immediately
+        if (previewContainer) {
+            previewContainer.style.display = 'flex';
+            previewContainer.style.visibility = 'visible';
+        }
+        if (pdfPageWrapper) {
+            pdfPageWrapper.style.display = 'block';
+            pdfPageWrapper.style.visibility = 'visible';
+        }
         const ocrBtn = document.getElementById('ocr-btn');
         const addTextBtn = document.getElementById('add-text-btn');
         const addImageBtn = document.getElementById('add-image-btn');
@@ -726,12 +736,18 @@
         async function loadPDF() {
             try {
                 console.log('Starting PDF load process...');
-                if (loadingOverlay) loadingOverlay.style.display = 'flex';
+                console.log('sessionStorage pdfFileURL:', sessionStorage.getItem('pdfFileURL') ? 'Found' : 'Not found');
                 
-                // Ensure preview container is visible
+                // Ensure preview container is visible immediately
                 if (previewContainer) {
                     previewContainer.style.display = 'flex';
+                    previewContainer.style.visibility = 'visible';
                 }
+                if (pdfPageWrapper) {
+                    pdfPageWrapper.style.display = 'block';
+                    pdfPageWrapper.style.visibility = 'visible';
+                }
+                if (loadingOverlay) loadingOverlay.style.display = 'flex';
                 
                 let pdfData = null;
                 let fileName = 'document.pdf';
@@ -817,25 +833,39 @@
             
             if (pdfFileURL) {
                 try {
-                    console.log('Fetching PDF from Blob URL...');
+                    console.log('Fetching PDF from Blob URL:', pdfFileURL);
+                    
+                    // Ensure preview is visible before fetching
+                    if (previewContainer) {
+                        previewContainer.style.display = 'flex';
+                        previewContainer.style.visibility = 'visible';
+                    }
+                    if (pdfPageWrapper) {
+                        pdfPageWrapper.style.display = 'block';
+                        pdfPageWrapper.style.visibility = 'visible';
+                    }
+                    
                     const response = await fetch(pdfFileURL);
                     if (!response.ok) {
-                        throw new Error('Failed to fetch PDF from Blob URL');
+                        throw new Error('Failed to fetch PDF from Blob URL: ' + response.status);
                     }
                     const data = await response.arrayBuffer();
-                    console.log('PDF data fetched, size:', data.byteLength);
+                    console.log('PDF data fetched successfully, size:', data.byteLength, 'bytes');
                     await renderPDF(data);
                 } catch (error) {
                     console.error('Error loading from sessionStorage:', error);
                     if (loadingOverlay) loadingOverlay.style.display = 'none';
-                    alert('Error loading PDF. Please upload a file again.');
-                    window.location.href = 'edit-pdf.html';
+                    alert('Error loading PDF: ' + error.message + '. Please upload a file again.');
+                    // Don't redirect immediately, let user try again
+                    // window.location.href = 'edit-pdf.html';
                 }
             } else {
                 console.error('No pdfFileURL found in sessionStorage');
+                console.log('Available sessionStorage keys:', Object.keys(sessionStorage));
                 if (loadingOverlay) loadingOverlay.style.display = 'none';
                 alert('No PDF file found. Please upload a file first.');
-                window.location.href = 'edit-pdf.html';
+                // Don't redirect immediately
+                // window.location.href = 'edit-pdf.html';
             }
         }
         
@@ -1201,38 +1231,65 @@
         
         // Initialize on page load - load immediately for instant preview
         (function initPDFEditor() {
-            // Use DOMContentLoaded for faster initialization
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', function() {
-                    startPDFLoad();
-                });
-            } else {
-                // DOM already loaded, start immediately
+            // Start loading as soon as possible
+            function init() {
+                // Ensure DOM elements exist
+                if (!previewContainer || !pdfCanvas) {
+                    // Wait a bit if DOM not ready
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', init);
+                        return;
+                    }
+                }
                 startPDFLoad();
             }
             
+            // Start immediately if DOM is ready, otherwise wait
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                // DOM already loaded, start immediately
+                init();
+            }
+            
             function startPDFLoad() {
+                console.log('startPDFLoad called, pdfjsLib available:', typeof pdfjsLib !== 'undefined');
+                
+                // Ensure preview container is visible immediately
+                if (previewContainer) {
+                    previewContainer.style.display = 'flex';
+                    previewContainer.style.visibility = 'visible';
+                }
+                if (pdfPageWrapper) {
+                    pdfPageWrapper.style.display = 'block';
+                    pdfPageWrapper.style.visibility = 'visible';
+                }
+                
                 // Wait for PDF.js to load
                 if (typeof pdfjsLib === 'undefined') {
-                    console.error('PDF.js library not loaded');
+                    console.warn('PDF.js library not loaded yet, retrying...');
                     // Retry after a short delay in case script is still loading
                     setTimeout(() => {
                         if (typeof pdfjsLib !== 'undefined') {
+                            console.log('PDF.js loaded, starting PDF load');
                             startPDFLoad();
                         } else {
+                            console.error('PDF.js library failed to load after retry');
                             if (loadingOverlay) loadingOverlay.style.display = 'none';
                             alert('PDF.js library failed to load. Please refresh the page.');
                         }
-                    }, 200);
+                    }, 100);
                     return;
                 }
                 
                 // Set PDF.js worker if not already set
-                if (pdfjsLib.GlobalWorkerOptions) {
+                if (pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
                     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                    console.log('PDF.js worker configured');
                 }
                 
                 // Load PDF immediately - no delay for instant preview
+                console.log('Calling loadPDF()...');
                 loadPDF().catch(error => {
                     console.error('Failed to load PDF:', error);
                     if (loadingOverlay) loadingOverlay.style.display = 'none';
