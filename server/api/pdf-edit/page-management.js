@@ -111,10 +111,44 @@ async function extractPages(pdfBuffer, pageIndices) {
   }
 }
 
+/**
+ * Add a new page to PDF
+ * @param {Buffer} pdfBuffer - PDF file buffer
+ * @param {Number} pageIndex - Index where to insert (0-based), or -1 to append
+ * @param {Boolean} insertAfter - If true, insert after pageIndex; if false, insert before
+ * @returns {Promise<Buffer>} Edited PDF buffer
+ */
+async function addPage(pdfBuffer, pageIndex = -1, insertAfter = true) {
+  try {
+    const pdfDoc = await PDFDocument.load(pdfBuffer);
+    const totalPages = pdfDoc.getPageCount();
+    
+    if (pageIndex === -1 || pageIndex >= totalPages) {
+      // Append at the end
+      pdfDoc.addPage();
+    } else {
+      // Insert at specific position
+      const insertIndex = insertAfter ? pageIndex + 1 : pageIndex;
+      if (insertIndex >= 0 && insertIndex <= totalPages) {
+        const pages = pdfDoc.getPages();
+        const [newPage] = await pdfDoc.copyPages(pdfDoc, [Math.max(0, pageIndex)]);
+        pdfDoc.insertPage(insertIndex, newPage);
+      }
+    }
+    
+    const editedPdfBytes = await pdfDoc.save();
+    return Buffer.from(editedPdfBytes);
+  } catch (error) {
+    console.error('Error adding page:', error);
+    throw new Error(`Page addition failed: ${error.message}`);
+  }
+}
+
 module.exports = {
   rotatePages,
   deletePages,
   reorderPages,
-  extractPages
+  extractPages,
+  addPage
 };
 

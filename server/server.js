@@ -1234,6 +1234,44 @@ app.post('/api/pdf/pages/reorder', express.json({ limit: '100mb' }), async (req,
   }
 });
 
+app.post('/api/pdf/pages/add', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData, pageIndex = -1, insertAfter = true } = req.body;
+    
+    if (!pdfData) {
+      return res.status(400).json({
+        success: false,
+        error: 'No PDF data provided'
+      });
+    }
+    
+    let pdfBuffer;
+    if (typeof pdfData === 'string') {
+      if (pdfData.startsWith('data:application/pdf')) {
+        pdfData = pdfData.split(',')[1];
+      }
+      pdfBuffer = Buffer.from(pdfData, 'base64');
+    } else {
+      pdfBuffer = Buffer.from(pdfData);
+    }
+    
+    const pageManagement = require('./api/pdf-edit/page-management');
+    const editedBuffer = await pageManagement.addPage(pdfBuffer, pageIndex, insertAfter);
+    const editedBase64 = editedBuffer.toString('base64');
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${editedBase64}`
+    });
+  } catch (error) {
+    console.error('Add page error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Add page failed: ' + error.message
+    });
+  }
+});
+
 app.post('/api/pdf/pages/extract', express.json({ limit: '100mb' }), async (req, res) => {
   try {
     const { pdfData, pageIndices } = req.body;

@@ -610,6 +610,130 @@
             .pdf-page-wrapper {
                 touch-action: pan-x pan-y pinch-zoom;
             }
+            
+            /* Enhanced mobile touch targets */
+            .tool-item {
+                min-width: 50px;
+                min-height: 50px;
+            }
+            
+            /* Mobile-friendly zoom controls */
+            .zoom-controls {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                z-index: 1000;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .zoom-btn {
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                background: #4361ee;
+                color: white;
+                border: none;
+                font-size: 20px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            }
+        }
+        
+        /* Real-time Collaboration Styles */
+        .collaboration-panel {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            width: 300px;
+            background: #2d2d2d;
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            padding: 15px;
+            z-index: 1000;
+            display: none;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .collaboration-panel.active {
+            display: block;
+        }
+        
+        .collaboration-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #3a3a3a;
+        }
+        
+        .collaboration-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #e5e5e5;
+        }
+        
+        .collaboration-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            margin-bottom: 8px;
+            background: #3a3a3a;
+            border-radius: 4px;
+        }
+        
+        .collaboration-user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #4361ee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .collaboration-user-name {
+            color: #e5e5e5;
+            font-size: 14px;
+        }
+        
+        .collaboration-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #28a745;
+            margin-left: auto;
+        }
+        
+        .collaboration-chat {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #3a3a3a;
+        }
+        
+        .collaboration-message {
+            padding: 8px;
+            margin-bottom: 8px;
+            background: #3a3a3a;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #e5e5e5;
+        }
+        
+        .collaboration-input {
+            width: 100%;
+            padding: 8px;
+            background: #1a1a1a;
+            border: 1px solid #3a3a3a;
+            border-radius: 4px;
+            color: #e5e5e5;
+            font-size: 12px;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -2264,7 +2388,7 @@
         
         // ========== NEW FEATURES IMPLEMENTATION ==========
         
-        // Page Management
+        // Page Management - Complete Implementation
         const rotate90Btn = document.getElementById('rotate-90-btn');
         const deleteCurrentPageBtn = document.getElementById('delete-current-page-btn');
         const rotatePageBtn = document.getElementById('rotate-page-btn');
@@ -2272,9 +2396,467 @@
         const reorderPagesBtn = document.getElementById('reorder-pages-btn');
         const extractPageBtn = document.getElementById('extract-page-btn');
         
-        // Forms
+        // Rotate Current Page 90°
+        if (rotate90Btn) {
+            rotate90Btn.addEventListener('click', async function() {
+                if (!window.pdfEditorVars.pdfDoc) {
+                    showError('No PDF loaded');
+                    return;
+                }
+                
+                try {
+                    showLoading('Rotating page...', 10);
+                    const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                    if (!pdfFileURL) throw new Error('PDF file not found');
+                    
+                    updateProgress(30, 'Loading PDF...');
+                    const response = await fetch(pdfFileURL);
+                    const pdfArrayBuffer = await response.arrayBuffer();
+                    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                    
+                    updateProgress(50, 'Rotating page...');
+                    let apiUrl = '/api/pdf/pages/rotate';
+                    if (window.location.protocol === 'file:') {
+                        apiUrl = 'http://localhost:3000/api/pdf/pages/rotate';
+                    }
+                    
+                    const rotateResponse = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            pdfData: `data:application/pdf;base64,${pdfBase64}`,
+                            rotations: [{ pageIndex: window.pdfEditorVars.currentPage - 1, angle: 90 }]
+                        })
+                    });
+                    
+                    updateProgress(80, 'Updating PDF...');
+                    
+                    if (rotateResponse.ok) {
+                        const result = await rotateResponse.json();
+                        if (result.success) {
+                            updateProgress(90, 'Rendering...');
+                            const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
+                            
+                            const blob = new Blob([pdfData], { type: 'application/pdf' });
+                            const newUrl = URL.createObjectURL(blob);
+                            sessionStorage.setItem('pdfFileURL', newUrl);
+                            
+                            const base64 = btoa(String.fromCharCode(...new Uint8Array(pdfData)));
+                            window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
+                            
+                            await reloadPDF();
+                            
+                            updateProgress(100, 'Page rotated!');
+                            setTimeout(() => hideLoading(), 300);
+                        } else {
+                            throw new Error(result.error || 'Rotation failed');
+                        }
+                    } else {
+                        throw new Error('Rotation request failed');
+                    }
+                } catch (error) {
+                    console.error('Error rotating page:', error);
+                    hideLoading();
+                    showError('Failed to rotate page: ' + error.message);
+                }
+            });
+        }
+        
+        // Delete Current Page
+        if (deleteCurrentPageBtn) {
+            deleteCurrentPageBtn.addEventListener('click', async function() {
+                if (!window.pdfEditorVars.pdfDoc) {
+                    showError('No PDF loaded');
+                    return;
+                }
+                
+                if (!confirm(`Delete page ${window.pdfEditorVars.currentPage}?`)) {
+                    return;
+                }
+                
+                try {
+                    showLoading('Deleting page...', 10);
+                    const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                    if (!pdfFileURL) throw new Error('PDF file not found');
+                    
+                    updateProgress(30, 'Loading PDF...');
+                    const response = await fetch(pdfFileURL);
+                    const pdfArrayBuffer = await response.arrayBuffer();
+                    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                    
+                    updateProgress(50, 'Deleting page...');
+                    let apiUrl = '/api/pdf/pages/delete';
+                    if (window.location.protocol === 'file:') {
+                        apiUrl = 'http://localhost:3000/api/pdf/pages/delete';
+                    }
+                    
+                    const deleteResponse = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            pdfData: `data:application/pdf;base64,${pdfBase64}`,
+                            pageIndices: [window.pdfEditorVars.currentPage - 1]
+                        })
+                    });
+                    
+                    updateProgress(80, 'Updating PDF...');
+                    
+                    if (deleteResponse.ok) {
+                        const result = await deleteResponse.json();
+                        if (result.success) {
+                            updateProgress(90, 'Rendering...');
+                            const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
+                            
+                            const blob = new Blob([pdfData], { type: 'application/pdf' });
+                            const newUrl = URL.createObjectURL(blob);
+                            sessionStorage.setItem('pdfFileURL', newUrl);
+                            
+                            const base64 = btoa(String.fromCharCode(...new Uint8Array(pdfData)));
+                            window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
+                            
+                            // Adjust current page if needed
+                            if (window.pdfEditorVars.currentPage > window.pdfEditorVars.totalPages - 1) {
+                                window.pdfEditorVars.currentPage = Math.max(1, window.pdfEditorVars.totalPages - 1);
+                            }
+                            
+                            await reloadPDF();
+                            
+                            updateProgress(100, 'Page deleted!');
+                            setTimeout(() => hideLoading(), 300);
+                        } else {
+                            throw new Error(result.error || 'Deletion failed');
+                        }
+                    } else {
+                        throw new Error('Deletion request failed');
+                    }
+                } catch (error) {
+                    console.error('Error deleting page:', error);
+                    hideLoading();
+                    showError('Failed to delete page: ' + error.message);
+                }
+            });
+        }
+        
+        // Reorder Pages
+        if (reorderPagesBtn) {
+            reorderPagesBtn.addEventListener('click', async function() {
+                if (!window.pdfEditorVars.pdfDoc) {
+                    showError('No PDF loaded');
+                    return;
+                }
+                
+                const totalPages = window.pdfEditorVars.totalPages;
+                const currentOrder = Array.from({ length: totalPages }, (_, i) => i);
+                const newOrderStr = prompt(`Enter new page order (comma-separated, 1-${totalPages}):\nExample: 3,1,2,4`, currentOrder.map(i => i + 1).join(','));
+                
+                if (!newOrderStr) return;
+                
+                try {
+                    const newOrder = newOrderStr.split(',').map(s => parseInt(s.trim()) - 1).filter(n => !isNaN(n) && n >= 0 && n < totalPages);
+                    
+                    if (newOrder.length !== totalPages) {
+                        throw new Error('Invalid page order');
+                    }
+                    
+                    showLoading('Reordering pages...', 10);
+                    const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                    if (!pdfFileURL) throw new Error('PDF file not found');
+                    
+                    updateProgress(30, 'Loading PDF...');
+                    const response = await fetch(pdfFileURL);
+                    const pdfArrayBuffer = await response.arrayBuffer();
+                    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                    
+                    updateProgress(50, 'Reordering pages...');
+                    let apiUrl = '/api/pdf/pages/reorder';
+                    if (window.location.protocol === 'file:') {
+                        apiUrl = 'http://localhost:3000/api/pdf/pages/reorder';
+                    }
+                    
+                    const reorderResponse = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            pdfData: `data:application/pdf;base64,${pdfBase64}`,
+                            newOrder: newOrder
+                        })
+                    });
+                    
+                    updateProgress(80, 'Updating PDF...');
+                    
+                    if (reorderResponse.ok) {
+                        const result = await reorderResponse.json();
+                        if (result.success) {
+                            updateProgress(90, 'Rendering...');
+                            const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
+                            
+                            const blob = new Blob([pdfData], { type: 'application/pdf' });
+                            const newUrl = URL.createObjectURL(blob);
+                            sessionStorage.setItem('pdfFileURL', newUrl);
+                            
+                            const base64 = btoa(String.fromCharCode(...new Uint8Array(pdfData)));
+                            window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
+                            
+                            await reloadPDF();
+                            
+                            updateProgress(100, 'Pages reordered!');
+                            setTimeout(() => hideLoading(), 300);
+                        } else {
+                            throw new Error(result.error || 'Reordering failed');
+                        }
+                    } else {
+                        throw new Error('Reordering request failed');
+                    }
+                } catch (error) {
+                    console.error('Error reordering pages:', error);
+                    hideLoading();
+                    showError('Failed to reorder pages: ' + error.message);
+                }
+            });
+        }
+        
+        // Extract Page
+        if (extractPageBtn) {
+            extractPageBtn.addEventListener('click', async function() {
+                if (!window.pdfEditorVars.pdfDoc) {
+                    showError('No PDF loaded');
+                    return;
+                }
+                
+                const pageNum = window.pdfEditorVars.currentPage;
+                if (!confirm(`Extract page ${pageNum} as a new PDF?`)) {
+                    return;
+                }
+                
+                try {
+                    showLoading('Extracting page...', 10);
+                    const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                    if (!pdfFileURL) throw new Error('PDF file not found');
+                    
+                    updateProgress(30, 'Loading PDF...');
+                    const response = await fetch(pdfFileURL);
+                    const pdfArrayBuffer = await response.arrayBuffer();
+                    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                    
+                    updateProgress(50, 'Extracting page...');
+                    let apiUrl = '/api/pdf/pages/extract';
+                    if (window.location.protocol === 'file:') {
+                        apiUrl = 'http://localhost:3000/api/pdf/pages/extract';
+                    }
+                    
+                    const extractResponse = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            pdfData: `data:application/pdf;base64,${pdfBase64}`,
+                            pageIndices: [window.pdfEditorVars.currentPage - 1]
+                        })
+                    });
+                    
+                    updateProgress(80, 'Preparing download...');
+                    
+                    if (extractResponse.ok) {
+                        const result = await extractResponse.json();
+                        if (result.success) {
+                            updateProgress(90, 'Downloading...');
+                            const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
+                            
+                            const blob = new Blob([pdfData], { type: 'application/pdf' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `page-${pageNum}.pdf`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                            
+                            updateProgress(100, 'Page extracted!');
+                            setTimeout(() => hideLoading(), 300);
+                        } else {
+                            throw new Error(result.error || 'Extraction failed');
+                        }
+                    } else {
+                        throw new Error('Extraction request failed');
+                    }
+                } catch (error) {
+                    console.error('Error extracting page:', error);
+                    hideLoading();
+                    showError('Failed to extract page: ' + error.message);
+                }
+            });
+        }
+        
+        // Forms - Complete Implementation
         const fillFormBtn = document.getElementById('fill-form-btn');
         const detectFormBtn = document.getElementById('detect-form-btn');
+        
+        // Detect Form Fields
+        if (detectFormBtn) {
+            detectFormBtn.addEventListener('click', async function() {
+                if (!window.pdfEditorVars.pdfDoc) {
+                    showError('No PDF loaded');
+                    return;
+                }
+                
+                try {
+                    showLoading('Detecting form fields...', 10);
+                    const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                    if (!pdfFileURL) throw new Error('PDF file not found');
+                    
+                    updateProgress(30, 'Loading PDF...');
+                    const response = await fetch(pdfFileURL);
+                    const pdfArrayBuffer = await response.arrayBuffer();
+                    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                    
+                    updateProgress(50, 'Detecting form fields...');
+                    let apiUrl = '/api/pdf/forms/get-fields';
+                    if (window.location.protocol === 'file:') {
+                        apiUrl = 'http://localhost:3000/api/pdf/forms/get-fields';
+                    }
+                    
+                    const detectResponse = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            pdfData: `data:application/pdf;base64,${pdfBase64}`
+                        })
+                    });
+                    
+                    updateProgress(80, 'Processing...');
+                    
+                    if (detectResponse.ok) {
+                        const result = await detectResponse.json();
+                        if (result.success && result.formFields) {
+                            updateProgress(100, 'Form fields detected!');
+                            setTimeout(() => hideLoading(), 300);
+                            
+                            const fieldsList = result.formFields.map(f => 
+                                `- ${f.name} (${f.type}): ${f.value || '(empty)'}`
+                            ).join('\n');
+                            
+                            alert(`Found ${result.formFields.length} form field(s):\n\n${fieldsList}`);
+                        } else {
+                            alert('No form fields found in this PDF.');
+                            hideLoading();
+                        }
+                    } else {
+                        throw new Error('Form detection failed');
+                    }
+                } catch (error) {
+                    console.error('Error detecting form fields:', error);
+                    hideLoading();
+                    showError('Failed to detect form fields: ' + error.message);
+                }
+            });
+        }
+        
+        // Fill Form Fields
+        if (fillFormBtn) {
+            fillFormBtn.addEventListener('click', async function() {
+                if (!window.pdfEditorVars.pdfDoc) {
+                    showError('No PDF loaded');
+                    return;
+                }
+                
+                try {
+                    // First detect form fields
+                    showLoading('Detecting form fields...', 10);
+                    const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                    if (!pdfFileURL) throw new Error('PDF file not found');
+                    
+                    updateProgress(20, 'Loading PDF...');
+                    const response = await fetch(pdfFileURL);
+                    const pdfArrayBuffer = await response.arrayBuffer();
+                    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                    
+                    updateProgress(40, 'Detecting form fields...');
+                    let apiUrl = '/api/pdf/forms/get-fields';
+                    if (window.location.protocol === 'file:') {
+                        apiUrl = 'http://localhost:3000/api/pdf/forms/get-fields';
+                    }
+                    
+                    const detectResponse = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            pdfData: `data:application/pdf;base64,${pdfBase64}`
+                        })
+                    });
+                    
+                    if (!detectResponse.ok) {
+                        throw new Error('Form detection failed');
+                    }
+                    
+                    const detectResult = await detectResponse.json();
+                    if (!detectResult.success || !detectResult.formFields || detectResult.formFields.length === 0) {
+                        alert('No form fields found in this PDF.');
+                        hideLoading();
+                        return;
+                    }
+                    
+                    // Collect form field values from user
+                    const formFields = [];
+                    for (const field of detectResult.formFields) {
+                        let value = prompt(`Enter value for "${field.name}" (${field.type}):`, field.value || '');
+                        if (value !== null) {
+                            formFields.push({
+                                fieldName: field.name,
+                                value: value
+                            });
+                        }
+                    }
+                    
+                    if (formFields.length === 0) {
+                        hideLoading();
+                        return;
+                    }
+                    
+                    updateProgress(60, 'Filling form fields...');
+                    apiUrl = '/api/pdf/forms/fill';
+                    if (window.location.protocol === 'file:') {
+                        apiUrl = 'http://localhost:3000/api/pdf/forms/fill';
+                    }
+                    
+                    const fillResponse = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            pdfData: `data:application/pdf;base64,${pdfBase64}`,
+                            formFields: formFields
+                        })
+                    });
+                    
+                    updateProgress(80, 'Updating PDF...');
+                    
+                    if (fillResponse.ok) {
+                        const result = await fillResponse.json();
+                        if (result.success) {
+                            updateProgress(90, 'Rendering...');
+                            const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
+                            
+                            const blob = new Blob([pdfData], { type: 'application/pdf' });
+                            const newUrl = URL.createObjectURL(blob);
+                            sessionStorage.setItem('pdfFileURL', newUrl);
+                            
+                            const base64 = btoa(String.fromCharCode(...new Uint8Array(pdfData)));
+                            window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
+                            
+                            await reloadPDF();
+                            
+                            updateProgress(100, 'Form filled!');
+                            setTimeout(() => hideLoading(), 300);
+                        } else {
+                            throw new Error(result.error || 'Form filling failed');
+                        }
+                    } else {
+                        throw new Error('Form filling request failed');
+                    }
+                } catch (error) {
+                    console.error('Error filling form:', error);
+                    hideLoading();
+                    showError('Failed to fill form: ' + error.message);
+                }
+            });
+        }
         
         // Annotations - Complete Implementation
         const commentBtn = document.getElementById('comment-btn');
