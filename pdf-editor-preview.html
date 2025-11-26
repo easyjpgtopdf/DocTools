@@ -1145,17 +1145,29 @@
                     reader.onload = async function(e) {
                         try {
                             const pdfData = e.target.result;
+                            
+                            // Store PDF data
+                            const arrayBuffer = pdfData;
+                            const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+                            window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
+                            
+                            // Store in sessionStorage for persistence
+                            const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
+                            const blobURL = URL.createObjectURL(blob);
+                            sessionStorage.setItem('pdfFileURL', blobURL);
+                            sessionStorage.setItem('pdfFileName', file.name);
+                            
                             await renderPDF(pdfData);
                             hideLoading();
                         } catch (renderError) {
                             console.error('PDF rendering error:', renderError);
                             hideLoading();
-                            alert('Error loading PDF: ' + renderError.message);
+                            showError('Error loading PDF: ' + renderError.message);
                         }
                     };
                     reader.onerror = function() {
                         hideLoading();
-                        alert('Error reading PDF file. Please try again.');
+                        showError('Error reading PDF file. Please try again.');
                     };
                     reader.readAsArrayBuffer(file);
                     
@@ -1471,10 +1483,6 @@
                 } else {
                     throw new Error(result.error || 'Failed to embed OCR text');
                 }
-            } catch (error) {
-                console.error('Error applying OCR texts:', error);
-                showError('Failed to embed OCR text: ' + error.message);
-            }
             } catch (error) {
                 console.error('Error applying OCR texts:', error);
                 showError('Failed to embed OCR text: ' + error.message);
