@@ -1601,13 +1601,15 @@
                     const result = await deleteResponse.json();
                     if (result.success) {
                         updateProgress(90, 'Rendering updated PDF...');
+                        // Update PDF data and reload
+                        window.pdfEditorVars.currentPdfData = result.pdfData;
                         const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
                         
                         const blob = new Blob([pdfData], { type: 'application/pdf' });
                         const newUrl = URL.createObjectURL(blob);
                         sessionStorage.setItem('pdfFileURL', newUrl);
                         
-                        await renderPDF(pdfData);
+                        await reloadPDF();
                         
                         updateProgress(100, 'Text deleted!');
                         setTimeout(() => hideLoading(), 300);
@@ -2132,17 +2134,16 @@
                 if (editResponse.ok) {
                     const result = await editResponse.json();
                     if (result.success) {
-                        // Update PDF immediately - re-render with new text
-                        updateProgress(90, 'Rendering updated PDF...');
+                        // Update PDF data and reload
+                        updateProgress(90, 'Reloading PDF...');
+                        window.pdfEditorVars.currentPdfData = result.pdfData;
                         const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
                         
-                        // Update stored PDF
                         const blob = new Blob([pdfData], { type: 'application/pdf' });
                         const newUrl = URL.createObjectURL(blob);
                         sessionStorage.setItem('pdfFileURL', newUrl);
                         
-                        // Re-render PDF to show new text
-                        await renderPDF(pdfData);
+                        await reloadPDF();
                         
                         updateProgress(100, 'Text added!');
                         setTimeout(() => {
