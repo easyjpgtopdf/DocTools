@@ -1433,6 +1433,162 @@
             });
         }
         
+        // Add Text button
+        if (addTextBtn) {
+            addTextBtn.addEventListener('click', function() {
+                console.log('Add Text button clicked');
+                window.pdfEditorVars.activeTool = 'text';
+                if (addTextBtn) addTextBtn.classList.add('active');
+                if (addImageBtn) addImageBtn.classList.remove('active');
+                if (highlightBtn) highlightBtn.classList.remove('active');
+                if (selectTool) selectTool.classList.remove('active');
+                
+                // Add text on canvas click
+                if (pdfCanvas) {
+                    pdfCanvas.style.cursor = 'crosshair';
+                    pdfCanvas.addEventListener('click', addTextOnCanvas, { once: true });
+                }
+            });
+        }
+        
+        // Add Image button
+        if (addImageBtn) {
+            addImageBtn.addEventListener('click', function() {
+                console.log('Add Image button clicked');
+                window.pdfEditorVars.activeTool = 'image';
+                if (addImageBtn) addImageBtn.classList.add('active');
+                if (addTextBtn) addTextBtn.classList.remove('active');
+                if (highlightBtn) highlightBtn.classList.remove('active');
+                if (selectTool) selectTool.classList.remove('active');
+                
+                if (imageInput) {
+                    imageInput.click();
+                }
+            });
+        }
+        
+        // Highlight button
+        if (highlightBtn) {
+            highlightBtn.addEventListener('click', function() {
+                console.log('Highlight button clicked');
+                window.pdfEditorVars.activeTool = 'highlight';
+                if (highlightBtn) highlightBtn.classList.add('active');
+                if (addTextBtn) addTextBtn.classList.remove('active');
+                if (addImageBtn) addImageBtn.classList.remove('active');
+                if (selectTool) selectTool.classList.remove('active');
+                
+                if (pdfCanvas) {
+                    pdfCanvas.style.cursor = 'crosshair';
+                }
+            });
+        }
+        
+        // Select tool
+        if (selectTool) {
+            selectTool.addEventListener('click', function() {
+                console.log('Select tool clicked');
+                window.pdfEditorVars.activeTool = 'select';
+                if (selectTool) selectTool.classList.add('active');
+                if (addTextBtn) addTextBtn.classList.remove('active');
+                if (addImageBtn) addImageBtn.classList.remove('active');
+                if (highlightBtn) highlightBtn.classList.remove('active');
+                
+                if (pdfCanvas) {
+                    pdfCanvas.style.cursor = 'default';
+                }
+            });
+        }
+        
+        // Add text on canvas click
+        function addTextOnCanvas(e) {
+            if (window.pdfEditorVars.activeTool !== 'text') return;
+            
+            const rect = pdfCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const text = prompt('Enter text:');
+            if (!text) return;
+            
+            const fontSize = fontSizeInput ? parseInt(fontSizeInput.value) || 12 : 12;
+            const fontFamily = fontFamilySelect ? fontFamilySelect.value || 'Helvetica' : 'Helvetica';
+            const textColor = textColorInput ? textColorInput.value || '#000000' : '#000000';
+            
+            const textElement = document.createElement('div');
+            textElement.className = 'editable-text';
+            textElement.textContent = text;
+            textElement.style.left = x + 'px';
+            textElement.style.top = y + 'px';
+            textElement.style.fontSize = fontSize + 'px';
+            textElement.style.fontFamily = fontFamily;
+            textElement.style.color = textColor;
+            
+            textElement.addEventListener('click', function(e) {
+                e.stopPropagation();
+                selectTextElement(textElement);
+            });
+            
+            textElement.addEventListener('dblclick', function(e) {
+                e.stopPropagation();
+                editTextElement(textElement);
+            });
+            
+            if (textLayer) {
+                textLayer.appendChild(textElement);
+            }
+            
+            // Reset tool
+            window.pdfEditorVars.activeTool = 'select';
+            if (pdfCanvas) pdfCanvas.style.cursor = 'default';
+            if (addTextBtn) addTextBtn.classList.remove('active');
+            if (selectTool) selectTool.classList.add('active');
+        }
+        
+        // Handle image input
+        if (imageInput) {
+            imageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        // Add image to canvas at click position
+                        if (window.pdfEditorVars.activeTool === 'image' && pdfCanvas) {
+                            const rect = pdfCanvas.getBoundingClientRect();
+                            const x = (window.pdfEditorVars.lastClickX || 100) - rect.left;
+                            const y = (window.pdfEditorVars.lastClickY || 100) - rect.top;
+                            
+                            const imgElement = document.createElement('img');
+                            imgElement.src = e.target.result;
+                            imgElement.style.position = 'absolute';
+                            imgElement.style.left = x + 'px';
+                            imgElement.style.top = y + 'px';
+                            imgElement.style.maxWidth = '200px';
+                            imgElement.style.maxHeight = '200px';
+                            
+                            if (textLayer) {
+                                textLayer.appendChild(imgElement);
+                            }
+                        }
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // Track canvas clicks for image placement
+        if (pdfCanvas) {
+            pdfCanvas.addEventListener('click', function(e) {
+                if (window.pdfEditorVars.activeTool === 'image') {
+                    window.pdfEditorVars.lastClickX = e.clientX;
+                    window.pdfEditorVars.lastClickY = e.clientY;
+                }
+            });
+        }
+        
         // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
             if ((e.key === 'Delete' || e.key === 'Backspace') && 
