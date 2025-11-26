@@ -272,29 +272,7 @@
             overflow: visible;
         }
         
-        .editable-text {
-            position: absolute;
-            cursor: text;
-            padding: 2px 4px;
-            border: 1px dashed transparent;
-            user-select: text;
-            white-space: pre-wrap;
-            pointer-events: auto;
-            min-width: 20px;
-            min-height: 16px;
-        }
-        
-        .editable-text.selected {
-            border-color: #4361ee;
-            background: rgba(67, 97, 238, 0.1);
-        }
-        
-        .editable-text.editing {
-            border: 2px solid #4361ee;
-            background: white;
-            z-index: 10;
-            outline: none;
-        }
+        /* Overlay system removed - using native PDF editing only */
         
         .deletion-layer {
             position: absolute;
@@ -1223,6 +1201,77 @@
             }
         }
         
+        // Load PDF from Base64 string
+        async function loadPDFFromBase64(base64String) {
+            try {
+                showLoading('Loading PDF...', 10);
+                
+                // Remove data URL prefix if present
+                let base64 = base64String;
+                if (base64String.startsWith('data:application/pdf;base64,')) {
+                    base64 = base64String.split(',')[1];
+                }
+                
+                // Convert base64 to ArrayBuffer
+                const binaryString = atob(base64);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                const arrayBuffer = bytes.buffer;
+                
+                updateProgress(50, 'Rendering PDF...');
+                await renderPDF(arrayBuffer);
+                
+                // Store in sessionStorage for persistence
+                const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
+                const blobURL = URL.createObjectURL(blob);
+                sessionStorage.setItem('pdfFileURL', blobURL);
+                
+                hideLoading();
+                return true;
+            } catch (error) {
+                console.error('Error loading PDF from base64:', error);
+                hideLoading();
+                showError('Failed to load PDF: ' + error.message);
+                return false;
+            }
+        }
+        
+        // Reload PDF after edits (refreshes display with updated PDF)
+        async function reloadPDF() {
+            try {
+                if (!window.pdfEditorVars.currentPdfData) {
+                    throw new Error('No PDF data available to reload');
+                }
+                
+                showLoading('Reloading PDF...', 20);
+                
+                // Load from stored base64 data
+                const success = await loadPDFFromBase64(window.pdfEditorVars.currentPdfData);
+                
+                if (success) {
+                    hideLoading();
+                    return true;
+                } else {
+                    hideLoading();
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error reloading PDF:', error);
+                hideLoading();
+                showError('Failed to reload PDF: ' + error.message);
+                return false;
+            }
+        }
+        
+        // Show error message to user
+        function showError(message) {
+            hideLoading();
+            alert('Error: ' + message);
+            console.error('PDF Editor Error:', message);
+        }
+        
         // Render PDF (Fast PDF.js rendering)
         async function renderPDF(pdfData) {
             try {
@@ -1252,7 +1301,7 @@
                 
             } catch (error) {
                 console.error('Error rendering PDF:', error);
-                alert('Error rendering PDF: ' + error.message);
+                showError('Error rendering PDF: ' + error.message);
             }
         }
         
@@ -1381,6 +1430,53 @@
             });
         }
         
+        // Apply OCR texts to PDF natively
+        async function applyOCRTextsToPDF() {
+            try {
+                if (!window.pdfEditorVars.ocrTextsForPDF || window.pdfEditorVars.ocrTextsForPDF.length === 0) {
+                    return;
+                }
+                
+                const currentPdfData = window.pdfEditorVars.currentPdfData;
+                if (!currentPdfData) {
+                    throw new Error('No PDF loaded');
+                }
+                
+                let apiUrl = '/api/pdf/edit';
+                if (window.location.protocol === 'file:') {
+                    apiUrl = 'http://localhost:3000/api/pdf/edit';
+                }
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        pdfData: currentPdfData,
+                        edits: {
+                            ocrTexts: window.pdfEditorVars.ocrTextsForPDF
+                        }
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Server error: ' + response.status);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    window.pdfEditorVars.currentPdfData = result.pdfData;
+                    await reloadPDF();
+                    window.pdfEditorVars.ocrTextsForPDF = []; // Clear after embedding
+                } else {
+                    throw new Error(result.error || 'Failed to embed OCR text');
+                }
+            } catch (error) {
+                console.error('Error applying OCR texts:', error);
+                showError('Failed to embed OCR text: ' + error.message);
+            }
+        }
+        
         // Apply native text edit (NO HTML overlays - direct PDF editing)
         async function applyNativeTextEdit(editData) {
             try {
@@ -1389,14 +1485,21 @@
                 // Get current PDF data
                 const currentPdfData = window.pdfEditorVars.currentPdfData;
                 if (!currentPdfData) {
-                    alert('No PDF loaded. Please upload a PDF first.');
-                    return;
+                    showError('No PDF loaded. Please upload a PDF first.');
+                    return false;
                 }
                 
-                showLoading('Applying native text edit...', 50);
+                showLoading('Applying native text edit...', 30);
+                
+                let apiUrl = '/api/pdf/edit';
+                if (window.location.protocol === 'file:') {
+                    apiUrl = 'http://localhost:3000/api/pdf/edit';
+                }
+                
+                updateProgress(50, 'Sending edit to server...');
                 
                 // Send native edit to backend
-                const response = await fetch('/api/pdf/edit', {
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1416,67 +1519,31 @@
                     })
                 });
                 
+                if (!response.ok) {
+                    throw new Error('Server error: ' + response.status);
+                }
+                
+                updateProgress(70, 'Processing edit...');
                 const result = await response.json();
                 
                 if (result.success) {
-                    // Update PDF data and re-render (native changes)
+                    updateProgress(90, 'Reloading PDF...');
+                    // Update PDF data and reload (native changes)
                     window.pdfEditorVars.currentPdfData = result.pdfData;
-                    await renderPDF(result.pdfData);
+                    await reloadPDF();
                     hideLoading();
+                    return true;
                 } else {
-                    hideLoading();
-                    alert('Failed to apply text edit: ' + (result.error || 'Unknown error'));
+                    throw new Error(result.error || 'Unknown error');
                 }
             } catch (error) {
-                hideLoading();
                 console.error('Native text edit error:', error);
-                alert('Error applying text edit: ' + error.message);
+                showError('Error applying text edit: ' + error.message);
+                return false;
             }
         }
         
-        // Select text element (for native editing - triggers edit dialog)
-        function selectTextElement(element) {
-            if (window.pdfEditorVars.selectedTextElement) {
-                window.pdfEditorVars.selectedTextElement.classList.remove('selected');
-            }
-            window.pdfEditorVars.selectedTextElement = element;
-            if (element && element.classList) {
-                element.classList.add('selected');
-            }
-            
-            // For native editing, show edit option
-            if (element && element.dataset.text) {
-                // Text is in PDF, trigger native edit
-                const newText = prompt('Edit text (Native PDF editing):', element.dataset.text);
-                if (newText && newText !== element.dataset.text) {
-                    applyNativeTextEdit({
-                        pageIndex: parseInt(element.dataset.page) - 1,
-                        oldText: element.dataset.text,
-                        newText: newText,
-                        x: parseFloat(element.style.left) || 0,
-                        y: parseFloat(element.style.top) || 0
-                    });
-                }
-            }
-        }
-        
-        // Edit text element
-        function editTextElement(element) {
-            element.contentEditable = true;
-            element.classList.add('editing');
-            element.focus();
-            
-            const range = document.createRange();
-            range.selectNodeContents(element);
-            const selection = window.getSelection();
-            selection.removeAllRanges();
-            selection.addRange(range);
-            
-            element.addEventListener('blur', function() {
-                element.contentEditable = false;
-                element.classList.remove('editing');
-            }, { once: true });
-        }
+        /* Overlay functions removed - using native PDF editing only */
         
         // Delete text element - Native PDF editing (NO HTML overlay)
         async function deleteTextElement(element) {
@@ -1683,20 +1750,8 @@
                             
                             result.words.forEach((word) => {
                                 if (word.text && word.boundingBox) {
-                                    const textElement = document.createElement('div');
-                                    textElement.className = 'editable-text';
-                                    textElement.textContent = word.text;
-                                    textElement.style.left = (word.boundingBox.x * scaleX) + 'px';
-                                    textElement.style.top = (word.boundingBox.y * scaleY) + 'px';
-                                    textElement.style.fontSize = '12px';
-                                    textElement.style.color = '#000000';
-                                    
-                                    textElement.addEventListener('click', function(e) {
-                                        e.stopPropagation();
-                                        selectTextElement(textElement);
-                                    });
-                                    
-                                    textLayer.appendChild(textElement);
+                                    // OCR text is stored for native PDF embedding - NO HTML overlays
+                                    // Text will be embedded directly into PDF structure
                                     
                                     // Store for PDF embedding
                                     if (!window.pdfEditorVars.ocrTextsForPDF) {
