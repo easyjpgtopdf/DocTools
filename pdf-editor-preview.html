@@ -1129,6 +1129,17 @@
                             if (result.success) {
                                 // Load PDF from server response
                                 const pdfData = await fetch(result.pdfUrl).then(r => r.arrayBuffer());
+                                
+                                // Store PDF data
+                                const base64 = btoa(String.fromCharCode(...new Uint8Array(pdfData)));
+                                window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
+                                
+                                // Store in sessionStorage
+                                const blob = new Blob([pdfData], { type: 'application/pdf' });
+                                const blobURL = URL.createObjectURL(blob);
+                                sessionStorage.setItem('pdfFileURL', blobURL);
+                                sessionStorage.setItem('pdfFileName', file.name);
+                                
                                 await renderPDF(pdfData);
                                 hideLoading();
                                 return;
