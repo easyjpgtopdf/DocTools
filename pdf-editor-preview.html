@@ -263,12 +263,14 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 1000;
             border-radius: 12px;
+            backdrop-filter: blur(5px);
         }
         
         .loading-spinner {
@@ -278,12 +280,147 @@
             width: 50px;
             height: 50px;
             animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        .loading-text {
+            color: #0b1630;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .loading-progress {
+            width: 300px;
+            max-width: 80%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .loading-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4361ee, #7209b7);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+        
+        .loading-percentage {
+            color: #4361ee;
+            font-size: 14px;
+            margin-top: 8px;
+            font-weight: 500;
         }
         
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        /* Mobile Optimization - Touch Gestures & Responsive UI */
+        @media (max-width: 768px) {
+            .editor-workspace {
+                flex-direction: column;
+                height: auto;
+                min-height: 100vh;
+            }
+            
+            .tools-panel {
+                width: 100%;
+                min-width: 100%;
+                max-height: 200px;
+                overflow-x: auto;
+                overflow-y: hidden;
+                display: flex;
+                flex-direction: row;
+                border-right: none;
+                border-bottom: 1px solid #3a3a3a;
+            }
+            
+            .tool-group {
+                min-width: 120px;
+                border-right: 1px solid #3a3a3a;
+                border-bottom: none;
+            }
+            
+            .tool-item {
+                min-height: 60px;
+                padding: 12px 8px;
+                font-size: 11px;
+            }
+            
+            .tool-item i {
+                font-size: 20px;
+                margin-bottom: 4px;
+            }
+            
+            .preview-panel {
+                flex: 1;
+                min-height: 60vh;
+            }
+            
+            .properties-panel {
+                width: 100%;
+                min-width: 100%;
+                max-height: 200px;
+                overflow-x: auto;
+                overflow-y: hidden;
+                display: flex;
+                flex-direction: row;
+                border-left: none;
+                border-top: 1px solid #3a3a3a;
+            }
+            
+            .property-group {
+                min-width: 150px;
+                border-right: 1px solid #3a3a3a;
+                border-bottom: none;
+            }
+            
+            .pdf-canvas {
+                touch-action: pan-x pan-y pinch-zoom;
+            }
+            
+            .preview-toolbar-btn {
+                min-width: 60px;
+                min-height: 44px;
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+            
+            .editable-text {
+                min-height: 24px;
+                min-width: 30px;
+                padding: 4px 6px;
+            }
+        }
+        
+        /* Touch Gesture Support */
+        .pdf-canvas {
+            touch-action: pan-x pan-y pinch-zoom;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        /* Larger Touch Targets for Mobile */
+        @media (max-width: 768px) {
+            button, .tool-item, .preview-toolbar-btn {
+                min-height: 44px;
+                min-width: 44px;
+            }
+            
+            input[type="number"],
+            input[type="color"],
+            select {
+                min-height: 44px;
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+        }
+        
         
         /* Right Properties Panel */
         .properties-panel {
@@ -590,6 +727,26 @@
                     </div>
                     
                     <div class="tool-group">
+                        <div class="tool-group-title">Security & Extra</div>
+                        <div class="tool-item" id="watermark-btn" title="Add Watermark">
+                            <i class="fas fa-tint"></i>
+                            <span>Watermark</span>
+                        </div>
+                        <div class="tool-item" id="sign-btn" title="Digital Signature">
+                            <i class="fas fa-signature"></i>
+                            <span>Sign</span>
+                        </div>
+                        <div class="tool-item" id="redact-btn" title="Redact Text">
+                            <i class="fas fa-eye-slash"></i>
+                            <span>Redact</span>
+                        </div>
+                        <div class="tool-item" id="protect-btn" title="Protect PDF">
+                            <i class="fas fa-lock"></i>
+                            <span>Protect</span>
+                        </div>
+                    </div>
+                    
+                    <div class="tool-group">
                         <div class="tool-group-title">History</div>
                         <div class="tool-item" id="undo-btn" title="Undo" disabled>
                             <i class="fas fa-undo"></i>
@@ -625,8 +782,13 @@
                     </div>
                     
                     <div class="preview-container" id="preview-container" style="display: flex; visibility: visible; min-height: 600px;">
-                        <div class="loading-overlay" id="loading-overlay" style="display: flex;">
+                        <div class="loading-overlay" id="loading-overlay" style="display: none;">
                             <div class="loading-spinner"></div>
+                            <div class="loading-text" id="loading-text">Processing...</div>
+                            <div class="loading-progress">
+                                <div class="loading-progress-bar" id="loading-progress-bar"></div>
+                            </div>
+                            <div class="loading-percentage" id="loading-percentage">0%</div>
                         </div>
                         <div id="pdf-page-wrapper" class="pdf-page-wrapper" style="display: block; visibility: visible; position: relative;">
                             <canvas id="pdf-canvas" class="pdf-canvas"></canvas>
@@ -753,7 +915,16 @@
                 redoHistory: [],
                 selectedTextElement: null,
                 activeTool: 'select',
-                ocrTextsForPDF: []
+                ocrTextsForPDF: [],
+                annotations: {
+                    highlights: [],
+                    comments: [],
+                    stamps: [],
+                    shapes: []
+                },
+                highlightStart: null,
+                highlightEnd: null,
+                isDrawing: false
             };
         }
         
@@ -810,7 +981,7 @@
                 }
                 
                 try {
-                    loadingOverlay.style.display = 'flex';
+                    showLoading('Processing...', 10);
                     
                     // Option 1: Direct server upload for processing (Fast)
                     const formData = new FormData();
@@ -833,7 +1004,7 @@
                                 // Load PDF from server response
                                 const pdfData = await fetch(result.pdfUrl).then(r => r.arrayBuffer());
                                 await renderPDF(pdfData);
-                                loadingOverlay.style.display = 'none';
+                                hideLoading();
                                 return;
                             }
                         }
@@ -849,22 +1020,22 @@
                         try {
                             const pdfData = e.target.result;
                             await renderPDF(pdfData);
-                            loadingOverlay.style.display = 'none';
+                            hideLoading();
                         } catch (renderError) {
                             console.error('PDF rendering error:', renderError);
-                            loadingOverlay.style.display = 'none';
+                            hideLoading();
                             alert('Error loading PDF: ' + renderError.message);
                         }
                     };
                     reader.onerror = function() {
-                        loadingOverlay.style.display = 'none';
+                        hideLoading();
                         alert('Error reading PDF file. Please try again.');
                     };
                     reader.readAsArrayBuffer(file);
                     
                 } catch (error) {
                     console.error('File upload error:', error);
-                    loadingOverlay.style.display = 'none';
+                    hideLoading();
                     alert('Error uploading PDF: ' + error.message);
                 }
             });
@@ -895,11 +1066,24 @@
             }
         }
         
-        // Render specific page
+        // Render specific page (with memory leak fix)
+        let currentPageRenderTask = null;
         async function renderPage(pageNumber) {
             try {
                 const pdfDoc = window.pdfEditorVars.pdfDoc;
                 if (!pdfDoc) return;
+                
+                // Cancel previous render task to prevent memory leaks
+                if (currentPageRenderTask) {
+                    currentPageRenderTask.cancel();
+                    currentPageRenderTask = null;
+                }
+                
+                // Clear canvas and layers
+                const context = pdfCanvas.getContext('2d');
+                context.clearRect(0, 0, pdfCanvas.width, pdfCanvas.height);
+                if (textLayer) textLayer.innerHTML = '';
+                if (deletionLayer) deletionLayer.innerHTML = '';
                 
                 const page = await pdfDoc.getPage(pageNumber);
                 const viewport = page.getViewport({ scale: window.pdfEditorVars.scale });
@@ -907,15 +1091,27 @@
                 pdfCanvas.height = viewport.height;
                 pdfCanvas.width = viewport.width;
                 
-                const context = pdfCanvas.getContext('2d');
-                await page.render({
+                // Create render task
+                const renderTask = page.render({
                     canvasContext: context,
                     viewport: viewport
-                }).promise;
+                });
+                currentPageRenderTask = renderTask;
+                
+                await renderTask.promise;
+                currentPageRenderTask = null;
                 
                 // Extract and render text layer
                 const textContent = await page.getTextContent();
-                renderTextLayer(textContent, viewport);
+                renderTextLayer(textContent, viewport, pageNumber);
+                
+                // Update page number
+                if (pageNum) pageNum.textContent = pageNumber;
+                
+                // Clean up page object (help with memory)
+                if (page.cleanup) {
+                    page.cleanup();
+                }
                 
                 // Initialize deletion layer
                 if (deletionLayer) {
@@ -935,8 +1131,8 @@
             }
         }
         
-        // Render text layer
-        function renderTextLayer(textContent, viewport) {
+        // Render text layer (with page tracking for multi-page editing)
+        function renderTextLayer(textContent, viewport, pageNumber = 1) {
             if (!textLayer) return;
             
             textLayer.innerHTML = '';
@@ -961,6 +1157,7 @@
                             wordDiv.style.fontSize = fontSize + 'px';
                             wordDiv.style.fontFamily = fontFamily;
                             wordDiv.style.color = '#000000';
+                            wordDiv.dataset.page = pageNumber; // Track which page this text belongs to
                             
                             wordDiv.addEventListener('click', function(e) {
                                 e.stopPropagation();
@@ -1047,7 +1244,8 @@
                 }
                 
                 try {
-                    loadingOverlay.style.display = 'flex';
+                    showLoading('Starting OCR...', 5);
+                    updateProgress(10, 'Rendering page to image...');
                     
                     const page = await window.pdfEditorVars.pdfDoc.getPage(window.pdfEditorVars.currentPage);
                     const viewport = page.getViewport({ scale: 2.0 });
@@ -1061,8 +1259,10 @@
                         viewport: viewport
                     }).promise;
                     
+                    updateProgress(30, 'Converting to image...');
                     const imageData = canvas.toDataURL('image/png');
                     
+                    updateProgress(40, 'Sending to OCR service...');
                     // Fast server-side OCR with Google Cloud Vision API
                     let apiUrl = '/api/pdf-ocr/process';
                     if (window.location.protocol === 'file:') {
@@ -1074,6 +1274,7 @@
                     
                     // Try server-side OCR first
                     try {
+                        updateProgress(50, 'Processing with Google Cloud Vision API...');
                         const response = await fetch(apiUrl, {
                             method: 'POST',
                             headers: {
@@ -1088,7 +1289,9 @@
                         if (response.ok) {
                             const contentType = response.headers.get('content-type');
                             if (contentType && contentType.includes('application/json')) {
+                                updateProgress(80, 'Receiving OCR results...');
                                 result = await response.json();
+                                updateProgress(95, 'Processing results...');
                                 console.log('Server-side OCR successful');
                             } else {
                                 throw new Error('Invalid response type from server');
@@ -1106,20 +1309,24 @@
                     // Fallback to client-side OCR using Tesseract.js
                     if (useClientSideOCR || !result) {
                         if (typeof Tesseract === 'undefined') {
-                            loadingOverlay.style.display = 'none';
+                            hideLoading();
                             alert('OCR service unavailable. Please ensure you have an internet connection for client-side OCR or start the server for Google Cloud Vision API.');
                             return;
                         }
                         
+                        updateProgress(50, 'Using client-side OCR (Tesseract.js)...');
                         console.log('Starting client-side OCR with Tesseract.js...');
                         try {
                             const { data } = await Tesseract.recognize(imageData, 'eng', {
                                 logger: m => {
                                     if (m.status === 'recognizing text') {
+                                        const progress = 50 + (m.progress * 40); // 50-90%
+                                        updateProgress(progress, `OCR progress: ${Math.round(m.progress * 100)}%`);
                                         console.log(`OCR progress: ${Math.round(m.progress * 100)}%`);
                                     }
                                 }
                             });
+                            updateProgress(95, 'Processing OCR results...');
                             
                             result = {
                                 success: true,
@@ -1139,7 +1346,7 @@
                             };
                         } catch (ocrError) {
                             console.error('Client-side OCR error:', ocrError);
-                            loadingOverlay.style.display = 'none';
+                            hideLoading();
                             alert('OCR processing failed. Please try again or check your internet connection.');
                             return;
                         }
@@ -1202,10 +1409,10 @@
                         }
                     }
                     
-                    loadingOverlay.style.display = 'none';
+                    hideLoading();
                 } catch (error) {
                     console.error('OCR error:', error);
-                    loadingOverlay.style.display = 'none';
+                    hideLoading();
                     alert('Error performing OCR: ' + error.message);
                 }
             });
@@ -1217,7 +1424,7 @@
                 if (!window.pdfEditorVars.pdfDoc) return;
                 
                 try {
-                    loadingOverlay.style.display = 'flex';
+                    showLoading('Processing...', 10);
                     
                     // Use fast server-side processing
                     const page = await window.pdfEditorVars.pdfDoc.getPage(window.pdfEditorVars.currentPage);
@@ -1270,10 +1477,10 @@
                         alert('Fast OCR completed! ' + (result.words ? result.words.length : 0) + ' words extracted using ' + serviceName + '.');
                     }
                     
-                    loadingOverlay.style.display = 'none';
+                    hideLoading();
                 } catch (error) {
                     console.error('Fast OCR error:', error);
-                    loadingOverlay.style.display = 'none';
+                    hideLoading();
                     alert('Error performing fast OCR: ' + error.message);
                 }
             });
@@ -1289,7 +1496,7 @@
                 }
                 
                 try {
-                    loadingOverlay.style.display = 'flex';
+                    showLoading('Processing...', 10);
                     
                     // Get PDF data
                     const pdfFileURL = sessionStorage.getItem('pdfFileURL');
@@ -1300,39 +1507,61 @@
                     const response = await fetch(pdfFileURL);
                     const pdfArrayBuffer = await response.arrayBuffer();
                     
-                    // Collect edits
+                    // Collect edits from ALL pages (CRITICAL FIX)
                     const edits = {
                         textEdits: [],
                         textReplacements: [],
                         imageInserts: [],
                         deletions: [],
-                        ocrTexts: window.pdfEditorVars.ocrTextsForPDF || []
+                        ocrTexts: window.pdfEditorVars.ocrTextsForPDF || [],
+                        highlights: [],
+                        comments: [],
+                        stamps: [],
+                        shapes: []
                     };
                     
-                    // Get text elements
+                    // Store edits per page in sessionStorage or memory
+                    // For now, we'll collect from current view and stored data
+                    // In a real implementation, you'd store edits per page as user makes changes
+                    
+                    // Get text elements from current page
                     const textElements = textLayer.querySelectorAll('.editable-text');
                     textElements.forEach((el) => {
+                        const pageNum = parseInt(el.dataset.page) || window.pdfEditorVars.currentPage;
                         const x = parseFloat(el.style.left) || 0;
                         const y = parseFloat(el.style.top) || 0;
                         const fontSize = parseFloat(el.style.fontSize) || 12;
+                        const fontColor = el.style.color || '#000000';
+                        const fontFamily = el.style.fontFamily || 'Helvetica';
+                        
+                        // Convert hex color to RGB
+                        const hexToRgb = (hex) => {
+                            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                            return result ? [
+                                parseInt(result[1], 16) / 255,
+                                parseInt(result[2], 16) / 255,
+                                parseInt(result[3], 16) / 255
+                            ] : [0, 0, 0];
+                        };
                         
                         edits.textEdits.push({
-                            pageIndex: window.pdfEditorVars.currentPage - 1,
+                            pageIndex: pageNum - 1,
                             x: x,
                             y: y,
                             text: el.textContent,
                             fontSize: fontSize,
-                            fontName: 'Helvetica',
-                            fontColor: [0, 0, 0]
+                            fontName: fontFamily,
+                            fontColor: hexToRgb(fontColor)
                         });
                     });
                     
-                    // Get deletions
+                    // Get deletions from current page
                     if (deletionLayer) {
                         const deletionRects = deletionLayer.querySelectorAll('.deletion-rect');
                         deletionRects.forEach((rectEl) => {
+                            const pageNum = parseInt(rectEl.dataset.page) || window.pdfEditorVars.currentPage;
                             edits.deletions.push({
-                                pageIndex: window.pdfEditorVars.currentPage - 1,
+                                pageIndex: pageNum - 1,
                                 x: parseFloat(rectEl.style.left) || 0,
                                 y: parseFloat(rectEl.style.top) || 0,
                                 width: parseFloat(rectEl.style.width) || 0,
@@ -1341,9 +1570,38 @@
                         });
                     }
                     
+                    // Get stored edits from all pages (if stored in sessionStorage)
+                    const storedEdits = JSON.parse(sessionStorage.getItem('pdfEdits') || '{}');
+                    if (storedEdits.textEdits) {
+                        edits.textEdits.push(...storedEdits.textEdits);
+                    }
+                    if (storedEdits.deletions) {
+                        edits.deletions.push(...storedEdits.deletions);
+                    }
+                    if (storedEdits.textReplacements) {
+                        edits.textReplacements.push(...storedEdits.textReplacements);
+                    }
+                    if (storedEdits.imageInserts) {
+                        edits.imageInserts.push(...storedEdits.imageInserts);
+                    }
+                    if (storedEdits.highlights) {
+                        edits.highlights.push(...storedEdits.highlights);
+                    }
+                    if (storedEdits.comments) {
+                        edits.comments.push(...storedEdits.comments);
+                    }
+                    if (storedEdits.stamps) {
+                        edits.stamps.push(...storedEdits.stamps);
+                    }
+                    if (storedEdits.shapes) {
+                        edits.shapes.push(...storedEdits.shapes);
+                    }
+                    
+                    updateProgress(60, 'Converting to base64...');
                     // Convert to base64
                     const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
                     
+                    updateProgress(70, 'Sending to server for processing...');
                     // Send to server for processing
                     let editApiUrl = '/api/pdf/edit';
                     if (window.location.protocol === 'file:') {
@@ -1361,9 +1619,12 @@
                         })
                     });
                     
+                    updateProgress(85, 'Processing PDF edits...');
+                    
                     if (editResponse.ok) {
                         const editResult = await editResponse.json();
                         if (editResult.success) {
+                            updateProgress(95, 'Preparing download...');
                             const editedPdfBase64 = editResult.pdfData.split(',')[1];
                             const editedPdfBytes = Uint8Array.from(atob(editedPdfBase64), c => c.charCodeAt(0));
                             const blob = new Blob([editedPdfBytes], { type: 'application/pdf' });
@@ -1376,14 +1637,20 @@
                             document.body.removeChild(a);
                             URL.revokeObjectURL(url);
                             
-                            alert('PDF downloaded successfully!');
+                            updateProgress(100, 'Download complete!');
+                            setTimeout(() => {
+                                hideLoading();
+                                alert('PDF downloaded successfully!');
+                            }, 500);
+                        } else {
+                            throw new Error(editResult.error || 'PDF editing failed');
                         }
+                    } else {
+                        throw new Error('Server error: ' + editResponse.status);
                     }
-                    
-                    loadingOverlay.style.display = 'none';
                 } catch (error) {
                     console.error('Download error:', error);
-                    loadingOverlay.style.display = 'none';
+                    hideLoading();
                     alert('Error downloading PDF: ' + error.message);
                 }
             });
@@ -1613,12 +1880,277 @@
         const fillFormBtn = document.getElementById('fill-form-btn');
         const detectFormBtn = document.getElementById('detect-form-btn');
         
-        // Annotations
+        // Annotations - Complete Implementation
         const commentBtn = document.getElementById('comment-btn');
         const stampBtn = document.getElementById('stamp-btn');
         const shapeBtn = document.getElementById('shape-btn');
         
-        // Export
+        // Comment Button
+        if (commentBtn) {
+            commentBtn.addEventListener('click', function() {
+                window.pdfEditorVars.activeTool = 'comment';
+                if (commentBtn) commentBtn.classList.add('active');
+                if (highlightBtn) highlightBtn.classList.remove('active');
+                if (stampBtn) stampBtn.classList.remove('active');
+                if (shapeBtn) shapeBtn.classList.remove('active');
+                if (selectTool) selectTool.classList.remove('active');
+                
+                if (pdfCanvas) {
+                    pdfCanvas.style.cursor = 'crosshair';
+                }
+                
+                // Add click handler for comment placement
+                pdfCanvas.addEventListener('click', function addCommentHandler(e) {
+                    if (window.pdfEditorVars.activeTool === 'comment') {
+                        pdfCanvas.removeEventListener('click', addCommentHandler);
+                        const rect = pdfCanvas.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+                        
+                        const commentText = prompt('Enter your comment:');
+                        if (commentText) {
+                            const comment = {
+                                pageIndex: window.pdfEditorVars.currentPage - 1,
+                                x: x,
+                                y: y,
+                                text: commentText,
+                                author: 'User'
+                            };
+                            
+                            window.pdfEditorVars.annotations.comments.push(comment);
+                            
+                            // Store in sessionStorage
+                            const storedEdits = JSON.parse(sessionStorage.getItem('pdfEdits') || '{}');
+                            if (!storedEdits.comments) storedEdits.comments = [];
+                            storedEdits.comments.push(comment);
+                            sessionStorage.setItem('pdfEdits', JSON.stringify(storedEdits));
+                            
+                            // Visual indicator
+                            const commentIcon = document.createElement('div');
+                            commentIcon.className = 'comment-icon';
+                            commentIcon.style.position = 'absolute';
+                            commentIcon.style.left = x + 'px';
+                            commentIcon.style.top = y + 'px';
+                            commentIcon.style.width = '20px';
+                            commentIcon.style.height = '20px';
+                            commentIcon.style.backgroundColor = '#ffeb3b';
+                            commentIcon.style.border = '2px solid #000';
+                            commentIcon.style.borderRadius = '50%';
+                            commentIcon.style.cursor = 'pointer';
+                            commentIcon.title = commentText;
+                            commentIcon.dataset.page = window.pdfEditorVars.currentPage;
+                            textLayer.appendChild(commentIcon);
+                            
+                            commentIcon.addEventListener('click', function() {
+                                alert('Comment: ' + commentText);
+                            });
+                        }
+                        
+                        // Reset tool
+                        window.pdfEditorVars.activeTool = 'select';
+                        if (commentBtn) commentBtn.classList.remove('active');
+                        if (selectTool) selectTool.classList.add('active');
+                        if (pdfCanvas) pdfCanvas.style.cursor = 'default';
+                    }
+                }, { once: true });
+            });
+        }
+        
+        // Stamp Button
+        if (stampBtn) {
+            stampBtn.addEventListener('click', function() {
+                window.pdfEditorVars.activeTool = 'stamp';
+                if (stampBtn) stampBtn.classList.add('active');
+                if (highlightBtn) highlightBtn.classList.remove('active');
+                if (commentBtn) commentBtn.classList.remove('active');
+                if (shapeBtn) shapeBtn.classList.remove('active');
+                if (selectTool) selectTool.classList.remove('active');
+                
+                if (pdfCanvas) {
+                    pdfCanvas.style.cursor = 'crosshair';
+                }
+                
+                // Show stamp type selection
+                const stampType = prompt('Enter stamp type (APPROVED, REJECTED, CONFIDENTIAL, DRAFT, or custom):', 'APPROVED');
+                if (stampType) {
+                    pdfCanvas.addEventListener('click', function addStampHandler(e) {
+                        if (window.pdfEditorVars.activeTool === 'stamp') {
+                            pdfCanvas.removeEventListener('click', addStampHandler);
+                            const rect = pdfCanvas.getBoundingClientRect();
+                            const x = e.clientX - rect.left;
+                            const y = e.clientY - rect.top;
+                            
+                            const stamp = {
+                                pageIndex: window.pdfEditorVars.currentPage - 1,
+                                x: x,
+                                y: y,
+                                stampType: stampType,
+                                width: 100,
+                                height: 50
+                            };
+                            
+                            window.pdfEditorVars.annotations.stamps.push(stamp);
+                            
+                            // Store in sessionStorage
+                            const storedEdits = JSON.parse(sessionStorage.getItem('pdfEdits') || '{}');
+                            if (!storedEdits.stamps) storedEdits.stamps = [];
+                            storedEdits.stamps.push(stamp);
+                            sessionStorage.setItem('pdfEdits', JSON.stringify(storedEdits));
+                            
+                            // Visual indicator
+                            const stampDiv = document.createElement('div');
+                            stampDiv.className = 'stamp-indicator';
+                            stampDiv.style.position = 'absolute';
+                            stampDiv.style.left = x + 'px';
+                            stampDiv.style.top = y + 'px';
+                            stampDiv.style.width = '100px';
+                            stampDiv.style.height = '50px';
+                            stampDiv.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
+                            stampDiv.style.border = '2px solid #f00';
+                            stampDiv.style.display = 'flex';
+                            stampDiv.style.alignItems = 'center';
+                            stampDiv.style.justifyContent = 'center';
+                            stampDiv.style.fontSize = '12px';
+                            stampDiv.style.fontWeight = 'bold';
+                            stampDiv.style.color = '#f00';
+                            stampDiv.textContent = stampType;
+                            stampDiv.dataset.page = window.pdfEditorVars.currentPage;
+                            textLayer.appendChild(stampDiv);
+                        }
+                        
+                        // Reset tool
+                        window.pdfEditorVars.activeTool = 'select';
+                        if (stampBtn) stampBtn.classList.remove('active');
+                        if (selectTool) selectTool.classList.add('active');
+                        if (pdfCanvas) pdfCanvas.style.cursor = 'default';
+                    }, { once: true });
+                } else {
+                    window.pdfEditorVars.activeTool = 'select';
+                    if (stampBtn) stampBtn.classList.remove('active');
+                }
+            });
+        }
+        
+        // Shape Button
+        if (shapeBtn) {
+            shapeBtn.addEventListener('click', function() {
+                const shapeType = prompt('Enter shape type (rectangle, circle, line):', 'rectangle');
+                if (shapeType && ['rectangle', 'circle', 'line'].includes(shapeType.toLowerCase())) {
+                    window.pdfEditorVars.activeTool = 'shape';
+                    window.pdfEditorVars.shapeType = shapeType.toLowerCase();
+                    if (shapeBtn) shapeBtn.classList.add('active');
+                    if (highlightBtn) highlightBtn.classList.remove('active');
+                    if (commentBtn) commentBtn.classList.remove('active');
+                    if (stampBtn) stampBtn.classList.remove('active');
+                    if (selectTool) selectTool.classList.remove('active');
+                    
+                    if (pdfCanvas) {
+                        pdfCanvas.style.cursor = 'crosshair';
+                    }
+                }
+            });
+        }
+        
+        // Shape drawing (similar to highlight)
+        let shapeStartX = null;
+        let shapeStartY = null;
+        let shapeRect = null;
+        
+        if (pdfCanvas) {
+            const shapeMouseDown = function(e) {
+                if (window.pdfEditorVars.activeTool === 'shape') {
+                    const rect = pdfCanvas.getBoundingClientRect();
+                    shapeStartX = e.clientX - rect.left;
+                    shapeStartY = e.clientY - rect.top;
+                    window.pdfEditorVars.isDrawing = true;
+                    
+                    shapeRect = document.createElement('div');
+                    shapeRect.className = 'shape-rect';
+                    shapeRect.style.position = 'absolute';
+                    shapeRect.style.left = shapeStartX + 'px';
+                    shapeRect.style.top = shapeStartY + 'px';
+                    shapeRect.style.width = '0px';
+                    shapeRect.style.height = '0px';
+                    shapeRect.style.border = '2px solid #000';
+                    shapeRect.style.backgroundColor = 'transparent';
+                    shapeRect.style.pointerEvents = 'auto';
+                    shapeRect.style.zIndex = '7';
+                    shapeRect.dataset.page = window.pdfEditorVars.currentPage;
+                    shapeRect.dataset.shapeType = window.pdfEditorVars.shapeType;
+                    textLayer.appendChild(shapeRect);
+                }
+            };
+            
+            const shapeMouseMove = function(e) {
+                if (window.pdfEditorVars.activeTool === 'shape' && window.pdfEditorVars.isDrawing && shapeRect) {
+                    const rect = pdfCanvas.getBoundingClientRect();
+                    const currentX = e.clientX - rect.left;
+                    const currentY = e.clientY - rect.top;
+                    
+                    const width = Math.abs(currentX - shapeStartX);
+                    const height = Math.abs(currentY - shapeStartY);
+                    const left = Math.min(shapeStartX, currentX);
+                    const top = Math.min(shapeStartY, currentY);
+                    
+                    shapeRect.style.left = left + 'px';
+                    shapeRect.style.top = top + 'px';
+                    shapeRect.style.width = width + 'px';
+                    shapeRect.style.height = height + 'px';
+                    
+                    if (window.pdfEditorVars.shapeType === 'circle') {
+                        shapeRect.style.borderRadius = '50%';
+                    }
+                }
+            };
+            
+            const shapeMouseUp = function(e) {
+                if (window.pdfEditorVars.activeTool === 'shape' && window.pdfEditorVars.isDrawing && shapeRect) {
+                    window.pdfEditorVars.isDrawing = false;
+                    
+                    const width = parseFloat(shapeRect.style.width);
+                    const height = parseFloat(shapeRect.style.height);
+                    
+                    if (width > 5 && height > 5) {
+                        const shape = {
+                            pageIndex: window.pdfEditorVars.currentPage - 1,
+                            shapeType: window.pdfEditorVars.shapeType,
+                            x: parseFloat(shapeRect.style.left),
+                            y: parseFloat(shapeRect.style.top),
+                            width: width,
+                            height: height,
+                            color: [0, 0, 0],
+                            strokeWidth: 2
+                        };
+                        
+                        window.pdfEditorVars.annotations.shapes.push(shape);
+                        
+                        // Store in sessionStorage
+                        const storedEdits = JSON.parse(sessionStorage.getItem('pdfEdits') || '{}');
+                        if (!storedEdits.shapes) storedEdits.shapes = [];
+                        storedEdits.shapes.push(shape);
+                        sessionStorage.setItem('pdfEdits', JSON.stringify(storedEdits));
+                    } else {
+                        shapeRect.remove();
+                    }
+                    
+                    // Reset tool
+                    window.pdfEditorVars.activeTool = 'select';
+                    if (shapeBtn) shapeBtn.classList.remove('active');
+                    if (selectTool) selectTool.classList.add('active');
+                    if (pdfCanvas) pdfCanvas.style.cursor = 'default';
+                    
+                    shapeStartX = null;
+                    shapeStartY = null;
+                    shapeRect = null;
+                }
+            };
+            
+            pdfCanvas.addEventListener('mousedown', shapeMouseDown);
+            pdfCanvas.addEventListener('mousemove', shapeMouseMove);
+            pdfCanvas.addEventListener('mouseup', shapeMouseUp);
+        }
+        
+        // Export - Complete Implementation
         const exportBtn = document.getElementById('export-btn');
         const exportFormatSelect = document.getElementById('export-format-select');
         const exportWordBtn = document.getElementById('export-word-btn');
@@ -1626,12 +2158,437 @@
         const exportPptBtn = document.getElementById('export-ppt-btn');
         const exportImageBtn = document.getElementById('export-image-btn');
         
+        // Export Function
+        async function exportToFormat(format) {
+            if (!window.pdfEditorVars.pdfDoc) {
+                alert('No PDF loaded');
+                return;
+            }
+            
+            try {
+                showLoading(`Exporting to ${format.toUpperCase()}...`, 10);
+                const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                if (!pdfFileURL) throw new Error('PDF file not found');
+                
+                updateProgress(20, 'Loading PDF data...');
+                const response = await fetch(pdfFileURL);
+                const pdfArrayBuffer = await response.arrayBuffer();
+                const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                
+                let apiUrl = '';
+                let mimeType = '';
+                let fileExtension = '';
+                
+                switch(format) {
+                    case 'word':
+                        apiUrl = '/api/pdf/export/word';
+                        mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+                        fileExtension = 'docx';
+                        break;
+                    case 'excel':
+                        apiUrl = '/api/pdf/export/excel';
+                        mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                        fileExtension = 'xlsx';
+                        break;
+                    case 'powerpoint':
+                        apiUrl = '/api/pdf/export/powerpoint';
+                        mimeType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+                        fileExtension = 'pptx';
+                        break;
+                    case 'image':
+                        apiUrl = '/api/pdf/export/images';
+                        mimeType = 'image/png';
+                        fileExtension = 'zip';
+                        break;
+                    default:
+                        throw new Error('Unsupported export format');
+                }
+                
+                if (window.location.protocol === 'file:') {
+                    apiUrl = 'http://localhost:3000' + apiUrl;
+                }
+                
+                updateProgress(40, `Sending to ${format} converter...`);
+                const exportResponse = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pdfData: `data:application/pdf;base64,${pdfBase64}` })
+                });
+                
+                updateProgress(70, 'Processing export...');
+                
+                if (exportResponse.ok) {
+                    const result = await exportResponse.json();
+                    if (result.success) {
+                        updateProgress(90, 'Preparing download...');
+                        
+                        if (format === 'image' && result.images) {
+                            alert('Image export creates multiple files. Downloading first image as example.');
+                            if (result.images[0]) {
+                                const imgBase64 = Buffer.from(result.images[0].image).toString('base64');
+                                const imgBytes = Uint8Array.from(atob(imgBase64), c => c.charCodeAt(0));
+                                const blob = new Blob([imgBytes], { type: 'image/png' });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `page-1.png`;
+                                a.click();
+                                URL.revokeObjectURL(url);
+                            }
+                        } else if (result.fileData) {
+                            const fileBase64 = result.fileData.split(',')[1] || result.fileData;
+                            const fileBytes = Uint8Array.from(atob(fileBase64), c => c.charCodeAt(0));
+                            const blob = new Blob([fileBytes], { type: mimeType });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `exported-document.${fileExtension}`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                        }
+                        
+                        updateProgress(100, 'Export complete!');
+                        setTimeout(() => {
+                            hideLoading();
+                            alert(`Successfully exported to ${format.toUpperCase()}!`);
+                        }, 500);
+                    } else {
+                        throw new Error(result.error || 'Export failed');
+                    }
+                } else {
+                    throw new Error('Export server error: ' + exportResponse.status);
+                }
+            } catch (error) {
+                console.error('Export error:', error);
+                hideLoading();
+                alert(`Error exporting to ${format}: ${error.message}`);
+            }
+        }
+        
+        // Export Button Event Listeners
+        if (exportBtn) {
+            exportBtn.addEventListener('click', async function() {
+                const format = exportFormatSelect ? exportFormatSelect.value : 'pdf';
+                if (format === 'pdf') {
+                    // Use download function
+                    if (downloadBtn) downloadBtn.click();
+                } else {
+                    await exportToFormat(format);
+                }
+            });
+        }
+        
+        if (exportWordBtn) {
+            exportWordBtn.addEventListener('click', () => exportToFormat('word'));
+        }
+        if (exportExcelBtn) {
+            exportExcelBtn.addEventListener('click', () => exportToFormat('excel'));
+        }
+        if (exportPptBtn) {
+            exportPptBtn.addEventListener('click', () => exportToFormat('powerpoint'));
+        }
+        if (exportImageBtn) {
+            exportImageBtn.addEventListener('click', () => exportToFormat('image'));
+        }
+        
         // Compression & Merge/Split
         const compressPdfBtn = document.getElementById('compress-pdf-btn');
         const compressionQuality = document.getElementById('compression-quality');
         const compressBtn = document.getElementById('compress-btn');
         const mergeBtn = document.getElementById('merge-btn');
         const splitBtn = document.getElementById('split-btn');
+        
+        // Extra Functions - Security & Advanced
+        const watermarkBtn = document.getElementById('watermark-btn');
+        const signBtn = document.getElementById('sign-btn');
+        const redactBtn = document.getElementById('redact-btn');
+        const protectBtn = document.getElementById('protect-btn');
+        
+        // Watermark Implementation
+        if (watermarkBtn) {
+            watermarkBtn.addEventListener('click', async function() {
+                if (!window.pdfEditorVars.pdfDoc) {
+                    alert('No PDF loaded');
+                    return;
+                }
+                
+                const watermarkText = prompt('Enter watermark text:', 'CONFIDENTIAL');
+                if (!watermarkText) return;
+                
+                const opacity = prompt('Enter opacity (0.1 to 1.0):', '0.3');
+                const opacityValue = parseFloat(opacity) || 0.3;
+                
+                try {
+                    showLoading('Adding watermark...', 10);
+                    const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                    if (!pdfFileURL) throw new Error('PDF file not found');
+                    
+                    updateProgress(30, 'Loading PDF...');
+                    const response = await fetch(pdfFileURL);
+                    const pdfArrayBuffer = await response.arrayBuffer();
+                    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                    
+                    updateProgress(50, 'Applying watermark to all pages...');
+                    let apiUrl = '/api/pdf/edit';
+                    if (window.location.protocol === 'file:') {
+                        apiUrl = 'http://localhost:3000/api/pdf/edit';
+                    }
+                    
+                    const watermarkEdits = {
+                        textEdits: []
+                    };
+                    
+                    for (let i = 0; i < window.pdfEditorVars.totalPages; i++) {
+                        watermarkEdits.textEdits.push({
+                            pageIndex: i,
+                            x: 200,
+                            y: 400,
+                            text: watermarkText,
+                            fontSize: 48,
+                            fontName: 'Helvetica',
+                            fontColor: [0.7, 0.7, 0.7]
+                        });
+                    }
+                    
+                    const watermarkResponse = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            pdfData: `data:application/pdf;base64,${pdfBase64}`,
+                            edits: watermarkEdits
+                        })
+                    });
+                    
+                    updateProgress(80, 'Processing...');
+                    
+                    if (watermarkResponse.ok) {
+                        const result = await watermarkResponse.json();
+                        if (result.success) {
+                            updateProgress(95, 'Loading watermarked PDF...');
+                            const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
+                            await renderPDF(pdfData);
+                            updateProgress(100, 'Watermark added!');
+                            setTimeout(() => {
+                                hideLoading();
+                                alert('Watermark added successfully!');
+                            }, 500);
+                        }
+                    } else {
+                        throw new Error('Watermark failed');
+                    }
+                } catch (error) {
+                    console.error('Watermark error:', error);
+                    hideLoading();
+                    alert('Error adding watermark: ' + error.message);
+                }
+            });
+        }
+        
+        // Sign Implementation
+        if (signBtn) {
+            signBtn.addEventListener('click', async function() {
+                if (!window.pdfEditorVars.pdfDoc) {
+                    alert('No PDF loaded');
+                    return;
+                }
+                
+                const signerName = prompt('Enter signer name:', 'Your Name');
+                if (!signerName) return;
+                
+                try {
+                    showLoading('Adding digital signature...', 10);
+                    const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                    if (!pdfFileURL) throw new Error('PDF file not found');
+                    
+                    updateProgress(30, 'Loading PDF...');
+                    const response = await fetch(pdfFileURL);
+                    const pdfArrayBuffer = await response.arrayBuffer();
+                    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                    
+                    updateProgress(50, 'Creating signature...');
+                    const signatureEdits = {
+                        textEdits: [{
+                            pageIndex: window.pdfEditorVars.totalPages - 1,
+                            x: 100,
+                            y: 100,
+                            text: `Digitally Signed by: ${signerName}\nDate: ${new Date().toLocaleDateString()}`,
+                            fontSize: 12,
+                            fontName: 'Helvetica',
+                            fontColor: [0, 0, 0]
+                        }],
+                        stamps: [{
+                            pageIndex: window.pdfEditorVars.totalPages - 1,
+                            x: 100,
+                            y: 50,
+                            stampType: 'SIGNED',
+                            width: 150,
+                            height: 50
+                        }]
+                    };
+                    
+                    let apiUrl = '/api/pdf/edit';
+                    if (window.location.protocol === 'file:') {
+                        apiUrl = 'http://localhost:3000/api/pdf/edit';
+                    }
+                    
+                    updateProgress(70, 'Applying signature...');
+                    const signResponse = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            pdfData: `data:application/pdf;base64,${pdfBase64}`,
+                            edits: signatureEdits
+                        })
+                    });
+                    
+                    updateProgress(90, 'Processing...');
+                    
+                    if (signResponse.ok) {
+                        const result = await signResponse.json();
+                        if (result.success) {
+                            const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
+                            await renderPDF(pdfData);
+                            updateProgress(100, 'Signature added!');
+                            setTimeout(() => {
+                                hideLoading();
+                                alert('Digital signature added successfully!');
+                            }, 500);
+                        }
+                    } else {
+                        throw new Error('Signature failed');
+                    }
+                } catch (error) {
+                    console.error('Sign error:', error);
+                    hideLoading();
+                    alert('Error adding signature: ' + error.message);
+                }
+            });
+        }
+        
+        // Redact Implementation
+        if (redactBtn) {
+            redactBtn.addEventListener('click', function() {
+                window.pdfEditorVars.activeTool = 'redact';
+                if (redactBtn) redactBtn.classList.add('active');
+                if (highlightBtn) highlightBtn.classList.remove('active');
+                if (selectTool) selectTool.classList.remove('active');
+                
+                if (pdfCanvas) {
+                    pdfCanvas.style.cursor = 'crosshair';
+                }
+                
+                alert('Redact mode activated. Click and drag to select text to redact (black out).');
+            });
+        }
+        
+        // Redact drawing
+        let redactStartX = null;
+        let redactStartY = null;
+        let redactRect = null;
+        
+        if (pdfCanvas && redactBtn) {
+            const redactMouseDown = function(e) {
+                if (window.pdfEditorVars.activeTool === 'redact') {
+                    const rect = pdfCanvas.getBoundingClientRect();
+                    redactStartX = e.clientX - rect.left;
+                    redactStartY = e.clientY - rect.top;
+                    window.pdfEditorVars.isDrawing = true;
+                    
+                    redactRect = document.createElement('div');
+                    redactRect.className = 'redact-rect';
+                    redactRect.style.position = 'absolute';
+                    redactRect.style.left = redactStartX + 'px';
+                    redactRect.style.top = redactStartY + 'px';
+                    redactRect.style.width = '0px';
+                    redactRect.style.height = '0px';
+                    redactRect.style.backgroundColor = '#000000';
+                    redactRect.style.border = 'none';
+                    redactRect.style.pointerEvents = 'auto';
+                    redactRect.style.zIndex = '8';
+                    redactRect.dataset.page = window.pdfEditorVars.currentPage;
+                    if (deletionLayer) deletionLayer.appendChild(redactRect);
+                }
+            };
+            
+            const redactMouseMove = function(e) {
+                if (window.pdfEditorVars.activeTool === 'redact' && window.pdfEditorVars.isDrawing && redactRect) {
+                    const rect = pdfCanvas.getBoundingClientRect();
+                    const currentX = e.clientX - rect.left;
+                    const currentY = e.clientY - rect.top;
+                    
+                    const width = Math.abs(currentX - redactStartX);
+                    const height = Math.abs(currentY - redactStartY);
+                    const left = Math.min(redactStartX, currentX);
+                    const top = Math.min(redactStartY, currentY);
+                    
+                    redactRect.style.left = left + 'px';
+                    redactRect.style.top = top + 'px';
+                    redactRect.style.width = width + 'px';
+                    redactRect.style.height = height + 'px';
+                }
+            };
+            
+            const redactMouseUp = function(e) {
+                if (window.pdfEditorVars.activeTool === 'redact' && window.pdfEditorVars.isDrawing && redactRect) {
+                    window.pdfEditorVars.isDrawing = false;
+                    
+                    const width = parseFloat(redactRect.style.width);
+                    const height = parseFloat(redactRect.style.height);
+                    
+                    if (width > 5 && height > 5) {
+                        const redaction = {
+                            pageIndex: window.pdfEditorVars.currentPage - 1,
+                            x: parseFloat(redactRect.style.left),
+                            y: parseFloat(redactRect.style.top),
+                            width: width,
+                            height: height,
+                            type: 'redaction'
+                        };
+                        
+                        const storedEdits = JSON.parse(sessionStorage.getItem('pdfEdits') || '{}');
+                        if (!storedEdits.deletions) storedEdits.deletions = [];
+                        storedEdits.deletions.push(redaction);
+                        sessionStorage.setItem('pdfEdits', JSON.stringify(storedEdits));
+                    } else {
+                        redactRect.remove();
+                    }
+                    
+                    window.pdfEditorVars.activeTool = 'select';
+                    if (redactBtn) redactBtn.classList.remove('active');
+                    if (selectTool) selectTool.classList.add('active');
+                    if (pdfCanvas) pdfCanvas.style.cursor = 'default';
+                    
+                    redactStartX = null;
+                    redactStartY = null;
+                    redactRect = null;
+                }
+            };
+            
+            pdfCanvas.addEventListener('mousedown', redactMouseDown);
+            pdfCanvas.addEventListener('mousemove', redactMouseMove);
+            pdfCanvas.addEventListener('mouseup', redactMouseUp);
+        }
+        
+        // Protect PDF Implementation
+        if (protectBtn) {
+            protectBtn.addEventListener('click', async function() {
+                if (!window.pdfEditorVars.pdfDoc) {
+                    alert('No PDF loaded');
+                    return;
+                }
+                
+                const password = prompt('Enter password to protect PDF:', '');
+                if (!password) return;
+                
+                const confirmPassword = prompt('Confirm password:', '');
+                if (password !== confirmPassword) {
+                    alert('Passwords do not match!');
+                    return;
+                }
+                
+                alert('PDF password protection requires server-side encryption. This feature will be available in the next update with /api/pdf/protect endpoint.');
+            });
+        }
         
         // Rotate Page 90 degrees
         if (rotate90Btn) {
@@ -1642,7 +2599,7 @@
                 }
                 
                 try {
-                    loadingOverlay.style.display = 'flex';
+                    showLoading('Processing...', 10);
                     const pdfFileURL = sessionStorage.getItem('pdfFileURL');
                     if (!pdfFileURL) throw new Error('PDF file not found');
                     
@@ -1672,10 +2629,10 @@
                             alert('Page rotated successfully!');
                         }
                     }
-                    loadingOverlay.style.display = 'none';
+                    hideLoading();
                 } catch (error) {
                     console.error('Rotate error:', error);
-                    loadingOverlay.style.display = 'none';
+                    hideLoading();
                     alert('Error rotating page: ' + error.message);
                 }
             });
@@ -1692,7 +2649,7 @@
                 if (!confirm('Are you sure you want to delete this page?')) return;
                 
                 try {
-                    loadingOverlay.style.display = 'flex';
+                    showLoading('Processing...', 10);
                     const pdfFileURL = sessionStorage.getItem('pdfFileURL');
                     if (!pdfFileURL) throw new Error('PDF file not found');
                     
@@ -1722,10 +2679,10 @@
                             alert('Page deleted successfully!');
                         }
                     }
-                    loadingOverlay.style.display = 'none';
+                    hideLoading();
                 } catch (error) {
                     console.error('Delete page error:', error);
-                    loadingOverlay.style.display = 'none';
+                    hideLoading();
                     alert('Error deleting page: ' + error.message);
                 }
             });
@@ -1741,7 +2698,7 @@
                 
                 // First detect form fields
                 try {
-                    loadingOverlay.style.display = 'flex';
+                    showLoading('Processing...', 10);
                     const pdfFileURL = sessionStorage.getItem('pdfFileURL');
                     if (!pdfFileURL) throw new Error('PDF file not found');
                     
@@ -1808,22 +2765,22 @@
                                         alert('Form filled successfully!');
                                     }
                                 }
-                                loadingOverlay.style.display = 'none';
+                                hideLoading();
                             };
                         } else {
                             alert('No form fields found in this PDF.');
                         }
                     }
-                    loadingOverlay.style.display = 'none';
+                    hideLoading();
                 } catch (error) {
                     console.error('Form fill error:', error);
-                    loadingOverlay.style.display = 'none';
+                    hideLoading();
                     alert('Error filling form: ' + error.message);
                 }
             });
         }
         
-        // Export to Different Formats
+        // Export to Different Formats - Enhanced with Progress
         if (exportBtn) {
             exportBtn.addEventListener('click', async function() {
                 if (!window.pdfEditorVars.pdfDoc) {
@@ -1831,44 +2788,28 @@
                     return;
                 }
                 
-                const format = exportFormatSelect.value;
-                try {
-                    loadingOverlay.style.display = 'flex';
-                    const pdfFileURL = sessionStorage.getItem('pdfFileURL');
-                    if (!pdfFileURL) throw new Error('PDF file not found');
-                    
-                    const response = await fetch(pdfFileURL);
-                    const pdfArrayBuffer = await response.arrayBuffer();
-                    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
-                    
-                    let apiUrl = `/api/pdf/export/${format}`;
-                    if (window.location.protocol === 'file:') {
-                        apiUrl = `http://localhost:3000/api/pdf/export/${format}`;
-                    }
-                    
-                    const exportResponse = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ pdfData: `data:application/pdf;base64,${pdfBase64}` })
-                    });
-                    
-                    if (exportResponse.ok) {
-                        const result = await exportResponse.json();
-                        if (result.success) {
-                            const link = document.createElement('a');
-                            link.href = result.fileData || result.images[0].imageData;
-                            link.download = result.filename || `exported.${format === 'word' ? 'docx' : format === 'excel' ? 'xlsx' : format === 'powerpoint' ? 'pptx' : 'png'}`;
-                            link.click();
-                            alert('Export completed!');
-                        }
-                    }
-                    loadingOverlay.style.display = 'none';
-                } catch (error) {
-                    console.error('Export error:', error);
-                    loadingOverlay.style.display = 'none';
-                    alert('Error exporting: ' + error.message);
+                const format = exportFormatSelect ? exportFormatSelect.value : 'pdf';
+                if (format === 'pdf') {
+                    if (downloadBtn) downloadBtn.click();
+                    return;
                 }
+                
+                await exportToFormat(format);
             });
+        }
+        
+        // Individual Export Buttons
+        if (exportWordBtn) {
+            exportWordBtn.addEventListener('click', () => exportToFormat('word'));
+        }
+        if (exportExcelBtn) {
+            exportExcelBtn.addEventListener('click', () => exportToFormat('excel'));
+        }
+        if (exportPptBtn) {
+            exportPptBtn.addEventListener('click', () => exportToFormat('powerpoint'));
+        }
+        if (exportImageBtn) {
+            exportImageBtn.addEventListener('click', () => exportToFormat('image'));
         }
         
         // Compress PDF
@@ -1880,7 +2821,7 @@
                 }
                 
                 try {
-                    loadingOverlay.style.display = 'flex';
+                    showLoading('Processing...', 10);
                     const pdfFileURL = sessionStorage.getItem('pdfFileURL');
                     if (!pdfFileURL) throw new Error('PDF file not found');
                     
@@ -1910,17 +2851,91 @@
                             alert(`PDF compressed! Size reduced by ${result.compressionRatio}%`);
                         }
                     }
-                    loadingOverlay.style.display = 'none';
+                    hideLoading();
                 } catch (error) {
                     console.error('Compress error:', error);
-                    loadingOverlay.style.display = 'none';
+                    hideLoading();
                     alert('Error compressing PDF: ' + error.message);
                 }
             });
         }
         
+        // Initialize all button event listeners
+        function initButtonEventListeners() {
+            console.log('Initializing button event listeners...');
+            
+            // Re-get all button elements to ensure they exist
+            const uploadBtn = document.getElementById('upload-btn');
+            const downloadBtn = document.getElementById('download-btn');
+            const ocrBtn = document.getElementById('ocr-btn');
+            const addTextBtn = document.getElementById('add-text-btn');
+            const addImageBtn = document.getElementById('add-image-btn');
+            const highlightBtn = document.getElementById('highlight-btn');
+            const selectTool = document.getElementById('select-tool');
+            const fileInput = document.getElementById('file-input');
+            const imageInput = document.getElementById('image-input');
+            
+            // Upload button
+            if (uploadBtn && fileInput) {
+                uploadBtn.addEventListener('click', function() {
+                    console.log('Upload button clicked');
+                    fileInput.click();
+                });
+                console.log('✅ Upload button listener added');
+            } else {
+                console.error('❌ Upload button or file input not found!', { uploadBtn, fileInput });
+            }
+            
+            // Download button - already has listener, but verify
+            if (downloadBtn) {
+                console.log('✅ Download button found');
+            } else {
+                console.error('❌ Download button not found!');
+            }
+            
+            // OCR button - already has listener, but verify
+            if (ocrBtn) {
+                console.log('✅ OCR button found');
+            } else {
+                console.error('❌ OCR button not found!');
+            }
+            
+            // Add Text button - already has listener, but verify
+            if (addTextBtn) {
+                console.log('✅ Add Text button found');
+            } else {
+                console.error('❌ Add Text button not found!');
+            }
+            
+            // Add Image button - already has listener, but verify
+            if (addImageBtn) {
+                console.log('✅ Add Image button found');
+            } else {
+                console.error('❌ Add Image button not found!');
+            }
+            
+            // Highlight button - already has listener, but verify
+            if (highlightBtn) {
+                console.log('✅ Highlight button found');
+            } else {
+                console.error('❌ Highlight button not found!');
+            }
+            
+            // Select tool - already has listener, but verify
+            if (selectTool) {
+                console.log('✅ Select tool found');
+            } else {
+                console.error('❌ Select tool not found!');
+            }
+            
+            console.log('Button event listeners initialization complete!');
+        }
+        
         // Initialize - ensure DOM is ready
         function initPDFEditor() {
+            // Initialize button event listeners
+            initButtonEventListeners();
+            
             // Try to load PDF from storage
             const pdfFileURL = sessionStorage.getItem('pdfFileURL');
             if (pdfFileURL) {

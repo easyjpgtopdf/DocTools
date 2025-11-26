@@ -1234,6 +1234,26 @@ app.post('/api/pdf/pages/reorder', express.json({ limit: '100mb' }), async (req,
   }
 });
 
+app.post('/api/pdf/pages/extract', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData, pageIndices } = req.body;
+    if (!pdfData || !pageIndices || !Array.isArray(pageIndices)) {
+      return res.status(400).json({ success: false, error: 'Missing required data' });
+    }
+    
+    let pdfBuffer = Buffer.from(pdfData.split(',')[1] || pdfData, 'base64');
+    const pageManagement = require('./api/pdf-edit/page-management');
+    const extractedBuffer = await pageManagement.extractPages(pdfBuffer, pageIndices);
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${extractedBuffer.toString('base64')}`
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // PDF Forms Endpoints
 app.post('/api/pdf/forms/fill', express.json({ limit: '100mb' }), async (req, res) => {
   try {
