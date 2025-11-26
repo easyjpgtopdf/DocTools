@@ -1223,9 +1223,9 @@
             }, { once: true });
         }
         
-        // Delete text element
-        function deleteTextElement(element) {
-            if (!element || !deletionLayer) return;
+        // Delete text element - Native PDF editing (NO HTML overlay)
+        async function deleteTextElement(element) {
+            if (!element) return;
             
             const x = parseFloat(element.style.left) || 0;
             const y = parseFloat(element.style.top) || 0;
@@ -1233,15 +1233,66 @@
             const textWidth = element.offsetWidth || Math.max(element.textContent.length * fontSize * 0.6, 20);
             const textHeight = Math.max(fontSize * 1.2, fontSize);
             
-            const deletionRect = document.createElement('div');
-            deletionRect.className = 'deletion-rect';
-            deletionRect.style.left = x + 'px';
-            deletionRect.style.top = y + 'px';
-            deletionRect.style.width = Math.max(textWidth + 4, 20) + 'px';
-            deletionRect.style.height = Math.max(textHeight + 2, fontSize) + 'px';
+            // Apply deletion directly to PDF (native editing)
+            try {
+                showLoading('Deleting text from PDF...', 10);
+                
+                const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                if (!pdfFileURL) throw new Error('PDF file not found');
+                
+                updateProgress(30, 'Loading PDF...');
+                const response = await fetch(pdfFileURL);
+                const pdfArrayBuffer = await response.arrayBuffer();
+                const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                
+                updateProgress(50, 'Deleting text from PDF...');
+                let apiUrl = '/api/pdf/edit-native';
+                if (window.location.protocol === 'file:') {
+                    apiUrl = 'http://localhost:3000/api/pdf/edit-native';
+                }
+                
+                const deleteResponse = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        pdfData: `data:application/pdf;base64,${pdfBase64}`,
+                        edit: {
+                            type: 'deleteText',
+                            data: {
+                                pageIndex: window.pdfEditorVars.currentPage - 1,
+                                x: x,
+                                y: y,
+                                width: Math.max(textWidth + 4, 20),
+                                height: Math.max(textHeight + 2, fontSize)
+                            }
+                        }
+                    })
+                });
+                
+                updateProgress(80, 'Updating PDF...');
+                
+                if (deleteResponse.ok) {
+                    const result = await deleteResponse.json();
+                    if (result.success) {
+                        updateProgress(90, 'Rendering updated PDF...');
+                        const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
+                        
+                        const blob = new Blob([pdfData], { type: 'application/pdf' });
+                        const newUrl = URL.createObjectURL(blob);
+                        sessionStorage.setItem('pdfFileURL', newUrl);
+                        
+                        await renderPDF(pdfData);
+                        
+                        updateProgress(100, 'Text deleted!');
+                        setTimeout(() => hideLoading(), 300);
+                    }
+                }
+            } catch (error) {
+                console.error('Error deleting text:', error);
+                hideLoading();
+            }
             
-            deletionLayer.appendChild(deletionRect);
-            
+            // Remove element from view
             if (element.parentNode) {
                 element.parentNode.removeChild(element);
             }
@@ -1920,33 +1971,61 @@
                                 author: 'User'
                             };
                             
-                            window.pdfEditorVars.annotations.comments.push(comment);
-                            
-                            // Store in sessionStorage
-                            const storedEdits = JSON.parse(sessionStorage.getItem('pdfEdits') || '{}');
-                            if (!storedEdits.comments) storedEdits.comments = [];
-                            storedEdits.comments.push(comment);
-                            sessionStorage.setItem('pdfEdits', JSON.stringify(storedEdits));
-                            
-                            // Visual indicator
-                            const commentIcon = document.createElement('div');
-                            commentIcon.className = 'comment-icon';
-                            commentIcon.style.position = 'absolute';
-                            commentIcon.style.left = x + 'px';
-                            commentIcon.style.top = y + 'px';
-                            commentIcon.style.width = '20px';
-                            commentIcon.style.height = '20px';
-                            commentIcon.style.backgroundColor = '#ffeb3b';
-                            commentIcon.style.border = '2px solid #000';
-                            commentIcon.style.borderRadius = '50%';
-                            commentIcon.style.cursor = 'pointer';
-                            commentIcon.title = commentText;
-                            commentIcon.dataset.page = window.pdfEditorVars.currentPage;
-                            textLayer.appendChild(commentIcon);
-                            
-                            commentIcon.addEventListener('click', function() {
-                                alert('Comment: ' + commentText);
-                            });
+                            // Apply comment directly to PDF (native editing - NO HTML overlay)
+                            try {
+                                showLoading('Adding comment to PDF...', 10);
+                                
+                                const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                                if (!pdfFileURL) throw new Error('PDF file not found');
+                                
+                                updateProgress(30, 'Loading PDF...');
+                                const response = await fetch(pdfFileURL);
+                                const pdfArrayBuffer = await response.arrayBuffer();
+                                const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                                
+                                updateProgress(50, 'Applying comment...');
+                                let apiUrl = '/api/pdf/edit-native';
+                                if (window.location.protocol === 'file:') {
+                                    apiUrl = 'http://localhost:3000/api/pdf/edit-native';
+                                }
+                                
+                                const commentResponse = await fetch(apiUrl, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        pdfData: `data:application/pdf;base64,${pdfBase64}`,
+                                        edit: {
+                                            type: 'comment',
+                                            data: comment
+                                        }
+                                    })
+                                });
+                                
+                                updateProgress(80, 'Updating PDF...');
+                                
+                                if (commentResponse.ok) {
+                                    const result = await commentResponse.json();
+                                    if (result.success) {
+                                        updateProgress(90, 'Rendering...');
+                                        const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
+                                        
+                                        const blob = new Blob([pdfData], { type: 'application/pdf' });
+                                        const newUrl = URL.createObjectURL(blob);
+                                        sessionStorage.setItem('pdfFileURL', newUrl);
+                                        
+                                        await renderPDF(pdfData);
+                                        
+                                        updateProgress(100, 'Comment added!');
+                                        setTimeout(() => hideLoading(), 300);
+                                        
+                                        // Store in annotations
+                                        window.pdfEditorVars.annotations.comments.push(comment);
+                                    }
+                                }
+                            } catch (error) {
+                                console.error('Error adding comment:', error);
+                                hideLoading();
+                            }
                         }
                         
                         // Reset tool
@@ -2100,25 +2179,22 @@
                     shapeStartY = e.clientY - rect.top;
                     window.pdfEditorVars.isDrawing = true;
                     
-                    shapeRect = document.createElement('div');
-                    shapeRect.className = 'shape-rect';
-                    shapeRect.style.position = 'absolute';
-                    shapeRect.style.left = shapeStartX + 'px';
-                    shapeRect.style.top = shapeStartY + 'px';
-                    shapeRect.style.width = '0px';
-                    shapeRect.style.height = '0px';
-                    shapeRect.style.border = '2px solid #000';
-                    shapeRect.style.backgroundColor = 'transparent';
-                    shapeRect.style.pointerEvents = 'auto';
-                    shapeRect.style.zIndex = '7';
-                    shapeRect.dataset.page = window.pdfEditorVars.currentPage;
-                    shapeRect.dataset.shapeType = window.pdfEditorVars.shapeType;
-                    textLayer.appendChild(shapeRect);
+                    // Native editing - no HTML overlay, just track coordinates
+                    // Shape will be added to PDF on mouseup
                 }
             };
             
             const shapeMouseMove = function(e) {
-                if (window.pdfEditorVars.activeTool === 'shape' && window.pdfEditorVars.isDrawing && shapeRect) {
+                if (window.pdfEditorVars.activeTool === 'shape' && window.pdfEditorVars.isDrawing) {
+                    // Native editing - just track coordinates, no HTML overlay
+                    // Shape will be drawn directly in PDF on mouseup
+                }
+            };
+            
+            const shapeMouseUp = async function(e) {
+                if (window.pdfEditorVars.activeTool === 'shape' && window.pdfEditorVars.isDrawing) {
+                    window.pdfEditorVars.isDrawing = false;
+                    
                     const rect = pdfCanvas.getBoundingClientRect();
                     const currentX = e.clientX - rect.left;
                     const currentY = e.clientY - rect.top;
@@ -2128,45 +2204,73 @@
                     const left = Math.min(shapeStartX, currentX);
                     const top = Math.min(shapeStartY, currentY);
                     
-                    shapeRect.style.left = left + 'px';
-                    shapeRect.style.top = top + 'px';
-                    shapeRect.style.width = width + 'px';
-                    shapeRect.style.height = height + 'px';
-                    
-                    if (window.pdfEditorVars.shapeType === 'circle') {
-                        shapeRect.style.borderRadius = '50%';
-                    }
-                }
-            };
-            
-            const shapeMouseUp = function(e) {
-                if (window.pdfEditorVars.activeTool === 'shape' && window.pdfEditorVars.isDrawing && shapeRect) {
-                    window.pdfEditorVars.isDrawing = false;
-                    
-                    const width = parseFloat(shapeRect.style.width);
-                    const height = parseFloat(shapeRect.style.height);
-                    
                     if (width > 5 && height > 5) {
                         const shape = {
                             pageIndex: window.pdfEditorVars.currentPage - 1,
                             shapeType: window.pdfEditorVars.shapeType,
-                            x: parseFloat(shapeRect.style.left),
-                            y: parseFloat(shapeRect.style.top),
+                            x: left,
+                            y: top,
                             width: width,
                             height: height,
                             color: [0, 0, 0],
                             strokeWidth: 2
                         };
                         
-                        window.pdfEditorVars.annotations.shapes.push(shape);
-                        
-                        // Store in sessionStorage
-                        const storedEdits = JSON.parse(sessionStorage.getItem('pdfEdits') || '{}');
-                        if (!storedEdits.shapes) storedEdits.shapes = [];
-                        storedEdits.shapes.push(shape);
-                        sessionStorage.setItem('pdfEdits', JSON.stringify(storedEdits));
-                    } else {
-                        shapeRect.remove();
+                        // Apply shape directly to PDF (native editing - NO HTML overlay)
+                        try {
+                            showLoading('Adding shape to PDF...', 10);
+                            
+                            const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                            if (!pdfFileURL) throw new Error('PDF file not found');
+                            
+                            updateProgress(30, 'Loading PDF...');
+                            const response = await fetch(pdfFileURL);
+                            const pdfArrayBuffer = await response.arrayBuffer();
+                            const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                            
+                            updateProgress(50, 'Applying shape...');
+                            let apiUrl = '/api/pdf/edit-native';
+                            if (window.location.protocol === 'file:') {
+                                apiUrl = 'http://localhost:3000/api/pdf/edit-native';
+                            }
+                            
+                            const shapeResponse = await fetch(apiUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    pdfData: `data:application/pdf;base64,${pdfBase64}`,
+                                    edit: {
+                                        type: 'shape',
+                                        data: shape
+                                    }
+                                })
+                            });
+                            
+                            updateProgress(80, 'Updating PDF...');
+                            
+                            if (shapeResponse.ok) {
+                                const result = await shapeResponse.json();
+                                if (result.success) {
+                                    updateProgress(90, 'Rendering...');
+                                    const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
+                                    
+                                    const blob = new Blob([pdfData], { type: 'application/pdf' });
+                                    const newUrl = URL.createObjectURL(blob);
+                                    sessionStorage.setItem('pdfFileURL', newUrl);
+                                    
+                                    await renderPDF(pdfData);
+                                    
+                                    updateProgress(100, 'Shape added!');
+                                    setTimeout(() => hideLoading(), 300);
+                                    
+                                    // Store in annotations
+                                    window.pdfEditorVars.annotations.shapes.push(shape);
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error adding shape:', error);
+                            hideLoading();
+                        }
                     }
                     
                     // Reset tool
@@ -2177,7 +2281,6 @@
                     
                     shapeStartX = null;
                     shapeStartY = null;
-                    shapeRect = null;
                 }
             };
             
@@ -2530,24 +2633,22 @@
                     redactStartY = e.clientY - rect.top;
                     window.pdfEditorVars.isDrawing = true;
                     
-                    redactRect = document.createElement('div');
-                    redactRect.className = 'redact-rect';
-                    redactRect.style.position = 'absolute';
-                    redactRect.style.left = redactStartX + 'px';
-                    redactRect.style.top = redactStartY + 'px';
-                    redactRect.style.width = '0px';
-                    redactRect.style.height = '0px';
-                    redactRect.style.backgroundColor = '#000000';
-                    redactRect.style.border = 'none';
-                    redactRect.style.pointerEvents = 'auto';
-                    redactRect.style.zIndex = '8';
-                    redactRect.dataset.page = window.pdfEditorVars.currentPage;
-                    if (deletionLayer) deletionLayer.appendChild(redactRect);
+                    // Native editing - no HTML overlay, just track coordinates
+                    // Redaction will be added to PDF on mouseup
                 }
             };
             
             const redactMouseMove = function(e) {
-                if (window.pdfEditorVars.activeTool === 'redact' && window.pdfEditorVars.isDrawing && redactRect) {
+                if (window.pdfEditorVars.activeTool === 'redact' && window.pdfEditorVars.isDrawing) {
+                    // Native editing - just track coordinates, no HTML overlay
+                    // Redaction will be drawn directly in PDF on mouseup
+                }
+            };
+            
+            const redactMouseUp = async function(e) {
+                if (window.pdfEditorVars.activeTool === 'redact' && window.pdfEditorVars.isDrawing) {
+                    window.pdfEditorVars.isDrawing = false;
+                    
                     const rect = pdfCanvas.getBoundingClientRect();
                     const currentX = e.clientX - rect.left;
                     const currentY = e.clientY - rect.top;
@@ -2557,36 +2658,68 @@
                     const left = Math.min(redactStartX, currentX);
                     const top = Math.min(redactStartY, currentY);
                     
-                    redactRect.style.left = left + 'px';
-                    redactRect.style.top = top + 'px';
-                    redactRect.style.width = width + 'px';
-                    redactRect.style.height = height + 'px';
-                }
-            };
-            
-            const redactMouseUp = function(e) {
-                if (window.pdfEditorVars.activeTool === 'redact' && window.pdfEditorVars.isDrawing && redactRect) {
-                    window.pdfEditorVars.isDrawing = false;
-                    
-                    const width = parseFloat(redactRect.style.width);
-                    const height = parseFloat(redactRect.style.height);
-                    
                     if (width > 5 && height > 5) {
                         const redaction = {
                             pageIndex: window.pdfEditorVars.currentPage - 1,
-                            x: parseFloat(redactRect.style.left),
-                            y: parseFloat(redactRect.style.top),
+                            x: left,
+                            y: top,
                             width: width,
                             height: height,
                             type: 'redaction'
                         };
                         
-                        const storedEdits = JSON.parse(sessionStorage.getItem('pdfEdits') || '{}');
-                        if (!storedEdits.deletions) storedEdits.deletions = [];
-                        storedEdits.deletions.push(redaction);
-                        sessionStorage.setItem('pdfEdits', JSON.stringify(storedEdits));
-                    } else {
-                        redactRect.remove();
+                        // Apply redaction directly to PDF (native editing - NO HTML overlay)
+                        try {
+                            showLoading('Applying redaction to PDF...', 10);
+                            
+                            const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                            if (!pdfFileURL) throw new Error('PDF file not found');
+                            
+                            updateProgress(30, 'Loading PDF...');
+                            const response = await fetch(pdfFileURL);
+                            const pdfArrayBuffer = await response.arrayBuffer();
+                            const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                            
+                            updateProgress(50, 'Applying redaction...');
+                            let apiUrl = '/api/pdf/edit-native';
+                            if (window.location.protocol === 'file:') {
+                                apiUrl = 'http://localhost:3000/api/pdf/edit-native';
+                            }
+                            
+                            const redactResponse = await fetch(apiUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    pdfData: `data:application/pdf;base64,${pdfBase64}`,
+                                    edit: {
+                                        type: 'redaction',
+                                        data: redaction
+                                    }
+                                })
+                            });
+                            
+                            updateProgress(80, 'Updating PDF...');
+                            
+                            if (redactResponse.ok) {
+                                const result = await redactResponse.json();
+                                if (result.success) {
+                                    updateProgress(90, 'Rendering...');
+                                    const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
+                                    
+                                    const blob = new Blob([pdfData], { type: 'application/pdf' });
+                                    const newUrl = URL.createObjectURL(blob);
+                                    sessionStorage.setItem('pdfFileURL', newUrl);
+                                    
+                                    await renderPDF(pdfData);
+                                    
+                                    updateProgress(100, 'Redaction applied!');
+                                    setTimeout(() => hideLoading(), 300);
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error applying redaction:', error);
+                            hideLoading();
+                        }
                     }
                     
                     window.pdfEditorVars.activeTool = 'select';
@@ -2596,7 +2729,6 @@
                     
                     redactStartX = null;
                     redactStartY = null;
-                    redactRect = null;
                 }
             };
             

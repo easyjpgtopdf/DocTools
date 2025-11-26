@@ -338,6 +338,13 @@ async function applyNativeEdits(pdfBuffer, edits) {
       }
     }
     
+    // Apply shapes
+    if (edits.shapes && edits.shapes.length > 0) {
+      for (const shape of edits.shapes) {
+        await editor.addShape(shape);
+      }
+    }
+    
     // Get updated PDF
     return await editor.getPDFBuffer();
 }
