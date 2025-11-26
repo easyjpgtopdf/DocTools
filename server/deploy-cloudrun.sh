@@ -62,7 +62,7 @@ gcloud run deploy $SERVICE_NAME \
   --timeout 300 \
   --max-instances 10 \
   --allow-unauthenticated \
-  --set-env-vars "GOOGLE_CLOUD_PROJECT=$PROJECT_ID" \
+  --set-env-vars "image.pngGOOGLE_CLOUD_PROJECT=$PROJECT_ID" \
   --quiet
 
 if [ $? -eq 0 ]; then
