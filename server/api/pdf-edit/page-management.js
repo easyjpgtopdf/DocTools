@@ -124,15 +124,18 @@ async function addPage(pdfBuffer, pageIndex = -1, insertAfter = true) {
     const totalPages = pdfDoc.getPageCount();
     
     if (pageIndex === -1 || pageIndex >= totalPages) {
-      // Append at the end
-      pdfDoc.addPage();
+      // Append at the end - create blank page
+      const newPage = pdfDoc.addPage();
+      // Set default size (A4)
+      newPage.setSize(595, 842);
     } else {
       // Insert at specific position
       const insertIndex = insertAfter ? pageIndex + 1 : pageIndex;
       if (insertIndex >= 0 && insertIndex <= totalPages) {
-        const pages = pdfDoc.getPages();
-        const [newPage] = await pdfDoc.copyPages(pdfDoc, [Math.max(0, pageIndex)]);
-        pdfDoc.insertPage(insertIndex, newPage);
+        // Create a blank page
+        const newPage = pdfDoc.insertPage(insertIndex);
+        // Set default size (A4)
+        newPage.setSize(595, 842);
       }
     }
     
