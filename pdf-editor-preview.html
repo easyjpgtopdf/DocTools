@@ -1179,13 +1179,30 @@
             });
         }
         
-        // Select text element
+        // Select text element (for native editing - triggers edit dialog)
         function selectTextElement(element) {
             if (window.pdfEditorVars.selectedTextElement) {
                 window.pdfEditorVars.selectedTextElement.classList.remove('selected');
             }
             window.pdfEditorVars.selectedTextElement = element;
-            element.classList.add('selected');
+            if (element && element.classList) {
+                element.classList.add('selected');
+            }
+            
+            // For native editing, show edit option
+            if (element && element.dataset.text) {
+                // Text is in PDF, trigger native edit
+                const newText = prompt('Edit text (Native PDF editing):', element.dataset.text);
+                if (newText && newText !== element.dataset.text) {
+                    applyNativeTextEdit({
+                        pageIndex: parseInt(element.dataset.page) - 1,
+                        oldText: element.dataset.text,
+                        newText: newText,
+                        x: parseFloat(element.style.left) || 0,
+                        y: parseFloat(element.style.top) || 0
+                    });
+                }
+            }
         }
         
         // Edit text element
@@ -1983,25 +2000,58 @@
                             storedEdits.stamps.push(stamp);
                             sessionStorage.setItem('pdfEdits', JSON.stringify(storedEdits));
                             
-                            // Visual indicator
-                            const stampDiv = document.createElement('div');
-                            stampDiv.className = 'stamp-indicator';
-                            stampDiv.style.position = 'absolute';
-                            stampDiv.style.left = x + 'px';
-                            stampDiv.style.top = y + 'px';
-                            stampDiv.style.width = '100px';
-                            stampDiv.style.height = '50px';
-                            stampDiv.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
-                            stampDiv.style.border = '2px solid #f00';
-                            stampDiv.style.display = 'flex';
-                            stampDiv.style.alignItems = 'center';
-                            stampDiv.style.justifyContent = 'center';
-                            stampDiv.style.fontSize = '12px';
-                            stampDiv.style.fontWeight = 'bold';
-                            stampDiv.style.color = '#f00';
-                            stampDiv.textContent = stampType;
-                            stampDiv.dataset.page = window.pdfEditorVars.currentPage;
-                            textLayer.appendChild(stampDiv);
+                            // Apply stamp directly to PDF (native editing)
+                            try {
+                                showLoading('Adding stamp to PDF...', 10);
+                                
+                                const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                                if (!pdfFileURL) throw new Error('PDF file not found');
+                                
+                                updateProgress(30, 'Loading PDF...');
+                                const response = await fetch(pdfFileURL);
+                                const pdfArrayBuffer = await response.arrayBuffer();
+                                const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                                
+                                updateProgress(50, 'Applying stamp...');
+                                let apiUrl = '/api/pdf/edit';
+                                if (window.location.protocol === 'file:') {
+                                    apiUrl = 'http://localhost:3000/api/pdf/edit';
+                                }
+                                
+                                // Use standard edit endpoint for stamps
+                                const stampResponse = await fetch(apiUrl, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        pdfData: `data:application/pdf;base64,${pdfBase64}`,
+                                        edits: {
+                                            stamps: [stamp]
+                                        }
+                                    })
+                                });
+                                
+                                updateProgress(80, 'Updating PDF...');
+                                
+                                if (stampResponse.ok) {
+                                    const result = await stampResponse.json();
+                                    if (result.success) {
+                                        updateProgress(90, 'Rendering...');
+                                        const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
+                                        
+                                        const blob = new Blob([pdfData], { type: 'application/pdf' });
+                                        const newUrl = URL.createObjectURL(blob);
+                                        sessionStorage.setItem('pdfFileURL', newUrl);
+                                        
+                                        await renderPDF(pdfData);
+                                        
+                                        updateProgress(100, 'Stamp added!');
+                                        setTimeout(() => hideLoading(), 300);
+                                    }
+                                }
+                            } catch (error) {
+                                console.error('Error adding stamp:', error);
+                                hideLoading();
+                            }
                         }
                         
                         // Reset tool

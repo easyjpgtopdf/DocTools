@@ -324,15 +324,22 @@ async function applyNativeEdits(pdfBuffer, edits) {
     }
   }
   
-  // Apply comments
-  if (edits.comments && edits.comments.length > 0) {
-    for (const comment of edits.comments) {
-      await editor.addComment(comment);
+    // Apply comments
+    if (edits.comments && edits.comments.length > 0) {
+      for (const comment of edits.comments) {
+        await editor.addComment(comment);
+      }
     }
-  }
-  
-  // Get updated PDF
-  return await editor.getPDFBuffer();
+    
+    // Apply stamps
+    if (edits.stamps && edits.stamps.length > 0) {
+      for (const stamp of edits.stamps) {
+        await editor.addStamp(stamp);
+      }
+    }
+    
+    // Get updated PDF
+    return await editor.getPDFBuffer();
 }
 
 module.exports = {
