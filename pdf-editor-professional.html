@@ -790,8 +790,13 @@
         const deleteTextBtn = document.getElementById('delete-text-btn');
         
         // Direct file upload with server processing (Fast)
-        if (uploadBtn) {
-            uploadBtn.addEventListener('click', () => fileInput.click());
+        if (uploadBtn && fileInput) {
+            uploadBtn.addEventListener('click', function() {
+                console.log('Upload button clicked');
+                fileInput.click();
+            });
+        } else {
+            console.error('Upload button or file input not found!', { uploadBtn, fileInput });
         }
         
         if (fileInput) {
@@ -1035,7 +1040,11 @@
         // Fast Server-Side OCR (Google Cloud Vision API)
         if (ocrBtn) {
             ocrBtn.addEventListener('click', async function() {
-                if (!window.pdfEditorVars.pdfDoc) return;
+                console.log('OCR button clicked');
+                if (!window.pdfEditorVars.pdfDoc) {
+                    alert('No PDF loaded. Please upload a PDF first.');
+                    return;
+                }
                 
                 try {
                     loadingOverlay.style.display = 'flex';
@@ -1273,8 +1282,9 @@
         // Download with server processing
         if (downloadBtn) {
             downloadBtn.addEventListener('click', async function() {
+                console.log('Download button clicked');
                 if (!window.pdfEditorVars.pdfDoc) {
-                    alert('No PDF loaded');
+                    alert('No PDF loaded. Please upload a PDF first.');
                     return;
                 }
                 
@@ -1753,13 +1763,8 @@
             });
         }
         
-        // Initialize - try to load from storage
-        (function init() {
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', init);
-                return;
-            }
-            
+        // Initialize - ensure DOM is ready
+        function initPDFEditor() {
             // Try to load PDF from storage
             const pdfFileURL = sessionStorage.getItem('pdfFileURL');
             if (pdfFileURL) {
@@ -1768,7 +1773,25 @@
                     .then(data => renderPDF(data))
                     .catch(e => console.warn('Could not load PDF from storage:', e));
             }
-        })();
+            
+            // Ensure preview container is visible
+            if (previewContainer) {
+                previewContainer.style.display = 'flex';
+                previewContainer.style.visibility = 'visible';
+            }
+            if (pdfPageWrapper) {
+                pdfPageWrapper.style.display = 'block';
+                pdfPageWrapper.style.visibility = 'visible';
+            }
+        }
+        
+        // Run initialization when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initPDFEditor);
+        } else {
+            // DOM already loaded
+            initPDFEditor();
+        }
     </script>
 </body>
 </html>
