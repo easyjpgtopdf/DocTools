@@ -1132,13 +1132,16 @@
         }
         
         // Render text layer (with page tracking for multi-page editing)
+        // Render text layer - NO HTML overlays, only invisible click zones for native editing
         function renderTextLayer(textContent, viewport, pageNumber = 1) {
             if (!textLayer) return;
             
+            // Clear text layer - NO HTML overlays
             textLayer.innerHTML = '';
             textLayer.style.width = viewport.width + 'px';
             textLayer.style.height = viewport.height + 'px';
             
+            // Create invisible click zones for native editing (NO visual HTML overlays)
             textContent.items.forEach((item, index) => {
                 if (item.str && item.str.trim()) {
                     const words = item.str.split(/(\s+)/);
@@ -1149,27 +1152,36 @@
                     
                     words.forEach((word, wordIndex) => {
                         if (word.trim()) {
-                            const wordDiv = document.createElement('div');
-                            wordDiv.className = 'editable-text';
-                            wordDiv.textContent = word;
-                            wordDiv.style.left = currentX + 'px';
-                            wordDiv.style.top = (baseY - fontSize) + 'px';
-                            wordDiv.style.fontSize = fontSize + 'px';
-                            wordDiv.style.fontFamily = fontFamily;
-                            wordDiv.style.color = '#000000';
-                            wordDiv.dataset.page = pageNumber; // Track which page this text belongs to
+                            // Invisible click zone (NO visual HTML overlay)
+                            const clickZone = document.createElement('div');
+                            clickZone.style.position = 'absolute';
+                            clickZone.style.left = currentX + 'px';
+                            clickZone.style.top = (baseY - fontSize) + 'px';
+                            clickZone.style.width = (word.length * fontSize * 0.6) + 'px';
+                            clickZone.style.height = fontSize + 'px';
+                            clickZone.style.pointerEvents = 'auto';
+                            clickZone.style.cursor = 'text';
+                            clickZone.style.opacity = '0'; // Completely invisible
+                            clickZone.dataset.text = word;
+                            clickZone.dataset.page = pageNumber;
+                            clickZone.title = 'Click to edit (Native PDF editing)';
                             
-                            wordDiv.addEventListener('click', function(e) {
+                            // Click triggers native PDF editing (NO HTML overlay)
+                            clickZone.addEventListener('click', function(e) {
                                 e.stopPropagation();
-                                selectTextElement(wordDiv);
+                                const newText = prompt('Edit text (Native PDF editing):', word);
+                                if (newText && newText !== word) {
+                                    applyNativeTextEdit({
+                                        pageIndex: pageNumber - 1,
+                                        oldText: word,
+                                        newText: newText,
+                                        x: currentX,
+                                        y: baseY
+                                    });
+                                }
                             });
                             
-                            wordDiv.addEventListener('dblclick', function(e) {
-                                e.stopPropagation();
-                                editTextElement(wordDiv);
-                            });
-                            
-                            textLayer.appendChild(wordDiv);
+                            textLayer.appendChild(clickZone);
                             currentX += word.length * (fontSize * 0.6);
                         } else if (word) {
                             currentX += fontSize * 0.3;
@@ -1177,6 +1189,59 @@
                     });
                 }
             });
+        }
+        
+        // Apply native text edit (NO HTML overlays - direct PDF editing)
+        async function applyNativeTextEdit(editData) {
+            try {
+                const { pageIndex, oldText, newText, x, y } = editData;
+                
+                // Get current PDF data
+                const currentPdfData = window.pdfEditorVars.currentPdfData;
+                if (!currentPdfData) {
+                    alert('No PDF loaded. Please upload a PDF first.');
+                    return;
+                }
+                
+                showLoading('Applying native text edit...', 50);
+                
+                // Send native edit to backend
+                const response = await fetch('/api/pdf/edit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        pdfData: currentPdfData,
+                        edits: {
+                            textReplacements: [{
+                                pageIndex: pageIndex,
+                                oldText: oldText,
+                                newText: newText,
+                                x: x,
+                                y: y,
+                                fontSize: 12,
+                                fontName: 'Helvetica',
+                                fontColor: [0, 0, 0]
+                            }]
+                        }
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Update PDF data and re-render (native changes)
+                    window.pdfEditorVars.currentPdfData = result.pdfData;
+                    await renderPDF(result.pdfData);
+                    hideLoading();
+                } else {
+                    hideLoading();
+                    alert('Failed to apply text edit: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                hideLoading();
+                console.error('Native text edit error:', error);
+                alert('Error applying text edit: ' + error.message);
+            }
         }
         
         // Select text element (for native editing - triggers edit dialog)
