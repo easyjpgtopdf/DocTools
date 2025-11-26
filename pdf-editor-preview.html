@@ -1507,95 +1507,21 @@
                     const response = await fetch(pdfFileURL);
                     const pdfArrayBuffer = await response.arrayBuffer();
                     
-                    // Collect edits from ALL pages (CRITICAL FIX)
+                    // Native PDF Editing - All edits are already in PDF!
+                    // No need to collect HTML overlays - PDF is already edited
+                    // Just get the current PDF which has all edits applied
+                    
+                    // Get stored edits metadata (for reference only)
+                    const storedEdits = JSON.parse(sessionStorage.getItem('pdfEdits') || '{}');
+                    
+                    // Since we're using native editing, the PDF already contains all edits
+                    // We just need to ensure OCR texts are included if any
                     const edits = {
-                        textEdits: [],
-                        textReplacements: [],
-                        imageInserts: [],
-                        deletions: [],
-                        ocrTexts: window.pdfEditorVars.ocrTextsForPDF || [],
-                        highlights: [],
-                        comments: [],
-                        stamps: [],
-                        shapes: []
+                        ocrTexts: window.pdfEditorVars.ocrTextsForPDF || storedEdits.ocrTexts || []
                     };
                     
-                    // Store edits per page in sessionStorage or memory
-                    // For now, we'll collect from current view and stored data
-                    // In a real implementation, you'd store edits per page as user makes changes
-                    
-                    // Get text elements from current page
-                    const textElements = textLayer.querySelectorAll('.editable-text');
-                    textElements.forEach((el) => {
-                        const pageNum = parseInt(el.dataset.page) || window.pdfEditorVars.currentPage;
-                        const x = parseFloat(el.style.left) || 0;
-                        const y = parseFloat(el.style.top) || 0;
-                        const fontSize = parseFloat(el.style.fontSize) || 12;
-                        const fontColor = el.style.color || '#000000';
-                        const fontFamily = el.style.fontFamily || 'Helvetica';
-                        
-                        // Convert hex color to RGB
-                        const hexToRgb = (hex) => {
-                            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-                            return result ? [
-                                parseInt(result[1], 16) / 255,
-                                parseInt(result[2], 16) / 255,
-                                parseInt(result[3], 16) / 255
-                            ] : [0, 0, 0];
-                        };
-                        
-                        edits.textEdits.push({
-                            pageIndex: pageNum - 1,
-                            x: x,
-                            y: y,
-                            text: el.textContent,
-                            fontSize: fontSize,
-                            fontName: fontFamily,
-                            fontColor: hexToRgb(fontColor)
-                        });
-                    });
-                    
-                    // Get deletions from current page
-                    if (deletionLayer) {
-                        const deletionRects = deletionLayer.querySelectorAll('.deletion-rect');
-                        deletionRects.forEach((rectEl) => {
-                            const pageNum = parseInt(rectEl.dataset.page) || window.pdfEditorVars.currentPage;
-                            edits.deletions.push({
-                                pageIndex: pageNum - 1,
-                                x: parseFloat(rectEl.style.left) || 0,
-                                y: parseFloat(rectEl.style.top) || 0,
-                                width: parseFloat(rectEl.style.width) || 0,
-                                height: parseFloat(rectEl.style.height) || 0
-                            });
-                        });
-                    }
-                    
-                    // Get stored edits from all pages (if stored in sessionStorage)
-                    const storedEdits = JSON.parse(sessionStorage.getItem('pdfEdits') || '{}');
-                    if (storedEdits.textEdits) {
-                        edits.textEdits.push(...storedEdits.textEdits);
-                    }
-                    if (storedEdits.deletions) {
-                        edits.deletions.push(...storedEdits.deletions);
-                    }
-                    if (storedEdits.textReplacements) {
-                        edits.textReplacements.push(...storedEdits.textReplacements);
-                    }
-                    if (storedEdits.imageInserts) {
-                        edits.imageInserts.push(...storedEdits.imageInserts);
-                    }
-                    if (storedEdits.highlights) {
-                        edits.highlights.push(...storedEdits.highlights);
-                    }
-                    if (storedEdits.comments) {
-                        edits.comments.push(...storedEdits.comments);
-                    }
-                    if (storedEdits.stamps) {
-                        edits.stamps.push(...storedEdits.stamps);
-                    }
-                    if (storedEdits.shapes) {
-                        edits.shapes.push(...storedEdits.shapes);
-                    }
+                    // Note: All text edits, deletions, highlights, etc. are already in the PDF
+                    // because we apply them immediately via native editing engine
                     
                     updateProgress(60, 'Converting to base64...');
                     // Convert to base64
@@ -1766,8 +1692,9 @@
             });
         }
         
-        // Add text on canvas click
-        function addTextOnCanvas(e) {
+        // Native PDF Text Editing - No HTML Overlays!
+        // Edits are applied directly to PDF and re-rendered
+        async function addTextOnCanvas(e) {
             if (window.pdfEditorVars.activeTool !== 'text') return;
             
             const rect = pdfCanvas.getBoundingClientRect();
@@ -1781,27 +1708,86 @@
             const fontFamily = fontFamilySelect ? fontFamilySelect.value || 'Helvetica' : 'Helvetica';
             const textColor = textColorInput ? textColorInput.value || '#000000' : '#000000';
             
-            const textElement = document.createElement('div');
-            textElement.className = 'editable-text';
-            textElement.textContent = text;
-            textElement.style.left = x + 'px';
-            textElement.style.top = y + 'px';
-            textElement.style.fontSize = fontSize + 'px';
-            textElement.style.fontFamily = fontFamily;
-            textElement.style.color = textColor;
+            // Convert hex color to RGB
+            const hexToRgb = (hex) => {
+                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result ? [
+                    parseInt(result[1], 16) / 255,
+                    parseInt(result[2], 16) / 255,
+                    parseInt(result[3], 16) / 255
+                ] : [0, 0, 0];
+            };
             
-            textElement.addEventListener('click', function(e) {
-                e.stopPropagation();
-                selectTextElement(textElement);
-            });
-            
-            textElement.addEventListener('dblclick', function(e) {
-                e.stopPropagation();
-                editTextElement(textElement);
-            });
-            
-            if (textLayer) {
-                textLayer.appendChild(textElement);
+            try {
+                showLoading('Adding text to PDF...', 10);
+                
+                // Get current PDF
+                const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                if (!pdfFileURL) throw new Error('PDF file not found');
+                
+                updateProgress(30, 'Loading PDF...');
+                const response = await fetch(pdfFileURL);
+                const pdfArrayBuffer = await response.arrayBuffer();
+                const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                
+                // Apply edit directly to PDF using native editing
+                updateProgress(50, 'Applying text to PDF...');
+                let apiUrl = '/api/pdf/edit-native';
+                if (window.location.protocol === 'file:') {
+                    apiUrl = 'http://localhost:3000/api/pdf/edit-native';
+                }
+                
+                const editResponse = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        pdfData: `data:application/pdf;base64,${pdfBase64}`,
+                        edit: {
+                            type: 'addText',
+                            data: {
+                                pageIndex: window.pdfEditorVars.currentPage - 1,
+                                x: x,
+                                y: y,
+                                text: text,
+                                fontSize: fontSize,
+                                fontName: fontFamily,
+                                fontColor: hexToRgb(textColor)
+                            }
+                        }
+                    })
+                });
+                
+                updateProgress(80, 'Updating PDF...');
+                
+                if (editResponse.ok) {
+                    const result = await editResponse.json();
+                    if (result.success) {
+                        // Update PDF immediately - re-render with new text
+                        updateProgress(90, 'Rendering updated PDF...');
+                        const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
+                        
+                        // Update stored PDF
+                        const blob = new Blob([pdfData], { type: 'application/pdf' });
+                        const newUrl = URL.createObjectURL(blob);
+                        sessionStorage.setItem('pdfFileURL', newUrl);
+                        
+                        // Re-render PDF to show new text
+                        await renderPDF(pdfData);
+                        
+                        updateProgress(100, 'Text added!');
+                        setTimeout(() => {
+                            hideLoading();
+                        }, 300);
+                    } else {
+                        throw new Error(result.error || 'Failed to add text');
+                    }
+                } else {
+                    throw new Error('Server error: ' + editResponse.status);
+                }
+            } catch (error) {
+                console.error('Error adding text:', error);
+                hideLoading();
+                alert('Error adding text: ' + error.message);
             }
             
             // Reset tool

@@ -1595,20 +1595,23 @@ app.post('/api/pdf/edit', express.json({ limit: '100mb' }), async (req, res) => 
       pdfBuffer = Buffer.from(pdfData);
     }
     
-    // Apply edits using advanced editing (Adobe Acrobat Pro style)
-    // This handles deletions, replacements, additions, and OCR integration
+    // Use NATIVE PDF editing engine (no HTML overlays)
+    const nativeEditor = require('./api/pdf-edit/native-pdf-editor');
     let editedBuffer;
     
-    // Always use advanced editing for professional results
-    // It handles all cases: deletions, replacements, OCR integration
-    if (edits.deletions || edits.textReplacements || edits.ocrTexts) {
-      editedBuffer = await pdfEditAdvanced.editPDFAdvanced(pdfBuffer, edits || {});
-    } else if (edits.textEdits || edits.imageInserts) {
-      // Use advanced editing for better font matching and coordinates
-      editedBuffer = await pdfEditAdvanced.editPDFAdvanced(pdfBuffer, edits || {});
-    } else {
-      // Fallback to standard editing
-      editedBuffer = await pdfEditModule.editPDF(pdfBuffer, edits || {});
+    try {
+      // Try native editing first (real PDF content stream manipulation)
+      editedBuffer = await nativeEditor.applyNativeEdits(pdfBuffer, edits || {});
+    } catch (nativeError) {
+      console.warn('Native editing failed, falling back to advanced editing:', nativeError.message);
+      // Fallback to advanced editing
+      if (edits.deletions || edits.textReplacements || edits.ocrTexts) {
+        editedBuffer = await pdfEditAdvanced.editPDFAdvanced(pdfBuffer, edits || {});
+      } else if (edits.textEdits || edits.imageInserts) {
+        editedBuffer = await pdfEditAdvanced.editPDFAdvanced(pdfBuffer, edits || {});
+      } else {
+        editedBuffer = await pdfEditModule.editPDF(pdfBuffer, edits || {});
+      }
     }
     
     // Convert to base64 for response
@@ -1617,13 +1620,71 @@ app.post('/api/pdf/edit', express.json({ limit: '100mb' }), async (req, res) => 
     res.json({
       success: true,
       pdfData: `data:application/pdf;base64,${editedBase64}`,
-      message: 'PDF edited successfully'
+      message: 'PDF edited successfully using native PDF editing engine'
     });
   } catch (error) {
     console.error('PDF editing error:', error);
     res.status(500).json({
       success: false,
       error: 'PDF editing failed: ' + error.message
+    });
+  }
+});
+
+// New endpoint for real-time PDF updates (native editing)
+app.post('/api/pdf/edit-native', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const { pdfData, edit } = req.body; // Single edit operation
+    
+    if (!pdfData || !edit) {
+      return res.status(400).json({
+        success: false,
+        error: 'No PDF data or edit provided'
+      });
+    }
+    
+    // Convert base64 to buffer
+    let pdfBuffer;
+    if (typeof pdfData === 'string') {
+      if (pdfData.startsWith('data:application/pdf')) {
+        pdfData = pdfData.split(',')[1];
+      }
+      pdfBuffer = Buffer.from(pdfData, 'base64');
+    } else {
+      pdfBuffer = Buffer.from(pdfData);
+    }
+    
+    // Use native editor for single edit
+    const nativeEditor = require('./api/pdf-edit/native-pdf-editor');
+    const editor = await nativeEditor.createNativeEditor(pdfBuffer);
+    
+    // Apply single edit based on type
+    if (edit.type === 'addText') {
+      await editor.addText(edit.data);
+    } else if (edit.type === 'replaceText') {
+      await editor.replaceText(edit.data);
+    } else if (edit.type === 'deleteText') {
+      await editor.deleteText(edit.data);
+    } else if (edit.type === 'highlight') {
+      await editor.addHighlight(edit.data);
+    } else if (edit.type === 'comment') {
+      await editor.addComment(edit.data);
+    }
+    
+    // Get updated PDF
+    const editedBuffer = await editor.getPDFBuffer();
+    const editedBase64 = editedBuffer.toString('base64');
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${editedBase64}`,
+      message: 'PDF updated in real-time'
+    });
+  } catch (error) {
+    console.error('Native PDF editing error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Native PDF editing failed: ' + error.message
     });
   }
 });
