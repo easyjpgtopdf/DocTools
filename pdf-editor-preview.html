@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <title>Professional PDF Editor - Adobe Acrobat Pro Style | easyjpgtopdf</title>
-    <meta name="description" content="Professional PDF editor with PDFTron WebViewer, Google Cloud Vision API OCR, native PDF text editing, and cloud processing. Edit PDFs like Adobe Acrobat Pro.">
+    <title>Professional PDF Editor | easyjpgtopdf</title>
+    <meta name="description" content="Professional PDF editor with OCR, native PDF text editing, and cloud processing.">
     
     <!-- Resource Hints for Performance -->
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
@@ -27,9 +27,7 @@
     <!-- pdf-lib for real PDF editing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
     
-    <!-- PDFTron WebViewer (Professional Adobe Acrobat Pro alternative) -->
-    <!-- Note: PDFTron requires license. For free alternative, we'll use enhanced pdf.js + pdf-lib -->
-    <!-- Uncomment when PDFTron license is available:
+    <!-- Professional PDF Editor using enhanced pdf.js + pdf-lib -->
     <script src="https://cdn.apryse.com/webviewer/lib/webviewer.min.js"></script>
     -->
     
@@ -587,7 +585,7 @@
         <div class="container">
             <div class="page-header">
                 <h1>Professional PDF Editor <span class="performance-badge">⚡ Instant</span></h1>
-                <p>Adobe Acrobat Pro style editing with Google Cloud Vision API OCR, native PDF text editing, and cloud processing</p>
+                <p>Professional PDF editing with OCR, native PDF text editing, and cloud processing</p>
             </div>
             
             <!-- Professional Editor Workspace -->
@@ -634,7 +632,7 @@
                         <div class="tool-group-title">OCR <span class="performance-badge">⚡ Fast</span></div>
                         <div class="tool-item" id="ocr-btn" title="Google Cloud Vision OCR">
                             <i class="fas fa-language"></i>
-                            <span>OCR (Google Cloud)</span>
+                            <span>OCR</span>
                         </div>
                         <div class="tool-item" id="ocr-server-btn" title="Server-Side Fast OCR">
                             <i class="fas fa-server"></i>
@@ -880,7 +878,7 @@
                         </div>
                         <div class="property-item">
                             <div class="property-label">OCR Engine</div>
-                            <div style="color: #28a745; font-size: 11px;">🔍 Google Cloud</div>
+                            <div style="color: #28a745; font-size: 11px;">🔍 OCR Ready</div>
                         </div>
                     </div>
                 </div>
@@ -1041,6 +1039,40 @@
             });
         }
         
+        // Check for PDF from edit-pdf.html on page load
+        async function checkForStoredPDF() {
+            try {
+                // Check sessionStorage for PDF from edit-pdf.html
+                const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                const pdfFileName = sessionStorage.getItem('pdfFileName');
+                
+                if (pdfFileURL && pdfFileName) {
+                    console.log('Found PDF from edit-pdf.html:', pdfFileName);
+                    showLoading('Loading PDF...', 20);
+                    
+                    try {
+                        // Fetch PDF from blob URL
+                        const response = await fetch(pdfFileURL);
+                        const pdfBlob = await response.blob();
+                        const arrayBuffer = await pdfBlob.arrayBuffer();
+                        
+                        // Store as current PDF data
+                        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+                        window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
+                        
+                        // Render PDF
+                        await renderPDF(arrayBuffer);
+                        hideLoading();
+                    } catch (error) {
+                        console.error('Error loading stored PDF:', error);
+                        hideLoading();
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking for stored PDF:', error);
+            }
+        }
+        
         // Render PDF (Fast PDF.js rendering)
         async function renderPDF(pdfData) {
             try {
@@ -1052,6 +1084,14 @@
                 const pdfDoc = await loadingTask.promise;
                 window.pdfEditorVars.pdfDoc = pdfDoc;
                 window.pdfEditorVars.totalPages = pdfDoc.numPages;
+                
+                // Store PDF data for editing
+                if (pdfData instanceof ArrayBuffer) {
+                    const base64 = btoa(String.fromCharCode(...new Uint8Array(pdfData)));
+                    window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
+                } else if (typeof pdfData === 'string') {
+                    window.pdfEditorVars.currentPdfData = pdfData;
+                }
                 
                 if (pageCount) pageCount.textContent = pdfDoc.numPages;
                 
@@ -1367,7 +1407,7 @@
             }
         }
         
-        // Fast Server-Side OCR (Google Cloud Vision API)
+        // Fast Server-Side OCR
         if (ocrBtn) {
             ocrBtn.addEventListener('click', async function() {
                 console.log('OCR button clicked');
@@ -1396,7 +1436,7 @@
                     const imageData = canvas.toDataURL('image/png');
                     
                     updateProgress(40, 'Sending to OCR service...');
-                    // Fast server-side OCR with Google Cloud Vision API
+                    // Fast server-side OCR
                     let apiUrl = '/api/pdf-ocr/process';
                     if (window.location.protocol === 'file:') {
                         apiUrl = 'http://localhost:3000/api/pdf-ocr/process';
@@ -1407,7 +1447,7 @@
                     
                     // Try server-side OCR first
                     try {
-                        updateProgress(50, 'Processing with Google Cloud Vision API...');
+                        updateProgress(50, 'Processing with server OCR...');
                         const response = await fetch(apiUrl, {
                             method: 'POST',
                             headers: {
@@ -1439,16 +1479,16 @@
                         useClientSideOCR = true;
                     }
                     
-                    // Fallback to client-side OCR using Tesseract.js
+                    // Fallback to client-side OCR
                     if (useClientSideOCR || !result) {
                         if (typeof Tesseract === 'undefined') {
                             hideLoading();
-                            alert('OCR service unavailable. Please ensure you have an internet connection for client-side OCR or start the server for Google Cloud Vision API.');
+                            alert('OCR service unavailable. Please ensure you have an internet connection or start the server.');
                             return;
                         }
                         
-                        updateProgress(50, 'Using client-side OCR (Tesseract.js)...');
-                        console.log('Starting client-side OCR with Tesseract.js...');
+                        updateProgress(50, 'Using client-side OCR...');
+                        console.log('Starting client-side OCR...');
                         try {
                             const { data } = await Tesseract.recognize(imageData, 'eng', {
                                 logger: m => {
@@ -1475,7 +1515,7 @@
                                     confidence: word.confidence
                                 })),
                                 confidence: data.confidence,
-                                method: 'tesseract-js-client'
+                                method: 'client-side'
                             };
                         } catch (ocrError) {
                             console.error('Client-side OCR error:', ocrError);
@@ -1524,19 +1564,7 @@
                                 }
                             });
                             
-                            // Determine which service was actually used
-                            let serviceName = 'Google Cloud Vision API';
-                            if (result.method) {
-                                if (result.method === 'tesseract-js-client' || result.method.includes('tesseract')) {
-                                    serviceName = 'Tesseract.js (Client-side)';
-                                } else if (result.method.includes('google-cloud') || result.method.includes('vision')) {
-                                    serviceName = 'Google Cloud Vision API';
-                                } else {
-                                    serviceName = result.method;
-                                }
-                            }
-                            
-                            alert('OCR completed! Extracted ' + result.words.length + ' words using ' + serviceName + '.');
+                            alert('OCR completed! Extracted ' + result.words.length + ' words.');
                         } else {
                             alert('OCR completed but no text found.');
                         }
@@ -1599,15 +1627,15 @@
                         let serviceName = 'Fast Server OCR';
                         if (result.method) {
                             if (result.method.includes('google-cloud') || result.method.includes('vision')) {
-                                serviceName = 'Google Cloud Vision API (Fast)';
-                            } else if (result.method === 'tesseract-js-client' || result.method.includes('tesseract')) {
-                                serviceName = 'Tesseract.js (Client-side)';
+                                serviceName = 'Server OCR (Fast)';
+                            } else if (result.method === 'client-side' || result.method.includes('client')) {
+                                serviceName = 'Client-side OCR';
                             } else {
-                                serviceName = result.method;
+                                serviceName = result.method || 'OCR';
                             }
                         }
                         
-                        alert('Fast OCR completed! ' + (result.words ? result.words.length : 0) + ' words extracted using ' + serviceName + '.');
+                        alert('Fast OCR completed! ' + (result.words ? result.words.length : 0) + ' words extracted.');
                     }
                     
                     hideLoading();
@@ -3165,7 +3193,10 @@
         }
         
         // Initialize - ensure DOM is ready
-        function initPDFEditor() {
+        async function initPDFEditor() {
+            // Check for PDF from edit-pdf.html on page load
+            await checkForStoredPDF();
+            
             // Initialize button event listeners
             initButtonEventListeners();
             
