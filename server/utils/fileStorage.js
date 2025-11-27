@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
+const { encrypt, decrypt } = require('./encryption');
 
 const storageDir = path.join(__dirname, '../storage');
 const metadataFile = path.join(storageDir, 'metadata.json');
@@ -45,12 +46,15 @@ function saveMetadata() {
  * @param {String} mimeType - File MIME type
  * @returns {String} File ID
  */
-function storeFile(fileBuffer, originalName, mimeType) {
+function storeFile(fileBuffer, originalName, mimeType, encryptFile = true) {
   const fileId = uuidv4();
   const filePath = path.join(storageDir, `${fileId}.pdf`);
   
+  // Encrypt file at rest if enabled
+  const dataToSave = encryptFile ? encrypt(fileBuffer) : fileBuffer;
+  
   // Save file
-  fs.writeFileSync(filePath, fileBuffer);
+  fs.writeFileSync(filePath, dataToSave);
   
   // Store metadata
   fileMetadata[fileId] = {
@@ -90,7 +94,21 @@ function getFile(fileId) {
   metadata.lastAccessed = new Date().toISOString();
   saveMetadata();
   
-  const fileBuffer = fs.readFileSync(filePath);
+  let fileBuffer = fs.readFileSync(filePath);
+  
+  // Decrypt if file is encrypted (check if it starts with IV)
+  // Encrypted files have IV (16 bytes) + AuthTag (16 bytes) = 32 bytes header
+  if (fileBuffer.length > 32 && metadata.encrypted !== false) {
+    try {
+      fileBuffer = decrypt(fileBuffer);
+      metadata.encrypted = true;
+    } catch (error) {
+      // File might not be encrypted, use as-is
+      metadata.encrypted = false;
+    }
+  } else {
+    metadata.encrypted = false;
+  }
   
   return {
     buffer: fileBuffer,
@@ -103,7 +121,7 @@ function getFile(fileId) {
  * @param {String} fileId - File ID
  * @param {Buffer} fileBuffer - New file buffer
  */
-function updateFile(fileId, fileBuffer) {
+function updateFile(fileId, fileBuffer, encryptFile = true) {
   if (!fileMetadata[fileId]) {
     throw new Error('File not found');
   }
@@ -111,8 +129,12 @@ function updateFile(fileId, fileBuffer) {
   const metadata = fileMetadata[fileId];
   const filePath = metadata.filePath;
   
+  // Encrypt file at rest if enabled
+  const dataToSave = encryptFile ? encrypt(fileBuffer) : fileBuffer;
+  metadata.encrypted = encryptFile;
+  
   // Update file
-  fs.writeFileSync(filePath, fileBuffer);
+  fs.writeFileSync(filePath, dataToSave);
   
   // Update metadata
   metadata.size = fileBuffer.length;
