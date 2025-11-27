@@ -258,6 +258,7 @@ async function editPDF(req, res) {
  * Edit PDF text specifically using pdf-lib
  * Takes file ID and text edits (add, replace, delete)
  * Actually modifies PDF content - not overlays
+ * Uses the exact structure: PDFDocument.load() -> page.drawText() -> save()
  */
 async function editText(req, res) {
   try {
@@ -283,6 +284,7 @@ async function editText(req, res) {
     }
 
     const fileStorage = require('../utils/fileStorage');
+    const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
     
     // Get file with error handling
     let pdfBuffer, metadata;
@@ -309,43 +311,130 @@ async function editText(req, res) {
       });
     }
 
-    // Use native PDF editor with pdf-lib
-    const nativePdfEditor = require('../api/pdf-edit/native-pdf-editor');
+    // CRITICAL: Use pdf-lib directly for actual PDF modification
+    // Load the uploaded PDF using PDFDocument.load()
+    const pdfDoc = await PDFDocument.load(pdfBuffer);
+    const pages = pdfDoc.getPages();
 
-    // Prepare comprehensive edits object
-    const edits = {
-      textEdits: (textEdits || []).map(edit => ({
-        pageIndex: edit.pageIndex || 0,
-        x: edit.x || 0,
-        y: edit.y || 0,
-        text: edit.text || '',
-        fontSize: edit.fontSize || 12,
-        fontName: edit.fontName || 'Helvetica',
-        fontColor: edit.fontColor || [0, 0, 0]
-      })),
-      textReplacements: (textReplacements || []).map(replacement => ({
-        pageIndex: replacement.pageIndex || 0,
-        oldText: replacement.oldText || '',
-        newText: replacement.newText || '',
-        x: replacement.x || 0,
-        y: replacement.y || 0,
-        fontSize: replacement.fontSize || 12,
-        fontName: replacement.fontName || 'Helvetica',
-        fontColor: replacement.fontColor || [0, 0, 0]
-      })),
-      deletions: (deletions || []).map(deletion => ({
-        pageIndex: deletion.pageIndex || 0,
-        x: deletion.x || 0,
-        y: deletion.y || 0,
-        width: deletion.width || 0,
-        height: deletion.height || 0
-      }))
-    };
+    // Process text edits (add new text)
+    if (textEdits && textEdits.length > 0) {
+      for (const edit of textEdits) {
+        const pageIndex = edit.pageIndex || 0;
+        if (pageIndex >= 0 && pageIndex < pages.length) {
+          const page = pages[pageIndex];
+          const pageHeight = page.getHeight();
+          
+          // Convert coordinates (canvas Y to PDF Y - PDF uses bottom-left origin)
+          const pdfX = edit.x || 0;
+          const pdfY = pageHeight - (edit.y || 0);
+          
+          // Get font
+          let font;
+          const fontName = edit.fontName || 'Helvetica';
+          if (fontName === 'Helvetica') {
+            font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+          } else if (fontName === 'Times-Roman') {
+            font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+          } else if (fontName === 'Courier') {
+            font = await pdfDoc.embedFont(StandardFonts.Courier);
+          } else {
+            font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+          }
+          
+          // Get color
+          const fontColor = edit.fontColor || [0, 0, 0];
+          const color = rgb(fontColor[0] / 255, fontColor[1] / 255, fontColor[2] / 255);
+          
+          // Use page.drawText() to actually modify the PDF text content
+          page.drawText(edit.text || '', {
+            x: pdfX,
+            y: pdfY,
+            size: edit.fontSize || 12,
+            font: font,
+            color: color
+          });
+        }
+      }
+    }
 
-    // Apply edits using pdf-lib (actual PDF modification)
-    const editedBuffer = await nativePdfEditor.applyNativeEdits(pdfBuffer, edits);
+    // Process text replacements (delete old + add new)
+    if (textReplacements && textReplacements.length > 0) {
+      for (const replacement of textReplacements) {
+        const pageIndex = replacement.pageIndex || 0;
+        if (pageIndex >= 0 && pageIndex < pages.length) {
+          const page = pages[pageIndex];
+          const pageHeight = page.getHeight();
+          
+          // Draw white rectangle over old text (delete)
+          const pdfX = replacement.x || 0;
+          const pdfY = pageHeight - (replacement.y || 0);
+          const fontSize = replacement.fontSize || 12;
+          const estimatedWidth = (replacement.oldText || '').length * fontSize * 0.6;
+          
+          page.drawRectangle({
+            x: pdfX,
+            y: pdfY - fontSize,
+            width: estimatedWidth,
+            height: fontSize * 1.2,
+            color: rgb(1, 1, 1) // White
+          });
+          
+          // Add new text
+          let font;
+          const fontName = replacement.fontName || 'Helvetica';
+          if (fontName === 'Helvetica') {
+            font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+          } else if (fontName === 'Times-Roman') {
+            font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+          } else if (fontName === 'Courier') {
+            font = await pdfDoc.embedFont(StandardFonts.Courier);
+          } else {
+            font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+          }
+          
+          const fontColor = replacement.fontColor || [0, 0, 0];
+          const color = rgb(fontColor[0] / 255, fontColor[1] / 255, fontColor[2] / 255);
+          
+          page.drawText(replacement.newText || '', {
+            x: pdfX,
+            y: pdfY,
+            size: fontSize,
+            font: font,
+            color: color
+          });
+        }
+      }
+    }
 
-    // Update stored file with edited version
+    // Process deletions (draw white rectangle)
+    if (deletions && deletions.length > 0) {
+      for (const deletion of deletions) {
+        const pageIndex = deletion.pageIndex || 0;
+        if (pageIndex >= 0 && pageIndex < pages.length) {
+          const page = pages[pageIndex];
+          const pageHeight = page.getHeight();
+          
+          const pdfX = deletion.x || 0;
+          const pdfY = pageHeight - (deletion.y || 0);
+          const width = deletion.width || 100;
+          const height = deletion.height || 20;
+          
+          // Draw white rectangle to cover text
+          page.drawRectangle({
+            x: pdfX,
+            y: pdfY - height,
+            width: width,
+            height: height,
+            color: rgb(1, 1, 1) // White
+          });
+        }
+      }
+    }
+
+    // Save the modified PDF and store it separately from the original
+    const editedBuffer = await pdfDoc.save();
+
+    // CRITICAL: Update stored file with edited version (not original)
     fileStorage.updateFile(fileId, editedBuffer);
     
     // Store edit history
@@ -371,11 +460,12 @@ async function editText(req, res) {
     // Convert to base64 for response
     const editedBase64 = editedBuffer.toString('base64');
 
+    // Return success status with the modified PDF data
     res.json({
       success: true,
       fileId: fileId,
       pdfData: `data:application/pdf;base64,${editedBase64}`,
-      message: 'Text edited successfully using pdf-lib',
+      message: 'Text edited successfully using pdf-lib (actual PDF modification)',
       editsCount: {
         added: textEdits ? textEdits.length : 0,
         replaced: textReplacements ? textReplacements.length : 0,

@@ -1774,6 +1774,7 @@
         }
         
         // Apply native text edit using pdf-lib backend (NO HTML overlays - direct PDF editing)
+        // Sends text edits to /api/pdf/edit-text endpoint for actual PDF modification
         async function applyNativeTextEdit(editData) {
             try {
                 const { pageIndex, oldText, newText, x, y, fontSize, fontName, fontColor } = editData;
@@ -1786,39 +1787,67 @@
                     return false;
                 }
                 
-                showLoading('Applying text edit to PDF...', 30);
+                showLoading('Applying text edit to PDF using pdf-lib...', 30);
                 
                 updateProgress(50, 'Sending edit to server...');
                 
-                // Send native edit to backend using helper function
-                const response = await callBackendAPI('/api/pdf/edit', {
+                // Determine if this is a replacement or new text
+                const isReplacement = oldText && newText && oldText !== newText;
+                
+                // Prepare request body for /api/pdf/edit-text endpoint
+                const requestBody = {
+                    fileId: fileId
+                };
+                
+                if (isReplacement) {
+                    // Text replacement: send as textReplacements
+                    requestBody.textReplacements = [{
+                        pageIndex: pageIndex || 0,
+                        oldText: oldText,
+                        newText: newText,
+                        x: x || 0,
+                        y: y || 0,
+                        fontSize: fontSize || 12,
+                        fontName: fontName || 'Helvetica',
+                        fontColor: fontColor || [0, 0, 0]
+                    }];
+                } else {
+                    // New text: send as textEdits
+                    requestBody.textEdits = [{
+                        pageIndex: pageIndex || 0,
+                        x: x || 0,
+                        y: y || 0,
+                        text: newText || '',
+                        fontSize: fontSize || 12,
+                        fontName: fontName || 'Helvetica',
+                        fontColor: fontColor || [0, 0, 0]
+                    }];
+                }
+                
+                // Send text edits to /api/pdf/edit-text endpoint for actual PDF modification
+                const apiBaseUrl = getApiBaseUrl();
+                const apiUrl = `${apiBaseUrl}/api/pdf/edit-text`;
+                
+                updateProgress(60, 'Sending edit to server...');
+                
+                const response = await fetch(apiUrl, {
                     method: 'POST',
-                    body: JSON.stringify({
-                        pdfData: currentPdfData,
-                        edits: {
-                            textEdits: [{
-                                pageIndex: pageIndex,
-                                x: x,
-                                y: y,
-                                text: newText,
-                                fontSize: 12,
-                                fontName: 'Helvetica',
-                                fontColor: [0, 0, 0]
-                            }]
-                        }
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
                 });
                 
                 if (!response.ok) {
-                    throw new Error('Server error: ' + response.status);
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || 'Server error: ' + response.status);
                 }
                 
-                updateProgress(70, 'Processing edit...');
+                updateProgress(70, 'Processing edit with pdf-lib...');
                 const result = await response.json();
                 
+                // Wait for backend confirmation before updating the UI
                 if (result.success) {
                     updateProgress(90, 'Reloading PDF...');
-                    // Update PDF data and reload (native changes)
+                    // Update PDF data and reload (native changes from pdf-lib)
                     window.pdfEditorVars.currentPdfData = result.pdfData;
                     await reloadPDF();
                     hideLoading();
