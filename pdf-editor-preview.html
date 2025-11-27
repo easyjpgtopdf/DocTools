@@ -2005,18 +2005,57 @@
                             clickZone.dataset.page = pageNumber;
                             clickZone.title = 'Click to edit (Native PDF editing)';
                             
-                            // Click triggers native PDF editing (NO HTML overlay)
+                            // Visual text selection (HIGH PRIORITY)
+                            let isSelecting = false;
+                            let selectionStart = null;
+                            
+                            // Mouse down - start selection
+                            clickZone.addEventListener('mousedown', function(e) {
+                                if (window.pdfEditorVars.activeTool === 'select') {
+                                    e.stopPropagation();
+                                    isSelecting = true;
+                                    selectionStart = { x: currentX, y: baseY, word: word };
+                                    clickZone.style.backgroundColor = 'rgba(0, 120, 212, 0.3)';
+                                }
+                            });
+                            
+                            // Mouse up - end selection
+                            clickZone.addEventListener('mouseup', function(e) {
+                                if (isSelecting && window.pdfEditorVars.activeTool === 'select') {
+                                    e.stopPropagation();
+                                    isSelecting = false;
+                                    // Show text selection menu
+                                    showTextSelectionMenu(currentX, baseY, word, pageNumber - 1);
+                                }
+                            });
+                            
+                            // Click - edit text (if not selecting)
                             clickZone.addEventListener('click', function(e) {
-                                e.stopPropagation();
-                                const newText = prompt('Edit text (Native PDF editing):', word);
-                                if (newText && newText !== word) {
-                                    applyNativeTextEdit({
-                                        pageIndex: pageNumber - 1,
-                                        oldText: word,
-                                        newText: newText,
-                                        x: currentX,
-                                        y: baseY
-                                    });
+                                if (window.pdfEditorVars.activeTool !== 'select') {
+                                    e.stopPropagation();
+                                    // Use multi-line text editing dialog
+                                    textEditPosition = { x: currentX, y: baseY };
+                                    createTextEditDialog(e.clientX, e.clientY);
+                                    // Pre-fill with current text
+                                    if (textEditTextarea) {
+                                        textEditTextarea.value = word;
+                                    }
+                                }
+                            });
+                            
+                            // Hover effect for visual feedback
+                            clickZone.addEventListener('mouseenter', function() {
+                                if (window.pdfEditorVars.activeTool === 'select') {
+                                    clickZone.style.backgroundColor = 'rgba(0, 120, 212, 0.2)';
+                                    clickZone.style.cursor = 'text';
+                                } else {
+                                    clickZone.style.cursor = 'pointer';
+                                }
+                            });
+                            
+                            clickZone.addEventListener('mouseleave', function() {
+                                if (!isSelecting) {
+                                    clickZone.style.backgroundColor = 'transparent';
                                 }
                             });
                             
