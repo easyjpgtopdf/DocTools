@@ -701,6 +701,9 @@
             try {
                 showLoading('Uploading PDF to server...');
                 
+                // Get loading overlay element for progress updates
+                const loadingOverlayEl = document.getElementById('loading-overlay');
+                
                 // Upload to backend server with progress tracking
                 const formData = new FormData();
                 formData.append('pdfFile', file);
@@ -708,21 +711,28 @@
                 const apiBaseUrl = getApiBaseUrl();
                 const uploadUrl = `${apiBaseUrl}/api/pdf/upload`;
                 
+                console.log('Uploading to:', uploadUrl);
+                
                 // Create XMLHttpRequest for upload progress
                 const xhr = new XMLHttpRequest();
+                
+                // Set timeout (60 seconds)
+                xhr.timeout = 60000;
                 
                 xhr.upload.addEventListener('progress', function(e) {
                     if (e.lengthComputable) {
                         const percentComplete = (e.loaded / e.total) * 100;
-                        const loadingText = loadingOverlay.querySelector('.loading-text');
-                        if (loadingText) {
-                            loadingText.textContent = `Uploading... ${Math.round(percentComplete)}%`;
+                        if (loadingOverlayEl) {
+                            const loadingText = loadingOverlayEl.querySelector('.loading-text');
+                            if (loadingText) {
+                                loadingText.textContent = `Uploading... ${Math.round(percentComplete)}%`;
+                            }
                         }
                     }
                 });
                 
                 xhr.addEventListener('load', function() {
-                    if (xhr.status === 200) {
+                    if (xhr.status === 200 || xhr.status === 201) {
                         try {
                             const uploadResult = JSON.parse(xhr.responseText);
                             
@@ -730,15 +740,18 @@
                                 throw new Error(uploadResult.error || 'Upload failed');
                             }
                             
-                            // Store file ID and metadata
+                            // Store file ID and server URL for preview page
+                            const serverUrl = `${apiBaseUrl}/api/pdf/load/${uploadResult.fileId}`;
                             sessionStorage.setItem('pdfFileId', uploadResult.fileId);
+                            sessionStorage.setItem('pdfServerUrl', serverUrl);
                             sessionStorage.setItem('pdfFileName', uploadResult.filename);
                             sessionStorage.setItem('pdfFileSize', uploadResult.size.toString());
                             sessionStorage.setItem('pdfFileMetadata', JSON.stringify({
                                 fileId: uploadResult.fileId,
                                 filename: uploadResult.filename,
                                 size: uploadResult.size,
-                                createdAt: uploadResult.createdAt
+                                createdAt: uploadResult.createdAt,
+                                serverUrl: serverUrl
                             }));
                             
                             // Store file data locally as fallback
@@ -756,25 +769,47 @@
                                 continueBtn.disabled = false;
                                 
                                 console.log('PDF uploaded successfully. File ID:', uploadResult.fileId);
+                                console.log('Server URL:', serverUrl);
                                 hideLoading();
                             };
                             
                             reader.onerror = function() {
                                 console.warn('FileReader error, but server upload succeeded');
+                                // Still update UI even if FileReader fails
+                                fileName.textContent = uploadResult.filename;
+                                fileSize.textContent = formatFileSize(uploadResult.size);
+                                fileInfo.classList.add('show');
+                                continueBtn.disabled = false;
                                 hideLoading();
                             };
                             
                             reader.readAsArrayBuffer(file);
                         } catch (parseError) {
-                            throw new Error('Invalid server response');
+                            console.error('Parse error:', parseError);
+                            throw new Error('Invalid server response: ' + parseError.message);
                         }
                     } else {
-                        throw new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`);
+                        let errorMsg = `Upload failed: ${xhr.status}`;
+                        try {
+                            const errorResponse = JSON.parse(xhr.responseText);
+                            if (errorResponse.error) {
+                                errorMsg = errorResponse.error;
+                            } else if (errorResponse.message) {
+                                errorMsg = errorResponse.message;
+                            }
+                        } catch (e) {
+                            errorMsg = `Upload failed: ${xhr.status} ${xhr.statusText}`;
+                        }
+                        throw new Error(errorMsg);
                     }
                 });
                 
                 xhr.addEventListener('error', function() {
-                    throw new Error('Network error during upload');
+                    throw new Error('Network error during upload. Please check if the server is running.');
+                });
+                
+                xhr.addEventListener('timeout', function() {
+                    throw new Error('Upload timeout. The file may be too large or the server is slow.');
                 });
                 
                 xhr.addEventListener('abort', function() {
@@ -787,7 +822,14 @@
                 
             } catch (error) {
                 console.error('Upload error:', error);
-                showError('Failed to upload PDF: ' + error.message);
+                
+                // Check if it's a 404 or server not available
+                if (error.message.includes('404') || error.message.includes('Network error')) {
+                    console.warn('Server upload failed, using local storage fallback');
+                    showError('Server upload failed. Using local storage. Some features may be limited.');
+                } else {
+                    showError('Failed to upload PDF: ' + error.message);
+                }
                 
                 // Fallback: Store locally without server upload
                 const reader = new FileReader();
