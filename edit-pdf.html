@@ -871,6 +871,12 @@
                     fileInfo.classList.add('show');
                     continueBtn.disabled = false;
                     hideLoading();
+                    
+                    // Auto-redirect after local storage (fallback)
+                    setTimeout(() => {
+                        console.log('🔄 Redirecting to pdf-editor-preview.html (local storage fallback)...');
+                        window.location.href = 'pdf-editor-preview.html';
+                    }, 500);
                 };
                 reader.readAsArrayBuffer(file);
             }
