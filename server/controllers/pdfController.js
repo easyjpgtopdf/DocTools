@@ -1166,6 +1166,8 @@ module.exports = {
   loadPDF: asyncHandler(loadPDF),
   getStatus,
   getOCRStatus,
-  getOCRJobStatus
+  getOCRJobStatus,
+  searchText: asyncHandler(searchText),
+  replaceAllText: asyncHandler(replaceAllText)
 };
 

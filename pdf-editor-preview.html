@@ -787,6 +787,18 @@
                     </div>
                     
                     <div class="tool-group">
+                        <div class="tool-group-title">Search & Replace</div>
+                        <div class="tool-item" id="search-btn" title="Search Text in PDF">
+                            <i class="fas fa-search"></i>
+                            <span>Search</span>
+                        </div>
+                        <div class="tool-item" id="replace-btn" title="Find & Replace">
+                            <i class="fas fa-exchange-alt"></i>
+                            <span>Replace</span>
+                        </div>
+                    </div>
+                    
+                    <div class="tool-group">
                         <div class="tool-group-title">OCR <span class="performance-badge">⚡ Fast</span></div>
                         <div class="tool-item" id="ocr-btn" title="Google Cloud Vision OCR">
                             <i class="fas fa-language"></i>
@@ -925,6 +937,38 @@
                             <span>Redo</span>
                         </div>
                     </div>
+                </div>
+                
+                <!-- Search & Replace Panel -->
+                <div class="search-panel" id="search-panel">
+                    <div class="search-header">
+                        <div class="search-title">Search & Replace</div>
+                        <button class="search-close" id="search-close-btn">&times;</button>
+                    </div>
+                    <div class="search-input-group">
+                        <label>Search for:</label>
+                        <input type="text" class="search-input" id="search-input" placeholder="Enter text to search...">
+                    </div>
+                    <div class="search-input-group" id="replace-input-group" style="display: none;">
+                        <label>Replace with:</label>
+                        <input type="text" class="search-input" id="replace-input" placeholder="Enter replacement text...">
+                    </div>
+                    <div class="search-options">
+                        <div class="search-option">
+                            <input type="checkbox" id="case-sensitive">
+                            <label for="case-sensitive">Case sensitive</label>
+                        </div>
+                        <div class="search-option">
+                            <input type="checkbox" id="whole-words">
+                            <label for="whole-words">Whole words</label>
+                        </div>
+                    </div>
+                    <div class="search-actions">
+                        <button class="search-btn" id="search-execute-btn">Search</button>
+                        <button class="search-btn" id="replace-execute-btn" style="display: none;">Replace All</button>
+                    </div>
+                    <div class="search-match-count" id="search-match-count"></div>
+                    <div class="search-results" id="search-results"></div>
                 </div>
                 
                 <!-- Center Preview Panel -->
@@ -1225,6 +1269,264 @@
         const fontFamilySelect = document.getElementById('font-family-select');
         const textColorInput = document.getElementById('text-color-input');
         const deleteTextBtn = document.getElementById('delete-text-btn');
+        const searchBtn = document.getElementById('search-btn');
+        const replaceBtn = document.getElementById('replace-btn');
+        const searchPanel = document.getElementById('search-panel');
+        const searchCloseBtn = document.getElementById('search-close-btn');
+        const searchInput = document.getElementById('search-input');
+        const replaceInput = document.getElementById('replace-input');
+        const replaceInputGroup = document.getElementById('replace-input-group');
+        const searchExecuteBtn = document.getElementById('search-execute-btn');
+        const replaceExecuteBtn = document.getElementById('replace-execute-btn');
+        const searchResults = document.getElementById('search-results');
+        const searchMatchCount = document.getElementById('search-match-count');
+        const caseSensitiveCheck = document.getElementById('case-sensitive');
+        const wholeWordsCheck = document.getElementById('whole-words');
+        
+        // Search & Replace functionality (HIGH PRIORITY)
+        let currentSearchMatches = [];
+        let currentSearchIndex = -1;
+        
+        // Open search panel
+        if (searchBtn) {
+            searchBtn.addEventListener('click', function() {
+                if (searchPanel) {
+                    searchPanel.classList.add('active');
+                    searchInput.focus();
+                    replaceInputGroup.style.display = 'none';
+                    replaceExecuteBtn.style.display = 'none';
+                }
+            });
+        }
+        
+        // Open replace panel
+        if (replaceBtn) {
+            replaceBtn.addEventListener('click', function() {
+                if (searchPanel) {
+                    searchPanel.classList.add('active');
+                    searchInput.focus();
+                    replaceInputGroup.style.display = 'block';
+                    replaceExecuteBtn.style.display = 'block';
+                }
+            });
+        }
+        
+        // Close search panel
+        if (searchCloseBtn) {
+            searchCloseBtn.addEventListener('click', function() {
+                if (searchPanel) {
+                    searchPanel.classList.remove('active');
+                    currentSearchMatches = [];
+                    currentSearchIndex = -1;
+                }
+            });
+        }
+        
+        // Execute search
+        if (searchExecuteBtn) {
+            searchExecuteBtn.addEventListener('click', async function() {
+                const query = searchInput.value.trim();
+                if (!query) {
+                    alert('Please enter a search query');
+                    return;
+                }
+                
+                const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
+                if (!fileId) {
+                    alert('No PDF loaded. Please upload a PDF first.');
+                    return;
+                }
+                
+                try {
+                    showLoading('Searching PDF...', 30);
+                    const apiBaseUrl = getApiBaseUrl();
+                    const response = await fetch(`${apiBaseUrl}/api/pdf/search`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            fileId: fileId,
+                            searchQuery: query,
+                            caseSensitive: caseSensitiveCheck.checked,
+                            wholeWords: wholeWordsCheck.checked
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Search failed: ' + response.status);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        currentSearchMatches = result.matches || [];
+                        currentSearchIndex = -1;
+                        
+                        // Display results
+                        displaySearchResults(currentSearchMatches, query);
+                        
+                        // Update match count
+                        searchMatchCount.textContent = `Found ${currentSearchMatches.length} match(es)`;
+                        
+                        // Navigate to first match
+                        if (currentSearchMatches.length > 0) {
+                            navigateToMatch(0);
+                        }
+                    } else {
+                        alert('Search failed: ' + (result.error || 'Unknown error'));
+                    }
+                    
+                    hideLoading();
+                } catch (error) {
+                    console.error('Search error:', error);
+                    hideLoading();
+                    alert('Error searching PDF: ' + error.message);
+                }
+            });
+        }
+        
+        // Execute replace all
+        if (replaceExecuteBtn) {
+            replaceExecuteBtn.addEventListener('click', async function() {
+                const searchText = searchInput.value.trim();
+                const replaceText = replaceInput.value.trim();
+                
+                if (!searchText) {
+                    alert('Please enter text to search');
+                    return;
+                }
+                
+                if (!confirm(`Replace all occurrences of "${searchText}" with "${replaceText}"?`)) {
+                    return;
+                }
+                
+                const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
+                if (!fileId) {
+                    alert('No PDF loaded. Please upload a PDF first.');
+                    return;
+                }
+                
+                try {
+                    showLoading('Replacing text...', 30);
+                    const apiBaseUrl = getApiBaseUrl();
+                    const response = await fetch(`${apiBaseUrl}/api/pdf/replace-all`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            fileId: fileId,
+                            searchText: searchText,
+                            replaceText: replaceText,
+                            caseSensitive: caseSensitiveCheck.checked,
+                            wholeWords: wholeWordsCheck.checked
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Replace failed: ' + response.status);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Update PDF data
+                        window.pdfEditorVars.currentPdfData = result.pdfData;
+                        await reloadPDF();
+                        
+                        alert(`Successfully replaced ${result.replacementsCount} occurrence(s)`);
+                        searchPanel.classList.remove('active');
+                    } else {
+                        alert('Replace failed: ' + (result.error || 'Unknown error'));
+                    }
+                    
+                    hideLoading();
+                } catch (error) {
+                    console.error('Replace error:', error);
+                    hideLoading();
+                    alert('Error replacing text: ' + error.message);
+                }
+            });
+        }
+        
+        // Display search results
+        function displaySearchResults(matches, query) {
+            if (!searchResults) return;
+            
+            searchResults.innerHTML = '';
+            
+            if (matches.length === 0) {
+                searchResults.innerHTML = '<div style="padding: 20px; text-align: center; color: #9ca3af;">No matches found</div>';
+                return;
+            }
+            
+            matches.forEach((match, index) => {
+                const resultItem = document.createElement('div');
+                resultItem.className = 'search-result-item';
+                resultItem.innerHTML = `
+                    <div class="search-result-text">${highlightMatch(match.text, query, match.matchIndex, match.matchLength)}</div>
+                    <div class="search-result-meta">Page ${match.pageIndex + 1} • Position: (${Math.round(match.x)}, ${Math.round(match.y)})</div>
+                `;
+                resultItem.addEventListener('click', () => navigateToMatch(index));
+                searchResults.appendChild(resultItem);
+            });
+        }
+        
+        // Highlight match in text
+        function highlightMatch(text, query, matchIndex, matchLength) {
+            const before = text.substring(0, matchIndex);
+            const match = text.substring(matchIndex, matchIndex + matchLength);
+            const after = text.substring(matchIndex + matchLength);
+            return `${escapeHtml(before)}<mark style="background: #ffeb3b; color: #000;">${escapeHtml(match)}</mark>${escapeHtml(after)}`;
+        }
+        
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Navigate to match
+        function navigateToMatch(index) {
+            if (index < 0 || index >= currentSearchMatches.length) return;
+            
+            currentSearchIndex = index;
+            const match = currentSearchMatches[index];
+            
+            // Navigate to page
+            if (match.pageIndex + 1 !== window.pdfEditorVars.currentPage) {
+                window.pdfEditorVars.currentPage = match.pageIndex + 1;
+                renderPDF();
+            }
+            
+            // Highlight active result
+            const resultItems = searchResults.querySelectorAll('.search-result-item');
+            resultItems.forEach((item, i) => {
+                item.classList.toggle('active', i === index);
+            });
+            
+            // Scroll to result item
+            if (resultItems[index]) {
+                resultItems[index].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+        
+        // Keyboard shortcuts for search
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+F or Cmd+F to open search
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                if (searchBtn) searchBtn.click();
+            }
+            
+            // Escape to close search
+            if (e.key === 'Escape' && searchPanel && searchPanel.classList.contains('active')) {
+                searchCloseBtn.click();
+            }
+            
+            // Enter in search input to search
+            if (e.key === 'Enter' && searchInput === document.activeElement) {
+                if (searchExecuteBtn) searchExecuteBtn.click();
+            }
+        });
         
         // Direct file upload with server processing (Fast)
         if (uploadBtn && fileInput) {
@@ -2398,6 +2700,214 @@
         
         // Native PDF Text Editing - No HTML Overlays!
         // Edits are applied directly to PDF and re-rendered
+        // Multi-line text editing (HIGH PRIORITY)
+        let textEditDialog = null;
+        let textEditTextarea = null;
+        let textEditPosition = null;
+        
+        // Create multi-line text editing dialog
+        function createTextEditDialog(x, y) {
+            // Remove existing dialog if any
+            if (textEditDialog) {
+                textEditDialog.remove();
+            }
+            
+            // Create dialog
+            textEditDialog = document.createElement('div');
+            textEditDialog.className = 'text-edit-dialog';
+            textEditDialog.style.cssText = `
+                position: absolute;
+                left: ${x}px;
+                top: ${y}px;
+                background: #2d2d2d;
+                border: 2px solid #0078d4;
+                border-radius: 8px;
+                padding: 15px;
+                z-index: 10000;
+                min-width: 300px;
+                max-width: 500px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            `;
+            
+            // Create textarea for multi-line input
+            textEditTextarea = document.createElement('textarea');
+            textEditTextarea.className = 'text-edit-textarea';
+            textEditTextarea.style.cssText = `
+                width: 100%;
+                min-height: 100px;
+                max-height: 300px;
+                padding: 10px;
+                background: #1e1e1e;
+                border: 1px solid #3a3a3a;
+                border-radius: 4px;
+                color: #e5e5e5;
+                font-size: 14px;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                resize: vertical;
+                outline: none;
+            `;
+            textEditTextarea.placeholder = 'Enter text (supports multiple lines)...\nPress Ctrl+Enter to save, Esc to cancel';
+            
+            // Create button container
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.cssText = `
+                display: flex;
+                gap: 10px;
+                margin-top: 10px;
+                justify-content: flex-end;
+            `;
+            
+            // Save button
+            const saveBtn = document.createElement('button');
+            saveBtn.textContent = 'Save';
+            saveBtn.style.cssText = `
+                padding: 8px 16px;
+                background: #0078d4;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-weight: 600;
+            `;
+            saveBtn.onclick = () => saveTextEdit();
+            
+            // Cancel button
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'Cancel';
+            cancelBtn.style.cssText = `
+                padding: 8px 16px;
+                background: #3a3a3a;
+                color: #e5e5e5;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+            `;
+            cancelBtn.onclick = () => cancelTextEdit();
+            
+            buttonContainer.appendChild(cancelBtn);
+            buttonContainer.appendChild(saveBtn);
+            
+            textEditDialog.appendChild(textEditTextarea);
+            textEditDialog.appendChild(buttonContainer);
+            
+            // Append to preview container
+            const previewContainer = document.getElementById('preview-container');
+            if (previewContainer) {
+                previewContainer.appendChild(textEditDialog);
+                textEditTextarea.focus();
+            }
+            
+            // Keyboard shortcuts
+            textEditTextarea.addEventListener('keydown', function(e) {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    saveTextEdit();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelTextEdit();
+                }
+            });
+        }
+        
+        // Save multi-line text edit
+        async function saveTextEdit() {
+            if (!textEditTextarea || !textEditPosition) return;
+            
+            const text = textEditTextarea.value.trim();
+            if (!text) {
+                cancelTextEdit();
+                return;
+            }
+            
+            // Split text into lines for multi-line support
+            const lines = text.split('\n');
+            const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
+            
+            if (!fileId) {
+                alert('No file ID available. Please upload PDF first.');
+                cancelTextEdit();
+                return;
+            }
+            
+            try {
+                showLoading('Adding text to PDF...', 30);
+                
+                // Get font properties
+                const fontSize = parseInt(fontSizeInput?.value || 12);
+                const fontName = fontFamilySelect?.value || 'Helvetica';
+                const fontColor = textColorInput?.value || '#000000';
+                
+                // Convert hex color to RGB
+                const rgbColor = hexToRgb(fontColor);
+                
+                // Calculate line height
+                const lineHeight = fontSize * 1.2;
+                const startY = textEditPosition.y;
+                
+                // Prepare text edits for each line
+                const textEdits = lines.map((line, index) => ({
+                    pageIndex: window.pdfEditorVars.currentPage - 1,
+                    x: textEditPosition.x,
+                    y: startY - (index * lineHeight), // Stack lines vertically
+                    text: line,
+                    fontSize: fontSize,
+                    fontName: fontName,
+                    fontColor: [rgbColor.r, rgbColor.g, rgbColor.b]
+                }));
+                
+                // Send to backend
+                const apiBaseUrl = getApiBaseUrl();
+                const response = await fetch(`${apiBaseUrl}/api/pdf/edit-text`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        fileId: fileId,
+                        textEdits: textEdits
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to add text: ' + response.status);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    window.pdfEditorVars.currentPdfData = result.pdfData;
+                    await reloadPDF();
+                    hideLoading();
+                } else {
+                    throw new Error(result.error || 'Failed to add text');
+                }
+            } catch (error) {
+                console.error('Error adding text:', error);
+                hideLoading();
+                alert('Error adding text: ' + error.message);
+            }
+            
+            cancelTextEdit();
+        }
+        
+        // Cancel text edit
+        function cancelTextEdit() {
+            if (textEditDialog) {
+                textEditDialog.remove();
+                textEditDialog = null;
+                textEditTextarea = null;
+                textEditPosition = null;
+            }
+        }
+        
+        // Convert hex to RGB
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : { r: 0, g: 0, b: 0 };
+        }
+        
         async function addTextOnCanvas(e) {
             if (window.pdfEditorVars.activeTool !== 'text') return;
             
@@ -2405,8 +2915,14 @@
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             
-            const text = prompt('Enter text:');
-            if (!text) return;
+            // Use multi-line text editing dialog instead of prompt
+            textEditPosition = { x, y };
+            createTextEditDialog(e.clientX, e.clientY);
+            return;
+            
+            // OLD CODE (replaced with multi-line dialog above):
+            // const text = prompt('Enter text:');
+            // if (!text) return;
             
             const fontSize = fontSizeInput ? parseInt(fontSizeInput.value) || 12 : 12;
             const fontFamily = fontFamilySelect ? fontFamilySelect.value || 'Helvetica' : 'Helvetica';

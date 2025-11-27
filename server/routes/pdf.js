@@ -70,5 +70,17 @@ router.get('/status', pdfController.getStatus);
  */
 router.get('/ocr/status', pdfController.getOCRStatus);
 
+/**
+ * POST /api/pdf/search
+ * Search text in PDF
+ */
+router.post('/search', apiLimiter, express.json({ limit: '10mb' }), asyncHandler(pdfController.searchText));
+
+/**
+ * POST /api/pdf/replace-all
+ * Find and replace all occurrences of text
+ */
+router.post('/replace-all', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.replaceAllText));
+
 module.exports = router;
 
