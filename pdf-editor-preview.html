@@ -1918,32 +1918,35 @@
                 }
                 
                 updateProgress(70, 'Processing deletion with pdf-lib...');
-                const result = await deleteResponse.json();
+                const deleteResult = await deleteResponse.json();
                 
-                if (result.success) {
-                    updateProgress(85, 'Updating PDF display...');
-                    
-                    // Update PDF data with edited version (from server)
-                    window.pdfEditorVars.currentPdfData = result.pdfData;
+                // Wait for backend confirmation before updating UI
+                if (deleteResult.success) {
+                    updateProgress(90, 'Reloading PDF...');
+                    // Update PDF data and reload (native changes from pdf-lib)
+                    // CRITICAL: Only update UI after successful backend edit
+                    window.pdfEditorVars.currentPdfData = deleteResult.pdfData;
                     
                     // Update stored file in sessionStorage
-                    const pdfBase64 = result.pdfData.split(',')[1] || result.pdfData;
+                    const pdfBase64 = deleteResult.pdfData.split(',')[1] || deleteResult.pdfData;
                     const pdfBytes = Uint8Array.from(atob(pdfBase64), c => c.charCodeAt(0));
                     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
                     const newUrl = URL.createObjectURL(blob);
                     sessionStorage.setItem('pdfFileURL', newUrl);
                     
-                    updateProgress(95, 'Rendering updated PDF...');
                     await reloadPDF();
                     
-                    updateProgress(100, 'Text deleted!');
-                    setTimeout(() => hideLoading(), 300);
+                    updateProgress(100, 'Text deleted successfully!');
+                    setTimeout(() => {
+                        hideLoading();
+                    }, 300);
                 } else {
-                    throw new Error(result.error || 'Deletion failed');
+                    throw new Error(deleteResult.error || 'Deletion failed');
                 }
             } catch (error) {
                 console.error('Error deleting text:', error);
                 hideLoading();
+                // Handle backend errors gracefully
                 showError('Error deleting text: ' + error.message);
             }
             
