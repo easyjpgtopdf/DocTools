@@ -329,13 +329,38 @@ async function editText(req, res) {
           const pdfX = editData.x || 0;
           const pdfY = pageHeight - (editData.y || 0);
           
+          // Embed font (REQUIRED for pdf-lib)
+          let font;
+          const fontName = editData.fontName || 'Helvetica';
+          if (fontName === 'Helvetica') {
+            font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+          } else if (fontName === 'Times-Roman') {
+            font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+          } else if (fontName === 'Courier') {
+            font = await pdfDoc.embedFont(StandardFonts.Courier);
+          } else {
+            font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+          }
+          
+          // Get color
+          let color = rgb(0, 0, 0); // Default black
+          if (editData.fontColor && Array.isArray(editData.fontColor)) {
+            // RGB values (0-255) need to be converted to 0-1 range
+            color = rgb(
+              editData.fontColor[0] / 255,
+              editData.fontColor[1] / 255,
+              editData.fontColor[2] / 255
+            );
+          }
+          
           // Use page.drawText() to actually add/modify text in the PDF
           // EXACT CODE STRUCTURE AS REQUESTED:
           page.drawText(editData.text || '', {
             x: pdfX,
             y: pdfY,
             size: editData.fontSize || 12,
-            color: rgb(0, 0, 0)
+            font: font, // REQUIRED: Font must be embedded
+            color: color
           });
         }
       }
