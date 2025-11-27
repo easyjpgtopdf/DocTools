@@ -1329,10 +1329,45 @@
         // Check for PDF from edit-pdf.html on page load
         async function checkForStoredPDF() {
             try {
-                // Check for file ID first (preferred method)
+                // Check for PDF server URL first (from edit-pdf.html upload)
+                const pdfServerUrl = sessionStorage.getItem('pdfServerUrl');
                 const pdfFileId = sessionStorage.getItem('pdfFileId');
                 
-                if (pdfFileId) {
+                if (pdfServerUrl) {
+                    console.log('Found PDF server URL:', pdfServerUrl);
+                    showLoading('Loading PDF from server...', 20);
+                    
+                    try {
+                        const response = await fetch(pdfServerUrl);
+                        if (response.ok) {
+                            const arrayBuffer = await response.arrayBuffer();
+                            const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+                            window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
+                            
+                            // Store in sessionStorage for fallback
+                            const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
+                            const blobURL = URL.createObjectURL(blob);
+                            sessionStorage.setItem('pdfFileURL', blobURL);
+                            
+                            if (pdfFileId) {
+                                window.pdfEditorVars.currentFileId = pdfFileId;
+                            }
+                            
+                            await renderPDF(arrayBuffer);
+                            hideLoading();
+                            console.log('PDF loaded from server successfully');
+                            return;
+                        } else {
+                            console.warn('Failed to load PDF from server URL:', response.status);
+                        }
+                    } catch (serverError) {
+                        console.warn('Server URL load failed, trying file ID:', serverError);
+                        hideLoading();
+                    }
+                }
+                
+                // Fallback: Check for PDF file ID from server upload
+                if (pdfFileId && !pdfServerUrl) {
                     console.log('Found PDF file ID:', pdfFileId);
                     showLoading('Loading PDF from server...', 20);
                     
@@ -1354,12 +1389,18 @@
                         window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
                         window.pdfEditorVars.currentFileId = pdfFileId;
                         
+                        // Store in sessionStorage for fallback
+                        const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
+                        const blobURL = URL.createObjectURL(blob);
+                        sessionStorage.setItem('pdfFileURL', blobURL);
+                        
                         // Render PDF
                         await renderPDF(arrayBuffer);
                         hideLoading();
                         return;
                     } catch (error) {
                         console.error('Error loading PDF from server:', error);
+                        hideLoading();
                         // Fall through to blob URL fallback
                     }
                 }
@@ -1943,10 +1984,10 @@
                     }
                     
                     if (result && result.success && result.words) {
-                            // Process OCR results
-                            const currentViewport = page.getViewport({ scale: window.pdfEditorVars.scale });
-                            const scaleX = pdfCanvas.width / (viewport.width);
-                            const scaleY = pdfCanvas.height / (viewport.height);
+                        // Process OCR results
+                        const currentViewport = page.getViewport({ scale: window.pdfEditorVars.scale });
+                        const scaleX = pdfCanvas.width / (viewport.width);
+                        const scaleY = pdfCanvas.height / (viewport.height);
                             
                             result.words.forEach((word) => {
                                 if (word.text && word.boundingBox) {
