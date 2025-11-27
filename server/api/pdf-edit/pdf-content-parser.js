@@ -91,37 +91,87 @@ async function extractTextWithPositions(pdfBuffer) {
 }
 
 /**
- * Extract fonts from PDF page
+ * Extract fonts from PDF page with detailed information
  * @param {Object} page - PDF.js page object
- * @returns {Promise<Array>} Array of font information
+ * @returns {Promise<Array>} Array of font information with metrics
  */
 async function extractFontsFromPage(page) {
   try {
     const fonts = [];
-    const fontsSet = new Set();
+    const fontsMap = new Map();
     
-    // Get text content to extract font names
+    // Get text content to extract font names and properties
     const textContent = await page.getTextContent();
     textContent.items.forEach(item => {
       if (item.fontName) {
-        fontsSet.add(item.fontName);
+        if (!fontsMap.has(item.fontName)) {
+          fontsMap.set(item.fontName, {
+            name: item.fontName,
+            type: item.fontName.includes('+') ? 'embedded' : 'standard',
+            encoding: item.transform ? 'WinAnsiEncoding' : 'Unicode',
+            baseFont: item.fontName.split('+').pop() || item.fontName,
+            // Extract font properties from item
+            size: Math.abs(item.transform?.[0] || item.transform?.[3] || 12),
+            width: item.width || 0,
+            height: item.height || 0
+          });
+        }
       }
     });
     
-    // Convert to array with metadata
-    fontsSet.forEach(fontName => {
-      fonts.push({
-        name: fontName,
-        type: 'standard', // Most PDFs use standard fonts
-        encoding: 'WinAnsiEncoding',
-        baseFont: fontName
-      });
+    // Convert map to array
+    fontsMap.forEach(font => {
+      fonts.push(font);
     });
     
     return fonts;
   } catch (error) {
     console.warn('Error extracting fonts from page:', error);
     return [];
+  }
+}
+
+/**
+ * Extract font metrics for accurate text width calculation
+ * @param {Object} page - PDF.js page object
+ * @param {string} fontName - Font name
+ * @param {number} fontSize - Font size
+ * @returns {Promise<Object>} Font metrics {width, height, ascent, descent}
+ */
+async function getFontMetrics(page, fontName, fontSize) {
+  try {
+    const textContent = await page.getTextContent();
+    let totalWidth = 0;
+    let count = 0;
+    
+    // Calculate average character width from actual text items
+    textContent.items.forEach(item => {
+      if (item.fontName === fontName && item.width) {
+        totalWidth += item.width;
+        count++;
+      }
+    });
+    
+    const avgCharWidth = count > 0 ? totalWidth / count : fontSize * 0.6;
+    
+    return {
+      avgCharWidth: avgCharWidth,
+      fontSize: fontSize,
+      lineHeight: fontSize * 1.2,
+      // Estimate metrics based on font size
+      ascent: fontSize * 0.8,
+      descent: fontSize * 0.2
+    };
+  } catch (error) {
+    console.warn('Error getting font metrics:', error);
+    // Fallback to estimated metrics
+    return {
+      avgCharWidth: fontSize * 0.6,
+      fontSize: fontSize,
+      lineHeight: fontSize * 1.2,
+      ascent: fontSize * 0.8,
+      descent: fontSize * 0.2
+    };
   }
 }
 
@@ -194,10 +244,42 @@ async function getFontsFromPDF(pdfBuffer) {
   }
 }
 
+/**
+ * Calculate accurate text width using font metrics
+ * @param {string} text - Text to measure
+ * @param {string} fontName - Font name
+ * @param {number} fontSize - Font size
+ * @param {Object} fontMetrics - Font metrics object
+ * @returns {number} Text width in points
+ */
+function calculateTextWidth(text, fontName, fontSize, fontMetrics) {
+  if (!text || text.length === 0) return 0;
+  
+  if (fontMetrics && fontMetrics.avgCharWidth) {
+    // Use actual font metrics if available
+    return text.length * fontMetrics.avgCharWidth;
+  }
+  
+  // Fallback: estimate based on font size
+  // Different fonts have different character widths
+  const widthMultipliers = {
+    'Courier': 0.6,      // Monospace
+    'Times-Roman': 0.5,  // Narrow
+    'Helvetica': 0.55,   // Medium
+    'Arial': 0.55,
+    'default': 0.6
+  };
+  
+  const multiplier = widthMultipliers[fontName] || widthMultipliers[fontName?.split('-')[0]] || widthMultipliers['default'];
+  return text.length * fontSize * multiplier;
+}
+
 module.exports = {
   extractTextWithPositions,
   extractFontsFromPage,
   findTextInPDF,
-  getFontsFromPDF
+  getFontsFromPDF,
+  getFontMetrics,
+  calculateTextWidth
 };
 

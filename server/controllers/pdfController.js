@@ -375,38 +375,103 @@ async function editText(req, res) {
     }
 
     // Process text replacements (delete old + add new)
+    // Use content parser for accurate text finding and font metrics
+    const pdfContentParser = require('../api/pdf-edit/pdf-content-parser');
+    
     if (textReplacements && textReplacements.length > 0) {
+      // Extract text positions from PDF for accurate replacement
+      let extractedTexts = [];
+      try {
+        extractedTexts = await pdfContentParser.extractTextWithPositions(pdfBuffer);
+        console.log(`[edit-text] Extracted ${extractedTexts.length} text items for accurate replacement`);
+      } catch (e) {
+        console.warn('[edit-text] Could not extract text positions, using provided coordinates:', e.message);
+      }
+      
       for (const replacement of textReplacements) {
         const pageIndex = replacement.pageIndex || 0;
         if (pageIndex >= 0 && pageIndex < pages.length) {
           const page = pages[pageIndex];
           const pageHeight = page.getHeight();
           
-          // Draw white rectangle over old text (delete)
-          const pdfX = replacement.x || 0;
-          const pdfY = pageHeight - (replacement.y || 0);
-          const fontSize = replacement.fontSize || 12;
-          const estimatedWidth = (replacement.oldText || '').length * fontSize * 0.6;
+          // Try to find exact text position in extracted items
+          let foundText = null;
+          let actualFontSize = replacement.fontSize || 12;
+          let actualFontName = replacement.fontName || 'Helvetica';
           
+          if (replacement.oldText && extractedTexts.length > 0) {
+            foundText = extractedTexts.find(item => 
+              item.pageIndex === pageIndex && 
+              item.text.includes(replacement.oldText)
+            );
+            
+            if (foundText) {
+              actualFontSize = foundText.fontSize || actualFontSize;
+              actualFontName = foundText.fontName || actualFontName;
+              console.log(`[edit-text] Found text "${replacement.oldText}" at position (${foundText.x}, ${foundText.y}) with font ${actualFontName}`);
+            }
+          }
+          
+          // Use found position or provided coordinates
+          let pdfX = replacement.x || 0;
+          let pdfY = pageHeight - (replacement.y || 0);
+          
+          if (foundText) {
+            pdfX = foundText.x;
+            pdfY = foundText.y;
+          }
+          
+          // Calculate accurate text width using font metrics
+          let oldTextWidth;
+          try {
+            const fontMetrics = await pdfContentParser.getFontMetrics(
+              await pdfDoc.getPage(pageIndex),
+              actualFontName,
+              actualFontSize
+            );
+            oldTextWidth = pdfContentParser.calculateTextWidth(
+              replacement.oldText || '',
+              actualFontName,
+              actualFontSize,
+              fontMetrics
+            );
+          } catch (e) {
+            // Fallback to estimated width
+            oldTextWidth = (replacement.oldText || '').length * actualFontSize * 0.6;
+          }
+          
+          // Draw white rectangle over old text (delete) with accurate width
           page.drawRectangle({
             x: pdfX,
-            y: pdfY - fontSize,
-            width: estimatedWidth,
-            height: fontSize * 1.2,
+            y: pdfY - actualFontSize,
+            width: oldTextWidth,
+            height: actualFontSize * 1.2,
             color: rgb(1, 1, 1) // White
           });
           
-          // Add new text
+          // Add new text with original font if possible
           let font;
-          const fontName = replacement.fontName || 'Helvetica';
-          if (fontName === 'Helvetica') {
+          const fontName = actualFontName;
+          
+          // Map font names to StandardFonts (try to match original)
+          if (fontName === 'Helvetica' || fontName.includes('Helvetica')) {
             font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-          } else if (fontName === 'Times-Roman') {
+          } else if (fontName === 'Times-Roman' || fontName.includes('Times')) {
             font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
-          } else if (fontName === 'Courier') {
+          } else if (fontName === 'Courier' || fontName.includes('Courier')) {
             font = await pdfDoc.embedFont(StandardFonts.Courier);
           } else {
-            font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            // Try to extract base font name (remove prefixes like "ArialMT+")
+            const baseFont = fontName.split('+').pop() || fontName.split('-')[0] || 'Helvetica';
+            if (baseFont.includes('Helvetica')) {
+              font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            } else if (baseFont.includes('Times')) {
+              font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+            } else if (baseFont.includes('Courier')) {
+              font = await pdfDoc.embedFont(StandardFonts.Courier);
+            } else {
+              font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            }
           }
           
           const fontColor = replacement.fontColor || [0, 0, 0];
@@ -415,10 +480,12 @@ async function editText(req, res) {
           page.drawText(replacement.newText || '', {
             x: pdfX,
             y: pdfY,
-            size: fontSize,
+            size: actualFontSize,
             font: font,
             color: color
           });
+          
+          console.log(`[edit-text] Replaced "${replacement.oldText}" with "${replacement.newText}" using font ${actualFontName}`);
         }
       }
     }
