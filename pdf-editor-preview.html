@@ -1637,13 +1637,8 @@
                     })
                 });
                 
-                if (!response.ok) {
-                    throw new Error('Server error: ' + response.status);
-                }
-                
-                const result = await response.json();
-                
-                if (result.success) {
+                if (response.success) {
+                    const result = response;
                     window.pdfEditorVars.currentPdfData = result.pdfData;
                     await reloadPDF();
                     window.pdfEditorVars.ocrTextsForPDF = []; // Clear after embedding
@@ -1670,26 +1665,19 @@
                 
                 showLoading('Applying native text edit...', 30);
                 
-                let apiUrl = '/api/pdf/edit';
-                if (window.location.protocol === 'file:') {
-                    apiUrl = 'http://localhost:3000/api/pdf/edit';
-                }
-                
                 updateProgress(50, 'Sending edit to server...');
                 
-                // Send native edit to backend
-                const response = await fetch(apiUrl, {
+                // Send native edit to backend using helper function
+                const response = await callBackendAPI('/api/pdf/edit', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         pdfData: currentPdfData,
                         edits: {
-                            textReplacements: [{
+                            textEdits: [{
                                 pageIndex: pageIndex,
-                                oldText: oldText,
-                                newText: newText,
                                 x: x,
                                 y: y,
+                                text: newText,
                                 fontSize: 12,
                                 fontName: 'Helvetica',
                                 fontColor: [0, 0, 0]
@@ -1834,42 +1822,38 @@
                     const imageData = canvas.toDataURL('image/png');
                     
                     updateProgress(40, 'Sending to OCR service...');
-                    // Fast server-side OCR
-                    let apiUrl = '/api/pdf-ocr/process';
-                    if (window.location.protocol === 'file:') {
-                        apiUrl = 'http://localhost:3000/api/pdf-ocr/process';
-                    }
                     
                     let result = null;
                     let useClientSideOCR = false;
                     
-                    // Try server-side OCR first
+                    // Try server-side OCR first (using new backend API)
                     try {
                         updateProgress(50, 'Processing with server OCR...');
-                        const response = await fetch(apiUrl, {
+                        
+                        // Convert PDF page to base64 for OCR
+                        const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(await window.pdfEditorVars.pdfDoc.getPage(window.pdfEditorVars.currentPage).getPageInfo().data)));
+                        
+                        result = await callBackendAPI('/api/pdf/ocr', {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
                             body: JSON.stringify({
-                                image: imageData.split(',')[1],
-                                language: 'en'
+                                pdfData: window.pdfEditorVars.currentPdfData,
+                                pageIndex: window.pdfEditorVars.currentPage - 1
                             })
                         });
                         
-                        if (response.ok) {
-                            const contentType = response.headers.get('content-type');
-                            if (contentType && contentType.includes('application/json')) {
-                                updateProgress(80, 'Receiving OCR results...');
-                                result = await response.json();
-                                updateProgress(95, 'Processing results...');
-                                console.log('Server-side OCR successful');
-                            } else {
-                                throw new Error('Invalid response type from server');
-                            }
+                        if (result.success) {
+                            updateProgress(80, 'Receiving OCR results...');
+                            // Transform result to match expected format
+                            result = {
+                                success: true,
+                                text: result.text,
+                                words: result.words || [],
+                                method: result.method || 'Google Cloud Vision API'
+                            };
+                            updateProgress(95, 'Processing results...');
+                            console.log('Server-side OCR successful');
                         } else {
-                            console.warn('Server OCR failed, using client-side OCR fallback');
-                            useClientSideOCR = true;
+                            throw new Error(result.error || 'OCR failed');
                         }
                     } catch (fetchError) {
                         // Network error or server not available, use client-side OCR
@@ -2075,51 +2059,50 @@
                     const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
                     
                     updateProgress(70, 'Sending to server for processing...');
-                    // Send to server for processing
-                    let editApiUrl = '/api/pdf/edit';
-                    if (window.location.protocol === 'file:') {
-                        editApiUrl = 'http://localhost:3000/api/pdf/edit';
-                    }
                     
-                    const editResponse = await fetch(editApiUrl, {
+                    // Use backend API for editing
+                    const editResult = await callBackendAPI('/api/pdf/edit', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
                         body: JSON.stringify({
-                            pdfData: pdfBase64,
+                            pdfData: `data:application/pdf;base64,${pdfBase64}`,
                             edits: edits
                         })
                     });
                     
                     updateProgress(85, 'Processing PDF edits...');
                     
-                    if (editResponse.ok) {
-                        const editResult = await editResponse.json();
-                        if (editResult.success) {
-                            updateProgress(95, 'Preparing download...');
-                            const editedPdfBase64 = editResult.pdfData.split(',')[1];
-                            const editedPdfBytes = Uint8Array.from(atob(editedPdfBase64), c => c.charCodeAt(0));
-                            const blob = new Blob([editedPdfBytes], { type: 'application/pdf' });
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = 'edited-document.pdf';
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                            URL.revokeObjectURL(url);
-                            
-                            updateProgress(100, 'Download complete!');
-                            setTimeout(() => {
-                                hideLoading();
-                                alert('PDF downloaded successfully!');
-                            }, 500);
-                        } else {
-                            throw new Error(editResult.error || 'PDF editing failed');
-                        }
+                    if (editResult.success) {
+                        updateProgress(95, 'Preparing download...');
+                        
+                        // Use backend download endpoint
+                        const downloadResult = await callBackendAPI('/api/pdf/download', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                pdfData: editResult.pdfData,
+                                filename: sessionStorage.getItem('pdfFileName') || 'edited-document.pdf'
+                            })
+                        });
+                        
+                        // If download endpoint returns binary, handle it
+                        const pdfBase64Data = editResult.pdfData.split(',')[1] || editResult.pdfData;
+                        const editedPdfBytes = Uint8Array.from(atob(pdfBase64Data), c => c.charCodeAt(0));
+                        const blob = new Blob([editedPdfBytes], { type: 'application/pdf' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = sessionStorage.getItem('pdfFileName') || 'edited-document.pdf';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        
+                        updateProgress(100, 'Download complete!');
+                        setTimeout(() => {
+                            hideLoading();
+                            alert('PDF downloaded successfully!');
+                        }, 500);
                     } else {
-                        throw new Error('Server error: ' + editResponse.status);
+                        throw new Error(editResult.error || 'PDF editing failed');
                     }
                 } catch (error) {
                     console.error('Download error:', error);
