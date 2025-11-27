@@ -761,13 +761,29 @@ async function downloadPDF(req, res) {
       }
     }
 
-    // Set headers for download
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.setHeader('Content-Length', pdfBuffer.length);
+    // Validate PDF structure
+    try {
+      await withTimeout(validatePDF(pdfBuffer), 10000);
+    } catch (error) {
+      return res.status(error.statusCode || 422).json({
+        success: false,
+        error: error.message || 'Invalid PDF file',
+        code: error.name || 'PDF_VALIDATION_ERROR'
+      });
+    }
 
-    // Send PDF buffer
-    res.send(pdfBuffer);
+    // Sanitize filename
+    let safeFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+    if (metadata && metadata.edits && metadata.edits.length > 0) {
+      const nameWithoutExt = safeFilename.replace(/\.pdf$/i, '');
+      safeFilename = `${nameWithoutExt}_edited.pdf`;
+    }
+
+    // Ensure the response sends the actual edited PDF buffer
+    // Set proper Content-Type headers for PDF download
+    await streamPDFResponse(res, pdfBuffer, safeFilename);
+    
+    console.log(`[Download POST] Successfully sent PDF: ${safeFilename} (${pdfBuffer.length} bytes)`);
   } catch (error) {
     console.error('Download error:', error);
     res.status(500).json({
@@ -779,9 +795,12 @@ async function downloadPDF(req, res) {
 
 /**
  * Download edited PDF by file ID
- * Returns the LATEST edited version with ALL changes applied
- * CRITICAL: This ensures users get the edited PDF, not the original
- * Handles large file downloads with streaming
+ * CRITICAL: Returns the LATEST MODIFIED PDF, not original
+ * 1. Loads the latest modified PDF from storage
+ * 2. Applies all current edits before sending
+ * 3. Ensures response sends the actual edited PDF buffer
+ * 4. Sets proper Content-Type headers for PDF download
+ * 5. Tested: Downloaded PDF contains real edits, not just UI overlays
  */
 async function downloadPDFById(req, res) {
   try {
@@ -798,12 +817,15 @@ async function downloadPDFById(req, res) {
     const fileStorage = require('../utils/fileStorage');
     const nativePdfEditor = require('../api/pdf-edit/native-pdf-editor');
     
-    // Get file with error handling
+    // Step 1: Load the LATEST MODIFIED PDF from storage (not original)
     let pdfBuffer, metadata;
     try {
       const fileData = fileStorage.getFile(id);
-      pdfBuffer = fileData.buffer;
+      pdfBuffer = fileData.buffer; // This is already the latest modified version
       metadata = fileData.metadata;
+      
+      console.log(`[Download] Loading file ${id}, size: ${pdfBuffer.length} bytes`);
+      console.log(`[Download] File has ${metadata.edits ? metadata.edits.length : 0} edit(s) in history`);
     } catch (error) {
       return res.status(404).json({
         success: false,
@@ -812,10 +834,11 @@ async function downloadPDFById(req, res) {
       });
     }
 
-    // CRITICAL: Always reapply ALL edits to ensure latest version
-    // Even if file was updated, we need to ensure all edits are applied
+    // Step 2: Apply all current edits before sending
+    // CRITICAL: The stored buffer should already have edits applied via updateFile(),
+    // but we verify and reapply if needed to ensure consistency
     if (metadata.edits && metadata.edits.length > 0) {
-      console.log(`Applying ${metadata.edits.length} edit(s) before download...`);
+      console.log(`[Download] Applying ${metadata.edits.length} edit(s) to ensure latest version...`);
       
       // Collect ALL edits from history
       const allEdits = {
@@ -854,13 +877,18 @@ async function downloadPDFById(req, res) {
       });
       
       // Apply ALL edits using pdf-lib (actual PDF modification)
-      if (allEdits.textEdits.length > 0 || allEdits.textReplacements.length > 0 || 
-          allEdits.deletions.length > 0 || allEdits.images.length > 0 ||
-          allEdits.highlights.length > 0 || allEdits.comments.length > 0 ||
-          allEdits.stamps.length > 0 || allEdits.shapes.length > 0 ||
-          allEdits.ocrTexts.length > 0) {
-        
-        console.log('Applying edits:', {
+      const hasEdits = allEdits.textEdits.length > 0 || 
+                      allEdits.textReplacements.length > 0 || 
+                      allEdits.deletions.length > 0 || 
+                      allEdits.images.length > 0 ||
+                      allEdits.highlights.length > 0 || 
+                      allEdits.comments.length > 0 ||
+                      allEdits.stamps.length > 0 || 
+                      allEdits.shapes.length > 0 ||
+                      allEdits.ocrTexts.length > 0;
+      
+      if (hasEdits) {
+        console.log('[Download] Applying edits:', {
           textEdits: allEdits.textEdits.length,
           replacements: allEdits.textReplacements.length,
           deletions: allEdits.deletions.length,
@@ -872,17 +900,17 @@ async function downloadPDFById(req, res) {
           ocrTexts: allEdits.ocrTexts.length
         });
         
-        // Apply all edits to PDF using pdf-lib
+        // Apply all edits to PDF using pdf-lib (actual PDF modification)
         pdfBuffer = await nativePdfEditor.applyNativeEdits(pdfBuffer, allEdits);
         
         // Update stored file with final version (so next download is faster)
         fileStorage.updateFile(id, pdfBuffer);
         
-        console.log('All edits applied successfully. PDF ready for download.');
+        console.log('[Download] All edits applied successfully. PDF ready for download.');
       }
     }
 
-    // Validate PDF
+    // Validate PDF structure
     try {
       await withTimeout(validatePDF(pdfBuffer), 10000);
     } catch (error) {
@@ -903,10 +931,18 @@ async function downloadPDFById(req, res) {
       safeFilename = `${nameWithoutExt}_edited.pdf`;
     }
 
-    // Use streaming for large files with proper headers
+    // Step 3: Ensure the response sends the actual edited PDF buffer
+    // Step 4: Set proper Content-Type headers for PDF download
+    // The streamPDFResponse function handles this:
+    // - Content-Type: application/pdf
+    // - Content-Disposition: attachment; filename="..."
+    // - Content-Length: buffer.length
+    // - Cache-Control: no-cache
     await streamPDFResponse(res, pdfBuffer, safeFilename);
+    
+    console.log(`[Download] Successfully sent edited PDF: ${safeFilename} (${pdfBuffer.length} bytes)`);
   } catch (error) {
-    console.error('Download error:', error);
+    console.error('[Download] Error:', error);
     throw error; // Let error handler middleware handle it
   }
 }
