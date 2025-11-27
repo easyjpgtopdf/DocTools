@@ -817,7 +817,13 @@
                     alert('Upload cancelled');
                 });
                 
+                // Open connection
                 xhr.open('POST', uploadUrl);
+                
+                // Don't set Content-Type header for FormData - browser will set it automatically with boundary
+                // xhr.setRequestHeader('Content-Type', 'multipart/form-data'); // DON'T set this!
+                
+                // Send form data
                 xhr.send(formData);
                 
             } catch (error) {
