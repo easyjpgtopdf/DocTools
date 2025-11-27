@@ -311,10 +311,14 @@ async function editText(req, res) {
       });
     }
 
+    // ============================================================
     // CRITICAL: Use pdf-lib directly for actual PDF modification
-    // Load the uploaded PDF using PDFDocument.load()
+    // ============================================================
+    // Step 1: Load the uploaded PDF using PDFDocument.load()
+    console.log(`[edit-text] Loading PDF buffer (${pdfBuffer.length} bytes)...`);
     const pdfDoc = await PDFDocument.load(pdfBuffer);
     const pages = pdfDoc.getPages();
+    console.log(`[edit-text] PDF loaded, ${pages.length} page(s) available`);
 
     // Process text edits (add new text) - Using exact structure as requested
     if (textEdits && textEdits.length > 0) {
@@ -353,8 +357,11 @@ async function editText(req, res) {
             );
           }
           
-          // Use page.drawText() to actually add/modify text in the PDF
+          // ============================================================
+          // Step 3: Use page.drawText() to actually modify PDF text content
+          // ============================================================
           // EXACT CODE STRUCTURE AS REQUESTED:
+          console.log(`[edit-text] Drawing text "${editData.text}" on page ${pageIndex} at (${pdfX}, ${pdfY})`);
           page.drawText(editData.text || '', {
             x: pdfX,
             y: pdfY,
@@ -362,6 +369,7 @@ async function editText(req, res) {
             font: font, // REQUIRED: Font must be embedded
             color: color
           });
+          console.log(`[edit-text] Text drawn successfully`);
         }
       }
     }
@@ -440,13 +448,21 @@ async function editText(req, res) {
       }
     }
 
-    // Save the modified PDF using pdfDoc.save()
-    // This returns the modified PDF buffer
+    // ============================================================
+    // Step 4: Save the modified PDF using pdfDoc.save()
+    // ============================================================
+    // This returns the modified PDF buffer with all edits applied
+    console.log('[edit-text] Saving modified PDF...');
     const modifiedPdfBuffer = await pdfDoc.save();
+    console.log(`[edit-text] Modified PDF saved (${modifiedPdfBuffer.length} bytes)`);
 
-    // Store the modified PDF and return success
+    // ============================================================
+    // Step 5: Store the modified PDF and return success
+    // ============================================================
     // CRITICAL: Update stored file with edited version (not original)
+    console.log('[edit-text] Updating stored file with edited version...');
     fileStorage.updateFile(fileId, modifiedPdfBuffer);
+    console.log('[edit-text] File storage updated successfully');
     
     // Store edit history
     if (textEdits && textEdits.length > 0) {
