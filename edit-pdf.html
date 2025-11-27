@@ -767,9 +767,16 @@
                                 fileInfo.classList.add('show');
                                 continueBtn.disabled = false;
                                 
-                                console.log('PDF uploaded successfully. File ID:', uploadResult.fileId);
-                                console.log('Server URL:', serverUrl);
+                                console.log('✅ PDF uploaded successfully. File ID:', uploadResult.fileId);
+                                console.log('✅ Server URL:', serverUrl);
+                                console.log('✅ Ready to redirect to pdf-editor-preview.html');
                                 hideLoading();
+                                
+                                // Auto-redirect after successful upload (wait 500ms for UI update)
+                                setTimeout(() => {
+                                    console.log('🔄 Redirecting to pdf-editor-preview.html...');
+                                    window.location.href = 'pdf-editor-preview.html';
+                                }, 500);
                             };
                             
                             reader.onerror = function() {
@@ -780,6 +787,12 @@
                                 fileInfo.classList.add('show');
                                 continueBtn.disabled = false;
                                 hideLoading();
+                                
+                                // Auto-redirect even if FileReader fails
+                                setTimeout(() => {
+                                    console.log('🔄 Redirecting to pdf-editor-preview.html (FileReader fallback)...');
+                                    window.location.href = 'pdf-editor-preview.html';
+                                }, 500);
                             };
                             
                             reader.readAsArrayBuffer(file);
