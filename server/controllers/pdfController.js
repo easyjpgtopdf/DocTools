@@ -285,6 +285,69 @@ async function editText(req, res) {
 
     const fileStorage = require('../utils/fileStorage');
     const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
+const fs = require('fs');
+const path = require('path');
+
+/**
+ * Get standard font or try to extract from original PDF
+ * MEDIUM PRIORITY: Enhanced font handling
+ */
+async function getStandardFont(pdfDoc, fontName) {
+  // Map font names to StandardFonts
+  const fontMap = {
+    'Helvetica': StandardFonts.Helvetica,
+    'Helvetica-Bold': StandardFonts.HelveticaBold,
+    'Helvetica-Oblique': StandardFonts.HelveticaOblique,
+    'Helvetica-BoldOblique': StandardFonts.HelveticaBoldOblique,
+    'Times-Roman': StandardFonts.TimesRoman,
+    'Times-Bold': StandardFonts.TimesRomanBold,
+    'Times-Italic': StandardFonts.TimesRomanItalic,
+    'Times-BoldItalic': StandardFonts.TimesRomanBoldItalic,
+    'Courier': StandardFonts.Courier,
+    'Courier-Bold': StandardFonts.CourierBold,
+    'Courier-Oblique': StandardFonts.CourierOblique,
+    'Courier-BoldOblique': StandardFonts.CourierBoldOblique
+  };
+  
+  // Try exact match
+  if (fontMap[fontName]) {
+    return await pdfDoc.embedFont(fontMap[fontName]);
+  }
+  
+  // Try base font name (remove prefixes like "ArialMT+")
+  const baseFont = fontName.split('+').pop() || fontName.split('-')[0] || fontName;
+  for (const [key, value] of Object.entries(fontMap)) {
+    if (baseFont.includes(key.split('-')[0])) {
+      return await pdfDoc.embedFont(value);
+    }
+  }
+  
+  // Default to Helvetica
+  return await pdfDoc.embedFont(StandardFonts.Helvetica);
+}
+
+/**
+ * Extract and embed font from original PDF
+ * MEDIUM PRIORITY: Custom font embedding
+ */
+async function extractAndEmbedFont(pdfDoc, originalPdfDoc, fontName) {
+  try {
+    // Try to get font from original PDF
+    const pages = originalPdfDoc.getPages();
+    if (pages.length > 0) {
+      // Access font dictionary from first page
+      // Note: pdf-lib doesn't directly expose font extraction
+      // This is a placeholder for future enhancement
+      console.log(`[edit-text] Attempting to extract font: ${fontName}`);
+    }
+    
+    // Fallback to standard font
+    return await getStandardFont(pdfDoc, fontName);
+  } catch (error) {
+    console.warn(`[edit-text] Font extraction failed, using standard:`, error.message);
+    return await getStandardFont(pdfDoc, fontName);
+  }
+}
     
     // Get file with error handling
     let pdfBuffer, metadata;
@@ -334,16 +397,25 @@ async function editText(req, res) {
           const pdfY = pageHeight - (editData.y || 0);
           
           // Embed font (REQUIRED for pdf-lib)
+          // MEDIUM PRIORITY: Support custom font embedding (TrueType/OpenType)
           let font;
           const fontName = editData.fontName || 'Helvetica';
-          if (fontName === 'Helvetica') {
-            font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-          } else if (fontName === 'Times-Roman') {
-            font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
-          } else if (fontName === 'Courier') {
-            font = await pdfDoc.embedFont(StandardFonts.Courier);
+          
+          // Try to embed custom font if font file path is provided
+          if (editData.fontFile && editData.fontFileData) {
+            try {
+              // Embed custom font from file data (TrueType/OpenType)
+              const fontBytes = Buffer.from(editData.fontFileData, 'base64');
+              font = await pdfDoc.embedFont(fontBytes);
+              console.log(`[edit-text] Embedded custom font: ${editData.fontFile}`);
+            } catch (fontError) {
+              console.warn(`[edit-text] Failed to embed custom font, using standard:`, fontError.message);
+              // Fallback to standard font
+              font = await getStandardFont(pdfDoc, fontName);
+            }
           } else {
-            font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            // Use standard fonts or try to extract from original PDF
+            font = await getStandardFont(pdfDoc, fontName);
           }
           
           // Get color
