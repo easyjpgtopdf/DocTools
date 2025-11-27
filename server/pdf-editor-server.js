@@ -52,24 +52,16 @@ const upload = multer({
   }
 });
 
-// Initialize Google Cloud Vision API client
+// Initialize Google Cloud Vision API client (will be initialized by vision-ocr module)
 let visionClient = null;
+
+// Initialize on startup
 try {
-  const serviceAccountRaw = process.env.GOOGLE_CLOUD_SERVICE_ACCOUNT || process.env.FIREBASE_SERVICE_ACCOUNT;
-  if (serviceAccountRaw) {
-    const serviceAccount = JSON.parse(serviceAccountRaw);
-    visionClient = new vision.ImageAnnotatorClient({
-      credentials: serviceAccount
-    });
-    console.log('✓ Google Cloud Vision API initialized successfully');
-  } else {
-    // Try default credentials
-    visionClient = new vision.ImageAnnotatorClient();
-    console.log('✓ Google Cloud Vision API initialized with default credentials');
-  }
+  const visionOCR = require('./api/pdf-ocr/vision-ocr');
+  visionClient = visionOCR.initializeVisionClient();
 } catch (error) {
-  console.warn('⚠ Google Cloud Vision API not initialized:', error.message);
-  console.warn('⚠ OCR functionality will be limited');
+  console.warn('⚠ Google Cloud Vision API initialization deferred:', error.message);
+  console.warn('⚠ OCR functionality will be initialized on first use');
 }
 
 /**
@@ -234,18 +226,24 @@ app.post('/api/pdf/edit', express.json({ limit: '100mb' }), async (req, res) => 
 /**
  * POST /api/pdf/ocr
  * Perform OCR on PDF pages using Google Cloud Vision API
- * Body: { pdfData: base64 string, pageIndex: number (optional) }
+ * Body: { pdfData: base64 string, pageIndex: number (optional), scale: number (optional), languageHints: array (optional) }
  */
 app.post('/api/pdf/ocr', express.json({ limit: '100mb' }), async (req, res) => {
   try {
+    const visionOCR = require('./api/pdf-ocr/vision-ocr');
+    
+    // Initialize Vision client if not already done
     if (!visionClient) {
-      return res.status(503).json({
-        success: false,
-        error: 'Google Cloud Vision API not initialized'
-      });
+      visionClient = visionOCR.initializeVisionClient();
+      if (!visionClient) {
+        return res.status(503).json({
+          success: false,
+          error: 'Google Cloud Vision API not initialized. Please check your service account credentials.'
+        });
+      }
     }
 
-    const { pdfData, pageIndex = 0 } = req.body;
+    const { pdfData, pageIndex = 0, scale = 2.0, languageHints = ['en'] } = req.body;
 
     if (!pdfData) {
       return res.status(400).json({
@@ -265,48 +263,107 @@ app.post('/api/pdf/ocr', express.json({ limit: '100mb' }), async (req, res) => {
       pdfBuffer = Buffer.from(pdfData);
     }
 
-    // Load PDF to get specific page
-    const pdfDoc = await PDFDocument.load(pdfBuffer);
-    const totalPages = pdfDoc.getPageCount();
-    
-    if (pageIndex < 0 || pageIndex >= totalPages) {
-      return res.status(400).json({
-        success: false,
-        error: `Invalid page index. PDF has ${totalPages} pages.`
-      });
-    }
+    // Get client ID for rate limiting (from IP or default)
+    const clientId = req.ip || req.headers['x-forwarded-for'] || 'default';
 
-    // Render page to image (using pdfjs-dist would be better, but for simplicity using canvas)
-    // For production, use pdfjs-dist to render pages to images
-    const page = pdfDoc.getPage(pageIndex);
-    const { width, height } = page.getSize();
-    
-    // Convert PDF page to image buffer (simplified - in production use pdfjs-dist)
-    // For now, we'll use a workaround: convert entire PDF to images
-    const [result] = await visionClient.documentTextDetection({
-      image: { content: pdfBuffer }
+    // Perform OCR
+    const ocrResult = await visionOCR.performOCR(pdfBuffer, pageIndex, {
+      scale: scale,
+      languageHints: languageHints,
+      clientId: clientId
     });
-
-    const detections = result.textAnnotations || [];
-    const fullText = detections.length > 0 ? detections[0].description : '';
-    const words = detections.slice(1).map(annotation => ({
-      text: annotation.description,
-      boundingBox: annotation.boundingPoly?.vertices || []
-    }));
 
     res.json({
       success: true,
-      text: fullText,
-      words: words,
-      pageIndex: pageIndex,
-      totalPages: totalPages,
-      method: 'Google Cloud Vision API'
+      ...ocrResult
     });
   } catch (error) {
     console.error('OCR error:', error);
-    res.status(500).json({
+    
+    // Handle specific error types
+    let statusCode = 500;
+    if (error.message.includes('Rate limit')) {
+      statusCode = 429; // Too Many Requests
+    } else if (error.message.includes('not initialized') || error.message.includes('credentials')) {
+      statusCode = 503; // Service Unavailable
+    } else if (error.message.includes('Invalid')) {
+      statusCode = 400; // Bad Request
+    }
+
+    res.status(statusCode).json({
       success: false,
-      error: 'OCR failed: ' + error.message
+      error: error.message || 'OCR failed',
+      code: error.code || 'OCR_ERROR'
+    });
+  }
+});
+
+/**
+ * POST /api/pdf/ocr/batch
+ * Perform OCR on multiple PDF pages
+ * Body: { pdfData: base64 string, pageIndices: array, scale: number (optional), languageHints: array (optional) }
+ */
+app.post('/api/pdf/ocr/batch', express.json({ limit: '100mb' }), async (req, res) => {
+  try {
+    const visionOCR = require('./api/pdf-ocr/vision-ocr');
+    
+    // Initialize Vision client if not already done
+    if (!visionClient) {
+      visionClient = visionOCR.initializeVisionClient();
+      if (!visionClient) {
+        return res.status(503).json({
+          success: false,
+          error: 'Google Cloud Vision API not initialized'
+        });
+      }
+    }
+
+    const { pdfData, pageIndices = [0], scale = 2.0, languageHints = ['en'] } = req.body;
+
+    if (!pdfData || !Array.isArray(pageIndices) || pageIndices.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request. Provide pdfData and pageIndices array.'
+      });
+    }
+
+    // Convert base64 to buffer
+    let pdfBuffer;
+    if (typeof pdfData === 'string') {
+      if (pdfData.startsWith('data:application/pdf;base64,')) {
+        pdfData = pdfData.split(',')[1];
+      }
+      pdfBuffer = Buffer.from(pdfData, 'base64');
+    } else {
+      pdfBuffer = Buffer.from(pdfData);
+    }
+
+    // Get client ID for rate limiting
+    const clientId = req.ip || req.headers['x-forwarded-for'] || 'default';
+
+    // Perform batch OCR
+    const batchResult = await visionOCR.performBatchOCR(pdfBuffer, pageIndices, {
+      scale: scale,
+      languageHints: languageHints,
+      clientId: clientId
+    });
+
+    res.json({
+      success: batchResult.success,
+      ...batchResult
+    });
+  } catch (error) {
+    console.error('Batch OCR error:', error);
+    
+    let statusCode = 500;
+    if (error.message.includes('Rate limit')) {
+      statusCode = 429;
+    }
+
+    res.status(statusCode).json({
+      success: false,
+      error: error.message || 'Batch OCR failed',
+      code: error.code || 'BATCH_OCR_ERROR'
     });
   }
 });
