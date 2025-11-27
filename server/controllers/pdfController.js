@@ -588,7 +588,37 @@ async function extractAndEmbedFont(pdfDoc, originalPdfDoc, fontName) {
     }
 
     // ============================================================
-    // Step 4: Save the modified PDF using pdfDoc.save()
+    // Step 4: Preserve PDF structure (metadata, bookmarks) - MEDIUM PRIORITY
+    // ============================================================
+    // Preserve original PDF metadata
+    try {
+      const originalPdfDoc = await PDFDocument.load(pdfBuffer);
+      const originalTitle = originalPdfDoc.getTitle();
+      const originalAuthor = originalPdfDoc.getAuthor();
+      const originalSubject = originalPdfDoc.getSubject();
+      const originalCreator = originalPdfDoc.getCreator();
+      const originalProducer = originalPdfDoc.getProducer();
+      const originalKeywords = originalPdfDoc.getKeywords();
+      const originalCreationDate = originalPdfDoc.getCreationDate();
+      
+      // Copy metadata to modified PDF
+      if (originalTitle) pdfDoc.setTitle(originalTitle);
+      if (originalAuthor) pdfDoc.setAuthor(originalAuthor);
+      if (originalSubject) pdfDoc.setSubject(originalSubject);
+      if (originalCreator) pdfDoc.setCreator(originalCreator);
+      if (originalProducer) pdfDoc.setProducer(originalProducer);
+      if (originalKeywords) pdfDoc.setKeywords(originalKeywords);
+      if (originalCreationDate) pdfDoc.setCreationDate(originalCreationDate);
+      // Update modification date
+      pdfDoc.setModificationDate(new Date());
+      
+      console.log('[edit-text] PDF metadata preserved');
+    } catch (metadataError) {
+      console.warn('[edit-text] Could not preserve metadata:', metadataError.message);
+    }
+    
+    // ============================================================
+    // Step 5: Save the modified PDF using pdfDoc.save()
     // ============================================================
     // This returns the modified PDF buffer with all edits applied
     console.log('[edit-text] Saving modified PDF...');
