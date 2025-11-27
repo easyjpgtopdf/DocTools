@@ -7,6 +7,19 @@ const fs = require('fs');
 const path = require('path');
 const { getVisionClient } = require('../config/google-cloud');
 const visionOCR = require('../api/pdf-ocr/vision-ocr');
+const { 
+  validatePDF, 
+  validateFileSize, 
+  validateFileType,
+  asyncHandler,
+  withTimeout,
+  PDFCorruptionError,
+  FileSizeError,
+  QuotaExceededError
+} = require('../middleware/errorHandler');
+const { cacheFile, getCachedFile, cacheResult, getCachedResult } = require('../utils/cache');
+const { streamPDFResponse } = require('../utils/streaming');
+const jobQueue = require('../utils/backgroundJobs');
 
 /**
  * Upload PDF file
@@ -17,43 +30,81 @@ async function uploadPDF(req, res) {
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        error: 'No PDF file uploaded'
+        error: 'No PDF file uploaded',
+        code: 'NO_FILE'
       });
     }
 
     // Validate file type
-    const allowedMimes = ['application/pdf'];
-    const allowedExtensions = ['.pdf'];
-    const isValidMime = allowedMimes.includes(req.file.mimetype);
-    const isValidExtension = allowedExtensions.some(ext => 
-      req.file.originalname.toLowerCase().endsWith(ext)
-    );
-    
-    if (!isValidMime && !isValidExtension) {
-      return res.status(400).json({
+    try {
+      validateFileType(req.file.mimetype, req.file.originalname);
+    } catch (error) {
+      return res.status(error.statusCode || 400).json({
         success: false,
-        error: 'Invalid file type. Only PDF files are allowed.'
+        error: error.message,
+        code: error.name
       });
     }
 
-    // Validate file size (100MB limit)
-    const maxSize = 100 * 1024 * 1024; // 100MB
-    if (req.file.size > maxSize) {
-      return res.status(400).json({
+    // Validate file size
+    try {
+      validateFileSize(req.file.size);
+    } catch (error) {
+      return res.status(error.statusCode || 413).json({
         success: false,
-        error: `File size exceeds 100MB limit. File size: ${(req.file.size / 1024 / 1024).toFixed(2)}MB`
+        error: error.message,
+        code: error.name
       });
     }
 
     const fileStorage = require('../utils/fileStorage');
-    const fileBuffer = fs.readFileSync(req.file.path);
+    let fileBuffer;
 
-    // Store file and get ID
-    const fileId = fileStorage.storeFile(
-      fileBuffer,
-      req.file.originalname,
-      req.file.mimetype
-    );
+    try {
+      fileBuffer = fs.readFileSync(req.file.path);
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to read uploaded file',
+        code: 'FILE_READ_ERROR'
+      });
+    }
+
+    // Validate PDF structure
+    try {
+      await withTimeout(validatePDF(fileBuffer), 10000, 'PDF validation timed out');
+    } catch (error) {
+      return res.status(error.statusCode || 422).json({
+        success: false,
+        error: error.message || 'Invalid or corrupted PDF file',
+        code: error.name || 'PDF_VALIDATION_ERROR'
+      });
+    }
+
+    // Check cache first
+    const fileHash = require('crypto').createHash('md5').update(fileBuffer).digest('hex');
+    const cachedFile = getCachedFile(fileHash);
+    
+    let fileId;
+    if (cachedFile) {
+      // Use cached file ID if available
+      const metadata = fileStorage.getFileMetadata(cachedFile.fileId);
+      if (metadata) {
+        fileId = cachedFile.fileId;
+      }
+    }
+
+    if (!fileId) {
+      // Store file and get ID
+      fileId = fileStorage.storeFile(
+        fileBuffer,
+        req.file.originalname,
+        req.file.mimetype
+      );
+      
+      // Cache file
+      cacheFile(fileHash, { fileId, buffer: fileBuffer });
+    }
 
     // Cleanup uploaded temp file
     try {
@@ -62,16 +113,25 @@ async function uploadPDF(req, res) {
       console.warn('Could not delete temp file:', e.message);
     }
 
-    // Optionally extract text and fonts for preview
+    // Optionally extract text and fonts for preview (with timeout)
     let textItems = [];
     let fonts = [];
     
     try {
       const pdfContentParser = require('../api/pdf-edit/pdf-content-parser');
-      textItems = await pdfContentParser.extractTextWithPositions(fileBuffer);
-      fonts = await pdfContentParser.getFontsFromPDF(fileBuffer);
+      const parserResult = await withTimeout(
+        Promise.all([
+          pdfContentParser.extractTextWithPositions(fileBuffer),
+          pdfContentParser.getFontsFromPDF(fileBuffer)
+        ]),
+        15000,
+        'PDF parsing timed out'
+      );
+      textItems = parserResult[0] || [];
+      fonts = parserResult[1] || [];
     } catch (e) {
       console.warn('Could not extract PDF content:', e.message);
+      // Continue without extracted content
     }
 
     // Get metadata
@@ -90,10 +150,7 @@ async function uploadPDF(req, res) {
     });
   } catch (error) {
     console.error('Upload error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Upload failed: ' + error.message
-    });
+    throw error; // Let error handler middleware handle it
   }
 }
 
@@ -218,6 +275,7 @@ async function editText(req, res) {
 /**
  * Perform OCR on PDF page
  * Takes file ID and page number
+ * Supports background processing for large files
  */
 async function performOCR(req, res) {
   try {
@@ -225,38 +283,111 @@ async function performOCR(req, res) {
     if (!visionClient) {
       return res.status(503).json({
         success: false,
-        error: 'Google Cloud Vision API not initialized. Please check your service account credentials.'
+        error: 'Google Cloud Vision API not initialized. Please check your service account credentials.',
+        code: 'SERVICE_UNAVAILABLE'
       });
     }
 
-    const { fileId, pageIndex = 0, scale = 2.0, languageHints = ['en'] } = req.body;
+    const { fileId, pageIndex = 0, scale = 2.0, languageHints = ['en'], background = false } = req.body;
 
     if (!fileId) {
       return res.status(400).json({
         success: false,
-        error: 'File ID is required'
+        error: 'File ID is required',
+        code: 'MISSING_FILE_ID'
       });
     }
 
     const fileStorage = require('../utils/fileStorage');
     
-    // Get file
-    const { buffer: pdfBuffer } = fileStorage.getFile(fileId);
+    // Get file with error handling
+    let pdfBuffer;
+    try {
+      const fileData = fileStorage.getFile(fileId);
+      pdfBuffer = fileData.buffer;
+    } catch (error) {
+      return res.status(404).json({
+        success: false,
+        error: 'File not found',
+        code: 'FILE_NOT_FOUND'
+      });
+    }
+
+    // Validate PDF
+    try {
+      await withTimeout(validatePDF(pdfBuffer), 10000);
+    } catch (error) {
+      return res.status(error.statusCode || 422).json({
+        success: false,
+        error: error.message || 'Invalid PDF file',
+        code: error.name || 'PDF_VALIDATION_ERROR'
+      });
+    }
+
+    // Check cache for OCR results
+    const cacheKey = `ocr-${fileId}-${pageIndex}-${scale}`;
+    const cachedResult = getCachedResult(cacheKey);
+    if (cachedResult) {
+      return res.json({
+        success: true,
+        ...cachedResult,
+        cached: true
+      });
+    }
 
     // Get client ID for rate limiting
     const clientId = req.ip || req.headers['x-forwarded-for'] || 'default';
 
-    // Perform OCR
-    const ocrResult = await visionOCR.performOCR(pdfBuffer, pageIndex, {
-      scale: scale,
-      languageHints: languageHints,
-      clientId: clientId
-    });
+    // Background processing for large files
+    if (background || pdfBuffer.length > 50 * 1024 * 1024) {
+      const jobId = jobQueue.enqueue({
+        handler: async (data) => {
+          return await visionOCR.performOCR(data.pdfBuffer, data.pageIndex, {
+            scale: data.scale,
+            languageHints: data.languageHints,
+            clientId: data.clientId
+          });
+        },
+        data: {
+          pdfBuffer,
+          pageIndex,
+          scale,
+          languageHints,
+          clientId
+        }
+      });
+
+      return res.json({
+        success: true,
+        message: 'OCR job queued for background processing',
+        jobId: jobId,
+        status: 'queued',
+        statusUrl: `/api/pdf/ocr/status/${jobId}`
+      });
+    }
+
+    // Perform OCR with timeout
+    let ocrResult;
+    try {
+      ocrResult = await withTimeout(
+        visionOCR.performOCR(pdfBuffer, pageIndex, {
+          scale: scale,
+          languageHints: languageHints,
+          clientId: clientId
+        }),
+        60000, // 60 second timeout
+        'OCR processing timed out'
+      );
+    } catch (error) {
+      // Handle quota exceeded
+      if (error.code === 8 || error.message.includes('RESOURCE_EXHAUSTED') || error.message.includes('quota')) {
+        throw new QuotaExceededError('Google Cloud Vision API quota exceeded. Please try again later.');
+      }
+      throw error;
+    }
 
     // Map coordinates back to PDF space
     const mappedWords = ocrResult.words.map(word => {
-      // Convert image coordinates to PDF coordinates
-      // This is a simplified mapping - adjust based on your PDF rendering scale
       return {
         ...word,
         pdfCoordinates: {
@@ -268,7 +399,7 @@ async function performOCR(req, res) {
       };
     });
 
-    res.json({
+    const result = {
       success: true,
       fileId: fileId,
       pageIndex: pageIndex,
@@ -278,24 +409,15 @@ async function performOCR(req, res) {
       blocks: ocrResult.blocks,
       confidence: ocrResult.confidence,
       method: ocrResult.method
-    });
+    };
+
+    // Cache result
+    cacheResult(cacheKey, result, 1800); // 30 minutes
+
+    res.json(result);
   } catch (error) {
     console.error('OCR error:', error);
-    
-    let statusCode = 500;
-    if (error.message.includes('Rate limit')) {
-      statusCode = 429;
-    } else if (error.message.includes('not initialized') || error.message.includes('credentials')) {
-      statusCode = 503;
-    } else if (error.message.includes('Invalid') || error.message.includes('not found')) {
-      statusCode = 400;
-    }
-
-    res.status(statusCode).json({
-      success: false,
-      error: error.message || 'OCR failed',
-      code: error.code || 'OCR_ERROR'
-    });
+    throw error; // Let error handler middleware handle it
   }
 }
 
@@ -405,7 +527,7 @@ async function downloadPDF(req, res) {
 
 /**
  * Download edited PDF by file ID
- * Handles large file downloads with progress
+ * Handles large file downloads with streaming
  */
 async function downloadPDFById(req, res) {
   try {
@@ -414,14 +536,37 @@ async function downloadPDFById(req, res) {
     if (!id) {
       return res.status(400).json({
         success: false,
-        error: 'File ID is required'
+        error: 'File ID is required',
+        code: 'MISSING_FILE_ID'
       });
     }
 
     const fileStorage = require('../utils/fileStorage');
     
-    // Get file
-    const { buffer: pdfBuffer, metadata } = fileStorage.getFile(id);
+    // Get file with error handling
+    let pdfBuffer, metadata;
+    try {
+      const fileData = fileStorage.getFile(id);
+      pdfBuffer = fileData.buffer;
+      metadata = fileData.metadata;
+    } catch (error) {
+      return res.status(404).json({
+        success: false,
+        error: 'File not found',
+        code: 'FILE_NOT_FOUND'
+      });
+    }
+
+    // Validate PDF
+    try {
+      await withTimeout(validatePDF(pdfBuffer), 10000);
+    } catch (error) {
+      return res.status(error.statusCode || 422).json({
+        success: false,
+        error: error.message || 'Invalid PDF file',
+        code: error.name || 'PDF_VALIDATION_ERROR'
+      });
+    }
 
     // Get filename from metadata or use default
     const filename = metadata.originalName || 'edited-document.pdf';
@@ -429,58 +574,11 @@ async function downloadPDFById(req, res) {
     // Sanitize filename
     const safeFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
 
-    // Set headers for download
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
-    res.setHeader('Content-Length', pdfBuffer.length);
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('X-File-Id', id);
-
-    // For large files, stream the response
-    if (pdfBuffer.length > 10 * 1024 * 1024) { // > 10MB
-      // Stream in chunks
-      const chunkSize = 1024 * 1024; // 1MB chunks
-      let offset = 0;
-      
-      const streamChunk = () => {
-        if (offset >= pdfBuffer.length) {
-          // Cleanup file after download (optional)
-          // fileStorage.deleteFile(id);
-          return;
-        }
-        
-        const chunk = pdfBuffer.slice(offset, Math.min(offset + chunkSize, pdfBuffer.length));
-        offset += chunkSize;
-        
-        if (res.write(chunk)) {
-          streamChunk();
-        } else {
-          res.once('drain', streamChunk);
-        }
-      };
-      
-      streamChunk();
-      res.on('finish', () => {
-        // Optional: cleanup after download
-      });
-    } else {
-      // Send entire buffer for smaller files
-      res.send(pdfBuffer);
-    }
+    // Use streaming for large files
+    await streamPDFResponse(res, pdfBuffer, safeFilename);
   } catch (error) {
     console.error('Download error:', error);
-    
-    if (error.message.includes('not found')) {
-      return res.status(404).json({
-        success: false,
-        error: 'File not found'
-      });
-    }
-    
-    res.status(500).json({
-      success: false,
-      error: 'Download failed: ' + error.message
-    });
+    throw error; // Let error handler middleware handle it
   }
 }
 
@@ -523,50 +621,103 @@ async function loadPDF(req, res) {
     if (!id) {
       return res.status(400).json({
         success: false,
-        error: 'File ID is required'
+        error: 'File ID is required',
+        code: 'MISSING_FILE_ID'
       });
     }
 
     const fileStorage = require('../utils/fileStorage');
     
-    // Get file
-    const { buffer: pdfBuffer, metadata } = fileStorage.getFile(id);
+    // Get file with error handling
+    let pdfBuffer, metadata;
+    try {
+      const fileData = fileStorage.getFile(id);
+      pdfBuffer = fileData.buffer;
+      metadata = fileData.metadata;
+    } catch (error) {
+      return res.status(404).json({
+        success: false,
+        error: 'File not found',
+        code: 'FILE_NOT_FOUND'
+      });
+    }
+
+    // Validate PDF
+    try {
+      await withTimeout(validatePDF(pdfBuffer), 10000);
+    } catch (error) {
+      return res.status(error.statusCode || 422).json({
+        success: false,
+        error: error.message || 'Invalid PDF file',
+        code: error.name || 'PDF_VALIDATION_ERROR'
+      });
+    }
 
     // Set headers
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Length', pdfBuffer.length);
-    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
     res.setHeader('X-File-Id', id);
 
     // Send PDF buffer
     res.send(pdfBuffer);
   } catch (error) {
     console.error('Load PDF error:', error);
+    throw error; // Let error handler middleware handle it
+  }
+}
+
+/**
+ * Get OCR job status
+ */
+function getOCRJobStatus(req, res) {
+  try {
+    const { jobId } = req.params;
     
-    if (error.message.includes('not found')) {
-      return res.status(404).json({
+    if (!jobId) {
+      return res.status(400).json({
         success: false,
-        error: 'File not found'
+        error: 'Job ID is required',
+        code: 'MISSING_JOB_ID'
       });
     }
+
+    const jobStatus = jobQueue.getJobStatus(jobId);
     
-    res.status(500).json({
-      success: false,
-      error: 'Failed to load PDF: ' + error.message
+    if (!jobStatus) {
+      return res.status(404).json({
+        success: false,
+        error: 'Job not found',
+        code: 'JOB_NOT_FOUND'
+      });
+    }
+
+    res.json({
+      success: true,
+      jobId: jobId,
+      status: jobStatus.status,
+      createdAt: jobStatus.createdAt,
+      updatedAt: jobStatus.updatedAt,
+      result: jobStatus.result,
+      error: jobStatus.error
     });
+  } catch (error) {
+    console.error('Get OCR job status error:', error);
+    throw error;
   }
 }
 
 module.exports = {
-  uploadPDF,
-  editPDF,
-  editText,
-  performOCR,
-  performBatchOCR,
-  downloadPDF,
-  downloadPDFById,
-  loadPDF,
+  uploadPDF: asyncHandler(uploadPDF),
+  editPDF: asyncHandler(editPDF),
+  editText: asyncHandler(editText),
+  performOCR: asyncHandler(performOCR),
+  performBatchOCR: asyncHandler(performBatchOCR),
+  downloadPDF: asyncHandler(downloadPDF),
+  downloadPDFById: asyncHandler(downloadPDFById),
+  loadPDF: asyncHandler(loadPDF),
   getStatus,
-  getOCRStatus
+  getOCRStatus,
+  getOCRJobStatus
 };
 

@@ -271,18 +271,38 @@ async function processImageWithVision(imageBuffer, options = {}) {
   } catch (error) {
     console.error('Vision API error:', error);
 
-    // Handle specific Vision API errors
-    if (error.code === 8) {
-      throw new Error('Resource exhausted. Please try again later or reduce image size.');
-    } else if (error.code === 3) {
-      throw new Error('Invalid image format. Please ensure the PDF page was converted correctly.');
-    } else if (error.code === 16) {
-      throw new Error('Permission denied. Please check your Google Cloud credentials.');
+    // Handle specific Vision API errors with proper error codes
+    if (error.code === 8 || error.message.includes('RESOURCE_EXHAUSTED')) {
+      const quotaError = new Error('Google Cloud Vision API quota exceeded. Please try again later.');
+      quotaError.code = 'QUOTA_EXCEEDED';
+      quotaError.statusCode = 429;
+      throw quotaError;
+    } else if (error.code === 3 || error.message.includes('INVALID_ARGUMENT')) {
+      const invalidError = new Error('Invalid image format. Please ensure the PDF page was converted correctly.');
+      invalidError.code = 'INVALID_IMAGE';
+      invalidError.statusCode = 400;
+      throw invalidError;
+    } else if (error.code === 16 || error.message.includes('PERMISSION_DENIED')) {
+      const permError = new Error('Permission denied. Please check your Google Cloud credentials.');
+      permError.code = 'PERMISSION_DENIED';
+      permError.statusCode = 403;
+      throw permError;
+    } else if (error.code === 4 || error.message.includes('DEADLINE_EXCEEDED')) {
+      const timeoutError = new Error('OCR processing timed out. Please try again with a smaller page or lower scale.');
+      timeoutError.code = 'TIMEOUT';
+      timeoutError.statusCode = 504;
+      throw timeoutError;
     } else if (error.message && error.message.includes('rate limit')) {
-      throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+      const rateError = new Error('Rate limit exceeded. Please wait a moment and try again.');
+      rateError.code = 'RATE_LIMIT';
+      rateError.statusCode = 429;
+      throw rateError;
     }
 
-    throw new Error(`Vision API processing failed: ${error.message}`);
+    const apiError = new Error(`Vision API processing failed: ${error.message}`);
+    apiError.code = 'VISION_API_ERROR';
+    apiError.statusCode = 500;
+    throw apiError;
   }
 }
 
@@ -295,12 +315,34 @@ async function processImageWithVision(imageBuffer, options = {}) {
  */
 async function performOCR(pdfBuffer, pageIndex, options = {}) {
   try {
-    // Convert PDF page to image
-    const imageBuffer = await convertPdfPageToImage(
-      pdfBuffer,
-      pageIndex,
-      options.scale || 2.0
-    );
+    // Validate inputs
+    if (!pdfBuffer || pdfBuffer.length === 0) {
+      throw new Error('PDF buffer is empty');
+    }
+
+    if (pageIndex < 0) {
+      throw new Error('Invalid page index. Page index must be 0 or greater.');
+    }
+
+    // Convert PDF page to image with error handling
+    let imageBuffer;
+    try {
+      imageBuffer = await convertPdfPageToImage(
+        pdfBuffer,
+        pageIndex,
+        options.scale || 2.0
+      );
+    } catch (error) {
+      if (error.message.includes('Invalid page index')) {
+        throw error;
+      }
+      throw new Error(`Failed to convert PDF page to image: ${error.message}`);
+    }
+
+    // Validate image buffer
+    if (!imageBuffer || imageBuffer.length === 0) {
+      throw new Error('Failed to generate image from PDF page');
+    }
 
     // Process with Vision API
     const ocrResult = await processImageWithVision(imageBuffer, {
@@ -319,7 +361,16 @@ async function performOCR(pdfBuffer, pageIndex, options = {}) {
     };
   } catch (error) {
     console.error('OCR processing error:', error);
-    throw error;
+    
+    // Re-throw with context
+    if (error.code && error.statusCode) {
+      throw error; // Already a structured error
+    }
+    
+    // Wrap in generic error if needed
+    const ocrError = new Error(`OCR processing failed: ${error.message}`);
+    ocrError.originalError = error;
+    throw ocrError;
   }
 }
 

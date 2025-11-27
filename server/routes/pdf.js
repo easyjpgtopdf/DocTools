@@ -7,36 +7,44 @@ const express = require('express');
 const router = express.Router();
 const pdfController = require('../controllers/pdfController');
 const { uploadPDF, handleUploadError } = require('../middleware/upload');
+const { errorHandler, asyncHandler } = require('../middleware/errorHandler');
+const { apiLimiter, ocrLimiter, uploadLimiter } = require('../middleware/rateLimiter');
 
 /**
  * POST /api/pdf/upload
  * Upload a PDF file
  */
-router.post('/upload', uploadPDF, handleUploadError, pdfController.uploadPDF);
+router.post('/upload', uploadLimiter, uploadPDF, handleUploadError, asyncHandler(pdfController.uploadPDF));
 
 /**
  * POST /api/pdf/edit
  * Edit PDF (text, images, etc.)
  */
-router.post('/edit', express.json({ limit: '100mb' }), pdfController.editPDF);
+router.post('/edit', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.editPDF));
 
 /**
  * POST /api/pdf/edit-text
  * Edit PDF text specifically
  */
-router.post('/edit-text', express.json({ limit: '100mb' }), pdfController.editText);
+router.post('/edit-text', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.editText));
 
 /**
  * POST /api/pdf/ocr
  * Perform OCR on PDF page
  */
-router.post('/ocr', express.json({ limit: '100mb' }), pdfController.performOCR);
+router.post('/ocr', ocrLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.performOCR));
 
 /**
  * POST /api/pdf/ocr/batch
  * Perform OCR on multiple PDF pages
  */
-router.post('/ocr/batch', express.json({ limit: '100mb' }), pdfController.performBatchOCR);
+router.post('/ocr/batch', ocrLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.performBatchOCR));
+
+/**
+ * GET /api/pdf/ocr/status/:jobId
+ * Get OCR job status
+ */
+router.get('/ocr/status/:jobId', pdfController.getOCRJobStatus);
 
 /**
  * POST /api/pdf/download

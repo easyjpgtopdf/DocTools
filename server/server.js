@@ -80,16 +80,11 @@ app.get('/', (req, res) => {
   });
 });
 
-// Error handling middleware
-app.use((error, req, res, next) => {
-  console.error('Server error:', error);
-  
-  res.status(error.status || 500).json({
-    success: false,
-    error: error.message || 'Internal server error',
-    ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
-  });
-});
+// Import error handler
+const { errorHandler } = require('./middleware/errorHandler');
+
+// Error handling middleware (must be last)
+app.use(errorHandler);
 
 // 404 handler
 app.use((req, res) => {
