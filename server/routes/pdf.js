@@ -21,6 +21,12 @@ router.post('/upload', uploadPDF, handleUploadError, pdfController.uploadPDF);
 router.post('/edit', express.json({ limit: '100mb' }), pdfController.editPDF);
 
 /**
+ * POST /api/pdf/edit-text
+ * Edit PDF text specifically
+ */
+router.post('/edit-text', express.json({ limit: '100mb' }), pdfController.editText);
+
+/**
  * POST /api/pdf/ocr
  * Perform OCR on PDF page
  */
@@ -34,9 +40,15 @@ router.post('/ocr/batch', express.json({ limit: '100mb' }), pdfController.perfor
 
 /**
  * POST /api/pdf/download
- * Download edited PDF
+ * Download edited PDF (legacy endpoint)
  */
 router.post('/download', express.json({ limit: '100mb' }), pdfController.downloadPDF);
+
+/**
+ * GET /api/pdf/download/:id
+ * Download edited PDF by file ID
+ */
+router.get('/download/:id', pdfController.downloadPDFById);
 
 /**
  * GET /api/pdf/status

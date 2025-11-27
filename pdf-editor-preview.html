@@ -1329,12 +1329,47 @@
         // Check for PDF from edit-pdf.html on page load
         async function checkForStoredPDF() {
             try {
-                // Check sessionStorage for PDF from edit-pdf.html
+                // Check for file ID first (preferred method)
+                const pdfFileId = sessionStorage.getItem('pdfFileId');
+                
+                if (pdfFileId) {
+                    console.log('Found PDF file ID:', pdfFileId);
+                    showLoading('Loading PDF from server...', 20);
+                    
+                    try {
+                        // Load PDF from backend using file ID
+                        const apiBaseUrl = getApiBaseUrl();
+                        const loadUrl = `${apiBaseUrl}/api/pdf/load/${pdfFileId}`;
+                        
+                        const response = await fetch(loadUrl);
+                        
+                        if (!response.ok) {
+                            throw new Error(`Failed to load PDF: ${response.status}`);
+                        }
+                        
+                        const arrayBuffer = await response.arrayBuffer();
+                        
+                        // Store as current PDF data
+                        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+                        window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
+                        window.pdfEditorVars.currentFileId = pdfFileId;
+                        
+                        // Render PDF
+                        await renderPDF(arrayBuffer);
+                        hideLoading();
+                        return;
+                    } catch (error) {
+                        console.error('Error loading PDF from server:', error);
+                        // Fall through to blob URL fallback
+                    }
+                }
+                
+                // Fallback: Check sessionStorage for PDF blob URL
                 const pdfFileURL = sessionStorage.getItem('pdfFileURL');
                 const pdfFileName = sessionStorage.getItem('pdfFileName');
                 
                 if (pdfFileURL && pdfFileName) {
-                    console.log('Found PDF from edit-pdf.html:', pdfFileName);
+                    console.log('Found PDF from blob URL:', pdfFileName);
                     showLoading('Loading PDF...', 20);
                     
                     try {
