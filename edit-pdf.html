@@ -677,6 +677,73 @@
             alert('Error: ' + message);
         }
         
+        // Handle upload errors with proper fallback
+        function handleUploadError(error) {
+            console.error('Upload error:', error);
+            hideLoading();
+            
+            // Get the file from the input
+            const fileInput = document.getElementById('file-input');
+            if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                
+                // Check if server is not available - use local fallback
+                if (error.message.includes('Network error') || 
+                    error.message.includes('ERR_CONNECTION_REFUSED') ||
+                    error.message.includes('timeout')) {
+                    
+                    console.warn('Server not available, using local storage fallback');
+                    
+                    // Store file locally as fallback
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const fileData = e.target.result;
+                        const blob = new Blob([fileData], { type: 'application/pdf' });
+                        const blobURL = URL.createObjectURL(blob);
+                        sessionStorage.setItem('pdfFileURL', blobURL);
+                        sessionStorage.setItem('pdfFileName', file.name);
+                        sessionStorage.setItem('pdfFileSize', file.size.toString());
+                        sessionStorage.setItem('pdfFileType', file.type);
+                        
+                        // Update UI - Enable continue button
+                        fileName.textContent = file.name;
+                        fileSize.textContent = formatFileSize(file.size);
+                        fileInfo.classList.add('show');
+                        continueBtn.disabled = false;
+                        
+                        console.log('✅ File stored locally. Continue button enabled.');
+                    };
+                    
+                    reader.onerror = function() {
+                        showError('Failed to read file. Please try again.');
+                    };
+                    
+                    reader.readAsArrayBuffer(file);
+                } else {
+                    showError('Upload failed: ' + error.message);
+                }
+            } else {
+                showError('Server connection failed. Please make sure the server is running at http://localhost:3000 or try again.');
+            }
+        }
+        
+        // Check if server is available
+        async function checkServerAvailable() {
+            const apiBaseUrl = getApiBaseUrl();
+            if (!apiBaseUrl) return false; // No server URL means we're on a live site
+            
+            try {
+                const response = await fetch(`${apiBaseUrl}/health`, {
+                    method: 'GET',
+                    timeout: 3000
+                });
+                return response.ok;
+            } catch (error) {
+                console.warn('Server not available, will use local storage:', error);
+                return false;
+            }
+        }
+        
         // Handle file selection with backend upload
         async function handleFile(file) {
             // Validate file type first (before any processing)
@@ -697,6 +764,42 @@
                 }
             }
             
+            // Check server availability first
+            const serverAvailable = await checkServerAvailable();
+            
+            if (!serverAvailable) {
+                // Server not available, use local storage immediately
+                console.log('Server not available, using local storage');
+                showLoading('Processing PDF file...');
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const fileData = e.target.result;
+                    const blob = new Blob([fileData], { type: 'application/pdf' });
+                    const blobURL = URL.createObjectURL(blob);
+                    sessionStorage.setItem('pdfFileURL', blobURL);
+                    sessionStorage.setItem('pdfFileName', file.name);
+                    sessionStorage.setItem('pdfFileSize', file.size.toString());
+                    sessionStorage.setItem('pdfFileType', file.type);
+                    
+                    // Update UI - Enable continue button
+                    fileName.textContent = file.name;
+                    fileSize.textContent = formatFileSize(file.size);
+                    fileInfo.classList.add('show');
+                    continueBtn.disabled = false;
+                    hideLoading();
+                    
+                    console.log('✅ File processed locally. Continue button enabled.');
+                };
+                
+                reader.onerror = function() {
+                    showError('Failed to read file. Please try again.');
+                };
+                
+                reader.readAsArrayBuffer(file);
+                return;
+            }
+            
             try {
                 showLoading('Uploading PDF to server...');
                 
@@ -715,8 +818,8 @@
                 // Create XMLHttpRequest for upload progress
                 const xhr = new XMLHttpRequest();
                 
-                // Set timeout (60 seconds)
-                xhr.timeout = 60000;
+                // Set timeout (30 seconds for faster feedback)
+                xhr.timeout = 30000;
                 
                 xhr.upload.addEventListener('progress', function(e) {
                     if (e.lengthComputable) {
@@ -816,17 +919,18 @@
                     }
                 });
                 
-                xhr.addEventListener('error', function() {
-                    console.error('XHR error event fired');
+                xhr.addEventListener('error', function(e) {
+                    console.error('XHR error event fired', e);
                     hideLoading();
-                    const error = new Error('Network error during upload. Please check if the server is running at http://localhost:3000');
+                    const error = new Error('Network error during upload. Server may not be running. Using local storage fallback.');
                     handleUploadError(error);
                 });
                 
                 xhr.addEventListener('timeout', function() {
                     console.error('XHR timeout event fired');
                     hideLoading();
-                    const error = new Error('Upload timeout. The file may be too large or the server is slow.');
+                    xhr.abort(); // Cancel the request
+                    const error = new Error('Upload timeout. Server may be slow or unavailable. Using local storage fallback.');
                     handleUploadError(error);
                 });
                 
