@@ -1,6 +1,6 @@
 /**
- * Google Cloud Vision API OCR Integration
- * Converts PDF pages to images and processes with Vision API
+ * Advanced OCR Integration
+ * Converts PDF pages to images and processes with advanced OCR service
  */
 
 const vision = require('@google-cloud/vision');
@@ -16,11 +16,11 @@ const RATE_LIMIT = {
   requests: new Map() // Track requests by IP
 };
 
-// Initialize Vision API client
+// Initialize Advanced OCR client
 let visionClient = null;
 
 /**
- * Initialize Google Cloud Vision API client
+ * Initialize Advanced OCR service client
  */
 function initializeVisionClient() {
   if (visionClient) {
@@ -36,14 +36,14 @@ function initializeVisionClient() {
       visionClient = new vision.ImageAnnotatorClient({
         credentials: serviceAccount
       });
-      console.log('✓ Google Cloud Vision API initialized with service account');
+      console.log('✓ Advanced OCR service initialized with service account');
     } else {
       // Try default credentials
       visionClient = new vision.ImageAnnotatorClient();
-      console.log('✓ Google Cloud Vision API initialized with default credentials');
+      console.log('✓ Advanced OCR service initialized with default credentials');
     }
   } catch (error) {
-    console.warn('⚠ Google Cloud Vision API initialization failed:', error.message);
+    console.warn('⚠ Advanced OCR service initialization failed:', error.message);
     visionClient = null;
   }
 
@@ -153,7 +153,7 @@ function mapImageToPDFCoordinates(imageX, imageY, imageWidth, imageHeight, pdfWi
 }
 
 /**
- * Process image with Google Cloud Vision API
+ * Process image with Advanced OCR Service
  * @param {Buffer} imageBuffer - Image buffer
  * @param {Object} metadata - Image and PDF metadata for coordinate mapping
  * @param {Object} options - OCR options
@@ -163,7 +163,7 @@ async function processImageWithVision(imageBuffer, metadata, options = {}) {
   if (!visionClient) {
     visionClient = initializeVisionClient();
     if (!visionClient) {
-      throw new Error('Google Cloud Vision API not initialized');
+      throw new Error('Advanced OCR service not initialized');
     }
   }
 
@@ -171,7 +171,7 @@ async function processImageWithVision(imageBuffer, metadata, options = {}) {
     // Check rate limit
     checkRateLimit(options.clientId);
 
-    // Prepare image for Vision API
+    // Prepare image for OCR processing
     const image = {
       content: imageBuffer
     };
@@ -334,11 +334,11 @@ async function processImageWithVision(imageBuffer, metadata, options = {}) {
       pageHeight: page.height || 0
     };
   } catch (error) {
-    console.error('Vision API error:', error);
+    console.error('Advanced OCR service error:', error);
 
     // Handle specific Vision API errors with proper error codes
     if (error.code === 8 || error.message.includes('RESOURCE_EXHAUSTED')) {
-      const quotaError = new Error('Google Cloud Vision API quota exceeded. Please try again later.');
+      const quotaError = new Error('Advanced OCR service quota exceeded. Please try again later.');
       quotaError.code = 'QUOTA_EXCEEDED';
       quotaError.statusCode = 429;
       throw quotaError;
@@ -348,7 +348,7 @@ async function processImageWithVision(imageBuffer, metadata, options = {}) {
       invalidError.statusCode = 400;
       throw invalidError;
     } else if (error.code === 16 || error.message.includes('PERMISSION_DENIED')) {
-      const permError = new Error('Permission denied. Please check your Google Cloud credentials.');
+      const permError = new Error('Permission denied. Please check your service account credentials.');
       permError.code = 'PERMISSION_DENIED';
       permError.statusCode = 403;
       throw permError;
@@ -364,7 +364,7 @@ async function processImageWithVision(imageBuffer, metadata, options = {}) {
       throw rateError;
     }
 
-    const apiError = new Error(`Vision API processing failed: ${error.message}`);
+    const apiError = new Error(`Advanced OCR processing failed: ${error.message}`);
     apiError.code = 'VISION_API_ERROR';
     apiError.statusCode = 500;
     throw apiError;
@@ -421,7 +421,7 @@ async function performOCR(pdfBuffer, pageIndex, options = {}) {
     return {
       ...ocrResult,
       pageIndex: pageIndex,
-      method: 'Google Cloud Vision API',
+      method: 'Advanced OCR Service',
       imageSize: {
         width: metadata.imageWidth,
         height: metadata.imageHeight,

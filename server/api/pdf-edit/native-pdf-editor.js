@@ -1,7 +1,7 @@
 /**
  * Native PDF Editing Engine
  * Real-time PDF editing without HTML overlays
- * Adobe Acrobat Pro style - Direct PDF content stream manipulation
+ * Enterprise-grade PDF content stream manipulation
  */
 
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');

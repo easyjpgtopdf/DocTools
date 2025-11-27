@@ -783,7 +783,7 @@ async function performOCR(req, res) {
     } catch (error) {
       // Handle quota exceeded
       if (error.code === 8 || error.message.includes('RESOURCE_EXHAUSTED') || error.message.includes('quota')) {
-        throw new QuotaExceededError('Google Cloud Vision API quota exceeded. Please try again later.');
+        throw new QuotaExceededError('Advanced OCR service quota exceeded. Please try again later.');
       }
       throw error;
     }
@@ -824,7 +824,7 @@ async function performBatchOCR(req, res) {
     if (!visionClient) {
       return res.status(503).json({
         success: false,
-        error: 'Google Cloud Vision API not initialized'
+        error: 'Advanced OCR service not initialized'
       });
     }
 
@@ -1157,7 +1157,7 @@ function getOCRStatus(req, res) {
   res.json({
     success: true,
     visionApi: visionClient ? 'active' : 'inactive',
-    method: visionClient ? 'Google Cloud Vision API' : 'not available'
+    method: visionClient ? 'Advanced OCR Service' : 'not available'
   });
 }
 

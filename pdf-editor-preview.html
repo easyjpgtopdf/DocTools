@@ -800,7 +800,7 @@
                     
                     <div class="tool-group">
                         <div class="tool-group-title">OCR <span class="performance-badge">⚡ Fast</span></div>
-                        <div class="tool-item" id="ocr-btn" title="Google Cloud Vision OCR">
+                        <div class="tool-item" id="ocr-btn" title="Advanced OCR">
                             <i class="fas fa-language"></i>
                             <span>OCR</span>
                         </div>
@@ -2353,7 +2353,7 @@
                                 success: true,
                                 text: result.text,
                                 words: result.words || [],
-                                method: result.method || 'Google Cloud Vision API'
+                                method: result.method || 'Advanced OCR Service'
                             };
                             updateProgress(95, 'Processing results...');
                             console.log('Server-side OCR successful');
@@ -2368,7 +2368,7 @@
                     
                     // Fallback to client-side OCR
                     if (useClientSideOCR || !result) {
-                        if (typeof Tesseract === 'undefined') {
+                        if (typeof window.ClientOCR === 'undefined') {
                             hideLoading();
                             alert('OCR service unavailable. Please ensure you have an internet connection or start the server.');
                             return;
@@ -2377,7 +2377,7 @@
                         updateProgress(50, 'Using client-side OCR...');
                         console.log('Starting client-side OCR...');
                         try {
-                            const { data } = await Tesseract.recognize(imageData, 'eng', {
+                            const { data } = await window.ClientOCR.recognize(imageData, 'eng', {
                                 logger: m => {
                                     if (m.status === 'recognizing text') {
                                         const progress = 50 + (m.progress * 40); // 50-90%
@@ -2500,7 +2500,7 @@
                         // Determine which service was actually used
                         let serviceName = 'Fast Server OCR';
                         if (result.method) {
-                            if (result.method.includes('google-cloud') || result.method.includes('vision')) {
+                            if (result.method.includes('server') || result.method.includes('advanced')) {
                                 serviceName = 'Server OCR (Fast)';
                             } else if (result.method === 'client-side' || result.method.includes('client')) {
                                 serviceName = 'Client-side OCR';

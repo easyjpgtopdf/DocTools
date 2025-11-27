@@ -1,8 +1,8 @@
 /**
  * PDF Content Stream Parser
- * Extracts text, fonts, and positions from PDF using pdf.js
- * Adobe Acrobat Pro style - Real PDF structure parsing
- * MEDIUM PRIORITY: Enhanced with deep content stream parsing
+ * Extracts text, fonts, and positions from PDF
+ * Enterprise-grade PDF structure parsing
+ * Enhanced with deep content stream parsing
  */
 
 // Use pdfjs-dist for server-side PDF parsing
