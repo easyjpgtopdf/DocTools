@@ -1231,12 +1231,25 @@
         
         // Direct file upload with server processing (Fast)
         if (uploadBtn && fileInput) {
-            uploadBtn.addEventListener('click', function() {
+            uploadBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
                 console.log('Upload button clicked');
-                fileInput.click();
+                try {
+                    fileInput.click();
+                } catch (error) {
+                    console.error('Error clicking file input:', error);
+                    alert('Error opening file dialog. Please try again.');
+                }
             });
+            console.log('✅ Upload button event listener attached');
         } else {
-            console.error('Upload button or file input not found!', { uploadBtn, fileInput });
+            console.error('❌ Upload button or file input not found!', { 
+                uploadBtn: !!uploadBtn, 
+                fileInput: !!fileInput,
+                uploadBtnId: uploadBtn ? uploadBtn.id : 'not found',
+                fileInputId: fileInput ? fileInput.id : 'not found'
+            });
         }
         
         if (fileInput) {
@@ -1256,10 +1269,10 @@
                     const formData = new FormData();
                     formData.append('pdfFile', file);
                     
-                    let uploadUrl = '/api/pdf/upload';
-                    if (window.location.protocol === 'file:') {
-                        uploadUrl = 'http://localhost:3000/api/pdf/upload';
-                    }
+                    // Get API base URL
+                    const apiBaseUrl = getApiBaseUrl();
+                    const uploadUrl = `${apiBaseUrl}/api/pdf/upload`;
+                    console.log('Uploading to:', uploadUrl);
                     
                     try {
                         updateProgress(20, 'Uploading to server...');
@@ -1760,19 +1773,20 @@
             }
         }
         
-        // Apply native text edit (NO HTML overlays - direct PDF editing)
+        // Apply native text edit using pdf-lib backend (NO HTML overlays - direct PDF editing)
         async function applyNativeTextEdit(editData) {
             try {
-                const { pageIndex, oldText, newText, x, y } = editData;
+                const { pageIndex, oldText, newText, x, y, fontSize, fontName, fontColor } = editData;
                 
-                // Get current PDF data
-                const currentPdfData = window.pdfEditorVars.currentPdfData;
-                if (!currentPdfData) {
-                    showError('No PDF loaded. Please upload a PDF first.');
+                // Get file ID for backend editing
+                const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
+                
+                if (!fileId) {
+                    showError('No file ID available. Please upload PDF first.');
                     return false;
                 }
                 
-                showLoading('Applying native text edit...', 30);
+                showLoading('Applying text edit to PDF...', 30);
                 
                 updateProgress(50, 'Sending edit to server...');
                 
@@ -1821,7 +1835,7 @@
         
         /* Overlay functions removed - using native PDF editing only */
         
-        // Delete text element - Native PDF editing (NO HTML overlay)
+        // Delete text element - Native PDF editing using pdf-lib (NO HTML overlay)
         async function deleteTextElement(element) {
             if (!element) return;
             
@@ -1831,57 +1845,61 @@
             const textWidth = element.offsetWidth || Math.max(element.textContent.length * fontSize * 0.6, 20);
             const textHeight = Math.max(fontSize * 1.2, fontSize);
             
-            // Apply deletion directly to PDF (native editing)
+            // Get file ID for backend editing
+            const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
+            
+            if (!fileId) {
+                showError('No file ID available. Please upload PDF first.');
+                return;
+            }
+            
+            // Apply deletion directly to PDF using pdf-lib (native editing)
             try {
                 showLoading('Deleting text from PDF...', 10);
                 
-                const pdfFileURL = sessionStorage.getItem('pdfFileURL');
-                if (!pdfFileURL) throw new Error('PDF file not found');
+                const apiBaseUrl = getApiBaseUrl();
+                const apiUrl = `${apiBaseUrl}/api/pdf/edit-text`;
                 
-                updateProgress(30, 'Loading PDF...');
-                const response = await fetch(pdfFileURL);
-                const pdfArrayBuffer = await response.arrayBuffer();
-                const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
-                
-                updateProgress(50, 'Deleting text from PDF...');
-                let apiUrl = '/api/pdf/edit-native';
-                if (window.location.protocol === 'file:') {
-                    apiUrl = 'http://localhost:3000/api/pdf/edit-native';
-                }
+                updateProgress(30, 'Sending deletion to server...');
                 
                 const deleteResponse = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        pdfData: `data:application/pdf;base64,${pdfBase64}`,
-                        edit: {
-                            type: 'deleteText',
-                            data: {
-                                pageIndex: window.pdfEditorVars.currentPage - 1,
-                                x: x,
-                                y: y,
-                                width: Math.max(textWidth + 4, 20),
-                                height: Math.max(textHeight + 2, fontSize)
-                            }
-                        }
+                        fileId: fileId,
+                        deletions: [{
+                            pageIndex: window.pdfEditorVars.currentPage - 1,
+                            x: x,
+                            y: y,
+                            width: Math.max(textWidth + 4, 20),
+                            height: Math.max(textHeight + 2, fontSize)
+                        }]
                     })
                 });
                 
-                updateProgress(80, 'Updating PDF...');
+                if (!deleteResponse.ok) {
+                    const errorData = await deleteResponse.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Deletion failed: ${deleteResponse.status}`);
+                }
                 
-                if (deleteResponse.ok) {
-                    const result = await deleteResponse.json();
-                    if (result.success) {
-                        updateProgress(90, 'Rendering updated PDF...');
-                        // Update PDF data and reload
-                        window.pdfEditorVars.currentPdfData = result.pdfData;
-                        const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
-                        
-                        const blob = new Blob([pdfData], { type: 'application/pdf' });
-                        const newUrl = URL.createObjectURL(blob);
-                        sessionStorage.setItem('pdfFileURL', newUrl);
-                        
-                        await reloadPDF();
+                updateProgress(70, 'Processing deletion with pdf-lib...');
+                const result = await deleteResponse.json();
+                
+                if (result.success) {
+                    updateProgress(85, 'Updating PDF display...');
+                    
+                    // Update PDF data with edited version (from server)
+                    window.pdfEditorVars.currentPdfData = result.pdfData;
+                    
+                    // Update stored file in sessionStorage
+                    const pdfBase64 = result.pdfData.split(',')[1] || result.pdfData;
+                    const pdfBytes = Uint8Array.from(atob(pdfBase64), c => c.charCodeAt(0));
+                    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                    const newUrl = URL.createObjectURL(blob);
+                    sessionStorage.setItem('pdfFileURL', newUrl);
+                    
+                    updateProgress(95, 'Rendering updated PDF...');
+                    await reloadPDF();
                         
                         updateProgress(100, 'Text deleted!');
                         setTimeout(() => hideLoading(), 300);
@@ -2379,26 +2397,33 @@
                 const pdfArrayBuffer = await response.arrayBuffer();
                 const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
                 
-                // Apply edit directly to PDF using native editing
-                updateProgress(50, 'Applying text to PDF...');
-                let apiUrl = '/api/pdf/edit-native';
-                if (window.location.protocol === 'file:') {
-                    apiUrl = 'http://localhost:3000/api/pdf/edit-native';
+                // Get file ID for backend editing
+                const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
+                
+                if (!fileId) {
+                    showError('No file ID available. Please upload PDF first.');
+                    return;
                 }
+                
+                // Apply edit directly to PDF using pdf-lib backend
+                updateProgress(50, 'Applying text to PDF with pdf-lib...');
+                const apiBaseUrl = getApiBaseUrl();
+                const apiUrl = `${apiBaseUrl}/api/pdf/edit-text`;
+                
+                // Convert hex color to RGB array
+                const fontColorRgb = hexToRgb(textColor);
                 
                 const editResponse = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        pdfData: `data:application/pdf;base64,${pdfBase64}`,
-                        edit: {
-                            type: 'addText',
-                            data: {
-                                pageIndex: window.pdfEditorVars.currentPage - 1,
-                                x: x,
-                                y: y,
-                                text: text,
-                                fontSize: fontSize,
+                        fileId: fileId,
+                        textEdits: [{
+                            pageIndex: window.pdfEditorVars.currentPage - 1,
+                            x: x,
+                            y: y,
+                            text: text,
+                            fontSize: fontSize,
                                 fontName: fontFamily,
                                 fontColor: hexToRgb(textColor)
                             }
