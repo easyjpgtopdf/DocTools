@@ -1,91 +1,110 @@
-# easyjpgtopdf Backend (Render setup)
+# PDF Editor Backend
 
-This folder contains the Node.js backend for heavy conversions (PDF → Word/PowerPoint, background remover, etc.).
+Backend server for PDF editor with OCR, editing, and cloud integration.
 
-## Prerequisites
+## Project Structure
 
-- Node.js 18+
-- Docker Desktop (for local container tests)
-- LibreOffice binaries (already installed inside the Docker image)
-- Python 3 (bundled in Docker image for `rembg`)
-- Google Cloud / Render CLI (depending on deployment target)
+```
+server/
+├── config/
+│   └── google-cloud.js          # Google Cloud configuration
+├── controllers/
+│   ├── pdfController.js         # PDF operations controller
+│   └── pagesController.js       # Page management controller
+├── middleware/
+│   └── upload.js                # File upload middleware
+├── routes/
+│   ├── pdf.js                   # PDF API routes
+│   └── pages.js                 # Page management routes
+├── api/
+│   ├── pdf-edit/                # PDF editing modules
+│   └── pdf-ocr/                 # OCR modules
+├── uploads/                     # Uploaded files directory
+├── server.js                    # Main server file
+├── package.json                 # Dependencies
+└── .env.example                 # Environment variables example
+```
 
-## Local development
+## Installation
 
-```powershell
-# install dependencies
+```bash
 npm install
+```
 
-# run dev server
+## Configuration
+
+1. Copy `.env.example` to `.env`:
+```bash
+cp .env.example .env
+```
+
+2. Set up Google Cloud credentials:
+   - Add `GOOGLE_CLOUD_SERVICE_ACCOUNT` or `FIREBASE_SERVICE_ACCOUNT` to `.env`
+   - Or set `GOOGLE_APPLICATION_CREDENTIALS` to point to a JSON file
+
+## Running the Server
+
+### Development
+```bash
 npm run dev
 ```
 
-The server listens on `http://localhost:10000` (Render default) unless `PORT` is overridden.
-
-### Testing LibreOffice conversion locally
-
-```powershell
-# convert sample.pdf to DOCX using the API
-Invoke-RestMethod -Method Post `
-  -Uri "http://localhost:10000/api/convert/pdf-to-word" `
-  -InFile ".\samples\sample.pdf" `
-  -ContentType "application/pdf" `
-  -OutFile ".\output\sample.docx"
+### Production
+```bash
+npm start
 ```
 
-## Docker build (Render-compatible)
+## API Endpoints
 
-```powershell
-# build image
-docker build -t easyjpgtopdf-backend:latest .
+### PDF Operations
 
-# run container locally
-docker run --rm -p 10000:10000 easyjpgtopdf-backend:latest
+- `POST /api/pdf/upload` - Upload PDF file
+- `POST /api/pdf/edit` - Edit PDF (text, images)
+- `POST /api/pdf/ocr` - Perform OCR on PDF page
+- `POST /api/pdf/ocr/batch` - Batch OCR on multiple pages
+- `POST /api/pdf/download` - Download edited PDF
+- `GET /api/pdf/status` - Check server status
+- `GET /api/pdf/ocr/status` - Check OCR service status
+
+### Page Management
+
+- `POST /api/pdf/pages/rotate` - Rotate pages
+- `POST /api/pdf/pages/delete` - Delete pages
+- `POST /api/pdf/pages/reorder` - Reorder pages
+- `POST /api/pdf/pages/extract` - Extract pages
+- `POST /api/pdf/pages/add` - Add new page
+
+## Dependencies
+
+- **express** - Web framework
+- **cors** - Cross-origin resource sharing
+- **multer** - File upload handling
+- **pdf-lib** - PDF manipulation
+- **pdfjs-dist** - PDF rendering
+- **canvas** - Image conversion
+- **@google-cloud/vision** - Google Cloud Vision API
+- **firebase-admin** - Firebase Admin SDK
+- **dotenv** - Environment variables
+
+## Environment Variables
+
+See `.env.example` for all available configuration options.
+
+## Error Handling
+
+All endpoints return JSON responses with `success` and `error` fields:
+
+```json
+{
+  "success": false,
+  "error": "Error message here"
+}
 ```
 
-## Deploying to Render (Docker Web Service)
+## Rate Limiting
 
-1. Ensure `render.yaml` exists in repo root (see below).
-2. Commit & push changes to GitHub.
-3. In Render dashboard, choose **New Web Service** → **Use Existing Repository**.
-4. Select the repo, pick branch, and Render will use `render.yaml` for configuration.
+OCR endpoints include rate limiting (100 requests per minute per client).
 
-### render.yaml template
+## License
 
-```yaml
-services:
-  - type: web
-    name: easyjpgtopdf-backend
-    env: docker
-    plan: starter
-    autoDeploy: true
-    healthCheckPath: /health
-    disk:
-      name: tmp-storage
-      sizeGB: 2
-```
-
-## PowerShell helpers
-
-- `../scripts/render-build.ps1` – builds and pushes Docker image to Render registry.
-- `../scripts/render-deploy.ps1` – triggers deployment via Render API.
-
-(See `scripts/` directory for actual commands.)
-
-## Environment variables
-
-| Variable | Purpose |
-|----------|---------|
-| `PORT` | HTTP port (Render defaults to 10000) |
-| `MAX_UPLOAD_MB` | Limit user upload size |
-| `LIBREOFFICE_PATH` | Override libreoffice binary if needed |
-| `FIREBASE_SERVICE_ACCOUNT` | JSON string for Firebase Admin credentials |
-| `STRIPE_SECRET_KEY` | Stripe secret (test/live) for Checkout sessions |
-| `STRIPE_SUCCESS_URL` | Redirect URL after successful Stripe payment |
-| `STRIPE_CANCEL_URL` | Redirect URL when Stripe payment is cancelled |
-| `RAZORPAY_KEY_ID` | Razorpay public key for checkout |
-| `RAZORPAY_KEY_SECRET` | Razorpay secret key for order creation |
-| `RAZORPAY_WEBHOOK_SECRET` | Secret used to verify Razorpay webhook signatures |
-| `RAZORPAY_RECEIPT_PREFIX` | Optional prefix for Razorpay order receipts |
-
-All secrets should be configured in Render dashboard (or `.env` for local). Never commit secrets to Git.
+MIT
