@@ -330,12 +330,12 @@ async function editText(req, res) {
           const pdfY = pageHeight - (editData.y || 0);
           
           // Use page.drawText() to actually add/modify text in the PDF
-          // Using exact structure: page.drawText(editData.text, { x, y, size, color })
+          // EXACT CODE STRUCTURE AS REQUESTED:
           page.drawText(editData.text || '', {
             x: pdfX,
             y: pdfY,
             size: editData.fontSize || 12,
-            color: rgb(0, 0, 0) // Default black, can be customized
+            color: rgb(0, 0, 0)
           });
         }
       }
