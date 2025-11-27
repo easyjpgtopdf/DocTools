@@ -805,11 +805,17 @@
                 });
                 
                 xhr.addEventListener('error', function() {
-                    throw new Error('Network error during upload. Please check if the server is running.');
+                    console.error('XHR error event fired');
+                    hideLoading();
+                    const error = new Error('Network error during upload. Please check if the server is running at http://localhost:3000');
+                    handleUploadError(error);
                 });
                 
                 xhr.addEventListener('timeout', function() {
-                    throw new Error('Upload timeout. The file may be too large or the server is slow.');
+                    console.error('XHR timeout event fired');
+                    hideLoading();
+                    const error = new Error('Upload timeout. The file may be too large or the server is slow.');
+                    handleUploadError(error);
                 });
                 
                 xhr.addEventListener('abort', function() {
