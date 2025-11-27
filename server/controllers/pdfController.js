@@ -386,29 +386,21 @@ async function performOCR(req, res) {
       throw error;
     }
 
-    // Map coordinates back to PDF space
-    const mappedWords = ocrResult.words.map(word => {
-      return {
-        ...word,
-        pdfCoordinates: {
-          x: word.boundingBox.x,
-          y: word.boundingBox.y,
-          width: word.boundingBox.width,
-          height: word.boundingBox.height
-        }
-      };
-    });
-
+    // OCR result already contains properly mapped PDF coordinates
+    // No additional mapping needed as it's done in vision-ocr.js
     const result = {
       success: true,
       fileId: fileId,
       pageIndex: pageIndex,
       text: ocrResult.text,
-      words: mappedWords,
+      words: ocrResult.words, // Already contains pdfCoordinates
       paragraphs: ocrResult.paragraphs,
       blocks: ocrResult.blocks,
       confidence: ocrResult.confidence,
-      method: ocrResult.method
+      method: ocrResult.method,
+      imageSize: ocrResult.imageSize,
+      pdfSize: ocrResult.pdfSize,
+      scale: ocrResult.scale
     };
 
     // Cache result

@@ -127,12 +127,39 @@ async function convertPdfPageToImage(pdfBuffer, pageIndex, scale = 2.0) {
 }
 
 /**
+ * Map image coordinates to PDF coordinates
+ * @param {Number} imageX - X coordinate in image space (top-left origin)
+ * @param {Number} imageY - Y coordinate in image space (top-left origin)
+ * @param {Number} imageWidth - Image width in pixels
+ * @param {Number} imageHeight - Image height in pixels
+ * @param {Number} pdfWidth - PDF page width in points
+ * @param {Number} pdfHeight - PDF page height in points
+ * @returns {Object} PDF coordinates (bottom-left origin)
+ */
+function mapImageToPDFCoordinates(imageX, imageY, imageWidth, imageHeight, pdfWidth, pdfHeight) {
+  // Convert image coordinates (top-left origin) to PDF coordinates (bottom-left origin)
+  // Image: (0,0) at top-left, Y increases downward
+  // PDF: (0,0) at bottom-left, Y increases upward
+  
+  // Normalize image coordinates (0-1 range)
+  const normalizedX = imageX / imageWidth;
+  const normalizedY = 1 - (imageY / imageHeight); // Flip Y axis
+  
+  // Map to PDF coordinates
+  const pdfX = normalizedX * pdfWidth;
+  const pdfY = normalizedY * pdfHeight;
+  
+  return { x: pdfX, y: pdfY };
+}
+
+/**
  * Process image with Google Cloud Vision API
  * @param {Buffer} imageBuffer - Image buffer
+ * @param {Object} metadata - Image and PDF metadata for coordinate mapping
  * @param {Object} options - OCR options
  * @returns {Promise<Object>} OCR results with text and coordinates
  */
-async function processImageWithVision(imageBuffer, options = {}) {
+async function processImageWithVision(imageBuffer, metadata, options = {}) {
   if (!visionClient) {
     visionClient = initializeVisionClient();
     if (!visionClient) {
@@ -208,14 +235,52 @@ async function processImageWithVision(imageBuffer, options = {}) {
                     const boundingBox = word.boundingBox?.vertices || [];
                     const confidence = word.confidence || 0;
 
+                    // Get bounding box coordinates in image space
+                    const imageX = boundingBox[0]?.x || 0;
+                    const imageY = boundingBox[0]?.y || 0;
+                    const imageWidth = (boundingBox[2]?.x || 0) - (boundingBox[0]?.x || 0);
+                    const imageHeight = (boundingBox[2]?.y || 0) - (boundingBox[0]?.y || 0);
+
+                    // Map image coordinates to PDF coordinates
+                    const pdfCoords = mapImageToPDFCoordinates(
+                      imageX,
+                      imageY + imageHeight, // Bottom-left corner of bounding box
+                      metadata.imageWidth,
+                      metadata.imageHeight,
+                      metadata.pdfWidth,
+                      metadata.pdfHeight
+                    );
+
+                    // Map all vertices
+                    const pdfVertices = boundingBox.map(vertex => {
+                      const v = mapImageToPDFCoordinates(
+                        vertex.x || 0,
+                        vertex.y || 0,
+                        metadata.imageWidth,
+                        metadata.imageHeight,
+                        metadata.pdfWidth,
+                        metadata.pdfHeight
+                      );
+                      return v;
+                    });
+
                     const wordData = {
                       text: wordText,
-                      boundingBox: {
-                        x: boundingBox[0]?.x || 0,
-                        y: boundingBox[0]?.y || 0,
-                        width: (boundingBox[2]?.x || 0) - (boundingBox[0]?.x || 0),
-                        height: (boundingBox[2]?.y || 0) - (boundingBox[0]?.y || 0),
+                      // Image coordinates (for reference)
+                      imageCoordinates: {
+                        x: imageX,
+                        y: imageY,
+                        width: imageWidth,
+                        height: imageHeight,
                         vertices: boundingBox.map(v => ({ x: v.x || 0, y: v.y || 0 }))
+                      },
+                      // PDF coordinates (primary)
+                      pdfCoordinates: {
+                        x: pdfCoords.x,
+                        y: pdfCoords.y,
+                        width: (imageWidth / metadata.imageWidth) * metadata.pdfWidth,
+                        height: (imageHeight / metadata.imageHeight) * metadata.pdfHeight,
+                        vertices: pdfVertices
                       },
                       confidence: confidence
                     };
@@ -325,9 +390,9 @@ async function performOCR(pdfBuffer, pageIndex, options = {}) {
     }
 
     // Convert PDF page to image with error handling
-    let imageBuffer;
+    let conversionResult;
     try {
-      imageBuffer = await convertPdfPageToImage(
+      conversionResult = await convertPdfPageToImage(
         pdfBuffer,
         pageIndex,
         options.scale || 2.0
@@ -339,13 +404,16 @@ async function performOCR(pdfBuffer, pageIndex, options = {}) {
       throw new Error(`Failed to convert PDF page to image: ${error.message}`);
     }
 
+    // Extract image buffer and metadata
+    const { imageBuffer, metadata } = conversionResult;
+
     // Validate image buffer
     if (!imageBuffer || imageBuffer.length === 0) {
       throw new Error('Failed to generate image from PDF page');
     }
 
-    // Process with Vision API
-    const ocrResult = await processImageWithVision(imageBuffer, {
+    // Process with Vision API (pass metadata for coordinate mapping)
+    const ocrResult = await processImageWithVision(imageBuffer, metadata, {
       languageHints: options.languageHints || ['en'],
       clientId: options.clientId
     });
@@ -355,9 +423,16 @@ async function performOCR(pdfBuffer, pageIndex, options = {}) {
       pageIndex: pageIndex,
       method: 'Google Cloud Vision API',
       imageSize: {
-        width: imageBuffer.length > 0 ? 'converted' : 0,
+        width: metadata.imageWidth,
+        height: metadata.imageHeight,
         format: 'PNG'
-      }
+      },
+      pdfSize: {
+        width: metadata.pdfWidth,
+        height: metadata.pdfHeight,
+        unit: 'points'
+      },
+      scale: metadata.scale
     };
   } catch (error) {
     console.error('OCR processing error:', error);
