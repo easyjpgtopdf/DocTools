@@ -2021,32 +2021,31 @@
                         const currentViewport = page.getViewport({ scale: window.pdfEditorVars.scale });
                         const scaleX = pdfCanvas.width / (viewport.width);
                         const scaleY = pdfCanvas.height / (viewport.height);
-                            
-                            result.words.forEach((word) => {
-                                if (word.text && word.boundingBox) {
-                                    // OCR text is stored for native PDF embedding - NO HTML overlays
-                                    // Text will be embedded directly into PDF structure
-                                    
-                                    // Store for PDF embedding
-                                    if (!window.pdfEditorVars.ocrTextsForPDF) {
-                                        window.pdfEditorVars.ocrTextsForPDF = [];
-                                    }
-                                    window.pdfEditorVars.ocrTextsForPDF.push({
-                                        pageIndex: window.pdfEditorVars.currentPage - 1,
-                                        text: word.text,
-                                        x: word.boundingBox.x * scaleX,
-                                        y: word.boundingBox.y * scaleY,
-                                        fontSize: 12,
-                                        fontColor: [0, 0, 0],
-                                        fontName: 'Helvetica'
-                                    });
+                        
+                        result.words.forEach((word) => {
+                            if (word.text && word.boundingBox) {
+                                // OCR text is stored for native PDF embedding - NO HTML overlays
+                                // Text will be embedded directly into PDF structure
+                                
+                                // Store for PDF embedding
+                                if (!window.pdfEditorVars.ocrTextsForPDF) {
+                                    window.pdfEditorVars.ocrTextsForPDF = [];
                                 }
-                            });
-                            
-                            alert('OCR completed! Extracted ' + result.words.length + ' words.');
-                        } else {
-                            alert('OCR completed but no text found.');
-                        }
+                                window.pdfEditorVars.ocrTextsForPDF.push({
+                                    pageIndex: window.pdfEditorVars.currentPage - 1,
+                                    text: word.text,
+                                    x: word.boundingBox.x * scaleX,
+                                    y: word.boundingBox.y * scaleY,
+                                    fontSize: 12,
+                                    fontColor: [0, 0, 0],
+                                    fontName: 'Helvetica'
+                                });
+                            }
+                        });
+                        
+                        alert('OCR completed! Extracted ' + result.words.length + ' words.');
+                    } else {
+                        alert('OCR completed but no text found.');
                     }
                     
                     hideLoading();
