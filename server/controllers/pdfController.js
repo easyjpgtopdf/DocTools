@@ -156,47 +156,101 @@ async function uploadPDF(req, res) {
 
 /**
  * Edit PDF (text, images, etc.)
+ * Supports both fileId-based and direct PDF data editing
  */
 async function editPDF(req, res) {
   try {
-    const { pdfData, edits } = req.body;
+    const { fileId, pdfData, edits } = req.body;
 
-    if (!pdfData) {
+    const fileStorage = require('../utils/fileStorage');
+    const nativePdfEditor = require('../api/pdf-edit/native-pdf-editor');
+    
+    let pdfBuffer;
+    let currentFileId = fileId;
+
+    // If fileId is provided, use stored file
+    if (fileId) {
+      try {
+        const fileData = fileStorage.getFile(fileId);
+        pdfBuffer = fileData.buffer;
+      } catch (error) {
+        return res.status(404).json({
+          success: false,
+          error: 'File not found',
+          code: 'FILE_NOT_FOUND'
+        });
+      }
+    } else if (pdfData) {
+      // Convert base64 to buffer
+      if (typeof pdfData === 'string') {
+        if (pdfData.startsWith('data:application/pdf;base64,')) {
+          pdfData = pdfData.split(',')[1];
+        }
+        pdfBuffer = Buffer.from(pdfData, 'base64');
+      } else {
+        pdfBuffer = Buffer.from(pdfData);
+      }
+    } else {
       return res.status(400).json({
         success: false,
-        error: 'No PDF data provided'
+        error: 'Either fileId or pdfData must be provided',
+        code: 'MISSING_DATA'
       });
     }
 
-    // Use native PDF editor
-    const nativePdfEditor = require('../api/pdf-edit/native-pdf-editor');
-    
-    // Convert base64 to buffer
-    let pdfBuffer;
-    if (typeof pdfData === 'string') {
-      if (pdfData.startsWith('data:application/pdf;base64,')) {
-        pdfData = pdfData.split(',')[1];
-      }
-      pdfBuffer = Buffer.from(pdfData, 'base64');
-    } else {
-      pdfBuffer = Buffer.from(pdfData);
-    }
-
-    // Apply edits
+    // Apply edits using native PDF editor
     const editedBuffer = await nativePdfEditor.applyNativeEdits(pdfBuffer, edits || {});
+    
+    // If fileId was provided, update the stored file
+    if (currentFileId) {
+      fileStorage.updateFile(currentFileId, editedBuffer);
+      
+      // Store edit history
+      if (edits) {
+        if (edits.textEdits && edits.textEdits.length > 0) {
+          fileStorage.addEdit(currentFileId, {
+            type: 'text',
+            edits: edits.textEdits
+          });
+        }
+        if (edits.textReplacements && edits.textReplacements.length > 0) {
+          fileStorage.addEdit(currentFileId, {
+            type: 'replacement',
+            replacements: edits.textReplacements
+          });
+        }
+        if (edits.deletions && edits.deletions.length > 0) {
+          fileStorage.addEdit(currentFileId, {
+            type: 'deletion',
+            deletions: edits.deletions
+          });
+        }
+        if (edits.images && edits.images.length > 0) {
+          fileStorage.addEdit(currentFileId, {
+            type: 'image',
+            images: edits.images
+          });
+        }
+        if (edits.ocrTexts && edits.ocrTexts.length > 0) {
+          fileStorage.addEdit(currentFileId, {
+            type: 'ocr',
+            ocrTexts: edits.ocrTexts
+          });
+        }
+      }
+    }
+    
     const editedBase64 = editedBuffer.toString('base64');
 
     res.json({
       success: true,
+      fileId: currentFileId,
       pdfData: `data:application/pdf;base64,${editedBase64}`,
       message: 'PDF edited successfully'
     });
   } catch (error) {
     console.error('PDF editing error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'PDF editing failed: ' + error.message
-    });
+    throw error; // Let error handler middleware handle it
   }
 }
 
@@ -519,6 +573,7 @@ async function downloadPDF(req, res) {
 
 /**
  * Download edited PDF by file ID
+ * Returns the LATEST edited version with all changes applied
  * Handles large file downloads with streaming
  */
 async function downloadPDFById(req, res) {
@@ -549,6 +604,62 @@ async function downloadPDFById(req, res) {
       });
     }
 
+    // CRITICAL: The file should already have all edits applied via updateFile()
+    // But we'll verify and apply any pending edits from metadata if needed
+    if (metadata.edits && metadata.edits.length > 0) {
+      // Check if there are any unapplied edits
+      const lastEdit = metadata.edits[metadata.edits.length - 1];
+      const lastUpdate = metadata.updatedAt || metadata.createdAt;
+      
+      // If last edit is newer than last update, we need to reapply
+      if (lastEdit.timestamp > lastUpdate) {
+        console.log('Reapplying edits before download...');
+        const nativePdfEditor = require('../api/pdf-edit/native-pdf-editor');
+        
+        // Collect all edits
+        const allEdits = {
+          textEdits: [],
+          textReplacements: [],
+          deletions: [],
+          highlights: [],
+          comments: [],
+          stamps: [],
+          shapes: [],
+          images: [],
+          ocrTexts: []
+        };
+        
+        // Group edits by type
+        metadata.edits.forEach(edit => {
+          if (edit.type === 'text' && edit.edits) {
+            allEdits.textEdits.push(...edit.edits);
+          } else if (edit.type === 'replacement' && edit.replacements) {
+            allEdits.textReplacements.push(...edit.replacements);
+          } else if (edit.type === 'deletion' && edit.deletions) {
+            allEdits.deletions.push(...edit.deletions);
+          } else if (edit.type === 'highlight' && edit.highlights) {
+            allEdits.highlights.push(...edit.highlights);
+          } else if (edit.type === 'comment' && edit.comments) {
+            allEdits.comments.push(...edit.comments);
+          } else if (edit.type === 'stamp' && edit.stamps) {
+            allEdits.stamps.push(...edit.stamps);
+          } else if (edit.type === 'shape' && edit.shapes) {
+            allEdits.shapes.push(...edit.shapes);
+          } else if (edit.type === 'image' && edit.images) {
+            allEdits.images.push(...edit.images);
+          } else if (edit.type === 'ocr' && edit.ocrTexts) {
+            allEdits.ocrTexts.push(...edit.ocrTexts);
+          }
+        });
+        
+        // Apply all edits
+        pdfBuffer = await nativePdfEditor.applyNativeEdits(pdfBuffer, allEdits);
+        
+        // Update stored file with final version
+        fileStorage.updateFile(id, pdfBuffer);
+      }
+    }
+
     // Validate PDF
     try {
       await withTimeout(validatePDF(pdfBuffer), 10000);
@@ -563,8 +674,12 @@ async function downloadPDFById(req, res) {
     // Get filename from metadata or use default
     const filename = metadata.originalName || 'edited-document.pdf';
     
-    // Sanitize filename
-    const safeFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+    // Sanitize filename (add "edited" prefix if file was modified)
+    let safeFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+    if (metadata.edits && metadata.edits.length > 0) {
+      const nameWithoutExt = safeFilename.replace(/\.pdf$/i, '');
+      safeFilename = `${nameWithoutExt}_edited.pdf`;
+    }
 
     // Use streaming for large files
     await streamPDFResponse(res, pdfBuffer, safeFilename);

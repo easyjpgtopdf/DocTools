@@ -2093,7 +2093,7 @@
             });
         }
         
-        // Download with server processing
+        // Download with server processing - Returns edited PDF
         if (downloadBtn) {
             downloadBtn.addEventListener('click', async function() {
                 console.log('Download button clicked');
@@ -2103,66 +2103,79 @@
                 }
                 
                 try {
-                    showLoading('Processing...', 10);
+                    showLoading('Preparing download...', 10);
                     
-                    // Get PDF data
-                    const pdfFileURL = sessionStorage.getItem('pdfFileURL');
-                    if (!pdfFileURL) {
-                        throw new Error('PDF file not found');
-                    }
+                    // Get file ID from sessionStorage
+                    const fileId = sessionStorage.getItem('pdfFileId') || window.pdfEditorVars.currentFileId;
                     
-                    const response = await fetch(pdfFileURL);
-                    const pdfArrayBuffer = await response.arrayBuffer();
-                    
-                    // Native PDF Editing - All edits are already in PDF!
-                    // No need to collect HTML overlays - PDF is already edited
-                    // Just get the current PDF which has all edits applied
-                    
-                    // Get stored edits metadata (for reference only)
-                    const storedEdits = JSON.parse(sessionStorage.getItem('pdfEdits') || '{}');
-                    
-                    // Since we're using native editing, the PDF already contains all edits
-                    // We just need to ensure OCR texts are included if any
-                    const edits = {
-                        ocrTexts: window.pdfEditorVars.ocrTextsForPDF || storedEdits.ocrTexts || []
-                    };
-                    
-                    // Note: All text edits, deletions, highlights, etc. are already in the PDF
-                    // because we apply them immediately via native editing engine
-                    
-                    updateProgress(60, 'Converting to base64...');
-                    // Convert to base64
-                    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
-                    
-                    updateProgress(70, 'Sending to server for processing...');
-                    
-                    // Use backend API for editing
-                    const editResult = await callBackendAPI('/api/pdf/edit', {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            pdfData: `data:application/pdf;base64,${pdfBase64}`,
-                            edits: edits
-                        })
-                    });
-                    
-                    updateProgress(85, 'Processing PDF edits...');
-                    
-                    if (editResult.success) {
-                        updateProgress(95, 'Preparing download...');
+                    if (fileId) {
+                        // Use fileId-based download endpoint (returns edited PDF)
+                        updateProgress(30, 'Fetching edited PDF from server...');
                         
-                        // Use backend download endpoint
-                        const downloadResult = await callBackendAPI('/api/pdf/download', {
-                            method: 'POST',
-                            body: JSON.stringify({
-                                pdfData: editResult.pdfData,
-                                filename: sessionStorage.getItem('pdfFileName') || 'edited-document.pdf'
-                            })
-                        });
+                        const apiBaseUrl = getApiBaseUrl();
+                        const downloadUrl = `${apiBaseUrl}/api/pdf/download/${fileId}`;
                         
-                        // If download endpoint returns binary, handle it
-                        const pdfBase64Data = editResult.pdfData.split(',')[1] || editResult.pdfData;
-                        const editedPdfBytes = Uint8Array.from(atob(pdfBase64Data), c => c.charCodeAt(0));
-                        const blob = new Blob([editedPdfBytes], { type: 'application/pdf' });
+                        const response = await fetch(downloadUrl);
+                        
+                        if (!response.ok) {
+                            throw new Error(`Download failed: ${response.status} ${response.statusText}`);
+                        }
+                        
+                        updateProgress(70, 'Receiving PDF data...');
+                        
+                        // Get PDF as blob
+                        const pdfBlob = await response.blob();
+                        
+                        updateProgress(90, 'Preparing download...');
+                        
+                        // Create download link
+                        const url = URL.createObjectURL(pdfBlob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        
+                        // Get filename from response headers or use default
+                        const contentDisposition = response.headers.get('Content-Disposition');
+                        let filename = sessionStorage.getItem('pdfFileName') || 'edited-document.pdf';
+                        if (contentDisposition) {
+                            const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+                            if (filenameMatch) {
+                                filename = filenameMatch[1];
+                            }
+                        }
+                        
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        
+                        updateProgress(100, 'Download complete!');
+                        setTimeout(() => {
+                            hideLoading();
+                            console.log('PDF downloaded successfully:', filename);
+                        }, 500);
+                    } else {
+                        // Fallback: Use direct PDF data if no fileId
+                        updateProgress(20, 'Collecting PDF data...');
+                        
+                        // Get current PDF data (should already have edits applied)
+                        if (!window.pdfEditorVars.currentPdfData) {
+                            throw new Error('PDF data not available');
+                        }
+                        
+                        updateProgress(50, 'Processing PDF...');
+                        
+                        // Extract base64 from data URL
+                        let pdfBase64 = window.pdfEditorVars.currentPdfData;
+                        if (pdfBase64.startsWith('data:application/pdf;base64,')) {
+                            pdfBase64 = pdfBase64.split(',')[1];
+                        }
+                        
+                        updateProgress(80, 'Preparing download...');
+                        
+                        // Convert to blob and download
+                        const pdfBytes = Uint8Array.from(atob(pdfBase64), c => c.charCodeAt(0));
+                        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
@@ -2175,10 +2188,8 @@
                         updateProgress(100, 'Download complete!');
                         setTimeout(() => {
                             hideLoading();
-                            alert('PDF downloaded successfully!');
+                            console.log('PDF downloaded successfully');
                         }, 500);
-                    } else {
-                        throw new Error(editResult.error || 'PDF editing failed');
                     }
                 } catch (error) {
                     console.error('Download error:', error);
