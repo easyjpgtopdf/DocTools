@@ -1900,14 +1900,16 @@
                     
                     updateProgress(95, 'Rendering updated PDF...');
                     await reloadPDF();
-                        
-                        updateProgress(100, 'Text deleted!');
-                        setTimeout(() => hideLoading(), 300);
-                    }
+                    
+                    updateProgress(100, 'Text deleted!');
+                    setTimeout(() => hideLoading(), 300);
+                } else {
+                    throw new Error(result.error || 'Deletion failed');
                 }
             } catch (error) {
                 console.error('Error deleting text:', error);
                 hideLoading();
+                showError('Error deleting text: ' + error.message);
             }
             
             // Remove element from view
@@ -2424,10 +2426,9 @@
                             y: y,
                             text: text,
                             fontSize: fontSize,
-                                fontName: fontFamily,
-                                fontColor: hexToRgb(textColor)
-                            }
-                        }
+                            fontName: fontFamily,
+                            fontColor: hexToRgb(textColor)
+                        }]
                     })
                 });
                 
