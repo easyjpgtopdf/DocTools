@@ -1848,15 +1848,21 @@
                 if (result.success) {
                     updateProgress(90, 'Reloading PDF...');
                     // Update PDF data and reload (native changes from pdf-lib)
+                    // CRITICAL: Only update UI after successful backend edit
                     window.pdfEditorVars.currentPdfData = result.pdfData;
                     await reloadPDF();
-                    hideLoading();
+                    updateProgress(100, 'Edit applied successfully!');
+                    setTimeout(() => {
+                        hideLoading();
+                    }, 300);
                     return true;
                 } else {
                     throw new Error(result.error || 'Unknown error');
                 }
             } catch (error) {
                 console.error('Native text edit error:', error);
+                hideLoading();
+                // Handle backend errors gracefully
                 showError('Error applying text edit: ' + error.message);
                 return false;
             }
@@ -2461,36 +2467,41 @@
                     })
                 });
                 
-                updateProgress(80, 'Updating PDF...');
+                updateProgress(80, 'Processing with backend...');
                 
-                if (editResponse.ok) {
-                    const result = await editResponse.json();
-                    if (result.success) {
-                        // Update PDF data and reload
-                        updateProgress(90, 'Reloading PDF...');
-                        window.pdfEditorVars.currentPdfData = result.pdfData;
-                        const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
-                        
-                        const blob = new Blob([pdfData], { type: 'application/pdf' });
-                        const newUrl = URL.createObjectURL(blob);
-                        sessionStorage.setItem('pdfFileURL', newUrl);
-                        
-                        await reloadPDF();
-                        
-                        updateProgress(100, 'Text added!');
-                        setTimeout(() => {
-                            hideLoading();
-                        }, 300);
-                    } else {
-                        throw new Error(result.error || 'Failed to add text');
-                    }
+                if (!editResponse.ok) {
+                    const errorData = await editResponse.json().catch(() => ({}));
+                    throw new Error(errorData.error || 'Server error: ' + editResponse.status);
+                }
+                
+                const result = await editResponse.json();
+                
+                // Wait for backend confirmation before updating UI
+                if (result.success) {
+                    updateProgress(90, 'Reloading PDF...');
+                    // Update PDF data and reload (native changes from pdf-lib)
+                    // CRITICAL: Only update UI after successful backend edit
+                    window.pdfEditorVars.currentPdfData = result.pdfData;
+                    const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
+                    
+                    const blob = new Blob([pdfData], { type: 'application/pdf' });
+                    const newUrl = URL.createObjectURL(blob);
+                    sessionStorage.setItem('pdfFileURL', newUrl);
+                    
+                    await reloadPDF();
+                    
+                    updateProgress(100, 'Text added successfully!');
+                    setTimeout(() => {
+                        hideLoading();
+                    }, 300);
                 } else {
-                    throw new Error('Server error: ' + editResponse.status);
+                    throw new Error(result.error || 'Failed to add text');
                 }
             } catch (error) {
                 console.error('Error adding text:', error);
                 hideLoading();
-                alert('Error adding text: ' + error.message);
+                // Handle backend errors gracefully
+                showError('Error adding text: ' + error.message);
             }
             
             // Reset tool
