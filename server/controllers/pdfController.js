@@ -316,42 +316,26 @@ async function editText(req, res) {
     const pdfDoc = await PDFDocument.load(pdfBuffer);
     const pages = pdfDoc.getPages();
 
-    // Process text edits (add new text)
+    // Process text edits (add new text) - Using exact structure as requested
     if (textEdits && textEdits.length > 0) {
-      for (const edit of textEdits) {
-        const pageIndex = edit.pageIndex || 0;
+      for (const editData of textEdits) {
+        const pageIndex = editData.pageIndex || 0;
         if (pageIndex >= 0 && pageIndex < pages.length) {
+          // Get the specific page using pdfDoc.getPages()[pageIndex]
           const page = pages[pageIndex];
           const pageHeight = page.getHeight();
           
           // Convert coordinates (canvas Y to PDF Y - PDF uses bottom-left origin)
-          const pdfX = edit.x || 0;
-          const pdfY = pageHeight - (edit.y || 0);
+          const pdfX = editData.x || 0;
+          const pdfY = pageHeight - (editData.y || 0);
           
-          // Get font
-          let font;
-          const fontName = edit.fontName || 'Helvetica';
-          if (fontName === 'Helvetica') {
-            font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-          } else if (fontName === 'Times-Roman') {
-            font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
-          } else if (fontName === 'Courier') {
-            font = await pdfDoc.embedFont(StandardFonts.Courier);
-          } else {
-            font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-          }
-          
-          // Get color
-          const fontColor = edit.fontColor || [0, 0, 0];
-          const color = rgb(fontColor[0] / 255, fontColor[1] / 255, fontColor[2] / 255);
-          
-          // Use page.drawText() to actually modify the PDF text content
-          page.drawText(edit.text || '', {
+          // Use page.drawText() to actually add/modify text in the PDF
+          // Using exact structure: page.drawText(editData.text, { x, y, size, color })
+          page.drawText(editData.text || '', {
             x: pdfX,
             y: pdfY,
-            size: edit.fontSize || 12,
-            font: font,
-            color: color
+            size: editData.fontSize || 12,
+            color: rgb(0, 0, 0) // Default black, can be customized
           });
         }
       }
@@ -431,11 +415,13 @@ async function editText(req, res) {
       }
     }
 
-    // Save the modified PDF and store it separately from the original
-    const editedBuffer = await pdfDoc.save();
+    // Save the modified PDF using pdfDoc.save()
+    // This returns the modified PDF buffer
+    const modifiedPdfBuffer = await pdfDoc.save();
 
+    // Store the modified PDF and return success
     // CRITICAL: Update stored file with edited version (not original)
-    fileStorage.updateFile(fileId, editedBuffer);
+    fileStorage.updateFile(fileId, modifiedPdfBuffer);
     
     // Store edit history
     if (textEdits && textEdits.length > 0) {
@@ -458,7 +444,7 @@ async function editText(req, res) {
     }
 
     // Convert to base64 for response
-    const editedBase64 = editedBuffer.toString('base64');
+    const editedBase64 = modifiedPdfBuffer.toString('base64');
 
     // Return success status with the modified PDF data
     res.json({
