@@ -1528,29 +1528,8 @@
             }
         });
         
-        // Direct file upload with server processing (Fast)
-        if (uploadBtn && fileInput) {
-            uploadBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Upload button clicked');
-                try {
-                    fileInput.click();
-                } catch (error) {
-                    console.error('Error clicking file input:', error);
-                    alert('Error opening file dialog. Please try again.');
-                }
-            });
-            console.log('✅ Upload button event listener attached');
-        } else {
-            console.error('❌ Upload button or file input not found!', { 
-                uploadBtn: !!uploadBtn, 
-                fileInput: !!fileInput,
-                uploadBtnId: uploadBtn ? uploadBtn.id : 'not found',
-                fileInputId: fileInput ? fileInput.id : 'not found'
-            });
-        }
-        
+        // File upload handler - will be set up in initButtonEventListeners
+        // This prevents duplicate listeners
         if (fileInput) {
             fileInput.addEventListener('change', async function(e) {
                 const file = e.target.files[0];
@@ -3677,7 +3656,7 @@
                 }
                 
                 // Add click handler for comment placement
-                pdfCanvas.addEventListener('click', function addCommentHandler(e) {
+                pdfCanvas.addEventListener('click', async function addCommentHandler(e) {
                     if (window.pdfEditorVars.activeTool === 'comment') {
                         pdfCanvas.removeEventListener('click', addCommentHandler);
                         const rect = pdfCanvas.getBoundingClientRect();
@@ -4766,13 +4745,34 @@
             const fileInput = document.getElementById('file-input');
             const imageInput = document.getElementById('image-input');
             
-            // Upload button
+            // Upload button - remove any existing listeners first
             if (uploadBtn && fileInput) {
-                uploadBtn.addEventListener('click', function() {
-                    console.log('Upload button clicked');
-                    fileInput.click();
-                });
-                console.log('✅ Upload button listener added');
+                // Clone and replace to remove all event listeners
+                const newUploadBtn = uploadBtn.cloneNode(true);
+                uploadBtn.parentNode.replaceChild(newUploadBtn, uploadBtn);
+                const newFileInput = fileInput.cloneNode(true);
+                fileInput.parentNode.replaceChild(newFileInput, fileInput);
+                
+                // Get fresh references
+                const freshUploadBtn = document.getElementById('upload-btn');
+                const freshFileInput = document.getElementById('file-input');
+                
+                if (freshUploadBtn && freshFileInput) {
+                    freshUploadBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Upload button clicked');
+                        try {
+                            freshFileInput.click();
+                        } catch (error) {
+                            console.error('Error clicking file input:', error);
+                            alert('Error opening file dialog. Please try again.');
+                        }
+                    });
+                    console.log('✅ Upload button listener added');
+                } else {
+                    console.error('❌ Upload button or file input not found after clone!');
+                }
             } else {
                 console.error('❌ Upload button or file input not found!', { uploadBtn, fileInput });
             }

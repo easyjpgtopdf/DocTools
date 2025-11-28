@@ -59,6 +59,12 @@ router.post('/download', express.json({ limit: '100mb' }), pdfController.downloa
 router.get('/download/:id', pdfController.downloadPDFById);
 
 /**
+ * GET /api/pdf/load/:id
+ * Load PDF by file ID
+ */
+router.get('/load/:id', pdfController.loadPDF);
+
+/**
  * GET /api/pdf/status
  * Check server and API status
  */
