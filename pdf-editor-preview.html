@@ -860,21 +860,28 @@
                     
                     <div class="tool-group">
                         <div class="tool-group-title">Export</div>
-                        <div class="tool-item" id="export-word-btn" title="Export to Word">
-                            <i class="fas fa-file-word"></i>
-                            <span>Word</span>
-                        </div>
-                        <div class="tool-item" id="export-excel-btn" title="Export to Excel">
-                            <i class="fas fa-file-excel"></i>
-                            <span>Excel</span>
-                        </div>
-                        <div class="tool-item" id="export-ppt-btn" title="Export to PowerPoint">
-                            <i class="fas fa-file-powerpoint"></i>
-                            <span>PowerPoint</span>
-                        </div>
-                        <div class="tool-item" id="export-image-btn" title="Export to Images">
-                            <i class="fas fa-image"></i>
-                            <span>Images</span>
+                        <div class="tool-item" id="export-dropdown-btn" title="Export PDF" style="position: relative; cursor: pointer;">
+                            <i class="fas fa-download"></i>
+                            <span>Export</span>
+                            <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: 5px;"></i>
+                            <div id="export-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; background: #2d2d2d; border: 1px solid #3a3a3a; border-radius: 4px; min-width: 200px; z-index: 1000; margin-top: 5px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+                                <div class="export-option" data-export="word" style="padding: 12px 15px; cursor: pointer; display: flex; align-items: center; gap: 12px; color: #e5e5e5; border-bottom: 1px solid #3a3a3a; transition: background 0.2s;">
+                                    <i class="fas fa-file-word" style="color: #2b579a; font-size: 18px;"></i>
+                                    <span>Export to Word</span>
+                                </div>
+                                <div class="export-option" data-export="excel" style="padding: 12px 15px; cursor: pointer; display: flex; align-items: center; gap: 12px; color: #e5e5e5; border-bottom: 1px solid #3a3a3a; transition: background 0.2s;">
+                                    <i class="fas fa-file-excel" style="color: #217346; font-size: 18px;"></i>
+                                    <span>Export to Excel</span>
+                                </div>
+                                <div class="export-option" data-export="powerpoint" style="padding: 12px 15px; cursor: pointer; display: flex; align-items: center; gap: 12px; color: #e5e5e5; border-bottom: 1px solid #3a3a3a; transition: background 0.2s;">
+                                    <i class="fas fa-file-powerpoint" style="color: #d04423; font-size: 18px;"></i>
+                                    <span>Export to PowerPoint</span>
+                                </div>
+                                <div class="export-option" data-export="image" style="padding: 12px 15px; cursor: pointer; display: flex; align-items: center; gap: 12px; color: #e5e5e5; transition: background 0.2s;">
+                                    <i class="fas fa-file-image" style="color: #4caf50; font-size: 18px;"></i>
+                                    <span>Export to Images</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
@@ -984,6 +991,13 @@
                             Next <i class="fas fa-chevron-right"></i>
                         </button>
                         <div style="flex: 1;"></div>
+                        <!-- Search Bar -->
+                        <div style="display: flex; align-items: center; gap: 5px; margin-right: 10px; background: #2d2d2d; border: 1px solid #3a3a3a; border-radius: 4px; padding: 2px;">
+                            <input type="text" id="quick-search-input" placeholder="Search in PDF..." style="padding: 4px 8px; border: none; background: transparent; color: #e5e5e5; font-size: 12px; width: 150px; outline: none;" />
+                            <button class="preview-toolbar-btn" id="quick-search-btn" title="Search" style="padding: 4px 8px; border: none; background: transparent; color: #e5e5e5; cursor: pointer;">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
                         <button class="preview-toolbar-btn" id="zoom-out-btn">
                             <i class="fas fa-search-minus"></i>
                         </button>
@@ -1022,9 +1036,20 @@
                             <div class="property-label">Font Family</div>
                             <select class="property-input" id="font-family-select">
                                 <option value="Helvetica">Helvetica</option>
+                                <option value="Helvetica-Bold">Helvetica Bold</option>
+                                <option value="Helvetica-Oblique">Helvetica Oblique</option>
+                                <option value="Helvetica-BoldOblique">Helvetica Bold Oblique</option>
                                 <option value="Times-Roman">Times Roman</option>
+                                <option value="Times-Bold">Times Bold</option>
+                                <option value="Times-Italic">Times Italic</option>
+                                <option value="Times-BoldItalic">Times Bold Italic</option>
                                 <option value="Courier">Courier</option>
+                                <option value="Courier-Bold">Courier Bold</option>
+                                <option value="Courier-Oblique">Courier Oblique</option>
+                                <option value="Courier-BoldOblique">Courier Bold Oblique</option>
                                 <option value="Arial">Arial</option>
+                                <option value="Symbol">Symbol</option>
+                                <option value="ZapfDingbats">ZapfDingbats</option>
                             </select>
                         </div>
                         <div class="property-item">
@@ -1331,7 +1356,44 @@
         let currentSearchMatches = [];
         let currentSearchIndex = -1;
         
-        // Open search panel
+        // Quick search in toolbar
+        const quickSearchInput = document.getElementById('quick-search-input');
+        const quickSearchBtn = document.getElementById('quick-search-btn');
+        
+        if (quickSearchBtn) {
+            quickSearchBtn.addEventListener('click', function() {
+                if (quickSearchInput && quickSearchInput.value.trim()) {
+                    // Open search panel and execute search
+                    if (searchPanel) {
+                        searchPanel.classList.add('active');
+                        searchInput.value = quickSearchInput.value;
+                        searchInput.focus();
+                        replaceInputGroup.style.display = 'none';
+                        replaceExecuteBtn.style.display = 'none';
+                        // Trigger search
+                        if (searchExecuteBtn) {
+                            searchExecuteBtn.click();
+                        }
+                    }
+                } else if (searchPanel) {
+                    // Just open search panel
+                    searchPanel.classList.add('active');
+                    searchInput.focus();
+                    replaceInputGroup.style.display = 'none';
+                    replaceExecuteBtn.style.display = 'none';
+                }
+            });
+        }
+        
+        if (quickSearchInput) {
+            quickSearchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && quickSearchInput.value.trim()) {
+                    quickSearchBtn.click();
+                }
+            });
+        }
+        
+        // Open search panel (search icon button - works as button)
         if (searchBtn) {
             searchBtn.addEventListener('click', function() {
                 if (searchPanel) {
@@ -1784,13 +1846,14 @@
                     showLoading('Loading PDF...', 20);
                     
                     try {
-                        // Convert base64 to ArrayBuffer
+                        // Convert base64 to ArrayBuffer (create new buffer to avoid detached error)
                         const binaryString = atob(pdfFileBase64);
                         const bytes = new Uint8Array(binaryString.length);
                         for (let i = 0; i < binaryString.length; i++) {
                             bytes[i] = binaryString.charCodeAt(i);
                         }
-                        const arrayBuffer = bytes.buffer;
+                        // Create a new ArrayBuffer copy to avoid detached buffer error
+                        const arrayBuffer = new Uint8Array(bytes).buffer;
                         
                         // Store as current PDF data
                         window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${pdfFileBase64}`;
@@ -1967,15 +2030,28 @@
                     pdfCanvas: !!pdfCanvas 
                 });
                 
-                const loadingTask = pdfjsLib.getDocument({ data: pdfData });
+                // Fix ArrayBuffer detached error - create a copy
+                let pdfDataToLoad = pdfData;
+                if (pdfData instanceof ArrayBuffer) {
+                    // Create a new Uint8Array and copy to avoid detached buffer
+                    const uint8Array = new Uint8Array(pdfData);
+                    pdfDataToLoad = new Uint8Array(uint8Array).buffer;
+                }
+                
+                const loadingTask = pdfjsLib.getDocument({ data: pdfDataToLoad });
                 const pdfDoc = await loadingTask.promise;
                 window.pdfEditorVars.pdfDoc = pdfDoc;
                 window.pdfEditorVars.totalPages = pdfDoc.numPages;
                 
                 // Store PDF data for editing
+                // Create a copy of ArrayBuffer to avoid detached buffer error
                 if (pdfData instanceof ArrayBuffer) {
-                    const base64 = btoa(String.fromCharCode(...new Uint8Array(pdfData)));
+                    // Create a new Uint8Array from the buffer to ensure it's not detached
+                    const uint8Array = new Uint8Array(pdfData);
+                    const base64 = btoa(String.fromCharCode(...uint8Array));
                     window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
+                    // Also store the original buffer copy for rendering
+                    window.pdfEditorVars.currentPdfBuffer = new Uint8Array(pdfData).buffer;
                 } else if (typeof pdfData === 'string') {
                     window.pdfEditorVars.currentPdfData = pdfData;
                 }
