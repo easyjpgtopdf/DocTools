@@ -3782,57 +3782,59 @@
                             sessionStorage.setItem('pdfEdits', JSON.stringify(storedEdits));
                             
                             // Apply stamp directly to PDF (native editing)
-                            try {
-                                showLoading('Adding stamp to PDF...', 10);
-                                
-                                const pdfFileURL = sessionStorage.getItem('pdfFileURL');
-                                if (!pdfFileURL) throw new Error('PDF file not found');
-                                
-                                updateProgress(30, 'Loading PDF...');
-                                const response = await fetch(pdfFileURL);
-                                const pdfArrayBuffer = await response.arrayBuffer();
-                                const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
-                                
-                                updateProgress(50, 'Applying stamp...');
-                                let apiUrl = '/api/pdf/edit';
-                                if (window.location.protocol === 'file:') {
-                                    apiUrl = 'http://localhost:3000/api/pdf/edit';
-                                }
-                                
-                                // Use standard edit endpoint for stamps
-                                const stampResponse = await fetch(apiUrl, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        pdfData: `data:application/pdf;base64,${pdfBase64}`,
-                                        edits: {
-                                            stamps: [stamp]
-                                        }
-                                    })
-                                });
-                                
-                                updateProgress(80, 'Updating PDF...');
-                                
-                                if (stampResponse.ok) {
-                                    const result = await stampResponse.json();
-                                    if (result.success) {
-                                        updateProgress(90, 'Rendering...');
-                                        const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
-                                        
-                                        const blob = new Blob([pdfData], { type: 'application/pdf' });
-                                        const newUrl = URL.createObjectURL(blob);
-                                        sessionStorage.setItem('pdfFileURL', newUrl);
-                                        
-                                        await renderPDF(pdfData);
-                                        
-                                        updateProgress(100, 'Stamp added!');
-                                        setTimeout(() => hideLoading(), 300);
+                            (async () => {
+                                try {
+                                    showLoading('Adding stamp to PDF...', 10);
+                                    
+                                    const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                                    if (!pdfFileURL) throw new Error('PDF file not found');
+                                    
+                                    updateProgress(30, 'Loading PDF...');
+                                    const response = await fetch(pdfFileURL);
+                                    const pdfArrayBuffer = await response.arrayBuffer();
+                                    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                                    
+                                    updateProgress(50, 'Applying stamp...');
+                                    let apiUrl = '/api/pdf/edit';
+                                    if (window.location.protocol === 'file:') {
+                                        apiUrl = 'http://localhost:3000/api/pdf/edit';
                                     }
+                                    
+                                    // Use standard edit endpoint for stamps
+                                    const stampResponse = await fetch(apiUrl, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            pdfData: `data:application/pdf;base64,${pdfBase64}`,
+                                            edits: {
+                                                stamps: [stamp]
+                                            }
+                                        })
+                                    });
+                                    
+                                    updateProgress(80, 'Updating PDF...');
+                                    
+                                    if (stampResponse.ok) {
+                                        const result = await stampResponse.json();
+                                        if (result.success) {
+                                            updateProgress(90, 'Rendering...');
+                                            const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
+                                            
+                                            const blob = new Blob([pdfData], { type: 'application/pdf' });
+                                            const newUrl = URL.createObjectURL(blob);
+                                            sessionStorage.setItem('pdfFileURL', newUrl);
+                                            
+                                            await renderPDF(pdfData);
+                                            
+                                            updateProgress(100, 'Stamp added!');
+                                            setTimeout(() => hideLoading(), 300);
+                                        }
+                                    }
+                                } catch (error) {
+                                    console.error('Error adding stamp:', error);
+                                    hideLoading();
                                 }
-                            } catch (error) {
-                                console.error('Error adding stamp:', error);
-                                hideLoading();
-                            }
+                            })();
                         }
                         
                         // Reset tool
