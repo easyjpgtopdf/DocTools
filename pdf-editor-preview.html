@@ -1205,6 +1205,50 @@
             }
             return '';
         }
+        
+        // Loading overlay functions
+        function showLoading(message, progress = 0) {
+            const loadingOverlay = document.getElementById('loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'flex';
+                const loadingText = loadingOverlay.querySelector('.loading-text');
+                if (loadingText) {
+                    loadingText.textContent = message || 'Processing...';
+                }
+                // Update progress if progress bar exists
+                const progressBar = loadingOverlay.querySelector('.progress-bar');
+                if (progressBar && progress >= 0) {
+                    progressBar.style.width = progress + '%';
+                }
+            }
+        }
+        
+        function hideLoading() {
+            const loadingOverlay = document.getElementById('loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
+        }
+        
+        function updateProgress(percent, message) {
+            const loadingOverlay = document.getElementById('loading-overlay');
+            if (loadingOverlay) {
+                const progressBar = loadingOverlay.querySelector('.progress-bar');
+                if (progressBar) {
+                    progressBar.style.width = percent + '%';
+                }
+                const loadingText = loadingOverlay.querySelector('.loading-text');
+                if (loadingText && message) {
+                    loadingText.textContent = message;
+                }
+            }
+        }
+        
+        function showError(message) {
+            hideLoading();
+            alert('Error: ' + message);
+        }
+        
         // Professional PDF Editor Implementation
         // Features: PDF.js rendering, Server processing, Fast OCR, Native editing, Cloud integration
         
@@ -1752,9 +1796,12 @@
                         window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${pdfFileBase64}`;
                         
                         // Render PDF
+                        console.log('Rendering PDF from base64, arrayBuffer size:', arrayBuffer.byteLength);
                         await renderPDF(arrayBuffer);
                         hideLoading();
                         console.log('✅ PDF loaded from base64 successfully');
+                        console.log('PDF Doc:', window.pdfEditorVars.pdfDoc);
+                        console.log('Total Pages:', window.pdfEditorVars.totalPages);
                         return;
                     } catch (error) {
                         console.error('Error loading PDF from base64:', error);
