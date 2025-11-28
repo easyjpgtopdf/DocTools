@@ -787,10 +787,17 @@
                     const fileData = e.target.result;
                     const blob = new Blob([fileData], { type: 'application/pdf' });
                     const blobURL = URL.createObjectURL(blob);
+                    
+                    // Store blob URL and file info
                     sessionStorage.setItem('pdfFileURL', blobURL);
                     sessionStorage.setItem('pdfFileName', file.name);
                     sessionStorage.setItem('pdfFileSize', file.size.toString());
                     sessionStorage.setItem('pdfFileType', file.type);
+                    
+                    // Also store as base64 for more reliable access
+                    const uint8Array = new Uint8Array(fileData);
+                    const base64 = btoa(String.fromCharCode(...uint8Array));
+                    sessionStorage.setItem('pdfFileBase64', base64);
                     
                     // Update UI - Enable continue button
                     fileName.textContent = file.name;
@@ -800,6 +807,7 @@
                     hideLoading();
                     
                     console.log('✅ File processed locally. Continue button enabled.');
+                    console.log('✅ PDF stored in sessionStorage (blob URL + base64)');
                 };
                 
                 reader.onerror = function() {

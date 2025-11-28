@@ -1750,9 +1750,38 @@
                     }
                 }
                 
-                // Fallback: Check sessionStorage for PDF blob URL
+                // Fallback: Check sessionStorage for PDF blob URL or base64
                 const pdfFileURL = sessionStorage.getItem('pdfFileURL');
                 const pdfFileName = sessionStorage.getItem('pdfFileName');
+                const pdfFileBase64 = sessionStorage.getItem('pdfFileBase64');
+                
+                if (pdfFileBase64) {
+                    // Use base64 if available (more reliable)
+                    console.log('Found PDF from base64:', pdfFileName);
+                    showLoading('Loading PDF...', 20);
+                    
+                    try {
+                        // Convert base64 to ArrayBuffer
+                        const binaryString = atob(pdfFileBase64);
+                        const bytes = new Uint8Array(binaryString.length);
+                        for (let i = 0; i < binaryString.length; i++) {
+                            bytes[i] = binaryString.charCodeAt(i);
+                        }
+                        const arrayBuffer = bytes.buffer;
+                        
+                        // Store as current PDF data
+                        window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${pdfFileBase64}`;
+                        
+                        // Render PDF
+                        await renderPDF(arrayBuffer);
+                        hideLoading();
+                        console.log('✅ PDF loaded from base64 successfully');
+                        return;
+                    } catch (error) {
+                        console.error('Error loading PDF from base64:', error);
+                        hideLoading();
+                    }
+                }
                 
                 if (pdfFileURL && pdfFileName) {
                     console.log('Found PDF from blob URL:', pdfFileName);
@@ -1761,6 +1790,9 @@
                     try {
                         // Fetch PDF from blob URL
                         const response = await fetch(pdfFileURL);
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch blob URL');
+                        }
                         const pdfBlob = await response.blob();
                         const arrayBuffer = await pdfBlob.arrayBuffer();
                         
@@ -1768,12 +1800,44 @@
                         const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
                         window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
                         
+                        // Also store base64 for future use
+                        sessionStorage.setItem('pdfFileBase64', base64);
+                        
                         // Render PDF
                         await renderPDF(arrayBuffer);
                         hideLoading();
+                        console.log('✅ PDF loaded from blob URL successfully');
                     } catch (error) {
-                        console.error('Error loading stored PDF:', error);
+                        console.error('Error loading stored PDF from blob URL:', error);
                         hideLoading();
+                        // Show error message to user
+                        if (previewContainer) {
+                            previewContainer.innerHTML = `
+                                <div style="text-align: center; padding: 40px; color: #dc3545;">
+                                    <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 20px;"></i>
+                                    <h3>PDF Load Error</h3>
+                                    <p>Failed to load PDF file. Please upload again.</p>
+                                    <button onclick="window.location.href='edit-pdf.html'" style="margin-top: 20px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                        Upload PDF Again
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    }
+                } else {
+                    // No PDF found at all
+                    console.warn('No PDF found in sessionStorage');
+                    if (previewContainer) {
+                        previewContainer.innerHTML = `
+                            <div style="text-align: center; padding: 40px; color: #6c757d;">
+                                <i class="fas fa-file-pdf" style="font-size: 48px; margin-bottom: 20px; opacity: 0.5;"></i>
+                                <h3>No PDF Found</h3>
+                                <p>Please upload a PDF file to get started.</p>
+                                <button onclick="window.location.href='edit-pdf.html'" style="margin-top: 20px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                    Upload PDF
+                                </button>
+                            </div>
+                        `;
                     }
                 }
             } catch (error) {
