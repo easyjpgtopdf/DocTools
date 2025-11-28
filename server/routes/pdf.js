@@ -88,5 +88,17 @@ router.post('/search', apiLimiter, express.json({ limit: '10mb' }), asyncHandler
  */
 router.post('/replace-all', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.replaceAllText));
 
+/**
+ * POST /api/pdf/compress
+ * Compress PDF file
+ */
+router.post('/compress', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.compressPDF));
+
+/**
+ * POST /api/pdf/protect
+ * Protect PDF with password
+ */
+router.post('/protect', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.protectPDF));
+
 module.exports = router;
 

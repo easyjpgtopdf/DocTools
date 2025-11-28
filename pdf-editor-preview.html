@@ -4564,6 +4564,76 @@
             pdfCanvas.addEventListener('mouseup', redactMouseUp);
         }
         
+        // Compression Implementation
+        if (compressBtn) {
+            compressBtn.addEventListener('click', async function() {
+                if (!window.pdfEditorVars.pdfDoc) {
+                    alert('No PDF loaded');
+                    return;
+                }
+                
+                const quality = prompt('Enter compression quality (low/medium/high):', 'medium');
+                if (!quality || !['low', 'medium', 'high'].includes(quality.toLowerCase())) {
+                    if (quality) alert('Invalid quality. Use: low, medium, or high');
+                    return;
+                }
+                
+                try {
+                    showLoading('Compressing PDF...', 10);
+                    const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                    if (!pdfFileURL) throw new Error('PDF file not found');
+                    
+                    updateProgress(30, 'Loading PDF...');
+                    const response = await fetch(pdfFileURL);
+                    const pdfArrayBuffer = await response.arrayBuffer();
+                    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                    
+                    updateProgress(50, 'Compressing...');
+                    let apiUrl = '/api/pdf/compress';
+                    if (window.location.protocol === 'file:') {
+                        apiUrl = 'http://localhost:3000/api/pdf/compress';
+                    }
+                    
+                    const compressResponse = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            pdfData: `data:application/pdf;base64,${pdfBase64}`,
+                            quality: quality.toLowerCase()
+                        })
+                    });
+                    
+                    updateProgress(80, 'Processing...');
+                    
+                    if (compressResponse.ok) {
+                        const result = await compressResponse.json();
+                        if (result.success) {
+                            updateProgress(95, 'Loading compressed PDF...');
+                            const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
+                            
+                            const blob = new Blob([pdfData], { type: 'application/pdf' });
+                            const newUrl = URL.createObjectURL(blob);
+                            sessionStorage.setItem('pdfFileURL', newUrl);
+                            sessionStorage.setItem('pdfFileBase64', btoa(String.fromCharCode(...new Uint8Array(pdfData))));
+                            
+                            await renderPDF(pdfData);
+                            updateProgress(100, 'PDF compressed!');
+                            setTimeout(() => {
+                                hideLoading();
+                                alert(`PDF compressed successfully!\nOriginal: ${(result.originalSize / 1024).toFixed(2)} KB\nCompressed: ${(result.compressedSize / 1024).toFixed(2)} KB\nReduction: ${result.compressionRatio}%`);
+                            }, 500);
+                        }
+                    } else {
+                        throw new Error('Compression failed');
+                    }
+                } catch (error) {
+                    console.error('Compression error:', error);
+                    hideLoading();
+                    alert('Error compressing PDF: ' + error.message);
+                }
+            });
+        }
+        
         // Protect PDF Implementation
         if (protectBtn) {
             protectBtn.addEventListener('click', async function() {
@@ -4573,7 +4643,10 @@
                 }
                 
                 const password = prompt('Enter password to protect PDF:', '');
-                if (!password) return;
+                if (!password || password.length < 4) {
+                    if (password) alert('Password must be at least 4 characters');
+                    return;
+                }
                 
                 const confirmPassword = prompt('Confirm password:', '');
                 if (password !== confirmPassword) {
@@ -4581,7 +4654,69 @@
                     return;
                 }
                 
-                alert('PDF password protection requires server-side encryption. This feature will be available in the next update with /api/pdf/protect endpoint.');
+                try {
+                    showLoading('Protecting PDF...', 10);
+                    const pdfFileURL = sessionStorage.getItem('pdfFileURL');
+                    if (!pdfFileURL) throw new Error('PDF file not found');
+                    
+                    updateProgress(30, 'Loading PDF...');
+                    const response = await fetch(pdfFileURL);
+                    const pdfArrayBuffer = await response.arrayBuffer();
+                    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                    
+                    updateProgress(50, 'Encrypting PDF...');
+                    let apiUrl = '/api/pdf/protect';
+                    if (window.location.protocol === 'file:') {
+                        apiUrl = 'http://localhost:3000/api/pdf/protect';
+                    }
+                    
+                    const protectResponse = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            pdfData: `data:application/pdf;base64,${pdfBase64}`,
+                            userPassword: password,
+                            ownerPassword: password,
+                            permissions: {
+                                printing: 'highResolution',
+                                modifying: false,
+                                copying: false,
+                                annotating: false,
+                                fillingForms: false,
+                                contentAccessibility: false,
+                                documentAssembly: false
+                            }
+                        })
+                    });
+                    
+                    updateProgress(80, 'Processing...');
+                    
+                    if (protectResponse.ok) {
+                        const result = await protectResponse.json();
+                        if (result.success) {
+                            updateProgress(95, 'Loading protected PDF...');
+                            const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
+                            
+                            const blob = new Blob([pdfData], { type: 'application/pdf' });
+                            const newUrl = URL.createObjectURL(blob);
+                            sessionStorage.setItem('pdfFileURL', newUrl);
+                            sessionStorage.setItem('pdfFileBase64', btoa(String.fromCharCode(...new Uint8Array(pdfData))));
+                            
+                            await renderPDF(pdfData);
+                            updateProgress(100, 'PDF protected!');
+                            setTimeout(() => {
+                                hideLoading();
+                                alert('PDF protected successfully! Password required to open.');
+                            }, 500);
+                        }
+                    } else {
+                        throw new Error('Protection failed');
+                    }
+                } catch (error) {
+                    console.error('Protection error:', error);
+                    hideLoading();
+                    alert('Error protecting PDF: ' + error.message);
+                }
             });
         }
         

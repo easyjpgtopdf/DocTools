@@ -1257,6 +1257,132 @@ function getOCRJobStatus(req, res) {
   }
 }
 
+/**
+ * Compress PDF
+ */
+async function compressPDF(req, res) {
+  try {
+    const { pdfData, quality = 'medium' } = req.body;
+
+    if (!pdfData) {
+      return res.status(400).json({
+        success: false,
+        error: 'PDF data is required',
+        code: 'MISSING_PDF_DATA'
+      });
+    }
+
+    // Extract base64 PDF data
+    const base64Data = pdfData.replace(/^data:application\/pdf;base64,/, '');
+    const pdfBuffer = Buffer.from(base64Data, 'base64');
+
+    // Validate PDF
+    try {
+      await withTimeout(validatePDF(pdfBuffer), 10000);
+    } catch (error) {
+      return res.status(error.statusCode || 422).json({
+        success: false,
+        error: error.message || 'Invalid PDF file',
+        code: error.name || 'PDF_VALIDATION_ERROR'
+      });
+    }
+
+    // Compress PDF
+    const { compressPDF: compressPDFUtil } = require('../api/pdf-edit/compression');
+    const result = await compressPDFUtil(pdfBuffer, { quality });
+
+    // Convert to base64
+    const compressedBase64 = result.buffer.toString('base64');
+    const pdfDataUrl = `data:application/pdf;base64,${compressedBase64}`;
+
+    res.json({
+      success: true,
+      pdfData: pdfDataUrl,
+      originalSize: result.originalSize,
+      compressedSize: result.compressedSize,
+      compressionRatio: result.compressionRatio
+    });
+  } catch (error) {
+    console.error('Compress PDF error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Protect PDF with password
+ */
+async function protectPDF(req, res) {
+  try {
+    const { pdfData, userPassword, ownerPassword, permissions = {} } = req.body;
+
+    if (!pdfData) {
+      return res.status(400).json({
+        success: false,
+        error: 'PDF data is required',
+        code: 'MISSING_PDF_DATA'
+      });
+    }
+
+    if (!userPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'User password is required',
+        code: 'MISSING_PASSWORD'
+      });
+    }
+
+    // Extract base64 PDF data
+    const base64Data = pdfData.replace(/^data:application\/pdf;base64,/, '');
+    const pdfBuffer = Buffer.from(base64Data, 'base64');
+
+    // Validate PDF
+    try {
+      await withTimeout(validatePDF(pdfBuffer), 10000);
+    } catch (error) {
+      return res.status(error.statusCode || 422).json({
+        success: false,
+        error: error.message || 'Invalid PDF file',
+        code: error.name || 'PDF_VALIDATION_ERROR'
+      });
+    }
+
+    // Load PDF and encrypt
+    const { PDFDocument } = require('pdf-lib');
+    const pdfDoc = await PDFDocument.load(pdfBuffer);
+
+    // Set encryption
+    const finalOwnerPassword = ownerPassword || userPassword;
+    pdfDoc.encrypt({
+      userPassword: userPassword,
+      ownerPassword: finalOwnerPassword,
+      permissions: {
+        printing: permissions.printing !== false ? 'highResolution' : undefined,
+        modifying: permissions.modifying !== false,
+        copying: permissions.copying !== false,
+        annotating: permissions.annotating !== false,
+        fillingForms: permissions.fillingForms !== false,
+        contentAccessibility: permissions.contentAccessibility !== false,
+        documentAssembly: permissions.documentAssembly !== false
+      }
+    });
+
+    // Save encrypted PDF
+    const encryptedBytes = await pdfDoc.save();
+    const encryptedBuffer = Buffer.from(encryptedBytes);
+    const encryptedBase64 = encryptedBuffer.toString('base64');
+    const pdfDataUrl = `data:application/pdf;base64,${encryptedBase64}`;
+
+    res.json({
+      success: true,
+      pdfData: pdfDataUrl,
+      message: 'PDF protected successfully'
+    });
+  } catch (error) {
+    console.error('Protect PDF error:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   uploadPDF: asyncHandler(uploadPDF),
   editPDF: asyncHandler(editPDF),
@@ -1270,6 +1396,8 @@ module.exports = {
   getOCRStatus,
   getOCRJobStatus,
   searchText: asyncHandler(searchText),
-  replaceAllText: asyncHandler(replaceAllText)
+  replaceAllText: asyncHandler(replaceAllText),
+  compressPDF: asyncHandler(compressPDF),
+  protectPDF: asyncHandler(protectPDF)
 };
 
