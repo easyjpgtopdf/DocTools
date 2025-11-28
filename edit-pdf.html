@@ -880,7 +880,14 @@
                                 const fileData = e.target.result;
                                 const blob = new Blob([fileData], { type: 'application/pdf' });
                                 const blobURL = URL.createObjectURL(blob);
+                                
+                                // Store blob URL
                                 sessionStorage.setItem('pdfFileURL', blobURL);
+                                
+                                // Also store as base64 for more reliable access
+                                const uint8Array = new Uint8Array(fileData);
+                                const base64 = btoa(String.fromCharCode(...uint8Array));
+                                sessionStorage.setItem('pdfFileBase64', base64);
                                 
                                 // Update UI
                                 fileName.textContent = uploadResult.filename;
@@ -983,10 +990,17 @@
                     const fileData = e.target.result;
                     const blob = new Blob([fileData], { type: 'application/pdf' });
                     const blobURL = URL.createObjectURL(blob);
+                    
+                    // Store blob URL
                     sessionStorage.setItem('pdfFileURL', blobURL);
                     sessionStorage.setItem('pdfFileName', file.name);
                     sessionStorage.setItem('pdfFileSize', file.size.toString());
                     sessionStorage.setItem('pdfFileType', file.type);
+                    
+                    // Also store as base64 for more reliable access
+                    const uint8Array = new Uint8Array(fileData);
+                    const base64 = btoa(String.fromCharCode(...uint8Array));
+                    sessionStorage.setItem('pdfFileBase64', base64);
                     
                     fileName.textContent = file.name;
                     fileSize.textContent = formatFileSize(file.size);
