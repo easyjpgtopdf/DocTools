@@ -57,7 +57,13 @@ def get_rembg_session():
     logger.info("🔄 Initializing rembg session with model %s (latest u2net)", MODEL_NAME)
     try:
         # u2net is the latest and best model - auto-downloads on first use
-        _rembg_session = new_session(model_name=MODEL_NAME)
+        # FIX: Pass model_name as keyword argument only (not positional)
+        # Some rembg versions have issues with model_name parameter
+        try:
+            _rembg_session = new_session(MODEL_NAME)  # Try positional first
+        except TypeError:
+            # If positional fails, try keyword argument
+            _rembg_session = new_session(model_name=MODEL_NAME)
         logger.info("✅ Rembg session initialized with %s", MODEL_NAME)
     except Exception as exc:
         logger.error("❌ Failed to initialize rembg session: %s", exc)
