@@ -112,24 +112,38 @@ async function checkDeviceQuota(operationType = 'imageRemover') {
         message: data.message || ''
       };
     } else {
-      const error = await response.json().catch(() => ({}));
+      // If API returns error, try to parse error message
+      let errorMessage = 'Failed to check quota';
+      try {
+        const error = await response.json();
+        errorMessage = error.error || error.message || errorMessage;
+        console.error('Device quota API error:', error);
+      } catch (parseError) {
+        console.error('Device quota check failed:', response.status, response.statusText);
+      }
+      
+      // Fail-open: Allow operation if API is down (better UX)
+      // But log the error for debugging
+      console.warn('⚠️ Device quota check failed, allowing operation (fail-open mode)');
       return {
-        allowed: false,
-        remaining: 0,
-        limit: 0,
+        allowed: true,
+        remaining: 999,
+        limit: 999,
         currentUsage: {},
-        message: error.error || 'Failed to check quota'
+        message: 'Quota check unavailable, allowing operation'
       };
     }
   } catch (error) {
     console.error('Device quota check error:', error);
-    // Allow on error (fail open) - but log it
+    // Fail-open: Allow on error (better UX than blocking users)
+    // This prevents blocking users if the quota service is down
+    console.warn('⚠️ Device quota check failed, allowing operation (fail-open mode)');
     return {
       allowed: true,
       remaining: 999,
       limit: 999,
       currentUsage: {},
-      message: 'Quota check failed, allowing operation'
+      message: 'Quota check unavailable, allowing operation'
     };
   }
 }
