@@ -384,45 +384,57 @@
           </div>
         </div>
 
-        <!-- Premium 50MB Plan -->
+        <!-- Premium Plan -->
         <div class="plan featured">
-          <h3>Premium 50</h3>
-          <div class="price">$3<span>/month</span></div>
-          <p>Great for regular users</p>
+          <h3>Premium</h3>
+          <div class="price">$5<span>/month</span></div>
+          <p>Complete access to all tools and features</p>
           <ul>
-            <li>Upload/Download up to 50 MB per file</li>
-            <li>Unlimited background removal</li>
-            <li>Priority processing</li>
+            <li>Unlimited document processing</li>
+            <li>Up to 200 MB per file</li>
+            <li>Access to all PDF tools</li>
+            <li>Digital signature capabilities</li>
+            <li>Automated workflows</li>
+            <li>Ad-free experience</li>
+            <li>Desktop and mobile applications</li>
+            <li>Cloud storage integration</li>
+            <li>Batch processing support</li>
+            <li>Priority customer support</li>
             <li>Email invoicing</li>
-            <li>Account management</li>
-            <li>Premium support</li>
+            <li>Advanced OCR technology</li>
           </ul>
           <div class="actions">
-            <button class="btn btn-primary" data-plan="premium50" data-billing="monthly">Buy Monthly — $3</button>
+            <button class="btn btn-primary" data-plan="premium" data-billing="monthly">Get Started — $5/month</button>
           </div>
           <p style="text-align:center; margin-top:12px; font-size:0.9rem; color:#56607a;">
-            or <button class="btn btn-outline" data-plan="premium50" data-billing="yearly" style="display:inline-block; width:auto; padding:8px 20px; margin-top:8px;">Yearly — $20</button> (Save $16)
+            or <button class="btn btn-outline" data-plan="premium" data-billing="yearly" style="display:inline-block; width:auto; padding:8px 20px; margin-top:8px;">Annual — $50/year</button> <span style="color:#28a745;">Save $10</span>
           </p>
         </div>
 
-        <!-- Premium 500MB Plan -->
+        <!-- Business Plan -->
         <div class="plan">
-          <h3>Premium 500</h3>
-          <div class="price">$5<span>/month</span></div>
-          <p>Best for professionals</p>
+          <h3>Business</h3>
+          <div class="price">Custom<span> pricing</span></div>
+          <p>Enterprise solutions for teams</p>
           <ul>
-            <li>Upload/Download up to 500 MB per file</li>
-            <li>Unlimited background removal</li>
-            <li>Highest priority processing</li>
-            <li>Bulk processing support</li>
-            <li>Dedicated support</li>
-            <li>Advanced features</li>
+            <li>Everything in Premium</li>
+            <li>No file size restrictions</li>
+            <li>Dedicated account manager</li>
+            <li>Single Sign-On (SSO) integration</li>
+            <li>Regional file processing</li>
+            <li>API access for automation</li>
+            <li>Custom integrations</li>
+            <li>Team management tools</li>
+            <li>Usage analytics dashboard</li>
+            <li>Enhanced security features</li>
+            <li>Priority technical support</li>
+            <li>Custom SLA agreements</li>
           </ul>
           <div class="actions">
-            <button class="btn btn-primary" data-plan="premium500" data-billing="monthly">Buy Monthly — $5</button>
+            <button class="btn btn-primary" data-plan="business" data-billing="monthly" onclick="window.location.href='#contact'">Contact Sales</button>
           </div>
           <p style="text-align:center; margin-top:12px; font-size:0.9rem; color:#56607a;">
-            or <button class="btn btn-outline" data-plan="premium500" data-billing="yearly" style="display:inline-block; width:auto; padding:8px 20px; margin-top:8px;">Yearly — $50</button> (Save $10)
+            Custom pricing based on your needs
           </p>
         </div>
       </div>
@@ -543,6 +555,19 @@
         b.addEventListener('click', async () => {
           const plan = b.getAttribute('data-plan');
           const billing = b.getAttribute('data-billing');
+          
+          // Handle Business plan (contact sales)
+          if (plan === 'business') {
+            // Scroll to contact section or show contact form
+            const contactSection = document.getElementById('contact') || document.querySelector('#contact');
+            if (contactSection) {
+              contactSection.scrollIntoView({ behavior: 'smooth' });
+            } else {
+              // Show contact modal or redirect
+              alert('Please contact our sales team for Business plan pricing. Email: sales@easyjpgtopdf.com');
+            }
+            return;
+          }
           
           // Get user ID with proper waiting
           const userId = await getCurrentUserId();

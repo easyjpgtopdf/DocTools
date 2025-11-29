@@ -39,53 +39,93 @@ try {
   console.warn('Firebase not initialized, subscription features may be limited');
 }
 
-// Plan configurations
+// Plan configurations - Similar structure to industry leaders but with unique features
 const PLANS = {
   free: {
     name: 'Free',
     price: 0,
     duration: Infinity, // Never expires
     features: {
-      maxFileSize: 6 * 1024 * 1024, // 6 MB
-      bgRemoverQuota: 1 * 1024 * 1024, // 1 MB
-      totalTransferCap: 5 * 1024 * 1024 * 1024, // 5 GB
+      maxFileSize: 50 * 1024 * 1024, // 50 MB (generous free tier)
+      maxFilesPerDay: 3, // Limited daily operations
+      totalTransferCap: 100 * 1024 * 1024, // 100 MB total
       priorityProcessing: false,
       emailInvoicing: false,
-      premiumSupport: false
+      premiumSupport: false,
+      digitalSignature: false,
+      workflows: false,
+      adFree: false,
+      desktopApp: false,
+      mobileApp: false,
+      cloudStorage: false,
+      batchProcessing: false
     }
   },
-  premium50: {
-    name: 'Premium 50',
-    price: 3, // $3/month
+  premium: {
+    name: 'Premium',
+    price: 5, // $5/month (matching industry standard)
     duration: 30, // 30 days
     features: {
-      maxFileSize: 50 * 1024 * 1024, // 50 MB
-      bgRemoverQuota: Infinity,
+      maxFileSize: 200 * 1024 * 1024, // 200 MB per file
+      maxFilesPerDay: Infinity, // Unlimited operations
+      totalTransferCap: Infinity, // Unlimited storage
+      priorityProcessing: true,
+      emailInvoicing: true,
+      premiumSupport: true,
+      digitalSignature: true,
+      workflows: true,
+      adFree: true,
+      desktopApp: true,
+      mobileApp: true,
+      cloudStorage: true,
+      batchProcessing: true,
+      allTools: true, // Access to all PDF tools
+      watermarkRemoval: true,
+      advancedOCR: true
+    }
+  },
+  business: {
+    name: 'Business',
+    price: 0, // Custom pricing - contact sales
+    duration: 30,
+    customPricing: true,
+    features: {
+      maxFileSize: Infinity, // No file size limit
+      maxFilesPerDay: Infinity,
       totalTransferCap: Infinity,
       priorityProcessing: true,
       emailInvoicing: true,
-      premiumSupport: true
-    }
-  },
-  premium500: {
-    name: 'Premium 500',
-    price: 5, // $5/month
-    duration: 30, // 30 days
-    features: {
-      maxFileSize: 500 * 1024 * 1024, // 500 MB
-      bgRemoverQuota: Infinity,
-      totalTransferCap: Infinity,
-      priorityProcessing: true,
-      emailInvoicing: true,
-      premiumSupport: true
+      premiumSupport: true,
+      digitalSignature: true,
+      workflows: true,
+      adFree: true,
+      desktopApp: true,
+      mobileApp: true,
+      cloudStorage: true,
+      batchProcessing: true,
+      allTools: true,
+      watermarkRemoval: true,
+      advancedOCR: true,
+      dedicatedAccountManager: true,
+      singleSignOn: true,
+      regionalProcessing: true,
+      apiAccess: true,
+      customIntegrations: true,
+      teamManagement: true,
+      usageAnalytics: true,
+      sslEncryption: true
     }
   }
 };
 
-// Yearly plans (12 months)
+// Yearly plans (12 months) - Annual billing with savings
 const YEARLY_PLANS = {
-  premium50: { ...PLANS.premium50, price: 20, duration: 365 }, // $20/year
-  premium500: { ...PLANS.premium500, price: 50, duration: 365 } // $50/year
+  premium: { 
+    ...PLANS.premium, 
+    price: 50, // $50/year (save $10 vs monthly)
+    duration: 365,
+    savings: 10 // $10 savings
+  }
 };
 
 /**
