@@ -313,40 +313,59 @@ function dispatchPendingAction(user) {
     return;
   }
 
-  // If already dispatched, don't dispatch again
+  // If already dispatched, clear immediately to prevent loops
   if (action.dispatched) {
-    // Clear after a delay to prevent loops
-    setTimeout(() => {
-      clearPendingAction();
-    }, 1000);
+    clearPendingAction();
     return;
   }
 
+  // Mark as dispatched immediately to prevent re-dispatching
+  const updated = { ...action, dispatched: true };
+  savePendingAction(updated);
+  pendingAction = updated;
+
   const redirectTo = action.redirectTo;
+  const currentUrl = normalizeUrl(window.location.href);
+  
   if (redirectTo) {
     const target = normalizeUrl(redirectTo);
-    const current = normalizeUrl(window.location.href);
     
     // Only redirect if we're not already on the target page
-    if (target !== current) {
-      // Mark as dispatched before redirect to prevent loops
-      const updated = { ...action, dispatched: true };
-      savePendingAction(updated);
-      
+    if (target !== currentUrl) {
       // Only redirect if target is pricing page or dashboard
-      const targetPath = new URL(target).pathname;
-      if (targetPath.includes('pricing.html') || targetPath.includes('dashboard.html')) {
-        window.location.href = target;
-        return;
-      } else {
-        // If redirect target is not pricing/dashboard, clear and don't redirect
+      try {
+        const targetPath = new URL(target).pathname;
+        const currentPath = new URL(currentUrl).pathname;
+        
+        // If already on the target page, don't redirect
+        if (targetPath === currentPath) {
+          clearPendingAction();
+          return;
+        }
+        
+        // Only redirect to pricing or dashboard
+        if (targetPath.includes('pricing.html') || targetPath.includes('dashboard.html')) {
+          // Clear pending action before redirect to prevent loops
+          clearPendingAction();
+          window.location.href = target;
+          return;
+        } else {
+          // If redirect target is not pricing/dashboard, clear and don't redirect
+          clearPendingAction();
+          return;
+        }
+      } catch (e) {
+        console.warn('Error parsing URL in dispatchPendingAction:', e);
         clearPendingAction();
         return;
       }
+    } else {
+      // Already on target page, just clear and dispatch event
+      clearPendingAction();
     }
   }
 
-  // Only dispatch event if we're on pricing page
+  // Dispatch event only if we're on pricing page and action is subscription
   const currentPath = window.location.pathname;
   if (currentPath.includes('pricing.html')) {
     // Dispatch the event

@@ -628,29 +628,79 @@
           if (!window.location.pathname.includes('pricing.html')) {
             // Clear any stale pending subscriptions if not on pricing page
             sessionStorage.removeItem('pendingSubscription');
+            try {
+              const authModule = await import('./js/auth.js');
+              if (authModule && authModule.clearPendingAction) {
+                authModule.clearPendingAction();
+              }
+            } catch (e) {
+              // Ignore
+            }
             return;
           }
           
           // Wait for auth to be ready
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          await new Promise(resolve => setTimeout(resolve, 2000));
           
           // Check if already processed
-          if (pendingSubscriptionProcessed) return;
+          if (pendingSubscriptionProcessed) {
+            // Clear any stale data
+            sessionStorage.removeItem('pendingSubscription');
+            try {
+              const authModule = await import('./js/auth.js');
+              if (authModule && authModule.clearPendingAction) {
+                authModule.clearPendingAction();
+              }
+            } catch (e) {
+              // Ignore
+            }
+            return;
+          }
           
+          // Check both sessionStorage and auth.js pending action
+          let pending = null;
           const pendingRaw = sessionStorage.getItem('pendingSubscription');
-          if (!pendingRaw) return;
           
-          // Check if pending subscription is stale (older than 5 minutes)
           try {
-            const pending = JSON.parse(pendingRaw);
-            if (pending.timestamp && (Date.now() - pending.timestamp > 5 * 60 * 1000)) {
-              console.log('Pending subscription is stale, clearing it');
+            const authModule = await import('./js/auth.js');
+            if (authModule && authModule.getCurrentPendingAction) {
+              const authPending = authModule.getCurrentPendingAction();
+              if (authPending && authPending.type === 'subscription') {
+                pending = {
+                  plan: authPending.plan,
+                  billing: authPending.billing,
+                  timestamp: authPending.timestamp
+                };
+              }
+            }
+          } catch (e) {
+            // Ignore
+          }
+          
+          if (!pending && pendingRaw) {
+            try {
+              pending = JSON.parse(pendingRaw);
+            } catch (e) {
+              console.warn('Error parsing pending subscription:', e);
               sessionStorage.removeItem('pendingSubscription');
               return;
             }
-          } catch (e) {
-            console.warn('Error parsing pending subscription:', e);
+          }
+          
+          if (!pending) return;
+          
+          // Check if pending subscription is stale (older than 5 minutes)
+          if (pending.timestamp && (Date.now() - pending.timestamp > 5 * 60 * 1000)) {
+            console.log('Pending subscription is stale, clearing it');
             sessionStorage.removeItem('pendingSubscription');
+            try {
+              const authModule = await import('./js/auth.js');
+              if (authModule && authModule.clearPendingAction) {
+                authModule.clearPendingAction();
+              }
+            } catch (e) {
+              // Ignore
+            }
             return;
           }
           
@@ -658,10 +708,17 @@
           
           if (userId) {
             pendingSubscriptionProcessed = true;
-            const pending = JSON.parse(pendingRaw);
             
             // Clear immediately to prevent re-processing
             sessionStorage.removeItem('pendingSubscription');
+            try {
+              const authModule = await import('./js/auth.js');
+              if (authModule && authModule.clearPendingAction) {
+                authModule.clearPendingAction();
+              }
+            } catch (e) {
+              // Ignore
+            }
             
             // Small delay to let page finish loading and Razorpay script load
             setTimeout(async () => {
@@ -674,12 +731,20 @@
                 // Reset flag to allow manual retry
                 pendingSubscriptionProcessed = false;
               }
-            }, 2000);
+            }, 2500);
           }
         } catch (e) {
           console.error('Error processing pending subscription:', e);
           // Clear on error to prevent loops
           sessionStorage.removeItem('pendingSubscription');
+          try {
+            const authModule = await import('./js/auth.js');
+            if (authModule && authModule.clearPendingAction) {
+              authModule.clearPendingAction();
+            }
+          } catch (err) {
+            // Ignore
+          }
         }
       })();
     </script>

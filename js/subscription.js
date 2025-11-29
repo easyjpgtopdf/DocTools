@@ -353,7 +353,7 @@ export async function initiateSubscriptionPurchase(planKey, billing = 'monthly',
 async function handlePaymentSuccess(paymentResponse, planKey, billing, userId, orderId, currency, convertedAmount) {
   try {
     // Verify payment on server
-    const verifyUrl = `${API_BASE_URL}/api/subscriptions/verify-payment`;
+    const verifyUrl = `${API_BASE_URL}/api/subscription/verify`;
     console.log('Verifying payment:', verifyUrl);
     
     const verifyResponse = await fetch(verifyUrl, {
@@ -363,15 +363,11 @@ async function handlePaymentSuccess(paymentResponse, planKey, billing, userId, o
         'Authorization': `Bearer ${await getAuthToken()}`
       },
       body: JSON.stringify({
-        razorpay_order_id: paymentResponse.razorpay_order_id,
-        razorpay_payment_id: paymentResponse.razorpay_payment_id,
-        razorpay_signature: paymentResponse.razorpay_signature,
-        plan: planKey,
-        billing: billing,
-        userId: userId,
         orderId: orderId,
-        currency: currency,
-        amount: convertedAmount
+        paymentId: paymentResponse.razorpay_payment_id,
+        signature: paymentResponse.razorpay_signature,
+        plan: planKey,
+        billing: billing
       })
     });
     
