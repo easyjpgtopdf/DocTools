@@ -1087,6 +1087,11 @@
                         <button class="preview-toolbar-btn" id="zoom-in-btn">
                             <i class="fas fa-search-plus"></i>
                         </button>
+                        <!-- Collaboration Toggle -->
+                        <button class="preview-toolbar-btn" id="collaboration-toggle-btn" title="Real-time Collaboration" style="margin-left: 10px;">
+                            <i class="fas fa-users"></i>
+                            <span id="collaboration-status" style="font-size: 10px; margin-left: 4px;">Off</span>
+                        </button>
                     </div>
                     
                     <div class="preview-container" id="preview-container" style="display: flex; visibility: visible; min-height: 600px;">
@@ -1240,6 +1245,51 @@
                             <div style="color: #28a745; font-size: 11px;">🔍 OCR Ready</div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Real-time Collaboration Panel -->
+        <div class="collaboration-panel" id="collaboration-panel">
+            <div class="collaboration-header">
+                <div class="collaboration-title">
+                    <i class="fas fa-users"></i> Collaboration
+                </div>
+                <button class="collaboration-close" id="collaboration-close-btn">&times;</button>
+            </div>
+            
+            <div class="collaboration-users" id="collaboration-users">
+                <div class="collaboration-user">
+                    <div class="collaboration-user-avatar" style="background: #4361ee;">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="collaboration-user-name">You</div>
+                    <div class="collaboration-status" style="background: #28a745;"></div>
+                </div>
+            </div>
+            
+            <div class="collaboration-share">
+                <h4 style="color: #e5e5e5; font-size: 12px; margin: 15px 0 8px 0;">Share with others</h4>
+                <div style="display: flex; gap: 5px;">
+                    <input type="email" id="share-email-input" placeholder="Enter email..." 
+                           style="flex: 1; padding: 6px; background: #2d2d2d; border: 1px solid #3a3a3a; border-radius: 4px; color: #e5e5e5; font-size: 11px;">
+                    <button id="share-btn" class="collaboration-btn" style="padding: 6px 12px; background: #4361ee; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">
+                        <i class="fas fa-share"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="collaboration-chat" id="collaboration-chat" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #3a3a3a;">
+                <h4 style="color: #e5e5e5; font-size: 12px; margin-bottom: 8px;">Chat</h4>
+                <div id="collaboration-messages" style="max-height: 150px; overflow-y: auto; margin-bottom: 8px;">
+                    <!-- Messages will appear here -->
+                </div>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="collaboration-message-input" placeholder="Type a message..." 
+                           style="flex: 1; padding: 6px; background: #2d2d2d; border: 1px solid #3a3a3a; border-radius: 4px; color: #e5e5e5; font-size: 11px;">
+                    <button id="collaboration-send-btn" class="collaboration-btn" style="padding: 6px 12px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
                 </div>
             </div>
         </div>
