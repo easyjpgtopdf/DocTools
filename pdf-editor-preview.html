@@ -553,6 +553,68 @@
             border-color: #0078d4;
         }
         
+        /* Search Results in Properties Panel */
+        #search-results {
+            padding: 8px 0 !important;
+        }
+        
+        .search-result-item {
+            padding: 8px 12px;
+            margin-bottom: 4px;
+            background: #2d2d2d;
+            border: 1px solid #3a3a3a;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 11px;
+        }
+        
+        .search-result-item:hover {
+            background: #3a3a3a;
+            border-color: #0078d4;
+        }
+        
+        .search-result-item.active {
+            background: #0078d4;
+            border-color: #0078d4;
+            color: white;
+        }
+        
+        .search-result-text {
+            color: #e5e5e5;
+            margin-bottom: 4px;
+            line-height: 1.4;
+        }
+        
+        .search-result-item.active .search-result-text {
+            color: white;
+        }
+        
+        .search-result-meta {
+            color: #9ca3af;
+            font-size: 10px;
+        }
+        
+        .search-result-item.active .search-result-meta {
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .search-result-item mark {
+            background: #ffeb3b;
+            color: #000;
+            padding: 1px 2px;
+            border-radius: 2px;
+        }
+        
+        .search-result-item.active mark {
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+        
+        .search-close:hover {
+            color: #e5e5e5 !important;
+        }
+        
         /* Performance indicators */
         .performance-badge {
             display: inline-block;
@@ -629,7 +691,11 @@
                 order: 3;
                 border-left: none;
                 border-top: 1px solid #3a3a3a;
-                max-height: 300px;
+                max-height: 400px;
+            }
+            
+            #search-results {
+                max-height: 150px !important;
             }
             
             .tool-item {
@@ -993,38 +1059,6 @@
                     </div>
                 </div>
                 
-                <!-- Search & Replace Panel -->
-                <div class="search-panel" id="search-panel">
-                    <div class="search-header">
-                        <div class="search-title">Search & Replace</div>
-                        <button class="search-close" id="search-close-btn">&times;</button>
-                    </div>
-                    <div class="search-input-group">
-                        <label>Search for:</label>
-                        <input type="text" class="search-input" id="search-input" placeholder="Enter text to search...">
-                    </div>
-                    <div class="search-input-group" id="replace-input-group" style="display: none;">
-                        <label>Replace with:</label>
-                        <input type="text" class="search-input" id="replace-input" placeholder="Enter replacement text...">
-                    </div>
-                    <div class="search-options">
-                        <div class="search-option">
-                            <input type="checkbox" id="case-sensitive">
-                            <label for="case-sensitive">Case sensitive</label>
-                        </div>
-                        <div class="search-option">
-                            <input type="checkbox" id="whole-words">
-                            <label for="whole-words">Whole words</label>
-                        </div>
-                    </div>
-                    <div class="search-actions">
-                        <button class="search-btn" id="search-execute-btn">Search</button>
-                        <button class="search-btn" id="replace-execute-btn" style="display: none;">Replace All</button>
-                    </div>
-                    <div class="search-match-count" id="search-match-count"></div>
-                    <div class="search-results" id="search-results"></div>
-                </div>
-                
                 <!-- Center Preview Panel -->
                 <div class="preview-panel">
                     <div class="preview-toolbar">
@@ -1043,13 +1077,6 @@
                             <i class="fas fa-moon" id="theme-icon"></i>
                             <span id="theme-text">Dark</span>
                         </button>
-                        <!-- Search Bar -->
-                        <div style="display: flex; align-items: center; gap: 5px; margin-right: 10px; background: #2d2d2d; border: 1px solid #3a3a3a; border-radius: 4px; padding: 2px;">
-                            <input type="text" id="quick-search-input" placeholder="Search in PDF..." style="padding: 4px 8px; border: none; background: transparent; color: #e5e5e5; font-size: 12px; width: 150px; outline: none;" />
-                            <button class="preview-toolbar-btn" id="quick-search-btn" title="Search" style="padding: 4px 8px; border: none; background: transparent; color: #e5e5e5; cursor: pointer;">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
                         <button class="preview-toolbar-btn" id="zoom-out-btn">
                             <i class="fas fa-search-minus"></i>
                         </button>
@@ -1078,6 +1105,44 @@
                 
                 <!-- Right Properties Panel -->
                 <div class="properties-panel">
+                    <!-- Search & Replace Panel -->
+                    <div class="property-group" id="search-panel">
+                        <div class="property-group-title" style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>Search & Replace</span>
+                            <button class="search-close" id="search-close-btn" style="background: none; border: none; color: #9ca3af; cursor: pointer; font-size: 18px; padding: 0; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;" title="Close">&times;</button>
+                        </div>
+                        <div class="property-item">
+                            <div class="property-label">Search for:</div>
+                            <input type="text" class="property-input" id="search-input" placeholder="Enter text to search..." style="margin-bottom: 8px;">
+                        </div>
+                        <div class="property-item" id="replace-input-group" style="display: none;">
+                            <div class="property-label">Replace with:</div>
+                            <input type="text" class="property-input" id="replace-input" placeholder="Enter replacement text..." style="margin-bottom: 8px;">
+                        </div>
+                        <div class="property-item" style="padding: 4px 12px;">
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                <label style="display: flex; align-items: center; gap: 6px; color: #e5e5e5; font-size: 11px; cursor: pointer;">
+                                    <input type="checkbox" id="case-sensitive" style="margin: 0; cursor: pointer;">
+                                    <span>Case sensitive</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; color: #e5e5e5; font-size: 11px; cursor: pointer;">
+                                    <input type="checkbox" id="whole-words" style="margin: 0; cursor: pointer;">
+                                    <span>Whole words</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="property-item" style="padding: 8px 12px;">
+                            <button class="property-input" id="search-execute-btn" style="width: 100%; padding: 8px; background: #0078d4; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin-bottom: 5px;">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                            <button class="property-input" id="replace-execute-btn" style="display: none; width: 100%; padding: 8px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                <i class="fas fa-exchange-alt"></i> Replace All
+                            </button>
+                        </div>
+                        <div class="property-item" id="search-match-count" style="padding: 4px 12px; font-size: 11px; color: #9ca3af; min-height: 20px;"></div>
+                        <div class="property-item" id="search-results" style="padding: 0; max-height: 200px; overflow-y: auto;"></div>
+                    </div>
+                    
                     <div class="property-group">
                         <div class="property-group-title">Text Properties</div>
                         <div class="property-item">
@@ -1408,48 +1473,12 @@
         let currentSearchMatches = [];
         let currentSearchIndex = -1;
         
-        // Quick search in toolbar
-        const quickSearchInput = document.getElementById('quick-search-input');
-        const quickSearchBtn = document.getElementById('quick-search-btn');
-        
-        if (quickSearchBtn) {
-            quickSearchBtn.addEventListener('click', function() {
-                if (quickSearchInput && quickSearchInput.value.trim()) {
-                    // Open search panel and execute search
-                    if (searchPanel) {
-                        searchPanel.classList.add('active');
-                        searchInput.value = quickSearchInput.value;
-                        searchInput.focus();
-                        replaceInputGroup.style.display = 'none';
-                        replaceExecuteBtn.style.display = 'none';
-                        // Trigger search
-                        if (searchExecuteBtn) {
-                            searchExecuteBtn.click();
-                        }
-                    }
-                } else if (searchPanel) {
-                    // Just open search panel
-                    searchPanel.classList.add('active');
-                    searchInput.focus();
-                    replaceInputGroup.style.display = 'none';
-                    replaceExecuteBtn.style.display = 'none';
-                }
-            });
-        }
-        
-        if (quickSearchInput) {
-            quickSearchInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter' && quickSearchInput.value.trim()) {
-                    quickSearchBtn.click();
-                }
-            });
-        }
-        
         // Open search panel (search icon button - works as button)
         if (searchBtn) {
             searchBtn.addEventListener('click', function() {
                 if (searchPanel) {
-                    searchPanel.classList.add('active');
+                    // Scroll to search panel in properties panel
+                    searchPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     searchInput.focus();
                     replaceInputGroup.style.display = 'none';
                     replaceExecuteBtn.style.display = 'none';
@@ -1461,7 +1490,8 @@
         if (replaceBtn) {
             replaceBtn.addEventListener('click', function() {
                 if (searchPanel) {
-                    searchPanel.classList.add('active');
+                    // Scroll to search panel in properties panel
+                    searchPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     searchInput.focus();
                     replaceInputGroup.style.display = 'block';
                     replaceExecuteBtn.style.display = 'block';
@@ -1469,13 +1499,19 @@
             });
         }
         
-        // Close search panel
+        // Close search panel (clear search)
         if (searchCloseBtn) {
             searchCloseBtn.addEventListener('click', function() {
                 if (searchPanel) {
-                    searchPanel.classList.remove('active');
+                    // Clear search instead of hiding panel
+                    searchInput.value = '';
+                    replaceInput.value = '';
                     currentSearchMatches = [];
                     currentSearchIndex = -1;
+                    searchMatchCount.textContent = '';
+                    searchResults.innerHTML = '';
+                    replaceInputGroup.style.display = 'none';
+                    replaceExecuteBtn.style.display = 'none';
                 }
             });
         }
@@ -1590,7 +1626,11 @@
                         await reloadPDF();
                         
                         alert(`Successfully replaced ${result.replacementsCount} occurrence(s)`);
-                        searchPanel.classList.remove('active');
+                        // Clear search results
+                        currentSearchMatches = [];
+                        currentSearchIndex = -1;
+                        searchMatchCount.textContent = '';
+                        searchResults.innerHTML = '';
                     } else {
                         alert('Replace failed: ' + (result.error || 'Unknown error'));
                     }
@@ -1611,7 +1651,7 @@
             searchResults.innerHTML = '';
             
             if (matches.length === 0) {
-                searchResults.innerHTML = '<div style="padding: 20px; text-align: center; color: #9ca3af;">No matches found</div>';
+                searchResults.innerHTML = '<div style="padding: 12px; text-align: center; color: #9ca3af; font-size: 11px;">No matches found</div>';
                 return;
             }
             
@@ -1620,11 +1660,14 @@
                 resultItem.className = 'search-result-item';
                 resultItem.innerHTML = `
                     <div class="search-result-text">${highlightMatch(match.text, query, match.matchIndex, match.matchLength)}</div>
-                    <div class="search-result-meta">Page ${match.pageIndex + 1} • Position: (${Math.round(match.x)}, ${Math.round(match.y)})</div>
+                    <div class="search-result-meta">Page ${match.pageIndex + 1}</div>
                 `;
                 resultItem.addEventListener('click', () => navigateToMatch(index));
                 searchResults.appendChild(resultItem);
             });
+            
+            // Scroll to top of results
+            searchResults.scrollTop = 0;
         }
         
         // Highlight match in text
@@ -1675,9 +1718,9 @@
                 if (searchBtn) searchBtn.click();
             }
             
-            // Escape to close search
-            if (e.key === 'Escape' && searchPanel && searchPanel.classList.contains('active')) {
-                searchCloseBtn.click();
+            // Escape to clear search
+            if (e.key === 'Escape' && searchInput === document.activeElement) {
+                if (searchCloseBtn) searchCloseBtn.click();
             }
             
             // Enter in search input to search
