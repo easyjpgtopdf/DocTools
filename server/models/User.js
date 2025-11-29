@@ -64,7 +64,7 @@ const userSchema = new mongoose.Schema({
     pdfsPerMonth: { type: Number, default: 10 },
     storageGB: { type: Number, default: 1 },
     apiCallsPerMonth: { type: Number, default: 1000 },
-    imageRemoverPerMonth: { type: Number, default: 40 },
+    imageRemoverPerMonth: { type: Number, default: 100 }, // Temporarily increased, will reduce to 40 later
     imageRemoverMonthlyUploadMB: { type: Number, default: 10 },
     imageRemoverMonthlyDownloadMB: { type: Number, default: 2 }
   },

@@ -34,7 +34,7 @@ const SUBSCRIPTION_PLANS = {
       'Desktop application access',
       'Mobile application access',
       'API access (100 calls/month)',
-      'Image background remover (40 images/month, 1 MB max per image, 10 MB monthly upload, 2 MB monthly download, auto-compressed to 100 KB)'
+      'Image background remover (100 images/month, 1 MB max per image, 10 MB monthly upload, 2 MB monthly download, auto-compressed to 100 KB)'
     ]
   },
   premium: {
@@ -220,8 +220,8 @@ async function verifyPayment(req, res) {
     
     // Update usage limits
     const imageRemoverLimit = selectedPlan.features.find(f => f.includes('Image Background Remover')) 
-      ? (selectedPlan.name === 'Premium' ? -1 : selectedPlan.name === 'Business' ? -1 : 40)
-      : 40;
+      ? (selectedPlan.name === 'Premium' ? -1 : selectedPlan.name === 'Business' ? -1 : 100)
+      : 100;
     
     // Set monthly upload/download limits based on plan
     let imageRemoverUploadLimit = 10 * 1024 * 1024; // 10 MB for free

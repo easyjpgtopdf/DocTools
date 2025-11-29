@@ -63,7 +63,7 @@ const PLANS = {
       imageRemover: {
         enabled: true,
         maxFileSize: 1 * 1024 * 1024, // 1 MB for free tier
-        quotaPerMonth: 40, // 40 images per month
+        quotaPerMonth: 100, // 100 images per month (temporarily increased, will reduce to 40 later)
         monthlyUploadLimit: 10 * 1024 * 1024, // 10 MB monthly upload limit
         monthlyDownloadLimit: 2 * 1024 * 1024, // 2 MB monthly download limit
         downloadCompressTo: 100 * 1024 // 100 KB max download size (auto-compressed)

@@ -10,7 +10,7 @@ const mongoose = require('mongoose');
 // Free plan limits
 const FREE_LIMITS = {
   imageRemover: {
-    count: 40, // 40 images per month
+    count: 100, // 100 images per month (temporarily increased, will reduce to 40 later)
     uploadMB: 10, // 10 MB monthly upload
     downloadMB: 2, // 2 MB monthly download
     maxFileSizeMB: 1 // 1 MB per image
