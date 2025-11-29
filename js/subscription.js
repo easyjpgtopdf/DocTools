@@ -366,8 +366,7 @@ async function handlePaymentSuccess(paymentResponse, planKey, billing, userId, o
         orderId: orderId,
         paymentId: paymentResponse.razorpay_payment_id,
         signature: paymentResponse.razorpay_signature,
-        plan: planKey,
-        billing: billing
+        plan: planKey
       })
     });
     
