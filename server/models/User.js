@@ -31,7 +31,7 @@ const userSchema = new mongoose.Schema({
   },
   subscriptionPlan: {
     type: String,
-    enum: ['free', 'basic', 'pro', 'enterprise'],
+    enum: ['free', 'premium', 'business', 'basic', 'pro', 'enterprise'],
     default: 'free',
     index: true
   },
@@ -63,12 +63,14 @@ const userSchema = new mongoose.Schema({
   usageLimits: {
     pdfsPerMonth: { type: Number, default: 10 },
     storageGB: { type: Number, default: 1 },
-    apiCallsPerMonth: { type: Number, default: 1000 }
+    apiCallsPerMonth: { type: Number, default: 1000 },
+    imageRemoverPerMonth: { type: Number, default: 10 }
   },
   currentUsage: {
     pdfsThisMonth: { type: Number, default: 0 },
     storageUsedGB: { type: Number, default: 0 },
-    apiCallsThisMonth: { type: Number, default: 0 }
+    apiCallsThisMonth: { type: Number, default: 0 },
+    imageRemoverThisMonth: { type: Number, default: 0 }
   },
   passwordResetToken: String,
   passwordResetExpires: Date,
@@ -178,11 +180,13 @@ userSchema.methods.checkUsageLimit = function(type) {
   
   switch(type) {
     case 'pdf':
-      return usage.pdfsThisMonth < limits.pdfsPerMonth;
+      return limits.pdfsPerMonth === -1 || usage.pdfsThisMonth < limits.pdfsPerMonth;
     case 'storage':
-      return usage.storageUsedGB < limits.storageGB;
+      return limits.storageGB === -1 || usage.storageUsedGB < limits.storageGB;
     case 'api':
-      return usage.apiCallsThisMonth < limits.apiCallsPerMonth;
+      return limits.apiCallsPerMonth === -1 || usage.apiCallsThisMonth < limits.apiCallsPerMonth;
+    case 'imageRemover':
+      return limits.imageRemoverPerMonth === -1 || limits.imageRemoverPerMonth === Infinity || usage.imageRemoverThisMonth < limits.imageRemoverPerMonth;
     default:
       return true;
   }
@@ -199,6 +203,9 @@ userSchema.methods.incrementUsage = async function(type, amount = 1) {
       break;
     case 'api':
       this.currentUsage.apiCallsThisMonth += amount;
+      break;
+    case 'imageRemover':
+      this.currentUsage.imageRemoverThisMonth += amount;
       break;
   }
   await this.save();
