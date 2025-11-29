@@ -16,10 +16,13 @@ function getApiBaseUrl() {
     return 'http://localhost:3000';
   }
   
-  return window.location.origin;
+  // Ensure we return a proper URL without trailing slash
+  const origin = window.location.origin;
+  return origin.endsWith('/') ? origin.slice(0, -1) : origin;
 }
 
 const API_BASE_URL = getApiBaseUrl();
+console.log('API Base URL:', API_BASE_URL);
 
 // Initialize Firebase (use existing config)
 let db;
