@@ -2151,6 +2151,65 @@ module.exports = {
   addWatermark: asyncHandler(addWatermark),
   addSignature: asyncHandler(addSignature),
   mergePDFs: asyncHandler(mergePDFs),
-  splitPDF: asyncHandler(splitPDF)
+  splitPDF: asyncHandler(splitPDF),
+  saveToCloud: asyncHandler(saveToCloud)
 };
+
+/**
+ * Save PDF to cloud storage
+ */
+async function saveToCloud(req, res) {
+  try {
+    const { fileId, pdfData, fileName, provider } = req.body;
+    const fileStorage = require('../utils/fileStorage');
+    
+    let pdfBuffer;
+    if (fileId) {
+      const fileData = fileStorage.getFile(fileId);
+      pdfBuffer = fileData.buffer;
+    } else if (pdfData) {
+      const base64Data = pdfData.replace(/^data:application\/pdf;base64,/, '');
+      pdfBuffer = Buffer.from(base64Data, 'base64');
+    } else {
+      return res.status(400).json({ success: false, error: 'File ID or PDF data required' });
+    }
+    
+    // Try to use cloud integration if available
+    try {
+      const { saveToGoogleCloud, saveToFirebase } = require('../api/pdf-edit/cloud-integration');
+      
+      let cloudUrl = null;
+      if (provider === 'googledrive' || provider === 'firebase') {
+        cloudUrl = await saveToFirebase(pdfBuffer, fileName || 'document.pdf');
+      } else if (provider === 'googledrive') {
+        cloudUrl = await saveToGoogleCloud(pdfBuffer, fileName || 'document.pdf');
+      }
+      
+      if (cloudUrl) {
+        return res.json({
+          success: true,
+          url: cloudUrl,
+          message: 'PDF saved to cloud successfully'
+        });
+      }
+    } catch (cloudError) {
+      console.warn('Cloud storage not configured:', cloudError.message);
+      // Continue with fallback
+    }
+    
+    // Fallback: Return download URL
+    const base64 = pdfBuffer.toString('base64');
+    const dataUrl = `data:application/pdf;base64,${base64}`;
+    
+    res.json({
+      success: true,
+      pdfData: dataUrl,
+      message: 'Cloud storage not configured. Use download link.',
+      downloadUrl: dataUrl
+    });
+  } catch (error) {
+    console.error('Save to cloud error:', error);
+    throw error;
+  }
+}
 

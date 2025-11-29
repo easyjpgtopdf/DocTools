@@ -196,5 +196,11 @@ router.post('/merge', apiLimiter, express.json({ limit: '200mb' }), asyncHandler
  */
 router.post('/split', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.splitPDF));
 
+/**
+ * POST /api/pdf/save-cloud
+ * Save PDF to cloud storage
+ */
+router.post('/save-cloud', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.saveToCloud));
+
 module.exports = router;
 
