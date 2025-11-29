@@ -2828,39 +2828,125 @@
                         }
                     }
                     
-                    if (result && result.success && result.words) {
-                        // Process OCR results
-                        const currentViewport = page.getViewport({ scale: window.pdfEditorVars.scale });
-                        const scaleX = pdfCanvas.width / (viewport.width);
-                        const scaleY = pdfCanvas.height / (viewport.height);
+                    if (result && result.success && result.words && result.words.length > 0) {
+                        // Process OCR results and embed directly into PDF (Native editing - NO HTML overlays)
+                        updateProgress(95, 'Embedding OCR text into PDF natively...');
+                        
+                        // Get PDF page dimensions for coordinate conversion
+                        const pdfPage = await window.pdfEditorVars.pdfDoc.getPage(window.pdfEditorVars.currentPage);
+                        const pdfViewport = pdfPage.getViewport({ scale: 1.0 });
+                        const pdfPageHeight = pdfViewport.height;
+                        const pdfPageWidth = pdfViewport.width;
+                        
+                        // Convert image coordinates to PDF coordinates
+                        const imageWidth = viewport.width;
+                        const imageHeight = viewport.height;
+                        
+                        // Prepare text edits for native PDF embedding using pdf-lib
+                        const textEdits = [];
                         
                         result.words.forEach((word) => {
-                            if (word.text && word.boundingBox) {
-                                // OCR text is stored for native PDF embedding - NO HTML overlays
-                                // Text will be embedded directly into PDF structure
+                            if (word.text && word.boundingBox && word.text.trim()) {
+                                // Convert image coordinates to PDF coordinates
+                                // Image: top-left origin, Y increases downward
+                                // PDF: bottom-left origin, Y increases upward
                                 
-                                // Store for PDF embedding
-                                if (!window.pdfEditorVars.ocrTextsForPDF) {
-                                    window.pdfEditorVars.ocrTextsForPDF = [];
+                                let imageX = word.boundingBox.x || 0;
+                                let imageY = word.boundingBox.y || 0;
+                                
+                                // Handle different coordinate formats
+                                if (word.pdfCoordinates) {
+                                    // Use PDF coordinates if available (from server OCR)
+                                    imageX = word.pdfCoordinates.x || imageX;
+                                    imageY = word.pdfCoordinates.y || imageY;
+                                } else {
+                                    // Convert from image coordinates
+                                    // Normalize to 0-1 range
+                                    const normalizedX = imageX / imageWidth;
+                                    const normalizedY = 1 - ((imageY + (word.boundingBox.height || 12)) / imageHeight);
+                                    
+                                    // Map to PDF coordinates
+                                    imageX = normalizedX * pdfPageWidth;
+                                    imageY = normalizedY * pdfPageHeight;
                                 }
-                                window.pdfEditorVars.ocrTextsForPDF.push({
+                                
+                                // Calculate font size based on bounding box height
+                                const fontSize = Math.max(8, Math.min(20, (word.boundingBox.height || 12) * (pdfPageHeight / imageHeight)));
+                                
+                                textEdits.push({
                                     pageIndex: window.pdfEditorVars.currentPage - 1,
-                                    text: word.text,
-                                    x: word.boundingBox.x * scaleX,
-                                    y: word.boundingBox.y * scaleY,
-                                    fontSize: 12,
-                                    fontColor: [0, 0, 0],
-                                    fontName: 'Helvetica'
+                                    x: imageX,
+                                    y: imageY,
+                                    text: word.text.trim(),
+                                    fontSize: fontSize,
+                                    fontName: 'Helvetica',
+                                    fontColor: [0, 0, 0] // Black
                                 });
                             }
                         });
                         
-                        alert('OCR completed! Extracted ' + result.words.length + ' words.');
+                        if (textEdits.length > 0) {
+                            // Get file ID
+                            const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
+                            
+                            if (!fileId) {
+                                throw new Error('No file ID available. Please upload PDF first.');
+                            }
+                            
+                            // Send OCR text to backend for native PDF embedding using pdf-lib
+                            updateProgress(98, 'Applying OCR text to PDF natively...');
+                            
+                            const apiBaseUrl = getApiBaseUrl();
+                            const apiUrl = `${apiBaseUrl}/api/pdf/edit-text`;
+                            
+                            const editResponse = await fetch(apiUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    fileId: fileId,
+                                    textEdits: textEdits
+                                })
+                            });
+                            
+                            if (!editResponse.ok) {
+                                const errorData = await editResponse.json().catch(() => ({}));
+                                throw new Error(errorData.error || 'Failed to embed OCR text into PDF');
+                            }
+                            
+                            const editResult = await editResponse.json();
+                            
+                            if (editResult.success) {
+                                updateProgress(100, 'OCR text embedded natively into PDF!');
+                                
+                                // Update PDF data and reload to show native changes (NO HTML overlays)
+                                window.pdfEditorVars.currentPdfData = editResult.pdfData;
+                                
+                                // Update stored file
+                                const pdfBase64 = editResult.pdfData.split(',')[1] || editResult.pdfData;
+                                const pdfBytes = Uint8Array.from(atob(pdfBase64), c => c.charCodeAt(0));
+                                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                                const newUrl = URL.createObjectURL(blob);
+                                sessionStorage.setItem('pdfFileURL', newUrl);
+                                sessionStorage.setItem('pdfFileBase64', pdfBase64);
+                                
+                                // Reload PDF to show native changes (NO HTML overlays - pure PDF editing)
+                                await reloadPDF();
+                                
+                                setTimeout(() => {
+                                    hideLoading();
+                                    alert(`✅ OCR completed! ${textEdits.length} words embedded into PDF natively (like iLovePDF Pro). Text is now part of the PDF structure.`);
+                                }, 500);
+                            } else {
+                                throw new Error(editResult.error || 'Failed to embed OCR text');
+                            }
+                        } else {
+                            hideLoading();
+                            alert('OCR completed but no valid text found to embed.');
+                        }
                     } else {
+                        hideLoading();
                         alert('OCR completed but no text found.');
                     }
-                    
-                    hideLoading();
                 } catch (error) {
                     console.error('OCR error:', error);
                     hideLoading();
