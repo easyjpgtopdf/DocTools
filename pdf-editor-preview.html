@@ -1787,6 +1787,15 @@
                             sessionStorage.setItem('pdfFileName', file.name);
                             
                             await renderPDF(pdfData);
+                            
+                            // Increment usage after successful render
+                            try {
+                                const { incrementUsage } = await import('./js/usage-limits.js');
+                                await incrementUsage('pdf', 1);
+                            } catch (usageError) {
+                                console.warn('Failed to increment usage:', usageError);
+                            }
+                            
                             hideLoading();
                         } catch (renderError) {
                             console.error('PDF rendering error:', renderError);
@@ -1798,6 +1807,22 @@
                         hideLoading();
                         showError('Error reading PDF file. Please try again.');
                     };
+                    // Check usage limit before uploading
+                    const { checkUsageLimit, incrementUsage, showUsageLimitMessage } = await import('./js/usage-limits.js');
+                    const limitCheck = await checkUsageLimit('pdf');
+                    
+                    if (!limitCheck.allowed) {
+                        hideLoading();
+                        showUsageLimitMessage(limitCheck.message || 'Usage limit reached. Please upgrade your plan.', true);
+                        // Redirect to pricing page
+                        setTimeout(() => {
+                            if (confirm('Would you like to upgrade your plan to continue?')) {
+                                window.location.href = 'pricing.html';
+                            }
+                        }, 2000);
+                        return;
+                    }
+                    
                     reader.readAsArrayBuffer(file);
                     
                 } catch (error) {
@@ -2064,6 +2089,23 @@
         // Render PDF (Fast PDF.js rendering)
         async function renderPDF(pdfData) {
             try {
+                // Check usage limit before rendering (only for authenticated users)
+                try {
+                    const { checkUsageLimit, incrementUsage } = await import('./js/usage-limits.js');
+                    const limitCheck = await checkUsageLimit('pdf');
+                    
+                    if (!limitCheck.allowed) {
+                        const { showUsageLimitMessage } = await import('./js/usage-limits.js');
+                        showUsageLimitMessage(limitCheck.message || 'Usage limit reached. Please upgrade your plan.', true);
+                        throw new Error('Usage limit reached');
+                    }
+                } catch (limitError) {
+                    if (limitError.message === 'Usage limit reached') {
+                        throw limitError;
+                    }
+                    // If limit check fails, continue (fail-open for better UX)
+                }
+                
                 if (!pdfjsLib) {
                     throw new Error('PDF.js library not loaded');
                 }
