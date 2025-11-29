@@ -616,63 +616,76 @@
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 180000);
         
-        // Prepare request body - only send imageData, no model_name to avoid duplicate parameter error
-        const requestBody = { 
-          imageData: dataURL 
-        };
-        
         // Build URL without any query parameters to avoid model_name conflicts
         const cleanUrl = backendUrl.split('?')[0];
         
-        const response = await fetch(cleanUrl, {
+        // Convert dataURL to Blob for FormData upload (backend prefers multipart/form-data)
+        const blob = await (await fetch(dataURL)).blob();
+        const formData = new FormData();
+        formData.append('image', blob, 'image.png');
+        
+        // Try FormData first (multipart upload - backend's preferred method)
+        let response = await fetch(cleanUrl, {
           method: 'POST',
           headers: { 
-            'Content-Type': 'application/json',
             'Accept': 'application/json'
+            // Don't set Content-Type - browser will set it with boundary for FormData
           },
-          body: JSON.stringify(requestBody),
+          body: formData,
           signal: controller.signal
         });
         
         clearTimeout(timeout);
 
+        // If FormData fails, try JSON fallback
         if (!response.ok) {
+          const errorText = await response.text();
           let errorMessage = `Server error: ${response.status}`;
+          
           try {
-            const errorData = await response.json();
+            const errorData = JSON.parse(errorText);
             errorMessage = errorData.error || errorData.message || errorMessage;
-            
-            // Handle specific model_name error
-            if (errorMessage.includes('model_name') || errorMessage.includes('multiple values')) {
-              console.warn('⚠️ Model parameter conflict detected, retrying with minimal payload...');
-              // Retry with even simpler payload
-              const retryResponse = await fetch(cleanUrl, {
-                method: 'POST',
-                headers: { 
-                  'Content-Type': 'application/json',
-                  'Accept': 'application/json'
-                },
-                body: JSON.stringify({ image: dataURL }), // Try 'image' instead of 'imageData' to avoid model_name conflict
-                signal: controller.signal
-              });
-              
-              if (retryResponse.ok) {
-                const retryResult = await retryResponse.json();
-                if (retryResult.success && retryResult.resultImage) {
-                  return { 
-                    success: true, 
-                    dataUrl: retryResult.resultImage, 
-                    processedWith: retryResult.processedWith || config.description,
-                    outputSize: retryResult.outputSize,
-                    outputSizeMB: retryResult.outputSizeMB
-                  };
-                }
-              }
-            }
-          } catch (parseError) {
-            console.error('Error parsing error response:', parseError);
+          } catch (e) {
+            errorMessage = errorText || errorMessage;
           }
-          throw new Error(errorMessage);
+          
+          // If it's a model_name error or 400/500, try JSON format
+          if (errorMessage.includes('model_name') || errorMessage.includes('multiple values') || response.status === 400 || response.status === 500) {
+            console.warn('⚠️ FormData upload failed, trying JSON format...');
+            
+            // Reset timeout
+            const retryController = new AbortController();
+            const retryTimeout = setTimeout(() => retryController.abort(), 180000);
+            
+            // Try JSON with just base64 data (no data: prefix)
+            const base64Data = dataURL.split(',')[1]; // Remove data:image/png;base64, prefix
+            const jsonBody = { imageData: base64Data };
+            
+            response = await fetch(cleanUrl, {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify(jsonBody),
+              signal: retryController.signal
+            });
+            
+            clearTimeout(retryTimeout);
+            
+            if (!response.ok) {
+              const retryErrorText = await response.text();
+              try {
+                const retryErrorData = JSON.parse(retryErrorText);
+                errorMessage = retryErrorData.error || retryErrorData.message || errorMessage;
+              } catch (e) {
+                errorMessage = retryErrorText || errorMessage;
+              }
+              throw new Error(errorMessage);
+            }
+          } else {
+            throw new Error(errorMessage);
+          }
         }
 
         statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">✨ Processing with professional AI...</div>`;
