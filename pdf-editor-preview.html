@@ -6589,6 +6589,127 @@
             themeToggleBtn.addEventListener('click', toggleTheme);
         }
         
+        // Setup Collaboration UI
+        function setupCollaborationUI() {
+            const collaborationToggle = document.getElementById('collaboration-toggle-btn');
+            const collaborationPanel = document.getElementById('collaboration-panel');
+            const collaborationClose = document.getElementById('collaboration-close-btn');
+            const collaborationStatus = document.getElementById('collaboration-status');
+            const shareBtn = document.getElementById('share-btn');
+            const shareEmailInput = document.getElementById('share-email-input');
+            const sendBtn = document.getElementById('collaboration-send-btn');
+            const messageInput = document.getElementById('collaboration-message-input');
+            
+            if (!collaborationToggle || !collaborationPanel) return;
+            
+            let isCollaborationActive = false;
+            
+            // Toggle collaboration panel
+            collaborationToggle.addEventListener('click', () => {
+                isCollaborationActive = !isCollaborationActive;
+                collaborationPanel.classList.toggle('active', isCollaborationActive);
+                if (collaborationStatus) {
+                    collaborationStatus.textContent = isCollaborationActive ? 'On' : 'Off';
+                }
+            });
+            
+            // Close collaboration panel
+            if (collaborationClose) {
+                collaborationClose.addEventListener('click', () => {
+                    isCollaborationActive = false;
+                    collaborationPanel.classList.remove('active');
+                    if (collaborationStatus) {
+                        collaborationStatus.textContent = 'Off';
+                    }
+                });
+            }
+            
+            // Share PDF
+            if (shareBtn && shareEmailInput) {
+                shareBtn.addEventListener('click', async () => {
+                    const email = shareEmailInput.value.trim();
+                    if (!email || !email.includes('@')) {
+                        alert('Please enter a valid email address');
+                        return;
+                    }
+                    
+                    try {
+                        const { sharePDF } = await import('./js/collaboration.js');
+                        const success = await sharePDF(email, 'edit');
+                        if (success) {
+                            alert(`PDF shared with ${email}`);
+                            shareEmailInput.value = '';
+                        } else {
+                            alert('Failed to share PDF. Please try again.');
+                        }
+                    } catch (error) {
+                        console.error('Share error:', error);
+                        alert('Error sharing PDF: ' + error.message);
+                    }
+                });
+            }
+            
+            // Send chat message
+            if (sendBtn && messageInput) {
+                const sendMessage = async () => {
+                    const message = messageInput.value.trim();
+                    if (!message) return;
+                    
+                    try {
+                        const { broadcastEdit } = await import('./js/collaboration.js');
+                        await broadcastEdit({
+                            type: 'chat',
+                            data: { message: message }
+                        });
+                        
+                        // Add message to UI
+                        const messagesDiv = document.getElementById('collaboration-messages');
+                        if (messagesDiv) {
+                            const messageDiv = document.createElement('div');
+                            messageDiv.className = 'collaboration-message';
+                            messageDiv.innerHTML = `
+                                <div class="collaboration-message-author">You</div>
+                                <div class="collaboration-message-text">${message}</div>
+                                <div class="collaboration-message-time">Just now</div>
+                            `;
+                            messagesDiv.appendChild(messageDiv);
+                            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                        }
+                        
+                        messageInput.value = '';
+                    } catch (error) {
+                        console.error('Send message error:', error);
+                    }
+                };
+                
+                sendBtn.addEventListener('click', sendMessage);
+                messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        sendMessage();
+                    }
+                });
+            }
+            
+            // Listen for remote edits
+            document.addEventListener('remote-edit', (e) => {
+                const edit = e.detail;
+                if (edit.type === 'chat') {
+                    const messagesDiv = document.getElementById('collaboration-messages');
+                    if (messagesDiv) {
+                        const messageDiv = document.createElement('div');
+                        messageDiv.className = 'collaboration-message';
+                        messageDiv.innerHTML = `
+                            <div class="collaboration-message-author">${edit.displayName || 'User'}</div>
+                            <div class="collaboration-message-text">${edit.data.message}</div>
+                            <div class="collaboration-message-time">Just now</div>
+                        `;
+                        messagesDiv.appendChild(messageDiv);
+                        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                    }
+                }
+            });
+        }
+        
         // Initialize - ensure DOM is ready
         async function initPDFEditor() {
             // Initialize button event listeners first
@@ -6596,6 +6717,21 @@
             
             // Initialize advanced features
             initAdvancedFeatures();
+            
+            // Initialize collaboration if user is authenticated
+            try {
+                const { auth } = await import('./js/firebase-init.js');
+                if (auth.currentUser) {
+                    const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
+                    if (fileId) {
+                        const { initCollaboration } = await import('./js/collaboration.js');
+                        await initCollaboration(fileId);
+                        setupCollaborationUI();
+                    }
+                }
+            } catch (error) {
+                console.warn('Collaboration not available:', error);
+            }
             
             // Check for PDF from edit-pdf.html on page load
             // This function handles all PDF loading scenarios (server URL, file ID, blob URL, base64)
