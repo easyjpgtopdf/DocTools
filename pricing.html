@@ -577,34 +577,60 @@
 
       // Listen for auth-action-resume event (dispatched by auth.js after login)
       let authResumeProcessed = false;
-      document.addEventListener('auth-action-resume', async (event) => {
-        const { action, user } = event.detail;
-        if (action && action.type === 'subscription' && user && !authResumeProcessed) {
-          authResumeProcessed = true;
-          try {
-            // Small delay to let page finish loading and Razorpay script load
-            setTimeout(async () => {
-              try {
-                await initiateSubscriptionPurchase(action.plan, action.billing, user.uid);
-              } catch (error) {
-                console.error('Error auto-starting subscription:', error);
-                // Don't show alert, just log - user can click button again
-                console.log('Subscription auto-start failed. User can click buy button to retry.');
-                authResumeProcessed = false; // Allow retry
+      // Only listen for auth-action-resume on pricing page
+      if (window.location.pathname.includes('pricing.html')) {
+        document.addEventListener('auth-action-resume', async (event) => {
+          const { action, user } = event.detail;
+          if (action && action.type === 'subscription' && user && !authResumeProcessed) {
+            authResumeProcessed = true;
+            try {
+              // Check if action is stale
+              if (action.timestamp && (Date.now() - action.timestamp > 5 * 60 * 1000)) {
+                console.log('Auth action is stale, ignoring');
+                authResumeProcessed = false;
+                return;
               }
-            }, 2000);
-          } catch (e) {
-            console.error('Error handling auth-action-resume:', e);
-            authResumeProcessed = false; // Allow retry
+              
+              // Small delay to let page finish loading and Razorpay script load
+              setTimeout(async () => {
+                try {
+                  await initiateSubscriptionPurchase(action.plan, action.billing, user.uid);
+                  // Clear pending action after successful initiation
+                  try {
+                    const authModule = await import('./js/auth.js');
+                    if (authModule && authModule.clearPendingAction) {
+                      authModule.clearPendingAction();
+                    }
+                  } catch (e) {
+                    // Ignore
+                  }
+                } catch (error) {
+                  console.error('Error auto-starting subscription:', error);
+                  // Don't show alert, just log - user can click button again
+                  console.log('Subscription auto-start failed. User can click buy button to retry.');
+                  authResumeProcessed = false; // Allow retry
+                }
+              }, 2000);
+            } catch (e) {
+              console.error('Error handling auth-action-resume:', e);
+              authResumeProcessed = false; // Allow retry
+            }
           }
-        }
-      });
+        });
+      }
 
       // If user returned from login and there is a pending subscription, auto-start it
-      // Only run once per page load
+      // Only run once per page load and only on pricing page
       let pendingSubscriptionProcessed = false;
       (async function(){
         try {
+          // Only process on pricing page
+          if (!window.location.pathname.includes('pricing.html')) {
+            // Clear any stale pending subscriptions if not on pricing page
+            sessionStorage.removeItem('pendingSubscription');
+            return;
+          }
+          
           // Wait for auth to be ready
           await new Promise(resolve => setTimeout(resolve, 1500));
           
@@ -614,11 +640,27 @@
           const pendingRaw = sessionStorage.getItem('pendingSubscription');
           if (!pendingRaw) return;
           
+          // Check if pending subscription is stale (older than 5 minutes)
+          try {
+            const pending = JSON.parse(pendingRaw);
+            if (pending.timestamp && (Date.now() - pending.timestamp > 5 * 60 * 1000)) {
+              console.log('Pending subscription is stale, clearing it');
+              sessionStorage.removeItem('pendingSubscription');
+              return;
+            }
+          } catch (e) {
+            console.warn('Error parsing pending subscription:', e);
+            sessionStorage.removeItem('pendingSubscription');
+            return;
+          }
+          
           const userId = await getCurrentUserId();
           
           if (userId) {
             pendingSubscriptionProcessed = true;
             const pending = JSON.parse(pendingRaw);
+            
+            // Clear immediately to prevent re-processing
             sessionStorage.removeItem('pendingSubscription');
             
             // Small delay to let page finish loading and Razorpay script load
@@ -629,11 +671,15 @@
                 console.error('Error auto-starting subscription:', error);
                 // Don't show alert, just log - user can click button again
                 console.log('Subscription auto-start failed. User can click buy button to retry.');
+                // Reset flag to allow manual retry
+                pendingSubscriptionProcessed = false;
               }
             }, 2000);
           }
         } catch (e) {
           console.error('Error processing pending subscription:', e);
+          // Clear on error to prevent loops
+          sessionStorage.removeItem('pendingSubscription');
         }
       })();
     </script>

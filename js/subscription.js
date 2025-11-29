@@ -211,7 +211,8 @@ export async function initiateSubscriptionPurchase(planKey, billing = 'monthly',
           type: 'subscription',
           plan: planKey,
           billing: billing,
-          redirectTo: currentUrl
+          redirectTo: currentUrl,
+          timestamp: Date.now() // Add timestamp to prevent stale actions
         });
       }
     } catch (e) {
@@ -219,7 +220,11 @@ export async function initiateSubscriptionPurchase(planKey, billing = 'monthly',
     }
     
     // Also store in sessionStorage for backward compatibility
-    sessionStorage.setItem('pendingSubscription', JSON.stringify({ plan: planKey, billing }));
+    sessionStorage.setItem('pendingSubscription', JSON.stringify({ 
+      plan: planKey, 
+      billing,
+      timestamp: Date.now()
+    }));
     window.location.href = `login.html?returnTo=${encodeURIComponent(currentUrl)}`;
     return;
   }
@@ -234,8 +239,10 @@ export async function initiateSubscriptionPurchase(planKey, billing = 'monthly',
   
   // Create Razorpay order
   try {
-    const apiUrl = `${API_BASE_URL}/api/subscription/order`;
-    console.log('Creating subscription order:', { apiUrl, plan: planKey, billing, userId });
+    // Ensure API_BASE_URL has proper format
+    const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+    const apiUrl = `${baseUrl}/api/subscription/order`;
+    console.log('Creating subscription order:', { apiUrl, plan: planKey, billing, userId, baseUrl: API_BASE_URL });
     
     const response = await fetch(apiUrl, {
       method: 'POST',

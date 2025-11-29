@@ -306,12 +306,19 @@ function dispatchPendingAction(user) {
     return;
   }
 
+  // Check if action is stale (older than 5 minutes)
+  if (action.timestamp && (Date.now() - action.timestamp > 5 * 60 * 1000)) {
+    console.log('Pending action is stale, clearing it');
+    clearPendingAction();
+    return;
+  }
+
   // If already dispatched, don't dispatch again
   if (action.dispatched) {
     // Clear after a delay to prevent loops
     setTimeout(() => {
       clearPendingAction();
-    }, 2000);
+    }, 1000);
     return;
   }
 
@@ -319,31 +326,52 @@ function dispatchPendingAction(user) {
   if (redirectTo) {
     const target = normalizeUrl(redirectTo);
     const current = normalizeUrl(window.location.href);
+    
+    // Only redirect if we're not already on the target page
     if (target !== current) {
       // Mark as dispatched before redirect to prevent loops
       const updated = { ...action, dispatched: true };
       savePendingAction(updated);
-      window.location.href = target;
-      return;
+      
+      // Only redirect if target is pricing page or dashboard
+      const targetPath = new URL(target).pathname;
+      if (targetPath.includes('pricing.html') || targetPath.includes('dashboard.html')) {
+        window.location.href = target;
+        return;
+      } else {
+        // If redirect target is not pricing/dashboard, clear and don't redirect
+        clearPendingAction();
+        return;
+      }
     }
   }
 
-  // Dispatch the event
-  document.dispatchEvent(
-    new CustomEvent('auth-action-resume', {
-      detail: { action, user },
-    })
-  );
+  // Only dispatch event if we're on pricing page
+  const currentPath = window.location.pathname;
+  if (currentPath.includes('pricing.html')) {
+    // Dispatch the event
+    document.dispatchEvent(
+      new CustomEvent('auth-action-resume', {
+        detail: { action, user },
+      })
+    );
 
-  // Mark as dispatched and clear after a delay
-  const updated = { ...action, dispatched: true };
-  pendingAction = updated;
-  savePendingAction(updated);
-  
-  // Clear pending action after 5 seconds to prevent redirect loops
-  setTimeout(() => {
+    // Mark as dispatched and clear after a delay
+    const updated = { ...action, dispatched: true };
+    pendingAction = updated;
+    savePendingAction(updated);
+    
+    // Clear pending action after 3 seconds to prevent redirect loops
+    setTimeout(() => {
+      clearPendingAction();
+      // Also clear sessionStorage
+      sessionStorage.removeItem('pendingSubscription');
+    }, 3000);
+  } else {
+    // Not on pricing page, clear the action
     clearPendingAction();
-  }, 5000);
+    sessionStorage.removeItem('pendingSubscription');
+  }
 }
 
 let loginForms = [];
