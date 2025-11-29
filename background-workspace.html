@@ -637,7 +637,7 @@
         
         clearTimeout(timeout);
 
-        // If FormData fails, try JSON fallback
+        // If FormData fails, try JSON fallback with better error handling
         if (!response.ok) {
           const errorText = await response.text();
           let errorMessage = `Server error: ${response.status}`;
@@ -645,47 +645,29 @@
           try {
             const errorData = JSON.parse(errorText);
             errorMessage = errorData.error || errorData.message || errorMessage;
+            console.error('❌ Backend error response:', errorData);
           } catch (e) {
             errorMessage = errorText || errorMessage;
+            console.error('❌ Backend error (non-JSON):', errorText);
           }
           
-          // If it's a model_name error or 400/500, try JSON format
-          if (errorMessage.includes('model_name') || errorMessage.includes('multiple values') || response.status === 400 || response.status === 500) {
-            console.warn('⚠️ FormData upload failed, trying JSON format...');
-            
-            // Reset timeout
-            const retryController = new AbortController();
-            const retryTimeout = setTimeout(() => retryController.abort(), 180000);
-            
-            // Try JSON with just base64 data (no data: prefix)
-            const base64Data = dataURL.split(',')[1]; // Remove data:image/png;base64, prefix
-            const jsonBody = { imageData: base64Data };
-            
-            response = await fetch(cleanUrl, {
-              method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              },
-              body: JSON.stringify(jsonBody),
-              signal: retryController.signal
-            });
-            
-            clearTimeout(retryTimeout);
-            
-            if (!response.ok) {
-              const retryErrorText = await response.text();
-              try {
-                const retryErrorData = JSON.parse(retryErrorText);
-                errorMessage = retryErrorData.error || retryErrorData.message || errorMessage;
-              } catch (e) {
-                errorMessage = retryErrorText || errorMessage;
-              }
-              throw new Error(errorMessage);
-            }
-          } else {
-            throw new Error(errorMessage);
+          // Log the error for debugging
+          console.error('❌ Request failed:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorMessage,
+            url: cleanUrl
+          });
+          
+          // If it's a model_name error, this is a backend issue that needs to be fixed
+          // We can't fix it from the frontend, but we can provide better error messages
+          if (errorMessage.includes('model_name') || errorMessage.includes('multiple values')) {
+            console.error('❌ Backend model_name error - this is a server-side configuration issue');
+            console.error('💡 The backend rembg library may need to be updated or the model_name parameter is incorrectly configured');
+            errorMessage = 'Backend processing error. The server configuration needs to be updated. Please contact support or try again later.';
           }
+          
+          throw new Error(errorMessage);
         }
 
         statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">✨ Processing with professional AI...</div>`;
@@ -710,11 +692,25 @@
           return { success: false, error: 'Request timeout. File too large or server busy.' };
         }
         
-        // Better error message for model_name errors
+        // Better error handling with detailed logging
         let errorMsg = error.message || 'Server connection failed';
+        
+        // Log full error for debugging
+        console.error('❌ Full error details:', {
+          message: error.message,
+          name: error.name,
+          stack: error.stack
+        });
+        
         if (errorMsg.includes('model_name') || errorMsg.includes('multiple values')) {
           errorMsg = 'Backend API configuration error. The server is experiencing issues. Please try again in a moment.';
-          console.error('⚠️ Backend model_name conflict - this is a server-side issue that needs backend fix');
+          console.error('⚠️ Backend model_name conflict detected - this is a server-side issue');
+          console.error('💡 Suggestion: The backend rembg library may need an update or the model_name parameter is being passed incorrectly');
+        }
+        
+        // If it's a network error, provide more helpful message
+        if (errorMsg.includes('fetch') || errorMsg.includes('network') || errorMsg.includes('Failed to fetch')) {
+          errorMsg = 'Network error. Please check your internet connection and try again.';
         }
         
         return { success: false, error: errorMsg };
