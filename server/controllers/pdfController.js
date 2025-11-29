@@ -681,111 +681,169 @@ async function extractAndEmbedFont(pdfDoc, originalPdfDoc, fontName) {
  */
 async function performOCR(req, res) {
   try {
-    const visionClient = getVisionClient();
-    if (!visionClient) {
-      return res.status(503).json({
-        success: false,
-        error: 'Google Cloud Vision API not initialized. Please check your service account credentials.',
-        code: 'SERVICE_UNAVAILABLE'
-      });
-    }
+    const { fileId, pageIndex = 0, scale = 2.0, languageHints = ['en'], background = false, imageData } = req.body;
 
-    const { fileId, pageIndex = 0, scale = 2.0, languageHints = ['en'], background = false } = req.body;
+    // Support both fileId-based and direct imageData-based OCR
+    let pdfBuffer = null;
+    let imageBuffer = null;
 
-    if (!fileId) {
+    // If imageData is provided, use it directly (preferred for client-side rendered images)
+    if (imageData) {
+      try {
+        // Extract base64 data (remove data:image/png;base64, prefix if present)
+        const base64Data = imageData.includes(',') ? imageData.split(',')[1] : imageData;
+        imageBuffer = Buffer.from(base64Data, 'base64');
+        console.log('[OCR] Using direct image data for OCR');
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid image data format',
+          code: 'INVALID_IMAGE_DATA'
+        });
+      }
+    } else if (fileId) {
+      // Use fileId to get PDF buffer
+      const fileStorage = require('../utils/fileStorage');
+      try {
+        const fileData = fileStorage.getFile(fileId);
+        pdfBuffer = fileData.buffer;
+      } catch (error) {
+        return res.status(404).json({
+          success: false,
+          error: 'File not found',
+          code: 'FILE_NOT_FOUND'
+        });
+      }
+    } else {
       return res.status(400).json({
         success: false,
-        error: 'File ID is required',
-        code: 'MISSING_FILE_ID'
+        error: 'Either fileId or imageData is required',
+        code: 'MISSING_INPUT'
       });
     }
 
-    const fileStorage = require('../utils/fileStorage');
-    
-    // Get file with error handling
-    let pdfBuffer;
-    try {
-      const fileData = fileStorage.getFile(fileId);
-      pdfBuffer = fileData.buffer;
-    } catch (error) {
-      return res.status(404).json({
-        success: false,
-        error: 'File not found',
-        code: 'FILE_NOT_FOUND'
-      });
-    }
-
-    // Validate PDF
-    try {
-      await withTimeout(validatePDF(pdfBuffer), 10000);
-    } catch (error) {
-      return res.status(error.statusCode || 422).json({
-        success: false,
-        error: error.message || 'Invalid PDF file',
-        code: error.name || 'PDF_VALIDATION_ERROR'
-      });
-    }
-
-    // Check cache for OCR results
-    const cacheKey = `ocr-${fileId}-${pageIndex}-${scale}`;
-    const cachedResult = getCachedResult(cacheKey);
-    if (cachedResult) {
-      return res.json({
-        success: true,
-        ...cachedResult,
-        cached: true
-      });
-    }
+    // Try Google Cloud Vision first, fallback to Tesseract if available
+    const visionClient = getVisionClient();
+    let ocrResult = null;
 
     // Get client ID for rate limiting
     const clientId = req.ip || req.headers['x-forwarded-for'] || 'default';
 
-    // Background processing for large files
-    if (background || pdfBuffer.length > 50 * 1024 * 1024) {
-      const jobId = jobQueue.enqueue({
-        handler: async (data) => {
-          return await visionOCR.performOCR(data.pdfBuffer, data.pageIndex, {
-            scale: data.scale,
-            languageHints: data.languageHints,
-            clientId: data.clientId
+    // If imageData is provided, process it directly
+    if (imageBuffer) {
+      try {
+        if (visionClient) {
+          // Use Google Cloud Vision for direct image OCR
+          const [result] = await visionClient.textDetection({
+            image: { content: imageBuffer }
           });
-        },
-        data: {
-          pdfBuffer,
-          pageIndex,
-          scale,
-          languageHints,
-          clientId
+          
+          const detections = result.textAnnotations || [];
+          const fullText = detections.length > 0 ? detections[0].description : '';
+          const words = detections.slice(1).map(annotation => ({
+            text: annotation.description || '',
+            boundingBox: {
+              x: annotation.boundingPoly?.vertices?.[0]?.x || 0,
+              y: annotation.boundingPoly?.vertices?.[0]?.y || 0,
+              width: (annotation.boundingPoly?.vertices?.[2]?.x || 0) - (annotation.boundingPoly?.vertices?.[0]?.x || 0),
+              height: (annotation.boundingPoly?.vertices?.[2]?.y || 0) - (annotation.boundingPoly?.vertices?.[0]?.y || 0)
+            },
+            confidence: 0.95 // Google Vision doesn't provide per-word confidence
+          }));
+
+          ocrResult = {
+            text: fullText,
+            words: words,
+            confidence: 0.95,
+            method: 'Google Cloud Vision'
+          };
+        } else {
+          // Fallback: Return error suggesting client-side OCR
+          return res.status(503).json({
+            success: false,
+            error: 'Server OCR service not available. Please use client-side OCR.',
+            code: 'SERVICE_UNAVAILABLE',
+            fallback: 'client-side'
+          });
         }
-      });
-
-      return res.json({
-        success: true,
-        message: 'OCR job queued for background processing',
-        jobId: jobId,
-        status: 'queued',
-        statusUrl: `/api/pdf/ocr/status/${jobId}`
-      });
-    }
-
-    // Perform OCR with timeout
-    let ocrResult;
-    try {
-      ocrResult = await withTimeout(
-        visionOCR.performOCR(pdfBuffer, pageIndex, {
-          scale: scale,
-          languageHints: languageHints,
-          clientId: clientId
-        }),
-        60000, // 60 second timeout
-        'OCR processing timed out'
-      );
-    } catch (error) {
-      // Handle quota exceeded
-      if (error.code === 8 || error.message.includes('RESOURCE_EXHAUSTED') || error.message.includes('quota')) {
-        throw new QuotaExceededError('Advanced OCR service quota exceeded. Please try again later.');
+      } catch (error) {
+        console.error('[OCR] Error processing image data:', error);
+        return res.status(500).json({
+          success: false,
+          error: error.message || 'OCR processing failed',
+          code: 'OCR_ERROR'
+        });
       }
-      throw error;
+    } else if (pdfBuffer) {
+      // Process PDF using existing logic
+      // Validate PDF
+      try {
+        await withTimeout(validatePDF(pdfBuffer), 10000);
+      } catch (error) {
+        return res.status(error.statusCode || 422).json({
+          success: false,
+          error: error.message || 'Invalid PDF file',
+          code: error.name || 'PDF_VALIDATION_ERROR'
+        });
+      }
+
+      // Check cache for OCR results
+      const cacheKey = `ocr-${fileId}-${pageIndex}-${scale}`;
+      const cachedResult = getCachedResult(cacheKey);
+      if (cachedResult) {
+        return res.json({
+          success: true,
+          ...cachedResult,
+          cached: true
+        });
+      }
+
+      // Background processing for large files
+      if (background || pdfBuffer.length > 50 * 1024 * 1024) {
+        const jobId = jobQueue.enqueue({
+          handler: async (data) => {
+            return await visionOCR.performOCR(data.pdfBuffer, data.pageIndex, {
+              scale: data.scale,
+              languageHints: data.languageHints,
+              clientId: data.clientId
+            });
+          },
+          data: {
+            pdfBuffer,
+            pageIndex,
+            scale,
+            languageHints,
+            clientId
+          }
+        });
+
+        return res.json({
+          success: true,
+          message: 'OCR job queued for background processing',
+          jobId: jobId,
+          status: 'queued',
+          statusUrl: `/api/pdf/ocr/status/${jobId}`
+        });
+      }
+
+      // Perform OCR with timeout
+      try {
+        ocrResult = await withTimeout(
+          visionOCR.performOCR(pdfBuffer, pageIndex, {
+            scale: scale,
+            languageHints: languageHints,
+            clientId: clientId
+          }),
+          60000, // 60 second timeout
+          'OCR processing timed out'
+        );
+      } catch (error) {
+        // Handle quota exceeded
+        if (error.code === 8 || error.message.includes('RESOURCE_EXHAUSTED') || error.message.includes('quota')) {
+          throw new QuotaExceededError('Advanced OCR service quota exceeded. Please try again later.');
+        }
+        throw error;
+      }
     }
 
     // OCR result already contains properly mapped PDF coordinates

@@ -2714,25 +2714,43 @@
                         const apiBaseUrl = getApiBaseUrl();
                         const ocrUrl = `${apiBaseUrl}/api/pdf/ocr`;
                         
-                        result = await fetch(ocrUrl, {
+                        // Get fileId if available, otherwise send image data directly
+                        const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
+                        
+                        const requestBody = fileId ? {
+                            fileId: fileId,
+                            pageIndex: window.pdfEditorVars.currentPage - 1,
+                            imageData: imageBase64, // Also send image for direct processing
+                            scale: 2.0,
+                            languageHints: ['en']
+                        } : {
+                            imageData: imageBase64, // Send image directly if no fileId
+                            pageIndex: window.pdfEditorVars.currentPage - 1,
+                            scale: 2.0,
+                            languageHints: ['en']
+                        };
+                        
+                        const response = await fetch(ocrUrl, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                imageData: imageBase64, // Send rendered image
-                                pdfData: window.pdfEditorVars.currentPdfData, // Also send PDF data if needed
-                                pageIndex: window.pdfEditorVars.currentPage - 1,
-                                fileName: sessionStorage.getItem('pdfFileName') || 'document.pdf'
-                            })
-                        }).then(r => r.json());
+                            body: JSON.stringify(requestBody)
+                        });
+                        
+                        if (!response.ok) {
+                            const errorData = await response.json().catch(() => ({}));
+                            throw new Error(errorData.error || `Server OCR failed: ${response.status}`);
+                        }
+                        
+                        result = await response.json();
                         
                         if (result.success) {
                             updateProgress(80, 'Receiving OCR results...');
                             // Transform result to match expected format
                             result = {
                                 success: true,
-                                text: result.text,
-                                words: result.words || [],
-                                method: result.method || 'Advanced OCR Service'
+                                text: result.text || result.detectedText || '',
+                                words: result.words || result.detections || [],
+                                method: result.method || 'Server OCR Engine'
                             };
                             updateProgress(95, 'Processing results...');
                             console.log('Server-side OCR successful');
@@ -2745,23 +2763,39 @@
                         useClientSideOCR = true;
                     }
                     
-                    // Fallback to client-side OCR
+                    // Fallback to client-side OCR (Tesseract.js)
                     if (useClientSideOCR || !result) {
-                        if (typeof window.ClientOCR === 'undefined') {
-                            hideLoading();
-                            alert('OCR service unavailable. Please ensure you have an internet connection or start the server.');
-                            return;
+                        // Check if Tesseract.js is available
+                        if (typeof Tesseract === 'undefined') {
+                            // Try to load Tesseract.js dynamically
+                            try {
+                                await new Promise((resolve, reject) => {
+                                    const script = document.createElement('script');
+                                    script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js';
+                                    script.onload = resolve;
+                                    script.onerror = reject;
+                                    document.head.appendChild(script);
+                                });
+                            } catch (loadError) {
+                                hideLoading();
+                                alert('OCR service unavailable. Please ensure you have an internet connection. Tesseract.js could not be loaded.');
+                                return;
+                            }
                         }
                         
-                        updateProgress(50, 'Using client-side OCR...');
-                        console.log('Starting client-side OCR...');
+                        updateProgress(50, 'Using client-side OCR (Tesseract.js)...');
+                        console.log('Starting client-side OCR with Tesseract.js...');
                         try {
-                            const { data } = await window.ClientOCR.recognize(imageData, 'eng', {
+                            const { data } = await Tesseract.recognize(imageData, 'eng', {
                                 logger: m => {
                                     if (m.status === 'recognizing text') {
                                         const progress = 50 + (m.progress * 40); // 50-90%
                                         updateProgress(progress, `OCR progress: ${Math.round(m.progress * 100)}%`);
                                         console.log(`OCR progress: ${Math.round(m.progress * 100)}%`);
+                                    } else if (m.status === 'loading tesseract core') {
+                                        updateProgress(55, 'Loading OCR engine...');
+                                    } else if (m.status === 'initializing tesseract') {
+                                        updateProgress(60, 'Initializing OCR...');
                                     }
                                 }
                             });
