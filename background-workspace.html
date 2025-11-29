@@ -710,7 +710,14 @@
           return { success: false, error: 'Request timeout. File too large or server busy.' };
         }
         
-        return { success: false, error: error.message || 'Server connection failed' };
+        // Better error message for model_name errors
+        let errorMsg = error.message || 'Server connection failed';
+        if (errorMsg.includes('model_name') || errorMsg.includes('multiple values')) {
+          errorMsg = 'Backend API configuration error. The server is experiencing issues. Please try again in a moment.';
+          console.error('⚠️ Backend model_name conflict - this is a server-side issue that needs backend fix');
+        }
+        
+        return { success: false, error: errorMsg };
       }
     }
 
