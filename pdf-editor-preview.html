@@ -1447,6 +1447,27 @@
         // Professional PDF Editor Implementation
         // Features: PDF.js rendering, Server processing, Fast OCR, Native editing, Cloud integration
         
+        // Initialize device fingerprinting for quota tracking
+        let deviceInfo = null;
+        async function initDeviceTracking() {
+            try {
+                const { getDeviceInfo } = await import('./js/device-fingerprint.js');
+                deviceInfo = await getDeviceInfo();
+                console.log('✅ Device tracking initialized for PDF editor:', {
+                    deviceId: deviceInfo.deviceId,
+                    ip: deviceInfo.ip,
+                    fingerprint: deviceInfo.fingerprint.substring(0, 20) + '...'
+                });
+                return true;
+            } catch (error) {
+                console.warn('⚠️ Device fingerprinting not available:', error);
+                return false;
+            }
+        }
+        
+        // Initialize device tracking on page load
+        initDeviceTracking();
+        
         // Set PDF.js worker for performance
         if (typeof pdfjsLib !== 'undefined') {
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -1794,6 +1815,29 @@
                     return;
                 }
                 
+                // Check device quota before uploading
+                try {
+                    const { checkDeviceQuota } = await import('./js/device-fingerprint.js');
+                    const quotaCheck = await checkDeviceQuota('pdfEdit');
+                    
+                    if (!quotaCheck.allowed) {
+                        alert(`Quota exceeded: ${quotaCheck.message}\n\nYou have used ${quotaCheck.currentUsage.count || 0} of ${quotaCheck.limit} PDFs this month.\n\nPlease upgrade to Premium for unlimited PDF editing.`);
+                        fileInput.value = ''; // Clear file input
+                        return;
+                    }
+                    
+                    // Check file size limit (50 MB for free)
+                    const fileSizeMB = file.size / (1024 * 1024);
+                    if (fileSizeMB > 50) {
+                        alert(`File size limit exceeded: ${fileSizeMB.toFixed(2)} MB\n\nFree plan allows up to 50 MB per PDF.\n\nPlease upgrade to Premium for larger files.`);
+                        fileInput.value = '';
+                        return;
+                    }
+                } catch (quotaError) {
+                    console.warn('Quota check failed, continuing:', quotaError);
+                    // Continue on error (fail-open)
+                }
+                
                 try {
                     showLoading('Processing...', 10);
                     
@@ -1852,6 +1896,16 @@
                                     
                                     updateProgress(90, 'Rendering PDF...');
                                     await renderPDF(pdfArrayBuffer);
+                                    
+                                    // Increment device quota after successful upload
+                                    try {
+                                        const { incrementDeviceQuota } = await import('./js/device-fingerprint.js');
+                                        await incrementDeviceQuota('pdfEdit', 1, file.size);
+                                        console.log('✅ Device quota incremented for PDF upload');
+                                    } catch (quotaError) {
+                                        console.warn('Failed to increment device quota:', quotaError);
+                                    }
+                                    
                                     hideLoading();
                                     
                                     console.log('PDF uploaded and loaded successfully. File ID:', result.fileId);
@@ -1880,6 +1934,16 @@
                             
                             // Store PDF data (chunked for large files to avoid stack overflow)
                             const arrayBuffer = pdfData;
+                            
+                            // Increment device quota after successful client-side processing
+                            try {
+                                const { incrementDeviceQuota } = await import('./js/device-fingerprint.js');
+                                await incrementDeviceQuota('pdfEdit', 1, file.size);
+                                console.log('✅ Device quota incremented for PDF upload (client-side)');
+                            } catch (quotaError) {
+                                console.warn('Failed to increment device quota:', quotaError);
+                            }
+                            
                             const uint8Array = new Uint8Array(arrayBuffer);
                             let base64 = '';
                             const chunkSize = 8192; // Process in 8KB chunks

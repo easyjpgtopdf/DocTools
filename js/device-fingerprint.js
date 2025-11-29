@@ -2,6 +2,7 @@
  * Device Fingerprinting and IP-based Quota Tracking
  * Prevents abuse by tracking usage by device/IP instead of just user login
  * Similar to how Cursor detects fake users
+ * Works for both Image Remover and PDF Editing
  */
 
 // Generate device fingerprint
@@ -82,7 +83,7 @@ async function getDeviceInfo() {
   };
 }
 
-// Check device quota
+// Check device quota (for both imageRemover and pdfEdit)
 async function checkDeviceQuota(operationType = 'imageRemover') {
   try {
     const deviceInfo = await getDeviceInfo();
@@ -122,7 +123,7 @@ async function checkDeviceQuota(operationType = 'imageRemover') {
     }
   } catch (error) {
     console.error('Device quota check error:', error);
-    // Allow on error (fail open)
+    // Allow on error (fail open) - but log it
     return {
       allowed: true,
       remaining: 999,
@@ -133,7 +134,7 @@ async function checkDeviceQuota(operationType = 'imageRemover') {
   }
 }
 
-// Increment device quota
+// Increment device quota (for both imageRemover and pdfEdit)
 async function incrementDeviceQuota(operationType = 'imageRemover', amount = 1, fileSize = 0) {
   try {
     const deviceInfo = await getDeviceInfo();

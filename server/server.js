@@ -26,6 +26,7 @@ const authRoutes = require('./routes/auth');
 const subscriptionRoutes = require('./routes/subscription');
 const razorpayRoutes = require('./routes/razorpayRoutes');
 const deviceRoutes = require('./routes/device');
+// Note: analyticsRoutes will be added when analytics module is ready
 
 // Initialize Express app
 const app = express();
