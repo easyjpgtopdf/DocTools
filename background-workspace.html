@@ -652,7 +652,7 @@
                   'Content-Type': 'application/json',
                   'Accept': 'application/json'
                 },
-                body: JSON.stringify({ image: dataURL }), // Try 'image' instead of 'imageData'
+                body: JSON.stringify({ image: dataURL }), // Try 'image' instead of 'imageData' to avoid model_name conflict
                 signal: controller.signal
               });
               

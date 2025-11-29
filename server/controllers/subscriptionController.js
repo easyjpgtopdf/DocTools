@@ -301,7 +301,7 @@ async function getSubscription(req, res) {
     const plan = SUBSCRIPTION_PLANS[user.subscriptionPlan] || SUBSCRIPTION_PLANS.free;
     
     // Get image remover limits based on plan
-    let imageRemoverLimit = 40; // Default for free
+    let imageRemoverLimit = 100; // Default for free (temporarily increased, will reduce to 40 later)
     let imageRemoverMaxSize = 1 * 1024 * 1024; // 1 MB default
     let imageRemoverUploadLimit = 10 * 1024 * 1024; // 10 MB for free
     let imageRemoverDownloadLimit = 2 * 1024 * 1024; // 2 MB for free
@@ -447,7 +447,7 @@ async function getUsageTracking(req, res) {
     
     // Get image remover limits based on plan
     const plan = SUBSCRIPTION_PLANS[user.subscriptionPlan] || SUBSCRIPTION_PLANS.free;
-    let imageRemoverLimit = 40; // Default for free
+    let imageRemoverLimit = 100; // Default for free (temporarily increased, will reduce to 40 later)
     let imageRemoverUploadLimit = 10; // 10 MB for free
     let imageRemoverDownloadLimit = 2; // 2 MB for free
     if (user.subscriptionPlan === 'premium') {
