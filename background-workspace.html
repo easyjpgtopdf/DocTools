@@ -963,9 +963,9 @@
         return { dataURL, compressed: false, originalSize };
       }
       
-      // Compress to 400 KB for faster removal
-      console.log('⚙️ Compressing preview to 400 KB for faster removal...');
-      const compressed = await compressImageForFree(dataURL, 400);
+      // OPTIMIZED: Compress to 100 KB for fastest access (was 400 KB)
+      console.log('⚡ Compressing preview to 100 KB for fastest access...');
+      const compressed = await compressImageForFree(dataURL, 100);
       console.log('✅ Preview compressed to:', (compressed.size / 1024).toFixed(0), 'KB');
       
       return {
