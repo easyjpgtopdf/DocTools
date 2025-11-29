@@ -62,11 +62,11 @@ const PLANS = {
       apiAccess: true, // API access for all plans (Google Vision API based)
       imageRemover: {
         enabled: true,
-        maxFileSize: 1 * 1024 * 1024, // 1 MB for free tier
+        maxFileSize: 100 * 1024 * 1024, // 100 MB for free tier (temporarily increased, will reduce to 1 MB later)
         quotaPerMonth: 100, // 100 images per month (temporarily increased, will reduce to 40 later)
-        monthlyUploadLimit: 10 * 1024 * 1024, // 10 MB monthly upload limit
-        monthlyDownloadLimit: 2 * 1024 * 1024, // 2 MB monthly download limit
-        downloadCompressTo: 100 * 1024 // 100 KB max download size (auto-compressed)
+        monthlyUploadLimit: 100 * 1024 * 1024, // 100 MB monthly upload limit (temporarily increased, will reduce to 10 MB later)
+        monthlyDownloadLimit: 100 * 1024 * 1024, // 100 MB monthly download limit (temporarily increased, will reduce to 2 MB later)
+        downloadCompressTo: 100 * 1024 * 1024 // 100 MB max download size (temporarily increased, will reduce to 100 KB later)
       }
     }
   },

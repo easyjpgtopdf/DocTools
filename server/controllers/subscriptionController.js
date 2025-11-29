@@ -34,7 +34,7 @@ const SUBSCRIPTION_PLANS = {
       'Desktop application access',
       'Mobile application access',
       'API access (100 calls/month)',
-      'Image background remover (100 images/month, 1 MB max per image, 10 MB monthly upload, 2 MB monthly download, auto-compressed to 100 KB)'
+      'Image background remover (100 images/month, 100 MB max per image, 100 MB monthly upload, 100 MB monthly download) - Temporarily increased limits'
     ]
   },
   premium: {
@@ -300,11 +300,11 @@ async function getSubscription(req, res) {
     
     const plan = SUBSCRIPTION_PLANS[user.subscriptionPlan] || SUBSCRIPTION_PLANS.free;
     
-    // Get image remover limits based on plan
+    // Get image remover limits based on plan (TEMPORARILY INCREASED)
     let imageRemoverLimit = 100; // Default for free (temporarily increased, will reduce to 40 later)
-    let imageRemoverMaxSize = 1 * 1024 * 1024; // 1 MB default
-    let imageRemoverUploadLimit = 10 * 1024 * 1024; // 10 MB for free
-    let imageRemoverDownloadLimit = 2 * 1024 * 1024; // 2 MB for free
+    let imageRemoverMaxSize = 100 * 1024 * 1024; // 100 MB default (temporarily increased, will reduce to 1 MB later)
+    let imageRemoverUploadLimit = 100 * 1024 * 1024; // 100 MB for free (temporarily increased, will reduce to 10 MB later)
+    let imageRemoverDownloadLimit = 100 * 1024 * 1024; // 100 MB for free (temporarily increased, will reduce to 2 MB later)
     if (user.subscriptionPlan === 'premium') {
       imageRemoverLimit = -1; // Unlimited
       imageRemoverMaxSize = 50 * 1024 * 1024; // 50 MB

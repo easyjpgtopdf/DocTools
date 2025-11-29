@@ -7,13 +7,13 @@ const DeviceQuota = require('../models/DeviceQuota');
 const { asyncHandler } = require('../middleware/errorHandler');
 const mongoose = require('mongoose');
 
-// Free plan limits
+// Free plan limits (TEMPORARILY INCREASED FOR ERROR HANDLING)
 const FREE_LIMITS = {
   imageRemover: {
     count: 100, // 100 images per month (temporarily increased, will reduce to 40 later)
-    uploadMB: 10, // 10 MB monthly upload
-    downloadMB: 2, // 2 MB monthly download
-    maxFileSizeMB: 1 // 1 MB per image
+    uploadMB: 100, // 100 MB monthly upload (temporarily increased, will reduce to 10 MB later)
+    downloadMB: 100, // 100 MB monthly download (temporarily increased, will reduce to 2 MB later)
+    maxFileSizeMB: 100 // 100 MB per image (temporarily increased, will reduce to 1 MB later)
   },
   pdfEdit: {
     count: 10, // 10 PDFs per month
