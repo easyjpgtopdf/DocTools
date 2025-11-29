@@ -28,7 +28,13 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, 'Arial Unicode MS', 'Noto Sans', sans-serif;
+        }
+        
+        /* Ensure proper unicode rendering for star characters */
+        select, option {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, 'Arial Unicode MS', 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+            unicode-bidi: embed;
         }
 
         :root {
@@ -2120,11 +2126,11 @@
                                 <label for="feedback-rating">Rating</label>
                                 <select id="feedback-rating" class="form-control" required>
                                     <option value="">Select rating</option>
-                                    <option value="5">â˜…â˜…â˜…â˜…â˜… Loved it</option>
-                                    <option value="4">â˜…â˜…â˜…â˜…â˜† Pretty good</option>
-                                    <option value="3">â˜…â˜…â˜…â˜†â˜† It works</option>
-                                    <option value="2">â˜…â˜…â˜†â˜†â˜† Needs improvements</option>
-                                    <option value="1">â˜…â˜†â˜†â˜†â˜† Not great</option>
+                                    <option value="5">★★★★★ Loved it</option>
+                                    <option value="4">★★★★☆ Pretty good</option>
+                                    <option value="3">★★★☆☆ It works</option>
+                                    <option value="2">★★☆☆☆ Needs improvements</option>
+                                    <option value="1">★☆☆☆☆ Not great</option>
                                 </select>
                             </div>
                             <div class="form-group">
