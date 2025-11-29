@@ -22,9 +22,20 @@ const SUBSCRIPTION_PLANS = {
     price: 0,
     pdfsPerMonth: 3, // Limited daily operations
     storageGB: 0.1, // 100 MB
-    apiCallsPerMonth: 0,
+    apiCallsPerMonth: 100, // API access for all plans (Google Vision API based)
     maxFileSize: 50 * 1024 * 1024, // 50 MB
-    features: ['Essential PDF tools', 'Up to 50 MB per file', '3 operations per day', '100 MB storage', 'Community support', 'Web-based interface']
+    features: [
+      'Essential PDF tools',
+      'Up to 50 MB per file',
+      '3 operations per day',
+      '100 MB storage',
+      'Community support',
+      'Web-based interface',
+      'Desktop application access',
+      'Mobile application access',
+      'API access (100 calls/month)',
+      'Image background remover (10 images/month, 5 MB max)'
+    ]
   },
   premium: {
     name: 'Premium',
@@ -41,12 +52,15 @@ const SUBSCRIPTION_PLANS = {
       'Digital signature capabilities',
       'Automated workflows',
       'Ad-free experience',
-      'Desktop and mobile applications',
+      'Desktop application (full access)',
+      'Mobile application (full access)',
+      'API access (unlimited calls)',
       'Cloud storage integration',
       'Batch processing support',
       'Priority customer support',
       'Email invoicing',
-      'Advanced OCR technology'
+      'Advanced OCR technology',
+      'Image background remover (unlimited, 50 MB max per image)'
     ]
   },
   business: {
@@ -63,13 +77,16 @@ const SUBSCRIPTION_PLANS = {
       'Dedicated account manager',
       'Single Sign-On (SSO) integration',
       'Regional file processing',
-      'API access for automation',
+      'API access for automation (unlimited)',
+      'Desktop application (enterprise features)',
+      'Mobile application (enterprise features)',
       'Custom integrations',
       'Team management tools',
       'Usage analytics dashboard',
       'Enhanced security features',
       'Priority technical support',
-      'Custom SLA agreements'
+      'Custom SLA agreements',
+      'Image background remover (unlimited, no size limit)'
     ]
   }
 };

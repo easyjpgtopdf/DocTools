@@ -55,10 +55,16 @@ const PLANS = {
       digitalSignature: false,
       workflows: false,
       adFree: false,
-      desktopApp: false,
-      mobileApp: false,
+      desktopApp: true, // Available in all plans
+      mobileApp: true, // Available in all plans
       cloudStorage: false,
-      batchProcessing: false
+      batchProcessing: false,
+      apiAccess: true, // API access for all plans (Google Vision API based)
+      imageRemover: {
+        enabled: true,
+        maxFileSize: 5 * 1024 * 1024, // 5 MB for free tier
+        quotaPerMonth: 10 // 10 images per month
+      }
     }
   },
   premium: {
@@ -75,13 +81,19 @@ const PLANS = {
       digitalSignature: true,
       workflows: true,
       adFree: true,
-      desktopApp: true,
-      mobileApp: true,
+      desktopApp: true, // Available in all plans
+      mobileApp: true, // Available in all plans
       cloudStorage: true,
       batchProcessing: true,
       allTools: true, // Access to all PDF tools
       watermarkRemoval: true,
-      advancedOCR: true
+      advancedOCR: true,
+      apiAccess: true, // API access for all plans (Google Vision API based)
+      imageRemover: {
+        enabled: true,
+        maxFileSize: 50 * 1024 * 1024, // 50 MB for premium
+        quotaPerMonth: Infinity // Unlimited for premium
+      }
     }
   },
   business: {
@@ -99,8 +111,8 @@ const PLANS = {
       digitalSignature: true,
       workflows: true,
       adFree: true,
-      desktopApp: true,
-      mobileApp: true,
+      desktopApp: true, // Available in all plans
+      mobileApp: true, // Available in all plans
       cloudStorage: true,
       batchProcessing: true,
       allTools: true,
@@ -109,11 +121,16 @@ const PLANS = {
       dedicatedAccountManager: true,
       singleSignOn: true,
       regionalProcessing: true,
-      apiAccess: true,
+      apiAccess: true, // API access for all plans (Google Vision API based)
       customIntegrations: true,
       teamManagement: true,
       usageAnalytics: true,
-      sslEncryption: true
+      sslEncryption: true,
+      imageRemover: {
+        enabled: true,
+        maxFileSize: Infinity, // No limit for business
+        quotaPerMonth: Infinity // Unlimited for business
+      }
     }
   }
 };
