@@ -796,7 +796,14 @@
                     
                     // Also store as base64 for more reliable access
                     const uint8Array = new Uint8Array(fileData);
-                    const base64 = btoa(String.fromCharCode(...uint8Array));
+                    // Use chunked conversion to avoid "Maximum call stack size exceeded" for large files
+                    let base64 = '';
+                    const chunkSize = 8192; // Process in 8KB chunks
+                    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                        const chunk = uint8Array.subarray(i, i + chunkSize);
+                        base64 += String.fromCharCode.apply(null, chunk);
+                    }
+                    base64 = btoa(base64);
                     sessionStorage.setItem('pdfFileBase64', base64);
                     
                     // Update UI - Enable continue button
@@ -1008,7 +1015,14 @@
                     
                     // Also store as base64 for more reliable access
                     const uint8Array = new Uint8Array(fileData);
-                    const base64 = btoa(String.fromCharCode(...uint8Array));
+                    // Use chunked conversion to avoid "Maximum call stack size exceeded" for large files
+                    let base64 = '';
+                    const chunkSize = 8192; // Process in 8KB chunks
+                    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                        const chunk = uint8Array.subarray(i, i + chunkSize);
+                        base64 += String.fromCharCode.apply(null, chunk);
+                    }
+                    base64 = btoa(base64);
                     sessionStorage.setItem('pdfFileBase64', base64);
                     
                     fileName.textContent = file.name;
