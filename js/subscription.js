@@ -202,6 +202,23 @@ export async function initiateSubscriptionPurchase(planKey, billing = 'monthly',
   if (!userId) {
     // Store pending purchase and redirect to login
     const currentUrl = window.location.href;
+    
+    // Use setPendingAction from auth.js if available (dynamic import)
+    try {
+      const authModule = await import('./auth.js');
+      if (authModule && authModule.setPendingAction) {
+        authModule.setPendingAction({
+          type: 'subscription',
+          plan: planKey,
+          billing: billing,
+          redirectTo: currentUrl
+        });
+      }
+    } catch (e) {
+      console.warn('Could not use setPendingAction:', e);
+    }
+    
+    // Also store in sessionStorage for backward compatibility
     sessionStorage.setItem('pendingSubscription', JSON.stringify({ plan: planKey, billing }));
     window.location.href = `login.html?returnTo=${encodeURIComponent(currentUrl)}`;
     return;
@@ -238,12 +255,24 @@ export async function initiateSubscriptionPurchase(planKey, billing = 'monthly',
     
     if (!response.ok) {
       const errorText = await response.text();
+      let errorMessage = `Failed to create order: ${response.status} ${response.statusText}`;
+      
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.error || errorData.message) {
+          errorMessage = errorData.error || errorData.message;
+        }
+      } catch (e) {
+        // Use default error message
+      }
+      
       console.error('API Error Response:', {
         status: response.status,
         statusText: response.statusText,
-        body: errorText
+        body: errorText,
+        message: errorMessage
       });
-      throw new Error(`Failed to create order: ${response.status} ${response.statusText}`);
+      throw new Error(errorMessage);
     }
     
     const orderData = await response.json();
