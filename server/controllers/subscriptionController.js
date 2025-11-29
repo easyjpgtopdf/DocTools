@@ -15,51 +15,62 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET || ''
 });
 
-// Subscription plans
+// Subscription plans - Similar structure to industry leaders but with unique features
 const SUBSCRIPTION_PLANS = {
   free: {
     name: 'Free',
     price: 0,
-    pdfsPerMonth: 10,
-    storageGB: 1,
-    apiCallsPerMonth: 100,
-    features: ['Basic PDF editing', 'OCR (limited)']
+    pdfsPerMonth: 3, // Limited daily operations
+    storageGB: 0.1, // 100 MB
+    apiCallsPerMonth: 0,
+    maxFileSize: 50 * 1024 * 1024, // 50 MB
+    features: ['Essential PDF tools', 'Up to 50 MB per file', '3 operations per day', '100 MB storage', 'Community support', 'Web-based interface']
   },
-  basic: {
-    name: 'Basic',
-    price: 3,
-    priceId: process.env.RAZORPAY_PLAN_BASIC || 'plan_basic',
-    pdfsPerMonth: 100,
-    storageGB: 5,
-    apiCallsPerMonth: 1000,
-    features: ['All basic features', '100 PDFs/month', 'Email support']
-  },
-  pro: {
-    name: 'Pro',
-    price: 7,
-    priceId: process.env.RAZORPAY_PLAN_PRO || 'plan_pro',
-    pdfsPerMonth: 1000,
-    storageGB: 20,
-    apiCallsPerMonth: 10000,
-    features: ['All Pro features', '1000 PDFs/month', 'API access', 'Priority support']
-  },
-  business: {
-    name: 'Business',
-    price: 299,
-    priceId: process.env.RAZORPAY_PLAN_BUSINESS || 'plan_business',
-    pdfsPerMonth: 10000,
-    storageGB: 100,
-    apiCallsPerMonth: 100000,
-    features: ['All Business features', '10,000 PDFs/month', 'White label', 'Team management', 'Dedicated support']
-  },
-  enterprise: {
-    name: 'Enterprise',
-    price: 999,
-    priceId: process.env.RAZORPAY_PLAN_ENTERPRISE || 'plan_enterprise',
+  premium: {
+    name: 'Premium',
+    price: 5, // $5/month (matching industry standard)
+    priceId: process.env.RAZORPAY_PLAN_PREMIUM || 'plan_premium',
     pdfsPerMonth: -1, // Unlimited
     storageGB: -1, // Unlimited
     apiCallsPerMonth: -1, // Unlimited
-    features: ['Unlimited everything', 'Custom features', 'Dedicated support', 'SLA guarantee']
+    maxFileSize: 200 * 1024 * 1024, // 200 MB per file
+    features: [
+      'Unlimited document processing',
+      'Up to 200 MB per file',
+      'Access to all PDF tools',
+      'Digital signature capabilities',
+      'Automated workflows',
+      'Ad-free experience',
+      'Desktop and mobile applications',
+      'Cloud storage integration',
+      'Batch processing support',
+      'Priority customer support',
+      'Email invoicing',
+      'Advanced OCR technology'
+    ]
+  },
+  business: {
+    name: 'Business',
+    price: 0, // Custom pricing - contact sales
+    customPricing: true,
+    pdfsPerMonth: -1, // Unlimited
+    storageGB: -1, // Unlimited
+    apiCallsPerMonth: -1, // Unlimited
+    maxFileSize: -1, // No file size limit
+    features: [
+      'Everything in Premium',
+      'No file size restrictions',
+      'Dedicated account manager',
+      'Single Sign-On (SSO) integration',
+      'Regional file processing',
+      'API access for automation',
+      'Custom integrations',
+      'Team management tools',
+      'Usage analytics dashboard',
+      'Enhanced security features',
+      'Priority technical support',
+      'Custom SLA agreements'
+    ]
   }
 };
 
