@@ -836,8 +836,10 @@
                 // Create XMLHttpRequest for upload progress
                 const xhr = new XMLHttpRequest();
                 
-                // Set timeout (30 seconds for faster feedback)
-                xhr.timeout = 30000;
+                // Set timeout based on file size (longer for larger files)
+                const fileSizeMB = file.size / (1024 * 1024);
+                const timeoutMs = Math.max(30000, Math.min(300000, fileSizeMB * 10000)); // 30s to 5min based on size
+                xhr.timeout = timeoutMs;
                 
                 xhr.upload.addEventListener('progress', function(e) {
                     if (e.lengthComputable) {
@@ -884,9 +886,16 @@
                                 // Store blob URL
                                 sessionStorage.setItem('pdfFileURL', blobURL);
                                 
-                                // Also store as base64 for more reliable access
+                                // Also store as base64 for more reliable access (chunked for large files)
                                 const uint8Array = new Uint8Array(fileData);
-                                const base64 = btoa(String.fromCharCode(...uint8Array));
+                                // Use chunked conversion to avoid "Maximum call stack size exceeded" for large files
+                                let base64 = '';
+                                const chunkSize = 8192; // Process in 8KB chunks
+                                for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                                    const chunk = uint8Array.subarray(i, i + chunkSize);
+                                    base64 += String.fromCharCode.apply(null, chunk);
+                                }
+                                base64 = btoa(base64);
                                 sessionStorage.setItem('pdfFileBase64', base64);
                                 
                                 // Update UI

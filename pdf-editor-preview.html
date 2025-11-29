@@ -1784,8 +1784,15 @@
                                 if (loadResponse.ok) {
                                     const pdfArrayBuffer = await loadResponse.arrayBuffer();
                                     
-                                    // Store PDF data
-                                    const base64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+                                    // Store PDF data (chunked for large files to avoid stack overflow)
+                                    const uint8Array = new Uint8Array(pdfArrayBuffer);
+                                    let base64 = '';
+                                    const chunkSize = 8192; // Process in 8KB chunks
+                                    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                                        const chunk = uint8Array.subarray(i, i + chunkSize);
+                                        base64 += String.fromCharCode.apply(null, chunk);
+                                    }
+                                    base64 = btoa(base64);
                                     window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
                                     
                                     // Store in sessionStorage for fallback
@@ -1821,9 +1828,16 @@
                         try {
                             const pdfData = e.target.result;
                             
-                            // Store PDF data
+                            // Store PDF data (chunked for large files to avoid stack overflow)
                             const arrayBuffer = pdfData;
-                            const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+                            const uint8Array = new Uint8Array(arrayBuffer);
+                            let base64 = '';
+                            const chunkSize = 8192; // Process in 8KB chunks
+                            for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                                const chunk = uint8Array.subarray(i, i + chunkSize);
+                                base64 += String.fromCharCode.apply(null, chunk);
+                            }
+                            base64 = btoa(base64);
                             window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
                             
                             // Store in sessionStorage for persistence
@@ -1894,7 +1908,15 @@
                         const response = await fetch(pdfServerUrl);
                         if (response.ok) {
                             const arrayBuffer = await response.arrayBuffer();
-                            const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+                            // Chunked base64 conversion for large files
+                            const uint8Array = new Uint8Array(arrayBuffer);
+                            let base64 = '';
+                            const chunkSize = 8192; // Process in 8KB chunks
+                            for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                                const chunk = uint8Array.subarray(i, i + chunkSize);
+                                base64 += String.fromCharCode.apply(null, chunk);
+                            }
+                            base64 = btoa(base64);
                             window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
                             
                             // Store in sessionStorage for fallback (both blob URL and base64)
@@ -1939,8 +1961,15 @@
                         
                         const arrayBuffer = await response.arrayBuffer();
                         
-                        // Store as current PDF data
-                        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+                        // Store as current PDF data (chunked for large files)
+                        const uint8Array = new Uint8Array(arrayBuffer);
+                        let base64 = '';
+                        const chunkSize = 8192; // Process in 8KB chunks
+                        for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                            const chunk = uint8Array.subarray(i, i + chunkSize);
+                            base64 += String.fromCharCode.apply(null, chunk);
+                        }
+                        base64 = btoa(base64);
                         window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
                         window.pdfEditorVars.currentFileId = pdfFileId;
                         
