@@ -217,7 +217,7 @@ export async function initiateSubscriptionPurchase(planKey, billing = 'monthly',
   
   // Create Razorpay order
   try {
-    const apiUrl = `${API_BASE_URL}/api/subscriptions/create-order`;
+    const apiUrl = `${API_BASE_URL}/api/subscription/order`;
     console.log('Creating subscription order:', { apiUrl, plan: planKey, billing, userId });
     
     const response = await fetch(apiUrl, {

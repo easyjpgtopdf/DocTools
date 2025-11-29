@@ -306,30 +306,44 @@ function dispatchPendingAction(user) {
     return;
   }
 
+  // If already dispatched, don't dispatch again
+  if (action.dispatched) {
+    // Clear after a delay to prevent loops
+    setTimeout(() => {
+      clearPendingAction();
+    }, 2000);
+    return;
+  }
+
   const redirectTo = action.redirectTo;
   if (redirectTo) {
     const target = normalizeUrl(redirectTo);
     const current = normalizeUrl(window.location.href);
     if (target !== current) {
-      savePendingAction({ ...action, dispatched: false });
+      // Mark as dispatched before redirect to prevent loops
+      const updated = { ...action, dispatched: true };
+      savePendingAction(updated);
       window.location.href = target;
       return;
     }
   }
 
-  if (action.dispatched) {
-    return;
-  }
-
+  // Dispatch the event
   document.dispatchEvent(
     new CustomEvent('auth-action-resume', {
       detail: { action, user },
     })
   );
 
+  // Mark as dispatched and clear after a delay
   const updated = { ...action, dispatched: true };
   pendingAction = updated;
   savePendingAction(updated);
+  
+  // Clear pending action after 5 seconds to prevent redirect loops
+  setTimeout(() => {
+    clearPendingAction();
+  }, 5000);
 }
 
 let loginForms = [];

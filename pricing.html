@@ -576,9 +576,11 @@
       });
 
       // Listen for auth-action-resume event (dispatched by auth.js after login)
+      let authResumeProcessed = false;
       document.addEventListener('auth-action-resume', async (event) => {
         const { action, user } = event.detail;
-        if (action && action.type === 'subscription' && user) {
+        if (action && action.type === 'subscription' && user && !authResumeProcessed) {
+          authResumeProcessed = true;
           try {
             // Small delay to let page finish loading and Razorpay script load
             setTimeout(async () => {
@@ -586,20 +588,28 @@
                 await initiateSubscriptionPurchase(action.plan, action.billing, user.uid);
               } catch (error) {
                 console.error('Error auto-starting subscription:', error);
-                alert('Failed to start payment. Please try clicking the buy button again.');
+                // Don't show alert, just log - user can click button again
+                console.log('Subscription auto-start failed. User can click buy button to retry.');
+                authResumeProcessed = false; // Allow retry
               }
-            }, 1000);
+            }, 2000);
           } catch (e) {
             console.error('Error handling auth-action-resume:', e);
+            authResumeProcessed = false; // Allow retry
           }
         }
       });
 
       // If user returned from login and there is a pending subscription, auto-start it
+      // Only run once per page load
+      let pendingSubscriptionProcessed = false;
       (async function(){
         try {
           // Wait for auth to be ready
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          // Check if already processed
+          if (pendingSubscriptionProcessed) return;
           
           const pendingRaw = sessionStorage.getItem('pendingSubscription');
           if (!pendingRaw) return;
@@ -607,6 +617,7 @@
           const userId = await getCurrentUserId();
           
           if (userId) {
+            pendingSubscriptionProcessed = true;
             const pending = JSON.parse(pendingRaw);
             sessionStorage.removeItem('pendingSubscription');
             
@@ -616,9 +627,10 @@
                 await initiateSubscriptionPurchase(pending.plan, pending.billing, userId);
               } catch (error) {
                 console.error('Error auto-starting subscription:', error);
-                alert('Failed to start payment. Please try clicking the buy button again.');
+                // Don't show alert, just log - user can click button again
+                console.log('Subscription auto-start failed. User can click buy button to retry.');
               }
-            }, 1000);
+            }, 2000);
           }
         } catch (e) {
           console.error('Error processing pending subscription:', e);
