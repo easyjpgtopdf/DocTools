@@ -25,6 +25,21 @@
             --light-gray: #e9ecef;
             --surface: #ffffff;
             --border: rgba(67, 97, 238, 0.12);
+            --bg-primary: #f5f7ff;
+            --bg-secondary: #ffffff;
+            --text-primary: #1f1f2e;
+            --text-secondary: #6c757d;
+        }
+        
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2b2b2b;
+            --text-primary: #e5e5e5;
+            --text-secondary: #9ca3af;
+            --light: #1a1a1a;
+            --dark: #e5e5e5;
+            --surface: #2b2b2b;
+            --border: rgba(255, 255, 255, 0.1);
         }
 
         * {
@@ -35,18 +50,21 @@
             margin: 0;
             font-family: 'Hind', 'Poppins', 'Arial Unicode MS', 'Nirmala UI', 'Mangal', 'Arial', sans-serif;
             background: linear-gradient(180deg, rgba(67, 97, 238, 0.08), rgba(67, 97, 238, 0.02));
-            color: var(--dark);
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            transition: background 0.3s, color 0.3s;
         }
 
         header {
-            background: #ffffff;
+            background: var(--bg-secondary);
             box-shadow: 0 2px 12px rgba(15, 23, 42, 0.08);
             position: sticky;
             top: 0;
             z-index: 100;
+            transition: background 0.3s;
         }
 
         .container {
@@ -606,6 +624,209 @@
                 grid-column: 1 / -1;
             }
         }
+        
+        /* Subscription Management Styles */
+        .subscription-status {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .subscription-plan-badge {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .subscription-plan-badge #plan-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .plan-status-badge {
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            background: #4bb543;
+            color: white;
+        }
+        
+        .plan-status-badge.expired {
+            background: #dc3545;
+        }
+        
+        .plan-status-badge.trial {
+            background: #ff9800;
+        }
+        
+        .subscription-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        
+        .subscription-details p {
+            margin: 0;
+            color: var(--text-secondary);
+        }
+        
+        .subscription-details strong {
+            color: var(--text-primary);
+        }
+        
+        .usage-tracking-section {
+            margin: 32px 0;
+        }
+        
+        .usage-tracking-section h4 {
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+        
+        .usage-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+        
+        .usage-stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .usage-stat-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+        
+        .usage-stat-header i {
+            color: var(--primary);
+        }
+        
+        .usage-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+        
+        .usage-progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--light-gray);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .usage-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transition: width 0.3s;
+        }
+        
+        .usage-progress-fill.warning {
+            background: linear-gradient(90deg, #ff9800, #f57c00);
+        }
+        
+        .usage-progress-fill.danger {
+            background: linear-gradient(90deg, #dc3545, #c82333);
+        }
+        
+        .usage-charts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .usage-chart-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .usage-chart-card h5 {
+            margin: 0 0 16px 0;
+            color: var(--text-primary);
+        }
+        
+        .subscription-actions {
+            margin: 32px 0;
+            padding: 24px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+        
+        .subscription-actions h4 {
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .subscription-alerts {
+            margin-top: 24px;
+        }
+        
+        .alert {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .alert.warning {
+            background: rgba(255, 152, 0, 0.1);
+            border: 1px solid #ff9800;
+            color: #f57c00;
+        }
+        
+        .alert.danger {
+            background: rgba(220, 53, 69, 0.1);
+            border: 1px solid #dc3545;
+            color: #c82333;
+        }
+        
+        .alert.info {
+            background: rgba(67, 97, 238, 0.1);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+        
+        .theme-toggle-btn:hover {
+            background: rgba(67, 97, 238, 0.1);
+            border-color: rgba(67, 97, 238, 0.42);
+        }
+        
+        [data-theme="dark"] .theme-toggle-btn {
+            background: #2b2b2b;
+            border-color: #3a3a3a;
+            color: #e5e5e5;
+        }
+        
+        [data-theme="dark"] .theme-toggle-btn:hover {
+            background: #3a3a3a;
+            border-color: #4a4a4a;
+        }
     </style>
 <link href="css/header.css" rel="stylesheet"/>
 <link href="css/theme-modern.css" rel="stylesheet"/>
@@ -703,6 +924,12 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Theme Toggle Button -->
+                <button id="theme-toggle-btn" class="theme-toggle-btn" title="Toggle Light/Dark Theme" style="margin-right: 12px; padding: 10px 16px; border-radius: 999px; border: 1px solid rgba(67, 97, 238, 0.22); background: var(--bg-secondary); color: var(--primary); cursor: pointer; transition: all 0.2s;">
+                    <i class="fas fa-moon" id="theme-icon"></i>
+                    <span id="theme-text" style="margin-left: 8px;">Dark</span>
+                </button>
                 
                 <div id="user-menu" class="user-menu" data-open="false">
                     <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
@@ -873,22 +1100,93 @@
 </div>
 </div>
 <div class="dashboard-panel" id="dashboard-orders">
-<div class="dashboard-card" id="orders-card">
-<h3>Orders &amp; Subscriptions</h3>
-<ul class="order-list">
-<li class="order-item">
-<strong>Digital products activate instantly</strong>
-                                        Upcoming purchases will appear here with invoice IDs once you complete a donation or premium upgrade.
-                                    </li>
-<li class="order-item">
-<strong>Download receipts anytime</strong>
-                                        After a payment succeeds, use the link sent to your email or contact support for PDF invoices.
-                                    </li>
-</ul>
-<a class="inline-link-btn" href="refund-policy.html" rel="noopener" target="_blank">
-<i class="fas fa-receipt"></i>
-                                    View refund timelines
-                                </a>
+<div class="dashboard-panel" id="dashboard-orders">
+<div class="dashboard-card" id="subscription-card">
+<h3>Subscription Management</h3>
+<div id="subscription-status" class="subscription-status">
+<div class="subscription-plan-badge" id="plan-badge">
+<span id="plan-name">Free</span>
+<span id="plan-status" class="plan-status-badge">Active</span>
+</div>
+<div class="subscription-details">
+<p><strong>Current Plan:</strong> <span id="current-plan">Free</span></p>
+<p><strong>Status:</strong> <span id="subscription-status-text">Active</span></p>
+<p><strong>Expires At:</strong> <span id="subscription-expires">Never</span></p>
+<p><strong>Days Remaining:</strong> <span id="days-remaining">∞</span></p>
+</div>
+</div>
+
+<div class="usage-tracking-section">
+<h4>Usage Tracking</h4>
+<div class="usage-stats-grid">
+<div class="usage-stat-card">
+<div class="usage-stat-header">
+<i class="fas fa-file-pdf"></i>
+<span>PDFs This Month</span>
+</div>
+<div class="usage-stat-value">
+<span id="pdfs-used">0</span> / <span id="pdfs-limit">10</span>
+</div>
+<div class="usage-progress-bar">
+<div class="usage-progress-fill" id="pdfs-progress" style="width: 0%"></div>
+</div>
+</div>
+<div class="usage-stat-card">
+<div class="usage-stat-header">
+<i class="fas fa-database"></i>
+<span>Storage Used</span>
+</div>
+<div class="usage-stat-value">
+<span id="storage-used">0</span> GB / <span id="storage-limit">1</span> GB
+</div>
+<div class="usage-progress-bar">
+<div class="usage-progress-fill" id="storage-progress" style="width: 0%"></div>
+</div>
+</div>
+<div class="usage-stat-card">
+<div class="usage-stat-header">
+<i class="fas fa-code"></i>
+<span>API Calls This Month</span>
+</div>
+<div class="usage-stat-value">
+<span id="api-used">0</span> / <span id="api-limit">100</span>
+</div>
+<div class="usage-progress-bar">
+<div class="usage-progress-fill" id="api-progress" style="width: 0%"></div>
+</div>
+</div>
+</div>
+
+<div class="usage-charts">
+<div class="usage-chart-card">
+<h5>Daily Usage (Last 7 Days)</h5>
+<canvas id="daily-usage-chart" width="400" height="200"></canvas>
+</div>
+<div class="usage-chart-card">
+<h5>Monthly Usage (Last 6 Months)</h5>
+<canvas id="monthly-usage-chart" width="400" height="200"></canvas>
+</div>
+</div>
+</div>
+
+<div class="subscription-actions">
+<h4>Manage Subscription</h4>
+<div class="action-buttons">
+<a href="pricing.html" class="btn btn-primary">
+<i class="fas fa-arrow-up"></i> Upgrade Plan
+</a>
+<button id="cancel-subscription-btn" class="btn btn-outline" style="display: none;">
+<i class="fas fa-times"></i> Cancel Subscription
+</button>
+<button id="renew-subscription-btn" class="btn btn-outline" style="display: none;">
+<i class="fas fa-sync"></i> Renew Subscription
+</button>
+</div>
+</div>
+
+<div class="subscription-alerts" id="subscription-alerts">
+<!-- Alerts will be dynamically inserted here -->
+</div>
 </div>
 </div>
 <div class="dashboard-panel" id="dashboard-support">
@@ -1277,6 +1575,275 @@
         
         // Real-time update indicator
         console.log('🔄 Dashboard real-time updater initialized');
+        
+        // Load Subscription Data
+        async function loadSubscriptionData(user) {
+            try {
+                const apiBaseUrl = window.location.origin;
+                const token = await user.getIdToken();
+                
+                const response = await fetch(`${apiBaseUrl}/api/subscription/current`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.subscription) {
+                        updateSubscriptionUI(data.subscription);
+                        await loadUsageTracking(user);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load subscription:', error);
+            }
+        }
+        
+        function updateSubscriptionUI(subscription) {
+            document.getElementById('plan-name').textContent = subscription.planName || subscription.plan;
+            document.getElementById('current-plan').textContent = subscription.planName || subscription.plan;
+            document.getElementById('subscription-status-text').textContent = subscription.status;
+            
+            const statusBadge = document.getElementById('plan-status');
+            statusBadge.textContent = subscription.status;
+            statusBadge.className = 'plan-status-badge ' + (subscription.status === 'expired' ? 'expired' : subscription.status === 'trial' ? 'trial' : '');
+            
+            if (subscription.expiresAt) {
+                const expiresDate = new Date(subscription.expiresAt);
+                document.getElementById('subscription-expires').textContent = expiresDate.toLocaleDateString();
+                
+                const daysRemaining = Math.ceil((expiresDate - new Date()) / (1000 * 60 * 60 * 24));
+                document.getElementById('days-remaining').textContent = daysRemaining > 0 ? daysRemaining : 0;
+                
+                if (daysRemaining <= 7 && daysRemaining > 0) {
+                    showAlert('warning', `Your subscription expires in ${daysRemaining} days. Renew now to continue using premium features.`);
+                }
+            } else {
+                document.getElementById('subscription-expires').textContent = 'Never';
+                document.getElementById('days-remaining').textContent = '∞';
+            }
+            
+            // Update usage limits
+            if (subscription.usageLimits) {
+                document.getElementById('pdfs-limit').textContent = subscription.usageLimits.pdfsPerMonth === -1 ? '∞' : subscription.usageLimits.pdfsPerMonth;
+                document.getElementById('storage-limit').textContent = subscription.usageLimits.storageGB === -1 ? '∞' : subscription.usageLimits.storageGB;
+                document.getElementById('api-limit').textContent = subscription.usageLimits.apiCallsPerMonth === -1 ? '∞' : subscription.usageLimits.apiCallsPerMonth;
+            }
+            
+            // Show/hide action buttons
+            if (subscription.status === 'active' && subscription.plan !== 'free') {
+                document.getElementById('cancel-subscription-btn').style.display = 'inline-block';
+            }
+            if (subscription.status === 'expired' || subscription.status === 'cancelled') {
+                document.getElementById('renew-subscription-btn').style.display = 'inline-block';
+            }
+        }
+        
+        async function loadUsageTracking(user) {
+            try {
+                const apiBaseUrl = window.location.origin;
+                const token = await user.getIdToken();
+                
+                const response = await fetch(`${apiBaseUrl}/api/subscription/usage`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.usage) {
+                        updateUsageUI(data.usage);
+                        updateUsageCharts(data.dailyUsage, data.monthlyUsage);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load usage tracking:', error);
+            }
+        }
+        
+        function updateUsageUI(usage) {
+            // Update PDFs usage
+            const pdfsUsed = usage.currentUsage?.pdfsThisMonth || 0;
+            const pdfsLimit = usage.usageLimits?.pdfsPerMonth || 10;
+            document.getElementById('pdfs-used').textContent = pdfsUsed;
+            const pdfsPercent = pdfsLimit === -1 ? 0 : Math.min((pdfsUsed / pdfsLimit) * 100, 100);
+            const pdfsProgress = document.getElementById('pdfs-progress');
+            pdfsProgress.style.width = pdfsPercent + '%';
+            if (pdfsPercent >= 90) pdfsProgress.className = 'usage-progress-fill danger';
+            else if (pdfsPercent >= 70) pdfsProgress.className = 'usage-progress-fill warning';
+            
+            // Update Storage usage
+            const storageUsed = usage.currentUsage?.storageUsedGB || 0;
+            const storageLimit = usage.usageLimits?.storageGB || 1;
+            document.getElementById('storage-used').textContent = storageUsed.toFixed(2);
+            const storagePercent = storageLimit === -1 ? 0 : Math.min((storageUsed / storageLimit) * 100, 100);
+            const storageProgress = document.getElementById('storage-progress');
+            storageProgress.style.width = storagePercent + '%';
+            if (storagePercent >= 90) storageProgress.className = 'usage-progress-fill danger';
+            else if (storagePercent >= 70) storageProgress.className = 'usage-progress-fill warning';
+            
+            // Update API usage
+            const apiUsed = usage.currentUsage?.apiCallsThisMonth || 0;
+            const apiLimit = usage.usageLimits?.apiCallsPerMonth || 100;
+            document.getElementById('api-used').textContent = apiUsed;
+            const apiPercent = apiLimit === -1 ? 0 : Math.min((apiUsed / apiLimit) * 100, 100);
+            const apiProgress = document.getElementById('api-progress');
+            apiProgress.style.width = apiPercent + '%';
+            if (apiPercent >= 90) apiProgress.className = 'usage-progress-fill danger';
+            else if (apiPercent >= 70) apiProgress.className = 'usage-progress-fill warning';
+            
+            // Show alerts if limits exceeded
+            if (pdfsPercent >= 100 || storagePercent >= 100 || apiPercent >= 100) {
+                showAlert('danger', 'You have exceeded your usage limits. Please upgrade your plan or wait for the next billing cycle.');
+            } else if (pdfsPercent >= 90 || storagePercent >= 90 || apiPercent >= 90) {
+                showAlert('warning', 'You are approaching your usage limits. Consider upgrading your plan.');
+            }
+        }
+        
+        function updateUsageCharts(dailyUsage, monthlyUsage) {
+            // Simple chart implementation (can be enhanced with Chart.js)
+            const dailyCanvas = document.getElementById('daily-usage-chart');
+            const monthlyCanvas = document.getElementById('monthly-usage-chart');
+            
+            if (dailyCanvas && dailyUsage) {
+                const ctx = dailyCanvas.getContext('2d');
+                drawSimpleChart(ctx, dailyUsage, 'Daily PDF Usage');
+            }
+            
+            if (monthlyCanvas && monthlyUsage) {
+                const ctx = monthlyCanvas.getContext('2d');
+                drawSimpleChart(ctx, monthlyUsage, 'Monthly PDF Usage');
+            }
+        }
+        
+        function drawSimpleChart(ctx, data, label) {
+            const width = ctx.canvas.width;
+            const height = ctx.canvas.height;
+            const maxValue = Math.max(...data.map(d => d.value || 0), 1);
+            
+            ctx.clearRect(0, 0, width, height);
+            ctx.fillStyle = 'var(--text-secondary)';
+            ctx.font = '12px Arial';
+            ctx.fillText(label, 10, 20);
+            
+            const barWidth = width / data.length - 2;
+            data.forEach((item, index) => {
+                const barHeight = (item.value || 0) / maxValue * (height - 40);
+                ctx.fillStyle = 'var(--primary)';
+                ctx.fillRect(index * (barWidth + 2) + 10, height - barHeight - 20, barWidth, barHeight);
+            });
+        }
+        
+        function showAlert(type, message) {
+            const alertsContainer = document.getElementById('subscription-alerts');
+            if (!alertsContainer) return;
+            
+            const alert = document.createElement('div');
+            alert.className = `alert ${type}`;
+            alert.innerHTML = `<i class="fas fa-${type === 'danger' ? 'exclamation-triangle' : type === 'warning' ? 'exclamation-circle' : 'info-circle'}"></i><span>${message}</span>`;
+            alertsContainer.appendChild(alert);
+            
+            setTimeout(() => alert.remove(), 10000);
+        }
+        
+        // Cancel subscription handler
+        document.getElementById('cancel-subscription-btn')?.addEventListener('click', async function() {
+            if (!confirm('Are you sure you want to cancel your subscription? You will lose access to premium features at the end of your billing period.')) {
+                return;
+            }
+            
+            try {
+                const user = auth.currentUser;
+                if (!user) return;
+                
+                const token = await user.getIdToken();
+                const apiBaseUrl = window.location.origin;
+                
+                const response = await fetch(`${apiBaseUrl}/api/subscription/cancel`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        showAlert('info', 'Subscription cancelled successfully. You will retain access until the end of your billing period.');
+                        await loadSubscriptionData(user);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to cancel subscription:', error);
+                showAlert('danger', 'Failed to cancel subscription. Please try again or contact support.');
+            }
+        });
+        
+        // Load subscription data when user is authenticated
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                await loadSubscriptionData(user);
+            }
+        });
+        
+        // Theme Toggle Functionality
+        function initTheme() {
+            const savedTheme = localStorage.getItem('site-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeUI(savedTheme);
+            updateDashboardTheme(savedTheme);
+        }
+        
+        function updateThemeUI(theme) {
+            const themeIcon = document.getElementById('theme-icon');
+            const themeText = document.getElementById('theme-text');
+            
+            if (themeIcon && themeText) {
+                if (theme === 'light') {
+                    themeIcon.className = 'fas fa-sun';
+                    themeText.textContent = 'Light';
+                } else {
+                    themeIcon.className = 'fas fa-moon';
+                    themeText.textContent = 'Dark';
+                }
+            }
+        }
+        
+        function updateDashboardTheme(theme) {
+            // Update dashboard cards and panels
+            const cards = document.querySelectorAll('.dashboard-card, .dashboard-panel');
+            cards.forEach(card => {
+                if (theme === 'dark') {
+                    card.style.background = 'var(--bg-secondary)';
+                    card.style.color = 'var(--text-primary)';
+                } else {
+                    card.style.background = '';
+                    card.style.color = '';
+                }
+            });
+        }
+        
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('site-theme', newTheme);
+            updateThemeUI(newTheme);
+            updateDashboardTheme(newTheme);
+        }
+        
+        // Initialize theme on page load
+        initTheme();
+        
+        // Theme toggle button event listener
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        if (themeToggleBtn) {
+            themeToggleBtn.addEventListener('click', toggleTheme);
+        }
     </script>
     
 
