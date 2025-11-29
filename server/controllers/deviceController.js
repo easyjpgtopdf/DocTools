@@ -5,6 +5,7 @@
 
 const DeviceQuota = require('../models/DeviceQuota');
 const { asyncHandler } = require('../middleware/errorHandler');
+const mongoose = require('mongoose');
 
 // Free plan limits
 const FREE_LIMITS = {
@@ -46,6 +47,19 @@ async function checkDeviceQuota(req, res) {
         success: false,
         error: 'Device ID and fingerprint required',
         code: 'MISSING_DEVICE_INFO'
+      });
+    }
+    
+    // Check if MongoDB is connected
+    if (mongoose.connection.readyState !== 1) {
+      console.warn('⚠️ MongoDB not connected, allowing operation (fail-open)');
+      return res.json({
+        success: true,
+        allowed: true,
+        remaining: 999,
+        limit: 40,
+        currentUsage: { count: 0, uploadMB: 0, downloadMB: 0 },
+        message: 'Database unavailable, allowing operation'
       });
     }
     
@@ -111,10 +125,19 @@ async function checkDeviceQuota(req, res) {
     });
   } catch (error) {
     console.error('Check device quota error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to check quota',
-      code: 'QUOTA_CHECK_ERROR'
+    // Fail-open: Allow operation if database/backend error
+    // Better UX than blocking users when service is down
+    res.json({
+      success: true,
+      allowed: true,
+      remaining: 999,
+      limit: 40, // Default free limit
+      currentUsage: {
+        count: 0,
+        uploadMB: 0,
+        downloadMB: 0
+      },
+      message: 'Quota check unavailable, allowing operation'
     });
   }
 }
