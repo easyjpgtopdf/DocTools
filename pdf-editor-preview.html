@@ -91,6 +91,49 @@
     </script>
     
     <style>
+        /* Theme Variables */
+        :root {
+            --bg-primary: #f5f7ff;
+            --bg-secondary: #ffffff;
+            --text-primary: #0b1630;
+            --text-secondary: #64748b;
+            --border-color: #e0e0e0;
+            --editor-bg: #2b2b2b;
+            --editor-panel-bg: #1e1e1e;
+            --editor-text: #e5e5e5;
+            --editor-border: #3a3a3a;
+            --editor-hover: #2d2d2d;
+            --editor-active: #0078d4;
+        }
+        
+        [data-theme="light"] {
+            --bg-primary: #f5f7ff;
+            --bg-secondary: #ffffff;
+            --text-primary: #0b1630;
+            --text-secondary: #64748b;
+            --border-color: #e0e0e0;
+            --editor-bg: #ffffff;
+            --editor-panel-bg: #f8f9fa;
+            --editor-text: #0b1630;
+            --editor-border: #dee2e6;
+            --editor-hover: #e9ecef;
+            --editor-active: #0078d4;
+        }
+        
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2b2b2b;
+            --text-primary: #e5e5e5;
+            --text-secondary: #9ca3af;
+            --border-color: #3a3a3a;
+            --editor-bg: #2b2b2b;
+            --editor-panel-bg: #1e1e1e;
+            --editor-text: #e5e5e5;
+            --editor-border: #3a3a3a;
+            --editor-hover: #2d2d2d;
+            --editor-active: #0078d4;
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -98,13 +141,14 @@
         }
         
         body {
-            background-color: #f5f7ff;
-            color: #0b1630;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
             line-height: 1.6;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.3s, color 0.3s;
         }
         
         .container {
@@ -135,21 +179,23 @@
             display: flex;
             height: calc(100vh - 200px);
             min-height: 800px;
-            background: #2b2b2b;
+            background: var(--editor-bg);
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            transition: background-color 0.3s;
         }
         
         /* Left Tools Panel */
         .tools-panel {
             width: 240px;
             min-width: 240px;
-            background: #1e1e1e;
-            border-right: 1px solid #3a3a3a;
+            background: var(--editor-panel-bg);
+            border-right: 1px solid var(--editor-border);
             display: flex;
             flex-direction: column;
             overflow-y: auto;
+            transition: background-color 0.3s, border-color 0.3s;
         }
         
         .tool-group {
@@ -171,7 +217,7 @@
             align-items: center;
             gap: 10px;
             padding: 10px 12px;
-            color: #e5e5e5;
+            color: var(--editor-text);
             cursor: pointer;
             border-radius: 4px;
             transition: all 0.2s;
@@ -179,11 +225,11 @@
         }
         
         .tool-item:hover {
-            background: #2d2d2d;
+            background: var(--editor-hover);
         }
         
         .tool-item.active {
-            background: #0078d4;
+            background: var(--editor-active);
             color: white;
         }
         
@@ -202,20 +248,21 @@
         }
         
         .preview-toolbar {
-            background: #2b2b2b;
-            border-bottom: 1px solid #3a3a3a;
+            background: var(--editor-bg);
+            border-bottom: 1px solid var(--editor-border);
             padding: 8px 15px;
             display: flex;
             align-items: center;
             gap: 10px;
             flex-wrap: wrap;
+            transition: background-color 0.3s, border-color 0.3s;
         }
         
         .preview-toolbar-btn {
             padding: 6px 12px;
             background: transparent;
-            color: #e5e5e5;
-            border: 1px solid #3a3a3a;
+            color: var(--editor-text);
+            border: 1px solid var(--editor-border);
             border-radius: 4px;
             cursor: pointer;
             font-size: 12px;
@@ -226,8 +273,8 @@
         }
         
         .preview-toolbar-btn:hover {
-            background: #3a3a3a;
-            border-color: #4a4a4a;
+            background: var(--editor-hover);
+            border-color: var(--editor-active);
         }
         
         .preview-toolbar-btn.active {
@@ -991,6 +1038,11 @@
                             Next <i class="fas fa-chevron-right"></i>
                         </button>
                         <div style="flex: 1;"></div>
+                        <!-- Theme Toggle -->
+                        <button class="preview-toolbar-btn" id="theme-toggle-btn" title="Toggle Light/Dark Theme" style="margin-right: 10px;">
+                            <i class="fas fa-moon" id="theme-icon"></i>
+                            <span id="theme-text">Dark</span>
+                        </button>
                         <!-- Search Bar -->
                         <div style="display: flex; align-items: center; gap: 5px; margin-right: 10px; background: #2d2d2d; border: 1px solid #3a3a3a; border-radius: 4px; padding: 2px;">
                             <input type="text" id="quick-search-input" placeholder="Search in PDF..." style="padding: 4px 8px; border: none; background: transparent; color: #e5e5e5; font-size: 12px; width: 150px; outline: none;" />
@@ -2569,16 +2621,24 @@
                     try {
                         updateProgress(50, 'Processing with server OCR...');
                         
-                        // Convert PDF page to base64 for OCR
-                        const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(await window.pdfEditorVars.pdfDoc.getPage(window.pdfEditorVars.currentPage).getPageInfo().data)));
+                        // Use canvas image data for OCR (already rendered above)
+                        // Convert canvas to base64 image for OCR
+                        const imageBase64 = canvas.toDataURL('image/png');
                         
-                        result = await callBackendAPI('/api/pdf/ocr', {
+                        // Get API base URL
+                        const apiBaseUrl = getApiBaseUrl();
+                        const ocrUrl = `${apiBaseUrl}/api/pdf/ocr`;
+                        
+                        result = await fetch(ocrUrl, {
                             method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                pdfData: window.pdfEditorVars.currentPdfData,
-                                pageIndex: window.pdfEditorVars.currentPage - 1
+                                imageData: imageBase64, // Send rendered image
+                                pdfData: window.pdfEditorVars.currentPdfData, // Also send PDF data if needed
+                                pageIndex: window.pdfEditorVars.currentPage - 1,
+                                fileName: sessionStorage.getItem('pdfFileName') || 'document.pdf'
                             })
-                        });
+                        }).then(r => r.json());
                         
                         if (result.success) {
                             updateProgress(80, 'Receiving OCR results...');
@@ -5148,6 +5208,49 @@
             }
             
             console.log('Button event listeners initialization complete!');
+        }
+        
+        // Theme Toggle Functionality
+        function initTheme() {
+            // Get saved theme preference or default to dark
+            const savedTheme = localStorage.getItem('pdf-editor-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeUI(savedTheme);
+        }
+        
+        function updateThemeUI(theme) {
+            const themeIcon = document.getElementById('theme-icon');
+            const themeText = document.getElementById('theme-text');
+            
+            if (themeIcon && themeText) {
+                if (theme === 'light') {
+                    themeIcon.className = 'fas fa-sun';
+                    themeText.textContent = 'Light';
+                } else {
+                    themeIcon.className = 'fas fa-moon';
+                    themeText.textContent = 'Dark';
+                }
+            }
+        }
+        
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('pdf-editor-theme', newTheme);
+            updateThemeUI(newTheme);
+            
+            console.log('Theme changed to:', newTheme);
+        }
+        
+        // Initialize theme on page load
+        initTheme();
+        
+        // Theme toggle button event listener
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        if (themeToggleBtn) {
+            themeToggleBtn.addEventListener('click', toggleTheme);
         }
         
         // Initialize - ensure DOM is ready
