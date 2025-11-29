@@ -10,11 +10,29 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     /* Pricing Page Specific Styles */
+    :root {
+      --bg-primary: #f5f7ff;
+      --bg-secondary: #ffffff;
+      --text-primary: #0b1630;
+      --text-secondary: #56607a;
+      --border-color: #e2e6ff;
+    }
+    
+    [data-theme="dark"] {
+      --bg-primary: #1a1a1a;
+      --bg-secondary: #2b2b2b;
+      --text-primary: #e5e5e5;
+      --text-secondary: #9ca3af;
+      --border-color: #3a3a3a;
+    }
+    
     body {
-      background: #f5f7ff;
+      background: var(--bg-primary);
+      color: var(--text-primary);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      transition: background 0.3s, color 0.3s;
     }
     
     main {
@@ -34,13 +52,13 @@
     
     .pricing-header h1 {
       font-size: 2.5rem;
-      color: #0b1630;
+      color: var(--text-primary);
       margin-bottom: 12px;
     }
     
     .pricing-header p {
       font-size: 1.1rem;
-      color: #56607a;
+      color: var(--text-secondary);
     }
     
     .plans {
@@ -52,15 +70,16 @@
     }
     
     .plan {
-      background: #fff;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
       padding: 32px 24px;
       border-radius: 16px;
       flex: 1;
       min-width: 280px;
       max-width: 380px;
-      border: 2px solid rgba(15,30,70,0.08);
+      border: 2px solid var(--border-color);
       box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      transition: transform 0.3s, box-shadow 0.3s;
+      transition: transform 0.3s, box-shadow 0.3s, background 0.3s, color 0.3s;
     }
     
     .plan:hover {
@@ -90,7 +109,7 @@
     .plan h3 {
       margin: 0 0 12px 0;
       font-size: 1.8rem;
-      color: #0b1630;
+      color: var(--text-primary);
     }
     
     .plan .price {
@@ -102,13 +121,13 @@
     
     .plan .price span {
       font-size: 1rem;
-      color: #56607a;
+      color: var(--text-secondary);
       font-weight: 400;
     }
     
     .plan p {
       margin: 8px 0;
-      color: #34456b;
+      color: var(--text-secondary);
       line-height: 1.6;
     }
     
@@ -120,7 +139,7 @@
     
     .plan ul li {
       padding: 8px 0;
-      color: #34456b;
+      color: var(--text-secondary);
       display: flex;
       align-items: center;
       gap: 8px;
@@ -175,8 +194,24 @@
       padding: 20px;
       background: rgba(67, 97, 238, 0.05);
       border-radius: 12px;
-      color: #56607a;
+      color: var(--text-secondary);
       text-align: center;
+    }
+    
+    .theme-toggle-btn:hover {
+      background: rgba(67, 97, 238, 0.1);
+      border-color: rgba(67, 97, 238, 0.42);
+    }
+    
+    [data-theme="dark"] .theme-toggle-btn {
+      background: #2b2b2b;
+      border-color: #3a3a3a;
+      color: #e5e5e5;
+    }
+    
+    [data-theme="dark"] .theme-toggle-btn:hover {
+      background: #3a3a3a;
+      border-color: #4a4a4a;
     }
     
     @media (max-width: 768px) {
@@ -286,6 +321,12 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Theme Toggle Button -->
+                <button id="theme-toggle-btn" class="theme-toggle-btn" title="Toggle Light/Dark Theme" style="margin-right: 12px; padding: 10px 16px; border-radius: 999px; border: 1px solid rgba(67, 97, 238, 0.22); background: white; color: #4361ee; cursor: pointer; transition: all 0.2s;">
+                    <i class="fas fa-moon" id="theme-icon"></i>
+                    <span id="theme-text" style="margin-left: 8px;">Dark</span>
+                </button>
                 
                 <div id="user-menu" class="user-menu" data-open="false">
                     <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
@@ -583,6 +624,49 @@
           console.error('Error processing pending subscription:', e);
         }
       })();
+    </script>
+    
+    <!-- Theme Toggle Script -->
+    <script>
+      // Theme Toggle Functionality
+      function initTheme() {
+        const savedTheme = localStorage.getItem('site-theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        updateThemeUI(savedTheme);
+      }
+      
+      function updateThemeUI(theme) {
+        const themeIcon = document.getElementById('theme-icon');
+        const themeText = document.getElementById('theme-text');
+        
+        if (themeIcon && themeText) {
+          if (theme === 'light') {
+            themeIcon.className = 'fas fa-sun';
+            themeText.textContent = 'Light';
+          } else {
+            themeIcon.className = 'fas fa-moon';
+            themeText.textContent = 'Dark';
+          }
+        }
+      }
+      
+      function toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('site-theme', newTheme);
+        updateThemeUI(newTheme);
+      }
+      
+      // Initialize theme on page load
+      initTheme();
+      
+      // Theme toggle button event listener
+      const themeToggleBtn = document.getElementById('theme-toggle-btn');
+      if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', toggleTheme);
+      }
     </script>
   </div>
 

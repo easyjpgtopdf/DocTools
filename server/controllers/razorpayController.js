@@ -105,8 +105,173 @@ const getPaymentDetails = async (req, res) => {
   }
 };
 
+// Handle Razorpay webhook events
+const handleWebhook = async (req, res) => {
+  try {
+    const webhookSignature = req.headers['x-razorpay-signature'];
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET;
+    
+    // Parse raw body (it's a Buffer when using express.raw())
+    const bodyString = req.body.toString('utf8');
+    const body = JSON.parse(bodyString);
+    
+    // Verify webhook signature
+    const crypto = require('crypto');
+    const generatedSignature = crypto
+      .createHmac('sha256', webhookSecret)
+      .update(bodyString)
+      .digest('hex');
+    
+    if (generatedSignature !== webhookSignature) {
+      console.error('Invalid webhook signature');
+      return res.status(400).json({ success: false, error: 'Invalid signature' });
+    }
+    
+    const event = body.event;
+    const payload = body.payload;
+    
+    console.log('Razorpay webhook event:', event);
+    
+    // Handle different webhook events
+    switch (event) {
+      case 'payment.captured':
+        await handlePaymentCaptured(payload.payment.entity);
+        break;
+      case 'payment.failed':
+        await handlePaymentFailed(payload.payment.entity);
+        break;
+      case 'subscription.activated':
+        await handleSubscriptionActivated(payload.subscription.entity);
+        break;
+      case 'subscription.cancelled':
+        await handleSubscriptionCancelled(payload.subscription.entity);
+        break;
+      case 'subscription.charged':
+        await handleSubscriptionCharged(payload.subscription.entity);
+        break;
+      default:
+        console.log('Unhandled webhook event:', event);
+    }
+    
+    res.status(200).json({ success: true, received: true });
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// Handle payment captured
+async function handlePaymentCaptured(payment) {
+  try {
+    const User = require('../models/User');
+    const AuditLog = require('../models/AuditLog');
+    
+    // Find user by payment notes
+    const userId = payment.notes?.userId;
+    if (!userId) {
+      console.warn('No userId in payment notes');
+      return;
+    }
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      console.warn('User not found:', userId);
+      return;
+    }
+    
+    // Update subscription based on payment amount
+    const plan = payment.notes?.plan || 'basic';
+    user.subscriptionPlan = plan;
+    user.subscriptionStatus = 'active';
+    user.subscriptionExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    
+    await user.save();
+    
+    // Log event
+    await AuditLog.create({
+      userId: user._id,
+      action: 'payment_captured',
+      resourceType: 'payment',
+      resourceId: payment.id,
+      details: { amount: payment.amount, currency: payment.currency, plan },
+      status: 'success'
+    });
+    
+    console.log('Payment captured and subscription activated for user:', userId);
+  } catch (error) {
+    console.error('Error handling payment captured:', error);
+  }
+}
+
+// Handle payment failed
+async function handlePaymentFailed(payment) {
+  try {
+    const AuditLog = require('../models/AuditLog');
+    const userId = payment.notes?.userId;
+    
+    if (userId) {
+      await AuditLog.create({
+        userId: userId,
+        action: 'payment_failed',
+        resourceType: 'payment',
+        resourceId: payment.id,
+        details: { amount: payment.amount, error: payment.error_description },
+        status: 'failed'
+      });
+    }
+  } catch (error) {
+    console.error('Error handling payment failed:', error);
+  }
+}
+
+// Handle subscription activated
+async function handleSubscriptionActivated(subscription) {
+  try {
+    const User = require('../models/User');
+    const userId = subscription.customer_id;
+    
+    const user = await User.findOne({ email: subscription.customer_email });
+    if (user) {
+      user.subscriptionStatus = 'active';
+      user.subscriptionExpiresAt = new Date(subscription.end_at * 1000);
+      await user.save();
+    }
+  } catch (error) {
+    console.error('Error handling subscription activated:', error);
+  }
+}
+
+// Handle subscription cancelled
+async function handleSubscriptionCancelled(subscription) {
+  try {
+    const User = require('../models/User');
+    const user = await User.findOne({ email: subscription.customer_email });
+    if (user) {
+      user.subscriptionStatus = 'cancelled';
+      await user.save();
+    }
+  } catch (error) {
+    console.error('Error handling subscription cancelled:', error);
+  }
+}
+
+// Handle subscription charged
+async function handleSubscriptionCharged(subscription) {
+  try {
+    const User = require('../models/User');
+    const user = await User.findOne({ email: subscription.customer_email });
+    if (user) {
+      user.subscriptionExpiresAt = new Date(subscription.end_at * 1000);
+      await user.save();
+    }
+  } catch (error) {
+    console.error('Error handling subscription charged:', error);
+  }
+}
+
 module.exports = {
   createOrder,
   verifyPayment,
-  getPaymentDetails
+  getPaymentDetails,
+  handleWebhook
 };
