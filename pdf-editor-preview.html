@@ -1774,10 +1774,12 @@
                             const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
                             window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
                             
-                            // Store in sessionStorage for fallback
+                            // Store in sessionStorage for fallback (both blob URL and base64)
                             const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
                             const blobURL = URL.createObjectURL(blob);
                             sessionStorage.setItem('pdfFileURL', blobURL);
+                            // Also store base64 as fallback (more reliable)
+                            sessionStorage.setItem('pdfFileBase64', base64);
                             
                             if (pdfFileId) {
                                 window.pdfEditorVars.currentFileId = pdfFileId;
@@ -1819,10 +1821,12 @@
                         window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
                         window.pdfEditorVars.currentFileId = pdfFileId;
                         
-                        // Store in sessionStorage for fallback
+                        // Store in sessionStorage for fallback (both blob URL and base64)
                         const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
                         const blobURL = URL.createObjectURL(blob);
                         sessionStorage.setItem('pdfFileURL', blobURL);
+                        // Also store base64 as fallback (more reliable)
+                        sessionStorage.setItem('pdfFileBase64', base64);
                         
                         // Render PDF
                         await renderPDF(arrayBuffer);
@@ -2071,51 +2075,116 @@
             }
         }
         
-        // Render specific page (with memory leak fix)
+        // Render specific page (with memory leak fix and improved quality)
         let currentPageRenderTask = null;
         async function renderPage(pageNumber) {
             try {
                 const pdfDoc = window.pdfEditorVars.pdfDoc;
-                if (!pdfDoc) return;
+                if (!pdfDoc) {
+                    console.warn('PDF document not loaded');
+                    return;
+                }
+                
+                // Validate page number
+                if (pageNumber < 1 || pageNumber > pdfDoc.numPages) {
+                    console.warn(`Invalid page number: ${pageNumber}`);
+                    return;
+                }
                 
                 // Cancel previous render task to prevent memory leaks
                 if (currentPageRenderTask) {
-                    currentPageRenderTask.cancel();
+                    try {
+                        currentPageRenderTask.cancel();
+                    } catch (e) {
+                        // Ignore cancel errors
+                    }
                     currentPageRenderTask = null;
                 }
                 
                 // Clear canvas and layers
                 const context = pdfCanvas.getContext('2d');
-                context.clearRect(0, 0, pdfCanvas.width, pdfCanvas.height);
+                if (context) {
+                    context.clearRect(0, 0, pdfCanvas.width, pdfCanvas.height);
+                }
                 if (textLayer) textLayer.innerHTML = '';
                 if (deletionLayer) deletionLayer.innerHTML = '';
                 
-                const page = await pdfDoc.getPage(pageNumber);
+                // Get page with error handling
+                let page;
+                try {
+                    page = await pdfDoc.getPage(pageNumber);
+                } catch (error) {
+                    console.error(`Error getting page ${pageNumber}:`, error);
+                    showError(`Failed to load page ${pageNumber}`);
+                    return;
+                }
+                
+                // Calculate device pixel ratio for high DPI displays
+                const dpr = window.devicePixelRatio || 1;
+                const scale = window.pdfEditorVars.scale * dpr;
+                
                 const viewport = page.getViewport({ scale: window.pdfEditorVars.scale });
                 
+                // Set canvas size with high DPI support
                 pdfCanvas.height = viewport.height;
                 pdfCanvas.width = viewport.width;
                 
-                // Create render task
+                // Scale canvas for high DPI
+                if (dpr > 1) {
+                    pdfCanvas.style.width = viewport.width + 'px';
+                    pdfCanvas.style.height = viewport.height + 'px';
+                    context.scale(dpr, dpr);
+                }
+                
+                // Create render task with improved quality settings
                 const renderTask = page.render({
                     canvasContext: context,
-                    viewport: viewport
+                    viewport: viewport,
+                    // Enable text selection and better rendering
+                    enableWebGL: false, // Disable WebGL for better compatibility
+                    renderInteractiveForms: true
                 });
                 currentPageRenderTask = renderTask;
                 
-                await renderTask.promise;
+                // Wait for render with timeout
+                await Promise.race([
+                    renderTask.promise,
+                    new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Render timeout')), 30000)
+                    )
+                ]);
                 currentPageRenderTask = null;
                 
                 // Extract and render text layer
-                const textContent = await page.getTextContent();
-                renderTextLayer(textContent, viewport, pageNumber);
+                try {
+                    const textContent = await page.getTextContent();
+                    renderTextLayer(textContent, viewport, pageNumber);
+                } catch (textError) {
+                    console.warn('Error rendering text layer:', textError);
+                    // Continue without text layer if it fails
+                }
                 
-                // Update page number
+                // Update page number and UI
+                window.pdfEditorVars.currentPage = pageNumber;
                 if (pageNum) pageNum.textContent = pageNumber;
+                if (pageCount) pageCount.textContent = pdfDoc.numPages;
+                
+                // Update thumbnails selection
+                updateThumbnailSelection();
+                
+                // Update status bar
+                updateStatusBar(null, pageNumber, pdfDoc.numPages, Math.round(window.pdfEditorVars.scale * 100), null);
+                
+                // Update page buttons
+                updatePageButtons();
                 
                 // Clean up page object (help with memory)
                 if (page.cleanup) {
-                    page.cleanup();
+                    try {
+                        page.cleanup();
+                    } catch (e) {
+                        // Ignore cleanup errors
+                    }
                 }
                 
                 // Initialize deletion layer
@@ -2124,15 +2193,14 @@
                     deletionLayer.style.height = viewport.height + 'px';
                 }
                 
-                window.pdfEditorVars.currentPage = pageNumber;
-                if (pageNum) pageNum.textContent = pageNumber;
-                
+                // Update zoom level display
                 if (zoomLevel) {
                     zoomLevel.textContent = Math.round(window.pdfEditorVars.scale * 100) + '%';
                 }
                 
             } catch (error) {
                 console.error('Error rendering page:', error);
+                showError(`Failed to render page ${pageNumber}: ${error.message}`);
             }
         }
         
@@ -5084,20 +5152,15 @@
         
         // Initialize - ensure DOM is ready
         async function initPDFEditor() {
-            // Check for PDF from edit-pdf.html on page load
-            await checkForStoredPDF();
-            
-            // Initialize button event listeners
+            // Initialize button event listeners first
             initButtonEventListeners();
             
-            // Try to load PDF from storage
-            const pdfFileURL = sessionStorage.getItem('pdfFileURL');
-            if (pdfFileURL) {
-                fetch(pdfFileURL)
-                    .then(r => r.arrayBuffer())
-                    .then(data => renderPDF(data))
-                    .catch(e => console.warn('Could not load PDF from storage:', e));
-            }
+            // Check for PDF from edit-pdf.html on page load
+            // This function handles all PDF loading scenarios (server URL, file ID, blob URL, base64)
+            await checkForStoredPDF();
+            
+            // Note: checkForStoredPDF() already handles all PDF loading cases properly
+            // No need for duplicate blob URL fetching here - it causes errors
             
             // Ensure preview container is visible
             if (previewContainer) {
