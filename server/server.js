@@ -25,6 +25,7 @@ const pagesRoutes = require('./routes/pages');
 const authRoutes = require('./routes/auth');
 const subscriptionRoutes = require('./routes/subscription');
 const razorpayRoutes = require('./routes/razorpayRoutes');
+const deviceRoutes = require('./routes/device');
 
 // Initialize Express app
 const app = express();
@@ -75,6 +76,7 @@ app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/pdf', pdfRoutes);
 app.use('/api/pdf/pages', pagesRoutes);
 app.use('/api/razorpay', razorpayRoutes);
+app.use('/api/device', deviceRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

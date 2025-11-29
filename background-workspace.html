@@ -13,6 +13,7 @@
       }
     }
   </script>
+<script type="module" src="js/device-fingerprint.js"></script>
 <style>
     :root {
       --primary: #4361ee;
@@ -341,8 +342,7 @@
 </div>
 <div class="status-card">
 <strong>✓ Smart Processing System</strong>
-<p>• <strong>0-2 MB</strong>: IMG.LY AI (Browser) - Free</p>
-<p>• <strong>2+ MB</strong>: Google Cloud Run (Rembg U²-Net) - Premium</p>
+<p>• <strong>All sizes</strong>: Google Cloud Run (Rembg U²-Net) - Professional AI</p>
 <p>• Free Upload: Up to 1 MB per image (10 MB monthly limit)</p>
 <p>• Free Download: Up to 100 KB (auto-compressed, 2 MB monthly limit)</p>
 <p>• Premium: Up to 50 MB per image (1 GB monthly upload/download limit)</p>
@@ -371,7 +371,7 @@
 </li>
 <li style="display: flex; align-items: start; gap: 8px;">
 <i class="fas fa-check-circle" style="color: #059669; margin-top: 2px;"></i>
-<span><strong>Processing:</strong> 0-2 MB files (IMG.LY AI - Browser)</span>
+<span><strong>Processing:</strong> Google Cloud Run (Rembg U²-Net) - All sizes</span>
 </li>
 <li style="display: flex; align-items: start; gap: 8px;">
 <i class="fas fa-check-circle" style="color: #059669; margin-top: 2px;"></i>
@@ -569,8 +569,8 @@
     const FREE_MONTHLY_DOWNLOAD_LIMIT = 2 * 1024 * 1024; // 2 MB - Free monthly download limit
     const FREE_PREVIEW_LIMIT = 100 * 1024; // 100 KB - Free preview without compression
     const FREE_PREVIEW_MAX = 400 * 1024; // 400 KB - Max preview size for free users
-    const IMGLY_MAX_SIZE = 2 * 1024 * 1024; // 2 MB - use imagly up to this
     const FREE_QUOTA_PER_MONTH = 40; // 40 images per month for free users
+    // All processing now uses Google Cloud Run (IMG.LY removed)
 
     const previewStage = document.getElementById('previewStage');
     const previewOriginal = document.getElementById('previewOriginal');
@@ -584,12 +584,9 @@
     let resultCanvas = null;
     let resultContext = null;
     let resultDataURL = null;
-    let removeBackgroundFn = null;
-    let preloadFn = null;
-    let modelPreloaded = false;
-    let libraryLoading = false;
     let currentUser = null;
     let userSubscription = null;
+    let deviceInfo = null;
 
     // Check user subscription status (only if Firebase available)
     async function checkUserSubscription(user) {
@@ -638,30 +635,21 @@
       console.log('ℹ️ Running without authentication - all features available');
     }
 
-    // Load IMG.LY library
-    async function ensureLibraryLoaded() {
-      if (removeBackgroundFn) return true;
-      if (libraryLoading) {
-        while (libraryLoading) {
-          await new Promise(r => setTimeout(r, 100));
-        }
-        return !!removeBackgroundFn;
-      }
-
+    // Initialize device fingerprinting
+    async function initDeviceTracking() {
       try {
-        libraryLoading = true;
-        console.log('🚀 Loading AI library...');
-        ({ removeBackground: removeBackgroundFn, preload: preloadFn } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/index.mjs'));
-        console.log('✅ AI library loaded successfully!');
-        libraryLoading = false;
+        const { getDeviceId, checkDeviceQuota } = await import('./js/device-fingerprint.js');
+        deviceInfo = await getDeviceId();
+        console.log('✅ Device tracking initialized:', deviceInfo.deviceId);
         return true;
-      } catch (err) {
-        libraryLoading = false;
-        console.error('❌ Failed to load AI library:', err);
-        showError('AI library failed to load. Please check your internet connection and refresh the page.');
+      } catch (error) {
+        console.warn('⚠️ Device fingerprinting not available:', error);
         return false;
       }
     }
+    
+    // Initialize on page load
+    initDeviceTracking();
 
     function dataURLToBlob(dataURL) {
       const [meta, encoded] = dataURL.split(',');
@@ -752,35 +740,21 @@
     // Test connection immediately
     testBackendConnection();
     
-    // Smart routing based on file size
+    // All processing uses Google Cloud Run (IMG.LY removed)
     function getProcessingConfig(fileSize) {
       const sizeMB = fileSize / (1024 * 1024);
       
-      // Tier 1: IMG.LY (Browser AI) - 0 to 2 MB
-      if (fileSize <= IMGLY_MAX_SIZE) {
-        return {
-          useBackend: false,
-          model: 'medium',
-          quality: 1.0,
-          description: 'IMG.LY AI - Professional Quality',
-          message: `Processing ${sizeMB.toFixed(1)} MB with IMG.LY AI`,
-          tier: 'imagly',
-          info: '⚡ Fast & Free - Professional quality'
-        };
-      } 
-      // Tier 2: Google Cloud Run (Rembg U²-Net) - Above 2 MB
-      else {
-        return {
-          useBackend: true,
-          backendUrl: CLOUDRUN_API_URL,
-          timeout: 300000,
-          description: 'Google Cloud Run - Rembg U²-Net',
-          message: `Processing ${sizeMB.toFixed(1)} MB with Cloud AI (Premium)`,
-          tier: 'cloudrun',
-          info: '☁️ Premium Processing - Rembg U²-Net Latest',
-          quality: 1.0
-        };
-      }
+      // All files processed via Google Cloud Run
+      return {
+        useBackend: true,
+        backendUrl: CLOUDRUN_API_URL,
+        timeout: 300000,
+        description: 'Google Cloud Run - Rembg U²-Net',
+        message: `Processing ${sizeMB.toFixed(1)} MB with Google Cloud AI`,
+        tier: 'cloudrun',
+        info: '☁️ Google Cloud Processing - Rembg U²-Net Latest',
+        quality: 1.0
+      };
     }
 
     // Process image using Google Cloud Run backend
@@ -855,84 +829,35 @@
         
         statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">${config.message}...</div>`;
 
-        let resultUrl = null;
-        let processingMethod = 'IMG.LY AI';
-
-        // Route 1: Backend Processing (2+ MB files)
-        if (config.useBackend) {
-          statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">${config.info}</div>`;
-          
-          const backendResult = await processWithBackend(dataURL, config.backendUrl, config);
-          
-          if (backendResult.success) {
-            resultUrl = backendResult.dataUrl;
-            processingMethod = backendResult.processedWith || config.description;
-            console.log('✅ Backend processing successful:', {
-              tier: config.tier,
-              outputSize: backendResult.outputSizeMB || 'unknown'
-            });
-          } else {
-            throw new Error(`Backend processing failed: ${backendResult.error}`);
-          }
+        // Check device quota before processing
+        const { checkDeviceQuota, incrementDeviceQuota } = await import('./js/device-fingerprint.js');
+        const quotaCheck = await checkDeviceQuota('imageRemover');
+        
+        if (!quotaCheck.allowed) {
+          showError(`Quota exceeded: ${quotaCheck.message}. Please upgrade to Premium for unlimited access.`);
+          return;
         }
-        // Route 2: Browser processing with IMG.LY (0-2 MB)
-        else {
-          const libraryReady = await ensureLibraryLoaded();
-          if (!libraryReady || !removeBackgroundFn) {
-            showError('AI library not loaded. Please refresh the page and try again.');
-            return;
-          }
+        
+        let resultUrl = null;
+        let processingMethod = 'Google Cloud AI';
 
-          // Preload model if needed
-          if (!modelPreloaded && typeof preloadFn === 'function') {
-            console.log('⏳ Preloading AI model...');
-            statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⏳ Loading AI model (one-time, 30-45 sec)...</div>';
-            try {
-              await preloadFn({ 
-                publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
-                model: config.model
-              });
-              modelPreloaded = true;
-              console.log('✅ AI model preloaded!');
-            } catch (err) {
-              console.warn('⚠️ Preload failed, will load during processing:', err);
-            }
-          }
-
-          const blob = await blobFromSource(dataURL, {
-            type: sessionStorage.getItem('bgRemover:originalType') || 'image/png',
-            size: fileSize
+        // All processing via Google Cloud Run
+        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">${config.info}</div>`;
+        
+        const backendResult = await processWithBackend(dataURL, config.backendUrl, config);
+        
+        if (backendResult.success) {
+          resultUrl = backendResult.dataUrl;
+          processingMethod = backendResult.processedWith || config.description;
+          console.log('✅ Google Cloud processing successful:', {
+            tier: config.tier,
+            outputSize: backendResult.outputSizeMB || 'unknown'
           });
           
-          if (!blob) throw new Error('Unable to read uploaded image.');
-          
-          const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'photo.png';
-          const fileForProcessing = new File([blob], filename, { type: blob.type || 'image/png' });
-
-          // Process with enhanced quality settings for maximum accuracy
-          // Using advanced settings to prevent over-cleaning and ensure complete background removal
-          const result = await removeBackgroundFn(fileForProcessing, {
-            publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
-            model: 'medium',  // Best balance for quality and accuracy
-            output: { 
-              format: 'image/png', 
-              quality: 1.0,  // Maximum quality
-              type: 'foreground'
-            },
-            postprocessMask: {
-              featherRadius: 2,    // Light feather for smooth edges (prevents harsh cuts)
-              smooth: 2             // Light smoothing for natural edges (prevents artifacts)
-            },
-            modelScale: 1.0,        // Full scale for maximum accuracy
-            device: 'cpu',
-            progress: (key, current, total) => {
-              const percent = Math.round((current / total) * 100);
-              statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">🎨 AI Processing ${percent}% (Enhanced Quality Mode)...</div>`;
-            }
-          });
-
-          const resultBlob = result instanceof Blob ? result : await result.blob();
-          resultUrl = await blobToDataURL(resultBlob);
+          // Increment device quota after successful processing
+          await incrementDeviceQuota('imageRemover', 1, fileSize);
+        } else {
+          throw new Error(`Google Cloud processing failed: ${backendResult.error}`);
         }
         
         if (!resultUrl) {
@@ -2116,7 +2041,7 @@
             </div>
             <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
             <p class="footer-credits">
-                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, Google Cloud Vision, Firebase, Unsplash photographers, and every open-source contributor powering this site.
                 <a href="attributions.html">See full acknowledgements</a>.
             </p>
         </div>
