@@ -33,7 +33,18 @@
         
         /* Ensure proper unicode rendering for star characters */
         select, option {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, 'Arial Unicode MS', 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, 'Arial Unicode MS', 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Segoe UI Symbol', sans-serif;
+            unicode-bidi: embed;
+            font-feature-settings: normal;
+        }
+        
+        /* Specific fix for rating dropdown */
+        #feedback-rating,
+        #feedback-rating option,
+        select.form-control,
+        select.form-control option {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, 'Arial Unicode MS', 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Segoe UI Symbol', sans-serif !important;
+            font-size: 0.95rem;
             unicode-bidi: embed;
         }
 
@@ -617,6 +628,7 @@
         .form-control {
             width: 100%;
             padding: 10px 12px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, 'Arial Unicode MS', 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
             border: 1px solid #ddd;
             border-radius: 8px;
             font-size: 0.9rem;
