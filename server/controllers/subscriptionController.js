@@ -219,17 +219,23 @@ async function verifyPayment(req, res) {
     user.subscriptionExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
     
     // Update usage limits
+    const imageRemoverLimit = selectedPlan.features.find(f => f.includes('Image Background Remover')) 
+      ? (selectedPlan.name === 'Premium' ? -1 : selectedPlan.name === 'Business' ? -1 : 10)
+      : 10;
+    
     user.usageLimits = {
       pdfsPerMonth: selectedPlan.pdfsPerMonth,
       storageGB: selectedPlan.storageGB,
-      apiCallsPerMonth: selectedPlan.apiCallsPerMonth
+      apiCallsPerMonth: selectedPlan.apiCallsPerMonth,
+      imageRemoverPerMonth: imageRemoverLimit
     };
     
     // Reset current usage
     user.currentUsage = {
       pdfsThisMonth: 0,
       storageUsedGB: 0,
-      apiCallsThisMonth: 0
+      apiCallsThisMonth: 0,
+      imageRemoverThisMonth: 0
     };
     
     await user.save();
@@ -282,6 +288,17 @@ async function getSubscription(req, res) {
     
     const plan = SUBSCRIPTION_PLANS[user.subscriptionPlan] || SUBSCRIPTION_PLANS.free;
     
+    // Get image remover limits based on plan
+    let imageRemoverLimit = 10; // Default for free
+    let imageRemoverMaxSize = 5 * 1024 * 1024; // 5 MB default
+    if (user.subscriptionPlan === 'premium') {
+      imageRemoverLimit = -1; // Unlimited
+      imageRemoverMaxSize = 50 * 1024 * 1024; // 50 MB
+    } else if (user.subscriptionPlan === 'business') {
+      imageRemoverLimit = -1; // Unlimited
+      imageRemoverMaxSize = -1; // No limit
+    }
+    
     res.json({
       success: true,
       subscription: {
@@ -289,9 +306,22 @@ async function getSubscription(req, res) {
         planName: plan.name,
         status: user.subscriptionStatus,
         expiresAt: user.subscriptionExpiresAt,
-        usageLimits: user.usageLimits,
-        currentUsage: user.currentUsage,
-        features: plan.features
+        usageLimits: {
+          ...user.usageLimits,
+          imageRemoverPerMonth: user.usageLimits?.imageRemoverPerMonth || imageRemoverLimit
+        },
+        currentUsage: {
+          ...user.currentUsage,
+          imageRemoverThisMonth: user.currentUsage?.imageRemoverThisMonth || 0
+        },
+        features: plan.features,
+        planFeatures: {
+          imageRemover: {
+            enabled: true,
+            quotaPerMonth: imageRemoverLimit,
+            maxFileSize: imageRemoverMaxSize
+          }
+        }
       }
     });
   } catch (error) {
@@ -391,11 +421,24 @@ async function getUsageTracking(req, res) {
       });
     }
     
+    // Get image remover limits based on plan
+    const plan = SUBSCRIPTION_PLANS[user.subscriptionPlan] || SUBSCRIPTION_PLANS.free;
+    let imageRemoverLimit = 10; // Default for free
+    if (user.subscriptionPlan === 'premium' || user.subscriptionPlan === 'business') {
+      imageRemoverLimit = -1; // Unlimited
+    }
+    
     res.json({
       success: true,
       usage: {
-        usageLimits: user.usageLimits,
-        currentUsage: user.currentUsage
+        usageLimits: {
+          ...user.usageLimits,
+          imageRemoverPerMonth: user.usageLimits?.imageRemoverPerMonth || imageRemoverLimit
+        },
+        currentUsage: {
+          ...user.currentUsage,
+          imageRemoverThisMonth: user.currentUsage?.imageRemoverThisMonth || 0
+        }
       },
       dailyUsage: dailyUsage,
       monthlyUsage: monthlyUsage

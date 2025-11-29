@@ -1154,6 +1154,21 @@
 <div class="usage-progress-fill" id="api-progress" style="width: 0%"></div>
 </div>
 </div>
+<div class="usage-stat-card">
+<div class="usage-stat-header">
+<i class="fas fa-image"></i>
+<span>Image Background Remover</span>
+</div>
+<div class="usage-stat-value">
+<span id="image-remover-used">0</span> / <span id="image-remover-limit">10</span>
+</div>
+<div class="usage-progress-bar">
+<div class="usage-progress-fill" id="image-remover-progress" style="width: 0%"></div>
+</div>
+<div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px;">
+Max file size: <span id="image-remover-max-size">5 MB</span>
+</div>
+</div>
 </div>
 
 <div class="usage-charts">
@@ -1630,6 +1645,16 @@
                 document.getElementById('api-limit').textContent = subscription.usageLimits.apiCallsPerMonth === -1 ? '∞' : subscription.usageLimits.apiCallsPerMonth;
             }
             
+            // Update image remover limits based on plan
+            const planFeatures = subscription.planFeatures || {};
+            const imageRemover = planFeatures.imageRemover || {};
+            const imageRemoverLimit = imageRemover.quotaPerMonth === Infinity ? '∞' : (imageRemover.quotaPerMonth || 10);
+            const imageRemoverMaxSize = imageRemover.maxFileSize === Infinity ? 'No limit' : 
+                imageRemover.maxFileSize ? `${Math.round(imageRemover.maxFileSize / (1024 * 1024))} MB` : '5 MB';
+            
+            document.getElementById('image-remover-limit').textContent = imageRemoverLimit;
+            document.getElementById('image-remover-max-size').textContent = imageRemoverMaxSize;
+            
             // Show/hide action buttons
             if (subscription.status === 'active' && subscription.plan !== 'free') {
                 document.getElementById('cancel-subscription-btn').style.display = 'inline-block';
@@ -1693,10 +1718,20 @@
             if (apiPercent >= 90) apiProgress.className = 'usage-progress-fill danger';
             else if (apiPercent >= 70) apiProgress.className = 'usage-progress-fill warning';
             
+            // Update Image Background Remover usage
+            const imageRemoverUsed = usage.currentUsage?.imageRemoverThisMonth || 0;
+            const imageRemoverLimit = usage.usageLimits?.imageRemoverPerMonth || 10;
+            document.getElementById('image-remover-used').textContent = imageRemoverUsed;
+            const imageRemoverPercent = imageRemoverLimit === -1 || imageRemoverLimit === Infinity ? 0 : Math.min((imageRemoverUsed / imageRemoverLimit) * 100, 100);
+            const imageRemoverProgress = document.getElementById('image-remover-progress');
+            imageRemoverProgress.style.width = imageRemoverPercent + '%';
+            if (imageRemoverPercent >= 90) imageRemoverProgress.className = 'usage-progress-fill danger';
+            else if (imageRemoverPercent >= 70) imageRemoverProgress.className = 'usage-progress-fill warning';
+            
             // Show alerts if limits exceeded
-            if (pdfsPercent >= 100 || storagePercent >= 100 || apiPercent >= 100) {
+            if (pdfsPercent >= 100 || storagePercent >= 100 || apiPercent >= 100 || imageRemoverPercent >= 100) {
                 showAlert('danger', 'You have exceeded your usage limits. Please upgrade your plan or wait for the next billing cycle.');
-            } else if (pdfsPercent >= 90 || storagePercent >= 90 || apiPercent >= 90) {
+            } else if (pdfsPercent >= 90 || storagePercent >= 90 || apiPercent >= 90 || imageRemoverPercent >= 90) {
                 showAlert('warning', 'You are approaching your usage limits. Consider upgrading your plan.');
             }
         }
