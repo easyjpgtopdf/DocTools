@@ -298,8 +298,8 @@
     async function handleFile(file) {
       if (!file) return;
       
-      // FREE UPLOAD LIMIT: 10 MB
-      const FREE_UPLOAD_LIMIT = 10 * 1024 * 1024; // 10 MB
+      // FREE UPLOAD LIMIT: 1 MB per image
+      const FREE_UPLOAD_LIMIT = 1 * 1024 * 1024; // 1 MB per image
       
       if (file.size > FREE_UPLOAD_LIMIT) {
         const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
@@ -308,13 +308,13 @@
         img.onload = () => {
           const message = `File size: ${sizeMB} MB\n` +
                          `Image dimensions: ${img.width} × ${img.height} pixels\n\n` +
-                         `Free upload limit: 10 MB\n` +
-                         `Your file exceeds the free limit. Upgrade to Premium for unlimited uploads.`;
+                         `Free upload limit: 1 MB per image\n` +
+                         `Your file exceeds the free limit. Upgrade to Premium for up to 50 MB per image.`;
           
           if (confirm(message + '\n\nGo to pricing page?')) {
             window.location.href = 'pricing.html';
           }
-          showStatus(`Upload limit: 10 MB free. Your file: ${sizeMB} MB`);
+          showStatus(`Upload limit: 1 MB free. Your file: ${sizeMB} MB`);
           dropzone.classList.remove('uploading');
           dropzone.dataset.pending = 'false';
         };

@@ -1160,13 +1160,19 @@
 <span>Image Background Remover</span>
 </div>
 <div class="usage-stat-value">
-<span id="image-remover-used">0</span> / <span id="image-remover-limit">10</span>
+<span id="image-remover-used">0</span> / <span id="image-remover-limit">40</span>
 </div>
 <div class="usage-progress-bar">
 <div class="usage-progress-fill" id="image-remover-progress" style="width: 0%"></div>
 </div>
 <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px;">
-Max file size: <span id="image-remover-max-size">5 MB</span>
+Max file size: <span id="image-remover-max-size">1 MB</span>
+</div>
+<div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">
+Monthly upload: <span id="image-remover-upload-used">0</span> MB / <span id="image-remover-upload-limit">10</span> MB
+</div>
+<div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">
+Monthly download: <span id="image-remover-download-used">0</span> MB / <span id="image-remover-download-limit">2</span> MB
 </div>
 </div>
 </div>
@@ -1648,12 +1654,18 @@ Max file size: <span id="image-remover-max-size">5 MB</span>
             // Update image remover limits based on plan
             const planFeatures = subscription.planFeatures || {};
             const imageRemover = planFeatures.imageRemover || {};
-            const imageRemoverLimit = imageRemover.quotaPerMonth === Infinity ? '∞' : (imageRemover.quotaPerMonth || 10);
+            const imageRemoverLimit = imageRemover.quotaPerMonth === Infinity ? '∞' : (imageRemover.quotaPerMonth || 40);
             const imageRemoverMaxSize = imageRemover.maxFileSize === Infinity ? 'No limit' : 
-                imageRemover.maxFileSize ? `${Math.round(imageRemover.maxFileSize / (1024 * 1024))} MB` : '5 MB';
+                imageRemover.maxFileSize ? `${Math.round(imageRemover.maxFileSize / (1024 * 1024))} MB` : '1 MB';
+            const imageRemoverUploadLimit = imageRemover.monthlyUploadLimit === Infinity ? '∞' : 
+                imageRemover.monthlyUploadLimit ? `${Math.round(imageRemover.monthlyUploadLimit / (1024 * 1024))} MB` : '10 MB';
+            const imageRemoverDownloadLimit = imageRemover.monthlyDownloadLimit === Infinity ? '∞' : 
+                imageRemover.monthlyDownloadLimit ? `${Math.round(imageRemover.monthlyDownloadLimit / (1024 * 1024))} MB` : '2 MB';
             
             document.getElementById('image-remover-limit').textContent = imageRemoverLimit;
             document.getElementById('image-remover-max-size').textContent = imageRemoverMaxSize;
+            document.getElementById('image-remover-upload-limit').textContent = imageRemoverUploadLimit;
+            document.getElementById('image-remover-download-limit').textContent = imageRemoverDownloadLimit;
             
             // Show/hide action buttons
             if (subscription.status === 'active' && subscription.plan !== 'free') {
@@ -1720,13 +1732,22 @@ Max file size: <span id="image-remover-max-size">5 MB</span>
             
             // Update Image Background Remover usage
             const imageRemoverUsed = usage.currentUsage?.imageRemoverThisMonth || 0;
-            const imageRemoverLimit = usage.usageLimits?.imageRemoverPerMonth || 10;
+            const imageRemoverLimit = usage.usageLimits?.imageRemoverPerMonth || 40;
             document.getElementById('image-remover-used').textContent = imageRemoverUsed;
             const imageRemoverPercent = imageRemoverLimit === -1 || imageRemoverLimit === Infinity ? 0 : Math.min((imageRemoverUsed / imageRemoverLimit) * 100, 100);
             const imageRemoverProgress = document.getElementById('image-remover-progress');
             imageRemoverProgress.style.width = imageRemoverPercent + '%';
             if (imageRemoverPercent >= 90) imageRemoverProgress.className = 'usage-progress-fill danger';
             else if (imageRemoverPercent >= 70) imageRemoverProgress.className = 'usage-progress-fill warning';
+            
+            // Update monthly upload/download usage
+            const imageRemoverUploadUsed = usage.currentUsage?.imageRemoverUploadMB || 0;
+            const imageRemoverUploadLimit = usage.usageLimits?.imageRemoverMonthlyUploadMB || 10;
+            document.getElementById('image-remover-upload-used').textContent = imageRemoverUploadUsed.toFixed(2);
+            
+            const imageRemoverDownloadUsed = usage.currentUsage?.imageRemoverDownloadMB || 0;
+            const imageRemoverDownloadLimit = usage.usageLimits?.imageRemoverMonthlyDownloadMB || 2;
+            document.getElementById('image-remover-download-used').textContent = imageRemoverDownloadUsed.toFixed(2);
             
             // Show alerts if limits exceeded
             if (pdfsPercent >= 100 || storagePercent >= 100 || apiPercent >= 100 || imageRemoverPercent >= 100) {

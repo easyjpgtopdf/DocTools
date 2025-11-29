@@ -62,14 +62,17 @@ const PLANS = {
       apiAccess: true, // API access for all plans (Google Vision API based)
       imageRemover: {
         enabled: true,
-        maxFileSize: 5 * 1024 * 1024, // 5 MB for free tier
-        quotaPerMonth: 10 // 10 images per month
+        maxFileSize: 1 * 1024 * 1024, // 1 MB for free tier
+        quotaPerMonth: 40, // 40 images per month
+        monthlyUploadLimit: 10 * 1024 * 1024, // 10 MB monthly upload limit
+        monthlyDownloadLimit: 2 * 1024 * 1024, // 2 MB monthly download limit
+        downloadCompressTo: 100 * 1024 // 100 KB max download size (auto-compressed)
       }
     }
   },
   premium: {
     name: 'Premium',
-    price: 5, // $5/month (matching industry standard)
+    price: 10, // $10/month
     duration: 30, // 30 days
     features: {
       maxFileSize: 200 * 1024 * 1024, // 200 MB per file
@@ -92,7 +95,10 @@ const PLANS = {
       imageRemover: {
         enabled: true,
         maxFileSize: 50 * 1024 * 1024, // 50 MB for premium
-        quotaPerMonth: Infinity // Unlimited for premium
+        quotaPerMonth: Infinity, // Unlimited for premium
+        monthlyUploadLimit: 1 * 1024 * 1024 * 1024, // 1 GB monthly upload limit
+        monthlyDownloadLimit: 1 * 1024 * 1024 * 1024, // 1 GB monthly download limit
+        downloadCompressTo: Infinity // No compression, actual quality
       }
     }
   },
@@ -139,9 +145,9 @@ const PLANS = {
 const YEARLY_PLANS = {
   premium: { 
     ...PLANS.premium, 
-    price: 50, // $50/year (save $10 vs monthly)
+    price: 100, // $100/year (save $20 vs monthly)
     duration: 365,
-    savings: 10 // $10 savings
+    savings: 20 // $20 savings
   }
 };
 

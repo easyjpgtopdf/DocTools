@@ -64,13 +64,17 @@ const userSchema = new mongoose.Schema({
     pdfsPerMonth: { type: Number, default: 10 },
     storageGB: { type: Number, default: 1 },
     apiCallsPerMonth: { type: Number, default: 1000 },
-    imageRemoverPerMonth: { type: Number, default: 10 }
+    imageRemoverPerMonth: { type: Number, default: 40 },
+    imageRemoverMonthlyUploadMB: { type: Number, default: 10 },
+    imageRemoverMonthlyDownloadMB: { type: Number, default: 2 }
   },
   currentUsage: {
     pdfsThisMonth: { type: Number, default: 0 },
     storageUsedGB: { type: Number, default: 0 },
     apiCallsThisMonth: { type: Number, default: 0 },
-    imageRemoverThisMonth: { type: Number, default: 0 }
+    imageRemoverThisMonth: { type: Number, default: 0 },
+    imageRemoverUploadMB: { type: Number, default: 0 },
+    imageRemoverDownloadMB: { type: Number, default: 0 }
   },
   passwordResetToken: String,
   passwordResetExpires: Date,

@@ -34,12 +34,12 @@ const SUBSCRIPTION_PLANS = {
       'Desktop application access',
       'Mobile application access',
       'API access (100 calls/month)',
-      'Image background remover (10 images/month, 5 MB max)'
+      'Image background remover (40 images/month, 1 MB max per image, 10 MB monthly upload, 2 MB monthly download, auto-compressed to 100 KB)'
     ]
   },
   premium: {
     name: 'Premium',
-    price: 5, // $5/month (matching industry standard)
+    price: 10, // $10/month
     priceId: process.env.RAZORPAY_PLAN_PREMIUM || 'plan_premium',
     pdfsPerMonth: -1, // Unlimited
     storageGB: -1, // Unlimited
@@ -60,7 +60,7 @@ const SUBSCRIPTION_PLANS = {
       'Priority customer support',
       'Email invoicing',
       'Advanced OCR technology',
-      'Image background remover (unlimited, 50 MB max per image)'
+      'Image background remover (unlimited, 50 MB max per image, 1 GB monthly upload/download, actual quality)'
     ]
   },
   business: {
@@ -220,14 +220,24 @@ async function verifyPayment(req, res) {
     
     // Update usage limits
     const imageRemoverLimit = selectedPlan.features.find(f => f.includes('Image Background Remover')) 
-      ? (selectedPlan.name === 'Premium' ? -1 : selectedPlan.name === 'Business' ? -1 : 10)
-      : 10;
+      ? (selectedPlan.name === 'Premium' ? -1 : selectedPlan.name === 'Business' ? -1 : 40)
+      : 40;
+    
+    // Set monthly upload/download limits based on plan
+    let imageRemoverUploadLimit = 10 * 1024 * 1024; // 10 MB for free
+    let imageRemoverDownloadLimit = 2 * 1024 * 1024; // 2 MB for free
+    if (selectedPlan.name === 'Premium' || selectedPlan.name === 'Business') {
+      imageRemoverUploadLimit = 1 * 1024 * 1024 * 1024; // 1 GB for premium
+      imageRemoverDownloadLimit = 1 * 1024 * 1024 * 1024; // 1 GB for premium
+    }
     
     user.usageLimits = {
       pdfsPerMonth: selectedPlan.pdfsPerMonth,
       storageGB: selectedPlan.storageGB,
       apiCallsPerMonth: selectedPlan.apiCallsPerMonth,
-      imageRemoverPerMonth: imageRemoverLimit
+      imageRemoverPerMonth: imageRemoverLimit,
+      imageRemoverMonthlyUploadMB: Math.round(imageRemoverUploadLimit / (1024 * 1024)),
+      imageRemoverMonthlyDownloadMB: Math.round(imageRemoverDownloadLimit / (1024 * 1024))
     };
     
     // Reset current usage
@@ -235,7 +245,9 @@ async function verifyPayment(req, res) {
       pdfsThisMonth: 0,
       storageUsedGB: 0,
       apiCallsThisMonth: 0,
-      imageRemoverThisMonth: 0
+      imageRemoverThisMonth: 0,
+      imageRemoverUploadMB: 0,
+      imageRemoverDownloadMB: 0
     };
     
     await user.save();
@@ -289,14 +301,20 @@ async function getSubscription(req, res) {
     const plan = SUBSCRIPTION_PLANS[user.subscriptionPlan] || SUBSCRIPTION_PLANS.free;
     
     // Get image remover limits based on plan
-    let imageRemoverLimit = 10; // Default for free
-    let imageRemoverMaxSize = 5 * 1024 * 1024; // 5 MB default
+    let imageRemoverLimit = 40; // Default for free
+    let imageRemoverMaxSize = 1 * 1024 * 1024; // 1 MB default
+    let imageRemoverUploadLimit = 10 * 1024 * 1024; // 10 MB for free
+    let imageRemoverDownloadLimit = 2 * 1024 * 1024; // 2 MB for free
     if (user.subscriptionPlan === 'premium') {
       imageRemoverLimit = -1; // Unlimited
       imageRemoverMaxSize = 50 * 1024 * 1024; // 50 MB
+      imageRemoverUploadLimit = 1 * 1024 * 1024 * 1024; // 1 GB
+      imageRemoverDownloadLimit = 1 * 1024 * 1024 * 1024; // 1 GB
     } else if (user.subscriptionPlan === 'business') {
       imageRemoverLimit = -1; // Unlimited
       imageRemoverMaxSize = -1; // No limit
+      imageRemoverUploadLimit = -1; // No limit
+      imageRemoverDownloadLimit = -1; // No limit
     }
     
     res.json({
@@ -308,18 +326,24 @@ async function getSubscription(req, res) {
         expiresAt: user.subscriptionExpiresAt,
         usageLimits: {
           ...user.usageLimits,
-          imageRemoverPerMonth: user.usageLimits?.imageRemoverPerMonth || imageRemoverLimit
+          imageRemoverPerMonth: user.usageLimits?.imageRemoverPerMonth || imageRemoverLimit,
+          imageRemoverMonthlyUploadMB: user.usageLimits?.imageRemoverMonthlyUploadMB || Math.round(imageRemoverUploadLimit / (1024 * 1024)),
+          imageRemoverMonthlyDownloadMB: user.usageLimits?.imageRemoverMonthlyDownloadMB || Math.round(imageRemoverDownloadLimit / (1024 * 1024))
         },
         currentUsage: {
           ...user.currentUsage,
-          imageRemoverThisMonth: user.currentUsage?.imageRemoverThisMonth || 0
+          imageRemoverThisMonth: user.currentUsage?.imageRemoverThisMonth || 0,
+          imageRemoverUploadMB: user.currentUsage?.imageRemoverUploadMB || 0,
+          imageRemoverDownloadMB: user.currentUsage?.imageRemoverDownloadMB || 0
         },
         features: plan.features,
         planFeatures: {
           imageRemover: {
             enabled: true,
             quotaPerMonth: imageRemoverLimit,
-            maxFileSize: imageRemoverMaxSize
+            maxFileSize: imageRemoverMaxSize,
+            monthlyUploadLimit: imageRemoverUploadLimit,
+            monthlyDownloadLimit: imageRemoverDownloadLimit
           }
         }
       }
@@ -423,9 +447,17 @@ async function getUsageTracking(req, res) {
     
     // Get image remover limits based on plan
     const plan = SUBSCRIPTION_PLANS[user.subscriptionPlan] || SUBSCRIPTION_PLANS.free;
-    let imageRemoverLimit = 10; // Default for free
-    if (user.subscriptionPlan === 'premium' || user.subscriptionPlan === 'business') {
+    let imageRemoverLimit = 40; // Default for free
+    let imageRemoverUploadLimit = 10; // 10 MB for free
+    let imageRemoverDownloadLimit = 2; // 2 MB for free
+    if (user.subscriptionPlan === 'premium') {
       imageRemoverLimit = -1; // Unlimited
+      imageRemoverUploadLimit = 1024; // 1 GB for premium
+      imageRemoverDownloadLimit = 1024; // 1 GB for premium
+    } else if (user.subscriptionPlan === 'business') {
+      imageRemoverLimit = -1; // Unlimited
+      imageRemoverUploadLimit = -1; // No limit
+      imageRemoverDownloadLimit = -1; // No limit
     }
     
     res.json({
@@ -433,11 +465,15 @@ async function getUsageTracking(req, res) {
       usage: {
         usageLimits: {
           ...user.usageLimits,
-          imageRemoverPerMonth: user.usageLimits?.imageRemoverPerMonth || imageRemoverLimit
+          imageRemoverPerMonth: user.usageLimits?.imageRemoverPerMonth || imageRemoverLimit,
+          imageRemoverMonthlyUploadMB: user.usageLimits?.imageRemoverMonthlyUploadMB || imageRemoverUploadLimit,
+          imageRemoverMonthlyDownloadMB: user.usageLimits?.imageRemoverMonthlyDownloadMB || imageRemoverDownloadLimit
         },
         currentUsage: {
           ...user.currentUsage,
-          imageRemoverThisMonth: user.currentUsage?.imageRemoverThisMonth || 0
+          imageRemoverThisMonth: user.currentUsage?.imageRemoverThisMonth || 0,
+          imageRemoverUploadMB: user.currentUsage?.imageRemoverUploadMB || 0,
+          imageRemoverDownloadMB: user.currentUsage?.imageRemoverDownloadMB || 0
         }
       },
       dailyUsage: dailyUsage,
