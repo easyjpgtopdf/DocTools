@@ -1383,6 +1383,743 @@ async function protectPDF(req, res) {
   }
 }
 
+/**
+ * Detect form fields in PDF
+ */
+async function detectFormFields(req, res) {
+  try {
+    const { fileId, pdfData } = req.body;
+    const fileStorage = require('../utils/fileStorage');
+    const { getFormFields } = require('../api/pdf-edit/forms');
+    
+    let pdfBuffer;
+    if (fileId) {
+      const fileData = fileStorage.getFile(fileId);
+      pdfBuffer = fileData.buffer;
+    } else if (pdfData) {
+      const base64Data = pdfData.replace(/^data:application\/pdf;base64,/, '');
+      pdfBuffer = Buffer.from(base64Data, 'base64');
+    } else {
+      return res.status(400).json({ success: false, error: 'File ID or PDF data required' });
+    }
+    
+    const formFields = await getFormFields(pdfBuffer);
+    res.json({ success: true, formFields });
+  } catch (error) {
+    console.error('Detect form fields error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fill form fields in PDF
+ */
+async function fillFormFields(req, res) {
+  try {
+    const { fileId, pdfData, formFields } = req.body;
+    const fileStorage = require('../utils/fileStorage');
+    const { fillFormFields: fillFields } = require('../api/pdf-edit/forms');
+    
+    if (!formFields || formFields.length === 0) {
+      return res.status(400).json({ success: false, error: 'Form fields required' });
+    }
+    
+    let pdfBuffer;
+    if (fileId) {
+      const fileData = fileStorage.getFile(fileId);
+      pdfBuffer = fileData.buffer;
+    } else if (pdfData) {
+      const base64Data = pdfData.replace(/^data:application\/pdf;base64,/, '');
+      pdfBuffer = Buffer.from(base64Data, 'base64');
+    } else {
+      return res.status(400).json({ success: false, error: 'File ID or PDF data required' });
+    }
+    
+    const editedBuffer = await fillFields(pdfBuffer, formFields);
+    const editedBase64 = editedBuffer.toString('base64');
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${editedBase64}`,
+      fileId: fileId
+    });
+  } catch (error) {
+    console.error('Fill form fields error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Rotate pages in PDF
+ */
+async function rotatePages(req, res) {
+  try {
+    const { fileId, pdfData, rotations } = req.body;
+    const fileStorage = require('../utils/fileStorage');
+    const { rotatePages: rotate } = require('../api/pdf-edit/page-management');
+    
+    if (!rotations || rotations.length === 0) {
+      return res.status(400).json({ success: false, error: 'Rotations required' });
+    }
+    
+    let pdfBuffer;
+    if (fileId) {
+      const fileData = fileStorage.getFile(fileId);
+      pdfBuffer = fileData.buffer;
+    } else if (pdfData) {
+      const base64Data = pdfData.replace(/^data:application\/pdf;base64,/, '');
+      pdfBuffer = Buffer.from(base64Data, 'base64');
+    } else {
+      return res.status(400).json({ success: false, error: 'File ID or PDF data required' });
+    }
+    
+    const editedBuffer = await rotate(pdfBuffer, rotations);
+    const editedBase64 = editedBuffer.toString('base64');
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${editedBase64}`,
+      fileId: fileId
+    });
+  } catch (error) {
+    console.error('Rotate pages error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete pages from PDF
+ */
+async function deletePages(req, res) {
+  try {
+    const { fileId, pdfData, pageIndices } = req.body;
+    const fileStorage = require('../utils/fileStorage');
+    const { deletePages: deletePgs } = require('../api/pdf-edit/page-management');
+    
+    if (!pageIndices || pageIndices.length === 0) {
+      return res.status(400).json({ success: false, error: 'Page indices required' });
+    }
+    
+    let pdfBuffer;
+    if (fileId) {
+      const fileData = fileStorage.getFile(fileId);
+      pdfBuffer = fileData.buffer;
+    } else if (pdfData) {
+      const base64Data = pdfData.replace(/^data:application\/pdf;base64,/, '');
+      pdfBuffer = Buffer.from(base64Data, 'base64');
+    } else {
+      return res.status(400).json({ success: false, error: 'File ID or PDF data required' });
+    }
+    
+    const editedBuffer = await deletePgs(pdfBuffer, pageIndices);
+    const editedBase64 = editedBuffer.toString('base64');
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${editedBase64}`,
+      fileId: fileId
+    });
+  } catch (error) {
+    console.error('Delete pages error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Reorder pages in PDF
+ */
+async function reorderPages(req, res) {
+  try {
+    const { fileId, pdfData, newOrder } = req.body;
+    const fileStorage = require('../utils/fileStorage');
+    const { reorderPages: reorder } = require('../api/pdf-edit/page-management');
+    
+    if (!newOrder || newOrder.length === 0) {
+      return res.status(400).json({ success: false, error: 'New order required' });
+    }
+    
+    let pdfBuffer;
+    if (fileId) {
+      const fileData = fileStorage.getFile(fileId);
+      pdfBuffer = fileData.buffer;
+    } else if (pdfData) {
+      const base64Data = pdfData.replace(/^data:application\/pdf;base64,/, '');
+      pdfBuffer = Buffer.from(base64Data, 'base64');
+    } else {
+      return res.status(400).json({ success: false, error: 'File ID or PDF data required' });
+    }
+    
+    const editedBuffer = await reorder(pdfBuffer, newOrder);
+    const editedBase64 = editedBuffer.toString('base64');
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${editedBase64}`,
+      fileId: fileId
+    });
+  } catch (error) {
+    console.error('Reorder pages error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Extract pages from PDF
+ */
+async function extractPages(req, res) {
+  try {
+    const { fileId, pdfData, pageIndices } = req.body;
+    const fileStorage = require('../utils/fileStorage');
+    const { extractPages: extract } = require('../api/pdf-edit/page-management');
+    
+    if (!pageIndices || pageIndices.length === 0) {
+      return res.status(400).json({ success: false, error: 'Page indices required' });
+    }
+    
+    let pdfBuffer;
+    if (fileId) {
+      const fileData = fileStorage.getFile(fileId);
+      pdfBuffer = fileData.buffer;
+    } else if (pdfData) {
+      const base64Data = pdfData.replace(/^data:application\/pdf;base64,/, '');
+      pdfBuffer = Buffer.from(base64Data, 'base64');
+    } else {
+      return res.status(400).json({ success: false, error: 'File ID or PDF data required' });
+    }
+    
+    const extractedBuffer = await extract(pdfBuffer, pageIndices);
+    const extractedBase64 = extractedBuffer.toString('base64');
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${extractedBase64}`
+    });
+  } catch (error) {
+    console.error('Extract pages error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Add new page to PDF
+ */
+async function addPage(req, res) {
+  try {
+    const { fileId, pdfData, pageIndex, insertAfter } = req.body;
+    const fileStorage = require('../utils/fileStorage');
+    const { addPage: addPg } = require('../api/pdf-edit/page-management');
+    
+    let pdfBuffer;
+    if (fileId) {
+      const fileData = fileStorage.getFile(fileId);
+      pdfBuffer = fileData.buffer;
+    } else if (pdfData) {
+      const base64Data = pdfData.replace(/^data:application\/pdf;base64,/, '');
+      pdfBuffer = Buffer.from(base64Data, 'base64');
+    } else {
+      return res.status(400).json({ success: false, error: 'File ID or PDF data required' });
+    }
+    
+    const editedBuffer = await addPg(pdfBuffer, pageIndex || -1, insertAfter !== false);
+    const editedBase64 = editedBuffer.toString('base64');
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${editedBase64}`,
+      fileId: fileId
+    });
+  } catch (error) {
+    console.error('Add page error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Export PDF to Word
+ */
+async function exportToWord(req, res) {
+  try {
+    const { fileId, pdfData } = req.body;
+    const fileStorage = require('../utils/fileStorage');
+    const { exportToWord } = require('../api/pdf-edit/export-formats');
+    
+    let pdfBuffer;
+    if (fileId) {
+      const fileData = fileStorage.getFile(fileId);
+      pdfBuffer = fileData.buffer;
+    } else if (pdfData) {
+      const base64Data = pdfData.replace(/^data:application\/pdf;base64,/, '');
+      pdfBuffer = Buffer.from(base64Data, 'base64');
+    } else {
+      return res.status(400).json({ success: false, error: 'File ID or PDF data required' });
+    }
+    
+    const docxBuffer = await exportToWord(pdfBuffer);
+    const docxBase64 = docxBuffer.toString('base64');
+    
+    res.json({
+      success: true,
+      fileData: `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${docxBase64}`,
+      filename: 'export.docx'
+    });
+  } catch (error) {
+    console.error('Export to Word error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+/**
+ * Export PDF to Excel
+ */
+async function exportToExcel(req, res) {
+  try {
+    const { fileId, pdfData } = req.body;
+    const fileStorage = require('../utils/fileStorage');
+    const { exportToExcel } = require('../api/pdf-edit/export-formats');
+    
+    let pdfBuffer;
+    if (fileId) {
+      const fileData = fileStorage.getFile(fileId);
+      pdfBuffer = fileData.buffer;
+    } else if (pdfData) {
+      const base64Data = pdfData.replace(/^data:application\/pdf;base64,/, '');
+      pdfBuffer = Buffer.from(base64Data, 'base64');
+    } else {
+      return res.status(400).json({ success: false, error: 'File ID or PDF data required' });
+    }
+    
+    const xlsxBuffer = await exportToExcel(pdfBuffer);
+    const xlsxBase64 = xlsxBuffer.toString('base64');
+    
+    res.json({
+      success: true,
+      fileData: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${xlsxBase64}`,
+      filename: 'export.xlsx'
+    });
+  } catch (error) {
+    console.error('Export to Excel error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+/**
+ * Export PDF to PowerPoint
+ */
+async function exportToPowerPoint(req, res) {
+  try {
+    const { fileId, pdfData } = req.body;
+    const fileStorage = require('../utils/fileStorage');
+    const { exportToPowerPoint } = require('../api/pdf-edit/export-formats');
+    
+    let pdfBuffer;
+    if (fileId) {
+      const fileData = fileStorage.getFile(fileId);
+      pdfBuffer = fileData.buffer;
+    } else if (pdfData) {
+      const base64Data = pdfData.replace(/^data:application\/pdf;base64,/, '');
+      pdfBuffer = Buffer.from(base64Data, 'base64');
+    } else {
+      return res.status(400).json({ success: false, error: 'File ID or PDF data required' });
+    }
+    
+    const pptxBuffer = await exportToPowerPoint(pdfBuffer);
+    const pptxBase64 = pptxBuffer.toString('base64');
+    
+    res.json({
+      success: true,
+      fileData: `data:application/vnd.openxmlformats-officedocument.presentationml.presentation;base64,${pptxBase64}`,
+      filename: 'export.pptx'
+    });
+  } catch (error) {
+    console.error('Export to PowerPoint error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+/**
+ * Export PDF to Images
+ */
+async function exportToImages(req, res) {
+  try {
+    const { fileId, pdfData, format, dpi, pageIndices } = req.body;
+    const fileStorage = require('../utils/fileStorage');
+    const { exportToImages } = require('../api/pdf-edit/export-formats');
+    
+    let pdfBuffer;
+    if (fileId) {
+      const fileData = fileStorage.getFile(fileId);
+      pdfBuffer = fileData.buffer;
+    } else if (pdfData) {
+      const base64Data = pdfData.replace(/^data:application\/pdf;base64,/, '');
+      pdfBuffer = Buffer.from(base64Data, 'base64');
+    } else {
+      return res.status(400).json({ success: false, error: 'File ID or PDF data required' });
+    }
+    
+    const images = await exportToImages(pdfBuffer, { format: format || 'png', dpi: dpi || 150, pageIndices });
+    const imageData = images.map(img => ({
+      pageIndex: img.pageIndex,
+      image: `data:image/${img.format};base64,${img.image.toString('base64')}`,
+      format: img.format
+    }));
+    
+    res.json({
+      success: true,
+      images: imageData
+    });
+  } catch (error) {
+    console.error('Export to images error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+/**
+ * Redact text/images from PDF
+ */
+async function redactPDF(req, res) {
+  try {
+    const { fileId, pdfData, redactions } = req.body;
+    const fileStorage = require('../utils/fileStorage');
+    const { PDFDocument, rgb } = require('pdf-lib');
+    
+    if (!redactions || redactions.length === 0) {
+      return res.status(400).json({ success: false, error: 'Redactions required' });
+    }
+    
+    let pdfBuffer;
+    if (fileId) {
+      const fileData = fileStorage.getFile(fileId);
+      pdfBuffer = fileData.buffer;
+    } else if (pdfData) {
+      const base64Data = pdfData.replace(/^data:application\/pdf;base64,/, '');
+      pdfBuffer = Buffer.from(base64Data, 'base64');
+    } else {
+      return res.status(400).json({ success: false, error: 'File ID or PDF data required' });
+    }
+    
+    const pdfDoc = await PDFDocument.load(pdfBuffer);
+    const pages = pdfDoc.getPages();
+    
+    redactions.forEach(({ pageIndex, x, y, width, height }) => {
+      if (pageIndex >= 0 && pageIndex < pages.length) {
+        const page = pages[pageIndex];
+        const pageHeight = page.getHeight();
+        const pdfY = pageHeight - y - height;
+        
+        // Draw black rectangle to redact
+        page.drawRectangle({
+          x: x,
+          y: pdfY,
+          width: width,
+          height: height,
+          color: rgb(0, 0, 0) // Black
+        });
+      }
+    });
+    
+    const editedBytes = await pdfDoc.save();
+    const editedBase64 = Buffer.from(editedBytes).toString('base64');
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${editedBase64}`,
+      fileId: fileId
+    });
+  } catch (error) {
+    console.error('Redact PDF error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Add watermark to PDF
+ */
+async function addWatermark(req, res) {
+  try {
+    const { fileId, pdfData, watermark } = req.body;
+    const fileStorage = require('../utils/fileStorage');
+    const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
+    
+    if (!watermark) {
+      return res.status(400).json({ success: false, error: 'Watermark data required' });
+    }
+    
+    let pdfBuffer;
+    if (fileId) {
+      const fileData = fileStorage.getFile(fileId);
+      pdfBuffer = fileData.buffer;
+    } else if (pdfData) {
+      const base64Data = pdfData.replace(/^data:application\/pdf;base64,/, '');
+      pdfBuffer = Buffer.from(base64Data, 'base64');
+    } else {
+      return res.status(400).json({ success: false, error: 'File ID or PDF data required' });
+    }
+    
+    const pdfDoc = await PDFDocument.load(pdfBuffer);
+    const pages = pdfDoc.getPages();
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    
+    const { type, text, imageData, opacity = 0.3, position = 'center', rotation = -45 } = watermark;
+    
+    pages.forEach((page, index) => {
+      const pageWidth = page.getWidth();
+      const pageHeight = page.getHeight();
+      
+      if (type === 'text' && text) {
+        const fontSize = watermark.fontSize || 48;
+        const textWidth = font.widthOfTextAtSize(text, fontSize);
+        const textHeight = fontSize;
+        
+        let x, y;
+        if (position === 'center') {
+          x = (pageWidth - textWidth) / 2;
+          y = (pageHeight - textHeight) / 2;
+        } else if (position === 'top-left') {
+          x = 50;
+          y = pageHeight - 50;
+        } else if (position === 'top-right') {
+          x = pageWidth - textWidth - 50;
+          y = pageHeight - 50;
+        } else if (position === 'bottom-left') {
+          x = 50;
+          y = 50;
+        } else if (position === 'bottom-right') {
+          x = pageWidth - textWidth - 50;
+          y = 50;
+        } else {
+          x = (pageWidth - textWidth) / 2;
+          y = (pageHeight - textHeight) / 2;
+        }
+        
+        page.drawText(text, {
+          x: x,
+          y: y,
+          size: fontSize,
+          font: font,
+          color: rgb(0.7, 0.7, 0.7),
+          opacity: opacity,
+          rotate: { angleDegrees: rotation }
+        });
+      } else if (type === 'image' && imageData) {
+        // Image watermark - would need image embedding
+        // Placeholder for now
+      }
+    });
+    
+    const editedBytes = await pdfDoc.save();
+    const editedBase64 = Buffer.from(editedBytes).toString('base64');
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${editedBase64}`,
+      fileId: fileId
+    });
+  } catch (error) {
+    console.error('Add watermark error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Add digital signature to PDF
+ */
+async function addSignature(req, res) {
+  try {
+    const { fileId, pdfData, signature } = req.body;
+    const fileStorage = require('../utils/fileStorage');
+    const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
+    
+    if (!signature) {
+      return res.status(400).json({ success: false, error: 'Signature data required' });
+    }
+    
+    let pdfBuffer;
+    if (fileId) {
+      const fileData = fileStorage.getFile(fileId);
+      pdfBuffer = fileData.buffer;
+    } else if (pdfData) {
+      const base64Data = pdfData.replace(/^data:application\/pdf;base64,/, '');
+      pdfBuffer = Buffer.from(base64Data, 'base64');
+    } else {
+      return res.status(400).json({ success: false, error: 'File ID or PDF data required' });
+    }
+    
+    const pdfDoc = await PDFDocument.load(pdfBuffer);
+    const pages = pdfDoc.getPages();
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    
+    const { pageIndex, x, y, width, height, text, imageData } = signature;
+    
+    if (pageIndex >= 0 && pageIndex < pages.length) {
+      const page = pages[pageIndex];
+      const pageHeight = page.getHeight();
+      const pdfY = pageHeight - y - height;
+      
+      // Draw signature border
+      page.drawRectangle({
+        x: x,
+        y: pdfY,
+        width: width,
+        height: height,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1
+      });
+      
+      if (text) {
+        page.drawText(text, {
+          x: x + 5,
+          y: pdfY + height / 2 - 6,
+          size: 12,
+          font: font,
+          color: rgb(0, 0, 0)
+        });
+      }
+      
+      // Add signature date
+      const date = new Date().toLocaleDateString();
+      page.drawText(`Signed: ${date}`, {
+        x: x + 5,
+        y: pdfY + 5,
+        size: 8,
+        font: font,
+        color: rgb(0.5, 0.5, 0.5)
+      });
+    }
+    
+    const editedBytes = await pdfDoc.save();
+    const editedBase64 = Buffer.from(editedBytes).toString('base64');
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${editedBase64}`,
+      fileId: fileId
+    });
+  } catch (error) {
+    console.error('Add signature error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Merge multiple PDFs
+ */
+async function mergePDFs(req, res) {
+  try {
+    const { fileIds, pdfDataArray } = req.body;
+    const fileStorage = require('../utils/fileStorage');
+    const { PDFDocument } = require('pdf-lib');
+    
+    if ((!fileIds || fileIds.length === 0) && (!pdfDataArray || pdfDataArray.length === 0)) {
+      return res.status(400).json({ success: false, error: 'File IDs or PDF data array required' });
+    }
+    
+    const mergedPdf = await PDFDocument.create();
+    
+    if (fileIds && fileIds.length > 0) {
+      for (const fileId of fileIds) {
+        const fileData = fileStorage.getFile(fileId);
+        const sourcePdf = await PDFDocument.load(fileData.buffer);
+        const pages = await mergedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
+        pages.forEach(page => mergedPdf.addPage(page));
+      }
+    } else if (pdfDataArray && pdfDataArray.length > 0) {
+      for (const pdfData of pdfDataArray) {
+        const base64Data = pdfData.replace(/^data:application\/pdf;base64,/, '');
+        const pdfBuffer = Buffer.from(base64Data, 'base64');
+        const sourcePdf = await PDFDocument.load(pdfBuffer);
+        const pages = await mergedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
+        pages.forEach(page => mergedPdf.addPage(page));
+      }
+    }
+    
+    const mergedBytes = await mergedPdf.save();
+    const mergedBase64 = Buffer.from(mergedBytes).toString('base64');
+    
+    res.json({
+      success: true,
+      pdfData: `data:application/pdf;base64,${mergedBase64}`
+    });
+  } catch (error) {
+    console.error('Merge PDFs error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Split PDF into multiple files
+ */
+async function splitPDF(req, res) {
+  try {
+    const { fileId, pdfData, splitPoints } = req.body;
+    const fileStorage = require('../utils/fileStorage');
+    const { PDFDocument } = require('pdf-lib');
+    
+    if (!splitPoints || splitPoints.length === 0) {
+      return res.status(400).json({ success: false, error: 'Split points required' });
+    }
+    
+    let pdfBuffer;
+    if (fileId) {
+      const fileData = fileStorage.getFile(fileId);
+      pdfBuffer = fileData.buffer;
+    } else if (pdfData) {
+      const base64Data = pdfData.replace(/^data:application\/pdf;base64,/, '');
+      pdfBuffer = Buffer.from(base64Data, 'base64');
+    } else {
+      return res.status(400).json({ success: false, error: 'File ID or PDF data required' });
+    }
+    
+    const sourcePdf = await PDFDocument.load(pdfBuffer);
+    const totalPages = sourcePdf.getPageCount();
+    const splits = [];
+    
+    // Sort split points
+    const sortedPoints = [...splitPoints].sort((a, b) => a - b);
+    let startPage = 0;
+    
+    for (const endPage of sortedPoints) {
+      if (endPage > startPage && endPage <= totalPages) {
+        const newPdf = await PDFDocument.create();
+        const pageIndices = Array.from({ length: endPage - startPage }, (_, i) => startPage + i);
+        const pages = await newPdf.copyPages(sourcePdf, pageIndices);
+        pages.forEach(page => newPdf.addPage(page));
+        
+        const splitBytes = await newPdf.save();
+        splits.push({
+          startPage: startPage + 1,
+          endPage: endPage,
+          pdfData: `data:application/pdf;base64,${Buffer.from(splitBytes).toString('base64')}`
+        });
+        
+        startPage = endPage;
+      }
+    }
+    
+    // Add remaining pages
+    if (startPage < totalPages) {
+      const newPdf = await PDFDocument.create();
+      const pageIndices = Array.from({ length: totalPages - startPage }, (_, i) => startPage + i);
+      const pages = await newPdf.copyPages(sourcePdf, pageIndices);
+      pages.forEach(page => newPdf.addPage(page));
+      
+      const splitBytes = await newPdf.save();
+      splits.push({
+        startPage: startPage + 1,
+        endPage: totalPages,
+        pdfData: `data:application/pdf;base64,${Buffer.from(splitBytes).toString('base64')}`
+      });
+    }
+    
+    res.json({
+      success: true,
+      splits: splits
+    });
+  } catch (error) {
+    console.error('Split PDF error:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   uploadPDF: asyncHandler(uploadPDF),
   editPDF: asyncHandler(editPDF),
@@ -1398,6 +2135,22 @@ module.exports = {
   searchText: asyncHandler(searchText),
   replaceAllText: asyncHandler(replaceAllText),
   compressPDF: asyncHandler(compressPDF),
-  protectPDF: asyncHandler(protectPDF)
+  protectPDF: asyncHandler(protectPDF),
+  detectFormFields: asyncHandler(detectFormFields),
+  fillFormFields: asyncHandler(fillFormFields),
+  rotatePages: asyncHandler(rotatePages),
+  deletePages: asyncHandler(deletePages),
+  reorderPages: asyncHandler(reorderPages),
+  extractPages: asyncHandler(extractPages),
+  addPage: asyncHandler(addPage),
+  exportToWord: asyncHandler(exportToWord),
+  exportToExcel: asyncHandler(exportToExcel),
+  exportToPowerPoint: asyncHandler(exportToPowerPoint),
+  exportToImages: asyncHandler(exportToImages),
+  redactPDF: asyncHandler(redactPDF),
+  addWatermark: asyncHandler(addWatermark),
+  addSignature: asyncHandler(addSignature),
+  mergePDFs: asyncHandler(mergePDFs),
+  splitPDF: asyncHandler(splitPDF)
 };
 

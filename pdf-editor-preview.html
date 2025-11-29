@@ -5210,6 +5210,1048 @@
             console.log('Button event listeners initialization complete!');
         }
         
+        // Advanced Features Event Listeners
+        function initAdvancedFeatures() {
+            // Form Detection
+            const detectFormBtn = document.getElementById('detect-form-btn');
+            if (detectFormBtn) {
+                detectFormBtn.addEventListener('click', async function() {
+                    if (!window.pdfEditorVars.pdfDoc) {
+                        alert('No PDF loaded. Please upload a PDF first.');
+                        return;
+                    }
+                    
+                    try {
+                        showLoading('Detecting form fields...', 20);
+                        const apiBaseUrl = getApiBaseUrl();
+                        const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
+                        
+                        if (!fileId) {
+                            throw new Error('File ID not found');
+                        }
+                        
+                        const response = await fetch(`${apiBaseUrl}/api/pdf/forms/detect`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ fileId: fileId })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success && result.formFields) {
+                            hideLoading();
+                            alert(`Found ${result.formFields.length} form fields:\n\n` + 
+                                result.formFields.map(f => `- ${f.name} (${f.type})`).join('\n'));
+                        } else {
+                            throw new Error(result.error || 'No form fields found');
+                        }
+                    } catch (error) {
+                        hideLoading();
+                        alert('Error detecting form fields: ' + error.message);
+                    }
+                });
+            }
+            
+            // Form Filling
+            const fillFormBtn = document.getElementById('fill-form-btn');
+            if (fillFormBtn) {
+                fillFormBtn.addEventListener('click', async function() {
+                    if (!window.pdfEditorVars.pdfDoc) {
+                        alert('No PDF loaded. Please upload a PDF first.');
+                        return;
+                    }
+                    
+                    // First detect form fields
+                    const apiBaseUrl = getApiBaseUrl();
+                    const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
+                    
+                    if (!fileId) {
+                        alert('File ID not found. Please upload PDF first.');
+                        return;
+                    }
+                    
+                    try {
+                        showLoading('Detecting form fields...', 10);
+                        const detectResponse = await fetch(`${apiBaseUrl}/api/pdf/forms/detect`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ fileId: fileId })
+                        });
+                        
+                        const detectResult = await detectResponse.json();
+                        
+                        if (!detectResult.success || !detectResult.formFields || detectResult.formFields.length === 0) {
+                            hideLoading();
+                            alert('No form fields found in this PDF.');
+                            return;
+                        }
+                        
+                        hideLoading();
+                        
+                        // Create form filling dialog
+                        let formHtml = '<div style="max-height: 400px; overflow-y: auto; margin: 10px 0;">';
+                        detectResult.formFields.forEach((field, index) => {
+                            formHtml += `<div style="margin-bottom: 15px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600;">${field.name} (${field.type}):</label>`;
+                            
+                            if (field.type === 'checkbox') {
+                                formHtml += `<input type="checkbox" id="form-field-${index}" ${field.value ? 'checked' : ''} style="width: 20px; height: 20px;">`;
+                            } else if (field.type === 'radio') {
+                                formHtml += `<input type="text" id="form-field-${index}" value="${field.value || ''}" style="width: 100%; padding: 8px; border: 1px solid #3a3a3a; border-radius: 4px; background: #1e1e1e; color: #e5e5e5;">`;
+                            } else {
+                                formHtml += `<input type="text" id="form-field-${index}" value="${field.value || ''}" style="width: 100%; padding: 8px; border: 1px solid #3a3a3a; border-radius: 4px; background: #1e1e1e; color: #e5e5e5;">`;
+                            }
+                            formHtml += `</div>`;
+                        });
+                        formHtml += '</div>';
+                        
+                        const fillValue = prompt('Fill form fields:\n\n' + formHtml, '');
+                        if (fillValue === null) return;
+                        
+                        // Build form fields array
+                        const formFields = detectResult.formFields.map((field, index) => {
+                            const input = document.getElementById(`form-field-${index}`);
+                            let value;
+                            if (field.type === 'checkbox') {
+                                value = input ? input.checked : false;
+                            } else {
+                                value = input ? input.value : '';
+                            }
+                            return { fieldName: field.name, value: value };
+                        });
+                        
+                        showLoading('Filling form fields...', 50);
+                        
+                        const fillResponse = await fetch(`${apiBaseUrl}/api/pdf/forms/fill`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ fileId: fileId, formFields: formFields })
+                        });
+                        
+                        const fillResult = await fillResponse.json();
+                        
+                        if (fillResult.success) {
+                            window.pdfEditorVars.currentPdfData = fillResult.pdfData;
+                            await reloadPDF();
+                            hideLoading();
+                            alert('Form fields filled successfully!');
+                        } else {
+                            throw new Error(fillResult.error || 'Failed to fill form');
+                        }
+                    } catch (error) {
+                        hideLoading();
+                        alert('Error filling form: ' + error.message);
+                    }
+                });
+            }
+            
+            // Page Rotation
+            const rotatePageBtn = document.getElementById('rotate-page-btn');
+            if (rotatePageBtn) {
+                rotatePageBtn.addEventListener('click', async function() {
+                    if (!window.pdfEditorVars.pdfDoc) {
+                        alert('No PDF loaded.');
+                        return;
+                    }
+                    
+                    const angle = prompt('Enter rotation angle (90, 180, or 270):', '90');
+                    if (!angle || !['90', '180', '270'].includes(angle)) {
+                        return;
+                    }
+                    
+                    try {
+                        showLoading('Rotating page...', 50);
+                        const apiBaseUrl = getApiBaseUrl();
+                        const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
+                        
+                        const response = await fetch(`${apiBaseUrl}/api/pdf/pages/rotate`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                fileId: fileId,
+                                rotations: [{
+                                    pageIndex: window.pdfEditorVars.currentPage - 1,
+                                    angle: parseInt(angle)
+                                }]
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            window.pdfEditorVars.currentPdfData = result.pdfData;
+                            await reloadPDF();
+                            hideLoading();
+                            alert('Page rotated successfully!');
+                        } else {
+                            throw new Error(result.error || 'Rotation failed');
+                        }
+                    } catch (error) {
+                        hideLoading();
+                        alert('Error rotating page: ' + error.message);
+                    }
+                });
+            }
+            
+            // Page Deletion
+            const deletePageBtn = document.getElementById('delete-page-btn');
+            if (deletePageBtn) {
+                deletePageBtn.addEventListener('click', async function() {
+                    if (!window.pdfEditorVars.pdfDoc) {
+                        alert('No PDF loaded.');
+                        return;
+                    }
+                    
+                    if (!confirm(`Delete page ${window.pdfEditorVars.currentPage}?`)) {
+                        return;
+                    }
+                    
+                    try {
+                        showLoading('Deleting page...', 50);
+                        const apiBaseUrl = getApiBaseUrl();
+                        const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
+                        
+                        const response = await fetch(`${apiBaseUrl}/api/pdf/pages/delete`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                fileId: fileId,
+                                pageIndices: [window.pdfEditorVars.currentPage - 1]
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            window.pdfEditorVars.currentPdfData = result.pdfData;
+                            await reloadPDF();
+                            hideLoading();
+                            alert('Page deleted successfully!');
+                        } else {
+                            throw new Error(result.error || 'Deletion failed');
+                        }
+                    } catch (error) {
+                        hideLoading();
+                        alert('Error deleting page: ' + error.message);
+                    }
+                });
+            }
+            
+            // Redaction
+            const redactBtn = document.getElementById('redact-btn');
+            if (redactBtn) {
+                redactBtn.addEventListener('click', function() {
+                    if (!window.pdfEditorVars.pdfDoc) {
+                        alert('No PDF loaded.');
+                        return;
+                    }
+                    
+                    window.pdfEditorVars.activeTool = 'redact';
+                    if (redactBtn) redactBtn.classList.add('active');
+                    if (pdfCanvas) {
+                        pdfCanvas.style.cursor = 'crosshair';
+                        pdfCanvas.addEventListener('click', async function redactHandler(e) {
+                            if (window.pdfEditorVars.activeTool !== 'redact') {
+                                pdfCanvas.removeEventListener('click', redactHandler);
+                                return;
+                            }
+                            
+                            const rect = pdfCanvas.getBoundingClientRect();
+                            const x = e.clientX - rect.left;
+                            const y = e.clientY - rect.top;
+                            
+                            const width = prompt('Enter redaction width (pixels):', '100');
+                            const height = prompt('Enter redaction height (pixels):', '20');
+                            
+                            if (!width || !height) {
+                                pdfCanvas.removeEventListener('click', redactHandler);
+                                window.pdfEditorVars.activeTool = 'select';
+                                if (redactBtn) redactBtn.classList.remove('active');
+                                return;
+                            }
+                            
+                            try {
+                                showLoading('Redacting content...', 50);
+                                const apiBaseUrl = getApiBaseUrl();
+                                const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
+                                
+                                const response = await fetch(`${apiBaseUrl}/api/pdf/redact`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        fileId: fileId,
+                                        redactions: [{
+                                            pageIndex: window.pdfEditorVars.currentPage - 1,
+                                            x: x,
+                                            y: y,
+                                            width: parseFloat(width),
+                                            height: parseFloat(height)
+                                        }]
+                                    })
+                                });
+                                
+                                const result = await response.json();
+                                
+                                if (result.success) {
+                                    window.pdfEditorVars.currentPdfData = result.pdfData;
+                                    await reloadPDF();
+                                    hideLoading();
+                                    alert('Content redacted successfully!');
+                                } else {
+                                    throw new Error(result.error || 'Redaction failed');
+                                }
+                            } catch (error) {
+                                hideLoading();
+                                alert('Error redacting: ' + error.message);
+                            }
+                            
+                            pdfCanvas.removeEventListener('click', redactHandler);
+                            window.pdfEditorVars.activeTool = 'select';
+                            if (redactBtn) redactBtn.classList.remove('active');
+                            if (pdfCanvas) pdfCanvas.style.cursor = 'default';
+                        }, { once: false });
+                    }
+                });
+            }
+            
+            // Watermark
+            const watermarkBtn = document.getElementById('watermark-btn');
+            if (watermarkBtn) {
+                watermarkBtn.addEventListener('click', async function() {
+                    if (!window.pdfEditorVars.pdfDoc) {
+                        alert('No PDF loaded.');
+                        return;
+                    }
+                    
+                    const watermarkText = prompt('Enter watermark text:', 'CONFIDENTIAL');
+                    if (!watermarkText) return;
+                    
+                    const position = prompt('Enter position (center, top-left, top-right, bottom-left, bottom-right):', 'center');
+                    const opacity = prompt('Enter opacity (0.1 to 1.0):', '0.3');
+                    
+                    try {
+                        showLoading('Adding watermark...', 50);
+                        const apiBaseUrl = getApiBaseUrl();
+                        const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
+                        
+                        const response = await fetch(`${apiBaseUrl}/api/pdf/watermark`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                fileId: fileId,
+                                watermark: {
+                                    type: 'text',
+                                    text: watermarkText,
+                                    position: position || 'center',
+                                    opacity: parseFloat(opacity) || 0.3,
+                                    fontSize: 48,
+                                    rotation: -45
+                                }
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            window.pdfEditorVars.currentPdfData = result.pdfData;
+                            await reloadPDF();
+                            hideLoading();
+                            alert('Watermark added successfully!');
+                        } else {
+                            throw new Error(result.error || 'Watermark failed');
+                        }
+                    } catch (error) {
+                        hideLoading();
+                        alert('Error adding watermark: ' + error.message);
+                    }
+                });
+            }
+            
+            // Digital Signature
+            const signBtn = document.getElementById('sign-btn');
+            if (signBtn) {
+                signBtn.addEventListener('click', function() {
+                    if (!window.pdfEditorVars.pdfDoc) {
+                        alert('No PDF loaded.');
+                        return;
+                    }
+                    
+                    window.pdfEditorVars.activeTool = 'signature';
+                    if (signBtn) signBtn.classList.add('active');
+                    if (pdfCanvas) {
+                        pdfCanvas.style.cursor = 'crosshair';
+                        pdfCanvas.addEventListener('click', async function signHandler(e) {
+                            if (window.pdfEditorVars.activeTool !== 'signature') {
+                                pdfCanvas.removeEventListener('click', signHandler);
+                                return;
+                            }
+                            
+                            const rect = pdfCanvas.getBoundingClientRect();
+                            const x = e.clientX - rect.left;
+                            const y = e.clientY - rect.top;
+                            
+                            const signatureText = prompt('Enter signature text:', 'John Doe');
+                            if (!signatureText) {
+                                pdfCanvas.removeEventListener('click', signHandler);
+                                window.pdfEditorVars.activeTool = 'select';
+                                if (signBtn) signBtn.classList.remove('active');
+                                return;
+                            }
+                            
+                            const width = 200;
+                            const height = 60;
+                            
+                            try {
+                                showLoading('Adding signature...', 50);
+                                const apiBaseUrl = getApiBaseUrl();
+                                const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
+                                
+                                const response = await fetch(`${apiBaseUrl}/api/pdf/signature`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        fileId: fileId,
+                                        signature: {
+                                            pageIndex: window.pdfEditorVars.currentPage - 1,
+                                            x: x,
+                                            y: y,
+                                            width: width,
+                                            height: height,
+                                            text: signatureText
+                                        }
+                                    })
+                                });
+                                
+                                const result = await response.json();
+                                
+                                if (result.success) {
+                                    window.pdfEditorVars.currentPdfData = result.pdfData;
+                                    await reloadPDF();
+                                    hideLoading();
+                                    alert('Signature added successfully!');
+                                } else {
+                                    throw new Error(result.error || 'Signature failed');
+                                }
+                            } catch (error) {
+                                hideLoading();
+                                alert('Error adding signature: ' + error.message);
+                            }
+                            
+                            pdfCanvas.removeEventListener('click', signHandler);
+                            window.pdfEditorVars.activeTool = 'select';
+                            if (signBtn) signBtn.classList.remove('active');
+                            if (pdfCanvas) pdfCanvas.style.cursor = 'default';
+                        }, { once: false });
+                    }
+                });
+            }
+            
+            // Export Formats
+            const exportDropdown = document.getElementById('export-dropdown-menu');
+            const exportOptions = document.querySelectorAll('.export-option');
+            exportOptions.forEach(option => {
+                option.addEventListener('click', async function() {
+                    const exportType = this.getAttribute('data-export');
+                    if (!window.pdfEditorVars.pdfDoc) {
+                        alert('No PDF loaded.');
+                        return;
+                    }
+                    
+                    try {
+                        showLoading(`Exporting to ${exportType}...`, 30);
+                        const apiBaseUrl = getApiBaseUrl();
+                        const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
+                        
+                        let endpoint, mimeType, filename;
+                        if (exportType === 'word') {
+                            endpoint = '/export/word';
+                            mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+                            filename = 'export.docx';
+                        } else if (exportType === 'excel') {
+                            endpoint = '/export/excel';
+                            mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                            filename = 'export.xlsx';
+                        } else if (exportType === 'powerpoint') {
+                            endpoint = '/export/powerpoint';
+                            mimeType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+                            filename = 'export.pptx';
+                        } else if (exportType === 'image') {
+                            endpoint = '/export/images';
+                            mimeType = 'image/png';
+                            filename = 'export.png';
+                        } else {
+                            throw new Error('Invalid export type');
+                        }
+                        
+                        const response = await fetch(`${apiBaseUrl}/api/pdf${endpoint}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ fileId: fileId })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            hideLoading();
+                            
+                            if (exportType === 'image' && result.images) {
+                                // Download all images as ZIP
+                                alert('Image export ready. Downloading...');
+                                result.images.forEach((img, index) => {
+                                    const link = document.createElement('a');
+                                    link.href = img.image;
+                                    link.download = `page-${img.pageIndex + 1}.${img.format}`;
+                                    link.click();
+                                });
+                            } else {
+                                // Download single file
+                                const link = document.createElement('a');
+                                link.href = result.fileData || result.pdfData;
+                                link.download = result.filename || filename;
+                                link.click();
+                            }
+                            
+                            alert('Export completed!');
+                        } else {
+                            throw new Error(result.error || 'Export failed');
+                        }
+                    } catch (error) {
+                        hideLoading();
+                        alert('Error exporting: ' + error.message);
+                    }
+                });
+            });
+            
+            // Export dropdown toggle
+            const exportDropdownBtn = document.getElementById('export-dropdown-btn');
+            if (exportDropdownBtn && exportDropdown) {
+                exportDropdownBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    exportDropdown.style.display = exportDropdown.style.display === 'none' ? 'block' : 'none';
+                });
+                
+                document.addEventListener('click', function(e) {
+                    if (!exportDropdownBtn.contains(e.target) && !exportDropdown.contains(e.target)) {
+                        exportDropdown.style.display = 'none';
+                    }
+                });
+            }
+            
+            // Reorder Pages
+            const reorderPagesBtn = document.getElementById('reorder-pages-btn');
+            if (reorderPagesBtn) {
+                reorderPagesBtn.addEventListener('click', async function() {
+                    if (!window.pdfEditorVars.pdfDoc) {
+                        alert('No PDF loaded.');
+                        return;
+                    }
+                    
+                    const totalPages = window.pdfEditorVars.totalPages;
+                    const currentOrder = Array.from({ length: totalPages }, (_, i) => i);
+                    const newOrderStr = prompt(`Enter new page order (comma-separated, 1-${totalPages}):\nCurrent: ${currentOrder.map(i => i + 1).join(', ')}`, currentOrder.map(i => i + 1).join(', '));
+                    
+                    if (!newOrderStr) return;
+                    
+                    try {
+                        const newOrder = newOrderStr.split(',').map(s => parseInt(s.trim()) - 1);
+                        if (newOrder.length !== totalPages || newOrder.some(n => isNaN(n) || n < 0 || n >= totalPages)) {
+                            throw new Error('Invalid page order');
+                        }
+                        
+                        showLoading('Reordering pages...', 50);
+                        const apiBaseUrl = getApiBaseUrl();
+                        const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
+                        
+                        const response = await fetch(`${apiBaseUrl}/api/pdf/pages/reorder`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ fileId: fileId, newOrder: newOrder })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            window.pdfEditorVars.currentPdfData = result.pdfData;
+                            await reloadPDF();
+                            hideLoading();
+                            alert('Pages reordered successfully!');
+                        } else {
+                            throw new Error(result.error || 'Reorder failed');
+                        }
+                    } catch (error) {
+                        hideLoading();
+                        alert('Error reordering pages: ' + error.message);
+                    }
+                });
+            }
+            
+            // Extract Pages
+            const extractPageBtn = document.getElementById('extract-page-btn');
+            if (extractPageBtn) {
+                extractPageBtn.addEventListener('click', async function() {
+                    if (!window.pdfEditorVars.pdfDoc) {
+                        alert('No PDF loaded.');
+                        return;
+                    }
+                    
+                    const pageNum = window.pdfEditorVars.currentPage;
+                    const confirmExtract = confirm(`Extract page ${pageNum} as a new PDF?`);
+                    if (!confirmExtract) return;
+                    
+                    try {
+                        showLoading('Extracting page...', 50);
+                        const apiBaseUrl = getApiBaseUrl();
+                        const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
+                        
+                        const response = await fetch(`${apiBaseUrl}/api/pdf/pages/extract`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                fileId: fileId,
+                                pageIndices: [pageNum - 1]
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            hideLoading();
+                            const link = document.createElement('a');
+                            link.href = result.pdfData;
+                            link.download = `page-${pageNum}.pdf`;
+                            link.click();
+                            alert('Page extracted successfully!');
+                        } else {
+                            throw new Error(result.error || 'Extraction failed');
+                        }
+                    } catch (error) {
+                        hideLoading();
+                        alert('Error extracting page: ' + error.message);
+                    }
+                });
+            }
+            
+            // Add Page
+            const addPageBtn = document.getElementById('add-page-btn');
+            if (addPageBtn) {
+                addPageBtn.addEventListener('click', async function() {
+                    if (!window.pdfEditorVars.pdfDoc) {
+                        alert('No PDF loaded.');
+                        return;
+                    }
+                    
+                    const position = prompt('Add page at:\n1. After current page\n2. Before current page\n3. At the end\n\nEnter 1, 2, or 3:', '1');
+                    if (!position) return;
+                    
+                    try {
+                        showLoading('Adding page...', 50);
+                        const apiBaseUrl = getApiBaseUrl();
+                        const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
+                        
+                        let pageIndex = -1;
+                        let insertAfter = true;
+                        
+                        if (position === '1') {
+                            pageIndex = window.pdfEditorVars.currentPage - 1;
+                            insertAfter = true;
+                        } else if (position === '2') {
+                            pageIndex = window.pdfEditorVars.currentPage - 1;
+                            insertAfter = false;
+                        } else {
+                            pageIndex = -1;
+                            insertAfter = true;
+                        }
+                        
+                        const response = await fetch(`${apiBaseUrl}/api/pdf/pages/add`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                fileId: fileId,
+                                pageIndex: pageIndex,
+                                insertAfter: insertAfter
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            window.pdfEditorVars.currentPdfData = result.pdfData;
+                            await reloadPDF();
+                            hideLoading();
+                            alert('Page added successfully!');
+                        } else {
+                            throw new Error(result.error || 'Add page failed');
+                        }
+                    } catch (error) {
+                        hideLoading();
+                        alert('Error adding page: ' + error.message);
+                    }
+                });
+            }
+            
+            // Merge PDFs
+            const mergeBtn = document.getElementById('merge-btn');
+            if (mergeBtn) {
+                mergeBtn.addEventListener('click', async function() {
+                    const fileInput = document.createElement('input');
+                    fileInput.type = 'file';
+                    fileInput.accept = 'application/pdf,.pdf';
+                    fileInput.multiple = true;
+                    
+                    fileInput.onchange = async function(e) {
+                        const files = Array.from(e.target.files);
+                        if (files.length < 2) {
+                            alert('Please select at least 2 PDF files to merge.');
+                            return;
+                        }
+                        
+                        try {
+                            showLoading(`Merging ${files.length} PDFs...`, 10);
+                            const apiBaseUrl = getApiBaseUrl();
+                            
+                            // Convert files to base64
+                            const pdfDataArray = [];
+                            for (let i = 0; i < files.length; i++) {
+                                updateProgress(10 + (i / files.length * 80), `Processing file ${i + 1}/${files.length}...`);
+                                const file = files[i];
+                                const arrayBuffer = await file.arrayBuffer();
+                                const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+                                pdfDataArray.push(`data:application/pdf;base64,${base64}`);
+                            }
+                            
+                            updateProgress(90, 'Merging PDFs...');
+                            const response = await fetch(`${apiBaseUrl}/api/pdf/merge`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ pdfDataArray: pdfDataArray })
+                            });
+                            
+                            const result = await response.json();
+                            
+                            if (result.success) {
+                                hideLoading();
+                                const link = document.createElement('a');
+                                link.href = result.pdfData;
+                                link.download = 'merged.pdf';
+                                link.click();
+                                alert('PDFs merged successfully!');
+                            } else {
+                                throw new Error(result.error || 'Merge failed');
+                            }
+                        } catch (error) {
+                            hideLoading();
+                            alert('Error merging PDFs: ' + error.message);
+                        }
+                    };
+                    
+                    fileInput.click();
+                });
+            }
+            
+            // Split PDF
+            const splitBtn = document.getElementById('split-btn');
+            if (splitBtn) {
+                splitBtn.addEventListener('click', async function() {
+                    if (!window.pdfEditorVars.pdfDoc) {
+                        alert('No PDF loaded.');
+                        return;
+                    }
+                    
+                    const totalPages = window.pdfEditorVars.totalPages;
+                    const splitPointsStr = prompt(`Enter page numbers where to split (comma-separated, 1-${totalPages}):\nExample: 3,5 will create 3 PDFs: pages 1-2, 3-4, 5-${totalPages}`, '');
+                    
+                    if (!splitPointsStr) return;
+                    
+                    try {
+                        const splitPoints = splitPointsStr.split(',').map(s => parseInt(s.trim()));
+                        if (splitPoints.some(n => isNaN(n) || n < 1 || n > totalPages)) {
+                            throw new Error('Invalid split points');
+                        }
+                        
+                        showLoading('Splitting PDF...', 50);
+                        const apiBaseUrl = getApiBaseUrl();
+                        const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
+                        
+                        const response = await fetch(`${apiBaseUrl}/api/pdf/split`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                fileId: fileId,
+                                splitPoints: splitPoints
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success && result.splits) {
+                            hideLoading();
+                            result.splits.forEach((split, index) => {
+                                setTimeout(() => {
+                                    const link = document.createElement('a');
+                                    link.href = split.pdfData;
+                                    link.download = `split-${split.startPage}-${split.endPage}.pdf`;
+                                    link.click();
+                                }, index * 500);
+                            });
+                            alert(`PDF split into ${result.splits.length} files!`);
+                        } else {
+                            throw new Error(result.error || 'Split failed');
+                        }
+                    } catch (error) {
+                        hideLoading();
+                        alert('Error splitting PDF: ' + error.message);
+                    }
+                });
+            }
+            
+            // Complete Batch Processing
+            const batchStartBtn = document.getElementById('batch-start-btn');
+            if (batchStartBtn) {
+                batchStartBtn.addEventListener('click', async function() {
+                    if (window.pdfEditorVars.batchQueue.length === 0) {
+                        alert('No files in batch queue.');
+                        return;
+                    }
+                    
+                    const operation = prompt('Select batch operation:\n1. Compress\n2. OCR\n3. Protect\n4. Watermark\n\nEnter 1, 2, 3, or 4:', '1');
+                    if (!operation) return;
+                    
+                    try {
+                        window.pdfEditorVars.batchProcessing = true;
+                        updateBatchQueue();
+                        
+                        const apiBaseUrl = getApiBaseUrl();
+                        
+                        for (let i = 0; i < window.pdfEditorVars.batchQueue.length; i++) {
+                            const item = window.pdfEditorVars.batchQueue[i];
+                            item.status = 'processing';
+                            item.progress = 0;
+                            updateBatchQueue();
+                            
+                            try {
+                                const file = item.file;
+                                const arrayBuffer = await file.arrayBuffer();
+                                const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+                                
+                                item.progress = 30;
+                                updateBatchQueue();
+                                
+                                let endpoint, body;
+                                if (operation === '1') {
+                                    endpoint = '/compress';
+                                    body = { pdfData: `data:application/pdf;base64,${base64}` };
+                                } else if (operation === '2') {
+                                    endpoint = '/ocr';
+                                    body = { pdfData: `data:application/pdf;base64,${base64}`, pageIndex: 0 };
+                                } else if (operation === '3') {
+                                    endpoint = '/protect';
+                                    const password = prompt(`Enter password for ${item.name}:`, '');
+                                    if (!password) continue;
+                                    body = { pdfData: `data:application/pdf;base64,${base64}`, userPassword: password };
+                                } else if (operation === '4') {
+                                    endpoint = '/watermark';
+                                    body = {
+                                        pdfData: `data:application/pdf;base64,${base64}`,
+                                        watermark: { type: 'text', text: 'BATCH', position: 'center', opacity: 0.3 }
+                                    };
+                                }
+                                
+                                item.progress = 60;
+                                updateBatchQueue();
+                                
+                                const response = await fetch(`${apiBaseUrl}/api/pdf${endpoint}`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(body)
+                                });
+                                
+                                const result = await response.json();
+                                
+                                if (result.success) {
+                                    item.progress = 100;
+                                    item.status = 'completed';
+                                    item.result = result.pdfData || result.fileData;
+                                    updateBatchQueue();
+                                    
+                                    // Auto-download
+                                    const link = document.createElement('a');
+                                    link.href = item.result;
+                                    link.download = item.name.replace('.pdf', `-processed-${operation}.pdf`);
+                                    link.click();
+                                } else {
+                                    throw new Error(result.error || 'Processing failed');
+                                }
+                            } catch (error) {
+                                item.status = 'error: ' + error.message;
+                                updateBatchQueue();
+                            }
+                        }
+                        
+                        window.pdfEditorVars.batchProcessing = false;
+                        updateBatchQueue();
+                        alert('Batch processing completed!');
+                    } catch (error) {
+                        window.pdfEditorVars.batchProcessing = false;
+                        updateBatchQueue();
+                        alert('Batch processing error: ' + error.message);
+                    }
+                });
+            }
+            
+            // Cloud Storage Integration
+            const saveCloudBtn = document.getElementById('save-cloud-btn');
+            if (saveCloudBtn) {
+                saveCloudBtn.addEventListener('click', async function() {
+                    if (!window.pdfEditorVars.pdfDoc || !window.pdfEditorVars.currentPdfData) {
+                        alert('No PDF to save. Please load a PDF first.');
+                        return;
+                    }
+                    
+                    const cloudProvider = prompt('Select cloud storage:\n1. Google Drive\n2. Dropbox\n3. OneDrive\n\nEnter 1, 2, or 3:', '1');
+                    if (!cloudProvider) return;
+                    
+                    try {
+                        showLoading('Saving to cloud...', 20);
+                        const apiBaseUrl = getApiBaseUrl();
+                        const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
+                        const fileName = sessionStorage.getItem('pdfFileName') || 'document.pdf';
+                        
+                        // For now, use the existing saveToCloud function
+                        // In production, this would integrate with actual cloud APIs
+                        const response = await fetch(`${apiBaseUrl}/api/pdf/save-cloud`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                fileId: fileId,
+                                pdfData: window.pdfEditorVars.currentPdfData,
+                                fileName: fileName,
+                                provider: cloudProvider === '1' ? 'googledrive' : cloudProvider === '2' ? 'dropbox' : 'onedrive'
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            hideLoading();
+                            alert(`PDF saved to cloud successfully!\n${result.url ? 'URL: ' + result.url : 'File saved to cloud storage.'}`);
+                        } else {
+                            // Fallback: Download file for manual upload
+                            hideLoading();
+                            const link = document.createElement('a');
+                            link.href = window.pdfEditorVars.currentPdfData;
+                            link.download = fileName;
+                            link.click();
+                            alert('Cloud save not available. File downloaded for manual upload.\n\nTo enable cloud storage, configure API keys in server settings.');
+                        }
+                    } catch (error) {
+                        hideLoading();
+                        // Fallback: Download file
+                        const link = document.createElement('a');
+                        link.href = window.pdfEditorVars.currentPdfData;
+                        link.download = sessionStorage.getItem('pdfFileName') || 'document.pdf';
+                        link.click();
+                        alert('Cloud save not configured. File downloaded for manual upload.');
+                    }
+                });
+            }
+        }
+        
+        // Enhanced OCR with multi-language support
+        function enhanceOCR() {
+            const ocrServerBtn = document.getElementById('ocr-server-btn');
+            if (ocrServerBtn) {
+                ocrServerBtn.addEventListener('click', async function() {
+                    if (!window.pdfEditorVars.pdfDoc) {
+                        alert('No PDF loaded. Please upload a PDF first.');
+                        return;
+                    }
+                    
+                    const language = prompt('Select OCR language:\n1. English (eng)\n2. Hindi (hin)\n3. Spanish (spa)\n4. French (fra)\n5. German (deu)\n\nEnter 1-5 (default: 1):', '1');
+                    const langMap = { '1': 'eng', '2': 'hin', '3': 'spa', '4': 'fra', '5': 'deu' };
+                    const langCode = langMap[language] || 'eng';
+                    
+                    try {
+                        showLoading('Starting advanced OCR...', 10);
+                        updateProgress(20, 'Rendering page to image...');
+                        
+                        const page = await window.pdfEditorVars.pdfDoc.getPage(window.pdfEditorVars.currentPage);
+                        const viewport = page.getViewport({ scale: 3.0 }); // Higher scale for better accuracy
+                        const canvas = document.createElement('canvas');
+                        canvas.width = viewport.width;
+                        canvas.height = viewport.height;
+                        const context = canvas.getContext('2d');
+                        
+                        await page.render({
+                            canvasContext: context,
+                            viewport: viewport
+                        }).promise;
+                        
+                        updateProgress(40, 'Converting to image...');
+                        const imageData = canvas.toDataURL('image/png');
+                        
+                        updateProgress(50, 'Sending to OCR service...');
+                        const apiBaseUrl = getApiBaseUrl();
+                        
+                        const response = await fetch(`${apiBaseUrl}/api/pdf/ocr`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                imageData: imageData,
+                                pdfData: window.pdfEditorVars.currentPdfData,
+                                pageIndex: window.pdfEditorVars.currentPage - 1,
+                                language: langCode,
+                                fileName: sessionStorage.getItem('pdfFileName') || 'document.pdf'
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            updateProgress(90, 'Processing OCR results...');
+                            
+                            // Store OCR results
+                            if (!window.pdfEditorVars.ocrTextsForPDF) {
+                                window.pdfEditorVars.ocrTextsForPDF = [];
+                            }
+                            
+                            if (result.words && result.words.length > 0) {
+                                const currentViewport = page.getViewport({ scale: window.pdfEditorVars.scale });
+                                const scaleX = pdfCanvas.width / viewport.width;
+                                const scaleY = pdfCanvas.height / viewport.height;
+                                
+                                result.words.forEach((word) => {
+                                    if (word.text && word.boundingBox) {
+                                        window.pdfEditorVars.ocrTextsForPDF.push({
+                                            pageIndex: window.pdfEditorVars.currentPage - 1,
+                                            text: word.text,
+                                            x: word.boundingBox.x * scaleX,
+                                            y: word.boundingBox.y * scaleY,
+                                            fontSize: 12,
+                                            fontColor: [0, 0, 0],
+                                            fontName: 'Helvetica'
+                                        });
+                                    }
+                                });
+                                
+                                saveState();
+                            }
+                            
+                            hideLoading();
+                            alert(`OCR completed! Extracted ${result.words ? result.words.length : 0} words.\nLanguage: ${langCode.toUpperCase()}\nMethod: ${result.method || 'Server OCR'}`);
+                        } else {
+                            throw new Error(result.error || 'OCR failed');
+                        }
+                    } catch (error) {
+                        hideLoading();
+                        alert('Error performing OCR: ' + error.message);
+                    }
+                });
+            }
+        }
+        
+        // Initialize enhanced OCR
+        enhanceOCR();
+        
         // Theme Toggle Functionality
         function initTheme() {
             // Get saved theme preference or default to dark
@@ -5257,6 +6299,9 @@
         async function initPDFEditor() {
             // Initialize button event listeners first
             initButtonEventListeners();
+            
+            // Initialize advanced features
+            initAdvancedFeatures();
             
             // Check for PDF from edit-pdf.html on page load
             // This function handles all PDF loading scenarios (server URL, file ID, blob URL, base64)

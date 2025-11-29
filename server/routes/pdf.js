@@ -100,5 +100,101 @@ router.post('/compress', apiLimiter, express.json({ limit: '100mb' }), asyncHand
  */
 router.post('/protect', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.protectPDF));
 
+/**
+ * POST /api/pdf/forms/detect
+ * Detect form fields in PDF
+ */
+router.post('/forms/detect', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.detectFormFields));
+
+/**
+ * POST /api/pdf/forms/fill
+ * Fill form fields in PDF
+ */
+router.post('/forms/fill', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.fillFormFields));
+
+/**
+ * POST /api/pdf/pages/rotate
+ * Rotate pages in PDF
+ */
+router.post('/pages/rotate', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.rotatePages));
+
+/**
+ * POST /api/pdf/pages/delete
+ * Delete pages from PDF
+ */
+router.post('/pages/delete', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.deletePages));
+
+/**
+ * POST /api/pdf/pages/reorder
+ * Reorder pages in PDF
+ */
+router.post('/pages/reorder', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.reorderPages));
+
+/**
+ * POST /api/pdf/pages/extract
+ * Extract pages from PDF
+ */
+router.post('/pages/extract', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.extractPages));
+
+/**
+ * POST /api/pdf/pages/add
+ * Add new page to PDF
+ */
+router.post('/pages/add', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.addPage));
+
+/**
+ * POST /api/pdf/export/word
+ * Export PDF to Word (DOCX)
+ */
+router.post('/export/word', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.exportToWord));
+
+/**
+ * POST /api/pdf/export/excel
+ * Export PDF to Excel (XLSX)
+ */
+router.post('/export/excel', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.exportToExcel));
+
+/**
+ * POST /api/pdf/export/powerpoint
+ * Export PDF to PowerPoint (PPTX)
+ */
+router.post('/export/powerpoint', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.exportToPowerPoint));
+
+/**
+ * POST /api/pdf/export/images
+ * Export PDF pages to images
+ */
+router.post('/export/images', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.exportToImages));
+
+/**
+ * POST /api/pdf/redact
+ * Redact text/images from PDF
+ */
+router.post('/redact', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.redactPDF));
+
+/**
+ * POST /api/pdf/watermark
+ * Add watermark to PDF
+ */
+router.post('/watermark', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.addWatermark));
+
+/**
+ * POST /api/pdf/signature
+ * Add digital signature to PDF
+ */
+router.post('/signature', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.addSignature));
+
+/**
+ * POST /api/pdf/merge
+ * Merge multiple PDFs
+ */
+router.post('/merge', apiLimiter, express.json({ limit: '200mb' }), asyncHandler(pdfController.mergePDFs));
+
+/**
+ * POST /api/pdf/split
+ * Split PDF into multiple files
+ */
+router.post('/split', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.splitPDF));
+
 module.exports = router;
 
