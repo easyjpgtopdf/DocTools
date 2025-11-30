@@ -1357,6 +1357,17 @@
 
     // Download original/high quality version (Premium)
     async function downloadOriginal(resultDataURL, imageInfo) {
+      // Increment device quota after successful download (premium users)
+      if (isPremium && deviceInfo) {
+        try {
+          const { incrementDeviceQuota } = await import('./js/device-fingerprint.js');
+          await incrementDeviceQuota('imageRemover', 1, imageInfo.size);
+          console.log('✅ Device quota incremented for premium download');
+        } catch (error) {
+          console.warn('Failed to increment device quota:', error);
+        }
+      }
+      
       // Download original version
       const link = document.createElement('a');
       const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-styled.png';
@@ -1364,7 +1375,7 @@
       link.download = filename.endsWith('.png') ? filename : `${filename.replace(/\.[^/.]+$/, '') || 'background-styled'}.png`;
       link.click();
       
-      setStatus(`? Downloaded (${imageInfo.sizeKB} KB, ${imageInfo.width}×${imageInfo.height}px) - Premium`);
+      setStatus(`✅ Downloaded (${imageInfo.sizeKB} KB, ${imageInfo.width}×${imageInfo.height}px) - Premium`);
       setTimeout(() => clearStatus(), 4000);
     }
 
