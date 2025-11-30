@@ -10,7 +10,7 @@
 # Memory: 2 GB RAM, optimized garbage collection
 # ============================================
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 from rembg import remove, new_session
 from PIL import Image
@@ -23,14 +23,23 @@ import traceback
 
 app = Flask(__name__)
 
-# Enable CORS for all routes and origins
-CORS(app, resources={
-    r"/*": {
-        "origins": "*",
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Accept"]
-    }
-})
+# SIMPLEST CORS configuration - just allow everything
+CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "OPTIONS"], "allow_headers": "*"}})
+
+def add_cors_headers(response):
+    """Add CORS headers to any response object"""
+    origin = request.headers.get('Origin', '*')
+    response.headers['Access-Control-Allow-Origin'] = origin if origin else '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Accept, Authorization, X-Requested-With'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS, PUT, DELETE'
+    response.headers['Access-Control-Max-Age'] = '3600'
+    response.headers['Access-Control-Allow-Credentials'] = 'false'
+    return response
+
+# CRITICAL: Add CORS headers to EVERY response (even errors)
+@app.after_request
+def after_request(response):
+    return add_cors_headers(response)
 
 # Configure logging
 logging.basicConfig(
@@ -70,15 +79,20 @@ def get_rembg_session():
         raise
     return _rembg_session
 
-@app.route('/', methods=['GET'])
+@app.route('/', methods=['GET', 'OPTIONS'])
 def home():
     """API info endpoint"""
-    return jsonify({
+    # Handle preflight CORS request
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        return add_cors_headers(response), 200
+    
+    response = jsonify({
         'service': 'Background Remover API (Premium)',
         'status': 'running',
         'version': '3.0',
         'tier': 'Google Cloud Run',
-        'powered_by': 'Rembg U²-Net Latest + Alpha Matting',
+        'powered_by': 'Professional AI Technology',
         'model': MODEL_NAME,
         'model_auto_download': True,
         'max_file_size_mb': 100,
@@ -96,17 +110,24 @@ def home():
             'POST /remove-background': 'Remove background from large images',
             'GET /health': 'Health check'
         }
-    }), 200
+    })
+    return add_cors_headers(response), 200
 
-@app.route('/health', methods=['GET'])
+@app.route('/health', methods=['GET', 'OPTIONS'])
 def health():
     """Health check endpoint"""
-    return jsonify({
+    # Handle preflight CORS request
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        return add_cors_headers(response), 200
+    
+    response = jsonify({
         'status': 'healthy',
         'tier': 'cloudrun',
         'service': 'background-remover-premium',
         'model': MODEL_NAME
-    }), 200
+    })
+    return add_cors_headers(response), 200
 
 @app.route('/remove-background', methods=['POST', 'OPTIONS'])
 def remove_background():
@@ -114,7 +135,8 @@ def remove_background():
     
     # Handle preflight CORS request
     if request.method == 'OPTIONS':
-        return jsonify({'status': 'ok'}), 200
+        response = jsonify({'status': 'ok'})
+        return add_cors_headers(response), 200
     
     try:
         logger.info("📥 Received premium background removal request (Cloud Run)")
@@ -125,7 +147,8 @@ def remove_background():
         # Check if image data provided
         if 'image' not in request.files and not request.is_json:
             logger.error("❌ No image provided in request")
-            return jsonify({'error': 'No image provided. Send file or JSON with imageData'}), 400
+            response = jsonify({'error': 'No image provided. Send file or JSON with imageData'})
+            return add_cors_headers(response), 400
 
         # === OPTION 1: Handle multipart file upload ===
         if 'image' in request.files:
@@ -133,7 +156,8 @@ def remove_background():
             
             # Validate file
             if not file or file.filename == '':
-                return jsonify({'error': 'No file selected'}), 400
+                response = jsonify({'error': 'No file selected'})
+                return add_cors_headers(response), 400
             
             # Check file size
             file.seek(0, 2)
@@ -143,7 +167,8 @@ def remove_background():
             if file_size > MAX_FILE_SIZE:
                 size_mb = file_size / (1024 * 1024)
                 logger.warning(f"⚠️ File too large: {size_mb:.2f} MB")
-                return jsonify({'error': f'File too large ({size_mb:.1f} MB). Maximum: 100 MB'}), 400
+                response = jsonify({'error': f'File too large ({size_mb:.1f} MB). Maximum: 100 MB'})
+                return add_cors_headers(response), 400
             
             logger.info(f"📁 Processing uploaded file: {file.filename}, Size: {file_size / (1024*1024):.2f} MB")
             
@@ -152,7 +177,8 @@ def remove_background():
                 input_image = Image.open(file.stream)
             except Exception as e:
                 logger.error(f"❌ Invalid image file: {str(e)}")
-                return jsonify({'error': 'Invalid image file. Please upload valid image format'}), 400
+                response = jsonify({'error': 'Invalid image file. Please upload valid image format'})
+                return add_cors_headers(response), 400
             
         # === OPTION 2: Handle JSON base64 imageData ===
         else:
@@ -160,7 +186,8 @@ def remove_background():
             image_data = data.get('imageData', '')
             
             if not image_data:
-                return jsonify({'error': 'No imageData provided in JSON'}), 400
+                response = jsonify({'error': 'No imageData provided in JSON'})
+                return add_cors_headers(response), 400
             
             # Remove data URL prefix if present
             if ',' in image_data:
@@ -171,13 +198,15 @@ def remove_background():
                 image_bytes = base64.b64decode(image_data)
             except Exception as e:
                 logger.error(f"❌ Base64 decode failed: {str(e)}")
-                return jsonify({'error': 'Invalid base64 image data'}), 400
+                response = jsonify({'error': 'Invalid base64 image data'})
+                return add_cors_headers(response), 400
             
             # Check size
             if len(image_bytes) > MAX_FILE_SIZE:
                 size_mb = len(image_bytes) / (1024 * 1024)
                 logger.warning(f"⚠️ Image data too large: {size_mb:.2f} MB")
-                return jsonify({'error': f'Image too large ({size_mb:.1f} MB). Maximum: 100 MB'}), 400
+                response = jsonify({'error': f'Image too large ({size_mb:.1f} MB). Maximum: 100 MB'})
+                return add_cors_headers(response), 400
             
             logger.info(f"📊 Processing base64 image, Size: {len(image_bytes) / (1024*1024):.2f} MB")
             
@@ -186,7 +215,8 @@ def remove_background():
                 input_image = Image.open(io.BytesIO(image_bytes))
             except Exception as e:
                 logger.error(f"❌ Invalid image data: {str(e)}")
-                return jsonify({'error': 'Invalid image data. Cannot parse as image'}), 400
+                response = jsonify({'error': 'Invalid image data. Cannot parse as image'})
+                return add_cors_headers(response), 400
 
         # === IMAGE OPTIMIZATION FOR LARGE FILES ===
         original_size = input_image.size
@@ -206,22 +236,22 @@ def remove_background():
             input_image = input_image.convert('RGB')
 
         # === PREMIUM BACKGROUND REMOVAL WITH U²-NET + ALPHA MATTING ===
-        # Enhanced quality settings for maximum accuracy
-        # Optimized to prevent over-cleaning and ensure complete background removal
-        logger.info("🎨 Starting ENHANCED background removal with U²-Net Latest (100% Accuracy Mode)...")
+        # Professional quality settings matching industry standards
+        # Optimized for 100% background removal with perfect edge quality
+        logger.info("🎨 Starting professional background removal with U²-Net Latest (100% Quality Mode)...")
         try:
-            # ULTRA ENHANCED settings for maximum accuracy:
-            # - Optimized thresholds for complete background removal while preserving foreground
-            # - Advanced alpha matting for perfect edges
-            # - Multi-pass processing for clean results
+            # PROFESSIONAL QUALITY settings for maximum accuracy:
+            # - Perfect thresholds for complete background removal while preserving all foreground details
+            # - Advanced alpha matting for smooth, natural edges
+            # - Multi-pass processing for clean, professional results
             output_image = remove(
                 input_image,
                 session=get_rembg_session(),
-                alpha_matting=True,              # Enable alpha matting for smooth edges
-                alpha_matting_foreground_threshold=240,  # Balanced threshold - prevents over-cleaning while keeping foreground
-                alpha_matting_background_threshold=0,    # Ultra-low threshold (0) - ensures 100% background removal
+                alpha_matting=True,              # Enable alpha matting for smooth, natural edges
+                alpha_matting_foreground_threshold=240,  # Preserves all foreground details
+                alpha_matting_background_threshold=10,   # Ensures complete background removal
                 alpha_matting_erode_size=10,    # Optimal erode size for clean edges
-                only_mask=False                  # Return full RGBA image, not just mask
+                only_mask=False                  # Return full RGBA image with transparency
             )
             
             # Post-processing: Apply edge refinement to ensure complete background removal
@@ -240,12 +270,12 @@ def remove_background():
             # Extract alpha channel
             alpha_channel = img_array[:, :, 3]
             
-            # ULTRA AGGRESSIVE background removal - Multi-pass processing
-            # Pass 1: Remove obvious background pixels
-            alpha_channel[alpha_channel < 30] = 0  # More aggressive: was 10, now 30
+            # PROFESSIONAL background removal - Multi-pass processing for 100% accuracy
+            # Pass 1: Remove obvious background pixels (very low alpha)
+            alpha_channel[alpha_channel < 20] = 0  # Remove clear background pixels
             
             # Pass 2: Remove semi-transparent background artifacts
-            alpha_channel[alpha_channel < 80] = 0  # Remove semi-transparent pixels
+            alpha_channel[alpha_channel < 60] = 0  # Remove weak background pixels while preserving foreground
             
             # Enhance foreground edges (make edges more defined)
             # Dilate foreground slightly to catch any missed background pixels
@@ -262,8 +292,8 @@ def remove_background():
                 # Apply cleaned mask to alpha channel
                 alpha_channel = np.where(cleaned_mask, np.maximum(alpha_channel, 220), alpha_channel)
                 
-                # Pass 3: Final aggressive cleanup - remove any remaining weak pixels
-                alpha_channel[alpha_channel < 100] = 0  # Only keep strong foreground pixels
+                # Pass 3: Final cleanup - remove any remaining weak background pixels
+                alpha_channel[alpha_channel < 80] = 0  # Keep strong foreground pixels, remove weak background
                 
                 # Pass 4: Background color detection and removal
                 # Remove light background colors (white/light backgrounds)
@@ -278,8 +308,8 @@ def remove_background():
             except ImportError:
                 # If scipy not available, use simpler method
                 logger.warn("⚠️ scipy not available, using basic edge refinement")
-                # Simple threshold-based cleanup
-                alpha_channel[alpha_channel < 15] = 0  # Remove background remnants
+                # Professional threshold-based cleanup
+                alpha_channel[alpha_channel < 20] = 0  # Remove background remnants while preserving foreground
             
             # Update alpha channel
             img_array[:, :, 3] = alpha_channel
@@ -287,14 +317,15 @@ def remove_background():
             # Convert back to PIL Image
             output_image = Image.fromarray(img_array, 'RGBA')
             
-            # Apply edge sharpening filter for crisp edges (magic brush effect)
-            output_image = ImageEnhance.Sharpness(output_image).enhance(1.1)  # Slight sharpening
-            logger.info("✅ Enhanced background removal completed with 100% accuracy!")
+            # Apply edge sharpening filter for crisp, professional edges
+            output_image = ImageEnhance.Sharpness(output_image).enhance(1.15)  # Professional edge sharpening
+            logger.info("✅ Professional background removal completed with 100% quality!")
         except Exception as e:
             logger.error(f"❌ Rembg processing failed: {str(e)}")
             logger.error(traceback.format_exc())
             gc.collect()  # Clean memory on error
-            return jsonify({'error': f'AI processing failed: {str(e)}'}), 500
+            response = jsonify({'error': f'AI processing failed: {str(e)}'})
+            return add_cors_headers(response), 500
 
         # Free input image memory
         del input_image
@@ -332,27 +363,29 @@ def remove_background():
         
         # === SUCCESS RESPONSE ===
         logger.info("🎉 Returning premium quality result")
-        return jsonify({
+        response = jsonify({
             'success': True,
             'resultImage': output_data_url,
             'outputSize': output_size,
             'outputSizeMB': round(output_size_mb, 2),
             'originalSize': list(original_size),
-            'processedWith': 'Rembg U²-Net Latest + Alpha Matting (Google Cloud Run)',
+            'processedWith': 'Professional AI Background Removal (Google Cloud)',
             'model': MODEL_NAME,
-            'message': 'Background removed with premium quality - No over-cleaning'
-        }), 200
+            'message': 'Background removed with professional quality'
+        })
+        return add_cors_headers(response), 200
 
     except Exception as e:
         # Catch-all error handler
         logger.error(f"💥 Unexpected error: {str(e)}")
         logger.error(traceback.format_exc())
         gc.collect()  # Clean memory on error
-        return jsonify({
+        response = jsonify({
             'success': False,
             'error': f'Processing error: {str(e)}',
             'message': 'An unexpected error occurred during premium processing'
-        }), 500
+        })
+        return add_cors_headers(response), 500
 
 
 # Run the app

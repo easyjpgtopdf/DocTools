@@ -4,15 +4,24 @@
  * Auto-updates all pages when header/footer changes
  */
 
-// Prevent multiple executions
-if (window.globalComponentsLoaded) {
-    console.warn('Global components already loaded, skipping duplicate execution');
-} else {
+// Prevent multiple executions - wrap entire script
+(function() {
+    'use strict';
+    
+    // Prevent duplicate script execution
+    if (window.globalComponentsLoaded) {
+        console.warn('Global components already loaded, skipping duplicate execution');
+        return; // Exit early if already loaded
+    }
     window.globalComponentsLoaded = true;
-}
 
 // Get current page filename for active link highlighting
-const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+// Use window property to avoid duplicate declaration errors
+var currentPage;
+if (typeof window.currentPage === 'undefined') {
+    window.currentPage = window.location.pathname.split('/').pop() || 'index.html';
+}
+currentPage = window.currentPage;
 
 // Global Header HTML
 const globalHeaderHTML = `
@@ -86,13 +95,15 @@ const globalHeaderHTML = `
                         <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
                         <a href="ai-image-generator.html">AI Image Generator</a>
                         <a href="marriage-card.html">Marriage Card</a>
+                        <a href="excel-unlocker/index.html">Excel Unlocker</a>
+                        <a href="protect-excel.html">Protect Excel Sheet</a>
                     </div>
                 </div>
                 <div class="dropdown">
-                    <a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
+                    <a href="#">More <i class="fas fa-chevron-down"></i></a>
                     <div class="dropdown-content">
-                        <a href="excel-unlocker/" target="_blank">Excel Unlocker</a>
-                        <a href="protect-excel.html">Protect Excel Sheet</a>
+                        <a href="pricing.html">Pricing</a>
+                        <a href="blog.html">Blog / Articles</a>
                     </div>
                 </div>
             </div>
@@ -182,8 +193,17 @@ const globalHeaderHTML = `
                         <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
                         <a href="ai-image-generator.html">AI Image Generator</a>
                         <a href="marriage-card.html">Marriage Card</a>
-                        <a href="excel-unlocker/" target="_blank">Excel Unlocker</a>
+                        <a href="excel-unlocker/index.html">Excel Unlocker</a>
                         <a href="protect-excel.html">Protect Excel Sheet</a>
+                    </div>
+                </div>
+                <div class="mobile-dropdown">
+                    <button class="mobile-dropdown-toggle" aria-expanded="false">
+                        More <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="mobile-dropdown-content">
+                        <a href="pricing.html">Pricing</a>
+                        <a href="blog.html">Blog / Articles</a>
                     </div>
                 </div>
             </nav>
@@ -221,6 +241,7 @@ const globalFooterHTML = `
             <a href="disclaimer.html">Disclaimer</a>
             <a href="dmca.html">DMCA</a>
             <a href="blog.html">Blog</a>
+            <a href="feedback.html">Feedback</a>
         </div>
         <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
         <p class="footer-credits">
@@ -233,20 +254,69 @@ const globalFooterHTML = `
 
 // Function to load header
 function loadGlobalHeader() {
-    // Prevent duplicate headers
-    const existingHeaders = document.querySelectorAll('header');
-    if (existingHeaders.length > 0) {
-        console.warn('Header already exists, skipping duplicate load');
+    // Check if header already exists and is properly loaded
+    const existingHeader = document.querySelector('header');
+    if (existingHeader && existingHeader.querySelector('.navbar')) {
+        // Header already loaded, just initialize mobile menu if needed
+        const mobileToggle = document.getElementById('mobile-menu-toggle');
+        if (mobileToggle && !mobileToggle.hasAttribute('data-initialized')) {
+            initializeMobileMenu();
+            mobileToggle.setAttribute('data-initialized', 'true');
+        }
         return;
     }
     
-    const headerPlaceholder = document.getElementById('global-header-placeholder');
-    if (headerPlaceholder) {
-        headerPlaceholder.outerHTML = globalHeaderHTML;
-        highlightActiveLink();
-        initializeMobileMenu();
-        // Also load breadcrumb if placeholder exists
-        loadGlobalBreadcrumb();
+    console.log('loadGlobalHeader called - attempting to load header...');
+    
+    // Try to find placeholder
+    let headerPlaceholder = document.getElementById('global-header-placeholder');
+    
+    // If placeholder exists and is a div, replace it
+    if (headerPlaceholder && (headerPlaceholder.tagName === 'DIV' || headerPlaceholder.tagName === 'div')) {
+        try {
+            // Replace placeholder with header HTML
+            headerPlaceholder.outerHTML = globalHeaderHTML;
+            
+            // Wait for DOM to update, then initialize
+            requestAnimationFrame(function() {
+                highlightActiveLink();
+                initializeMobileMenu();
+                loadGlobalBreadcrumb();
+                console.log('Header loaded successfully!');
+            });
+            return;
+        } catch (error) {
+            console.error('Error replacing header placeholder:', error);
+        }
+    }
+    
+    // Fallback: If no placeholder or replacement failed, try to insert at body start
+    if (!document.querySelector('header')) {
+        try {
+            const body = document.body;
+            if (body) {
+                // Remove placeholder if it exists but wasn't replaced
+                if (headerPlaceholder && headerPlaceholder.parentNode) {
+                    headerPlaceholder.parentNode.removeChild(headerPlaceholder);
+                }
+                
+                // Create and insert header
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = globalHeaderHTML.trim();
+                const headerElement = tempDiv.firstElementChild;
+                if (headerElement) {
+                    body.insertBefore(headerElement, body.firstChild);
+                    requestAnimationFrame(function() {
+                        highlightActiveLink();
+                        initializeMobileMenu();
+                        loadGlobalBreadcrumb();
+                        console.log('Header loaded successfully (fallback method)!');
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error adding global header to body:', error);
+        }
     }
 }
 
@@ -386,17 +456,62 @@ function highlightActiveLink() {
 if (!window.globalComponentsInitialized) {
     window.globalComponentsInitialized = true;
     
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            loadGlobalHeader();
-            loadGlobalFooter();
-        });
-    } else {
+    function initializeComponents() {
         loadGlobalHeader();
         loadGlobalFooter();
     }
+    
+    // Multiple initialization strategies to ensure header loads
+    function forceLoadHeader() {
+        const placeholder = document.getElementById('global-header-placeholder');
+        const existingHeader = document.querySelector('header');
+        
+        // If placeholder exists but no header, force load
+        if (placeholder && !existingHeader) {
+            try {
+                placeholder.outerHTML = globalHeaderHTML;
+                setTimeout(function() {
+                    highlightActiveLink();
+                    initializeMobileMenu();
+                    loadGlobalBreadcrumb();
+                }, 10);
+            } catch (e) {
+                console.error('Force load header error:', e);
+            }
+        }
+    }
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeComponents();
+            // Also try after a delay
+            setTimeout(forceLoadHeader, 100);
+            setTimeout(forceLoadHeader, 500);
+        });
+    } else {
+        // DOM already ready
+        initializeComponents();
+        setTimeout(forceLoadHeader, 50);
+        setTimeout(forceLoadHeader, 200);
+        setTimeout(forceLoadHeader, 500);
+    }
+    
+    // Final attempt after page fully loads
+    window.addEventListener('load', function() {
+        if (!document.querySelector('header')) {
+            forceLoadHeader();
+        }
+    });
 }
 
 // Export functions for manual use if needed
 window.loadGlobalHeader = loadGlobalHeader;
 window.loadGlobalFooter = loadGlobalFooter;
+
+// Make function available globally immediately
+if (typeof window !== 'undefined') {
+    window.loadGlobalHeader = loadGlobalHeader;
+    window.loadGlobalFooter = loadGlobalFooter;
+}
+
+})(); // Close IIFE to prevent duplicate execution

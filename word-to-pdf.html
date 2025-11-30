@@ -21,16 +21,12 @@
         body { background: linear-gradient(135deg, #f5f7ff 0%, #e9ecef 100%); color: var(--dark); min-height: 100vh; line-height: 1.6; display:flex; flex-direction:column; }
         .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 20px; }
         /* Header (from index.html) */
-        header { background: #fff; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,.08); }
-        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; }
-        .logo { display: flex; gap: 10px; align-items: center; font-size: 22px; font-weight: 700; color: var(--primary); text-decoration: none; }
+
         .logo i { color: var(--primary-dark); }
-        .nav-links { display: flex; gap: 22px; }
-        .nav-links a { text-decoration: none; color: var(--dark); font-weight: 500; }
+
         .nav-links a.active, .nav-links a:hover { color: var(--primary); }
-        .dropdown { position: relative; }
-        .dropdown-content { display: none; position: absolute; background: #fff; min-width: 200px; box-shadow: 0 8px 16px rgba(0,0,0,.1); border-radius: 8px; padding: 10px 0; top: 100%; left: 0; }
-        .dropdown:hover .dropdown-content { display: block; }
+
+        .dropdown:hover 
         .dropdown-content a { display: block; padding: 10px 20px; text-decoration: none; color: var(--dark); }
         .dropdown-content a:hover { background: var(--light); }
         .auth-buttons { display:flex; gap:10px; }
@@ -39,7 +35,7 @@
         .auth-btn.signup { background: var(--primary); color:#fff; border:1px solid var(--primary); }
         /* Page specific */
         .page-wrap { padding: 20px 0; }
-        .converter-header { text-align: center; margin-bottom: 30px; padding: 20px; }
+        .converter-
         .converter-header h1 { font-size: 2.2rem; color: var(--primary); margin-bottom: 10px; }
         .converter-header p { font-size: 1.05rem; color: var(--gray); max-width: 700px; margin: 0 auto; }
         .converter-card { background: #fff; border-radius: var(--border-radius); padding: 30px; box-shadow: var(--box-shadow); margin-bottom: 30px; }
@@ -95,7 +91,7 @@
         .footer-links a { color: #aaa; text-decoration: none; }
         .footer-links a:hover { color: #fff; }
         .copyright { text-align: center; color: #aaa; border-top: 1px solid #444; padding-top: 16px; font-size: .9rem; }
-        @media (max-width: 768px) { .nav-links { display: none; } .action-buttons { flex-direction: column; } .btn { width: 100%; justify-content: center; } .features { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) {  .action-buttons { flex-direction: column; } .btn { width: 100%; justify-content: center; } .features { grid-template-columns: 1fr; } }
     </style>
 <link href="css/header.css" rel="stylesheet"/>
 <link href="css/theme-modern.css" rel="stylesheet"/>
@@ -121,94 +117,8 @@
     </script>
 </head>
 <body>
-<header>
-        <div class="container">
-            <nav class="navbar">
-                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
-                <div class="nav-links">
-                    <div class="dropdown">
-                        <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="jpg-to-pdf.html">JPG to PDF</a>
-                            <a href="word-to-pdf.html">Word to PDF</a>
-                            <a href="excel-to-pdf.html">Excel to PDF</a>
-                            <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="pdf-to-jpg.html">PDF to JPG</a>
-                            <a href="pdf-to-word.html">PDF to Word</a>
-                            <a href="pdf-to-excel.html">PDF to Excel</a>
-                            <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="merge-pdf.html">Merge PDF</a>
-                            <a href="split-pdf.html">Split PDF</a>
-                            <a href="compress-pdf.html">Compress PDF</a>
-                            <a href="edit-pdf.html">Pdf Editor</a>
-                            <a href="protect-pdf.html">Protect PDF</a>
-                            <a href="unlock-pdf.html">Unlock PDF</a>
-                            <a href="watermark-pdf.html">Watermark PDF</a>
-                            <a href="crop-pdf.html">Crop PDF</a>
-                            <a href="add-page-numbers.html">Add Page Numbers</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="image-repair.html">AI Image Repair</a>
-                            <a href="image-compressor.html">Image Compressor</a>
-                            <a href="image-resizer.html">Image Resizer</a>
-                            <a href="image-editor.html">Image Editor</a>
-                            <a href="background-remover.html">Image Background Remover</a>
-                            <a href="ocr-image.html">OCR Image</a>
-                            <a href="image-watermark.html">Image Watermark Tool</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="resume-maker.html">Resume Maker</a>
-                            <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
-                            <a href="ai-image-generator.html">AI Image Generator</a>
-                            <a href="marriage-card.html">Marriage Card</a>
-                            <a href="excel-unlocker/" target="_blank">Excel Unlocker</a>
-                            <a href="protect-excel.html">Protect Excel Sheet</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">More <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="pricing.html">Pricing</a>
-                            <a href="blog.html">Blog/Articles</a>
-                            
-                            
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="user-menu" class="user-menu" data-open="false">
-                    <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
-                        <span class="user-initial" aria-hidden="true">U</span>
-                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                    </button>
-                    <div class="user-dropdown" id="user-dropdown" hidden>
-                        <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
-                        <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
-                        <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
-                        <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
-                        <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
-                        <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
-                    </div>
-                </div>
-            </nav>
-        </div>
-    </header>
+    <div id="global-header-placeholder"></div>
+
 
         <nav aria-label="Breadcrumb" style="padding: 15px 0; background: #f8f9ff; border-bottom: 1px solid #e2e6ff;">
         <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 24px;">
@@ -310,7 +220,9 @@
         const previewContainer = document.getElementById('preview-container');
         // Events
         uploadArea.addEventListener('click', () => fileInput.click());
-        uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+        uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.cla
+    
+ssList.add('dragover'); });
         uploadArea.addEventListener('dragleave', () => { uploadArea.classList.remove('dragover'); });
         uploadArea.addEventListener('drop', (e) => { e.preventDefault(); uploadArea.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); });
         fileInput.addEventListener('change', (e) => { if (e.target.files.length > 0) handleFile(e.target.files[0]); });
@@ -585,7 +497,210 @@
     }
     </script>
 
-    <div class="trust-badges" style="text-align: center; padding: 20px; background: linear-gradient(135deg, #f8f9ff, #ffffff); border-radius: 12px; margin: 30px 0; border: 2px solid #e2e6ff;">
+    
+    <section class="feedback-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
+            <i class="fas fa-comments" style="margin-right: 10px;"></i>
+            Reviews & Comments
+        </h2>
+        
+        <div class="feedback-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: flex-start; max-width: 1200px; margin: 0 auto;">
+            <!-- Left Side: Comments List -->
+            <div class="feedback-card" style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); min-height: 400px; max-height: 600px; overflow-y: auto;">
+                <div class="thread-header" style="margin-bottom: 20px; border-bottom: 2px solid #e2e6ff; padding-bottom: 12px;">
+                    <h3 style="font-size: 1.3rem; color: #0b1630; margin-bottom: 8px;">Live Comments</h3>
+                    <p class="feedback-hint" style="font-size: 0.85rem; color: #9ca3af; margin: 0;">Share your experience and see what others are saying.</p>
+                </div>
+                <ul class="comment-list" id="feedbackList" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 16px;">
+                    <li class="feedback-muted" id="feedback-empty-state" style="text-align: center; padding: 40px 20px; color: #9ca3af; font-size: 0.95rem;">No comments yet. Start the conversation!</li>
+                </ul>
+            </div>
+            
+            <!-- Right Side: Feedback Form -->
+            <div class="feedback-form-card" style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 20px;">
+                <h3 style="font-size: 1.3rem; color: #0b1630; margin-bottom: 20px;">
+                    <i class="fas fa-edit" style="color: #4361ee; margin-right: 8px;"></i>
+                    Share Your Feedback
+                </h3>
+                <form id="feedbackForm" style="display: flex; flex-direction: column; gap: 15px;">
+                    <div class="form-group">
+                        <label for="feedbackName" style="display: block; margin-bottom: 8px; color: #56607a; font-weight: 600; font-size: 0.9rem;">Your Name</label>
+                        <input type="text" id="feedbackName" placeholder="Enter your name" required style="width: 100%; padding: 12px 16px; border: 1px solid #e2e6ff; border-radius: 8px; font-size: 0.95rem; transition: border-color 0.3s; box-sizing: border-box;" onfocus="this.style.borderColor='#4361ee'" onblur="this.style.borderColor='#e2e6ff'">
+                    </div>
+                    <div class="form-group">
+                        <label for="feedbackMessage" style="display: block; margin-bottom: 8px; color: #56607a; font-weight: 600; font-size: 0.9rem;">Your Comment</label>
+                        <textarea id="feedbackMessage" placeholder="Write your feedback or comment here..." required rows="5" style="width: 100%; padding: 12px 16px; border: 1px solid #e2e6ff; border-radius: 8px; font-size: 0.95rem; resize: vertical; transition: border-color 0.3s; font-family: inherit; box-sizing: border-box;" onfocus="this.style.borderColor='#4361ee'" onblur="this.style.borderColor='#e2e6ff'"></textarea>
+                    </div>
+                    <button type="submit" style="background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; width: 100%;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(67, 97, 238, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                        <i class="fas fa-paper-plane" style="margin-right: 8px;"></i>
+                        Submit Feedback
+                    </button>
+                </form>
+                <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e6ff;">
+                    <a href="feedback.html" style="color: #4361ee; text-decoration: none; font-weight: 600; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px; transition: color 0.3s;" onmouseover="this.style.color='#3a0ca3'" onmouseout="this.style.color='#4361ee'">
+                        <i class="fas fa-arrow-right"></i>
+                        View All Feedback
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <style>
+    @media (max-width: 768px) {
+        .feedback-grid {
+            grid-template-columns: 1fr !important;
+        }
+        .feedback-form-card {
+            position: static !important;
+        }
+    }
+    </style>
+
+    <script>
+    // Store feedback in localStorage (in production, use backend API)
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    
+    // Load feedbacks for this page (max 3, only genuine user comments)
+    function loadFeedbacks() {
+        const storedFeedbacks = JSON.parse(localStorage.getItem('feedbacks') || '{}');
+        const pageFeedbacks = (storedFeedbacks[currentPage] || []).slice(0, 3);
+        const feedbackList = document.getElementById('feedbackList');
+        const emptyState = document.getElementById('feedback-empty-state');
+        
+        if (!feedbackList) return;
+        
+        // Clear existing content
+        feedbackList.innerHTML = '';
+        
+        if (pageFeedbacks.length === 0) {
+            // Show empty state
+            if (emptyState) {
+                feedbackList.appendChild(emptyState);
+            } else {
+                const empty = document.createElement('li');
+                empty.className = 'feedback-muted';
+                empty.id = 'feedback-empty-state';
+                empty.style.cssText = 'text-align: center; padding: 40px 20px; color: #9ca3af; font-size: 0.95rem;';
+                empty.textContent = 'No comments yet. Start the conversation!';
+                feedbackList.appendChild(empty);
+            }
+            return;
+        }
+        
+        // Remove empty state
+        if (emptyState) {
+            emptyState.remove();
+        }
+        
+        // Display genuine user feedbacks
+        pageFeedbacks.forEach(fb => {
+            const li = document.createElement('li');
+            li.className = 'live-comment';
+            li.style.cssText = 'background: #f8f9ff; padding: 16px; border-radius: 8px; border-left: 3px solid #4361ee; margin-bottom: 12px;';
+            
+            const header = document.createElement('div');
+            header.style.cssText = 'display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;';
+            
+            const nameDiv = document.createElement('div');
+            const name = document.createElement('h4');
+            name.style.cssText = 'font-size: 1rem; color: #0b1630; margin: 0 0 4px 0; font-weight: 600;';
+            name.textContent = fb.name || 'Anonymous';
+            
+            const time = document.createElement('span');
+            time.style.cssText = 'font-size: 0.8rem; color: #9ca3af;';
+            time.textContent = fb.date || 'Recently';
+            
+            nameDiv.appendChild(name);
+            nameDiv.appendChild(time);
+            header.appendChild(nameDiv);
+            
+            li.appendChild(header);
+            
+            const body = document.createElement('p');
+            body.style.cssText = 'color: #56607a; line-height: 1.6; margin: 0 0 12px 0; font-size: 0.9rem;';
+            body.textContent = fb.message || '';
+            li.appendChild(body);
+            
+            // Add reply if exists
+            if (fb.reply) {
+                const replyDiv = document.createElement('div');
+                replyDiv.style.cssText = 'margin-left: 20px; padding: 12px; background: white; border-radius: 6px; margin-top: 10px; border-left: 2px solid #4361ee;';
+                
+                const replyHeader = document.createElement('div');
+                replyHeader.style.cssText = 'display: flex; align-items: center; gap: 8px; margin-bottom: 6px;';
+                
+                const replyIcon = document.createElement('i');
+                replyIcon.className = 'fas fa-reply';
+                replyIcon.style.cssText = 'color: #4361ee; font-size: 0.85rem;';
+                
+                const replyLabel = document.createElement('strong');
+                replyLabel.style.cssText = 'color: #4361ee; font-size: 0.85rem;';
+                replyLabel.textContent = 'Admin Reply:';
+                
+                replyHeader.appendChild(replyIcon);
+                replyHeader.appendChild(replyLabel);
+                replyDiv.appendChild(replyHeader);
+                
+                const replyText = document.createElement('p');
+                replyText.style.cssText = 'color: #56607a; font-size: 0.85rem; line-height: 1.5; margin: 0;';
+                replyText.textContent = fb.reply;
+                replyDiv.appendChild(replyText);
+                
+                li.appendChild(replyDiv);
+            }
+            
+            feedbackList.appendChild(li);
+        });
+    }
+    
+    // Handle feedback form submission
+    const feedbackForm = document.getElementById('feedbackForm');
+    if (feedbackForm) {
+        feedbackForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('feedbackName').value.trim();
+            const message = document.getElementById('feedbackMessage').value.trim();
+            
+            if (!name || !message) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            const feedback = {
+                name: name,
+                message: message,
+                date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+                page: currentPage
+            };
+            
+            // Store in localStorage
+            const storedFeedbacks = JSON.parse(localStorage.getItem('feedbacks') || '{}');
+            if (!storedFeedbacks[currentPage]) {
+                storedFeedbacks[currentPage] = [];
+            }
+            storedFeedbacks[currentPage].unshift(feedback);
+            localStorage.setItem('feedbacks', JSON.stringify(storedFeedbacks));
+            
+            // Reset form
+            this.reset();
+            
+            // Reload feedbacks
+            loadFeedbacks();
+            
+            alert('Thank you for your feedback!');
+        });
+    }
+    
+    // Load feedbacks on page load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadFeedbacks);
+    } else {
+        loadFeedbacks();
+    }
+    </script>
+<div class="trust-badges" style="text-align: center; padding: 20px; background: linear-gradient(135deg, #f8f9ff, #ffffff); border-radius: 12px; margin: 30px 0; border: 2px solid #e2e6ff;">
         <div style="display: flex; justify-content: center; align-items: center; gap: 40px; flex-wrap: wrap;">
             <div style="display: flex; align-items: center; gap: 10px;">
                 <i class="fas fa-shield-alt" style="font-size: 2rem; color: #4361ee;"></i>
@@ -623,5 +738,23 @@
             </p>
         </div>
     </footer>
+    <script src="js/global-components.js"></script>
+
+        <script>
+    // Ensure header loads - call after script loads
+    if (typeof loadGlobalHeader === 'function') {
+        loadGlobalHeader();
+    } else {
+        // Wait for script to load
+        var checkHeader = setInterval(function() {
+            if (typeof loadGlobalHeader === 'function') {
+                loadGlobalHeader();
+                clearInterval(checkHeader);
+            }
+        }, 50);
+        // Stop checking after 2 seconds
+        setTimeout(function() { clearInterval(checkHeader); }, 2000);
+    }
+    </script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <title>easyjpgtopdf - All PDF Tools You Need</title>
+    <title>easyjpgtopdf - All Converter Tools You Need</title>
     <meta name="description" content="Free online PDF tools - Convert JPG to PDF, Word to PDF, Excel to PDF, merge, split, compress, edit, protect PDFs. Professional document processing tools for all your needs.">
     <meta name="keywords" content="pdf converter, jpg to pdf, word to pdf, excel to pdf, merge pdf, split pdf, compress pdf, edit pdf, pdf tools, online pdf converter">
     
@@ -1437,7 +1437,155 @@
                 max-width: none;
             }
         }
-    </style>
+    
+        /* Compact Search Bar Styles */
+        .compact-search-bar {
+            max-width: 600px;
+            margin: 0 auto 30px;
+            position: relative;
+        }
+
+        .compact-search-wrapper {
+            position: relative;
+            background: white;
+            border-radius: 12px;
+            padding: 12px 16px;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.1);
+            border: 1px solid rgba(67, 97, 238, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        .compact-search-wrapper:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 6px 20px rgba(67, 97, 238, 0.15);
+        }
+
+        .compact-search-icon {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary);
+            font-size: 1rem;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .compact-search-input {
+            width: 100%;
+            padding: 10px 15px 10px 40px;
+            font-size: 0.95rem;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--dark);
+            outline: none;
+        }
+
+        .compact-search-input::placeholder {
+            color: #9ca3af;
+        }
+
+        .compact-search-results {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 8px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+            border: 1px solid rgba(67, 97, 238, 0.1);
+        }
+
+        .compact-result-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            text-decoration: none;
+            color: var(--dark);
+            border-bottom: 1px solid #f0f0f0;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .compact-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .compact-result-item:hover {
+            background: rgba(67, 97, 238, 0.06);
+        }
+
+        .compact-result-icon {
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(67, 97, 238, 0.1);
+            border-radius: 8px;
+            color: var(--primary);
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .compact-result-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .compact-result-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--dark);
+            margin-bottom: 2px;
+        }
+
+        .compact-result-description {
+            font-size: 0.8rem;
+            color: var(--gray);
+        }
+
+        .compact-result-arrow {
+            color: var(--gray);
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        .compact-search-results::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .compact-search-results::-webkit-scrollbar-track {
+            background: #f8f9ff;
+        }
+
+        .compact-search-results::-webkit-scrollbar-thumb {
+            background: rgba(67, 97, 238, 0.3);
+            border-radius: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .compact-search-bar {
+                max-width: 100%;
+                margin: 0 auto 20px;
+            }
+
+            .compact-search-wrapper {
+                padding: 10px 14px;
+            }
+
+            .compact-search-input {
+                padding: 8px 12px 8px 35px;
+                font-size: 0.9rem;
+            }
+        }</style>
     
     
 
@@ -1459,7 +1607,7 @@
     {
       "@context": "https://schema.org",
       "@type": "WebPage",
-      "name": "easyjpgtopdf - All PDF Tools You Need",
+      "name": "easyjpgtopdf - All Converter Tools You Need",
       "description": "Online PDF and image conversion tools",
       "url": "https://easyjpgtopdf.com/index.html",
       "inLanguage": "en-US",
@@ -1475,111 +1623,13 @@
       }
     }
     </script>
+
+    <script src="js/compact-search.js" defer></script>
 </head>
 <body>
+    <div id="global-header-placeholder"></div>
     <!-- Header -->
-    <header>
-        <div class="container">
-            <nav class="navbar">
-                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;" width="200" height="54" loading="eager" /></a>
-                <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle mobile menu" aria-expanded="false">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </button>
-                <!-- Mobile Tool Summary - Shows tool categories in header -->
-                <div class="nav-links-summary" style="display: none;">
-                    <a href="jpg-to-pdf.html">JPG to PDF</a>
-                    <a href="word-to-pdf.html">Word to PDF</a>
-                    <a href="merge-pdf.html">Merge PDF</a>
-                    <a href="split-pdf.html">Split PDF</a>
-                    <a href="compress-pdf.html">Compress PDF</a>
-                    <a href="image-compressor.html">Image Tools</a>
-                    <a href="pricing.html">Pricing</a>
-                </div>
-                <div class="nav-links">
-                    <div class="dropdown">
-                        <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="jpg-to-pdf.html">JPG to PDF</a>
-                            <a href="word-to-pdf.html">Word to PDF</a>
-                            <a href="excel-to-pdf.html">Excel to PDF</a>
-                            <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="pdf-to-jpg.html">PDF to JPG</a>
-                            <a href="pdf-to-word.html">PDF to Word</a>
-                            <a href="pdf-to-excel.html">PDF to Excel</a>
-                            <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="merge-pdf.html">Merge PDF</a>
-                            <a href="split-pdf.html">Split PDF</a>
-                            <a href="compress-pdf.html">Compress PDF</a>
-                            <a href="edit-pdf.html">Pdf Editor</a>
-                            <a href="protect-pdf.html">Protect PDF</a>
-                            <a href="unlock-pdf.html">Unlock PDF</a>
-                            <a href="watermark-pdf.html">Watermark PDF</a>
-                            <a href="crop-pdf.html">Crop PDF</a>
-                            <a href="add-page-numbers.html">Add Page Numbers</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="image-repair.html">AI Image Repair</a>
-                            <a href="image-compressor.html">Image Compressor</a>
-                            <a href="image-resizer.html">Image Resizer</a>
-                            <a href="image-editor.html">Image Editor</a>
-                            <a href="background-remover.html">Image Background Remover</a>
-                            <a href="ocr-image.html">OCR Image</a>
-                            <a href="image-watermark.html">Image Watermark Tool</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="resume-maker.html">Resume Maker</a>
-                            <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
-                            <a href="ai-image-generator.html">AI Image Generator</a>
-                            <a href="marriage-card.html">Marriage Card</a>
-                            <a href="excel-unlocker.html">Excel Unlocker</a>
-                            <a href="protect-excel.html">Protect Excel Sheet</a>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <a href="#">More <i class="fas fa-chevron-down"></i></a>
-                        <div class="dropdown-content">
-                            <a href="pricing.html">Pricing</a>
-                            <a href="blog.html">Blog/Articles</a>
-                            
-                            
-                        </div>
-                    </div>
-                </div>
-                <div id="user-menu" class="user-menu" data-open="false">
-                    <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
-                        <span class="user-initial" aria-hidden="true">U</span>
-                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                    </button>
-                    <div class="user-dropdown" id="user-dropdown" hidden>
-                        <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
-                        <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
-                        <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
-                        <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
-                        <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
-                        <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
-                    </div>
-                </div>
-            </nav>
-        </div>
-    </header>
+    
     <!-- Mobile Menu Overlay -->
     <div class="mobile-menu-overlay" id="mobile-menu-overlay" style="display: none;">
         <div class="mobile-menu-content">
@@ -1690,13 +1740,20 @@
     <section id="home" class="page active">
         <div class="hero">
             <div class="container">
-                <h1>All PDF Tools You Need in One Place</h1>
+                <h1>All Converter Tools You Need in One Place</h1>
                 <p>easyjpgtopdf offers a complete suite of PDF tools to convert, edit, and manage your documents with ease.</p>
                 <a href="#tools" class="btn">Get Started</a>
             </div>
         </div>
 
-        <div class="container" id="tools">
+                    <div class="compact-search-bar">
+                <div class="compact-search-wrapper">
+                    <i class="fas fa-search compact-search-icon"></i>
+                    <input type="text" id="compact-search-input" class="compact-search-input" placeholder="Search tools, pages, blogs..." autocomplete="off">
+                    <div id="compact-search-results" class="compact-search-results"></div>
+                </div>
+            </div>
+            <div class="container" id="tools">
             <h2 class="section-title">Our PDF Tools</h2>
             <div class="tools-grid">
                 <!-- Convert to PDF Tools -->
@@ -4969,6 +5026,7 @@
             </p>
         </div>
     </footer>
+    <script src="js/global-components.js"></script>
 </body>
 </html>
 

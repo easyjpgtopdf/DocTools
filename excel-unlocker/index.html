@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="Remove password protection from Excel files online. Fast, secure, and free Excel unlocker tool." name="description"/>
+<title>Excel Unlocker - Remove Password Protection | easyjpgtopdf</title>
+<link href="../css/footer.css" rel="stylesheet"/>
+<link href="../css/header.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    :root {
+      --primary: #4361ee;
+      --secondary: #3a0ca3;
+      --accent: #4cc9f0;
+      --dark: #1b2050;
+      --muted: #6b7290;
+      --surface: #ffffff;
+      --border: rgba(26, 35, 126, 0.12);
+      --bg-gradient: linear-gradient(180deg, #f1f3ff 0%, #f7f9ff 100%);
+    }
+    body { background: var(--bg-gradient); color: var(--dark); min-height: 100vh; display: flex; flex-direction: column; }
+    .container { width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    header { background: #fff; position: sticky; top: 0; z-index: 40; box-shadow: 0 10px 40px rgba(15, 31, 80, 0.08); }
+    .navbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; }
+    .logo { display: flex; align-items: center; gap: 10px; color: var(--primary); text-decoration: none; font-weight: 700; font-size: 22px; }
+    .hero { padding: 70px 0; }
+    .hero .container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px; align-items: start; }
+    .hero-content h1 { font-size: 2.4rem; color: #0f1a4d; margin-bottom: 12px; }
+    .hero-content p { font-size: 1.05rem; color: var(--muted); margin-bottom: 24px; }
+    .upload-card { background: var(--surface); border-radius: 24px; padding: 36px 28px; box-shadow: 0 24px 60px rgba(16, 35, 96, 0.12); border: 2px dashed rgba(67, 97, 238, 0.25); display: flex; flex-direction: column; gap: 20px; align-items: center; text-align: center; }
+    .upload-card i { font-size: 56px; color: var(--primary); margin-bottom: 8px; }
+    .upload-card h2 { font-size: 1.4rem; color: #141d4f; }
+    .upload-card p { color: var(--muted); font-size: 0.95rem; }
+    .form-group { width: 100%; }
+    .form-group label { display: block; margin-bottom: 8px; color: var(--dark); font-weight: 600; }
+    .form-group input[type="text"], .form-group input[type="password"] { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 12px; font-size: 0.95rem; }
+    .form-group input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1); }
+    .btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 12px 24px; font-weight: 600; border: none; cursor: pointer; font-size: 0.95rem; transition: all 0.2s; }
+    .btn-primary { background: linear-gradient(135deg, #4361ee, #3a0ca3); color: #fff; box-shadow: 0 16px 30px rgba(67, 97, 238, 0.25); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 18px 34px rgba(67, 97, 238, 0.3); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .info-card { background: #fff; border-radius: 20px; padding: 26px; box-shadow: 0 18px 45px rgba(15, 30, 70, 0.08); }
+    .info-card h3 { margin-bottom: 14px; font-size: 1.2rem; color: #141c4d; }
+    .info-card ul { list-style: none; display: flex; flex-direction: column; gap: 12px; color: var(--muted); }
+    .info-card li { display: flex; gap: 10px; align-items: flex-start; }
+    .info-card li i { color: var(--primary); margin-top: 4px; }
+    .status-message { padding: 16px; border-radius: 12px; margin-top: 16px; display: none; }
+    .status-message.success { background: rgba(34, 197, 94, 0.1); color: #065f46; border: 1px solid rgba(34, 197, 94, 0.3); }
+    .status-message.error { background: rgba(239, 68, 68, 0.1); color: #991b1b; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .status-message.processing { background: rgba(67, 97, 238, 0.1); color: #1e40af; border: 1px solid rgba(67, 97, 238, 0.3); }
+    .spinner { width: 20px; height: 20px; border: 3px solid rgba(67, 97, 238, 0.3); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; margin-right: 8px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    footer { background: #0d1530; color: #e8ecff; padding: 32px 0; margin-top: auto; text-align: center; }
+  </style>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Excel Unlocker - Remove Password Protection | easyjpgtopdf",
+      "description": "Online PDF and image conversion tools",
+      "url": "https://easyjpgtopdf.com/excel-unlocker/",
+      "inLanguage": "en-US",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "easyjpgtopdf",
+        "url": "https://easyjpgtopdf.com"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "easyjpgtopdf",
+        "url": "https://easyjpgtopdf.com"
+      }
+    }
+    </script>
+</head>
+<body>
+    <div id="global-header-placeholder"></div>
+<!-- Header -->
+
+
+        <nav aria-label="Breadcrumb" style="padding: 15px 0; background: #f8f9ff; border-bottom: 1px solid #e2e6ff;">
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 24px;">
+            <ol style="list-style: none; display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; align-items: center;">
+                <li><a href="../index.html" style="color: #4361ee; text-decoration: none; font-weight: 500; transition: color 0.3s;" onmouseover="this.style.color='#3a0ca3'" onmouseout="this.style.color='#4361ee'">Home</a></li>
+                <li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
+                <li><a href="../login.html" style="color: #56607a; font-weight: 500; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#4361ee'" onmouseout="this.style.color='#56607a'">Sign In</a></li>
+                <li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
+                <li><a href="../signup.html" style="color: #56607a; font-weight: 500; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#4361ee'" onmouseout="this.style.color='#56607a'">Signup</a></li>
+            </ol>
+        </div>
+    </nav>
+
+<section class="hero">
+<div class="container">
+<div class="hero-content">
+<h1><i class="fas fa-unlock-alt"></i> Excel Unlocker</h1>
+<p>Remove password protection from Excel files instantly. Upload your protected Excel file and unlock it for free.</p>
+<div style="margin-top: 24px; background: rgba(67, 97, 238, 0.05); border-left: 4px solid var(--primary); padding: 16px 20px; border-radius: 8px;">
+<h3 style="font-size: 1.1rem; margin-bottom: 12px; color: var(--dark);"><i class="fas fa-shield-check"></i> Security &amp; Privacy</h3>
+<ul style="list-style: none; display: flex; flex-direction: column; gap: 8px; color: var(--muted); font-size: 0.9rem;">
+<li style="display: flex; gap: 8px; align-items: flex-start;">
+<i class="fas fa-check-circle" style="color: var(--primary); margin-top: 2px;"></i>
+<div><strong>CORS Enabled:</strong> Only allowed domains</div>
+</li>
+<li style="display: flex; gap: 8px; align-items: flex-start;">
+<i class="fas fa-check-circle" style="color: var(--primary); margin-top: 2px;"></i>
+<div><strong>File Size Limits:</strong> Max 500MB</div>
+</li>
+<li style="display: flex; gap: 8px; align-items: flex-start;">
+<i class="fas fa-check-circle" style="color: var(--primary); margin-top: 2px;"></i>
+<div><strong>Secure Handling:</strong> Auto-delete after download</div>
+</li>
+<li style="display: flex; gap: 8px; align-items: flex-start;">
+<i class="fas fa-check-circle" style="color: var(--primary); margin-top: 2px;"></i>
+<div><strong>HTTPS Encryption:</strong> All data secure</div>
+</li>
+<li style="display: flex; gap: 8px; align-items: flex-start;">
+<i class="fas fa-check-circle" style="color: var(--primary); margin-top: 2px;"></i>
+<div><strong>No Storage:</strong> Files processed temporarily</div>
+</li>
+<li style="display: flex; gap: 8px; align-items: flex-start;">
+<i class="fas fa-check-circle" style="color: var(--primary); margin-top: 2px;"></i>
+<div><strong>Input Validation:</strong> Only .xls/.xlsx accepted</div>
+</li>
+</ul>
+</div>
+</div>
+<div class="upload-card">
+<i class="fas fa-file-excel"></i>
+<h2>Excel Unlocker</h2>
+<form id="unlockForm" style="width: 100%;">
+<div class="form-group">
+<label for="fileInput">
+<i class="fas fa-file-upload"></i> Choose Excel File
+            </label>
+<input accept=".xls,.xlsx" id="fileInput" required="" style="padding: 10px; cursor: pointer;" type="file"/>
+</div>
+<div class="form-group">
+<label for="passwordInput">
+<i class="fas fa-key"></i> Password (if known)
+            </label>
+<input id="passwordInput" placeholder="Leave empty to try removing protection" type="password"/>
+</div>
+<button class="btn btn-primary" id="unlockBtn" type="submit">
+<i class="fas fa-unlock"></i> Unlock Excel File
+          </button>
+</form>
+<div class="status-message" id="statusMessage"></div>
+</div>
+<div class="info-card">
+<h3><i class="fas fa-info-circle"></i> How It Works</h3>
+<ul>
+<li>
+<i class="fas fa-check-circle"></i>
+<div>
+<strong>Upload File:</strong> Select your password-protected Excel file
+            </div>
+</li>
+<li>
+<i class="fas fa-check-circle"></i>
+<div>
+<strong>Remove Protection:</strong> Our tool removes the password protection
+            </div>
+</li>
+<li>
+<i class="fas fa-check-circle"></i>
+<div>
+<strong>Download:</strong> Get your unlocked Excel file instantly
+            </div>
+</li>
+<li>
+<i class="fas fa-shield-alt"></i>
+<div>
+<strong>Privacy:</strong> Files are processed securely and deleted after download
+            </div>
+</li>
+</ul>
+</div>
+</div>
+</section>
+<!-- Footer -->
+    
+<script>
+    // Backend API URL - Production Render backend
+    const API_BASE_URL = 'https://excel-unlocker-backend.onrender.com';
+    
+    const form = document.getElementById('unlockForm');
+    const fileInput = document.getElementById('fileInput');
+    const passwordInput = document.getElementById('passwordInput');
+    const unlockBtn = document.getElementById('unlockBtn');
+    const statusMessage = document.getElementById('statusMessage');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const file = fileInput.files[0];
+      if (!file) {
+        showStatus('Please select an Excel file', 'error');
+        return;
+      }
+
+      // Validate file type
+      const validTypes = [
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      ];
+      if (!validTypes.includes(file.type) && !file.name.match(/\.(xls|xlsx)$/i)) {
+        showStatus('Please select a valid Excel file (.xls or .xlsx)', 'error');
+        return;
+      }
+
+      // Validate file size (max 500MB)
+      if (file.size > 500 * 1024 * 1024) {
+        showStatus('File too large. Maximum size is 500MB', 'error');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      if (passwordInput.value) {
+        formData.append('password', passwordInput.value);
+      }
+
+      unlockBtn.disabled = true;
+      showStatus('Processing... This may take a few moments', 'processing');
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/unlock`, {
+          method: 'POST',
+          body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showStatus('✅ Excel file unlocked successfully!', 'success');
+          
+          // Download file
+          setTimeout(() => {
+            const downloadLink = document.createElement('a');
+            downloadLink.href = `${API_BASE_URL}/download/${result.filename}`;
+            downloadLink.download = result.filename;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            
+            // Reset form
+            form.reset();
+            statusMessage.textContent += ' File downloaded. You can unlock another file.';
+          }, 1000);
+        } else {
+          showStatus(`❌ Error: ${result.error || 'Failed to unlock file'}`, 'error');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        
+        // Better error messages
+        let errorMsg = 'Network error. ';
+        if (error.message.includes('fetch')) {
+          errorMsg += 'Backend service may be waking up (first request takes 30-60 seconds). Please wait and try again.';
+        } else {
+          errorMsg += error.message || 'Please check your connection and try again.';
+        }
+        
+        showStatus(`❌ Error: ${errorMsg}`, 'error');
+      } finally {
+        unlockBtn.disabled = false;
+      }
+    });
+
+    function showStatus(message, type) {
+      statusMessage.textContent = message;
+      statusMessage.className = `status-message ${type}`;
+      statusMessage.style.display = 'block';
+      
+      if (type === 'processing') {
+        statusMessage.innerHTML = `<span class="spinner"></span>${message}`;
+      }
+    }
+  </script>
+
+    
+    
+    <section class="faq-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
+            <i class="fas fa-question-circle" style="margin-right: 10px;"></i>
+            Frequently Asked Questions
+        </h2>
+        <div class="faq-container" style="max-width: 800px; margin: 0 auto;">
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    How accurate is the conversion?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Our conversion tools maintain 99% accuracy, preserving all formatting, fonts, and layout from your original files.
+                </div>
+            </div>
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    What file sizes are supported?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Free users can convert files up to 10MB. Premium users can process files up to 100MB with faster processing.
+                </div>
+            </div>
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    Will my data be secure?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Yes, all files are processed securely and automatically deleted after conversion. We never store or share your documents.
+                </div>
+            </div>
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    Can I convert multiple files at once?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Yes, premium users can convert multiple files simultaneously. Free users can process one file at a time.
+                </div>
+            </div>
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    What formats are supported?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    We support all major file formats. Check the tool page for specific format compatibility.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+    function toggleFaq(element) {
+        const answer = element.nextElementSibling;
+        const icon = element.querySelector('i');
+        const isOpen = answer.style.display === 'block';
+
+        answer.style.display = isOpen ? 'none' : 'block';
+        icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+    }
+    </script>
+<div class="trust-badges" style="text-align: center; padding: 20px; background: linear-gradient(135deg, #f8f9ff, #ffffff); border-radius: 12px; margin: 30px 0; border: 2px solid #e2e6ff;">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 40px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-shield-alt" style="font-size: 2rem; color: #4361ee;"></i>
+                <div style="text-align: left;">
+                    <div style="color: #0b1630; font-weight: 600; font-size: 1.1rem;">SSL Secured</div>
+                    <div style="color: #56607a; font-size: 0.9rem;">256-bit Encryption</div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-lock" style="font-size: 2rem; color: #4361ee;"></i>
+                <div style="text-align: left;">
+                    <div style="color: #0b1630; font-weight: 600; font-size: 1.1rem;">100% Secure</div>
+                    <div style="color: #56607a; font-size: 0.9rem;">Files Auto-Deleted</div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+<div id="global-footer-placeholder"></div>
+    <script src="../js/global-components.js"></script>
+</body>
+</html>
+
