@@ -79,6 +79,109 @@ app.use('/api/pdf/pages', pagesRoutes);
 app.use('/api/razorpay', razorpayRoutes);
 app.use('/api/device', deviceRoutes);
 
+// Background removal proxy endpoint (to avoid CORS issues)
+const CLOUDRUN_API_URL = process.env.CLOUDRUN_API_URL || 'https://bg-remover-api-iwumaktavq-uc.a.run.app';
+
+app.post('/api/background-remove', async (req, res) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 180000); // 3 minutes
+  
+  try {
+    const { imageData } = req.body;
+    
+    if (!imageData) {
+      clearTimeout(timeout);
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No imageData provided' 
+      });
+    }
+
+    // Forward request to Cloud Run API
+    const backendUrl = `${CLOUDRUN_API_URL}/remove-background`;
+    
+    const response = await fetch(backendUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ imageData }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = `Backend error: ${response.status}`;
+      
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.error || errorData.message || errorMessage;
+      } catch (e) {
+        errorMessage = errorText || errorMessage;
+      }
+      
+      return res.status(response.status).json({
+        success: false,
+        error: errorMessage
+      });
+    }
+
+    const result = await response.json();
+    res.json(result);
+    
+  } catch (error) {
+    clearTimeout(timeout);
+    console.error('Background removal proxy error:', error);
+    
+    if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+      return res.status(504).json({
+        success: false,
+        error: 'Request timeout. The image might be too large or the server is busy.'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to process background removal request'
+    });
+  }
+});
+
+// Health check for background removal service
+app.get('/api/background-remove/health', async (req, res) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000); // 5 seconds for health check
+  
+  try {
+    const backendUrl = `${CLOUDRUN_API_URL}/health`;
+    const response = await fetch(backendUrl, {
+      method: 'GET',
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeout);
+    
+    if (response.ok) {
+      const data = await response.json();
+      res.json({ ...data, proxy: 'working' });
+    } else {
+      res.status(response.status).json({
+        status: 'unhealthy',
+        error: `Backend returned status ${response.status}`
+      });
+    }
+  } catch (error) {
+    clearTimeout(timeout);
+    res.status(503).json({
+      status: 'unhealthy',
+      error: error.message || 'Backend service unavailable'
+    });
+  }
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({

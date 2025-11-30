@@ -1,0 +1,120 @@
+// Vercel Serverless Function - Background Removal Proxy
+// Proxies requests to Google Cloud Run API to avoid CORS issues
+
+const CLOUDRUN_API_URL = process.env.CLOUDRUN_API_URL || 'https://bg-remover-api-iwumaktavq-uc.a.run.app';
+
+module.exports = async function handler(req, res) {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+  res.setHeader('Access-Control-Max-Age', '3600');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  // Health check endpoint
+  if (req.method === 'GET') {
+    try {
+      const backendUrl = `${CLOUDRUN_API_URL}/health`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000); // 5 seconds
+      
+      const response = await fetch(backendUrl, {
+        method: 'GET',
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeout);
+      
+      if (response.ok) {
+        const data = await response.json();
+        return res.status(200).json({ ...data, proxy: 'working' });
+      } else {
+        return res.status(response.status).json({
+          status: 'unhealthy',
+          error: `Backend returned status ${response.status}`
+        });
+      }
+    } catch (error) {
+      clearTimeout(timeout);
+      return res.status(503).json({
+        status: 'unhealthy',
+        error: error.message || 'Backend service unavailable'
+      });
+    }
+  }
+
+  // Background removal endpoint
+  if (req.method !== 'POST') {
+    return res.status(405).json({ 
+      success: false, 
+      error: 'Method not allowed. Use POST.' 
+    });
+  }
+
+  try {
+    const { imageData } = req.body;
+    
+    if (!imageData) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No imageData provided' 
+      });
+    }
+
+    // Forward request to Cloud Run API
+    const backendUrl = `${CLOUDRUN_API_URL}/remove-background`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 180000); // 3 minutes
+    
+    const response = await fetch(backendUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ imageData }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = `Backend error: ${response.status}`;
+      
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.error || errorData.message || errorMessage;
+      } catch (e) {
+        errorMessage = errorText || errorMessage;
+      }
+      
+      return res.status(response.status).json({
+        success: false,
+        error: errorMessage
+      });
+    }
+
+    const result = await response.json();
+    return res.status(200).json(result);
+    
+  } catch (error) {
+    console.error('Background removal proxy error:', error);
+    
+    if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+      return res.status(504).json({
+        success: false,
+        error: 'Request timeout. The image might be too large or the server is busy.'
+      });
+    }
+    
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to process background removal request'
+    });
+  }
+};
+

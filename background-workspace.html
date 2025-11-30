@@ -640,54 +640,44 @@
       resultCanvas.height = height;
     }
 
-    // Google Cloud Run API URL - Connected to u2net rembg backend
-    // Verify connection: Open this URL in browser to check if backend is running
-    const CLOUDRUN_API_URL = 'https://bg-remover-api-iwumaktavq-uc.a.run.app/remove-background';
+    // Use proxy endpoint to avoid CORS issues
+    // The proxy endpoint forwards requests to Cloud Run API
+    const PROXY_API_URL = '/api/background-remove';
+    const PROXY_HEALTH_URL = '/api/background-remove/health';
     
-    // Test backend connection on load (with CORS handling)
+    // Test backend connection on load (using proxy to avoid CORS)
     async function testBackendConnection() {
-      // Skip health check if running on file:// protocol (CORS will fail)
-      if (window.location.protocol === 'file:') {
-        console.log('ℹ️ Running on file:// protocol - Backend will be tested on first request');
-        return false;
-      }
-      
       try {
-        const response = await fetch(CLOUDRUN_API_URL.replace('/remove-background', '/health'), {
+        const response = await fetch(PROXY_HEALTH_URL, {
           method: 'GET',
-          headers: { 'Accept': 'application/json' },
-          mode: 'cors' // Explicitly request CORS
+          headers: { 'Accept': 'application/json' }
         });
         if (response.ok) {
           const data = await response.json();
           console.log('✅ Google Cloud Run Backend Connected:', data);
           console.log('✅ Using u2net rembg model:', data.model || 'u2net');
           return true;
+        } else {
+          console.warn('⚠️ Backend health check failed:', response.status);
         }
       } catch (error) {
-        // CORS errors are expected on file:// protocol - don't show as error
-        if (error.message.includes('CORS') || error.message.includes('fetch')) {
-          console.log('ℹ️ Backend health check skipped (CORS on file:// protocol). Backend will work on actual request.');
-        } else {
-          console.warn('⚠️ Backend health check failed:', error.message);
-        }
+        console.warn('⚠️ Backend health check failed:', error.message);
+        console.log('ℹ️ Backend will be tested on first request.');
       }
       return false;
     }
     
-    // Test connection immediately (only if not file:// protocol)
-    if (window.location.protocol !== 'file:') {
-      testBackendConnection();
-    }
+    // Test connection immediately
+    testBackendConnection();
     
     // All processing uses Google Cloud Run (IMG.LY removed)
     function getProcessingConfig(fileSize) {
       const sizeMB = fileSize / (1024 * 1024);
       
-      // All files processed via Google Cloud Run
+      // All files processed via Google Cloud Run (through proxy)
       return {
         useBackend: true,
-        backendUrl: CLOUDRUN_API_URL,
+        backendUrl: PROXY_API_URL,
         timeout: 300000,
         description: 'Google Cloud Run - Rembg U²-Net',
         message: `Processing ${sizeMB.toFixed(1)} MB with Google Cloud AI`,
@@ -697,9 +687,9 @@
       };
     }
 
-    // Process image using Google Cloud Run backend
+    // Process image using Google Cloud Run backend (through proxy)
     async function processWithBackend(dataURL, backendUrl, config) {
-      // Build URL without any query parameters to avoid model_name conflicts
+      // Use proxy endpoint (no CORS issues)
       const cleanUrl = backendUrl.split('?')[0];
       
       try {
@@ -708,89 +698,28 @@
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 180000);
         
-        // Convert dataURL to Blob for FormData upload
-        const blob = await (await fetch(dataURL)).blob();
-        
+        // Use JSON format (proxy handles conversion)
         let response = null;
-        let lastError = null;
         
-        // Try FormData first (multipart upload - backend's preferred method)
         try {
-          const formData = new FormData();
-          formData.append('image', blob, 'image.png');
-          
           response = await fetch(cleanUrl, {
             method: 'POST',
-            mode: 'cors',
-            headers: { 
+            headers: {
+              'Content-Type': 'application/json',
               'Accept': 'application/json'
             },
-            body: formData,
+            body: JSON.stringify({ imageData: dataURL }),
             signal: controller.signal
           });
-        } catch (formDataError) {
-          console.warn('⚠️ FormData upload failed, trying JSON fallback:', formDataError.message);
-          lastError = formDataError;
-          
-          // Fallback: Try JSON with base64
-          try {
-            // Remove data URL prefix if present
-            let imageData = dataURL;
-            if (dataURL.includes(',')) {
-              imageData = dataURL.split(',')[1];
-            }
-            
-            response = await fetch(cleanUrl, {
-              method: 'POST',
-              mode: 'cors',
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              },
-              body: JSON.stringify({ imageData: dataURL }),
-              signal: controller.signal
-            });
-          } catch (jsonError) {
-            console.error('❌ Both FormData and JSON upload failed');
-            lastError = jsonError;
-            throw jsonError;
-          }
+        } catch (fetchError) {
+          console.error('❌ Request failed:', fetchError);
+          throw fetchError;
         }
         
         clearTimeout(timeout);
 
         // Check response status
         if (!response || !response.ok) {
-          // If fetch itself failed (no response), try JSON fallback
-          if (!response) {
-            console.warn('⚠️ FormData fetch failed, trying JSON fallback...');
-            try {
-              // Remove data URL prefix if present
-              let imageData = dataURL;
-              if (dataURL.includes(',')) {
-                imageData = dataURL.split(',')[1];
-              }
-              
-              response = await fetch(cleanUrl, {
-                method: 'POST',
-                mode: 'cors',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Accept': 'application/json'
-                },
-                body: JSON.stringify({ imageData: dataURL }),
-                signal: controller.signal
-              });
-              
-              if (!response || !response.ok) {
-                throw new Error(`Backend request failed: ${response ? response.status : 'No response'}`);
-              }
-            } catch (jsonError) {
-              console.error('❌ JSON fallback also failed:', jsonError);
-              throw jsonError;
-            }
-          }
-          
           // If we have a response but it's not OK, handle the error
           if (response && !response.ok) {
             const errorText = await response.text();
@@ -865,26 +794,19 @@
         
         // If it's a network error, provide more helpful message
         if (errorMsg.includes('fetch') || errorMsg.includes('network') || errorMsg.includes('Failed to fetch') || error.name === 'TypeError') {
-          // Check if it's a CORS error (common on file:// protocol)
-          if (errorMsg.includes('CORS') || errorMsg.includes('Access-Control') || errorMsg.includes('origin') || errorMsg.includes('null') || window.location.protocol === 'file:') {
-            errorMsg = 'CORS error: Please access this page via HTTP/HTTPS (not file://). The backend API requires proper CORS headers.';
-            console.error('💡 Solution: Run the page on a local server (http://localhost:8000) or deploy it to access the backend API.');
-            console.error('💡 Quick fix: Open http://localhost:8000/background-workspace.html in your browser');
-            console.error('💡 Backend URL:', cleanUrl);
-          } else if (errorMsg.includes('timeout') || error.name === 'AbortError') {
+          if (errorMsg.includes('timeout') || error.name === 'AbortError') {
             errorMsg = 'Request timeout. The image might be too large or the server is busy. Please try again with a smaller image.';
           } else if (errorMsg.includes('ERR_INTERNET_DISCONNECTED') || errorMsg.includes('ERR_NETWORK')) {
             errorMsg = 'Network connection error. Please check your internet connection and try again.';
           } else {
-            // More specific error message with backend URL
-            const backendBase = cleanUrl.replace('/remove-background', '');
-            errorMsg = `Backend connection failed: ${errorMsg}. Please check: 1) Internet connection, 2) Backend is running at ${backendBase}, 3) Try opening ${backendBase}/health in browser`;
+            // More specific error message
+            errorMsg = `Backend connection failed: ${errorMsg}. Please check: 1) Internet connection, 2) Server is running, 3) Try refreshing the page`;
             console.error('❌ Network error details:', {
               message: error.message,
               name: error.name,
               url: cleanUrl
             });
-            console.error('💡 Test backend manually:', backendBase + '/health');
+            console.error('💡 Test backend health:', PROXY_HEALTH_URL);
           }
         }
         
@@ -953,7 +875,15 @@
             console.warn('Quota tracking unavailable (continuing normally):', error.message);
           }
         } else {
-          throw new Error(`Google Cloud processing failed: ${backendResult.error}`);
+          // Better error message with suggestions
+          const errorMsg = backendResult.error || 'Unknown error';
+          if (errorMsg.includes('timeout')) {
+            throw new Error('Processing timeout. The image might be too large. Please try with a smaller image (under 50 MB).');
+          } else if (errorMsg.includes('connection') || errorMsg.includes('network')) {
+            throw new Error('Network error. Please check your internet connection and try again.');
+          } else {
+            throw new Error(`Google Cloud processing failed: ${errorMsg}`);
+          }
         }
         
         if (!resultUrl) {
