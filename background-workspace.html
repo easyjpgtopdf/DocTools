@@ -409,14 +409,14 @@
       dimensions: 'bgRemover:dimensions'
     };
 
-    // Limits - TEMPORARILY INCREASED FOR ERROR HANDLING
-    const FREE_UPLOAD_LIMIT = 100 * 1024 * 1024; // 100 MB - Free upload limit per image (temporarily increased, will reduce to 1 MB later)
-    const FREE_MONTHLY_UPLOAD_LIMIT = 100 * 1024 * 1024; // 100 MB - Free monthly upload limit (temporarily increased, will reduce to 10 MB later)
-    const FREE_DOWNLOAD_LIMIT = 100 * 1024 * 1024; // 100 MB - Free download limit (temporarily increased, will reduce to 100 KB later)
-    const FREE_MONTHLY_DOWNLOAD_LIMIT = 100 * 1024 * 1024; // 100 MB - Free monthly download limit (temporarily increased, will reduce to 2 MB later)
-    const FREE_PREVIEW_LIMIT = 100 * 1024; // 100 KB - Free preview without compression
+    // Limits for Free Users
+    const FREE_UPLOAD_LIMIT = 1 * 1024 * 1024; // 1 MB - Free upload limit per image
+    const FREE_MONTHLY_UPLOAD_LIMIT = 10 * 1024 * 1024; // 10 MB - Free monthly upload limit
+    const FREE_DOWNLOAD_LIMIT = 150 * 1024; // 150 KB - Free download limit (compressed)
+    const FREE_MONTHLY_DOWNLOAD_LIMIT = 10 * 1024 * 1024; // 10 MB - Free monthly download limit
+    const FREE_PREVIEW_LIMIT = 150 * 1024; // 150 KB - Free preview without compression
     const FREE_PREVIEW_MAX = 400 * 1024; // 400 KB - Max preview size for free users
-    const FREE_QUOTA_PER_MONTH = 100; // 100 images per month for free users (temporarily increased, will reduce to 40 later)
+    const FREE_QUOTA_PER_MONTH = 40; // 40 images per month for free users
     // All processing now uses Google Cloud Run (IMG.LY removed)
 
     const previewStage = document.getElementById('previewStage');
@@ -887,8 +887,8 @@
       }
     }
 
-    // Compress image to reduce size (for free users) - OPTIMIZED FOR 100 KB FAST ACCESS
-    async function compressImageForFree(dataURL, targetSizeKB = 100) {
+    // Compress image to reduce size (for free users) - OPTIMIZED FOR 150 KB
+    async function compressImageForFree(dataURL, targetSizeKB = 150) {
       return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
@@ -959,9 +959,9 @@
         return { dataURL, compressed: false, originalSize };
       }
       
-      // OPTIMIZED: Compress to 100 KB for fastest access (was 400 KB)
-      console.log('⚡ Compressing preview to 100 KB for fastest access...');
-      const compressed = await compressImageForFree(dataURL, 100);
+      // OPTIMIZED: Compress to 150 KB for free users
+      console.log('⚡ Compressing preview to 150 KB...');
+      const compressed = await compressImageForFree(dataURL, 150);
       console.log('✅ Preview compressed to:', (compressed.size / 1024).toFixed(0), 'KB');
       
       return {
@@ -1056,7 +1056,7 @@
       let compressedInfo = null;
       if (originalSizeKB > 100) {
         statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⚙️ Calculating compressed size...</div>`;
-        const compressed = await compressImageForFree(originalResultURL, 100);
+        const compressed = await compressImageForFree(originalResultURL, 150);
         compressedInfo = {
           dataURL: compressed.dataURL,
           width: compressed.width,
@@ -1170,7 +1170,7 @@
         } else {
           // Compress now
           statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⚙️ Compressing to 100 KB...</div>`;
-          const compressed = await compressImageForFree(originalResultURL, 100);
+          const compressed = await compressImageForFree(originalResultURL, 150);
           downloadDataURL = compressed.dataURL;
           downloadInfo = {
             width: compressed.width,
@@ -1284,7 +1284,7 @@
       
       // For free users: compress if exceeds limit
       if (!isPremium && fileSize > FREE_DOWNLOAD_LIMIT) {
-        const compressed = await compressImageForFree(dataURL, 100);
+        const compressed = await compressImageForFree(dataURL, 150);
         const baseName = filename.replace(/\.[^/.]+$/, '') || 'background-removed';
         const link = document.createElement('a');
         link.href = compressed.dataURL;

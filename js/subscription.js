@@ -62,11 +62,11 @@ const PLANS = {
       apiAccess: true, // API access for all plans (Google Vision API based)
       imageRemover: {
         enabled: true,
-        maxFileSize: 100 * 1024 * 1024, // 100 MB for free tier (temporarily increased, will reduce to 1 MB later)
-        quotaPerMonth: 100, // 100 images per month (temporarily increased, will reduce to 40 later)
-        monthlyUploadLimit: 100 * 1024 * 1024, // 100 MB monthly upload limit (temporarily increased, will reduce to 10 MB later)
-        monthlyDownloadLimit: 100 * 1024 * 1024, // 100 MB monthly download limit (temporarily increased, will reduce to 2 MB later)
-        downloadCompressTo: 100 * 1024 * 1024 // 100 MB max download size (temporarily increased, will reduce to 100 KB later)
+        maxFileSize: 1 * 1024 * 1024, // 1 MB per image for free tier
+        quotaPerMonth: 40, // 40 images per month
+        monthlyUploadLimit: 10 * 1024 * 1024, // 10 MB monthly upload limit
+        monthlyDownloadLimit: 10 * 1024 * 1024, // 10 MB monthly download limit
+        downloadCompressTo: 150 * 1024 // 150 KB max download size (compressed)
       }
     }
   },
@@ -94,11 +94,11 @@ const PLANS = {
       apiAccess: true, // API access for all plans (Google Vision API based)
       imageRemover: {
         enabled: true,
-        maxFileSize: 50 * 1024 * 1024, // 50 MB for premium
+        maxFileSize: 50 * 1024 * 1024, // 50 MB per image for premium
         quotaPerMonth: Infinity, // Unlimited for premium
-        monthlyUploadLimit: 1 * 1024 * 1024 * 1024, // 1 GB monthly upload limit
-        monthlyDownloadLimit: 1 * 1024 * 1024 * 1024, // 1 GB monthly download limit
-        downloadCompressTo: Infinity // No compression, actual quality
+        monthlyUploadLimit: 500 * 1024 * 1024, // 500 MB monthly upload limit
+        monthlyDownloadLimit: 500 * 1024 * 1024, // 500 MB monthly download limit
+        downloadCompressTo: Infinity // No compression, original quality
       }
     }
   },

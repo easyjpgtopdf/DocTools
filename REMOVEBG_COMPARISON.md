@@ -267,3 +267,4 @@
 
 **We are positioned as the affordable, feature-rich alternative** to remove.bg, offering better value without compromising on quality or features.
 
+

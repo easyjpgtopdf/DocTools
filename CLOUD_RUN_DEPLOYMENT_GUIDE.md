@@ -245,3 +245,4 @@ gcloud run services logs read bg-remover-api --region us-central1 --limit=20
 - Cloud Build: https://console.cloud.google.com/cloud-build
 - Service Logs: https://console.cloud.google.com/run/detail/us-central1/bg-remover-api/logs
 
+

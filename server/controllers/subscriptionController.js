@@ -34,7 +34,7 @@ const SUBSCRIPTION_PLANS = {
       'Desktop application access',
       'Mobile application access',
       'API access (100 calls/month)',
-      'Image background remover (100 images/month, 100 MB max per image, 100 MB monthly upload, 100 MB monthly download) - Temporarily increased limits'
+      'Image background remover (40 images/month, 1 MB max per image, 10 MB monthly upload, 10 MB monthly download, auto-compressed to 150 KB)'
     ]
   },
   premium: {
@@ -60,7 +60,7 @@ const SUBSCRIPTION_PLANS = {
       'Priority customer support',
       'Email invoicing',
       'Advanced OCR technology',
-      'Image background remover (unlimited, 50 MB max per image, 1 GB monthly upload/download, actual quality)'
+      'Image background remover (unlimited, 50 MB max per image, 500 MB monthly upload/download, original quality)'
     ]
   },
   business: {
@@ -220,15 +220,15 @@ async function verifyPayment(req, res) {
     
     // Update usage limits
     const imageRemoverLimit = selectedPlan.features.find(f => f.includes('Image Background Remover')) 
-      ? (selectedPlan.name === 'Premium' ? -1 : selectedPlan.name === 'Business' ? -1 : 100)
-      : 100;
+      ? (selectedPlan.name === 'Premium' ? -1 : selectedPlan.name === 'Business' ? -1 : 40)
+      : 40;
     
     // Set monthly upload/download limits based on plan
     let imageRemoverUploadLimit = 10 * 1024 * 1024; // 10 MB for free
-    let imageRemoverDownloadLimit = 2 * 1024 * 1024; // 2 MB for free
+    let imageRemoverDownloadLimit = 10 * 1024 * 1024; // 10 MB for free
     if (selectedPlan.name === 'Premium' || selectedPlan.name === 'Business') {
-      imageRemoverUploadLimit = 1 * 1024 * 1024 * 1024; // 1 GB for premium
-      imageRemoverDownloadLimit = 1 * 1024 * 1024 * 1024; // 1 GB for premium
+      imageRemoverUploadLimit = 500 * 1024 * 1024; // 500 MB for premium
+      imageRemoverDownloadLimit = 500 * 1024 * 1024; // 500 MB for premium
     }
     
     user.usageLimits = {
@@ -300,16 +300,16 @@ async function getSubscription(req, res) {
     
     const plan = SUBSCRIPTION_PLANS[user.subscriptionPlan] || SUBSCRIPTION_PLANS.free;
     
-    // Get image remover limits based on plan (TEMPORARILY INCREASED)
-    let imageRemoverLimit = 100; // Default for free (temporarily increased, will reduce to 40 later)
-    let imageRemoverMaxSize = 100 * 1024 * 1024; // 100 MB default (temporarily increased, will reduce to 1 MB later)
-    let imageRemoverUploadLimit = 100 * 1024 * 1024; // 100 MB for free (temporarily increased, will reduce to 10 MB later)
-    let imageRemoverDownloadLimit = 100 * 1024 * 1024; // 100 MB for free (temporarily increased, will reduce to 2 MB later)
+    // Get image remover limits based on plan
+    let imageRemoverLimit = 40; // 40 images/month for free
+    let imageRemoverMaxSize = 1 * 1024 * 1024; // 1 MB per image for free
+    let imageRemoverUploadLimit = 10 * 1024 * 1024; // 10 MB monthly upload for free
+    let imageRemoverDownloadLimit = 10 * 1024 * 1024; // 10 MB monthly download for free
     if (user.subscriptionPlan === 'premium') {
       imageRemoverLimit = -1; // Unlimited
-      imageRemoverMaxSize = 50 * 1024 * 1024; // 50 MB
-      imageRemoverUploadLimit = 1 * 1024 * 1024 * 1024; // 1 GB
-      imageRemoverDownloadLimit = 1 * 1024 * 1024 * 1024; // 1 GB
+      imageRemoverMaxSize = 50 * 1024 * 1024; // 50 MB per image
+      imageRemoverUploadLimit = 500 * 1024 * 1024; // 500 MB monthly upload
+      imageRemoverDownloadLimit = 500 * 1024 * 1024; // 500 MB monthly download
     } else if (user.subscriptionPlan === 'business') {
       imageRemoverLimit = -1; // Unlimited
       imageRemoverMaxSize = -1; // No limit

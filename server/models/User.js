@@ -64,9 +64,9 @@ const userSchema = new mongoose.Schema({
     pdfsPerMonth: { type: Number, default: 10 },
     storageGB: { type: Number, default: 1 },
     apiCallsPerMonth: { type: Number, default: 1000 },
-    imageRemoverPerMonth: { type: Number, default: 100 }, // Temporarily increased, will reduce to 40 later
-    imageRemoverMonthlyUploadMB: { type: Number, default: 100 }, // Temporarily increased, will reduce to 10 later
-    imageRemoverMonthlyDownloadMB: { type: Number, default: 100 } // Temporarily increased, will reduce to 2 later
+    imageRemoverPerMonth: { type: Number, default: 40 }, // 40 images per month
+    imageRemoverMonthlyUploadMB: { type: Number, default: 10 }, // 10 MB monthly upload
+    imageRemoverMonthlyDownloadMB: { type: Number, default: 10 } // 10 MB monthly download
   },
   currentUsage: {
     pdfsThisMonth: { type: Number, default: 0 },
