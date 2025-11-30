@@ -6,6 +6,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>Background Style | easyjpgtopdf</title>
 <link href="css/footer.css" rel="stylesheet"/>
+<script type="module" src="js/device-fingerprint.js"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
 <style>
     :root {
@@ -439,13 +440,17 @@
     };
 
     // Limits - Same as background-workspace.html
-    const FREE_UPLOAD_LIMIT = 10 * 1024 * 1024; // 10 MB - Free upload limit
-    const FREE_DOWNLOAD_LIMIT = 500 * 1024; // 500 KB - Free download limit
-    const FREE_PREVIEW_LIMIT = 100 * 1024; // 100 KB - Free preview without compression
+    const FREE_UPLOAD_LIMIT = 1 * 1024 * 1024; // 1 MB - Free upload limit per image
+    const FREE_MONTHLY_UPLOAD_LIMIT = 10 * 1024 * 1024; // 10 MB - Free monthly upload limit
+    const FREE_DOWNLOAD_LIMIT = 150 * 1024; // 150 KB - Free download limit (compressed)
+    const FREE_MONTHLY_DOWNLOAD_LIMIT = 10 * 1024 * 1024; // 10 MB - Free monthly download limit
+    const FREE_PREVIEW_LIMIT = 150 * 1024; // 150 KB - Free preview without compression
     const FREE_PREVIEW_MAX = 400 * 1024; // 400 KB - Max preview size for free users
+    const FREE_QUOTA_PER_MONTH = 40; // 40 images per month for free users
 
     let currentUser = null;
     let userSubscription = null;
+    let deviceInfo = null;
 
     // Check user subscription status (only if Firebase available)
     async function checkUserSubscription(user) {
@@ -493,6 +498,22 @@
     } else {
       console.log('?? Running without authentication - all features available');
     }
+
+    // Initialize device fingerprinting
+    async function initDeviceTracking() {
+      try {
+        const { getDeviceInfo } = await import('./js/device-fingerprint.js');
+        deviceInfo = await getDeviceInfo();
+        console.log('✅ Device tracking initialized:', {
+          deviceId: deviceInfo.deviceId,
+          ip: deviceInfo.ip,
+          fingerprint: deviceInfo.fingerprint.substring(0, 20) + '...'
+        });
+      } catch (error) {
+        console.warn('⚠️ Device fingerprinting not available:', error);
+      }
+    }
+    initDeviceTracking();
 
     const fallbackBackgrounds = {
       magic: [
@@ -685,7 +706,7 @@
     }
 
     // Compress image to reduce size (for free users) - UPDATED to match background-workspace.html
-    async function compressImageForFree(dataURL, targetSizeKB = 500) {
+    async function compressImageForFree(dataURL, targetSizeKB = 150) {
       return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
@@ -749,15 +770,15 @@
       
       console.log('?? Original size:', originalSizeKB.toFixed(0), 'KB');
       
-      // If under 100 KB, use as is
+      // If under 150 KB, use as is
       if (originalSize <= FREE_PREVIEW_LIMIT) {
-        console.log('? Using original size (under 100 KB)');
+        console.log('✅ Using original size (under 150 KB)');
         return { dataURL, compressed: false, originalSize };
       }
       
-      // Compress to 400 KB for faster editing
-      console.log('?? Compressing preview to 400 KB for faster editing...');
-      const compressed = await compressImageForFree(dataURL, 400);
+      // Compress to 150 KB for free users
+      console.log('⚡ Compressing preview to 150 KB...');
+      const compressed = await compressImageForFree(dataURL, 150);
       console.log('? Preview compressed to:', (compressed.size / 1024).toFixed(0), 'KB');
       
       return {
@@ -1180,9 +1201,9 @@
       
       // Calculate compressed size info (will be used for Free option)
       let compressedInfo = null;
-      if (originalSizeKB > 500) {
-        setStatus('?? Calculating compressed size...');
-        const compressed = await compressImageForFree(originalResultURL, 500);
+      if (originalSizeKB > 150) {
+        setStatus('⚡ Calculating compressed size...');
+        const compressed = await compressImageForFree(originalResultURL, 150);
         compressedInfo = {
           dataURL: compressed.dataURL,
           width: compressed.width,
@@ -1198,7 +1219,7 @@
       const downloadOptions = document.getElementById('downloadOptions');
       downloadOptions.innerHTML = '';
       
-      // Option 1: Compressed (Free) - Always available, under 500 KB
+      // Option 1: Compressed (Free) - Always available, under 150 KB
       const freeOption = document.createElement('div');
       freeOption.className = 'download-option';
       freeOption.innerHTML = `
@@ -1210,10 +1231,10 @@
           ${compressedInfo ? 
             `<strong>${compressedInfo.sizeKB} KB</strong> (${compressedInfo.sizeMB} MB)<br>` +
             `${compressedInfo.width} × ${compressedInfo.height} pixels<br>` +
-            `<small>Auto-compressed to under 500 KB</small>` :
+            `<small>Auto-compressed to under 150 KB</small>` :
             `<strong>${imageInfo.sizeKB} KB</strong> (${imageInfo.sizeMB} MB)<br>` +
             `${imageInfo.width} × ${imageInfo.height} pixels<br>` +
-            `<small>Already under 500 KB limit</small>`
+            `<small>Already under 150 KB limit</small>`
           }
         </div>
       `;
@@ -1252,7 +1273,7 @@
           const message = `Original Quality Download\n\n` +
                          `Size: ${imageInfo.sizeKB} KB (${imageInfo.sizeMB} MB)\n` +
                          `Dimensions: ${imageInfo.width} × ${imageInfo.height} pixels\n\n` +
-                         `Free users: Max 500 KB (compressed)\n` +
+                         `Free users: Max 150 KB (compressed)\n` +
                          `Your file: ${imageInfo.sizeKB} KB\n\n` +
                          `Upgrade to Pro/Premium for:\n` +
                          `? Unlimited download size\n` +
@@ -1286,8 +1307,8 @@
       let downloadInfo = originalInfo;
       let wasCompressed = false;
       
-      // If file is > 500 KB, compress it
-      if (parseInt(originalInfo.sizeKB) > 500) {
+      // If file is > 150 KB, compress it
+      if (parseInt(originalInfo.sizeKB) > 150) {
         if (compressedInfo && compressedInfo.dataURL) {
           // Use pre-calculated compressed version
           downloadDataURL = compressedInfo.dataURL;
@@ -1295,8 +1316,8 @@
           wasCompressed = true;
         } else {
           // Compress now
-          setStatus('?? Compressing to 500 KB...');
-          const compressed = await compressImageForFree(originalResultURL, 500);
+          setStatus('⚡ Compressing to 150 KB...');
+          const compressed = await compressImageForFree(originalResultURL, 150);
           downloadDataURL = compressed.dataURL;
           downloadInfo = {
             width: compressed.width,
@@ -1319,8 +1340,19 @@
       link.click();
       
       const sizeLabel = wasCompressed ? `${downloadInfo.sizeKB} KB (compressed from ${originalInfo.sizeKB} KB)` : `${downloadInfo.sizeKB} KB`;
-      setStatus(`? Downloaded ${sizeLabel} - Free tier`);
+      setStatus(`✅ Downloaded ${sizeLabel} - Free tier`);
       setTimeout(() => clearStatus(), 4000);
+      
+      // Increment device quota after successful download (free users only)
+      if (!isPremium && deviceInfo) {
+        try {
+          const { incrementDeviceQuota } = await import('./js/device-fingerprint.js');
+          await incrementDeviceQuota('imageRemover', 1, downloadInfo.size);
+          console.log('✅ Device quota incremented for download');
+        } catch (error) {
+          console.warn('Failed to increment device quota:', error);
+        }
+      }
     }
 
     // Download original/high quality version (Premium)
