@@ -616,8 +616,9 @@ header .nav-links-summary {
         padding: 0 16px;
     }
     
-    /* Ensure only logo and hamburger menu are visible on mobile */
-    header .navbar > *:not(.logo):not(.mobile-menu-toggle):not(.user-menu) {
+    /* Hide desktop nav links and dropdowns on mobile */
+    header .nav-links,
+    header .dropdown {
         display: none !important;
     }
     
@@ -628,6 +629,14 @@ header .nav-links-summary {
     
     .mobile-menu-toggle {
         display: flex !important;
+    }
+    
+    /* User menu can be shown if user is logged in (via inline style) */
+    header .user-menu[style*="display: flex"] {
+        display: flex !important;
+        order: 998;
+        margin-left: auto;
+        margin-right: 12px;
     }
 }
 
