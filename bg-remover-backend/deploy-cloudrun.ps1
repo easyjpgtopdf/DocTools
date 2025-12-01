@@ -78,7 +78,10 @@ if ($LASTEXITCODE -eq 0) {
 Write-Host ""
 Write-Host "Deploying to Cloud Run..." -ForegroundColor Yellow
 
-# Deploy to Cloud Run
+# Deploy to Cloud Run with optimizations
+# --min-instances 1: Prevents cold starts (keeps 1 instance always running)
+# --cpu 2: Fast processing
+# --memory 2Gi: Sufficient for u2net model
 gcloud run deploy $SERVICE_NAME `
   --image gcr.io/$PROJECT_ID/$SERVICE_NAME `
   --platform managed `
@@ -86,6 +89,7 @@ gcloud run deploy $SERVICE_NAME `
   --memory 2Gi `
   --cpu 2 `
   --timeout 300 `
+  --min-instances 1 `
   --max-instances 10 `
   --allow-unauthenticated `
   --quiet

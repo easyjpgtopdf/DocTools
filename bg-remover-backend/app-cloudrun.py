@@ -388,6 +388,16 @@ def remove_background():
         return add_cors_headers(response), 500
 
 
+# Pre-load model on startup to prevent cold starts
+def preload_model():
+    """Pre-load model when container starts (prevents cold start delay)"""
+    try:
+        logger.info("🔄 Pre-loading rembg model to prevent cold starts...")
+        get_rembg_session()
+        logger.info("✅ Model pre-loaded successfully!")
+    except Exception as e:
+        logger.warning(f"⚠️ Model pre-load failed (will load on first request): {e}")
+
 # Run the app
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
@@ -397,4 +407,8 @@ if __name__ == '__main__':
     logger.info(f"🎨 Supported formats: {', '.join(SUPPORTED_FORMATS)}")
     logger.info(f"✨ Features: Alpha Matting, Memory Optimization, Large File Support, No Over-cleaning")
     logger.info(f"🤖 Model: {MODEL_NAME} (latest u2net)")
+    
+    # Pre-load model to prevent cold starts
+    preload_model()
+    
     app.run(host='0.0.0.0', port=port, debug=False)
