@@ -325,88 +325,133 @@
     // ============================================
     // GOOGLE CLOUD RUN BACKEND CONFIGURATION
     // ============================================
-    // Project: easyjpgtopdf-de346
-    // Region: us-central1
-    // Service: bg-remover-api
-    // TODO: Update URL after Cloud Run deployment (2-3 days)
-    // Deploy guide: bg-remover-backend/GOOGLE_CLOUD_COMPLETE_GUIDE.md
+    // Use proxy endpoint to avoid CORS issues
+    // The proxy endpoint forwards requests to Cloud Run API
     // ============================================
     
-    const CLOUDRUN_API_URL = 'https://bg-remover-api-iwumaktavq-uc.a.run.app/remove-background';
+    const PROXY_API_URL = '/api/background-remove';
+    const PROXY_HEALTH_URL = '/api/background-remove/health';
     
-    // Smart routing based on file size (optimized for quality + speed)
+    // Test backend connection on load (using proxy to avoid CORS)
+    async function testBackendConnection() {
+      try {
+        const response = await fetch(PROXY_HEALTH_URL, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ Google Cloud Run Backend Connected:', data);
+          console.log('✅ Using u2net rembg model:', data.model || 'u2net');
+          return true;
+        } else {
+          console.warn('⚠️ Backend health check failed:', response.status);
+        }
+      } catch (error) {
+        console.warn('⚠️ Backend health check failed:', error.message);
+        console.log('ℹ️ Backend will be tested on first request.');
+      }
+      return false;
+    }
+    
+    // Test connection immediately
+    testBackendConnection();
+    
+    // All processing uses Google Cloud Run (through proxy)
     function getProcessingConfig(fileSize) {
       const sizeMB = fileSize / (1024 * 1024);
       
-      // Tier 1: Browser AI (IMG.LY U²-Net) - Best browser quality
-      if (fileSize < 15 * 1024 * 1024) {
-        // 0-15 MB: Browser processing (95-98% quality, instant)
-        return {
-          useBackend: false,
-          model: 'medium',  // Best IMG.LY model
-          quality: 1.0,     // Maximum quality
-          description: 'Browser AI - Professional Quality',
-          message: `Processing ${sizeMB.toFixed(1)} MB with browser AI (95-98% quality)`,
-          tier: 'browser',
-          info: '⚡ Fast & Free - Good quality for most images',
-          quality: 0.92
-        };
-      } 
-      // Tier 2: Google Cloud Run (Rembg U²-Net) - 100% Professional
-      else if (fileSize < 100 * 1024 * 1024) {
-        // 15-100 MB: Cloud processing (100% quality, FREE 18k/month)
-        return {
-          useBackend: true,
-          backendUrl: CLOUDRUN_API_URL,
-          timeout: 300000,  // 5 minutes
-          description: 'Google Cloud Run - Rembg U²-Net',
-          message: `Processing ${sizeMB.toFixed(1)} MB with Cloud AI (100% professional quality)`,
-          tier: 'cloudrun',
-          info: '☁️ 100% Professional - FREE 18,000 images/month',
-          quality: 1.0
-        };
-      } 
-      // Error: File too large
-      else {
-        return {
-          useBackend: false,
-          error: true,
-          message: `File size ${sizeMB.toFixed(1)} MB exceeds maximum limit of 100 MB. Please compress your image first.`,
-          tier: 'error'
-        };
-      }
+      // All files processed via Google Cloud Run (through proxy)
+      return {
+        useBackend: true,
+        backendUrl: PROXY_API_URL,
+        timeout: 300000,
+        description: 'Google Cloud Run - Rembg U²-Net',
+        message: `Processing ${sizeMB.toFixed(1)} MB with Google Cloud AI`,
+        tier: 'cloudrun',
+        info: '☁️ Google Cloud Processing - Rembg U²-Net Latest',
+        quality: 1.0
+      };
     }
 
-    // Process image using Google Cloud Run backend
+    // Process image using Google Cloud Run backend (through proxy)
     async function processWithBackend(dataURL, backendUrl, config) {
+      // Use proxy endpoint (no CORS issues)
+      const cleanUrl = backendUrl.split('?')[0];
+      
       try {
-        // Show upload progress
         statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">☁️ Uploading to Google Cloud AI...</div>`;
         
-        // Make API request with timeout
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 180000); // 3 min timeout
+        const timeout = setTimeout(() => controller.abort(), 180000);
         
-        const response = await fetch(backendUrl, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({ imageData: dataURL }),
-          signal: controller.signal
-        });
+        // Log request details for debugging
+        const imageSize = Math.ceil((dataURL.split(',')[1]?.length || 0) * 0.75 / 1024);
+        console.log('📤 Sending request to:', cleanUrl);
+        console.log('📊 Image size:', imageSize, 'KB');
+        console.log('📊 Data URL length:', dataURL.length);
+        
+        // Use JSON format (proxy handles conversion)
+        let response = null;
+        
+        try {
+          response = await fetch(cleanUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({ imageData: dataURL }),
+            signal: controller.signal
+          });
+          
+          console.log('📥 Response received:', {
+            status: response.status,
+            statusText: response.statusText,
+            ok: response.ok,
+            headers: Object.fromEntries(response.headers.entries())
+          });
+        } catch (fetchError) {
+          console.error('❌ Request failed:', {
+            name: fetchError.name,
+            message: fetchError.message,
+            stack: fetchError.stack
+          });
+          throw fetchError;
+        }
         
         clearTimeout(timeout);
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || `Server error: ${response.status}`);
+        // Check response status
+        if (!response || !response.ok) {
+          // If we have a response but it's not OK, handle the error
+          if (response && !response.ok) {
+            const errorText = await response.text();
+            let errorData = {};
+            try {
+              errorData = JSON.parse(errorText);
+            } catch (e) {
+              errorData = { error: errorText || `Server error: ${response.status}` };
+            }
+            console.error('❌ Server error:', {
+              status: response.status,
+              statusText: response.statusText,
+              error: errorData
+            });
+            throw new Error(errorData.error || `Server error: ${response.status} ${response.statusText}`);
+          } else {
+            throw new Error('No response from server. Please check your connection.');
+          }
         }
 
         statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">✨ Processing with professional AI...</div>`;
         
         const result = await response.json();
+        console.log('✅ Processing result:', {
+          success: result.success,
+          hasResultImage: !!result.resultImage,
+          outputSize: result.outputSizeMB || 'unknown'
+        });
         
         if (result.success && result.resultImage) {
           return { 
@@ -420,13 +465,31 @@
           throw new Error(result.error || 'Processing failed on server');
         }
       } catch (error) {
-        console.error('❌ Backend processing error:', error);
+        console.error('❌ Backend processing error:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
         
         if (error.name === 'AbortError') {
-          return { success: false, error: 'Request timeout. File too large or server busy.' };
+          return { 
+            success: false, 
+            error: 'Request timeout. The file may be too large or the server is busy. Please try again or use a smaller image.' 
+          };
         }
         
-        return { success: false, error: error.message || 'Server connection failed' };
+        // Provide more specific error messages
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          return { 
+            success: false, 
+            error: 'Network error. Please check your internet connection and try again. If the problem persists, the server may be temporarily unavailable.' 
+          };
+        }
+        
+        return { 
+          success: false, 
+          error: error.message || 'Server connection failed. Please try again.' 
+        };
       }
     }
 
@@ -459,7 +522,7 @@
         let resultUrl = null;
         let processingMethod = 'Browser AI';
 
-        // ===== ROUTE 1: Backend Processing (15+ MB files) =====
+        // ===== All Processing via Google Cloud Run =====
         if (config.useBackend) {
           statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">${config.info}</div>`;
           
@@ -470,13 +533,14 @@
             processingMethod = backendResult.processedWith || config.description;
             
             // Log success
-            console.log('✅ Backend processing successful:', {
+            console.log('✅ Google Cloud processing successful:', {
               tier: config.tier,
               outputSize: backendResult.outputSizeMB || 'unknown'
             });
           } else {
-            // Backend failed - try browser fallback for smaller files
-            console.warn('⚠️ Backend failed:', backendResult.error);
+            // Backend failed - show error
+            console.error('❌ Backend failed:', backendResult.error);
+            throw new Error(backendResult.error || 'Google Cloud processing failed');
             
             if (removeBackgroundFn && fileSize < 25 * 1024 * 1024) {
               statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(251,146,60,0.12);color:#7c2d12;font-weight:600;">⚠️ Server busy, switching to browser processing...</div>';
