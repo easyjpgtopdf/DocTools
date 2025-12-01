@@ -253,167 +253,132 @@ def remove_background():
         # Professional quality settings matching industry standards
         # Optimized for 100% background removal with perfect edge quality
         logger.info("🎨 Starting professional background removal with U²-Net Latest (100% Quality Mode)...")
-        try:
-            # PROFESSIONAL QUALITY settings for maximum accuracy:
-            # - Perfect thresholds for complete background removal while preserving all foreground details
-            # - Advanced alpha matting for smooth, natural edges
-            # - Multi-pass processing for clean, professional results
-            output_image = remove(
-                input_image,
-                session=get_rembg_session(),
-                alpha_matting=True,              # Enable alpha matting for smooth, natural edges
-                alpha_matting_foreground_threshold=240,  # Preserves all foreground details
-                alpha_matting_background_threshold=10,   # Ensures complete background removal
-                alpha_matting_erode_size=10,    # Optimal erode size for clean edges
-                only_mask=False                  # Return full RGBA image with transparency
-            )
-            
-            # Post-processing: Apply edge refinement to ensure complete background removal
-            # This is the "magic brush" effect that removes any remaining background artifacts
-            from PIL import ImageFilter, ImageEnhance, ImageOps
-            import numpy as np
-            
-            # Convert to numpy for processing
-            img_array = np.array(output_image)
-            
-            # Ensure RGBA
-            if img_array.shape[2] == 3:
-                alpha = np.ones((img_array.shape[0], img_array.shape[1]), dtype=np.uint8) * 255
-                img_array = np.dstack([img_array, alpha])
-            
-            # Extract alpha channel
-            alpha_channel = img_array[:, :, 3]
-            
-            # PROFESSIONAL background removal - Multi-pass processing for 100% accuracy
-            # Pass 1: Remove obvious background pixels (very low alpha)
-            alpha_channel[alpha_channel < 20] = 0  # Remove clear background pixels
-            
-            # Pass 2: Remove semi-transparent background artifacts
-            alpha_channel[alpha_channel < 60] = 0  # Remove weak background pixels while preserving foreground
-            
-            # Enhance foreground edges (make edges more defined)
-            # Dilate foreground slightly to catch any missed background pixels
-            try:
-                from scipy import ndimage
-                # Create binary mask for foreground (alpha > 100 for stronger foreground)
-                foreground_mask = (alpha_channel > 100).astype(np.uint8)
-                
-                # Erode then dilate to clean up edges (morphological operations)
-                # This removes small background artifacts while preserving foreground
-                cleaned_mask = ndimage.binary_erosion(foreground_mask, structure=np.ones((3,3)), iterations=2)
-                cleaned_mask = ndimage.binary_dilation(cleaned_mask, structure=np.ones((3,3)), iterations=2)
-                
-                # Apply cleaned mask to alpha channel
-                alpha_channel = np.where(cleaned_mask, np.maximum(alpha_channel, 220), alpha_channel)
-                
-                # Pass 3: Final cleanup - remove any remaining weak background pixels
-                alpha_channel[alpha_channel < 80] = 0  # Keep strong foreground pixels, remove weak background
-                
-                # Pass 4: Background color detection and removal
-                # Remove light background colors (white/light backgrounds)
-                rgb = img_array[:, :, :3]
-                is_light_bg = (rgb[:,:,0] > 200) & (rgb[:,:,1] > 200) & (rgb[:,:,2] > 200)
-                alpha_channel = np.where(is_light_bg & (alpha_channel < 150), 0, alpha_channel)
-                
-                # Remove dark background colors (black/dark backgrounds)
-                is_dark_bg = (rgb[:,:,0] < 50) & (rgb[:,:,1] < 50) & (rgb[:,:,2] < 50)
-                alpha_channel = np.where(is_dark_bg & (alpha_channel < 150), 0, alpha_channel)
-                
-            except ImportError:
-                # If scipy not available, use simpler method
-                logger.warn("⚠️ scipy not available, using basic edge refinement")
-                # Professional threshold-based cleanup
-                alpha_channel[alpha_channel < 20] = 0  # Remove background remnants while preserving foreground
-            
-            # Update alpha channel
-            img_array[:, :, 3] = alpha_channel
-            
-            # Convert back to PIL Image
-            output_image = Image.fromarray(img_array, 'RGBA')
-            
-            # Apply edge sharpening filter for crisp, professional edges
-            output_image = ImageEnhance.Sharpness(output_image).enhance(1.15)  # Professional edge sharpening
-            logger.info("✅ Professional background removal completed with 100% quality!")
-        except Exception as e:
-            logger.error(f"❌ Rembg processing failed: {str(e)}")
-            logger.error(traceback.format_exc())
-            gc.collect()  # Clean memory on error
-            response = jsonify({'error': f'AI processing failed: {str(e)}'})
-            return add_cors_headers(response), 500
-
-        # Free input image memory
-        del input_image
-        gc.collect()
-
-        # === OUTPUT OPTIMIZATION (FAST COMPRESSION + SPEED) ===
-        # Fast compression for optimal speed
-        logger.info("💾 Optimizing PNG output...")
-        output_buffer = io.BytesIO()
         
-        output_image.save(
-            output_buffer, 
-            format='PNG', 
-            optimize=False,  # Fast - no optimization delay
-            compress_level=1  # Fast compression for optimal speed
+        # PROFESSIONAL QUALITY settings for maximum accuracy:
+        # - Perfect thresholds for complete background removal while preserving all foreground details
+        # - Advanced alpha matting for smooth, natural edges
+        # - Multi-pass processing for clean, professional results
+        output_image = remove(
+            input_image,
+            session=get_rembg_session(),
+            alpha_matting=True,              # Enable alpha matting for smooth, natural edges
+            alpha_matting_foreground_threshold=240,  # Preserves all foreground details
+            alpha_matting_background_threshold=10,   # Ensures complete background removal
+            alpha_matting_erode_size=10,    # Optimal erode size for clean edges
+            only_mask=False                  # Return full RGBA image with transparency
         )
         
+        # Post-processing: Apply edge refinement to ensure complete background removal
+        # This is the "magic brush" effect that removes any remaining background artifacts
+        from PIL import ImageFilter, ImageEnhance, ImageOps
+        import numpy as np
+        
+        # Convert to numpy for processing
+        img_array = np.array(output_image)
+        
+        # Ensure RGBA
+        if img_array.shape[2] == 3:
+            alpha = np.ones((img_array.shape[0], img_array.shape[1]), dtype=np.uint8) * 255
+            img_array = np.dstack([img_array, alpha])
+        
+        # Extract alpha channel
+        alpha_channel = img_array[:, :, 3]
+        
+        # PROFESSIONAL background removal - Multi-pass processing for 100% accuracy
+        # Pass 1: Remove obvious background pixels (very low alpha)
+        alpha_channel[alpha_channel < 20] = 0  # Remove clear background pixels
+        
+        # Pass 2: Remove semi-transparent background artifacts
+        alpha_channel[alpha_channel < 60] = 0  # Remove weak background pixels while preserving foreground
+        
+        # Enhance foreground edges (make edges more defined)
+        # Dilate foreground slightly to catch any missed background pixels
+        try:
+            from scipy import ndimage
+            # Create binary mask for foreground (alpha > 100 for stronger foreground)
+            foreground_mask = (alpha_channel > 100).astype(np.uint8)
+            
+            # Erode then dilate to clean up edges (morphological operations)
+            # This removes small background artifacts while preserving foreground
+            cleaned_mask = ndimage.binary_erosion(foreground_mask, structure=np.ones((3,3)), iterations=2)
+            cleaned_mask = ndimage.binary_dilation(cleaned_mask, structure=np.ones((3,3)), iterations=2)
+            
+            # Apply cleaned mask to alpha channel
+            alpha_channel = cleaned_mask.astype(np.uint8) * 255
+            
+            # Smooth edges with slight blur
+            alpha_channel = ndimage.gaussian_filter(alpha_channel.astype(float), sigma=0.5).astype(np.uint8)
+        except ImportError:
+            # If scipy not available, skip advanced processing
+            logger.warning("⚠️ scipy not available, skipping advanced edge refinement")
+        
+        # Apply cleaned alpha channel back to image
+        img_array[:, :, 3] = alpha_channel
+        
+        # Convert back to PIL Image
+        output_image = Image.fromarray(img_array, 'RGBA')
+        
+        logger.info("✅ Background removal completed with professional quality!")
+        
+        # === OUTPUT OPTIMIZATION (FAST COMPRESSION + SPEED) ===
+        # Fast compression for optimal speed
+        output_buffer = io.BytesIO()
+        output_image.save(output_buffer, format='PNG', optimize=True, compress_level=1)  # Fast compression for optimal speed
         output_buffer.seek(0)
-
-        # Get output size info
-        output_size = len(output_buffer.getvalue())
-        output_size_mb = output_size / (1024 * 1024)
-        logger.info(f"📦 Output size: {output_size_mb:.2f} MB")
-
-        # Convert to base64 for JSON response
-        output_bytes = output_buffer.getvalue()
-        output_base64 = base64.b64encode(output_bytes).decode('utf-8')
+        
+        # Encode to base64
+        output_base64 = base64.b64encode(output_buffer.getvalue()).decode('utf-8')
         output_data_url = f'data:image/png;base64,{output_base64}'
-
-        # Free memory
-        del output_image
-        del output_bytes
-        del output_buffer
+        
+        output_size = len(output_buffer.getvalue())
+        
+        logger.info(f"🎉 Success! Output: {output_size/(1024*1024):.2f} MB")
+        
+        # Clean up memory
+        del input_image, output_image, img_array, alpha_channel
         gc.collect()
         
-        # === SUCCESS RESPONSE ===
-        logger.info("🎉 Returning premium quality result")
         response = jsonify({
             'success': True,
             'resultImage': output_data_url,
             'outputSize': output_size,
-            'outputSizeMB': round(output_size_mb, 2),
-            'originalSize': list(original_size),
-            'processedWith': 'Professional AI Background Removal (Google Cloud)',
+            'outputSizeMB': round(output_size / (1024 * 1024), 2),
+            'processedWith': f'Rembg U²-Net Latest + Alpha Matting',
             'model': MODEL_NAME,
-            'message': 'Background removed with professional quality'
+            'message': 'Background removed successfully with professional quality'
         })
         return add_cors_headers(response), 200
-
+        
     except Exception as e:
-        # Catch-all error handler
         logger.error(f"💥 Unexpected error: {str(e)}")
-        logger.error(traceback.format_exc())
-        gc.collect()  # Clean memory on error
+        logger.error(f"💥 Error details: {traceback.format_exc()}")
+        
+        # Clean up memory on error
+        gc.collect()
+        
+        error_message = f"Internal server error. The backend encountered an error processing your image. Check Cloud Run logs for details."
         response = jsonify({
             'success': False,
-            'error': f'Processing error: {str(e)}',
-            'message': 'An unexpected error occurred during premium processing'
+            'error': error_message,
+            'details': str(e) if os.environ.get('DEBUG', 'False') == 'True' else None
         })
         return add_cors_headers(response), 500
 
-
-# Pre-load model on startup to prevent cold starts
 def preload_model():
-    """Pre-load model when container starts (prevents cold start delay)"""
+    """Pre-load model on startup to prevent cold starts"""
     try:
-        logger.info("🔄 Pre-loading rembg model to prevent cold starts...")
+        logger.info("🔄 Pre-loading rembg model...")
+        import time
+        time.sleep(2)  # Give system time to initialize
         get_rembg_session()
         logger.info("✅ Model pre-loaded successfully!")
     except Exception as e:
         logger.warning(f"⚠️ Model pre-load failed (will load on first request): {e}")
+        logger.warning(f"⚠️ This is normal - model will load on first request")
 
 # Run the app
 if __name__ == '__main__':
+    import time
     port = int(os.environ.get('PORT', 8080))
     logger.info(f"🚀 Starting Premium Background Remover API (Cloud Run) on port {port}")
     logger.info(f"📊 Max file size: {MAX_FILE_SIZE / (1024*1024):.0f} MB")
