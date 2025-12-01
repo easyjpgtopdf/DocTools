@@ -498,6 +498,12 @@ header .user-dropdown button.dropdown-logout {
     box-shadow: 0 6px 16px rgba(255, 90, 95, 0.3);
 }
 
+/* Hide nav-links-summary on all devices (it's not used) */
+header .nav-links-summary {
+    display: none !important;
+    visibility: hidden !important;
+}
+
 /* Mobile Responsive Styles - Only applies below 768px */
 @media (max-width: 768px) {
     /* Show hamburger menu on mobile */
@@ -530,6 +536,12 @@ header .user-dropdown button.dropdown-logout {
     /* Hide desktop nav links on mobile (but keep auth buttons visible in mobile menu) */
     header .nav-links {
         display: none !important;
+    }
+    
+    /* Ensure nav-links-summary is hidden on mobile */
+    header .nav-links-summary {
+        display: none !important;
+        visibility: hidden !important;
     }
     
     /* Hide auth buttons on mobile (they're in mobile menu now) */
@@ -578,22 +590,44 @@ header .user-dropdown button.dropdown-logout {
         display: none !important;
     }
     
-    /* User menu adjustments for mobile - show if logged in */
+    /* User menu adjustments for mobile - hide on mobile, use mobile menu instead */
     header .user-menu {
-        display: none !important; /* Hide on mobile, use mobile menu instead */
+        display: none !important;
+        visibility: hidden !important;
+    }
+    
+    /* Hide all dropdowns on mobile */
+    header .dropdown {
+        display: none !important;
     }
     
     /* Ensure header is visible and properly positioned */
     header {
         position: sticky;
         top: 0;
-        z-index: 100;
+        z-index: 10000;
         width: 100%;
+        background-color: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
     
     /* Container padding for mobile */
     header .container {
         padding: 0 16px;
+    }
+    
+    /* Ensure only logo and hamburger menu are visible on mobile */
+    header .navbar > *:not(.logo):not(.mobile-menu-toggle):not(.user-menu) {
+        display: none !important;
+    }
+    
+    /* Show logo and hamburger menu */
+    header .logo {
+        display: flex !important;
+    }
+    
+    .mobile-menu-toggle {
+        display: flex !important;
     }
 }
 
@@ -609,6 +643,12 @@ header .user-dropdown button.dropdown-logout {
     
     header .nav-links {
         display: flex !important;
+    }
+    
+    /* Ensure nav-links-summary is hidden on desktop too */
+    header .nav-links-summary {
+        display: none !important;
+        visibility: hidden !important;
     }
     
     /* Auth buttons remain hidden on desktop - moved to breadcrumb navigation */
