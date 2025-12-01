@@ -536,9 +536,62 @@
         if (config.useBackend) {
           statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">${config.info}</div>`;
           
-          const backendResult = await processWithBackend(dataURL, config.backendUrl, config);
+          // Automatic retry logic for cold starts
+          let backendResult = null;
+          let lastError = null;
+          const maxRetries = 2;
+          const retryDelay = 20000; // 20 seconds
           
-          if (backendResult.success) {
+          for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+              if (attempt > 0) {
+                console.log(`🔄 Retry attempt ${attempt}/${maxRetries} after ${retryDelay/1000}s delay...`);
+                statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(251,146,60,0.12);color:#7c2d12;font-weight:600;">⏳ Service warming up... Retrying in ${retryDelay/1000} seconds (attempt ${attempt + 1}/${maxRetries + 1})...</div>`;
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+                statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">${config.info} (Retry ${attempt + 1})...</div>`;
+              }
+              
+              backendResult = await processWithBackend(dataURL, config.backendUrl, config);
+              
+              if (backendResult.success) {
+                // Success - break retry loop
+                break;
+              } else {
+                // Check if it's a retryable error
+                const errorMsg = backendResult.error || 'Google Cloud processing failed';
+                const isRetryable = errorMsg.includes('temporarily unavailable') || 
+                                  errorMsg.includes('cold starting') || 
+                                  errorMsg.includes('warming up') ||
+                                  errorMsg.includes('Service Unavailable');
+                
+                if (isRetryable && attempt < maxRetries) {
+                  console.log(`⚠️ Retryable error detected, will retry: ${errorMsg}`);
+                  lastError = errorMsg;
+                  continue; // Retry
+                } else {
+                  // Not retryable or last attempt
+                  throw new Error(errorMsg);
+                }
+              }
+            } catch (error) {
+              const errorMsg = error.message || 'Unknown error';
+              const isRetryable = errorMsg.includes('temporarily unavailable') || 
+                                errorMsg.includes('cold starting') || 
+                                errorMsg.includes('warming up') ||
+                                errorMsg.includes('Service Unavailable');
+              
+              if (isRetryable && attempt < maxRetries) {
+                console.log(`⚠️ Retryable error detected, will retry: ${errorMsg}`);
+                lastError = errorMsg;
+                continue; // Retry
+              } else {
+                // Not retryable or last attempt - throw error
+                throw error;
+              }
+            }
+          }
+          
+          if (backendResult && backendResult.success) {
             resultUrl = backendResult.dataUrl;
             processingMethod = backendResult.processedWith || config.description;
             
@@ -548,18 +601,9 @@
               outputSize: backendResult.outputSizeMB || 'unknown'
             });
           } else {
-            // Backend failed - show detailed error
-            const errorMsg = backendResult.error || 'Google Cloud processing failed';
-            console.error('❌ Backend failed:', errorMsg);
-            
-            // Check if it's a temporary error (503) that might resolve with retry
-            if (errorMsg.includes('temporarily unavailable') || errorMsg.includes('cold starting') || errorMsg.includes('warming up')) {
-              // Show user-friendly message with retry suggestion
-              throw new Error(`Service is warming up. Please wait 15-20 seconds and try again. The service is configured to stay warm, but first request may take longer.`);
-            } else {
-              // Other errors - show as-is
-              throw new Error(errorMsg);
-            }
+            // All retries failed
+            const errorMsg = lastError || backendResult?.error || 'Google Cloud processing failed';
+            throw new Error(errorMsg);
           }
         }
 
