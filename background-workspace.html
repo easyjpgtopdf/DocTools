@@ -698,6 +698,12 @@
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 180000);
         
+        // Log request details for debugging
+        const imageSize = Math.ceil((dataURL.split(',')[1]?.length || 0) * 0.75 / 1024);
+        console.log('📤 Sending request to:', cleanUrl);
+        console.log('📊 Image size:', imageSize, 'KB');
+        console.log('📊 Data URL length:', dataURL.length);
+        
         // Use JSON format (proxy handles conversion)
         let response = null;
         
@@ -711,8 +717,19 @@
             body: JSON.stringify({ imageData: dataURL }),
             signal: controller.signal
           });
+          
+          console.log('📥 Response received:', {
+            status: response.status,
+            statusText: response.statusText,
+            ok: response.ok,
+            headers: Object.fromEntries(response.headers.entries())
+          });
         } catch (fetchError) {
-          console.error('❌ Request failed:', fetchError);
+          console.error('❌ Request failed:', {
+            name: fetchError.name,
+            message: fetchError.message,
+            stack: fetchError.stack
+          });
           throw fetchError;
         }
         
@@ -758,16 +775,46 @@
         
         const result = await response.json();
         
-        if (result.success && result.resultImage) {
+        console.log('📦 Backend response:', {
+          success: result.success,
+          hasResultImage: !!result.resultImage,
+          error: result.error,
+          message: result.message,
+          outputSizeMB: result.outputSizeMB
+        });
+        
+        // Check response format - backend returns success and resultImage
+        if (result && result.success === true && result.resultImage) {
+          console.log('✅ Background removal successful!');
+          console.log('📊 Result image length:', result.resultImage.length);
+          console.log('📊 Output size:', result.outputSizeMB, 'MB');
+          
           return { 
             success: true, 
             dataUrl: result.resultImage, 
-            processedWith: result.processedWith || config.description,
+            processedWith: result.processedWith || result.message || config.description,
             outputSize: result.outputSize,
             outputSizeMB: result.outputSizeMB
           };
         } else {
-          throw new Error(result.error || 'Processing failed on server');
+          // Handle different error formats
+          let errorMsg = 'Processing failed on server';
+          if (result) {
+            if (result.error) {
+              errorMsg = result.error;
+            } else if (result.message) {
+              errorMsg = result.message;
+            } else if (!result.success) {
+              errorMsg = 'Backend returned unsuccessful response';
+            }
+          }
+          console.error('❌ Backend returned error:', {
+            result: result,
+            errorMsg: errorMsg,
+            hasResultImage: !!(result && result.resultImage),
+            success: result ? result.success : 'no result'
+          });
+          throw new Error(errorMsg);
         }
       } catch (error) {
         console.error('❌ Backend processing error:', error);
@@ -1477,12 +1524,93 @@
     // Initialize gallery
     updateGallery();
     
+    // Add file upload capability directly in workspace
+    function setupFileUpload() {
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/png,image/jpeg,image/jpg,image/webp';
+      fileInput.style.display = 'none';
+      fileInput.id = 'directFileInput';
+      document.body.appendChild(fileInput);
+      
+      // Make preview placeholder clickable for file upload
+      previewPlaceholder.addEventListener('click', () => {
+        fileInput.click();
+      });
+      
+      // Also allow drag & drop on preview stage
+      previewStage.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        previewStage.style.border = '2px dashed #4361ee';
+      });
+      
+      previewStage.addEventListener('dragleave', () => {
+        previewStage.style.border = '';
+      });
+      
+      previewStage.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        previewStage.style.border = '';
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+          await handleFileUpload(file);
+        }
+      });
+      
+      fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          await handleFileUpload(file);
+        }
+      });
+    }
+    
+    async function handleFileUpload(file) {
+      try {
+        // Check file size
+        const maxSize = 100 * 1024 * 1024; // 100 MB
+        if (file.size > maxSize) {
+          showError(`File too large (${(file.size / (1024 * 1024)).toFixed(1)} MB). Maximum: 100 MB`);
+          return;
+        }
+        
+        // Read file as data URL
+        const dataURL = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        
+        // Save to sessionStorage
+        sessionStorage.setItem(STORAGE_KEYS.original, dataURL);
+        sessionStorage.setItem(STORAGE_KEYS.filename, file.name || 'photo.png');
+        sessionStorage.setItem('bgRemover:originalType', file.type);
+        sessionStorage.setItem('bgRemover:originalSize', file.size.toString());
+        sessionStorage.removeItem(STORAGE_KEYS.foreground);
+        sessionStorage.removeItem(STORAGE_KEYS.dimensions);
+        
+        // Process image
+        processImage(dataURL);
+      } catch (error) {
+        console.error('File upload error:', error);
+        showError('Failed to read file. Please try again.');
+      }
+    }
+    
+    // Initialize file upload
+    setupFileUpload();
+    
     // Initialize
     const storedOriginal = sessionStorage.getItem(STORAGE_KEYS.original);
     if (!storedOriginal) {
       previewStage.classList.add('empty');
       previewPlaceholder.classList.remove('hidden');
-      showError('No image found. Please upload a file first.');
+      previewPlaceholder.innerHTML = `
+        <i class="fas fa-cloud-upload-alt" style="font-size:3rem;opacity:0.3;margin-bottom:12px;"></i>
+        <span>Click or drag & drop image to upload</span>
+        <small style="font-size:0.85rem;color:var(--muted);margin-top:8px;">Supports PNG, JPG, WEBP (up to 100 MB)</small>
+      `;
       backgroundChangeBtn.disabled = true;
       downloadBtn.disabled = true;
     } else {

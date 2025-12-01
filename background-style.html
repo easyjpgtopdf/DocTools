@@ -816,9 +816,26 @@
     });
 
     if (!originalDataUrl || !foregroundDataUrl || !dimensions) {
-      statusEl.textContent = 'Missing image data. Please upload again.';
+      statusEl.textContent = 'Missing image data. Please go back to workspace or upload an image.';
       resetBtn.disabled = true;
       downloadBtn.disabled = true;
+      
+      // Add helpful message and link
+      const previewFrame = document.querySelector('.preview-frame');
+      if (previewFrame) {
+        previewFrame.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 40px; text-align: center; color: var(--muted);">
+            <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: var(--primary); opacity: 0.5;"></i>
+            <div>
+              <h3 style="color: var(--dark); margin-bottom: 8px;">No Image Found</h3>
+              <p style="margin-bottom: 16px;">Please process an image first in the workspace.</p>
+              <a href="background-workspace.html" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white; text-decoration: none; border-radius: 999px; font-weight: 600;">
+                <i class="fas fa-arrow-left"></i> Go to Workspace
+              </a>
+            </div>
+          </div>
+        `;
+      }
     }
 
     if (previewCanvas && dimensions) {
