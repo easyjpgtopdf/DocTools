@@ -88,88 +88,117 @@ module.exports = async function handler(req, res) {
     console.log('📊 Image data length:', imageData.length);
     console.log('📊 Image data preview:', imageData.substring(0, 50) + '...');
     
+    // Add retry logic for cold starts
+    let lastError = null;
+    const maxRetries = 2;
+    const retryDelay = 15000; // 15 seconds
+    
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 180000); // 3 minutes
     
     let response;
     let fetchErrorDetails = null;
     
-    try {
-      const startTime = Date.now();
-      console.log('⏱️ Starting fetch request at:', new Date().toISOString());
-      
-      response = await fetch(backendUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ imageData }),
-        signal: controller.signal
-      });
-      
-      const fetchTime = Date.now() - startTime;
-      console.log(`⏱️ Fetch completed in ${fetchTime}ms`);
-      console.log('📥 Response status:', response.status, response.statusText);
-      
-    } catch (fetchError) {
-      clearTimeout(timeout);
-      fetchErrorDetails = {
-        name: fetchError.name,
-        message: fetchError.message,
-        stack: fetchError.stack,
-        code: fetchError.code,
-        errno: fetchError.errno,
-        syscall: fetchError.syscall
-      };
-      
-      console.error('❌ Fetch error details:', JSON.stringify(fetchErrorDetails, null, 2));
-      
-      // Detailed error handling based on error type
-      if (fetchError.name === 'TypeError') {
-        if (fetchError.message.includes('fetch')) {
-          return res.status(503).json({
-            success: false,
-            error: 'Cannot connect to Google Cloud Run backend. The service may not be deployed or is temporarily unavailable.',
-            details: {
-              error: 'Network connection failed',
-              url: backendUrl,
-              suggestion: 'Please verify that Cloud Run service is deployed and running',
-              troubleshooting: [
-                '1. Check if Cloud Run service is deployed: gcloud run services list',
-                '2. Verify service URL is correct',
-                '3. Check Cloud Run service logs: gcloud run services logs read bg-remover-api',
-                '4. Ensure service allows unauthenticated access'
-              ]
-            }
-          });
-        } else if (fetchError.message.includes('Invalid URL')) {
-          return res.status(500).json({
-            success: false,
-            error: 'Invalid Cloud Run URL configuration',
-            details: {
-              url: backendUrl,
-              suggestion: 'Check CLOUDRUN_API_URL environment variable'
-            }
-          });
+    // Retry logic for handling cold starts
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          console.log(`🔄 Retry attempt ${attempt}/${maxRetries} after ${retryDelay/1000}s delay...`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          // Create new controller for retry
+          clearTimeout(timeout);
+          const newController = new AbortController();
+          const newTimeout = setTimeout(() => newController.abort(), 180000);
+          controller = newController;
+          timeout = newTimeout;
         }
-      }
-      
-      // DNS/Network errors
-      if (fetchError.code === 'ENOTFOUND' || fetchError.code === 'ECONNREFUSED') {
-        return res.status(503).json({
-          success: false,
-          error: 'Cannot resolve Cloud Run service URL. The service may not be deployed or the URL is incorrect.',
-          details: {
-            error: fetchError.message,
-            url: backendUrl,
-            code: fetchError.code,
-            suggestion: 'Deploy Cloud Run service or verify the URL is correct'
-          }
+        
+        const startTime = Date.now();
+        console.log(`⏱️ Starting fetch request (attempt ${attempt + 1}/${maxRetries + 1}) at:`, new Date().toISOString());
+        
+        response = await fetch(backendUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ imageData }),
+          signal: controller.signal
         });
+        
+        const fetchTime = Date.now() - startTime;
+        console.log(`⏱️ Fetch completed in ${fetchTime}ms`);
+        console.log('📥 Response status:', response.status, response.statusText);
+        
+        // If we got a response (even if not OK), break retry loop
+        break;
+        
+      } catch (fetchError) {
+        lastError = fetchError;
+        fetchErrorDetails = {
+          name: fetchError.name,
+          message: fetchError.message,
+          stack: fetchError.stack,
+          code: fetchError.code,
+          errno: fetchError.errno,
+          syscall: fetchError.syscall
+        };
+        
+        console.error(`❌ Fetch error (attempt ${attempt + 1}):`, fetchError.message);
+        
+        // If this is the last attempt, handle the error
+        if (attempt === maxRetries) {
+          clearTimeout(timeout);
+          
+          // Detailed error handling based on error type
+          if (fetchError.name === 'TypeError') {
+            if (fetchError.message.includes('fetch')) {
+              return res.status(503).json({
+                success: false,
+                error: 'Cannot connect to Google Cloud Run backend after multiple attempts. The service may be cold starting or temporarily unavailable.',
+                details: {
+                  error: 'Network connection failed',
+                  url: backendUrl,
+                  attempts: maxRetries + 1,
+                  suggestion: 'Service is likely cold starting. Please wait 20-30 seconds and try again.',
+                  troubleshooting: [
+                    '1. Wait 20-30 seconds for service to warm up',
+                    '2. Check if Cloud Run service is deployed: gcloud run services list',
+                    '3. Verify service URL is correct',
+                    '4. Check Cloud Run service logs: gcloud run services logs read bg-remover-api'
+                  ]
+                }
+              });
+            } else if (fetchError.message.includes('Invalid URL')) {
+              return res.status(500).json({
+                success: false,
+                error: 'Invalid Cloud Run URL configuration',
+                details: {
+                  url: backendUrl,
+                  suggestion: 'Check CLOUDRUN_API_URL environment variable'
+                }
+              });
+            }
+          }
+          
+          // DNS/Network errors
+          if (fetchError.code === 'ENOTFOUND' || fetchError.code === 'ECONNREFUSED') {
+            return res.status(503).json({
+              success: false,
+              error: 'Cannot resolve Cloud Run service URL. The service may not be deployed or the URL is incorrect.',
+              details: {
+                error: fetchError.message,
+                url: backendUrl,
+                code: fetchError.code,
+                suggestion: 'Deploy Cloud Run service or verify the URL is correct'
+              }
+            });
+          }
+          
+          throw fetchError;
+        }
+        // Otherwise, continue to next retry
       }
-      
-      throw fetchError;
     }
 
     clearTimeout(timeout);
@@ -197,14 +226,16 @@ module.exports = async function handler(req, res) {
       
       // Provide helpful error messages based on status code
       if (response.status === 503) {
-        errorMessage = 'Google Cloud Run service is temporarily unavailable. This usually means: 1) Service is cold starting (first request after inactivity) - wait 10-30 seconds, 2) Service is not deployed - deploy using deploy-cloudrun.ps1, 3) Service is down - check Cloud Run console.';
+        // If we got 503, suggest retry with delay
+        errorMessage = 'Google Cloud Run service is temporarily unavailable (cold starting). The service is warming up. Please wait 15-20 seconds and try again. The service is configured to stay warm, but first request after deployment may take longer.';
         errorDetails = {
           ...errorDetails,
+          suggestion: 'Wait 15-20 seconds and retry. Service should respond on next attempt.',
           troubleshooting: [
-            'Wait 10-30 seconds and try again (cold start)',
-            'Check Cloud Run service status: gcloud run services describe bg-remover-api --region us-central1',
-            'Deploy service: cd bg-remover-backend && .\\deploy-cloudrun.ps1',
-            'Check service logs: gcloud run services logs read bg-remover-api --region us-central1'
+            'Service is warming up (normal for first request)',
+            'Wait 15-20 seconds and try again',
+            'Service is configured with min-instances=1 to prevent cold starts',
+            'Check service status: gcloud run services describe bg-remover-api --region us-central1'
           ]
         };
       } else if (response.status === 504) {
