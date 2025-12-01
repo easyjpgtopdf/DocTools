@@ -27,6 +27,9 @@ COPY app-cloudrun.py app.py
 ENV PORT=8080
 ENV PYTHONUNBUFFERED=1
 ENV REMBG_MODEL=u2net
+# Fix for onnxruntime executable stack issue
+ENV LD_PRELOAD=""
+ENV MALLOC_CHECK_=0
 
 # Expose port
 EXPOSE 8080

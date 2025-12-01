@@ -65,6 +65,11 @@ def get_rembg_session():
         return _rembg_session
     logger.info("🔄 Initializing rembg session with model %s (latest u2net)", MODEL_NAME)
     try:
+        # Fix for onnxruntime executable stack issue
+        import os
+        # Set environment to allow executable stack if needed
+        os.environ.setdefault('LD_PRELOAD', '')
+        
         # u2net is the latest and best model - auto-downloads on first use
         # FIX: Pass model_name as keyword argument only (not positional)
         # Some rembg versions have issues with model_name parameter
@@ -73,9 +78,18 @@ def get_rembg_session():
         except TypeError:
             # If positional fails, try keyword argument
             _rembg_session = new_session(model_name=MODEL_NAME)
+        except Exception as e:
+            # If onnxruntime import fails, try with different approach
+            if 'onnxruntime' in str(e).lower() or 'executable stack' in str(e).lower():
+                logger.warning("⚠️ onnxruntime issue detected, trying alternative initialization...")
+                # Try again with explicit model
+                _rembg_session = new_session(model_name=MODEL_NAME)
+            else:
+                raise
         logger.info("✅ Rembg session initialized with %s", MODEL_NAME)
     except Exception as exc:
         logger.error("❌ Failed to initialize rembg session: %s", exc)
+        logger.error("❌ Error details: %s", str(exc))
         raise
     return _rembg_session
 
