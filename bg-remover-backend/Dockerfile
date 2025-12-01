@@ -3,8 +3,8 @@
 # Background Remover with Rembg U²-Net Latest
 # ============================================
 
-# Use Python 3.11 slim image
-FROM python:3.11-slim
+# Use Python 3.10 slim image (better onnxruntime compatibility)
+FROM python:3.10-slim
 
 # Set working directory
 WORKDIR /app
@@ -19,9 +19,6 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements and install Python packages
 COPY requirements-cloudrun.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Fix onnxruntime executable stack issue
-RUN find /usr/local/lib/python3.11/site-packages/onnxruntime -name "*.so" -exec execstack -c {} \; 2>/dev/null || true
 
 # Copy application code
 COPY app-cloudrun.py app.py
