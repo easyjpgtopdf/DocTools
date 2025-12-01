@@ -1,7 +1,7 @@
 // Vercel Serverless Function - Background Removal Proxy
 // Proxies requests to Google Cloud Run API to avoid CORS issues
 
-const CLOUDRUN_API_URL = process.env.CLOUDRUN_API_URL || 'https://bg-remover-api-iwumaktavq-uc.a.run.app';
+const CLOUDRUN_API_URL = process.env.CLOUDRUN_API_URL || 'https://bg-remover-api-564572183797.us-central1.run.app';
 
 // Log configuration on startup (for debugging)
 console.log('🔧 Background Removal Proxy Configuration:');
