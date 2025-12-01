@@ -20,6 +20,9 @@ RUN apt-get update && apt-get install -y \
 COPY requirements-cloudrun.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Fix onnxruntime executable stack issue
+RUN find /usr/local/lib/python3.11/site-packages/onnxruntime -name "*.so" -exec execstack -c {} \; 2>/dev/null || true
+
 # Copy application code
 COPY app-cloudrun.py app.py
 
