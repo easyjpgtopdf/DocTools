@@ -486,9 +486,19 @@
           };
         }
         
+        // Check if error message contains service unavailable info
+        let errorMessage = error.message || 'Server connection failed. Please try again.';
+        
+        // Extract nested error messages from proxy responses
+        if (errorMessage.includes('Google Cloud Run service is temporarily unavailable')) {
+          errorMessage = 'Service is warming up. Please wait 15-20 seconds and try again. The service is configured to stay warm, but first request may take longer.';
+        } else if (errorMessage.includes('cold starting') || errorMessage.includes('warming up')) {
+          errorMessage = 'Service is warming up. Please wait 15-20 seconds and try again.';
+        }
+        
         return { 
           success: false, 
-          error: error.message || 'Server connection failed. Please try again.' 
+          error: errorMessage
         };
       }
     }
@@ -538,18 +548,17 @@
               outputSize: backendResult.outputSizeMB || 'unknown'
             });
           } else {
-            // Backend failed - show error
-            console.error('❌ Backend failed:', backendResult.error);
-            throw new Error(backendResult.error || 'Google Cloud processing failed');
+            // Backend failed - show detailed error
+            const errorMsg = backendResult.error || 'Google Cloud processing failed';
+            console.error('❌ Backend failed:', errorMsg);
             
-            if (removeBackgroundFn && fileSize < 25 * 1024 * 1024) {
-              statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(251,146,60,0.12);color:#7c2d12;font-weight:600;">⚠️ Server busy, switching to browser processing...</div>';
-              config.useBackend = false;
-              config.model = 'medium';
-              config.quality = 0.9;
-              console.log('🔄 Falling back to browser processing');
+            // Check if it's a temporary error (503) that might resolve with retry
+            if (errorMsg.includes('temporarily unavailable') || errorMsg.includes('cold starting') || errorMsg.includes('warming up')) {
+              // Show user-friendly message with retry suggestion
+              throw new Error(`Service is warming up. Please wait 15-20 seconds and try again. The service is configured to stay warm, but first request may take longer.`);
             } else {
-              throw new Error(`Backend processing failed: ${backendResult.error}. File too large for browser fallback.`);
+              // Other errors - show as-is
+              throw new Error(errorMsg);
             }
           }
         }
