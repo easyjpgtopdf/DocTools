@@ -20,6 +20,17 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Download U2Net Full pre-trained weights during build (if not already present)
+# This ensures best quality results
+RUN pip install --no-cache-dir gdown && \
+    if [ ! -f u2net.pth ]; then \
+        echo "Downloading U2Net Full weights (173 MB)..." && \
+        python -m gdown https://drive.google.com/uc?id=1ao1ovG1Qtx4b7EoskHXmi2E9rp5CHLcZ -O u2net.pth && \
+        echo "✅ Weights downloaded successfully"; \
+    else \
+        echo "✅ Weights file already present"; \
+    fi
+
 # Copy application code
 COPY app.py .
 COPY u2net_model.py .
