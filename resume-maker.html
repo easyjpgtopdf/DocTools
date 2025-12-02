@@ -229,100 +229,6 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            border-radius: 50%;
-        }
-        
-        .photo-preview {
-            position: relative;
-        }
-        
-        .photo-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 10px;
-            flex-direction: column;
-        }
-        
-        .btn-remove-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 10px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-        
-        .btn-remove-bg:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
-        }
-        
-        .btn-remove-bg:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        
-        .btn-remove-bg .spinner {
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        .photo-processing-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            color: white;
-            font-size: 12px;
-            gap: 8px;
-            z-index: 10;
-        }
-        
-        .photo-processing-overlay .spinner {
-            width: 30px;
-            height: 30px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        
-        .auto-remove-option {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-top: 8px;
-            font-size: 13px;
-        }
-        
-        .auto-remove-option input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
         }
         
         .btn-success {
@@ -903,6 +809,8 @@
             color: #333;
         }
         
+        .template-modern .
+        
         .template-modern .header h1 {
             margin: 0;
             font-size: 32px;
@@ -948,6 +856,8 @@
             border: 1px solid #ddd;
         }
         
+        .template-classic .
+        
         .template-classic .header h1 {
             margin: 0;
             font-size: 36px;
@@ -991,6 +901,8 @@
             margin: 0 0 12px;
         }
 
+        .template-creative .
+        
         .template-creative .header-content {
             flex: 1;
         }
@@ -1032,6 +944,8 @@
             background: #fff;
         }
         
+        .template-minimal .
+        
         .template-minimal .header h1 {
             margin: 0;
             font-size: 32px;
@@ -1068,6 +982,8 @@
             background: #fff;
             border: 1px solid #e0e0e0;
         }
+        
+        .template-executive .
         
         .template-executive .header h1 {
             margin: 0;
@@ -1358,16 +1274,6 @@
                                 <div>
                                     <input type="file" id="photoUpload" accept="image/*" style="display: none;">
                                     <button type="button" class="btn btn-primary" id="uploadBtn">Upload Photo</button>
-                                </div>
-                                <div class="photo-actions">
-                                    <div class="auto-remove-option">
-                                        <input type="checkbox" id="autoRemoveBg" checked>
-                                        <label for="autoRemoveBg" style="cursor: pointer; user-select: none;">Auto remove background</label>
-                                    </div>
-                                    <button type="button" class="btn-remove-bg" id="removeBgBtn" style="display: none;">
-                                        <i class="fas fa-magic"></i>
-                                        <span>Remove Background</span>
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -2327,19 +2233,13 @@
             const screenPreviewContent = document.getElementById('screenPreviewContent');
             const screenPreviewClose = document.getElementById('screenPreviewClose');
             
-            // Photo upload functionality with background removal
+            // Photo upload functionality
             const uploadBtn = document.getElementById('uploadBtn');
             const photoUpload = document.getElementById('photoUpload');
             const photoPreview = document.getElementById('photoPreview');
             const previewPhoto = document.getElementById('previewPhoto');
             const previewPhotoContainer = document.getElementById('previewPhotoContainer');
-            const removeBgBtn = document.getElementById('removeBgBtn');
-            const autoRemoveBg = document.getElementById('autoRemoveBg');
             const triggerPhotoUpload = () => photoUpload.click();
-            
-            // Background removal API configuration
-            const BG_REMOVE_API = '/api/background-remove-v2-alt';
-            let currentPhotoDataUrl = null;
             
             uploadBtn.addEventListener('click', triggerPhotoUpload);
             photoPreview.addEventListener('click', triggerPhotoUpload);
@@ -2347,112 +2247,19 @@
                 previewPhotoContainer.addEventListener('click', triggerPhotoUpload);
             }
             
-            // Remove background function
-            async function removeBackground(imageDataUrl) {
-                if (!imageDataUrl) return null;
-                
-                removeBgBtn.disabled = true;
-                removeBgBtn.innerHTML = '<span class="spinner"></span> Processing...';
-                
-                // Show processing overlay
-                const overlay = document.createElement('div');
-                overlay.className = 'photo-processing-overlay';
-                overlay.innerHTML = `
-                    <div class="spinner"></div>
-                    <span>Removing background...</span>
-                `;
-                photoPreview.appendChild(overlay);
-                
-                try {
-                    const response = await fetch(BG_REMOVE_API, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-User-ID': 'resume-maker',
-                            'X-User-Type': 'free'
-                        },
-                        body: JSON.stringify({
-                            imageData: imageDataUrl
-                        })
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.success && data.resultImage) {
-                        // Remove overlay
-                        overlay.remove();
-                        
-                        // Update preview with processed image
-                        photoPreview.innerHTML = '';
-                        const img = document.createElement('img');
-                        img.src = data.resultImage;
-                        photoPreview.appendChild(img);
-                        
-                        previewPhoto.src = data.resultImage;
-                        previewPhoto.style.display = 'block';
-                        
-                        currentPhotoDataUrl = data.resultImage;
-                        
-                        removeBgBtn.innerHTML = '<i class="fas fa-check"></i> Background Removed';
-                        removeBgBtn.style.background = 'linear-gradient(135deg, #4bb543 0%, #45a049 100%)';
-                        
-                        setTimeout(() => {
-                            removeBgBtn.innerHTML = '<i class="fas fa-magic"></i> Remove Background';
-                            removeBgBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-                        }, 2000);
-                        
-                        return data.resultImage;
-                    } else {
-                        throw new Error(data.message || 'Background removal failed');
-                    }
-                } catch (error) {
-                    overlay.remove();
-                    console.error('Background removal error:', error);
-                    alert('Background removal failed: ' + error.message + '\n\nUsing original image.');
-                    return imageDataUrl;
-                } finally {
-                    removeBgBtn.disabled = false;
-                }
-            }
-            
-            // Manual background removal button
-            removeBgBtn.addEventListener('click', async function() {
-                if (currentPhotoDataUrl) {
-                    await removeBackground(currentPhotoDataUrl);
-                }
-            });
-            
-            photoUpload.addEventListener('change', async function() {
+            photoUpload.addEventListener('change', function() {
                 const file = this.files[0];
                 if (file) {
-                    // Validate file size (max 10MB for resume photos)
-                    if (file.size > 10 * 1024 * 1024) {
-                        alert('Image size should be less than 10MB. Please compress the image and try again.');
-                        return;
-                    }
-                    
                     const reader = new FileReader();
                     
-                    reader.addEventListener('load', async function() {
-                        const originalImageData = reader.result;
-                        currentPhotoDataUrl = originalImageData;
-                        
-                        // Show original image first
+                    reader.addEventListener('load', function() {
                         photoPreview.innerHTML = '';
                         const img = document.createElement('img');
-                        img.src = originalImageData;
+                        img.src = reader.result;
                         photoPreview.appendChild(img);
                         
-                        previewPhoto.src = originalImageData;
+                        previewPhoto.src = reader.result;
                         previewPhoto.style.display = 'block';
-                        
-                        // Show remove background button
-                        removeBgBtn.style.display = 'flex';
-                        
-                        // Auto remove background if checkbox is checked
-                        if (autoRemoveBg.checked) {
-                            await removeBackground(originalImageData);
-                        }
                     });
                     
                     reader.readAsDataURL(file);
@@ -2635,8 +2442,6 @@
                     
                     // Reset photo
                     photoPreview.innerHTML = '<span>No Photo</span>';
-                    if (removeBgBtn) removeBgBtn.style.display = 'none';
-                    currentPhotoDataUrl = null;
                     previewPhoto.style.display = 'none';
                     
                     // Reset dynamic sections
