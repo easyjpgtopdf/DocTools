@@ -229,6 +229,10 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            image-rendering: high-quality;
+            -ms-interpolation-mode: bicubic;
         }
         
         .btn-success {
@@ -410,6 +414,10 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            image-rendering: high-quality;
+            -ms-interpolation-mode: bicubic;
         }
 
         .resume-header-details {
@@ -2250,18 +2258,50 @@
             photoUpload.addEventListener('change', function() {
                 const file = this.files[0];
                 if (file) {
+                    // Validate file type
+                    if (!file.type.match('image.*')) {
+                        alert('Please select a valid image file.');
+                        return;
+                    }
+                    
+                    // Validate file size (max 10MB for quality)
+                    if (file.size > 10 * 1024 * 1024) {
+                        alert('Image size should be less than 10MB for best quality.');
+                        return;
+                    }
+                    
                     const reader = new FileReader();
                     
                     reader.addEventListener('load', function() {
-                        photoPreview.innerHTML = '';
+                        // Create high quality image element
                         const img = document.createElement('img');
                         img.src = reader.result;
-                        photoPreview.appendChild(img);
                         
-                        previewPhoto.src = reader.result;
-                        previewPhoto.style.display = 'block';
+                        // Wait for image to load for better quality
+                        img.onload = function() {
+                            // Set image quality attributes
+                            img.style.imageRendering = 'high-quality';
+                            img.style.imageRendering = '-webkit-optimize-contrast';
+                            img.style.imageRendering = 'crisp-edges';
+                            
+                            // Clear and add to preview
+                            photoPreview.innerHTML = '';
+                            photoPreview.appendChild(img);
+                            
+                            // Set preview photo with same quality
+                            previewPhoto.src = reader.result;
+                            previewPhoto.style.display = 'block';
+                            previewPhoto.style.imageRendering = 'high-quality';
+                            previewPhoto.style.imageRendering = '-webkit-optimize-contrast';
+                        };
+                        
+                        // Handle image load error
+                        img.onerror = function() {
+                            alert('Error loading image. Please try a different image file.');
+                        };
                     });
                     
+                    // Read file as data URL (preserves quality)
                     reader.readAsDataURL(file);
                 }
             });
