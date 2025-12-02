@@ -332,7 +332,7 @@
     // ============================================
     
     const PROXY_API_URL = '/api/background-remove';
-    const PROXY_HEALTH_URL = '/api/background-remove/health';
+    const PROXY_HEALTH_URL = '/api/background-remove'; // Health check through proxy
     
     // Test backend connection on load (using proxy to avoid CORS)
     async function testBackendConnection() {
@@ -719,7 +719,7 @@
     // Warmup request every 10 minutes to keep service warm
     setInterval(async () => {
       try {
-        await fetch('/api/background-remove/health', { method: 'GET' });
+        await fetch('/api/background-remove', { method: 'GET' });
         console.log('✅ Warmup request sent');
       } catch (error) {
         console.warn('⚠️ Warmup request failed:', error);
@@ -729,7 +729,7 @@
     // Initial warmup on page load
     setTimeout(async () => {
       try {
-        await fetch('/api/background-remove/health', { method: 'GET' });
+        await fetch('/api/background-remove', { method: 'GET' });
         console.log('✅ Initial warmup request sent');
       } catch (error) {
         console.warn('⚠️ Initial warmup request failed:', error);
