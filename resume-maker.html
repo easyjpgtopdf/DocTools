@@ -2196,6 +2196,9 @@
             let workExpCounter = 1;
             let educationCounter = 1;
             
+            // Track work experience values for detecting programmatic changes
+            let lastWorkExpValues = {};
+            
             const previewModalTrigger = document.getElementById('previewModalTrigger');
             const resumePreview = document.getElementById('resumePreview');
             const screenPreviewOverlay = document.getElementById('screenPreviewOverlay');
@@ -2259,74 +2262,7 @@
             
             idTypeSelect.addEventListener('change', function() {
                 if (this.value) {
-                    idDetails.cla
-    <section class="faq-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
-            <i class="fas fa-question-circle" style="margin-right: 10px;"></i>
-            Frequently Asked Questions
-        </h2>
-        <div class="faq-container" style="max-width: 800px; margin: 0 auto;">
-            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
-                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
-                    How accurate is the conversion?
-                </h3>
-                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    Our conversion tools maintain 99% accuracy, preserving all formatting, fonts, and layout from your original files.
-                </div>
-            </div>
-            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
-                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
-                    What file sizes are supported?
-                </h3>
-                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    Free users can convert files up to 10MB. Premium users can process files up to 100MB with faster processing.
-                </div>
-            </div>
-            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
-                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
-                    Will my data be secure?
-                </h3>
-                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    Yes, all files are processed securely and automatically deleted after conversion. We never store or share your documents.
-                </div>
-            </div>
-            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
-                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
-                    Can I convert multiple files at once?
-                </h3>
-                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    Yes, premium users can convert multiple files simultaneously. Free users can process one file at a time.
-                </div>
-            </div>
-            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
-                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
-                    What formats are supported?
-                </h3>
-                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    We support all major file formats. Check the tool page for specific format compatibility.
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <script>
-    function toggleFaq(element) {
-        const answer = element.nextElementSibling;
-        const icon = element.querySelector('i');
-        const isOpen = answer.style.display === 'block';
-
-        answer.style.display = isOpen ? 'none' : 'block';
-        icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
-    }
-    </script>
-
-    
-ssList.add('active');
+                    idDetails.classList.add('active');
                 } else {
                     idDetails.classList.remove('active');
                 }
@@ -2371,7 +2307,7 @@ ssList.add('active');
                 newWorkExp.id = `workExp${workExpCounter}`;
                 
                 newWorkExp.innerHTML = `
-                    <button class="remove-btn" onclick="removeSection('workExp${workExpCounter}')">Ã—</button>
+                    <button class="remove-btn" onclick="removeSection('workExp${workExpCounter}')">×</button>
                     <div class="form-group">
                         <label for="job${workExpCounter}Title">Job Title</label>
                         <input type="text" id="job${workExpCounter}Title" placeholder="Position Title">
@@ -2396,7 +2332,23 @@ ssList.add('active');
                 workExpContainer.appendChild(newWorkExp);
                 newWorkExp.querySelectorAll('input, textarea').forEach(element => {
                     element.addEventListener('input', updatePreview);
+                    element.addEventListener('change', updatePreview);
                 });
+                // Initialize value tracking for new section
+                setTimeout(() => {
+                    const titleInput = newWorkExp.querySelector('input[id^="job"][id$="Title"]');
+                    const companyInput = newWorkExp.querySelector('input[id^="job"][id$="Company"]');
+                    const durationInput = newWorkExp.querySelector('input[id^="job"][id$="Duration"]');
+                    const descTextarea = newWorkExp.querySelector('textarea[id^="job"][id$="Description"]');
+                    
+                    const index = workExpContainer.querySelectorAll('.dynamic-section').length - 1;
+                    lastWorkExpValues[`workExp${index}`] = {
+                        title: titleInput?.value || '',
+                        company: companyInput?.value || '',
+                        duration: durationInput?.value || '',
+                        description: descTextarea?.value || ''
+                    };
+                }, 50);
                 updatePreview();
             });
             
@@ -2411,7 +2363,7 @@ ssList.add('active');
                 newEducation.id = `edu${educationCounter}`;
                 
                 newEducation.innerHTML = `
-                    <button class="remove-btn" onclick="removeSection('edu${educationCounter}')">Ã—</button>
+                    <button class="remove-btn" onclick="removeSection('edu${educationCounter}')">×</button>
                     <div class="form-group">
                         <label for="edu${educationCounter}Degree">Degree</label>
                         <input type="text" id="edu${educationCounter}Degree" placeholder="Degree Name">
@@ -2570,7 +2522,69 @@ ssList.add('active');
             // Add auto-update listeners
             document.querySelectorAll('input, textarea, select').forEach(element => {
                 element.addEventListener('input', updatePreview);
+                element.addEventListener('change', updatePreview);
             });
+
+            // Watch for programmatic value changes in work experience fields
+            function checkWorkExpChanges() {
+                const workExpContainer = document.getElementById('workExperienceContainer');
+                if (!workExpContainer) return;
+                
+                const sections = workExpContainer.querySelectorAll('.dynamic-section');
+                let hasChanges = false;
+                
+                sections.forEach((section, index) => {
+                    const titleInput = section.querySelector('input[id^="job"][id$="Title"]');
+                    const companyInput = section.querySelector('input[id^="job"][id$="Company"]');
+                    const durationInput = section.querySelector('input[id^="job"][id$="Duration"]');
+                    const descTextarea = section.querySelector('textarea[id^="job"][id$="Description"]');
+                    
+                    const currentValues = {
+                        title: titleInput?.value || '',
+                        company: companyInput?.value || '',
+                        duration: durationInput?.value || '',
+                        description: descTextarea?.value || ''
+                    };
+                    
+                    const key = `workExp${index}`;
+                    if (!lastWorkExpValues[key] || 
+                        lastWorkExpValues[key].title !== currentValues.title ||
+                        lastWorkExpValues[key].company !== currentValues.company ||
+                        lastWorkExpValues[key].duration !== currentValues.duration ||
+                        lastWorkExpValues[key].description !== currentValues.description) {
+                        hasChanges = true;
+                        lastWorkExpValues[key] = currentValues;
+                    }
+                });
+                
+                if (hasChanges) {
+                    updatePreview();
+                }
+            }
+            
+            // Check for programmatic value changes every 500ms
+            setInterval(checkWorkExpChanges, 500);
+            
+            // Initialize last values
+            setTimeout(() => {
+                const workExpContainer = document.getElementById('workExperienceContainer');
+                if (workExpContainer) {
+                    const sections = workExpContainer.querySelectorAll('.dynamic-section');
+                    sections.forEach((section, index) => {
+                        const titleInput = section.querySelector('input[id^="job"][id$="Title"]');
+                        const companyInput = section.querySelector('input[id^="job"][id$="Company"]');
+                        const durationInput = section.querySelector('input[id^="job"][id$="Duration"]');
+                        const descTextarea = section.querySelector('textarea[id^="job"][id$="Description"]');
+                        
+                        lastWorkExpValues[`workExp${index}`] = {
+                            title: titleInput?.value || '',
+                            company: companyInput?.value || '',
+                            duration: durationInput?.value || '',
+                            description: descTextarea?.value || ''
+                        };
+                    });
+                }
+            }, 100);
 
             // Download buttons
             const downloadPdfBtn = document.getElementById('downloadPdf');
@@ -2583,6 +2597,71 @@ ssList.add('active');
             // Initialize the preview with default values
             updatePreview();
         });
+    </script>
+    
+    <section class="faq-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
+            <i class="fas fa-question-circle" style="margin-right: 10px;"></i>
+            Frequently Asked Questions
+        </h2>
+        <div class="faq-container" style="max-width: 800px; margin: 0 auto;">
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    How accurate is the conversion?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Our conversion tools maintain 99% accuracy, preserving all formatting, fonts, and layout from your original files.
+                </div>
+            </div>
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    What file sizes are supported?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Free users can convert files up to 10MB. Premium users can process files up to 100MB with faster processing.
+                </div>
+            </div>
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    Will my data be secure?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Yes, all files are processed securely and automatically deleted after conversion. We never store or share your documents.
+                </div>
+            </div>
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    Can I convert multiple files at once?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Yes, premium users can convert multiple files simultaneously. Free users can process one file at a time.
+                </div>
+            </div>
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    What formats are supported?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    We support all major file formats. Check the tool page for specific format compatibility.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+    function toggleFaq(element) {
+        const answer = element.nextElementSibling;
+        const icon = element.querySelector('i');
+        const isOpen = answer.style.display === 'block';
+
+        answer.style.display = isOpen ? 'none' : 'block';
+        icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+    }
     </script>
     
     <section class="feedback-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
