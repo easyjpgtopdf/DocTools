@@ -25,6 +25,7 @@ import torch
 import torch.nn.functional as F
 from torchvision import transforms
 from scipy import ndimage
+from scipy.ndimage import binary_erosion, binary_dilation, distance_transform_edt
 
 # Configure logging FIRST
 logging.basicConfig(
@@ -198,8 +199,6 @@ def postprocess_mask(mask_tensor, original_size, model_size):
 def alpha_matting(image, mask, foreground_threshold=240, background_threshold=10, erode_size=10):
     """Apply alpha matting for better edge quality - preserves hair, fur, fine details"""
     try:
-        from scipy.ndimage import binary_erosion, binary_dilation
-        
         # Convert mask to binary
         mask_array = np.array(mask.convert('L'))
         binary_mask = (mask_array > 128).astype(np.uint8)
@@ -209,14 +208,14 @@ def alpha_matting(image, mask, foreground_threshold=240, background_threshold=10
         trimap[binary_mask == 1] = 255  # Foreground
         
         # Create unknown region (edges)
-        eroded = binary_erosion(binary_mask, structure=np.ones((erode_size, erode_size)))
-        dilated = binary_dilation(binary_mask, structure=np.ones((erode_size, erode_size)))
+        # Use smaller structure for better performance
+        structure = np.ones((erode_size, erode_size), dtype=np.uint8)
+        eroded = binary_erosion(binary_mask, structure=structure)
+        dilated = binary_dilation(binary_mask, structure=structure)
         unknown = dilated.astype(np.float32) - eroded.astype(np.float32)
         trimap[unknown > 0] = 128  # Unknown region
         
         # Simple alpha matting: use distance transform for smooth alpha
-        from scipy.ndimage import distance_transform_edt
-        
         # Distance from foreground
         dist_foreground = distance_transform_edt(1 - binary_mask)
         # Distance from background
@@ -238,6 +237,8 @@ def alpha_matting(image, mask, foreground_threshold=240, background_threshold=10
         return (alpha * 255).astype(np.uint8)
     except Exception as e:
         logger.warning(f"Alpha matting failed, using simple mask: {e}")
+        logger.warning(f"Traceback: {traceback.format_exc()}")
+        # Fallback to simple mask
         return np.array(mask.convert('L'))
 
 def remove_background_pytorch(image, quality='high'):
