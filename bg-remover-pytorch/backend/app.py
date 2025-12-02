@@ -134,7 +134,7 @@ def load_u2net_model():
         raise
 
 def preprocess_image(image, target_size=512):
-    """Preprocess PIL image for U2Net Full - IMPROVED: Maintain aspect ratio"""
+    """Preprocess PIL image for U2Net Full - Fixed: Ensure square input for model compatibility"""
     # Convert to RGB if needed
     if image.mode != 'RGB':
         image = image.convert('RGB')
@@ -142,39 +142,46 @@ def preprocess_image(image, target_size=512):
     original_size = image.size
     width, height = original_size
     
-    # Calculate resize dimensions maintaining aspect ratio
-    if width > height:
-        new_width = target_size
-        new_height = int(height * target_size / width)
-    else:
-        new_height = target_size
-        new_width = int(width * target_size / height)
+    # U2Net requires square input - always create exact square for model compatibility
+    # Resize to fit within target_size while maintaining aspect ratio
+    scale = min(target_size / width, target_size / height)
+    new_width = int(width * scale)
+    new_height = int(height * scale)
+    
+    # Ensure even dimensions (required for pooling operations)
+    new_width = new_width if new_width % 2 == 0 else new_width - 1
+    new_height = new_height if new_height % 2 == 0 else new_height - 1
     
     # Resize with high-quality resampling
     resized_image = image.resize((new_width, new_height), Image.LANCZOS)
     
-    # Pad to target_size x target_size if needed
-    if new_width != target_size or new_height != target_size:
-        padded_image = Image.new('RGB', (target_size, target_size), (0, 0, 0))
-        padded_image.paste(resized_image, ((target_size - new_width) // 2, (target_size - new_height) // 2))
-        resized_image = padded_image
+    # Pad to exact target_size x target_size (square) - required by U2Net
+    padded_image = Image.new('RGB', (target_size, target_size), (0, 0, 0))
+    paste_x = (target_size - new_width) // 2
+    paste_y = (target_size - new_height) // 2
+    padded_image.paste(resized_image, (paste_x, paste_y))
     
     # Apply transform
-    input_tensor = transform(resized_image).unsqueeze(0)
-    return input_tensor, original_size, (new_width, new_height)
+    input_tensor = transform(padded_image).unsqueeze(0)
+    return input_tensor, original_size, (new_width, new_height, paste_x, paste_y)
 
 def postprocess_mask(mask_tensor, original_size, model_size):
-    """Postprocess mask tensor to PIL Image - IMPROVED: Better edge preservation"""
+    """Postprocess mask tensor to PIL Image - Fixed: Proper padding removal"""
     # Convert tensor to numpy
     mask = mask_tensor.squeeze().cpu().numpy()
     
-    # Remove padding if image was padded
-    model_width, model_height = model_size
-    if model_width < 512 or model_height < 512:
-        # Extract the actual mask region
-        start_x = (512 - model_width) // 2
-        start_y = (512 - model_height) // 2
-        mask = mask[start_y:start_y+model_height, start_x:start_x+model_width]
+    # Remove padding - extract the actual image region
+    if len(model_size) == 4:
+        model_width, model_height, paste_x, paste_y = model_size
+        # Extract the actual mask region (remove padding)
+        mask = mask[paste_y:paste_y+model_height, paste_x:paste_x+model_width]
+    else:
+        # Fallback for old format
+        model_width, model_height = model_size[:2]
+        if model_width < 512 or model_height < 512:
+            start_x = (512 - model_width) // 2
+            start_y = (512 - model_height) // 2
+            mask = mask[start_y:start_y+model_height, start_x:start_x+model_width]
     
     # Convert to uint8
     mask = (mask * 255).astype(np.uint8)
