@@ -5,11 +5,12 @@
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "=== Downloading U2NetP Pre-trained Weights ===" -ForegroundColor Green
+Write-Host "=== Downloading U2Net Full Pre-trained Weights ===" -ForegroundColor Green
+Write-Host "U2Net Full provides better quality than U2NetP" -ForegroundColor Yellow
 
-$WEIGHTS_URL = "https://github.com/xuebinqin/U-2-Net/releases/download/v1.0/u2netp.pth"
+$WEIGHTS_URL = "https://github.com/xuebinqin/U-2-Net/releases/download/v1.0/u2net.pth"
 $OUTPUT_DIR = "backend"
-$OUTPUT_FILE = Join-Path $OUTPUT_DIR "u2netp.pth"
+$OUTPUT_FILE = Join-Path $OUTPUT_DIR "u2net.pth"
 
 # Create backend directory if it doesn't exist
 if (-not (Test-Path $OUTPUT_DIR)) {
@@ -32,7 +33,7 @@ Write-Host ""
 Write-Host "📥 Downloading from: $WEIGHTS_URL" -ForegroundColor Cyan
 Write-Host "📁 Saving to: $OUTPUT_FILE" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "This may take a few minutes (file size ~4.7 MB)..." -ForegroundColor Yellow
+Write-Host "This may take a few minutes (file size ~173 MB)..." -ForegroundColor Yellow
 
 try {
     # Download using Invoke-WebRequest with progress
@@ -47,7 +48,7 @@ try {
         Write-Host "   Size: $([math]::Round($fileSize, 2)) MB" -ForegroundColor White
         Write-Host ""
         Write-Host "📋 Next Steps:" -ForegroundColor Yellow
-        Write-Host "   1. Rebuild Docker image: cd backend; gcloud builds submit --tag gcr.io/easyjpgtopdf-de346/bg-remover-pytorch-u2netp ." -ForegroundColor White
+        Write-Host "   1. Rebuild Docker image: cd backend; gcloud builds submit --tag gcr.io/easyjpgtopdf-de346/bg-remover-pytorch-u2net ." -ForegroundColor White
         Write-Host "   2. Redeploy to Cloud Run: cd ..; .\deploy.ps1" -ForegroundColor White
         Write-Host ""
         Write-Host "✅ Weights ready for deployment!" -ForegroundColor Green
@@ -60,7 +61,7 @@ try {
     Write-Host "❌ Download failed: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host ""
     Write-Host "Alternative: Manual download" -ForegroundColor Yellow
-    Write-Host "   1. Visit: https://github.com/xuebinqin/U-2-Net/releases/download/v1.0/u2netp.pth" -ForegroundColor White
-    Write-Host "   2. Save to: backend/u2netp.pth" -ForegroundColor White
+    Write-Host "   1. Visit: https://github.com/xuebinqin/U-2-Net/releases/download/v1.0/u2net.pth" -ForegroundColor White
+    Write-Host "   2. Save to: backend/u2net.pth" -ForegroundColor White
     exit 1
 }

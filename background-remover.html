@@ -3,9 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Background Remover - Remove Image Background Online Free | easyjpgtopdf</title>
-    <meta name="description" content="Remove backgrounds from images online for free. Create transparent PNG images with AI. Free background remover tool.">
-    <meta name="keywords" content="remove background, transparent background, background remover, remove image background, ai background remover">
+  <title>Free AI Background Remover - Remove Background from Image Online | easyjpgtopdf</title>
+    <meta name="description" content="Remove background from image online free. AI-powered background remover tool. Remove image background instantly. Create transparent PNG images. Free background removal for photos, products, portraits.">
+    <meta name="keywords" content="remove background, remove background from image, background remover, remove image background, ai background remover, transparent background, remove bg, background removal tool, free background remover, online background remover, remove background online, image background remover, photo background remover, product background remover, portrait background remover">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="easyjpgtopdf">
+    <meta property="og:title" content="Free AI Background Remover - Remove Background from Image Online">
+    <meta property="og:description" content="Remove background from image online free. AI-powered background remover tool. Create transparent PNG images instantly.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://easyjpgtopdf.com/background-remover.html">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Free AI Background Remover - Remove Background from Image">
+    <meta name="twitter:description" content="Remove background from image online free. AI-powered background remover tool.">
     <link rel="stylesheet" href="css/footer.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -124,8 +133,8 @@
   <section class="hero">
     <div class="container">
       <div class="hero-content">
-        <h1>Background Remover - Remove Image Background Online Free</h1>
-        <p>Fast, private, and AI powered. Drop a file or use the button below to get started.</p>
+        <h1>Free AI Background Remover - Remove Background from Image Online</h1>
+        <p>Remove background from image instantly with AI. Create transparent PNG images. Free background removal for photos, products, and portraits.</p>
       </div>
       <div class="upload-card" id="dropzone">
         <i class="fas fa-cloud-upload-alt"></i>
@@ -135,7 +144,7 @@
         <input type="file" id="imageInput" accept="image/png,image/jpeg" hidden>
       </div>
       <div class="quick-help">
-        <h3>Why it's awesome</h3>
+        <h2>Why Choose Our Background Remover</h2>
         
         <!-- Animated Demo -->
         <div style="margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(67,97,238,0.15);">
@@ -160,8 +169,8 @@
   
 
   <script type="module">
-    // Google Cloud Run API URL - Connected to u2net rembg backend
-    const CLOUDRUN_API_URL = 'https://bg-remover-api-iwumaktavq-uc.a.run.app/remove-background';
+    import { checkUploadQuota, trackUsage, getQuotaStatus, compressImageForFree } from './js/background-removal-quota.js';
+    
     const STORAGE_KEYS = {
       original: 'bgRemover:original',
       filename: 'bgRemover:filename'
@@ -207,36 +216,23 @@
     async function handleFile(file) {
       if (!file) return;
       
-      // FREE UPLOAD LIMIT: 1 MB per image
-      const FREE_UPLOAD_LIMIT = 1 * 1024 * 1024; // 1 MB per image
-      
-      if (file.size > FREE_UPLOAD_LIMIT) {
-        const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-        // Get image dimensions for premium message
-        const img = new Image();
-        img.onload = () => {
-          const message = `File size: ${sizeMB} MB\n` +
-                         `Image dimensions: ${img.width} × ${img.height} pixels\n\n` +
-                         `Free upload limit: 100 MB per image (temporarily increased)\n` +
-                         `Your file exceeds the free limit. Upgrade to Premium for up to 50 MB per image.`;
-          
-          if (confirm(message + '\n\nGo to pricing page?')) {
-            window.location.href = 'pricing.html';
-          }
-          showStatus(`Upload limit: 100 MB free. Your file: ${sizeMB} MB`);
-          dropzone.cla
-    
-ssList.remove('uploading');
-          dropzone.dataset.pending = 'false';
-        };
-        img.src = URL.createObjectURL(file);
+      // Check upload quota
+      const quotaCheck = await checkUploadQuota(file.size);
+      if (!quotaCheck.allowed) {
+        showStatus(quotaCheck.message);
+        if (confirm(quotaCheck.message + '\n\nGo to pricing page?')) {
+          window.location.href = 'pricing.html';
+        }
+        dropzone.classList.remove('uploading');
+        dropzone.dataset.pending = 'false';
         return;
       }
       
-      // Maximum file size limit
-      if (file.size > 100 * 1024 * 1024) {
+      // Maximum file size limit (50 MB for premium, 1 MB for free)
+      const maxSize = 50 * 1024 * 1024; // 50 MB absolute maximum
+      if (file.size > maxSize) {
         const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
-        showStatus(`Image too large (${sizeMB} MB). Maximum: 100 MB. Please compress your image first.`);
+        showStatus(`Image too large (${sizeMB} MB). Maximum: 50 MB. Please compress your image first.`);
         dropzone.classList.remove('uploading');
         dropzone.dataset.pending = 'false';
         return;
@@ -321,7 +317,7 @@ ssList.remove('uploading');
     <section class="how-to-guide" style="margin: 40px 0; padding: 40px; background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
         <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
             <i class="fas fa-book-open" style="margin-right: 10px;"></i>
-            How to Use Background Remover
+            How to Remove Background from Image
         </h2>
         <div class="steps-container" style="max-width: 800px; margin: 0 auto;">
             <ol style="list-style: none; padding: 0; counter-reset: step-counter;">
@@ -714,8 +710,7 @@ ssList.remove('uploading');
             </div>
             <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
             <p class="footer-credits">
-                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
-                <a href="attributions.html">See full acknowledgements</a>.
+                Built with open-source technologies. <a href="attributions.html">See full acknowledgements</a>.
             </p>
         </div>
     </footer>

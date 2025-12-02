@@ -1,17 +1,17 @@
 $ErrorActionPreference = "Stop"
 
-Write-Host "=== Starting Deployment for PyTorch U2Net Full Background Remover ===" -ForegroundColor Green
+Write-Host "=== Starting Deployment for Rembg U2Net Background Remover ===" -ForegroundColor Green
 
 # --- Configuration ---
 $PROJECT_ID = "easyjpgtopdf-de346"
-$SERVICE_NAME = "bg-remover-pytorch-u2net"
+$SERVICE_NAME = "bg-remover-rembg-u2net"
 $REGION = "us-central1"
 $IMAGE_NAME = "gcr.io/$PROJECT_ID/$SERVICE_NAME"
-$MEMORY = "6Gi"  # 6GB for U2Net Full (larger model, better quality)
+$MEMORY = "4Gi"  # Start with 4GB for high quality
 $CPU = "2"  # 2 vCPU for better performance
 $TIMEOUT = "300"  # 5 minutes
 $MAX_INSTANCES = "10"
-$MIN_INSTANCES = "1"  # Keep service warm (always running)
+$MIN_INSTANCES = "0"  # No fixed cost - pay per use
 $CONCURRENCY = "1"  # Start with 1 for stability
 
 # --- Build Docker Image ---
@@ -25,7 +25,7 @@ Write-Host "Configuration:" -ForegroundColor Yellow
 Write-Host "  Memory: $MEMORY" -ForegroundColor White
 Write-Host "  CPU: $CPU" -ForegroundColor White
 Write-Host "  Timeout: $TIMEOUT seconds" -ForegroundColor White
-Write-Host "  Min Instances: $MIN_INSTANCES (Pay-per-use)" -ForegroundColor White
+Write-Host "  Min Instances: $MIN_INSTANCES (Always Warm)" -ForegroundColor White
 Write-Host "  Concurrency: $CONCURRENCY" -ForegroundColor White
 
 gcloud run deploy $SERVICE_NAME `
@@ -47,15 +47,15 @@ Write-Host "✅ Service URL: $SERVICE_URL" -ForegroundColor Green
 
 # --- Test Service ---
 Write-Host "`n=== Testing Service Health Endpoint ===" -ForegroundColor Cyan
-Start-Sleep -Seconds 20
+Start-Sleep -Seconds 15
 try {
-    $response = Invoke-WebRequest -Uri "$SERVICE_URL/health" -Method GET -Headers @{"Accept"="application/json"} -TimeoutSec 30
+    $response = Invoke-WebRequest -Uri "$SERVICE_URL/health" -Method GET -Headers @{"Accept"="application/json"} -TimeoutSec 20
     Write-Host "✅ Health check passed! Status: $($response.StatusCode)" -ForegroundColor Green
     $json = $response.Content | ConvertFrom-Json
     Write-Host "Status: $($json.status)" -ForegroundColor White
     Write-Host "Model: $($json.model)" -ForegroundColor White
-    Write-Host "Model Loaded: $($json.model_loaded)" -ForegroundColor White
-    Write-Host "Device: $($json.device)" -ForegroundColor White
+    Write-Host "U2Net Available: $($json.u2net_available)" -ForegroundColor White
+    Write-Host "U2NetP Available: $($json.u2netp_available)" -ForegroundColor White
 } catch {
     Write-Host "❌ Health check failed: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host "`nChecking logs for more details..." -ForegroundColor Yellow
@@ -68,10 +68,7 @@ Set-Location ..
 Write-Host "`n=== ✅ Deployment Complete ===" -ForegroundColor Green
 Write-Host "Service URL: $SERVICE_URL" -ForegroundColor Green
 Write-Host "`nNext steps:" -ForegroundColor White
-Write-Host "1. Update CLOUDRUN_API_URL in api/background-remove-pytorch.js to: $SERVICE_URL" -ForegroundColor Yellow
-Write-Host "2. Update frontend to use /api/background-remove-pytorch endpoint" -ForegroundColor Yellow
+Write-Host "1. Update CLOUDRUN_API_URL in api/background-remove-rembg.js to: $SERVICE_URL" -ForegroundColor Yellow
+Write-Host "2. Update frontend to use /api/background-remove-rembg endpoint" -ForegroundColor Yellow
 Write-Host "3. Update vercel.json with new routes" -ForegroundColor Yellow
-Write-Host "`nNote: For best quality, download u2net.pth from official repository" -ForegroundColor Cyan
-Write-Host "      https://github.com/xuebinqin/U-2-Net/releases/download/v1.0/u2net.pth" -ForegroundColor Cyan
-Write-Host "      U2Net Full (~173 MB) provides better quality than U2NetP (~4.7 MB)" -ForegroundColor Yellow
 

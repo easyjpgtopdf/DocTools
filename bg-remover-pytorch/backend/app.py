@@ -1,9 +1,10 @@
 # ============================================
-# PURE PYTORCH U2NETP BACKGROUND REMOVER
+# PURE PYTORCH U2NET FULL MODEL BACKGROUND REMOVER
 # Cloud Run Compatible (No ONNX, No rembg)
-# Optimized for 4GB Memory, 2 CPU
+# Optimized for 6GB Memory, 2 CPU (U2Net Full requires more memory)
 # With Device Tracking, Image Compression, and Enhanced Limits
 # IMPROVED: Better quality with alpha matting and edge preservation
+# U2Net Full Model - Better Quality than U2NetP
 # ============================================
 
 import base64
@@ -79,66 +80,45 @@ USER_LIMITS = {
 usage_tracker = {}
 
 # Global model - initialized once
-u2netp_model = None
+u2net_model = None
 device = None
 transform = None
 
-# U2NetP Model Architecture (Simplified - for production use pre-trained weights)
-class U2NETP(torch.nn.Module):
-    """U2NetP model for background removal"""
-    def __init__(self):
-        super(U2NETP, self).__init__()
-        # Simplified U2NetP architecture
-        # For production, use pre-trained weights from official repository
-        self.encoder = torch.nn.Sequential(
-            torch.nn.Conv2d(3, 64, 3, padding=1),
-            torch.nn.ReLU(inplace=True),
-            torch.nn.Conv2d(64, 64, 3, padding=1),
-            torch.nn.ReLU(inplace=True),
-        )
-        self.decoder = torch.nn.Sequential(
-            torch.nn.Conv2d(64, 64, 3, padding=1),
-            torch.nn.ReLU(inplace=True),
-            torch.nn.Conv2d(64, 1, 1),
-            torch.nn.Sigmoid()
-        )
-    
-    def forward(self, x):
-        x = self.encoder(x)
-        x = self.decoder(x)
-        return x
+# Import U2Net Full Model
+from u2net_model import U2NET
 
-def load_u2netp_model():
-    """Load U2NetP model with pre-trained weights"""
-    global u2netp_model, device, transform
+def load_u2net_model():
+    """Load U2Net Full model with pre-trained weights - Better Quality"""
+    global u2net_model, device, transform
     
-    if u2netp_model is not None:
-        return u2netp_model
+    if u2net_model is not None:
+        return u2net_model
     
     try:
-        logger.info("🎨 Loading PyTorch U2NetP model...")
+        logger.info("🎨 Loading PyTorch U2Net Full model (Better Quality)...")
         device = torch.device('cpu')  # Cloud Run doesn't support GPU
         logger.info(f"Using device: {device}")
         
-        # Initialize model
-        u2netp_model = U2NETP()
-        u2netp_model.eval()
+        # Initialize U2Net Full model
+        u2net_model = U2NET(in_ch=3, out_ch=1)
+        u2net_model.eval()
         
         # Try to load pre-trained weights
         # In production, download from: https://github.com/xuebinqin/U-2-Net
-        model_path = os.path.join(os.path.dirname(__file__), 'u2netp.pth')
+        model_path = os.path.join(os.path.dirname(__file__), 'u2net.pth')
         
         if os.path.exists(model_path):
             logger.info(f"Loading weights from {model_path}")
             state_dict = torch.load(model_path, map_location=device)
-            u2netp_model.load_state_dict(state_dict, strict=False)
+            u2net_model.load_state_dict(state_dict, strict=False)
             logger.info("✅ Pre-trained weights loaded")
         else:
             logger.warning("⚠️ Pre-trained weights not found. Using random initialization.")
-            logger.warning("⚠️ For best results, download u2netp.pth from official repository")
+            logger.warning("⚠️ For best results, download u2net.pth from official repository")
+            logger.warning("⚠️ URL: https://github.com/xuebinqin/U-2-Net/releases/download/v1.0/u2net.pth")
         
-        u2netp_model.to(device)
-        logger.info("✅ U2NetP model loaded successfully")
+        u2net_model.to(device)
+        logger.info("✅ U2Net Full model loaded successfully")
         
         # Image preprocessing transform - IMPROVED: Higher resolution, maintain aspect ratio
         transform = transforms.Compose([
@@ -146,15 +126,15 @@ def load_u2netp_model():
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
         
-        return u2netp_model
+        return u2net_model
         
     except Exception as e:
-        logger.error(f"❌ Failed to load U2NetP model: {str(e)}")
+        logger.error(f"❌ Failed to load U2Net Full model: {str(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise
 
 def preprocess_image(image, target_size=512):
-    """Preprocess PIL image for U2NetP - IMPROVED: Maintain aspect ratio"""
+    """Preprocess PIL image for U2Net Full - IMPROVED: Maintain aspect ratio"""
     # Convert to RGB if needed
     if image.mode != 'RGB':
         image = image.convert('RGB')
@@ -254,18 +234,18 @@ def alpha_matting(image, mask, foreground_threshold=240, background_threshold=10
         return np.array(mask.convert('L'))
 
 def remove_background_pytorch(image, quality='high'):
-    """Remove background using PyTorch U2NetP - IMPROVED: Better quality with alpha matting
+    """Remove background using PyTorch U2Net Full - IMPROVED: Better quality with alpha matting
     
     Args:
         image: PIL Image
         quality: 'high' for premium (better quality), 'compressed' for free (compressed to 150KB)
     """
-    global u2netp_model, device, transform
+    global u2net_model, device, transform
     
     start_time = time.time()
     
-    if u2netp_model is None:
-        load_u2netp_model()
+    if u2net_model is None:
+        load_u2net_model()
     
     # IMPROVED: Use higher resolution (512 instead of 320) for better detail preservation
     target_size = 512 if quality == 'high' else 320
@@ -276,7 +256,7 @@ def remove_background_pytorch(image, quality='high'):
     
     # Run inference
     with torch.no_grad():
-        mask_tensor = u2netp_model(input_tensor)
+        mask_tensor = u2net_model(input_tensor)
         # Apply sigmoid if not already applied
         if mask_tensor.max() > 1.0:
             mask_tensor = torch.sigmoid(mask_tensor)
@@ -457,11 +437,11 @@ def image_to_dataurl(img, compress_to_kb=None):
 def root():
     """Root endpoint"""
     logger.info("🩺 Root path requested.")
-    model_loaded = u2netp_model is not None
+    model_loaded = u2net_model is not None
     return jsonify({
-        "service": "Background Remover API (PyTorch U2NetP)",
+        "service": "Background Remover API (PyTorch U2Net Full)",
         "status": "running",
-        "model": "u2netp",
+        "model": "u2net",
         "model_loaded": model_loaded,
         "device": str(device) if device else "not initialized"
     }), 200
@@ -471,15 +451,15 @@ def health():
     """Health check endpoint"""
     logger.info("🩺 Health check requested.")
     try:
-        if u2netp_model is None:
-            load_u2netp_model()
-        logger.info("✅ Health check successful: PyTorch U2NetP model loaded.")
+        if u2net_model is None:
+            load_u2net_model()
+        logger.info("✅ Health check successful: PyTorch U2Net Full model loaded.")
         return jsonify({
             "status": "ok",
-            "model": "u2netp",
+            "model": "u2net",
             "model_loaded": True,
             "device": str(device),
-            "service": "Background Remover API (PyTorch U2NetP)"
+            "service": "Background Remover API (PyTorch U2Net Full)"
         }), 200
     except Exception as e:
         logger.error(f"❌ Health check failed: {str(e)}")
@@ -488,7 +468,7 @@ def health():
             "status": "error",
             "message": "Model initialization failed",
             "details": str(e),
-            "service": "Background Remover API (PyTorch U2NetP)"
+            "service": "Background Remover API (PyTorch U2Net Full)"
         }), 500
 
 @app.route('/usage', methods=['GET'])
@@ -559,10 +539,10 @@ def remove_bg():
             return jsonify({"success": False, "error": "Image Too Large", "message": f"Image dimensions exceed {MAX_DIMENSION} pixels"}), 413
 
         # Load model if not loaded
-        if u2netp_model is None:
-            load_u2netp_model()
+        if u2net_model is None:
+            load_u2net_model()
         
-        logger.info(f"✨ Starting background removal with PyTorch U2NetP for {tracking_id} ({user_type})...")
+        logger.info(f"✨ Starting background removal with PyTorch U2Net Full for {tracking_id} ({user_type})...")
         logger.info(f"📏 Image size: {img.width}x{img.height}, File size: {file_size_bytes/(1024*1024):.2f} MB")
         
         # Process image - use high quality for premium, compressed for free
@@ -586,7 +566,7 @@ def remove_bg():
         return jsonify({
             "success": True, 
             "resultImage": out_dataurl, 
-            "processedWith": "pytorch-u2netp",
+            "processedWith": "pytorch-u2net",
             "quality": quality,
             "processingTime": round(processing_time, 2),
             "totalTime": round(total_time, 2),
@@ -604,11 +584,11 @@ def remove_bg():
 if __name__ == "__main__":
     # Initialize model on startup
     try:
-        load_u2netp_model()
+        load_u2net_model()
     except Exception as e:
         logger.error(f"❌ Critical: Failed to initialize model: {str(e)}")
         logger.error("Service may not work properly")
     
     port = int(os.environ.get("PORT", 8080))
-    logger.info(f"🚀 Starting Background Remover API (PyTorch U2NetP) on port {port}")
+    logger.info(f"🚀 Starting Background Remover API (PyTorch U2Net Full) on port {port}")
     app.run(host="0.0.0.0", port=port, debug=False)

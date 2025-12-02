@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    
+    <!-- SEO Meta Tags -->
+    <title>AI Background Remover V2 - High Quality Image Background Removal | easyjpgtopdf</title>
+    <meta name="description" content="Remove background from images with AI-powered high quality background remover. Professional transparent PNG images with U²-Net model. Free and premium plans available.">
+    <meta name="keywords" content="background remover, remove background, ai background remover, transparent image, remove image background, background removal tool, free background remover, professional background removal, u2net, rembg">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="easyjpgtopdf">
+    <meta name="language" content="English">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://easyjpgtopdf.com/background-remover-v2.html">
+    <meta property="og:title" content="AI Background Remover V2 - High Quality Image Background Removal">
+    <meta property="og:description" content="Remove background from images with AI-powered high quality background remover. Professional transparent PNG images.">
+    <meta property="og:image" content="https://easyjpgtopdf.com/images/background-remover-og.jpg">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://easyjpgtopdf.com/background-remover-v2.html">
+    <meta property="twitter:title" content="AI Background Remover V2 - High Quality Image Background Removal">
+    <meta property="twitter:description" content="Remove background from images with AI-powered high quality background remover.">
+    <meta property="twitter:image" content="https://easyjpgtopdf.com/images/background-remover-og.jpg">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://easyjpgtopdf.com/background-remover-v2.html">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+    
+    <!-- Stylesheets -->
+    <link href="css/footer.css" rel="stylesheet"/>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+    <link href="css/header.css" rel="stylesheet"/>
+    <link href="css/theme-modern.css" rel="stylesheet"/>
+    
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --accent: #4cc9f0;
+            --dark: #212529;
+            --muted: #7a7f8c;
+            --surface: #ffffff;
+            --border: rgba(18, 20, 58, 0.1);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(180deg, #f3f4ff 0%, #f8f9ff 100%);
+            color: var(--dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+        
+        main {
+            flex: 1;
+            padding: 36px 0 48px;
+        }
+        
+        .page-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .page-header h1 {
+            font-size: 2.5rem;
+            color: var(--dark);
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .page-header p {
+            font-size: 1.1rem;
+            color: var(--muted);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .workspace {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            margin-bottom: 32px;
+        }
+        
+        .panel {
+            background: var(--surface);
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: 0 20px 45px rgba(15, 30, 70, 0.08);
+        }
+        
+        .panel h2 {
+            font-size: 1.35rem;
+            margin-bottom: 18px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            color: #171f4d;
+        }
+        
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 16px;
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #fafbff;
+        }
+        
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: #f0f4ff;
+        }
+        
+        .upload-area.dragover {
+            border-color: var(--primary);
+            background: #e8f0ff;
+        }
+        
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 16px;
+        }
+        
+        .preview-stage {
+            position: relative;
+            width: 100%;
+            min-height: 400px;
+            border-radius: 18px;
+            background: repeating-conic-gradient(#e5e9ff 0deg 25deg, #f8f9ff 25deg 50deg);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .preview-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        
+        .preview-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(17, 24, 39, 0.55);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            color: #fff;
+            font-weight: 600;
+        }
+        
+        .spinner {
+            width: 34px;
+            height: 34px;
+            border: 3px solid rgba(255, 255, 255, 0.4);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 999px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            color: #fff;
+            box-shadow: 0 16px 30px rgba(67, 97, 238, 0.25);
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(67, 97, 238, 0.35);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 24px;
+        }
+        
+        .usage-card {
+            background: linear-gradient(135deg, #f0f4ff, #f8f9ff);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+        
+        .usage-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        
+        .usage-stat {
+            text-align: center;
+        }
+        
+        .usage-stat-label {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+        
+        .usage-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .usage-stat-limit {
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+        
+        .status-message {
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-top: 16px;
+            display: none;
+        }
+        
+        .status-message.show {
+            display: block;
+        }
+        
+        .status-message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        
+        .status-message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+        
+        .status-message.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+        
+        @media (max-width: 960px) {
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+            
+            .page-header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header will be loaded here -->
+    <header id="main-header"></header>
+    
+    <main>
+        <div class="container">
+            <div class="page-header">
+                <h1><i class="fas fa-magic"></i> AI Background Remover V2</h1>
+                <p>Remove background from images with high-quality AI processing. Powered by U²-Net model for professional results.</p>
+            </div>
+            
+            <!-- Usage Card -->
+            <div class="usage-card">
+                <h3 style="margin-bottom: 16px; color: var(--dark);">
+                    <i class="fas fa-chart-line"></i> Usage Statistics
+                </h3>
+                <div class="usage-stats">
+                    <div class="usage-stat">
+                        <div class="usage-stat-label">Today</div>
+                        <div class="usage-stat-value" id="daily-usage">0</div>
+                        <div class="usage-stat-limit">of <span id="daily-limit">10</span> images</div>
+                    </div>
+                    <div class="usage-stat">
+                        <div class="usage-stat-label">This Month</div>
+                        <div class="usage-stat-value" id="monthly-usage">0</div>
+                        <div class="usage-stat-limit">of <span id="monthly-limit">100</span> images</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Workspace -->
+            <div class="workspace">
+                <!-- Upload Panel -->
+                <div class="panel">
+                    <h2><i class="fas fa-upload"></i> Upload Image</h2>
+                    <div class="upload-area" id="upload-area">
+                        <div class="upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <p style="font-size: 1.1rem; margin-bottom: 8px; color: var(--dark);">
+                            Drag & drop your image here
+                        </p>
+                        <p style="color: var(--muted); margin-bottom: 16px;">
+                            or click to browse
+                        </p>
+                        <input type="file" id="file-input" accept="image/*" style="display: none;">
+                        <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">
+                            <i class="fas fa-folder-open"></i> Choose File
+                        </button>
+                        <p style="font-size: 0.85rem; color: var(--muted); margin-top: 16px;">
+                            Supports: PNG, JPG, JPEG, WEBP (Max 100MB)
+                        </p>
+                    </div>
+                    <div class="status-message" id="status-message"></div>
+                    <div class="actions">
+                        <button class="btn btn-primary" id="process-btn" disabled>
+                            <i class="fas fa-magic"></i> Remove Background
+                        </button>
+                        <button class="btn btn-primary" id="download-btn" disabled style="display: none;">
+                            <i class="fas fa-download"></i> Download Result
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Preview Panel -->
+                <div class="panel">
+                    <h2><i class="fas fa-eye"></i> Preview</h2>
+                    <div class="preview-stage" id="preview-stage">
+                        <div style="text-align: center; color: var(--muted);">
+                            <i class="fas fa-image" style="font-size: 3rem; margin-bottom: 16px; opacity: 0.3;"></i>
+                            <p>Your processed image will appear here</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Footer will be loaded here -->
+    <footer id="main-footer"></footer>
+    
+    <script>
+        // Configuration
+        const API_URL = '/api/background-remove-v2-alt';
+        const HEALTH_URL = '/api/background-remove-v2-alt/health';
+        
+        // State
+        let currentImage = null;
+        let resultImage = null;
+        let userId = localStorage.getItem('userId') || 'anonymous_' + Date.now();
+        let userType = localStorage.getItem('userType') || 'free';
+        
+        // DOM Elements
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('file-input');
+        const processBtn = document.getElementById('process-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        const previewStage = document.getElementById('preview-stage');
+        const statusMessage = document.getElementById('status-message');
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadHeader();
+            loadFooter();
+            setupEventListeners();
+            checkBackendHealth();
+            loadUsageStats();
+        });
+        
+        // Load header
+        function loadHeader() {
+            // Try multiple paths for header
+            const headerPaths = ['header.html', '../server/public/header.html', 'server/public/header.html'];
+            loadComponent(headerPaths, 'main-header');
+        }
+        
+        // Load footer
+        function loadFooter() {
+            // Try multiple paths for footer
+            const footerPaths = ['footer.html', '../server/public/footer.html', 'server/public/footer.html'];
+            loadComponent(footerPaths, 'main-footer');
+        }
+        
+        // Load component from multiple possible paths
+        function loadComponent(paths, elementId) {
+            let currentIndex = 0;
+            function tryLoad() {
+                if (currentIndex >= paths.length) {
+                    console.warn(`Could not load ${elementId} from any path`);
+                    return;
+                }
+                fetch(paths[currentIndex])
+                    .then(r => {
+                        if (r.ok) return r.text();
+                        throw new Error('Not found');
+                    })
+                    .then(html => {
+                        document.getElementById(elementId).innerHTML = html;
+                    })
+                    .catch(() => {
+                        currentIndex++;
+                        tryLoad();
+                    });
+            }
+            tryLoad();
+        }
+        
+        // Setup event listeners
+        function setupEventListeners() {
+            // File input
+            fileInput.addEventListener('change', handleFileSelect);
+            
+            // Drag and drop
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFile(files[0]);
+                }
+            });
+            
+            // Process button
+            processBtn.addEventListener('click', processImage);
+            
+            // Download button
+            downloadBtn.addEventListener('click', downloadResult);
+        }
+        
+        // Handle file select
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+        
+        // Handle file
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showStatus('Please select a valid image file.', 'error');
+                return;
+            }
+            
+            if (file.size > 100 * 1024 * 1024) {
+                showStatus('File size exceeds 100MB limit.', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentImage = e.target.result;
+                previewStage.innerHTML = `<img src="${currentImage}" class="preview-image" alt="Uploaded image">`;
+                processBtn.disabled = false;
+                downloadBtn.style.display = 'none';
+                showStatus('Image loaded successfully. Click "Remove Background" to process.', 'success');
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // Process image
+        async function processImage() {
+            if (!currentImage) return;
+            
+            processBtn.disabled = true;
+            processBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            
+            // Show loading overlay
+            previewStage.innerHTML = `
+                <div class="preview-overlay">
+                    <div class="spinner"></div>
+                    <div>Processing image...</div>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-ID': userId,
+                        'X-User-Type': userType
+                    },
+                    body: JSON.stringify({
+                        imageData: currentImage
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.resultImage) {
+                    resultImage = data.resultImage;
+                    previewStage.innerHTML = `<img src="${resultImage}" class="preview-image" alt="Processed image">`;
+                    downloadBtn.style.display = 'inline-flex';
+                    showStatus('Background removed successfully!', 'success');
+                    loadUsageStats();
+                } else {
+                    throw new Error(data.message || 'Processing failed');
+                }
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+                previewStage.innerHTML = `
+                    <div style="text-align: center; color: var(--danger); padding: 40px;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 16px;"></i>
+                        <p>Processing failed. Please try again.</p>
+                    </div>
+                `;
+            } finally {
+                processBtn.disabled = false;
+                processBtn.innerHTML = '<i class="fas fa-magic"></i> Remove Background';
+            }
+        }
+        
+        // Download result
+        function downloadResult() {
+            if (!resultImage) return;
+            
+            const link = document.createElement('a');
+            link.href = resultImage;
+            link.download = 'background-removed.png';
+            link.click();
+            showStatus('Image downloaded successfully!', 'success');
+        }
+        
+        // Show status message
+        function showStatus(message, type = 'info') {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message show ${type}`;
+            setTimeout(() => {
+                statusMessage.classList.remove('show');
+            }, 5000);
+        }
+        
+        // Check backend health
+        async function checkBackendHealth() {
+            try {
+                const response = await fetch(HEALTH_URL);
+                const data = await response.json();
+                if (data.status === 'ok') {
+                    console.log('✅ Backend connected:', data);
+                }
+            } catch (error) {
+                console.warn('⚠️ Backend health check failed:', error);
+            }
+        }
+        
+        // Load usage stats
+        async function loadUsageStats() {
+            try {
+                const response = await fetch('/api/background-remove-v2-alt/usage', {
+                    headers: {
+                        'X-User-ID': userId,
+                        'X-User-Type': userType
+                    }
+                });
+                const data = await response.json();
+                
+                document.getElementById('daily-usage').textContent = data.daily || 0;
+                document.getElementById('monthly-usage').textContent = data.monthly || 0;
+                document.getElementById('daily-limit').textContent = data.dailyLimit || 10;
+                document.getElementById('monthly-limit').textContent = data.monthlyLimit || 100;
+            } catch (error) {
+                console.warn('Could not load usage stats:', error);
+            }
+        }
+        
+        // Warmup request every 10 minutes
+        setInterval(checkBackendHealth, 10 * 60 * 1000);
+    </script>
+</body>
+</html>
+

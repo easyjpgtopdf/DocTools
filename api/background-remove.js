@@ -12,10 +12,15 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Health check endpoint
+  // Health check endpoint - handle /health path
   if (req.method === 'GET') {
+    const isHealthPath = req.url && req.url.includes('/health');
+    const healthUrl = isHealthPath 
+      ? 'https://bg-remover-api-iwumaktavq-uc.a.run.app/health'
+      : 'https://bg-remover-api-iwumaktavq-uc.a.run.app/';
+    
     try {
-      const response = await fetch('https://bg-remover-api-iwumaktavq-uc.a.run.app/', {
+      const response = await fetch(healthUrl, {
         method: 'GET',
         headers: { 'Accept': 'application/json' }
       });
