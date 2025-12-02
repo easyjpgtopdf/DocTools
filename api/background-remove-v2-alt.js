@@ -86,9 +86,42 @@ export default async function handler(req, res) {
           'X-User-ID': userId,
           'X-User-Type': userType
         },
-        body: JSON.stringify(req.body)
+        body: JSON.stringify(req.body),
+        timeout: 300000 // 5 minutes timeout
       });
 
+      // Handle non-OK responses
+      if (!response.ok) {
+        let errorData = {};
+        try {
+          const errorText = await response.text();
+          try {
+            errorData = JSON.parse(errorText);
+          } catch (parseError) {
+            // If JSON parse fails, create error object from text
+            errorData = {
+              success: false,
+              error: 'Backend error',
+              message: errorText || `Backend returned ${response.status}: ${response.statusText}`
+            };
+          }
+        } catch (e) {
+          errorData = {
+            success: false,
+            error: 'Backend error',
+            message: `Backend returned ${response.status}: ${response.statusText}`
+          };
+        }
+        
+        console.error('Backend error response:', {
+          status: response.status,
+          error: errorData
+        });
+        
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        return res.status(response.status).json(errorData);
+      }
+      
       const data = await response.json();
       
       res.setHeader('Access-Control-Allow-Origin', '*');

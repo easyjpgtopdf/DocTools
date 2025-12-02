@@ -707,14 +707,29 @@
         
       } catch (error) {
         console.error('Background removal failed', error);
-        let errorMsg = 'Failed to remove background. ';
-        if (error.message && error.message.includes('fetch')) {
-          errorMsg += 'Network error. Please check your connection and try again.';
-        } else if (error.message && error.message.includes('memory')) {
-          errorMsg += 'Image too complex. Try a smaller or simpler image.';
+        let errorMsg = '';
+        
+        // Extract error message from error object
+        const errorMessage = error.message || error.error || 'Unknown error';
+        
+        // Handle different error types
+        if (errorMessage.includes('fetch') || errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch')) {
+          errorMsg = 'Network error. Please check your internet connection and try again.';
+        } else if (errorMessage.includes('timeout') || errorMessage.includes('AbortError')) {
+          errorMsg = 'Request timeout. The image may be too large or the server is busy. Please try again with a smaller image.';
+        } else if (errorMessage.includes('memory') || errorMessage.includes('too large')) {
+          errorMsg = 'Image too large or complex. Please try a smaller image (max 10MB).';
+        } else if (errorMessage.includes('Processing failed') || errorMessage.includes('Internal server error')) {
+          errorMsg = 'Processing failed. Please try again with a different image. If the problem persists, the service may be temporarily unavailable.';
+        } else if (errorMessage.includes('temporarily unavailable') || errorMessage.includes('warming up')) {
+          errorMsg = 'Service is warming up. Please wait 15-20 seconds and try again.';
+        } else if (errorMessage.includes('Invalid image') || errorMessage.includes('Failed to load image')) {
+          errorMsg = 'Invalid image file. Please ensure you are uploading a valid image (JPG, PNG, etc.).';
         } else {
-          errorMsg += 'Please try uploading a different image with clear subject.';
+          // Use the actual error message if available
+          errorMsg = errorMessage || 'Failed to remove background. Please try again.';
         }
+        
         showError(errorMsg);
         previewStage.classList.add('empty');
         previewOverlay.style.opacity = 0;
