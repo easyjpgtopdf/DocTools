@@ -204,8 +204,10 @@
 <p>• Fast and accurate background removal</p>
 <p>• Automatic processing for optimal results</p>
 <p>• Professional quality output</p>
-<p>• Free: 1 MB per upload, 40 images/month</p>
-<p>• Premium: 50 MB per upload, 500 MB monthly quota</p>
+<p>• Free: 1 MB per upload, 50 images/month, 10 MB total</p>
+<p>• Premium: 50 MB per upload, 500 MB monthly quota (login required)</p>
+<p>• Free downloads auto-compressed to 150 KB</p>
+<p>• Premium downloads: High quality (no compression)</p>
 </div>
 </section>
 </main>
@@ -331,20 +333,163 @@
     // Use proxy endpoint for processing
     // ============================================
     
-    // API Configuration - Updated to use alternative backend (no onnxruntime)
-    const PROXY_API_URL = '/api/background-remove-v2-alt';
-    const PROXY_HEALTH_URL = '/api/background-remove-v2-alt/health'; // Health check through proxy
-    const API_VERSION = 'v2-alt-1.0'; // Cache busting version
+    // Device Fingerprinting
+    function generateDeviceId() {
+      let deviceId = localStorage.getItem('deviceId');
+      if (!deviceId) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.textBaseline = 'top';
+        ctx.font = '14px Arial';
+        ctx.fillText('Device fingerprint', 2, 2);
+        
+        const fingerprint = [
+          navigator.userAgent,
+          navigator.language,
+          screen.width + 'x' + screen.height,
+          new Date().getTimezoneOffset(),
+          canvas.toDataURL()
+        ].join('|');
+        
+        deviceId = btoa(fingerprint).substring(0, 32);
+        localStorage.setItem('deviceId', deviceId);
+      }
+      return deviceId;
+    }
+    
+    const DEVICE_ID = generateDeviceId();
+    
+    // Get user info (from auth or session)
+    async function getUserInfo() {
+      try {
+        // Check if user is logged in (Firebase Auth)
+        if (typeof getAuth !== 'undefined') {
+          const { getAuth } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+          const auth = getAuth();
+          if (auth && auth.currentUser) {
+            return {
+              userId: auth.currentUser.uid,
+              userType: 'premium', // Assume premium if logged in, verify with subscription
+              authToken: await auth.currentUser.getIdToken()
+            };
+          }
+        }
+      } catch (e) {
+        console.warn('Auth check failed:', e);
+      }
+      
+      // Fallback to free user
+      return {
+        userId: 'anonymous',
+        userType: 'free',
+        authToken: null
+      };
+    }
+    
+    // API Configuration - Updated to use PyTorch U2NetP backend
+    const PROXY_API_URL = '/api/background-remove-pytorch';
+    const PROXY_HEALTH_URL = '/api/background-remove-pytorch/health';
+    const PROXY_USAGE_URL = '/api/background-remove-pytorch/usage';
+    const API_VERSION = 'pytorch-u2netp-1.0'; // Cache busting version
+    
+    // Usage tracking
+    let currentUsage = {
+      imageCount: 0,
+      imageLimit: 50,
+      uploadBytes: 0,
+      uploadLimit: 10 * 1024 * 1024,
+      downloadBytes: 0,
+      downloadLimit: 10 * 1024 * 1024
+    };
+    
+    // Load usage stats
+    async function loadUsageStats() {
+      try {
+        const userInfo = await getUserInfo();
+        const response = await fetch(PROXY_USAGE_URL, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'X-User-ID': userInfo.userId,
+            'X-User-Type': userInfo.userType,
+            'X-Device-ID': DEVICE_ID
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          currentUsage = {
+            imageCount: data.imageCount || 0,
+            imageLimit: data.imageLimit === -1 ? Infinity : data.imageLimit,
+            uploadBytes: data.uploadBytes || 0,
+            uploadLimit: data.uploadLimit || 0,
+            downloadBytes: data.downloadBytes || 0,
+            downloadLimit: data.downloadLimit || 0
+          };
+          updateUsageDisplay();
+        }
+      } catch (e) {
+        console.warn('Failed to load usage stats:', e);
+      }
+    }
+    
+    // Update usage display
+    function updateUsageDisplay() {
+      const usageHtml = `
+        <div style="padding:16px;border-radius:14px;background:linear-gradient(135deg, rgba(67,97,238,0.1), rgba(58,12,163,0.1));border:1px solid rgba(67,97,238,0.2);">
+          <strong style="display:block;margin-bottom:12px;color:#1e254d;">📊 Usage Dashboard</strong>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:0.9rem;">
+            <div>
+              <div style="color:#7a7f8c;margin-bottom:4px;">Images Used</div>
+              <div style="font-weight:600;color:#1e254d;">
+                ${currentUsage.imageCount} / ${currentUsage.imageLimit === Infinity ? '∞' : currentUsage.imageLimit}
+              </div>
+            </div>
+            <div>
+              <div style="color:#7a7f8c;margin-bottom:4px;">Upload Used</div>
+              <div style="font-weight:600;color:#1e254d;">
+                ${(currentUsage.uploadBytes / (1024 * 1024)).toFixed(2)} MB / ${(currentUsage.uploadLimit / (1024 * 1024)).toFixed(0)} MB
+              </div>
+            </div>
+            <div>
+              <div style="color:#7a7f8c;margin-bottom:4px;">Download Used</div>
+              <div style="font-weight:600;color:#1e254d;">
+                ${(currentUsage.downloadBytes / (1024 * 1024)).toFixed(2)} MB / ${(currentUsage.downloadLimit / (1024 * 1024)).toFixed(0)} MB
+              </div>
+            </div>
+            <div>
+              <a href="dashboard.html#dashboard-subscription" style="color:#4361ee;text-decoration:none;font-weight:600;">
+                View Full Dashboard →
+              </a>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Insert usage display after status message
+      let usageDisplay = document.getElementById('usageDisplay');
+      if (!usageDisplay) {
+        usageDisplay = document.createElement('div');
+        usageDisplay.id = 'usageDisplay';
+        statusMessage.parentNode.insertBefore(usageDisplay, statusMessage.nextSibling);
+      }
+      usageDisplay.innerHTML = usageHtml;
+    }
+    
+    // Load usage on page load
+    loadUsageStats();
     
     // Test backend connection on load (using proxy to avoid CORS)
     async function testBackendConnection() {
       try {
+        const userInfo = await getUserInfo();
         const response = await fetch(PROXY_HEALTH_URL, {
           method: 'GET',
           headers: { 
             'Accept': 'application/json',
-            'X-User-ID': 'background-workspace',
-            'X-User-Type': 'free'
+            'X-User-ID': userInfo.userId,
+            'X-User-Type': userInfo.userType,
+            'X-Device-ID': DEVICE_ID
           }
         });
         if (response.ok) {
@@ -399,14 +544,19 @@
         // Use JSON format (proxy handles conversion)
         let response = null;
         
+        // Get user info and device ID
+        const userInfo = await getUserInfo();
+        
         try {
-          response = await fetch('/api/background-remove-v2-alt', {
+          response = await fetch('/api/background-remove-pytorch', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
-              'X-User-ID': 'background-workspace',
-              'X-User-Type': 'free'
+              'X-User-ID': userInfo.userId,
+              'X-User-Type': userInfo.userType,
+              'X-Device-ID': DEVICE_ID,
+              'X-Auth-Token': userInfo.authToken || ''
             },
             body: JSON.stringify({ imageData: dataURL }),
             signal: controller.signal
@@ -461,15 +611,20 @@
         });
         
         if (result.success && result.resultImage) {
+          // Reload usage stats after successful processing
+          await loadUsageStats();
+          
           return { 
             success: true, 
             dataUrl: result.resultImage, 
             processedWith: result.processedWith || config.description,
             outputSize: result.outputSize,
-            outputSizeMB: result.outputSizeMB
+            outputSizeMB: result.outputSizeMB || result.downloadSizeMB,
+            quality: result.quality,
+            compressed: result.compressed
           };
         } else {
-          throw new Error(result.error || 'Processing failed on server');
+          throw new Error(result.error || result.message || 'Processing failed on server');
         }
       } catch (error) {
         console.error('❌ Backend processing error:', {
@@ -742,7 +897,15 @@
     // Warmup request every 10 minutes to keep service warm
     setInterval(async () => {
       try {
-        await fetch('/api/background-remove-v2-alt/health', { method: 'GET' });
+        const userInfo = await getUserInfo();
+        await fetch('/api/background-remove-pytorch/health', { 
+          method: 'GET',
+          headers: {
+            'X-User-ID': userInfo.userId,
+            'X-User-Type': userInfo.userType,
+            'X-Device-ID': DEVICE_ID
+          }
+        });
         console.log('✅ Warmup request sent');
       } catch (error) {
         console.warn('⚠️ Warmup request failed:', error);
@@ -752,7 +915,15 @@
     // Initial warmup on page load
     setTimeout(async () => {
       try {
-        await fetch('/api/background-remove-v2-alt/health', { method: 'GET' });
+        const userInfo = await getUserInfo();
+        await fetch('/api/background-remove-pytorch/health', { 
+          method: 'GET',
+          headers: {
+            'X-User-ID': userInfo.userId,
+            'X-User-Type': userInfo.userType,
+            'X-Device-ID': DEVICE_ID
+          }
+        });
         console.log('✅ Initial warmup request sent');
       } catch (error) {
         console.warn('⚠️ Initial warmup request failed:', error);
