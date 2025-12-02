@@ -229,37 +229,8 @@
     let resultCanvas = null;
     let resultContext = null;
     let resultDataURL = null;
-    let removeBackgroundFn = null;
-    let preloadFn = null;
-    let modelPreloaded = false;
-    let libraryLoading = false;
-
-    // Load AI library (wait for user action instead of auto-preload)
-    async function ensureLibraryLoaded() {
-      if (removeBackgroundFn) return true; // Already loaded
-      if (libraryLoading) {
-        // Wait for ongoing load
-        while (libraryLoading) {
-          await new Promise(r => setTimeout(r, 100));
-        }
-        return !!removeBackgroundFn;
-      }
-
-      try {
-        libraryLoading = true;
-        console.log('🚀 Loading AI library...');
-        // AI processing library loaded dynamically
-        ({ removeBackground: removeBackgroundFn, preload: preloadFn } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/index.mjs'));
-        console.log('✅ AI library loaded successfully!');
-        libraryLoading = false;
-        return true;
-      } catch (err) {
-        libraryLoading = false;
-        console.error('❌ Failed to load AI library:', err);
-        showError('AI library failed to load. Please check your internet connection and refresh the page.');
-        return false;
-      }
-    }
+    
+    // IMG.LY library REMOVED - Using backend only for best quality
 
     function dataURLToBlob(dataURL) {
       const [meta, encoded] = dataURL.split(',');
@@ -331,20 +302,76 @@
     // Use proxy endpoint for processing
     // ============================================
     
+    // Device Fingerprinting
+    function generateDeviceId() {
+      let deviceId = localStorage.getItem('deviceId');
+      if (!deviceId) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.textBaseline = 'top';
+        ctx.font = '14px Arial';
+        ctx.fillText('Device fingerprint', 2, 2);
+        
+        const fingerprint = [
+          navigator.userAgent,
+          navigator.language,
+          screen.width + 'x' + screen.height,
+          new Date().getTimezoneOffset(),
+          canvas.toDataURL()
+        ].join('|');
+        
+        deviceId = btoa(fingerprint).substring(0, 32);
+        localStorage.setItem('deviceId', deviceId);
+      }
+      return deviceId;
+    }
+    
+    const DEVICE_ID = generateDeviceId();
+    
+    // Get user info (from auth or session)
+    async function getUserInfo() {
+      try {
+        // Check if user is logged in (Firebase Auth)
+        if (typeof getAuth !== 'undefined') {
+          const { getAuth } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+          const auth = getAuth();
+          if (auth && auth.currentUser) {
+            return {
+              userId: auth.currentUser.uid,
+              userType: 'premium', // Assume premium if logged in, verify with subscription
+              authToken: await auth.currentUser.getIdToken()
+            };
+          }
+        }
+      } catch (e) {
+        console.warn('Auth check failed:', e);
+      }
+      
+      // Fallback to free user
+      return {
+        userId: 'anonymous',
+        userType: 'free',
+        authToken: null
+      };
+    }
+    
     // API Configuration - Updated to use PyTorch U2NetP backend
     const PROXY_API_URL = '/api/background-remove-pytorch';
-    const PROXY_HEALTH_URL = '/api/background-remove-pytorch/health'; // Health check through proxy
+    const PROXY_HEALTH_URL = '/api/background-remove-pytorch/health';
+    const PROXY_USAGE_URL = '/api/background-remove-pytorch/usage';
     const API_VERSION = 'pytorch-u2netp-1.1'; // Cache busting version
     
     // Test backend connection on load (using proxy to avoid CORS)
     async function testBackendConnection() {
       try {
+        const userInfo = await getUserInfo();
         const response = await fetch(PROXY_HEALTH_URL, {
           method: 'GET',
           headers: { 
             'Accept': 'application/json',
-            'X-User-ID': 'background-workspace',
-            'X-User-Type': 'free'
+            'X-User-ID': userInfo.userId,
+            'X-User-Type': userInfo.userType,
+            'X-Device-ID': DEVICE_ID
           }
         });
         if (response.ok) {
@@ -400,13 +427,18 @@
         let response = null;
         
         try {
-          response = await fetch('/api/background-remove-rembg', {
+          // Get user info and device ID
+          const userInfo = await getUserInfo();
+          
+          response = await fetch('/api/background-remove-pytorch', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
-              'X-User-ID': 'background-workspace',
-              'X-User-Type': 'free'
+              'X-User-ID': userInfo.userId,
+              'X-User-Type': userInfo.userType,
+              'X-Device-ID': DEVICE_ID,
+              'X-Auth-Token': userInfo.authToken || ''
             },
             body: JSON.stringify({ imageData: dataURL }),
             signal: controller.signal
@@ -485,16 +517,16 @@
           };
         }
         
-        // Provide more specific error messages
+        // Provide more specific error messages - NO FALLBACK
         if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
           return { 
             success: false, 
-            error: 'Network error. Please check your internet connection and try again. If the problem persists, the server may be temporarily unavailable.' 
+            error: 'Network error. Please check your internet connection and try again. If the problem persists, the server may be temporarily unavailable. Backend processing is required - no fallback available.' 
           };
         }
         
         // Check if error message contains service unavailable info
-        let errorMessage = error.message || 'Server connection failed. Please try again.';
+        let errorMessage = error.message || 'Backend processing failed. Please try again.';
         
         // Extract nested error messages from proxy responses
         if (errorMessage.includes('service is temporarily unavailable')) {
@@ -505,7 +537,7 @@
         
         return { 
           success: false, 
-          error: errorMessage
+          error: `Backend processing failed: ${errorMessage}. Please try again or contact support.` 
         };
       }
     }
@@ -614,70 +646,10 @@
           }
         }
 
-        // Route 2: Use browser processing for small/medium files (0-15 MB)
-        if (!config.useBackend && !resultUrl) {
-          // Ensure library is loaded
-          const libraryReady = await ensureLibraryLoaded();
-          if (!libraryReady || !removeBackgroundFn) {
-            showError('AI library not loaded. Please refresh the page and try again.');
-            return;
-          }
-
-          // Preload model if not already done
-          if (!modelPreloaded && typeof preloadFn === 'function') {
-            console.log('⏳ Preloading AI model for faster processing...');
-            statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⏳ Loading AI model (one-time, 30-45 sec)...</div>';
-            try {
-              await preloadFn({ 
-                publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
-                model: config.model
-              });
-              modelPreloaded = true;
-              console.log('✅ AI model preloaded and cached!');
-            } catch (err) {
-              console.warn('⚠️ Preload failed, will load during processing:', err);
-            }
-          }
-
-          const blob = await blobFromSource(dataURL, {
-            type: sessionStorage.getItem('bgRemover:originalType') || 'image/png',
-            size: fileSize
-          });
-          
-          if (!blob) throw new Error('Unable to read uploaded image.');
-          
-          const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'photo.png';
-          const fileForProcessing = new File([blob], filename, { type: blob.type || 'image/png' });
-
-          // Process with MAXIMUM quality and MINIMAL over-cleaning
-          const result = await removeBackgroundFn(fileForProcessing, {
-            publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
-            model: config.model,
-            output: { 
-              format: 'image/png', 
-              quality: config.quality,
-              type: 'foreground'
-            },
-            postprocessMask: {
-              featherRadius: 1,
-              smooth: 5
-            },
-            device: 'cpu',
-            progress: (key, current, total) => {
-              const percent = Math.round((current / total) * 100);
-              statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">🎨 Processing ${percent}% (Anti over-cleaning enabled)</div>`;
-            }
-          });
-
-          const resultBlob = result instanceof Blob ? result : await result.blob();
-          
-          // Post-processing: Enhance edges if needed (optional refinement)
-          resultUrl = await blobToDataURL(resultBlob);
-        }
-        
-        // Common result handling for both routes
+        // IMG.LY fallback REMOVED - Backend only for best quality
+        // If backend fails, show clear error (no fallback)
         if (!resultUrl) {
-          throw new Error('Failed to generate result image');
+          throw new Error('Backend processing failed. Please try again or contact support if the issue persists.');
         }
         
         sessionStorage.setItem(STORAGE_KEYS.foreground, resultUrl);
@@ -794,7 +766,10 @@
       }
     });
 
-    document.getElementById('footerYear').textContent = new Date().getFullYear();
+    const footerYear = document.getElementById('footerYear');
+    if (footerYear) {
+      footerYear.textContent = new Date().getFullYear();
+    }
   </script>
     
 <script type="module">

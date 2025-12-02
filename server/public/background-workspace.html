@@ -231,37 +231,8 @@
     let resultCanvas = null;
     let resultContext = null;
     let resultDataURL = null;
-    let removeBackgroundFn = null;
-    let preloadFn = null;
-    let modelPreloaded = false;
-    let libraryLoading = false;
-
-    // Load AI library (wait for user action instead of auto-preload)
-    async function ensureLibraryLoaded() {
-      if (removeBackgroundFn) return true; // Already loaded
-      if (libraryLoading) {
-        // Wait for ongoing load
-        while (libraryLoading) {
-          await new Promise(r => setTimeout(r, 100));
-        }
-        return !!removeBackgroundFn;
-      }
-
-      try {
-        libraryLoading = true;
-        console.log('🚀 Loading AI library...');
-        // AI processing library loaded dynamically
-        ({ removeBackground: removeBackgroundFn, preload: preloadFn } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/index.mjs'));
-        console.log('✅ AI library loaded successfully!');
-        libraryLoading = false;
-        return true;
-      } catch (err) {
-        libraryLoading = false;
-        console.error('❌ Failed to load AI library:', err);
-        showError('AI library failed to load. Please check your internet connection and refresh the page.');
-        return false;
-      }
-    }
+    
+    // IMG.LY library REMOVED - Using backend only for best quality
 
     function dataURLToBlob(dataURL) {
       const [meta, encoded] = dataURL.split(',');
@@ -763,71 +734,21 @@
               outputSize: backendResult.outputSizeMB || 'unknown'
             });
           } else {
-            // All retries failed
-            const errorMsg = lastError || backendResult?.error || 'Processing failed';
+            // All retries failed - Show clear error, NO FALLBACK
+            const errorMsg = lastError || backendResult?.error || 'Backend processing failed';
+            console.error('❌ Backend processing failed after all retries:', errorMsg);
+            showError(`Backend processing failed: ${errorMsg}. Please try again in a few moments or contact support.`);
             throw new Error(errorMsg);
           }
+        } else {
+          // Backend is required - no fallback
+          throw new Error('Backend processing is required. Please ensure the service is available.');
         }
 
-        // Route 2: Use browser processing for small/medium files (0-15 MB)
-        if (!config.useBackend && !resultUrl) {
-          // Ensure library is loaded
-          const libraryReady = await ensureLibraryLoaded();
-          if (!libraryReady || !removeBackgroundFn) {
-            showError('AI library not loaded. Please refresh the page and try again.');
-            return;
-          }
-
-          // Preload model if not already done
-          if (!modelPreloaded && typeof preloadFn === 'function') {
-            console.log('⏳ Preloading AI model for faster processing...');
-            statusMessage.innerHTML = '<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⏳ Loading AI model (one-time, 30-45 sec)...</div>';
-            try {
-              await preloadFn({ 
-                publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
-                model: config.model
-              });
-              modelPreloaded = true;
-              console.log('✅ AI model preloaded and cached!');
-            } catch (err) {
-              console.warn('⚠️ Preload failed, will load during processing:', err);
-            }
-          }
-
-          const blob = await blobFromSource(dataURL, {
-            type: sessionStorage.getItem('bgRemover:originalType') || 'image/png',
-            size: fileSize
-          });
-          
-          if (!blob) throw new Error('Unable to read uploaded image.');
-          
-          const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'photo.png';
-          const fileForProcessing = new File([blob], filename, { type: blob.type || 'image/png' });
-
-          // Process with MAXIMUM quality and MINIMAL over-cleaning
-          const result = await removeBackgroundFn(fileForProcessing, {
-            publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
-            model: config.model,
-            output: { 
-              format: 'image/png', 
-              quality: config.quality,
-              type: 'foreground'
-            },
-            postprocessMask: {
-              featherRadius: 1,
-              smooth: 5
-            },
-            device: 'cpu',
-            progress: (key, current, total) => {
-              const percent = Math.round((current / total) * 100);
-              statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">🎨 Processing ${percent}% (Anti over-cleaning enabled)</div>`;
-            }
-          });
-
-          const resultBlob = result instanceof Blob ? result : await result.blob();
-          
-          // Post-processing: Enhance edges if needed (optional refinement)
-          resultUrl = await blobToDataURL(resultBlob);
+        // IMG.LY fallback REMOVED - Backend only for best quality
+        // If backend fails, show clear error (no fallback)
+        if (!resultUrl) {
+          throw new Error('Backend processing failed. Please try again or contact support if the issue persists.');
         }
         
         // Common result handling for both routes
