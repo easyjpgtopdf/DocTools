@@ -22,6 +22,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY app.py .
+COPY u2net_model.py .
 
 # Clear Python cache
 RUN find /app -type d -name __pycache__ -exec rm -r {} + 2>/dev/null || true
