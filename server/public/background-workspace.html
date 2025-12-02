@@ -4,7 +4,14 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
-<title>Background Workspace | easyjpgtopdf</title>
+<title>Background Removal Workspace - Edit & Download Transparent Images | easyjpgtopdf</title>
+    <meta name="description" content="Background removal workspace. Edit and download transparent PNG images. Remove background from image online. Free AI background remover tool with instant processing.">
+    <meta name="keywords" content="background removal workspace, remove background, transparent image, background remover, remove image background, ai background remover, transparent png, background removal tool, free background remover">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="Background Removal Workspace - Edit & Download Transparent Images">
+    <meta property="og:description" content="Edit and download transparent PNG images. Remove background from image online with AI.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://easyjpgtopdf.com/background-workspace.html">
 <link href="css/footer.css" rel="stylesheet"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
 <script type="importmap">
@@ -163,7 +170,7 @@
     </nav>
 <main>
 <section class="panel">
-<h2><i class="fas fa-wand-magic-sparkles"></i> Background Removed</h2>
+<h1>Free AI Background Remover - Remove Background from Image</h1>
 <div class="preview-stage" id="previewStage">
 <img alt="Original" class="preview-original" hidden="" id="previewOriginal"/>
 <img alt="Result" class="preview-result" hidden="" id="previewResult"/>
@@ -186,18 +193,19 @@
 </div>
 </section>
 <section class="panel">
-<h2><i class="fas fa-info-circle"></i> Processing Info</h2>
+<h2>Processing Information</h2>
 <div class="status-card" id="statusMessage"></div>
 <!-- Animated Demo -->
 <div style="margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(67,97,238,0.15);">
 <img alt="AI Processing Demo" src="images/bg-removal-jungle-demo.svg" style="width: 100%; height: auto; display: block;"/>
 </div>
 <div class="status-card">
-<strong>✓ 3-Tier Smart Processing</strong>
-<p>• <strong>0-15 MB</strong>: Fast browser (IMG.LY AI) - Free</p>
-<p>• <strong>15-100 MB</strong>: Cloud server (Google Cloud Run) - Premium</p>
-<p>• Automatic routing for optimal speed &amp; cost</p>
-<p>• Professional AI quality at every tier</p>
+<strong>✓ Professional AI Processing</strong>
+<p>• Fast and accurate background removal</p>
+<p>• Automatic processing for optimal results</p>
+<p>• Professional quality output</p>
+<p>• Free: 1 MB per upload, 40 images/month</p>
+<p>• Premium: 50 MB per upload, 500 MB monthly quota</p>
 </div>
 </section>
 </main>
@@ -226,7 +234,7 @@
     let modelPreloaded = false;
     let libraryLoading = false;
 
-    // Load IMG.LY library (wait for user action instead of auto-preload)
+    // Load AI library (wait for user action instead of auto-preload)
     async function ensureLibraryLoaded() {
       if (removeBackgroundFn) return true; // Already loaded
       if (libraryLoading) {
@@ -240,6 +248,7 @@
       try {
         libraryLoading = true;
         console.log('🚀 Loading AI library...');
+        // AI processing library loaded dynamically
         ({ removeBackground: removeBackgroundFn, preload: preloadFn } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/index.mjs'));
         console.log('✅ AI library loaded successfully!');
         libraryLoading = false;
@@ -317,16 +326,9 @@
 
     // ============================================
     // HIGH QUALITY AI BACKGROUND REMOVER
-    // 3-Tier Processing System (Fast + Free + Scalable)
+    // Professional AI Processing System
     // ============================================
-    // Tier 1: 0-15 MB → IMG.LY (Browser AI) - Instant, Free, Unlimited
-    // Tier 2: 15-50 MB → Render Backend (Python Rembg) - Free 750hrs/month
-    // Tier 3: 50-100 MB → Cloud Run (Docker Rembg) - Free 2M requests/month
-    // ============================================
-    // GOOGLE CLOUD RUN BACKEND CONFIGURATION
-    // ============================================
-    // Use proxy endpoint to avoid CORS issues
-    // The proxy endpoint forwards requests to Cloud Run API
+    // Use proxy endpoint for processing
     // ============================================
     
     const PROXY_API_URL = '/api/background-remove';
@@ -341,8 +343,8 @@
         });
         if (response.ok) {
           const data = await response.json();
-          console.log('✅ Google Cloud Run Backend Connected:', data);
-          console.log('✅ Using u2net rembg model:', data.model || 'u2net');
+          console.log('✅ Backend Connected:', data);
+          console.log('✅ Using AI model:', data.model || 'default');
           return true;
         } else {
           console.warn('⚠️ Backend health check failed:', response.status);
@@ -357,37 +359,34 @@
     // Test connection immediately
     testBackendConnection();
     
-    // All processing uses Google Cloud Run (through proxy)
+    // All processing uses backend (through proxy)
     function getProcessingConfig(fileSize) {
       const sizeMB = fileSize / (1024 * 1024);
       
-      // All files processed via Google Cloud Run (through proxy)
+      // All files processed via backend (through proxy)
       return {
         useBackend: true,
         backendUrl: PROXY_API_URL,
         timeout: 300000,
-        description: 'Google Cloud Run - Rembg U²-Net',
-        message: `Processing ${sizeMB.toFixed(1)} MB with Google Cloud AI`,
-        tier: 'cloudrun',
-        info: '☁️ Google Cloud Processing - Rembg U²-Net Latest',
+        description: 'AI Background Removal',
+        message: `Processing ${sizeMB.toFixed(1)} MB with AI`,
+        tier: 'ai',
+        info: '☁️ AI Processing',
         quality: 1.0
       };
     }
 
-    // Process image using Google Cloud Run backend (through proxy)
+    // Process image using backend (through proxy)
     async function processWithBackend(dataURL, backendUrl, config) {
-      // Use proxy endpoint (no CORS issues)
-      const cleanUrl = backendUrl.split('?')[0];
-      
       try {
-        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">☁️ Uploading to Google Cloud AI...</div>`;
+        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">☁️ Uploading for AI processing...</div>`;
         
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 180000);
         
         // Log request details for debugging
         const imageSize = Math.ceil((dataURL.split(',')[1]?.length || 0) * 0.75 / 1024);
-        console.log('📤 Sending request to:', cleanUrl);
+        console.log('📤 Sending request to:', '/api/background-remove');
         console.log('📊 Image size:', imageSize, 'KB');
         console.log('📊 Data URL length:', dataURL.length);
         
@@ -395,7 +394,7 @@
         let response = null;
         
         try {
-          response = await fetch(cleanUrl, {
+          response = await fetch('/api/background-remove', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -490,7 +489,7 @@
         let errorMessage = error.message || 'Server connection failed. Please try again.';
         
         // Extract nested error messages from proxy responses
-        if (errorMessage.includes('Google Cloud Run service is temporarily unavailable')) {
+        if (errorMessage.includes('service is temporarily unavailable')) {
           errorMessage = 'Service is warming up. Please wait 15-20 seconds and try again. The service is configured to stay warm, but first request may take longer.';
         } else if (errorMessage.includes('cold starting') || errorMessage.includes('warming up')) {
           errorMessage = 'Service is warming up. Please wait 15-20 seconds and try again.';
@@ -532,7 +531,7 @@
         let resultUrl = null;
         let processingMethod = 'Browser AI';
 
-        // ===== All Processing via Google Cloud Run =====
+        // ===== All Processing via Backend =====
         if (config.useBackend) {
           statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">${config.info}</div>`;
           
@@ -558,7 +557,7 @@
                 break;
               } else {
                 // Check if it's a retryable error
-                const errorMsg = backendResult.error || 'Google Cloud processing failed';
+                const errorMsg = backendResult.error || 'Processing failed';
                 const isRetryable = errorMsg.includes('temporarily unavailable') || 
                                   errorMsg.includes('cold starting') || 
                                   errorMsg.includes('warming up') ||
@@ -596,13 +595,13 @@
             processingMethod = backendResult.processedWith || config.description;
             
             // Log success
-            console.log('✅ Google Cloud processing successful:', {
+            console.log('✅ Processing successful:', {
               tier: config.tier,
               outputSize: backendResult.outputSizeMB || 'unknown'
             });
           } else {
             // All retries failed
-            const errorMsg = lastError || backendResult?.error || 'Google Cloud processing failed';
+            const errorMsg = lastError || backendResult?.error || 'Processing failed';
             throw new Error(errorMsg);
           }
         }
@@ -717,6 +716,26 @@
       }
     }
 
+    // Warmup request every 10 minutes to keep service warm
+    setInterval(async () => {
+      try {
+        await fetch('/api/background-remove/health', { method: 'GET' });
+        console.log('✅ Warmup request sent');
+      } catch (error) {
+        console.warn('⚠️ Warmup request failed:', error);
+      }
+    }, 10 * 60 * 1000); // 10 minutes
+    
+    // Initial warmup on page load
+    setTimeout(async () => {
+      try {
+        await fetch('/api/background-remove/health', { method: 'GET' });
+        console.log('✅ Initial warmup request sent');
+      } catch (error) {
+        console.warn('⚠️ Initial warmup request failed:', error);
+      }
+    }, 2000); // 2 seconds after page load
+    
     const storedOriginal = sessionStorage.getItem(STORAGE_KEYS.original);
     if (!storedOriginal) {
       previewStage.classList.add('empty');
@@ -735,11 +754,21 @@
 
     downloadBtn.addEventListener('click', () => {
       if (!resultDataURL) return;
-      const link = document.createElement('a');
-      const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-removed.png';
-      link.href = resultDataURL;
-      link.download = filename.endsWith('.png') ? filename : `${filename.replace(/\.[^/.]+$/, '') || 'background-removed'}.png`;
-      link.click();
+      
+      try {
+        // Download
+        const link = document.createElement('a');
+        const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-removed.png';
+        link.href = resultDataURL;
+        link.download = filename.endsWith('.png') ? filename : `${filename.replace(/\.[^/.]+$/, '') || 'background-removed'}.png`;
+        link.click();
+        
+        // Show success message
+        showStatus('Downloaded successfully.');
+      } catch (error) {
+        console.error('Download error:', error);
+        showError('Download failed. Please try again.');
+      }
     });
 
     document.getElementById('footerYear').textContent = new Date().getFullYear();
@@ -772,7 +801,7 @@
             </div>
             <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
             <p class="footer-credits">
-                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+                Built with open-source technologies.
                 <a href="attributions.html">See full acknowledgements</a>.
             </p>
         </div>
