@@ -331,8 +331,10 @@
     // Use proxy endpoint for processing
     // ============================================
     
+    // API Configuration - Updated to use alternative backend (no onnxruntime)
     const PROXY_API_URL = '/api/background-remove-v2-alt';
     const PROXY_HEALTH_URL = '/api/background-remove-v2-alt/health'; // Health check through proxy
+    const API_VERSION = 'v2-alt-1.0'; // Cache busting version
     
     // Test backend connection on load (using proxy to avoid CORS)
     async function testBackendConnection() {
@@ -390,7 +392,7 @@
         
         // Log request details for debugging
         const imageSize = Math.ceil((dataURL.split(',')[1]?.length || 0) * 0.75 / 1024);
-        console.log('📤 Sending request to:', '/api/background-remove-v2-alt');
+        console.log('📤 Sending request to:', PROXY_API_URL, '(Version:', API_VERSION + ')');
         console.log('📊 Image size:', imageSize, 'KB');
         console.log('📊 Data URL length:', dataURL.length);
         
