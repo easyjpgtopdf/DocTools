@@ -7,12 +7,12 @@ $PROJECT_ID = "easyjpgtopdf-de346"
 $SERVICE_NAME = "bg-remover-pytorch-u2net"
 $REGION = "us-central1"
 $IMAGE_NAME = "gcr.io/$PROJECT_ID/$SERVICE_NAME"
-$MEMORY = "6Gi"  # 6GB for U2Net Full (larger model, better quality)
+$MEMORY = "8Gi"  # 8GB for U2Net Full (larger model, better quality)
 $CPU = "2"  # 2 vCPU for better performance
 $TIMEOUT = "300"  # 5 minutes
 $MAX_INSTANCES = "10"
 $MIN_INSTANCES = "1"  # Keep service warm (always running)
-$CONCURRENCY = "1"  # Start with 1 for stability
+$CONCURRENCY = "1"  # 1 for stability
 
 # --- Build Docker Image ---
 Write-Host "`n=== Building Docker Image ===" -ForegroundColor Cyan

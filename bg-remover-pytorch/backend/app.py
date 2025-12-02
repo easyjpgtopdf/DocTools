@@ -1,7 +1,7 @@
 # ============================================
 # PURE PYTORCH U2NET FULL MODEL BACKGROUND REMOVER
 # Cloud Run Compatible (No ONNX, No rembg)
-# Optimized for 6GB Memory, 2 CPU (U2Net Full requires more memory)
+# Optimized for 8GB Memory, 2 CPU (U2Net Full requires more memory)
 # With Device Tracking, Image Compression, and Enhanced Limits
 # IMPROVED: Better quality with alpha matting and edge preservation
 # U2Net Full Model - Better Quality than U2NetP
