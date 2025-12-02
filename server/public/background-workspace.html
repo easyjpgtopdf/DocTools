@@ -965,7 +965,10 @@
       }
     });
 
-    document.getElementById('footerYear').textContent = new Date().getFullYear();
+    const footerYear = document.getElementById('footerYear');
+    if (footerYear) {
+      footerYear.textContent = new Date().getFullYear();
+    }
   </script>
     
 <script type="module">

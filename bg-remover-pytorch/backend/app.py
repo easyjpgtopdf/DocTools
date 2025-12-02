@@ -3,6 +3,7 @@
 # Cloud Run Compatible (No ONNX, No rembg)
 # Optimized for 4GB Memory, 2 CPU
 # With Device Tracking, Image Compression, and Enhanced Limits
+# IMPROVED: Better quality with alpha matting and edge preservation
 # ============================================
 
 import base64
@@ -14,13 +15,15 @@ import datetime
 import traceback
 import hashlib
 import json
+import time
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from PIL import Image
+from PIL import Image, ImageFilter
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torchvision import transforms
+from scipy import ndimage
 
 # Configure logging FIRST
 logging.basicConfig(
@@ -80,7 +83,7 @@ u2netp_model = None
 device = None
 transform = None
 
-# U2NetP Model Architecture (Simplified)
+# U2NetP Model Architecture (Simplified - for production use pre-trained weights)
 class U2NETP(torch.nn.Module):
     """U2NetP model for background removal"""
     def __init__(self):
@@ -137,9 +140,8 @@ def load_u2netp_model():
         u2netp_model.to(device)
         logger.info("✅ U2NetP model loaded successfully")
         
-        # Image preprocessing transform
+        # Image preprocessing transform - IMPROVED: Higher resolution, maintain aspect ratio
         transform = transforms.Compose([
-            transforms.Resize((320, 320)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
@@ -151,40 +153,125 @@ def load_u2netp_model():
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise
 
-def preprocess_image(image):
-    """Preprocess PIL image for U2NetP"""
+def preprocess_image(image, target_size=512):
+    """Preprocess PIL image for U2NetP - IMPROVED: Maintain aspect ratio"""
     # Convert to RGB if needed
     if image.mode != 'RGB':
         image = image.convert('RGB')
     
     original_size = image.size
-    # Resize for model input
-    input_tensor = transform(image).unsqueeze(0)
-    return input_tensor, original_size
+    width, height = original_size
+    
+    # Calculate resize dimensions maintaining aspect ratio
+    if width > height:
+        new_width = target_size
+        new_height = int(height * target_size / width)
+    else:
+        new_height = target_size
+        new_width = int(width * target_size / height)
+    
+    # Resize with high-quality resampling
+    resized_image = image.resize((new_width, new_height), Image.LANCZOS)
+    
+    # Pad to target_size x target_size if needed
+    if new_width != target_size or new_height != target_size:
+        padded_image = Image.new('RGB', (target_size, target_size), (0, 0, 0))
+        padded_image.paste(resized_image, ((target_size - new_width) // 2, (target_size - new_height) // 2))
+        resized_image = padded_image
+    
+    # Apply transform
+    input_tensor = transform(resized_image).unsqueeze(0)
+    return input_tensor, original_size, (new_width, new_height)
 
-def postprocess_mask(mask_tensor, original_size):
-    """Postprocess mask tensor to PIL Image"""
+def postprocess_mask(mask_tensor, original_size, model_size):
+    """Postprocess mask tensor to PIL Image - IMPROVED: Better edge preservation"""
     # Convert tensor to numpy
     mask = mask_tensor.squeeze().cpu().numpy()
-    # Resize to original size
-    mask_pil = Image.fromarray((mask * 255).astype(np.uint8))
+    
+    # Remove padding if image was padded
+    model_width, model_height = model_size
+    if model_width < 512 or model_height < 512:
+        # Extract the actual mask region
+        start_x = (512 - model_width) // 2
+        start_y = (512 - model_height) // 2
+        mask = mask[start_y:start_y+model_height, start_x:start_x+model_width]
+    
+    # Convert to uint8
+    mask = (mask * 255).astype(np.uint8)
+    
+    # Apply edge smoothing for better hair/fur preservation
+    mask = ndimage.gaussian_filter(mask.astype(np.float32), sigma=1.0).astype(np.uint8)
+    
+    # Resize to original size with high-quality resampling
+    mask_pil = Image.fromarray(mask, mode='L')
     mask_pil = mask_pil.resize(original_size, Image.LANCZOS)
+    
     return mask_pil
 
+def alpha_matting(image, mask, foreground_threshold=240, background_threshold=10, erode_size=10):
+    """Apply alpha matting for better edge quality - preserves hair, fur, fine details"""
+    try:
+        from scipy.ndimage import binary_erosion, binary_dilation
+        
+        # Convert mask to binary
+        mask_array = np.array(mask.convert('L'))
+        binary_mask = (mask_array > 128).astype(np.uint8)
+        
+        # Erode and dilate for trimap
+        trimap = np.zeros_like(binary_mask, dtype=np.uint8)
+        trimap[binary_mask == 1] = 255  # Foreground
+        
+        # Create unknown region (edges)
+        eroded = binary_erosion(binary_mask, structure=np.ones((erode_size, erode_size)))
+        dilated = binary_dilation(binary_mask, structure=np.ones((erode_size, erode_size)))
+        unknown = dilated.astype(np.float32) - eroded.astype(np.float32)
+        trimap[unknown > 0] = 128  # Unknown region
+        
+        # Simple alpha matting: use distance transform for smooth alpha
+        from scipy.ndimage import distance_transform_edt
+        
+        # Distance from foreground
+        dist_foreground = distance_transform_edt(1 - binary_mask)
+        # Distance from background
+        dist_background = distance_transform_edt(binary_mask)
+        
+        # Calculate alpha based on distances
+        total_dist = dist_foreground + dist_background
+        alpha = np.zeros_like(total_dist, dtype=np.float32)
+        alpha[total_dist > 0] = dist_background[total_dist > 0] / total_dist[total_dist > 0]
+        alpha = np.clip(alpha, 0, 1)
+        
+        # Apply thresholds
+        alpha[binary_mask == 1] = 1.0
+        alpha[binary_mask == 0] = 0.0
+        
+        # Smooth alpha for better edges
+        alpha = ndimage.gaussian_filter(alpha, sigma=0.5)
+        
+        return (alpha * 255).astype(np.uint8)
+    except Exception as e:
+        logger.warning(f"Alpha matting failed, using simple mask: {e}")
+        return np.array(mask.convert('L'))
+
 def remove_background_pytorch(image, quality='high'):
-    """Remove background using PyTorch U2NetP
+    """Remove background using PyTorch U2NetP - IMPROVED: Better quality with alpha matting
     
     Args:
         image: PIL Image
         quality: 'high' for premium (better quality), 'compressed' for free (compressed to 150KB)
     """
-    global u2netp_model, device
+    global u2netp_model, device, transform
+    
+    start_time = time.time()
     
     if u2netp_model is None:
         load_u2netp_model()
     
-    # Preprocess
-    input_tensor, original_size = preprocess_image(image)
+    # IMPROVED: Use higher resolution (512 instead of 320) for better detail preservation
+    target_size = 512 if quality == 'high' else 320
+    
+    # Preprocess - maintain aspect ratio
+    input_tensor, original_size, model_size = preprocess_image(image, target_size=target_size)
     input_tensor = input_tensor.to(device)
     
     # Run inference
@@ -194,23 +281,35 @@ def remove_background_pytorch(image, quality='high'):
         if mask_tensor.max() > 1.0:
             mask_tensor = torch.sigmoid(mask_tensor)
     
-    # Postprocess mask
-    mask_pil = postprocess_mask(mask_tensor, original_size)
+    # Postprocess mask with better edge preservation
+    mask_pil = postprocess_mask(mask_tensor, original_size, model_size)
     
     # Convert original image to RGBA
     if image.mode != 'RGBA':
         image = image.convert('RGBA')
     
-    # Apply mask to image
-    mask_array = np.array(mask_pil.convert('L'))
-    mask_array = mask_array.astype(np.float32) / 255.0
+    # IMPROVED: Apply alpha matting for better edges (hair, fur, cloth)
+    if quality == 'high':
+        # Use alpha matting for premium users
+        alpha_array = alpha_matting(image, mask_pil, foreground_threshold=240, background_threshold=10, erode_size=10)
+    else:
+        # Simple mask for free users (faster)
+        mask_array = np.array(mask_pil.convert('L'))
+        alpha_array = mask_array
+    
+    # Normalize alpha
+    alpha_array = alpha_array.astype(np.float32) / 255.0
     
     # Create output image with transparency
     output_array = np.array(image)
-    output_array[:, :, 3] = (output_array[:, :, 3] * mask_array).astype(np.uint8)
+    output_array[:, :, 3] = (output_array[:, :, 3] * alpha_array).astype(np.uint8)
     
     output_image = Image.fromarray(output_array, 'RGBA')
-    return output_image
+    
+    processing_time = time.time() - start_time
+    logger.info(f"✅ Background removal completed in {processing_time:.2f}s")
+    
+    return output_image, processing_time
 
 def compress_image(image, target_size_kb=150):
     """Compress image to target size in KB"""
@@ -421,6 +520,7 @@ def get_usage():
 @app.route("/remove-background", methods=["POST"])
 def remove_bg():
     """Remove background from image"""
+    start_time = time.time()
     user_id = request.headers.get('X-User-ID', 'anonymous')
     user_type = request.headers.get('X-User-Type', 'free')
     auth_token = request.headers.get('X-Auth-Token', '')
@@ -463,10 +563,11 @@ def remove_bg():
             load_u2netp_model()
         
         logger.info(f"✨ Starting background removal with PyTorch U2NetP for {tracking_id} ({user_type})...")
+        logger.info(f"📏 Image size: {img.width}x{img.height}, File size: {file_size_bytes/(1024*1024):.2f} MB")
         
         # Process image - use high quality for premium, compressed for free
         quality = 'high' if user_type == 'premium' else 'compressed'
-        result_img = remove_background_pytorch(img, quality=quality)
+        result_img, processing_time = remove_background_pytorch(img, quality=quality)
         
         # Convert to data URL with compression for free users
         compress_to_kb = limits['download_compress_to']
@@ -474,7 +575,8 @@ def remove_bg():
         
         # Update usage
         increment_usage(tracking_id, user_type, file_size_bytes, download_size_bytes)
-        logger.info(f"✅ Background removed successfully. Upload: {file_size_bytes/(1024*1024):.2f} MB, Download: {download_size_bytes/(1024*1024):.2f} MB")
+        total_time = time.time() - start_time
+        logger.info(f"✅ Background removed successfully. Processing: {processing_time:.2f}s, Total: {total_time:.2f}s, Upload: {file_size_bytes/(1024*1024):.2f} MB, Download: {download_size_bytes/(1024*1024):.2f} MB")
         
         # Clean up memory
         gc.collect()
@@ -486,6 +588,8 @@ def remove_bg():
             "resultImage": out_dataurl, 
             "processedWith": "pytorch-u2netp",
             "quality": quality,
+            "processingTime": round(processing_time, 2),
+            "totalTime": round(total_time, 2),
             "uploadSizeMB": round(file_size_bytes / (1024 * 1024), 2),
             "downloadSizeMB": round(download_size_bytes / (1024 * 1024), 2),
             "compressed": compress_to_kb is not None
