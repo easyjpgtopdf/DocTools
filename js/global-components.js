@@ -23,6 +23,29 @@ if (typeof window.currentPage === 'undefined') {
 }
 currentPage = window.currentPage;
 
+// Global Account Section HTML (Above Header)
+const globalAccountSectionHTML = `
+<div id="account-section" class="account-section" style="display: none;">
+    <div class="container">
+        <div id="user-menu" class="user-menu" data-open="false">
+            <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
+                <span class="account-label">Account</span>
+                <span class="user-id" id="user-id-display"></span>
+                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+            </button>
+            <div class="user-dropdown" id="user-dropdown" hidden>
+                <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+                <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+                <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+                <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders & Subscriptions</a>
+                <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
+                <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+            </div>
+        </div>
+    </div>
+</div>
+`;
+
 // Global Header HTML
 const globalHeaderHTML = `
 <header>
@@ -105,20 +128,6 @@ const globalHeaderHTML = `
                         <a href="pricing.html">Pricing</a>
                         <a href="blog.html">Blog / Articles</a>
                     </div>
-                </div>
-            </div>
-            <div id="user-menu" class="user-menu" data-open="false">
-                <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
-                    <span class="user-initial" aria-hidden="true">U</span>
-                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                </button>
-                <div class="user-dropdown" id="user-dropdown" hidden>
-                    <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
-                    <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
-                    <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
-                    <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders & Subscriptions</a>
-                    <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
-                    <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
                 </div>
             </div>
         </nav>
@@ -252,6 +261,45 @@ const globalFooterHTML = `
 </footer>
 `;
 
+// Function to load account section
+function loadAccountSection() {
+    // Check if account section already exists
+    const existingAccountSection = document.getElementById('account-section');
+    if (existingAccountSection) {
+        return;
+    }
+    
+    // Try to insert account section before header
+    const header = document.querySelector('header');
+    if (header) {
+        try {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = globalAccountSectionHTML.trim();
+            const accountElement = tempDiv.firstElementChild;
+            if (accountElement) {
+                header.parentNode.insertBefore(accountElement, header);
+            }
+        } catch (error) {
+            console.error('Error adding account section:', error);
+        }
+    } else {
+        // If no header yet, try to insert at body start
+        const body = document.body;
+        if (body) {
+            try {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = globalAccountSectionHTML.trim();
+                const accountElement = tempDiv.firstElementChild;
+                if (accountElement) {
+                    body.insertBefore(accountElement, body.firstChild);
+                }
+            } catch (error) {
+                console.error('Error adding account section to body:', error);
+            }
+        }
+    }
+}
+
 // Function to load header
 function loadGlobalHeader() {
     // Check if header already exists and is properly loaded
@@ -263,10 +311,15 @@ function loadGlobalHeader() {
             initializeMobileMenu();
             mobileToggle.setAttribute('data-initialized', 'true');
         }
+        // Also ensure account section is loaded
+        loadAccountSection();
         return;
     }
     
     console.log('loadGlobalHeader called - attempting to load header...');
+    
+    // Load account section first
+    loadAccountSection();
     
     // Try to find placeholder
     let headerPlaceholder = document.getElementById('global-header-placeholder');
@@ -282,6 +335,7 @@ function loadGlobalHeader() {
                 highlightActiveLink();
                 initializeMobileMenu();
                 loadGlobalBreadcrumb();
+                loadAccountSection();
                 console.log('Header loaded successfully!');
             });
             return;
@@ -310,6 +364,7 @@ function loadGlobalHeader() {
                         highlightActiveLink();
                         initializeMobileMenu();
                         loadGlobalBreadcrumb();
+                        loadAccountSection();
                         console.log('Header loaded successfully (fallback method)!');
                     });
                 }

@@ -931,12 +931,16 @@ async function handleLogout() {
 
 function updateUI(user) {
   const dashboard = document.getElementById('user-dashboard');
+  const accountSection = document.getElementById('account-section');
   if (user) {
     if (authButtons) authButtons.style.display = 'none';
+    if (accountSection) {
+      // Show account section above header
+      accountSection.style.display = 'block';
+    }
     if (userMenu) {
       // ensure the menu is in a closed state when switching to an authenticated UI
       try { closeUserDropdown(); } catch (e) {}
-      userMenu.style.display = 'flex';
       // also ensure ARIA state is consistent
       if (userMenuToggle) userMenuToggle.setAttribute('aria-expanded', 'false');
       if (userDropdown) userDropdown.hidden = true;
@@ -955,6 +959,10 @@ function updateUI(user) {
     updateUserMenuBadge(user);
   } else {
     if (authButtons) authButtons.style.display = 'flex';
+    if (accountSection) {
+      // Hide account section when user is not logged in
+      accountSection.style.display = 'none';
+    }
     if (userMenu) userMenu.style.display = 'none';
     if (dashboard) {
       dashboard.style.display = 'none';
@@ -982,10 +990,12 @@ onAuthStateChanged(auth, (user) => {
 
 function updateUserMenuBadge(user) {
   if (!userMenuToggle) return;
-  const initialEl = userMenuToggle.querySelector('.user-initial');
-  if (initialEl) {
-    const name = user.displayName || user.email || '';
-    initialEl.textContent = name.trim().charAt(0).toUpperCase() || 'U';
+  // Update user ID display in account section
+  const userIdDisplay = document.getElementById('user-id-display');
+  if (userIdDisplay && user && user.uid) {
+    // Show first 8 characters of user ID for brevity
+    const shortId = user.uid.substring(0, 8);
+    userIdDisplay.textContent = shortId;
   }
 }
 
