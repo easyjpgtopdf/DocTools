@@ -429,6 +429,10 @@ let documentClickHandlerBound = false;
 
 function initializeAuthUI() {
   if (authUiInitialized) {
+    // Re-fetch user menu elements in case account section was loaded after initial init
+    userMenu = document.getElementById('user-menu');
+    userMenuToggle = document.getElementById('user-menu-toggle');
+    userDropdown = document.getElementById('user-dropdown');
     updateUI(auth.currentUser || null);
     return;
   }
@@ -931,13 +935,54 @@ async function handleLogout() {
 
 function updateUI(user) {
   const dashboard = document.getElementById('user-dashboard');
-  const accountSection = document.getElementById('account-section');
+  let accountSection = document.getElementById('account-section');
+  
+  // If account section doesn't exist, try to load it
+  if (!accountSection && typeof loadAccountSection === 'function') {
+    loadAccountSection();
+    accountSection = document.getElementById('account-section');
+  }
+  
   if (user) {
     if (authButtons) authButtons.style.display = 'none';
+    
+    // Ensure account section exists and is visible
+    if (!accountSection) {
+      // Try to load account section if it doesn't exist
+      if (typeof window.loadAccountSection === 'function') {
+        window.loadAccountSection();
+        accountSection = document.getElementById('account-section');
+      }
+    }
+    
     if (accountSection) {
       // Show account section above header
       accountSection.style.display = 'block';
+      accountSection.style.visibility = 'visible';
+    } else {
+      // If still not found, try loading account section again after a delay
+      setTimeout(() => {
+        if (typeof window.loadAccountSection === 'function') {
+          window.loadAccountSection();
+          const retryAccountSection = document.getElementById('account-section');
+          if (retryAccountSection) {
+            retryAccountSection.style.display = 'block';
+            retryAccountSection.style.visibility = 'visible';
+            // Re-initialize auth UI to get the menu elements
+            if (typeof window.initializeAuthUI === 'function') {
+              window.initializeAuthUI();
+            }
+          }
+        }
+      }, 500);
     }
+    // Re-fetch user menu elements in case account section was loaded after initial init
+    if (!userMenu || !userMenuToggle || !userDropdown) {
+      userMenu = document.getElementById('user-menu');
+      userMenuToggle = document.getElementById('user-menu-toggle');
+      userDropdown = document.getElementById('user-dropdown');
+    }
+    
     if (userMenu) {
       // ensure the menu is in a closed state when switching to an authenticated UI
       try { closeUserDropdown(); } catch (e) {}
@@ -1108,5 +1153,10 @@ if (document.readyState === 'loading') {
 }
 
 restoreRedirectResult();
+
+// Make initializeAuthUI available globally for account section loading
+if (typeof window !== 'undefined') {
+  window.initializeAuthUI = initializeAuthUI;
+}
 
 export { auth };

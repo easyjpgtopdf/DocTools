@@ -278,6 +278,12 @@ function loadAccountSection() {
             const accountElement = tempDiv.firstElementChild;
             if (accountElement) {
                 header.parentNode.insertBefore(accountElement, header);
+                // Re-initialize auth UI after account section is loaded
+                if (typeof window.initializeAuthUI === 'function') {
+                    setTimeout(() => {
+                        window.initializeAuthUI();
+                    }, 100);
+                }
             }
         } catch (error) {
             console.error('Error adding account section:', error);
@@ -292,6 +298,12 @@ function loadAccountSection() {
                 const accountElement = tempDiv.firstElementChild;
                 if (accountElement) {
                     body.insertBefore(accountElement, body.firstChild);
+                    // Re-initialize auth UI after account section is loaded
+                    if (typeof window.initializeAuthUI === 'function') {
+                        setTimeout(() => {
+                            window.initializeAuthUI();
+                        }, 100);
+                    }
                 }
             } catch (error) {
                 console.error('Error adding account section to body:', error);
@@ -556,17 +568,21 @@ if (!window.globalComponentsInitialized) {
         if (!document.querySelector('header')) {
             forceLoadHeader();
         }
+        // Ensure account section is loaded
+        loadAccountSection();
     });
 }
 
 // Export functions for manual use if needed
 window.loadGlobalHeader = loadGlobalHeader;
 window.loadGlobalFooter = loadGlobalFooter;
+window.loadAccountSection = loadAccountSection;
 
 // Make function available globally immediately
 if (typeof window !== 'undefined') {
     window.loadGlobalHeader = loadGlobalHeader;
     window.loadGlobalFooter = loadGlobalFooter;
+    window.loadAccountSection = loadAccountSection;
 }
 
 })(); // Close IIFE to prevent duplicate execution
