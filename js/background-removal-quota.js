@@ -5,21 +5,19 @@
  * Device fingerprinting for free users (IP + device ID)
  */
 
-import { getDeviceInfo, checkDeviceQuota, incrementDeviceQuota, getDeviceQuotaStatus } from './device-fingerprint.js';
-
-// Quota limits
+// Quota limits - ALL REMOVED (unlimited for all users)
 const FREE_LIMITS = {
-  maxUploadSize: 1 * 1024 * 1024, // 1 MB per upload
-  maxDownloadSize: 150 * 1024, // 150 KB compressed
-  monthlyImages: 40, // 40 images per month
-  monthlyQuota: 10 * 1024 * 1024 // 10 MB total upload + download
+  maxUploadSize: null, // No limit
+  maxDownloadSize: null, // No limit
+  monthlyImages: null, // No limit
+  monthlyQuota: null // No limit
 };
 
 const PREMIUM_LIMITS = {
-  maxUploadSize: 50 * 1024 * 1024, // 50 MB per upload
-  maxDownloadSize: null, // No limit, original quality
+  maxUploadSize: null, // No limit
+  maxDownloadSize: null, // No limit
   monthlyImages: null, // No limit
-  monthlyQuota: 500 * 1024 * 1024 // 500 MB total upload + download
+  monthlyQuota: null // No limit
 };
 
 // Check if user is premium
@@ -50,85 +48,14 @@ async function isPremiumUser() {
   return false;
 }
 
-// Check upload quota before processing
+// Check upload quota before processing - ALL LIMITS REMOVED
 export async function checkUploadQuota(fileSize) {
-  const premium = await isPremiumUser();
-  const limits = premium ? PREMIUM_LIMITS : FREE_LIMITS;
-  
-  // Check file size limit
-  if (fileSize > limits.maxUploadSize) {
-    const sizeMB = (fileSize / (1024 * 1024)).toFixed(2);
-    const maxMB = (limits.maxUploadSize / (1024 * 1024)).toFixed(0);
-    return {
-      allowed: false,
-      message: `File size (${sizeMB} MB) exceeds ${premium ? 'premium' : 'free'} limit of ${maxMB} MB per upload. ${premium ? '' : 'Upgrade to Premium for up to 50 MB per upload.'}`
-    };
-  }
-  
-  // Check monthly quota (for free users via device fingerprinting)
-  if (!premium) {
-    const quotaCheck = await checkDeviceQuota('backgroundRemoval');
-    if (!quotaCheck.allowed) {
-      return {
-        allowed: false,
-        message: quotaCheck.message || `Monthly limit reached. Free users can process ${FREE_LIMITS.monthlyImages} images per month (${(FREE_LIMITS.monthlyQuota / (1024 * 1024)).toFixed(0)} MB total). Upgrade to Premium for unlimited processing.`
-      };
-    }
-    
-    // Check monthly quota size
-    const currentUsage = quotaCheck.currentUsage || {};
-    const usedQuota = (currentUsage.uploadSize || 0) + (currentUsage.downloadSize || 0);
-    const remainingQuota = FREE_LIMITS.monthlyQuota - usedQuota;
-    
-    if (fileSize > remainingQuota) {
-      const remainingMB = (remainingQuota / (1024 * 1024)).toFixed(2);
-      return {
-        allowed: false,
-        message: `Monthly quota exceeded. Remaining: ${remainingMB} MB. Free users have ${(FREE_LIMITS.monthlyQuota / (1024 * 1024)).toFixed(0)} MB monthly quota. Upgrade to Premium for 500 MB monthly quota.`
-      };
-    }
-  }
-  
+  // No limits - always allowed
   return { allowed: true };
 }
 
-// Compress image for free users (to 150KB)
 export async function compressImageForFree(imageDataURL) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      // Calculate dimensions to fit 150KB
-      let width = img.width;
-      let height = img.height;
-      let quality = 0.9;
-      
-      // Try to compress
-      canvas.width = width;
-      canvas.height = height;
-      ctx.drawImage(img, 0, 0);
-      
-      let dataURL = canvas.toDataURL('image/png', quality);
-      let size = (dataURL.length * 0.75) / 1024; // Approximate KB
-      
-      // If still too large, reduce dimensions
-      if (size > 150) {
-        const ratio = Math.sqrt(150 / size);
-        width = Math.floor(width * ratio);
-        height = Math.floor(height * ratio);
-        canvas.width = width;
-        canvas.height = height;
-        ctx.drawImage(img, 0, 0, width, height);
-        dataURL = canvas.toDataURL('image/png', 0.85);
-      }
-      
-      resolve(dataURL);
-    };
-    img.onerror = () => resolve(imageDataURL); // Fallback to original
-    img.src = imageDataURL;
-  });
+  return imageDataURL;
 }
 
 // Track usage after successful processing
@@ -160,9 +87,6 @@ export async function trackUsage(uploadSize, downloadSize) {
     } catch (error) {
       console.warn('Failed to track premium usage:', error);
     }
-  } else {
-    // Track free usage via device fingerprinting
-    await incrementDeviceQuota('backgroundRemoval', 1, uploadSize + downloadSize);
   }
 }
 
@@ -207,22 +131,17 @@ export async function getQuotaStatus() {
       remainingQuota: PREMIUM_LIMITS.monthlyQuota,
       totalQuota: PREMIUM_LIMITS.monthlyQuota
     };
-  } else {
-    const quotaStatus = await getDeviceQuotaStatus();
-    const currentUsage = quotaStatus.currentUsage || {};
-    const usedImages = quotaStatus.usedImages || 0;
-    const usedQuota = (currentUsage.uploadSize || 0) + (currentUsage.downloadSize || 0);
-    
-    return {
-      isPremium: false,
-      remainingImages: Math.max(0, FREE_LIMITS.monthlyImages - usedImages),
-      totalImages: FREE_LIMITS.monthlyImages,
-      remainingQuota: Math.max(0, FREE_LIMITS.monthlyQuota - usedQuota),
-      totalQuota: FREE_LIMITS.monthlyQuota,
-      usedImages,
-      usedQuota
-    };
   }
+  
+  return {
+    isPremium: false,
+    remainingImages: 'Unlimited',
+    totalImages: 'Unlimited',
+    remainingQuota: 'Unlimited',
+    totalQuota: 'Unlimited',
+    usedImages: 0,
+    usedQuota: 0
+  };
 }
 
 // Export for use in pages

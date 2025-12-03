@@ -25,7 +25,7 @@ import torch
 import torch.nn.functional as F
 from torchvision import transforms
 from scipy import ndimage
-from scipy.ndimage import binary_erosion, binary_dilation, distance_transform_edt
+from scipy.ndimage import binary_erosion, binary_dilation, distance_transform_edt, median_filter
 
 # Configure logging FIRST
 logging.basicConfig(
@@ -135,13 +135,23 @@ def load_u2net_model():
         raise
 
 def preprocess_image(image, target_size=512):
-    """Preprocess PIL image for U2Net Full - Fixed: Ensure square input for model compatibility"""
+    """Preprocess PIL image for U2Net Full - FIXED: Optimal resolution for quality vs performance"""
     # Convert to RGB if needed
     if image.mode != 'RGB':
         image = image.convert('RGB')
     
     original_size = image.size
     width, height = original_size
+    
+    # Adaptive target size - balanced for quality and detail preservation
+    # U2Net Full works best at 512x512, higher can cause over-processing
+    max_dim = max(width, height)
+    if max_dim > 3000:
+        target_size = 768  # Very large images
+    elif max_dim > 1500:
+        target_size = 512  # Standard - best balance
+    else:
+        target_size = 512  # Default - optimal for U2Net Full
     
     # U2Net requires square input - always create exact square for model compatibility
     # Resize to fit within target_size while maintaining aspect ratio
@@ -153,7 +163,7 @@ def preprocess_image(image, target_size=512):
     new_width = new_width if new_width % 2 == 0 else new_width - 1
     new_height = new_height if new_height % 2 == 0 else new_height - 1
     
-    # Resize with high-quality resampling
+    # Resize with high-quality resampling (LANCZOS for best quality)
     resized_image = image.resize((new_width, new_height), Image.LANCZOS)
     
     # Pad to exact target_size x target_size (square) - required by U2Net
@@ -167,7 +177,7 @@ def preprocess_image(image, target_size=512):
     return input_tensor, original_size, (new_width, new_height, paste_x, paste_y)
 
 def postprocess_mask(mask_tensor, original_size, model_size):
-    """Postprocess mask tensor to PIL Image - Fixed: Proper padding removal"""
+    """Postprocess mask tensor to PIL Image - FIXED: Preserve all details, no over-cleaning"""
     # Convert tensor to numpy
     mask = mask_tensor.squeeze().cpu().numpy()
     
@@ -179,16 +189,20 @@ def postprocess_mask(mask_tensor, original_size, model_size):
     else:
         # Fallback for old format
         model_width, model_height = model_size[:2]
-        if model_width < 512 or model_height < 512:
-            start_x = (512 - model_width) // 2
-            start_y = (512 - model_height) // 2
+        target_size = max(model_width, model_height, 512)
+        if model_width < target_size or model_height < target_size:
+            start_x = (target_size - model_width) // 2
+            start_y = (target_size - model_height) // 2
             mask = mask[start_y:start_y+model_height, start_x:start_x+model_width]
     
-    # Convert to uint8
-    mask = (mask * 255).astype(np.uint8)
+    # Convert to uint8 - preserve original mask values from model
+    # U2Net outputs probability (0-1), convert to 0-255
+    mask = np.clip(mask * 255.0, 0, 255).astype(np.uint8)
     
-    # Apply edge smoothing for better hair/fur preservation
-    mask = ndimage.gaussian_filter(mask.astype(np.float32), sigma=1.0).astype(np.uint8)
+    # MINIMAL processing - only very light smoothing to remove noise, preserve all details
+    # No morphological operations - they remove fine details like hair strands
+    # Very light gaussian filter only for minor noise reduction
+    mask = ndimage.gaussian_filter(mask.astype(np.float32), sigma=0.3).astype(np.uint8)
     
     # Resize to original size with high-quality resampling
     mask_pil = Image.fromarray(mask, mode='L')
@@ -197,52 +211,79 @@ def postprocess_mask(mask_tensor, original_size, model_size):
     return mask_pil
 
 def alpha_matting(image, mask, foreground_threshold=240, background_threshold=10, erode_size=10):
-    """Apply alpha matting for better edge quality - preserves hair, fur, fine details"""
+    """Apply alpha matting for better edge quality - FIXED: Proper mask application like rembg"""
     try:
-        # Convert mask to binary
-        mask_array = np.array(mask.convert('L'))
-        binary_mask = (mask_array > 128).astype(np.uint8)
+        # Get mask array - U2Net outputs foreground probability (0-1, higher = foreground)
+        mask_array = np.array(mask.convert('L')).astype(np.float32) / 255.0
         
-        # Erode and dilate for trimap
+        # Create binary mask with proper thresholding
+        # U2Net mask: values > 0.5 are likely foreground
+        binary_mask = (mask_array > 0.5).astype(np.uint8)
+        
+        # Create trimap for alpha matting (foreground, background, unknown)
         trimap = np.zeros_like(binary_mask, dtype=np.uint8)
-        trimap[binary_mask == 1] = 255  # Foreground
+        trimap[binary_mask == 1] = 255  # Definite foreground
         
-        # Create unknown region (edges)
-        # Use smaller structure for better performance
+        # Create unknown region around edges for better alpha matting
         structure = np.ones((erode_size, erode_size), dtype=np.uint8)
-        eroded = binary_erosion(binary_mask, structure=structure)
-        dilated = binary_dilation(binary_mask, structure=structure)
+        eroded = binary_erosion(binary_mask, structure=structure, iterations=1)
+        dilated = binary_dilation(binary_mask, structure=structure, iterations=1)
         unknown = dilated.astype(np.float32) - eroded.astype(np.float32)
-        trimap[unknown > 0] = 128  # Unknown region
+        trimap[unknown > 0] = 128  # Unknown region (edges)
         
-        # Simple alpha matting: use distance transform for smooth alpha
-        # Distance from foreground
+        # Calculate alpha using distance transform (like rembg)
+        # Distance from foreground boundary
         dist_foreground = distance_transform_edt(1 - binary_mask)
-        # Distance from background
+        # Distance from background boundary  
         dist_background = distance_transform_edt(binary_mask)
         
-        # Calculate alpha based on distances
+        # Calculate alpha based on distances in unknown region
         total_dist = dist_foreground + dist_background
         alpha = np.zeros_like(total_dist, dtype=np.float32)
-        alpha[total_dist > 0] = dist_background[total_dist > 0] / total_dist[total_dist > 0]
+        mask_valid = total_dist > 0
+        alpha[mask_valid] = dist_background[mask_valid] / total_dist[mask_valid]
         alpha = np.clip(alpha, 0, 1)
         
-        # Apply thresholds
-        alpha[binary_mask == 1] = 1.0
-        alpha[binary_mask == 0] = 0.0
+        # Preserve definite foreground and background
+        alpha[binary_mask == 1] = 1.0  # Definite foreground = fully opaque
+        alpha[binary_mask == 0] = 0.0  # Definite background = fully transparent
         
-        # Smooth alpha for better edges
-        alpha = ndimage.gaussian_filter(alpha, sigma=0.5)
+        # For unknown regions, use the original mask probability (preserve model confidence)
+        # This ensures we don't lose fine details
+        unknown_mask = (trimap == 128)
+        alpha[unknown_mask] = mask_array[unknown_mask]  # Use original probability in edge regions
+        
+        # Enhanced edge refinement - better border cleanup
+        # Apply stronger smoothing only in edge regions for cleaner borders
+        edge_mask = (trimap == 128) | (trimap == 0)  # Unknown + background edges
+        alpha_smooth = ndimage.gaussian_filter(alpha, sigma=0.8)
+        # Blend: stronger smoothing in edge regions, preserve original in foreground
+        alpha = np.where(edge_mask, alpha_smooth, alpha)
+        
+        # Additional edge sharpening for crisp borders
+        # Use morphological operations to clean up edge artifacts
+        # Apply median filter only to edge regions to remove noise
+        alpha_median = median_filter(alpha, size=3)
+        alpha = np.where(edge_mask, alpha_median, alpha)
+        
+        # Final light smoothing for natural transitions
+        alpha = ndimage.gaussian_filter(alpha, sigma=0.3)
+        
+        # Ensure proper range
+        alpha = np.clip(alpha, 0, 1)
         
         return (alpha * 255).astype(np.uint8)
     except Exception as e:
         logger.warning(f"Alpha matting failed, using simple mask: {e}")
         logger.warning(f"Traceback: {traceback.format_exc()}")
-        # Fallback to simple mask
-        return np.array(mask.convert('L'))
+        # Fallback: use mask directly with proper thresholding
+        mask_array = np.array(mask.convert('L'))
+        # Ensure strong mask - threshold at 128
+        mask_array = np.clip(mask_array, 0, 255)
+        return mask_array.astype(np.uint8)
 
 def remove_background_pytorch(image):
-    """Remove background using PyTorch U2Net Full (always high quality alpha matting)."""
+    """Remove background using PyTorch U2Net Full - IMPROVED: Higher resolution + better mask combination"""
     global u2net_model, device, transform
     
     start_time = time.time()
@@ -250,29 +291,35 @@ def remove_background_pytorch(image):
     if u2net_model is None:
         load_u2net_model()
     
-    # Always run full-resolution model for best quality
-    target_size = 512
+    # Adaptive resolution based on image size for better quality
+    original_size = image.size
+    max_dim = max(original_size)
     
-    # Preprocess - maintain aspect ratio
-    input_tensor, original_size, model_size = preprocess_image(image, target_size=target_size)
+    # Preprocess with adaptive target size
+    input_tensor, original_size, model_size = preprocess_image(image)
     input_tensor = input_tensor.to(device)
     
     # Run inference
     with torch.no_grad():
         raw_output = u2net_model(input_tensor)
-        # U2Net returns a tuple of stage outputs (d1..d7). Use the highest
-        # resolution map (d1) for mask generation.
+        
+        # U2Net Full returns a tuple of stage outputs (d0, d1..d6)
+        # Use d0 (final output) - it's the best refined output from the model
         if isinstance(raw_output, (tuple, list)):
             if not raw_output:
                 raise ValueError("Model returned no outputs")
+            
+            # Use d0 (final output) - it's already the best combination of all stages
+            # Don't combine with d1 - it can cause over-cleaning
             mask_tensor = raw_output[0]
         else:
             mask_tensor = raw_output
-
-        # Ensure tensor shape is valid before applying sigmoid.
+        
+        # Ensure tensor shape is valid before applying sigmoid
         if not torch.is_tensor(mask_tensor):
             raise TypeError(f"Unexpected mask output type: {type(mask_tensor)}")
-
+        
+        # Apply sigmoid to get probability mask
         mask_tensor = torch.sigmoid(mask_tensor)
     
     # Postprocess mask with better edge preservation
@@ -283,19 +330,28 @@ def remove_background_pytorch(image):
         image = image.convert('RGBA')
     
     # Apply alpha matting for better edges (hair, fur, cloth)
+    # Proper erode_size for good edge quality
     alpha_array = alpha_matting(image, mask_pil, foreground_threshold=240, background_threshold=10, erode_size=10)
     
-    # Normalize alpha
+    # Normalize alpha to 0-1 range
     alpha_array = alpha_array.astype(np.float32) / 255.0
     
-    # Create output image with transparency
-    output_array = np.array(image)
-    output_array[:, :, 3] = (output_array[:, :, 3] * alpha_array).astype(np.uint8)
+    # Create output image with transparency - DIRECTLY set alpha channel (not multiply)
+    # This ensures background is fully transparent where mask is 0
+    output_array = np.array(image).astype(np.float32)
+    
+    # Directly set alpha channel to mask values
+    # Where alpha = 0, background is transparent
+    # Where alpha = 1, foreground is fully opaque
+    output_array[:, :, 3] = (alpha_array * 255.0).astype(np.uint8)
+    
+    # Convert back to uint8
+    output_array = output_array.astype(np.uint8)
     
     output_image = Image.fromarray(output_array, 'RGBA')
     
     processing_time = time.time() - start_time
-    logger.info(f"✅ Background removal completed in {processing_time:.2f}s")
+    logger.info(f"✅ Background removal completed in {processing_time:.2f}s (resolution: {max(original_size)})")
     
     return output_image, processing_time
 

@@ -70,7 +70,8 @@ while ($retryCount -lt $maxRetries -and -not $success) {
                 Write-Host "✅ Weights ready for deployment!" -ForegroundColor Green
                 $success = $true
             } else {
-                Write-Host "❌ Downloaded file too small ($([math]::Round($fileSize, 2)) MB). Expected ~173 MB." -ForegroundColor Red
+                $sizeRounded = [math]::Round($fileSize, 2)
+                Write-Host "❌ Downloaded file too small ($sizeRounded MB). Expected ~173 MB." -ForegroundColor Red
                 Remove-Item $OUTPUT_FILE -Force
                 $retryCount++
             }

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>AI to SVG - Preview & Download | easyjpgtopdf</title>
+<meta name="description" content="Preview and download your converted ai to svg file. Fast and secure conversion.">
+<meta name="keywords" content="ai to svg, convert ai to svg, illustrator to svg">
+<link href="css/footer.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}
+:root{--primary:#4361ee;--secondary:#3a0ca3;--accent:#4cc9f0;--light:#f8f9fa;--dark:#212529;--gray:#6c757d;--card:#ffffff;--border:#e5e7eb;--brand:var(--primary);--brand-dark:var(--secondary)}
+body{background-color:#f5f7ff;color:var(--dark);min-height:100vh;display:flex;flex-direction:column;line-height:1.6}
+.container{max-width:1400px;margin:0 auto;padding:0 24px}
+.hero{background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;padding:40px 0;text-align:center;margin-bottom:24px}
+.workbench{display:flex;gap:22px;align-items:flex-start}
+.panel{background:var(--card);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.08);padding:20px}
+.left{flex:0 0 70%;min-width:0}
+.right{flex:0 0 30%;min-width:280px;display:flex;flex-direction:column;align-self:flex-start;position:sticky;top:90px}
+.preview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin-top:16px}
+.preview-item{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fafafa;display:flex;align-items:center;justify-content:center;aspect-ratio:1;padding:10px}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--primary);color:#fff;border:none;border-radius:40px;padding:10px 16px;cursor:pointer;transition:.2s transform,.2s box-shadow}
+.btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(67,97,238,.25)}
+.btn.secondary{background:#fff;color:var(--primary);border:1px solid var(--primary)}
+.convert-bar{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:10px;padding-top:20px;border-top:1px solid var(--border)}
+.muted{color:var(--gray);font-size:.9rem}
+#convertBtn{background:linear-gradient(135deg,#4cc9f0,#4361ee);font-size:16px;padding:12px 22px}
+footer{background:var(--dark);color:#fff;padding:40px 0 20px;margin-top:24px}
+@media (max-width: 992px){
+  .left{flex:1 1 100%}
+  .right{flex:1 1 100%;position:static}
+  .workbench{flex-direction:column}
+}
+</style>
+<link href="css/header.css" rel="stylesheet"/>
+<link href="css/theme-modern.css" rel="stylesheet"/>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "AI to SVG - Preview & Download | easyjpgtopdf",
+  "description": "Preview and download your converted ai to svg file. Fast and secure conversion.",
+  "url": "https://easyjpgtopdf.com/ai-to-svg-convert.html",
+  "inLanguage": "en-US",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "easyjpgtopdf",
+    "url": "https://easyjpgtopdf.com"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "easyjpgtopdf",
+    "url": "https://easyjpgtopdf.com"
+  }
+}
+</script>
+</head>
+<body>
+<div id="global-header-placeholder"></div>
+<nav aria-label="Breadcrumb" style="padding: 15px 0; background: #f8f9ff; border-bottom: 1px solid #e2e6ff;">
+<div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 24px;">
+<ol style="list-style: none; display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; align-items: center;">
+<li><a href="index.html" style="color: #4361ee; text-decoration: none; font-weight: 500;">Home</a></li>
+<li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
+<li><a href="ai-to-svg.html" style="color: #56607a; text-decoration: none; font-weight: 500;">AI to SVG</a></li>
+</ol>
+</div>
+</nav>
+<section class="hero">
+<div class="container">
+<h1>AI to SVG - Preview & Download</h1>
+<p>Your file has been processed. Preview and download below.</p>
+</div>
+</section>
+<main class="container">
+<div class="workbench">
+<div class="panel left">
+<h2 style="font-size:18px">Converted File</h2>
+<div id="preview" class="preview-grid" style="margin-top:20px;">
+<div class="preview-item" style="flex-direction:column;padding:30px;">
+<i class="fas fa-file-image" style="font-size:4rem;color:var(--primary);margin-bottom:15px;"></i>
+<div style="font-size:1.1rem;font-weight:600;color:var(--dark);margin-bottom:5px;">converted.svg</div>
+<div style="font-size:0.9rem;color:var(--gray);">Ready to download</div>
+</div>
+</div>
+</div>
+<div class="panel right">
+<div style="text-align:center;padding:20px;">
+<h3 style="margin-bottom:20px;color:var(--primary);">Download Options</h3>
+<button class="btn" id="downloadBtn" style="width:100%;margin-bottom:10px;">
+<i class="fas fa-download"></i> Download File
+</button>
+<a href="ai-to-svg.html" class="btn secondary" style="width:100%;text-decoration:none;display:block;text-align:center;">
+<i class="fas fa-upload"></i> Upload New File
+</a>
+</div>
+</div>
+</div>
+<div class="convert-bar">
+<span class="muted">1 file processed</span>
+<div>
+<a class="btn secondary" href="ai-to-svg.html"><i class="fas fa-arrow-left"></i> Back</a>
+<button class="btn" id="convertBtn"><i class="fas fa-download"></i> DOWNLOAD</button>
+</div>
+</div>
+</main>
+<script type="module">
+(async function() {
+    const { getStoredFiles, convertFile, downloadFile } = await import('./js/file-converter.js');
+    
+    let convertedFiles = [];
+    const preview = document.getElementById('preview');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const convertBtn = document.getElementById('convertBtn');
+    
+    // Load and convert files on page load
+    async function initConversion() {
+        try {
+            const storedFiles = getStoredFiles('ai-to-svg');
+            if (!storedFiles || storedFiles.length === 0) {
+                preview.innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray);">No files found. Please go back and upload files.</div>';
+                return;
+            }
+            
+            // Show loading
+            preview.innerHTML = '<div style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin" style="font-size:3rem;color:var(--primary)"></i><p style="margin-top:20px;color:var(--gray)">Converting files...</p></div>';
+            downloadBtn.disabled = true;
+            convertBtn.disabled = true;
+            
+            // Convert files
+            convertedFiles = await convertFile(storedFiles, 'ai-to-svg');
+            
+            // Display converted files
+            preview.innerHTML = '';
+            if (convertedFiles.length === 0) {
+                preview.innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray);">No files to display.</div>';
+            } else {
+                convertedFiles.forEach((file, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'preview-item';
+                    div.style.cssText = 'flex-direction:column;padding:30px;border:1px solid #e5e7eb;border-radius:8px;background:#fafafa;';
+                    div.innerHTML = `
+                        <i class="fas fa-file-image" style="font-size:4rem;color:var(--primary);margin-bottom:15px;"></i>
+                        <div style="font-size:1.1rem;font-weight:600;color:var(--dark);margin-bottom:5px;">${file.filename}</div>
+                        <div style="font-size:0.9rem;color:var(--gray);">Ready to download</div>
+                    `;
+                    preview.appendChild(div);
+                });
+            }
+            
+            // Enable download buttons
+            downloadBtn.disabled = false;
+            convertBtn.disabled = false;
+            
+            // Update file count
+            const countEl = document.querySelector('.muted');
+            if (countEl) {
+                countEl.textContent = `${convertedFiles.length} file${convertedFiles.length > 1 ? 's' : ''} converted`;
+            }
+            
+        } catch (error) {
+            console.error('Conversion error:', error);
+            preview.innerHTML = `<div style="text-align:center;padding:40px;color:#dc3545;"><i class="fas fa-exclamation-triangle" style="font-size:3rem;margin-bottom:15px;"></i><p>${error.message}</p><p style="margin-top:10px;font-size:0.9rem;color:var(--gray);">Please try again or contact support if the problem persists.</p></div>`;
+            downloadBtn.disabled = false;
+            convertBtn.disabled = false;
+        }
+    }
+    
+    // Download handler
+    downloadBtn.addEventListener('click', function() {
+        if (convertedFiles.length === 0) {
+            alert('No files to download');
+            return;
+        }
+        convertedFiles.forEach(file => {
+            downloadFile(file.blob, file.filename);
+        });
+    });
+    
+    convertBtn.addEventListener('click', function() {
+        downloadBtn.click();
+    });
+    
+    // Initialize on page load
+    initConversion();
+})();
+</script>
+<script src="js/auth.js" type="module"></script>
+<footer>
+<div class="container footer-inner">
+<div class="footer-company-links">
+<span>Company</span>
+<a href="index.html#about">About Us</a>
+<a href="index.html#contact">Contact</a>
+<a href="pricing.html">Pricing</a>
+<a href="privacy-policy.html">Privacy Policy</a>
+<a href="terms-of-service.html">Terms of Service</a>
+<a href="dmca.html">DMCA</a>
+<a href="blog.html">Blog</a>
+</div>
+<p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
+</div>
+</footer>
+<script src="js/global-components.js"></script>
+</body>
+</html>

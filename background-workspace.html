@@ -190,6 +190,9 @@
 <button class="btn btn-primary" disabled="" id="downloadPng">
 <i class="fas fa-download"></i> Download PNG
         </button>
+<button class="btn btn-primary" id="newUploadBtn" style="margin-left: 8px;">
+<i class="fas fa-plus"></i> New Upload
+        </button>
 </div>
 </section>
 <section class="panel">
@@ -774,6 +777,14 @@
         showError('Download failed. Please try again.');
       }
     });
+
+    // New Upload button - redirect to upload page
+    const newUploadBtn = document.getElementById('newUploadBtn');
+    if (newUploadBtn) {
+      newUploadBtn.addEventListener('click', () => {
+        window.location.href = 'background-remover.html';
+      });
+    }
 
     const footerYear = document.getElementById('footerYear');
     if (footerYear) {
