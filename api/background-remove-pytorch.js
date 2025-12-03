@@ -1,7 +1,9 @@
 // Vercel Serverless Function - Background Remover PyTorch U2NetP Proxy
 // Proxies requests to Google Cloud Run backend with Pure PyTorch U2NetP
 
-const CLOUDRUN_API_URL = process.env.CLOUDRUN_API_URL_PYTORCH || 'https://bg-remover-pytorch-u2net-564572183797.us-central1.run.app'; // U2Net Full Model
+const CLOUDRUN_API_URL =
+  process.env.CLOUDRUN_API_URL_PYTORCH ||
+  'https://bg-remover-pytorch-u2net-iwumaktavq-uc.a.run.app'; // U2Net Full Model
 
 export default async function handler(req, res) {
   // Handle CORS preflight

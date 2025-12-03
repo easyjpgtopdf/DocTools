@@ -36,7 +36,7 @@ const CLOUDRUN_API_URL = process.env.CLOUDRUN_API_URL_PYTORCH || 'YOUR_SERVICE_U
 
 ### 3. Update Frontend
 
-The frontend (`server/public/background-workspace.html`) is already configured to use `/api/background-remove-pytorch`.
+The canonical frontend (`background-workspace.html`) is already configured to use `/api/background-remove-pytorch`. The legacy `server/public/background-workspace.html` file now simply redirects to this page to avoid duplicate code.
 
 ## 📁 Project Structure
 
@@ -147,7 +147,8 @@ For 10,000 images/month:
 
 ## 🔗 Related Files
 
-- Frontend: `server/public/background-workspace.html`
+- Frontend: `background-workspace.html`
+- Node redirect: `server/public/background-workspace.html`
 - Vercel Proxy: `api/background-remove-pytorch.js`
 - Vercel Config: `vercel.json`
 

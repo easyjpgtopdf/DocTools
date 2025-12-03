@@ -264,10 +264,21 @@ def remove_background_pytorch(image, quality='high'):
     
     # Run inference
     with torch.no_grad():
-        mask_tensor = u2net_model(input_tensor)
-        # Apply sigmoid if not already applied
-        if mask_tensor.max() > 1.0:
-            mask_tensor = torch.sigmoid(mask_tensor)
+        raw_output = u2net_model(input_tensor)
+        # U2Net returns a tuple of stage outputs (d1..d7). Use the highest
+        # resolution map (d1) for mask generation.
+        if isinstance(raw_output, (tuple, list)):
+            if not raw_output:
+                raise ValueError("Model returned no outputs")
+            mask_tensor = raw_output[0]
+        else:
+            mask_tensor = raw_output
+
+        # Ensure tensor shape is valid before applying sigmoid.
+        if not torch.is_tensor(mask_tensor):
+            raise TypeError(f"Unexpected mask output type: {type(mask_tensor)}")
+
+        mask_tensor = torch.sigmoid(mask_tensor)
     
     # Postprocess mask with better edge preservation
     mask_pil = postprocess_mask(mask_tensor, original_size, model_size)
