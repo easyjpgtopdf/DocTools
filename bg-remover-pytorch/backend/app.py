@@ -60,20 +60,20 @@ SUPPORTED_FORMATS = ['PNG', 'JPG', 'JPEG', 'WEBP', 'BMP', 'TIFF']
 # User limit configuration - Updated as per requirements
 USER_LIMITS = {
     'free': {
-        'images_per_month': 50,
-        'max_file_size': 1 * 1024 * 1024,  # 1 MB per image
-        'monthly_upload_limit': 10 * 1024 * 1024,  # 10 MB total upload
-        'monthly_download_limit': 10 * 1024 * 1024,  # 10 MB total download
-        'download_compress_to': 150 * 1024,  # 150 KB compressed
-        'requires_auth': False  # Free users can use without login
+        'images_per_month': float('inf'),
+        'max_file_size': 50 * 1024 * 1024,
+        'monthly_upload_limit': float('inf'),
+        'monthly_download_limit': float('inf'),
+        'download_compress_to': None,
+        'requires_auth': False
     },
     'premium': {
-        'images_per_month': float('inf'),  # Unlimited
-        'max_file_size': 50 * 1024 * 1024,  # 50 MB per image
-        'monthly_upload_limit': 500 * 1024 * 1024,  # 500 MB total upload
-        'monthly_download_limit': 500 * 1024 * 1024,  # 500 MB total download
-        'download_compress_to': None,  # No compression for premium (better quality)
-        'requires_auth': True  # Premium users must be logged in
+        'images_per_month': float('inf'),
+        'max_file_size': 50 * 1024 * 1024,
+        'monthly_upload_limit': float('inf'),
+        'monthly_download_limit': float('inf'),
+        'download_compress_to': None,
+        'requires_auth': True
     }
 }
 
@@ -241,13 +241,8 @@ def alpha_matting(image, mask, foreground_threshold=240, background_threshold=10
         # Fallback to simple mask
         return np.array(mask.convert('L'))
 
-def remove_background_pytorch(image, quality='high'):
-    """Remove background using PyTorch U2Net Full - IMPROVED: Better quality with alpha matting
-    
-    Args:
-        image: PIL Image
-        quality: 'high' for premium (better quality), 'compressed' for free (compressed to 150KB)
-    """
+def remove_background_pytorch(image):
+    """Remove background using PyTorch U2Net Full (always high quality alpha matting)."""
     global u2net_model, device, transform
     
     start_time = time.time()
@@ -255,8 +250,8 @@ def remove_background_pytorch(image, quality='high'):
     if u2net_model is None:
         load_u2net_model()
     
-    # IMPROVED: Use higher resolution (512 instead of 320) for better detail preservation
-    target_size = 512 if quality == 'high' else 320
+    # Always run full-resolution model for best quality
+    target_size = 512
     
     # Preprocess - maintain aspect ratio
     input_tensor, original_size, model_size = preprocess_image(image, target_size=target_size)
@@ -287,14 +282,8 @@ def remove_background_pytorch(image, quality='high'):
     if image.mode != 'RGBA':
         image = image.convert('RGBA')
     
-    # IMPROVED: Apply alpha matting for better edges (hair, fur, cloth)
-    if quality == 'high':
-        # Use alpha matting for premium users
-        alpha_array = alpha_matting(image, mask_pil, foreground_threshold=240, background_threshold=10, erode_size=10)
-    else:
-        # Simple mask for free users (faster)
-        mask_array = np.array(mask_pil.convert('L'))
-        alpha_array = mask_array
+    # Apply alpha matting for better edges (hair, fur, cloth)
+    alpha_array = alpha_matting(image, mask_pil, foreground_threshold=240, background_threshold=10, erode_size=10)
     
     # Normalize alpha
     alpha_array = alpha_array.astype(np.float32) / 255.0
@@ -385,25 +374,11 @@ def get_user_usage(tracking_id, user_type):
     return usage_tracker[tracking_id]
 
 def check_quota(tracking_id, user_type, file_size_bytes):
-    """Check if user has quota available"""
-    usage = get_user_usage(tracking_id, user_type)
+    """Unlimited quota (temporary override)"""
     limits = USER_LIMITS.get(user_type, USER_LIMITS['free'])
-
-    # Check image count limit
-    if limits['images_per_month'] != float('inf'):
-        if usage['image_count'] >= limits['images_per_month']:
-            return False, f"Monthly image limit ({limits['images_per_month']}) exceeded for {user_type} user."
-
-    # Check file size limit
     if file_size_bytes > limits['max_file_size']:
         max_mb = limits['max_file_size'] / (1024 * 1024)
-        return False, f"File size ({file_size_bytes / (1024*1024):.2f} MB) exceeds maximum allowed ({max_mb} MB) for {user_type} user."
-
-    # Check upload limit
-    if usage['upload_bytes'] + file_size_bytes > limits['monthly_upload_limit']:
-        remaining_mb = (limits['monthly_upload_limit'] - usage['upload_bytes']) / (1024 * 1024)
-        return False, f"Monthly upload limit exceeded. Remaining: {remaining_mb:.2f} MB."
-
+        return False, f"File size ({file_size_bytes / (1024*1024):.2f} MB) exceeds maximum allowed ({max_mb} MB)."
     return True, "Quota available."
 
 def increment_usage(tracking_id, user_type, upload_bytes, download_bytes):
@@ -554,9 +529,8 @@ def remove_bg():
         logger.info(f"✨ Starting background removal with PyTorch U2Net Full for {tracking_id} ({user_type})...")
         logger.info(f"📏 Image size: {img.width}x{img.height}, File size: {file_size_bytes/(1024*1024):.2f} MB")
         
-        # Process image - use high quality for premium, compressed for free
-        quality = 'high' if user_type == 'premium' else 'compressed'
-        result_img, processing_time = remove_background_pytorch(img, quality=quality)
+        # Process image (always high quality)
+        result_img, processing_time = remove_background_pytorch(img)
         
         # Convert to data URL with compression for free users
         compress_to_kb = limits['download_compress_to']
@@ -576,7 +550,6 @@ def remove_bg():
             "success": True, 
             "resultImage": out_dataurl, 
             "processedWith": "pytorch-u2net",
-            "quality": quality,
             "processingTime": round(processing_time, 2),
             "totalTime": round(total_time, 2),
             "uploadSizeMB": round(file_size_bytes / (1024 * 1024), 2),
