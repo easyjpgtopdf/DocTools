@@ -311,41 +311,34 @@ def remove_background_pytorch(image, quality='high'):
     return output_image, processing_time
 
 def compress_image(image, target_size_kb=150):
-    """Compress image to target size in KB"""
+    """Compress RGBA image to target size in KB while keeping transparency."""
     target_size_bytes = target_size_kb * 1024
-    buf = io.BytesIO()
-    
-    # Start with high quality
-    quality = 95
-    image.save(buf, format='PNG', optimize=True, quality=quality)
+    work_image = image.convert("RGBA")
+
+    def encode_png(img):
+        buffer = io.BytesIO()
+        img.save(buffer, format="PNG", optimize=True)
+        return buffer
+
+    buf = encode_png(work_image)
     current_size = buf.tell()
-    
-    # If still too large, reduce quality
-    if current_size > target_size_bytes:
-        # Try JPEG compression for smaller size
-        if image.mode == 'RGBA':
-            # Convert RGBA to RGB for JPEG
-            rgb_image = Image.new('RGB', image.size, (255, 255, 255))
-            rgb_image.paste(image, mask=image.split()[3])  # Use alpha channel as mask
-            image = rgb_image
-        
-        buf = io.BytesIO()
-        quality = 85
-        while current_size > target_size_bytes and quality > 10:
-            buf.seek(0)
-            buf.truncate(0)
-            image.save(buf, format='JPEG', quality=quality, optimize=True)
-            current_size = buf.tell()
-            quality -= 10
-        
-        # If still too large, resize
-        if current_size > target_size_bytes:
-            scale = (target_size_bytes / current_size) ** 0.5
-            new_size = (int(image.width * scale), int(image.height * scale))
-            image = image.resize(new_size, Image.LANCZOS)
-            buf = io.BytesIO()
-            image.save(buf, format='JPEG', quality=75, optimize=True)
-    
+
+    if current_size <= target_size_bytes:
+        return buf.getvalue()
+
+    # Gradually scale down until we are within target size (or hit minimum size)
+    min_dimension = 256
+    scale = 0.9
+    width, height = work_image.size
+
+    while current_size > target_size_bytes and (width > min_dimension or height > min_dimension):
+        width = max(int(width * scale), min_dimension)
+        height = max(int(height * scale), min_dimension)
+        work_image = work_image.resize((width, height), Image.LANCZOS)
+        buf = encode_png(work_image)
+        current_size = buf.tell()
+        scale = max(scale - 0.05, 0.6)
+
     return buf.getvalue()
 
 def get_device_id(request):
@@ -440,12 +433,9 @@ def image_to_dataurl(img, compress_to_kb=None):
     buf = io.BytesIO()
     
     if compress_to_kb:
-        # Compress image
         compressed_data = compress_image(img, compress_to_kb)
         b64 = base64.b64encode(compressed_data).decode('ascii')
-        # Determine format from compressed data
-        format_type = 'jpeg' if compressed_data[:2] == b'\xff\xd8' else 'png'
-        return f"data:image/{format_type};base64,{b64}", len(compressed_data)
+        return f"data:image/png;base64,{b64}", len(compressed_data)
     else:
         # Save as PNG (high quality for premium)
         img.save(buf, format="PNG", optimize=True)
