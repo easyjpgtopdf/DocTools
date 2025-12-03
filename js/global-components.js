@@ -25,7 +25,7 @@ currentPage = window.currentPage;
 
 // Global Account Section HTML (Above Header)
 const globalAccountSectionHTML = `
-<div id="account-section" class="account-section" style="display: none;">
+<div id="account-section" class="account-section" style="display: none; visibility: hidden;">
     <div class="container">
         <div id="user-menu" class="user-menu" data-open="false">
             <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
@@ -519,6 +519,20 @@ function highlightActiveLink() {
     });
 }
 
+// Function to highlight active account dropdown link
+function highlightActiveAccountLink() {
+    const accountLinks = document.querySelectorAll('#user-dropdown a[data-user-nav]');
+    const currentHash = window.location.hash || '#dashboard-overview';
+    accountLinks.forEach(link => {
+        const linkHash = '#' + link.getAttribute('data-user-nav');
+        if (linkHash === currentHash) {
+            link.classList.add('active');
+        } else {
+            link.classList.remove('active');
+        }
+    });
+}
+
 // Auto-initialize when DOM is ready (only if not already loaded)
 if (!window.globalComponentsInitialized) {
     window.globalComponentsInitialized = true;
@@ -577,12 +591,14 @@ if (!window.globalComponentsInitialized) {
 window.loadGlobalHeader = loadGlobalHeader;
 window.loadGlobalFooter = loadGlobalFooter;
 window.loadAccountSection = loadAccountSection;
+window.highlightActiveAccountLink = highlightActiveAccountLink;
 
 // Make function available globally immediately
 if (typeof window !== 'undefined') {
     window.loadGlobalHeader = loadGlobalHeader;
     window.loadGlobalFooter = loadGlobalFooter;
     window.loadAccountSection = loadAccountSection;
+    window.highlightActiveAccountLink = highlightActiveAccountLink;
 }
 
 })(); // Close IIFE to prevent duplicate execution

@@ -956,9 +956,13 @@ function updateUI(user) {
     }
     
     if (accountSection) {
-      // Show account section above header
+      // Show account section above header - remove inline hidden styles
       accountSection.style.display = 'block';
       accountSection.style.visibility = 'visible';
+      // Highlight active link in dropdown
+      if (typeof window.highlightActiveAccountLink === 'function') {
+        window.highlightActiveAccountLink();
+      }
     } else {
       // If still not found, try loading account section again after a delay
       setTimeout(() => {
