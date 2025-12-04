@@ -588,7 +588,10 @@ ssLabel">Preparing fileâ¦</div>
         try{ await setPdfToIDB(f, f.name); }
         catch(_){ statusMessage.textContent = 'IndexedDB blocked, using fallback storage. Conversion may be slower.'; statusMessage.className = 'status-message'; }
         await saveFallback(f);
-        setTimeout(()=>{ setProgress(null); location.href = 'pdf-to-jpg-convert.html'; }, 250);
+        setProgress(100, 'Ready! Continue to preview.');
+        setTimeout(()=>{ setProgress(null); }, 400);
+        statusMessage.textContent = 'Ready to continue. Click Continue to preview and export.';
+        statusMessage.className = 'status-message success';
       });
       input.addEventListener('change', async function(){
         const f = this.files && this.files[0]; if(!f) return;
@@ -606,7 +609,10 @@ ssLabel">Preparing fileâ¦</div>
         try{ await setPdfToIDB(f, f.name); }
         catch(_){ statusMessage.textContent = 'IndexedDB blocked, using fallback storage. Conversion may be slower.'; statusMessage.className = 'status-message'; }
         await saveFallback(f);
-        setTimeout(()=>{ setProgress(null); location.href = 'pdf-to-jpg-convert.html'; }, 250);
+        setProgress(100, 'Ready! Continue to preview.');
+        setTimeout(()=>{ setProgress(null); }, 400);
+        statusMessage.textContent = 'Ready to continue. Click Continue to preview and export.';
+        statusMessage.className = 'status-message success';
       });
       continueBtn.addEventListener('click', function(){
         if (continueBtn.disabled) return;

@@ -122,10 +122,14 @@ footer{background:var(--dark);color:#fff;padding:40px 0 20px;margin-top:24px}
     async function initConversion() {
         try {
             const storedFiles = getStoredFiles('pdf-to-text');
+            console.log('Stored files:', storedFiles);
             if (!storedFiles || storedFiles.length === 0) {
                 preview.innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray);">No files found. Please go back and upload files.</div>';
                 return;
             }
+            
+            // Files are already in correct format (ArrayBuffer)
+            const filesForConversion = storedFiles;
             
             // Show loading
             preview.innerHTML = '<div style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin" style="font-size:3rem;color:var(--primary)"></i><p style="margin-top:20px;color:var(--gray)">Converting files...</p></div>';
@@ -133,7 +137,7 @@ footer{background:var(--dark);color:#fff;padding:40px 0 20px;margin-top:24px}
             convertBtn.disabled = true;
             
             // Convert files
-            convertedFiles = await convertFile(storedFiles, 'pdf-to-text');
+            convertedFiles = await convertFile(filesForConversion, 'pdf-to-text');
             
             // Display converted files
             preview.innerHTML = '';

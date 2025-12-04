@@ -11,13 +11,22 @@ function storeFilesForConversion(files, toolType) {
         const promise = new Promise((resolve) => {
             const reader = new FileReader();
             reader.onload = (e) => {
+                // Convert ArrayBuffer to base64 for storage
+                const arrayBuffer = e.target.result;
+                const uint8Array = new Uint8Array(arrayBuffer);
+                const base64 = btoa(String.fromCharCode.apply(null, uint8Array));
+                
                 fileData.push({
                     name: file.name,
                     size: file.size,
                     type: file.type,
-                    data: e.target.result
+                    data: base64  // Store as base64 string
                 });
                 resolve();
+            };
+            reader.onerror = (error) => {
+                console.error('Error reading file:', error);
+                resolve(); // Continue even if one file fails
             };
             reader.readAsArrayBuffer(file);
         });
@@ -25,16 +34,46 @@ function storeFilesForConversion(files, toolType) {
     }
     
     return Promise.all(promises).then(() => {
-        sessionStorage.setItem(`file_${toolType}_files`, JSON.stringify(fileData));
-        sessionStorage.setItem(`file_${toolType}_tool`, toolType);
-        return fileData;
+        try {
+            sessionStorage.setItem(`file_${toolType}_files`, JSON.stringify(fileData));
+            sessionStorage.setItem(`file_${toolType}_tool`, toolType);
+            return fileData;
+        } catch (error) {
+            console.error('Error storing files in sessionStorage:', error);
+            throw new Error('Failed to store files. Please try with fewer or smaller files.');
+        }
     });
 }
 
 // Get stored files
 function getStoredFiles(toolType) {
-    const stored = sessionStorage.getItem(`file_${toolType}_files`);
-    return stored ? JSON.parse(stored) : null;
+    try {
+        const stored = sessionStorage.getItem(`file_${toolType}_files`);
+        if (!stored) return null;
+        
+        const fileData = JSON.parse(stored);
+        // Convert base64 back to ArrayBuffer
+        return fileData.map(item => {
+            if (typeof item.data === 'string') {
+                // Convert base64 string back to ArrayBuffer
+                const binaryString = atob(item.data);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                return {
+                    name: item.name,
+                    size: item.size,
+                    type: item.type,
+                    data: bytes.buffer  // Return as ArrayBuffer
+                };
+            }
+            return item; // Already in correct format
+        });
+    } catch (error) {
+        console.error('Error retrieving stored files:', error);
+        return null;
+    }
 }
 
 // Download file as blob
