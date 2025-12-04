@@ -801,204 +801,6 @@
     </script>
 
     <section class="feedback-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-    try {
-      const page = await pdfDoc.getPage(pageNumber);
-      const textContent = await page.getTextContent();
-      const rows = [];
-      let currentY = null;
-      let currentRow = [];
-      textContent.items.forEach(item => {
-        const y = Math.round(item.transform[5]);
-        if(currentY === null){ currentY = y; }
-        if(Math.abs(y - currentY) > 3){
-          if(currentRow.length){ rows.push(currentRow); }
-          currentRow = [];
-          currentY = y;
-        }
-        currentRow.push(item.str.trim());
-      });
-      if(currentRow.length){ rows.push(currentRow); }
-      return rows.length ? rows : null;
-    } catch(err){
-      console.error('Table detection failed', err);
-      return null;
-    }
-  }
-
-  async function loadPdf(){
-    const rec = await getPdf();
-    if(!rec){
-      alert('Uploaded PDF not found. Please upload again.');
-      location.href = 'pdf-to-excel.html';
-      return;
-    }
-    pdfNameEl.textContent = rec.name || 'document.pdf';
-    clearSessionFallback();
-    const buffer = await rec.blob.arrayBuffer();
-    const loadingTask = pdfjsLib.getDocument({ data: buffer });
-    pdfDoc = await loadingTask.promise;
-    pageTables = new Map();
-    selected = new Set(Array.from({length: pdfDoc.numPages}, (_,idx)=>idx+1));
-    renderTablePreview(null);
-    await renderPreview();
-  }
-
-  async function ensureTableData(pageNumbers){
-    for(const page of pageNumbers){
-      if(pageTables.has(page)) continue;
-      const rows = await detectTablesFromPage(page);
-      pageTables.set(page, rows);
-    }
-  }
-
-  async function exportExcel(){
-    if(!pdfDoc){
-      showToast('Load a PDF first.', true);
-      return;
-    }
-    const rangeMode = (document.querySelector('input[name="range"]:checked') || {}).value;
-    let pages = [];
-    if(rangeMode === 'custom'){
-      pages = Array.from(selected).sort((a,b)=>a-b);
-      if(!pages.length){
-        showToast('Select at least one page.', true);
-        return;
-      }
-    } else {
-      pages = Array.from({length: pdfDoc.numPages}, (_,idx)=>idx+1);
-    }
-    await ensureTableData(pages);
-    const workbook = XLSX.utils.book_new();
-    for(const page of pages){
-      const data = pageTables.get(page);
-      if(!data || !data.length){
-        XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([["No table data detected."]]), `Page ${page}`);
-        continue;
-      }
-      const sheet = XLSX.utils.aoa_to_sheet(data);
-      XLSX.utils.book_append_sheet(workbook, sheet, `Page ${page}`);
-    }
-    const baseName = (pdfNameEl.textContent || 'document').replace(/\.pdf$/i, '');
-    const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    saveAs(blob, `${baseName}-tables.xlsx`);
-    showToast('Excel exported successfully!');
-  }
-
-  selectAllBtn.addEventListener('click', ()=>{
-    selected = new Set(Array.from({length: pdfDoc?.numPages||0}, (_,i)=>i+1));
-    renderPreview();
-    renderTablePreview(null);
-  });
-
-  clearBtn.addEventListener('click', ()=>{
-    selected.clear();
-    renderPreview();
-    tablePreview.innerHTML = '<div class="table-empty">Select a page to inspect its table data.</div>';
-  });
-
-  downloadBtn.addEventListener('click', ()=>{
-    exportExcel().catch(err=>{
-      console.error(err);
-      showToast('Failed to export Excel.', true);
-    });
-  });
-
-  backBtn.addEventListener('click', ()=>{
-    location.href = 'pdf-to-excel.html';
-  });
-
-  refreshBtn.addEventListener('click', ()=>{
-    loadPdf().catch(err=>{
-      console.error(err);
-      showToast('Could not reload the PDF.', true);
-    });
-  });
-
-  loadPdf().catch(err=>{
-    console.error(err);
-    alert('Unable to open uploaded PDF. Please upload again.');
-    location.href = 'pdf-to-excel.html';
-  });
-})();
-</script>
-    
-<script src="js/auth.js" type="module"></script>
-        <div class="container footer-inner">
-            <div class="footer-company-links">
-                <span>Company</span>
-                <a href="index.html#about">About Us</a>
-                <a href="index.html#contact">Contact</a>
-                <a href="pricing.html">Pricing</a>
-                <a href="privacy-policy.html">Privacy Policy</a>
-                <a href="terms-of-service.html">Terms of Service</a>
-                <a href="dmca-en.html">DMCA</a>
-                <a href="blog.html">Blog</a>
-            </div>
-            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
-            <p class="footer-credits">
-                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
-                <a href="attributions.html">See full acknowledgements</a>.
-            </p>
-        </div>
-    </footer>
-    <script src="js/global-components.js"></script>
-    <script>
-    // Ensure header loads - multiple attempts to guarantee it works
-    (function() {
-        function tryLoadHeader() {
-            if (typeof loadGlobalHeader === 'function') {
-                try {
-                    loadGlobalHeader();
-                    return true;
-                } catch (e) {
-                    console.error('Error calling loadGlobalHeader:', e);
-                }
-            }
-            return false;
-        }
-        
-        // Try immediately if script already loaded
-        if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            if (!tryLoadHeader()) {
-                // Script not loaded yet, wait for it
-                var attempts = 0;
-                var maxAttempts = 60; // 3 seconds total
-                var checkHeader = setInterval(function() {
-                    attempts++;
-                    if (tryLoadHeader() || attempts >= maxAttempts) {
-                        clearInterval(checkHeader);
-                    }
-                }, 50);
-            }
-        } else {
-            // Wait for DOM to be ready
-            document.addEventListener('DOMContentLoaded', function() {
-                if (!tryLoadHeader()) {
-                    var attempts = 0;
-                    var maxAttempts = 40;
-                    var checkHeader = setInterval(function() {
-                        attempts++;
-                        if (tryLoadHeader() || attempts >= maxAttempts) {
-                            clearInterval(checkHeader);
-                        }
-                    }, 50);
-                }
-            });
-        }
-        
-        // Final backup attempt on window load
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                if (!document.querySelector('header') && typeof loadGlobalHeader === 'function') {
-                    loadGlobalHeader();
-                }
-            }, 100);
-        });
-    })();
-    </script>
-
-    <section class="feedback-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
         <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
             <i class="fas fa-comments" style="margin-right: 10px;"></i>
             Reviews & Comments
@@ -1201,6 +1003,112 @@
     }
     </script>
 
+    <div class="trust-badges" style="text-align: center; padding: 20px; background: linear-gradient(135deg, #f8f9ff, #ffffff); border-radius: 12px; margin: 30px 0; border: 2px solid #e2e6ff; max-width: 1400px; margin-left: auto; margin-right: auto;">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 40px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-shield-alt" style="font-size: 2rem; color: #4361ee;"></i>
+                <div style="text-align: left;">
+                    <div style="color: #0b1630; font-weight: 600; font-size: 1.1rem;">SSL Secured</div>
+                    <div style="color: #56607a; font-size: 0.9rem;">256-bit Encryption</div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-lock" style="font-size: 2rem; color: #4361ee;"></i>
+                <div style="text-align: left;">
+                    <div style="color: #0b1630; font-weight: 600; font-size: 1.1rem;">100% Secure</div>
+                    <div style="color: #56607a; font-size: 0.9rem;">Files Auto-Deleted</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="global-footer-placeholder"></div>
+    <script src="js/global-components.js"></script>
+    <script>
+    // Ensure header and footer load - multiple attempts to guarantee it works
+    (function() {
+        function tryLoadHeader() {
+            if (typeof loadGlobalHeader === 'function') {
+                try {
+                    loadGlobalHeader();
+                    return true;
+                } catch (e) {
+                    console.error('Error calling loadGlobalHeader:', e);
+                }
+            }
+            return false;
+        }
         
+        function tryLoadFooter() {
+            if (typeof loadGlobalFooter === 'function') {
+                try {
+                    loadGlobalFooter();
+                    return true;
+                } catch (e) {
+                    console.error('Error calling loadGlobalFooter:', e);
+                }
+            }
+            return false;
+        }
+        
+        // Try immediately if script already loaded
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            if (!tryLoadHeader()) {
+                var attempts = 0;
+                var maxAttempts = 60;
+                var checkHeader = setInterval(function() {
+                    attempts++;
+                    if (tryLoadHeader() || attempts >= maxAttempts) {
+                        clearInterval(checkHeader);
+                    }
+                }, 50);
+            }
+            if (!tryLoadFooter()) {
+                var attempts = 0;
+                var maxAttempts = 60;
+                var checkFooter = setInterval(function() {
+                    attempts++;
+                    if (tryLoadFooter() || attempts >= maxAttempts) {
+                        clearInterval(checkFooter);
+                    }
+                }, 50);
+            }
+        } else {
+            document.addEventListener('DOMContentLoaded', function() {
+                if (!tryLoadHeader()) {
+                    var attempts = 0;
+                    var maxAttempts = 40;
+                    var checkHeader = setInterval(function() {
+                        attempts++;
+                        if (tryLoadHeader() || attempts >= maxAttempts) {
+                            clearInterval(checkHeader);
+                        }
+                    }, 50);
+                }
+                if (!tryLoadFooter()) {
+                    var attempts = 0;
+                    var maxAttempts = 40;
+                    var checkFooter = setInterval(function() {
+                        attempts++;
+                        if (tryLoadFooter() || attempts >= maxAttempts) {
+                            clearInterval(checkFooter);
+                        }
+                    }, 50);
+                }
+            });
+        }
+        
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (!document.querySelector('header') && typeof loadGlobalHeader === 'function') {
+                    loadGlobalHeader();
+                }
+                if (!document.querySelector('footer') && typeof loadGlobalFooter === 'function') {
+                    loadGlobalFooter();
+                }
+            }, 100);
+        });
+    })();
+    </script>
 </body>
 </html>
