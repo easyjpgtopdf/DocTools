@@ -92,13 +92,23 @@ def guided_filter(image, mask, radius=5, eps=0.01):
         img_array = img_array.astype(np.float32) / 255.0
         mask_array = mask_array.astype(np.float32)
         
-        # Apply guided filter
-        filtered_mask = cv2.ximgproc.guidedFilter(
-            guide=img_array,
-            src=mask_array,
-            radius=radius,
-            eps=eps
-        )
+        # Apply guided filter (using ximgproc if available, else fallback)
+        try:
+            filtered_mask = cv2.ximgproc.guidedFilter(
+                guide=img_array,
+                src=mask_array,
+                radius=radius,
+                eps=eps
+            )
+        except AttributeError:
+            # Fallback: simple bilateral filter for edge smoothing
+            mask_uint8 = (mask_array * 255).astype(np.uint8)
+            filtered_mask = cv2.bilateralFilter(
+                mask_uint8,
+                d=9,
+                sigmaColor=75,
+                sigmaSpace=75
+            ).astype(np.float32) / 255.0
         
         # Convert back to 0-255 range
         filtered_mask = (filtered_mask * 255).astype(np.uint8)
