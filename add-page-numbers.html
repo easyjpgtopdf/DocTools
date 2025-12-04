@@ -118,6 +118,60 @@ body{background:linear-gradient(135deg,#f5f7ff 0%,#e9ecef 100%);min-height:100vh
 </div></div>
     
 <script src="js/global-components.js"></script>
+    <script>
+    // Ensure header loads - multiple attempts to guarantee it works
+    (function() {
+        function tryLoadHeader() {
+            if (typeof loadGlobalHeader === 'function') {
+                try {
+                    loadGlobalHeader();
+                    return true;
+                } catch (e) {
+                    console.error('Error calling loadGlobalHeader:', e);
+                }
+            }
+            return false;
+        }
+        
+        // Try immediately if script already loaded
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            if (!tryLoadHeader()) {
+                // Script not loaded yet, wait for it
+                var attempts = 0;
+                var maxAttempts = 60; // 3 seconds total
+                var checkHeader = setInterval(function() {
+                    attempts++;
+                    if (tryLoadHeader() || attempts >= maxAttempts) {
+                        clearInterval(checkHeader);
+                    }
+                }, 50);
+            }
+        } else {
+            // Wait for DOM to be ready
+            document.addEventListener('DOMContentLoaded', function() {
+                if (!tryLoadHeader()) {
+                    var attempts = 0;
+                    var maxAttempts = 40;
+                    var checkHeader = setInterval(function() {
+                        attempts++;
+                        if (tryLoadHeader() || attempts >= maxAttempts) {
+                            clearInterval(checkHeader);
+                        }
+                    }, 50);
+                }
+            });
+        }
+        
+        // Final backup attempt on window load
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (!document.querySelector('header') && typeof loadGlobalHeader === 'function') {
+                    loadGlobalHeader();
+                }
+            }, 100);
+        });
+    })();
+    </script>
 <script>
 document.addEventListener('DOMContentLoaded',function(){const a=document.getElementById('upload-area'),b=document.getElementById('file-input'),c=document.getElementById('file-info'),d=document.getElementById('file-name'),e=document.getElementById('file-size'),f=document.getElementById('next-btn'),g=document.getElementById('clear-btn');let h=null;['dragenter','dragover','dragleave','drop'].forEach(i=>{a.addEventListener(i,j=>{ j.preventDefault();j.stopPropagation()},false)});['dragenter','dragover'].forEach(i=>{a.addEventListener(i,()=>a.cla
     
@@ -478,21 +532,6 @@ ssList.add('dragover'),false)});['dragleave','drop'].forEach(i=>{a.addEventListe
         </div>
     </footer>
 
-        <script>
-    // Ensure header loads - call after script loads
-    if (typeof loadGlobalHeader === 'function') {
-        loadGlobalHeader();
-    } else {
-        // Wait for script to load
-        var checkHeader = setInterval(function() {
-            if (typeof loadGlobalHeader === 'function') {
-                loadGlobalHeader();
-                clearInterval(checkHeader);
-            }
-        }, 50);
-        // Stop checking after 2 seconds
-        setTimeout(function() { clearInterval(checkHeader); }, 2000);
-    }
-    </script>
+        
 </body>
 </html>

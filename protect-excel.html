@@ -1489,22 +1489,61 @@
         </div>
     </footer>
     <script src="js/global-components.js"></script>
-
-        <script>
-    // Ensure header loads - call after script loads
-    if (typeof loadGlobalHeader === 'function') {
-        loadGlobalHeader();
-    } else {
-        // Wait for script to load
-        var checkHeader = setInterval(function() {
+    <script>
+    // Ensure header loads - multiple attempts to guarantee it works
+    (function() {
+        function tryLoadHeader() {
             if (typeof loadGlobalHeader === 'function') {
-                loadGlobalHeader();
-                clearInterval(checkHeader);
+                try {
+                    loadGlobalHeader();
+                    return true;
+                } catch (e) {
+                    console.error('Error calling loadGlobalHeader:', e);
+                }
             }
-        }, 50);
-        // Stop checking after 2 seconds
-        setTimeout(function() { clearInterval(checkHeader); }, 2000);
-    }
+            return false;
+        }
+        
+        // Try immediately if script already loaded
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            if (!tryLoadHeader()) {
+                // Script not loaded yet, wait for it
+                var attempts = 0;
+                var maxAttempts = 60; // 3 seconds total
+                var checkHeader = setInterval(function() {
+                    attempts++;
+                    if (tryLoadHeader() || attempts >= maxAttempts) {
+                        clearInterval(checkHeader);
+                    }
+                }, 50);
+            }
+        } else {
+            // Wait for DOM to be ready
+            document.addEventListener('DOMContentLoaded', function() {
+                if (!tryLoadHeader()) {
+                    var attempts = 0;
+                    var maxAttempts = 40;
+                    var checkHeader = setInterval(function() {
+                        attempts++;
+                        if (tryLoadHeader() || attempts >= maxAttempts) {
+                            clearInterval(checkHeader);
+                        }
+                    }, 50);
+                }
+            });
+        }
+        
+        // Final backup attempt on window load
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (!document.querySelector('header') && typeof loadGlobalHeader === 'function') {
+                    loadGlobalHeader();
+                }
+            }, 100);
+        });
+    })();
     </script>
+
+        
 </body>
 </html>
