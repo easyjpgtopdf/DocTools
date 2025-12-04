@@ -130,14 +130,6 @@
 <section class="panel">
 <h2>Upload File</h2>
 <div class="status-card" id="statusMessage"></div>
-<!-- File Upload Input -->
-<div style="margin: 20px 0; padding: 20px; background: #f8f9ff; border-radius: 12px; border: 2px dashed #4361ee; text-align: center;">
-  <input type="file" id="fileInput" accept="image/*" style="display: none;">
-  <label for="fileInput" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white; border-radius: 8px; cursor: pointer; font-weight: 600; transition: transform 0.2s, box-shadow 0.2s;">
-    <i class="fas fa-upload" style="margin-right: 8px;"></i> Choose Image to Upload
-  </label>
-  <p style="margin-top: 12px; color: #56607a; font-size: 0.9rem;">Or click "New Upload" button to go to upload page</p>
-</div>
 <!-- Animated Demo -->
 <div style="margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(67,97,238,0.15);">
 <img alt="AI Processing Demo" src="images/bg-removal-jungle-demo.svg" style="width: 100%; height: auto; display: block;"/>
@@ -452,6 +444,11 @@
       const quality = getSelectedQuality();
       const creditInfo = document.getElementById('creditInfo');
       const creditText = document.getElementById('creditText');
+      
+      // Check if elements exist before accessing
+      if (!creditInfo || !creditText) {
+        return; // Elements don't exist, skip
+      }
       
       if (quality === 'free') {
         creditInfo.style.display = 'none';
@@ -872,62 +869,7 @@
       }
     });
 
-    // File input handler - direct upload on workspace page
-    const fileInput = document.getElementById('fileInput');
-    if (fileInput) {
-      fileInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        
-        if (!file.type.startsWith('image/')) {
-          showError('Please select a valid image file (JPG, PNG, etc.)');
-          fileInput.value = '';
-          return;
-        }
-        
-        try {
-          clearStatus();
-          showStatus('Reading image...');
-          
-          const reader = new FileReader();
-          const dataURL = await new Promise((resolve, reject) => {
-            reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
-          
-          // Save to sessionStorage
-          sessionStorage.setItem(STORAGE_KEYS.original, dataURL);
-          sessionStorage.setItem(STORAGE_KEYS.filename, file.name || 'photo.png');
-          sessionStorage.setItem('bgRemover:originalType', file.type);
-          sessionStorage.setItem('bgRemover:originalSize', file.size.toString());
-          sessionStorage.removeItem('bgRemover:foreground');
-          sessionStorage.removeItem('bgRemover:dimensions');
-          
-          // Show preview
-          previewPlaceholder.classList.add('hidden');
-          previewStage.classList.remove('empty');
-          previewOriginal.hidden = false;
-          previewOriginal.src = dataURL;
-          
-          // Auto-process with free preview
-          const qualitySelector = document.querySelector('input[name="quality"]:checked');
-          if (qualitySelector && qualitySelector.value === 'free') {
-            await processImage(dataURL);
-          } else {
-            showStatus('Image loaded. Select quality and process.');
-          }
-          
-          fileInput.value = ''; // Reset input
-        } catch (error) {
-          console.error('File upload error:', error);
-          showError('Failed to load image. Please try again.');
-          fileInput.value = '';
-        }
-      });
-    }
-
-    // New Upload button - redirect to upload page
+    // New Upload button - redirect to upload page (OLD UPLOAD SECTION - IMPROVED)
     const newUploadBtn = document.getElementById('newUploadBtn');
     if (newUploadBtn) {
       newUploadBtn.addEventListener('click', () => {
@@ -952,9 +894,6 @@
   </script>
     
     <!-- Auth and Firebase scripts loaded by global-components.js -->
-
-    <!-- Global Footer Placeholder - Loaded by global-components.js -->
-    <div id="global-footer-placeholder"></div>
     
     <section class="explanatory-content" style="margin: 40px 0; padding: 40px; background: linear-gradient(135deg, #f8f9ff, #ffffff); border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
         <div class="container" style="max-width: 900px; margin: 0 auto;">
@@ -1322,16 +1261,81 @@
             });
         }
         
+        function tryLoadFooter() {
+            if (typeof loadGlobalFooter === 'function') {
+                try {
+                    loadGlobalFooter();
+                    return true;
+                } catch (e) {
+                    console.error('Error calling loadGlobalFooter:', e);
+                }
+            }
+            return false;
+        }
+        
+        // Try immediately if script already loaded
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            if (!tryLoadHeader()) {
+                var attempts = 0;
+                var maxAttempts = 60;
+                var checkHeader = setInterval(function() {
+                    attempts++;
+                    if (tryLoadHeader() || attempts >= maxAttempts) {
+                        clearInterval(checkHeader);
+                    }
+                }, 50);
+            }
+            if (!tryLoadFooter()) {
+                var attempts = 0;
+                var maxAttempts = 60;
+                var checkFooter = setInterval(function() {
+                    attempts++;
+                    if (tryLoadFooter() || attempts >= maxAttempts) {
+                        clearInterval(checkFooter);
+                    }
+                }, 50);
+            }
+        } else {
+            document.addEventListener('DOMContentLoaded', function() {
+                if (!tryLoadHeader()) {
+                    var attempts = 0;
+                    var maxAttempts = 40;
+                    var checkHeader = setInterval(function() {
+                        attempts++;
+                        if (tryLoadHeader() || attempts >= maxAttempts) {
+                            clearInterval(checkHeader);
+                        }
+                    }, 50);
+                }
+                if (!tryLoadFooter()) {
+                    var attempts = 0;
+                    var maxAttempts = 40;
+                    var checkFooter = setInterval(function() {
+                        attempts++;
+                        if (tryLoadFooter() || attempts >= maxAttempts) {
+                            clearInterval(checkFooter);
+                        }
+                    }, 50);
+                }
+            });
+        }
+        
         // Final backup attempt on window load
         window.addEventListener('load', function() {
             setTimeout(function() {
                 if (!document.querySelector('header') && typeof loadGlobalHeader === 'function') {
                     loadGlobalHeader();
                 }
+                if (!document.querySelector('footer') && typeof loadGlobalFooter === 'function') {
+                    loadGlobalFooter();
+                }
             }, 100);
         });
     })();
     </script>
+
+    <!-- Global Footer Placeholder - Loaded by global-components.js -->
+    <div id="global-footer-placeholder"></div>
 </body>
 </html>
 
