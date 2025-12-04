@@ -234,12 +234,24 @@ async function convertPdfToText(files) {
             script.onerror = reject;
             document.head.appendChild(script);
         });
+        // Also load worker
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }
     
     const convertedFiles = [];
     
     for (const fileData of files) {
-        const data = new Uint8Array(fileData.data);
+        // Ensure data is ArrayBuffer or Uint8Array
+        let data;
+        if (fileData.data instanceof ArrayBuffer) {
+            data = new Uint8Array(fileData.data);
+        } else if (fileData.data instanceof Uint8Array) {
+            data = fileData.data;
+        } else {
+            console.error('Invalid file data format:', fileData);
+            continue;
+        }
+        
         const pdf = await window.pdfjsLib.getDocument({ data }).promise;
         let text = '';
         

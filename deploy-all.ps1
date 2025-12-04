@@ -46,13 +46,14 @@ if (Test-Path "deploy-cloudrun.sh") {
         --platform managed `
         --region $REGION `
         --allow-unauthenticated `
-        --memory 8Gi `
+        --memory 16Gi `
         --cpu 4 `
         --timeout 300 `
         --min-instances 0 `
-        --max-instances 10 `
-        --add-gpu type=nvidia-l4 `
-        --gpu-count 1 `
+        --max-instances 3 `
+        --gpu=1 `
+        --gpu-type=nvidia-l4 `
+        --no-gpu-zonal-redundancy `
         --concurrency 5
     
     if ($LASTEXITCODE -ne 0) {

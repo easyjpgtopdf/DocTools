@@ -474,9 +474,7 @@
 <div class="file-info" id="fileInfo"></div>
 <div class="progress-wrapper" id="progressWrapper">
 <div style="display:flex;justify-content:space-between;font-size:0.9rem;color:var(--muted);">
-<span id="progre
-    
-ssLabel">Preparing</span>
+<span id="progressLabel">Preparing</span>
 <span id="progressPercent">0%</span>
 </div>
 <div class="progress-track">
@@ -937,15 +935,15 @@ ssLabel">Preparing</span>
 
       function setProgress(value, label) {
         if (value === null) {
-          progressWrapper.style.display = "none";
+          if (progressWrapper) if (progressWrapper) progressWrapper.style.display = "none";
           return;
         }
-        progressWrapper.style.display = "flex";
+        if (progressWrapper) if (progressWrapper) progressWrapper.style.display = "flex";
         const clamped = Math.max(0, Math.min(100, value));
-        progressBar.style.width = clamped + "%";
-        progressPercent.textContent = clamped.toFixed(0) + "%";
-        if (label) {
-          progressLabel.textContent = label;
+        if (progressBar) if (progressBar) progressBar.style.width = clamped + "%";
+        if (progressPercent) if (progressPercent) progressPercent.textContent = clamped.toFixed(0) + "%";
+        if (label && progressLabel) {
+          if (progressLabel) progressLabel.textContent = label;
         }
       }
 
