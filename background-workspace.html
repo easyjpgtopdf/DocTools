@@ -872,6 +872,61 @@
       }
     });
 
+    // File input handler - direct upload on workspace page
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) {
+      fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        if (!file.type.startsWith('image/')) {
+          showError('Please select a valid image file (JPG, PNG, etc.)');
+          fileInput.value = '';
+          return;
+        }
+        
+        try {
+          clearStatus();
+          showStatus('Reading image...');
+          
+          const reader = new FileReader();
+          const dataURL = await new Promise((resolve, reject) => {
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+          
+          // Save to sessionStorage
+          sessionStorage.setItem(STORAGE_KEYS.original, dataURL);
+          sessionStorage.setItem(STORAGE_KEYS.filename, file.name || 'photo.png');
+          sessionStorage.setItem('bgRemover:originalType', file.type);
+          sessionStorage.setItem('bgRemover:originalSize', file.size.toString());
+          sessionStorage.removeItem('bgRemover:foreground');
+          sessionStorage.removeItem('bgRemover:dimensions');
+          
+          // Show preview
+          previewPlaceholder.classList.add('hidden');
+          previewStage.classList.remove('empty');
+          previewOriginal.hidden = false;
+          previewOriginal.src = dataURL;
+          
+          // Auto-process with free preview
+          const qualitySelector = document.querySelector('input[name="quality"]:checked');
+          if (qualitySelector && qualitySelector.value === 'free') {
+            await processImage(dataURL);
+          } else {
+            showStatus('Image loaded. Select quality and process.');
+          }
+          
+          fileInput.value = ''; // Reset input
+        } catch (error) {
+          console.error('File upload error:', error);
+          showError('Failed to load image. Please try again.');
+          fileInput.value = '';
+        }
+      });
+    }
+
     // New Upload button - redirect to upload page
     const newUploadBtn = document.getElementById('newUploadBtn');
     if (newUploadBtn) {
