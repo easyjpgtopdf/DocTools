@@ -130,6 +130,14 @@
 <section class="panel">
 <h2>Upload File</h2>
 <div class="status-card" id="statusMessage"></div>
+<!-- File Upload Input -->
+<div style="margin: 20px 0; padding: 20px; background: #f8f9ff; border-radius: 12px; border: 2px dashed #4361ee; text-align: center;">
+  <input type="file" id="fileInput" accept="image/*" style="display: none;">
+  <label for="fileInput" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white; border-radius: 8px; cursor: pointer; font-weight: 600; transition: transform 0.2s, box-shadow 0.2s;">
+    <i class="fas fa-upload" style="margin-right: 8px;"></i> Choose Image to Upload
+  </label>
+  <p style="margin-top: 12px; color: #56607a; font-size: 0.9rem;">Or click "New Upload" button to go to upload page</p>
+</div>
 <!-- Animated Demo -->
 <div style="margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(67,97,238,0.15);">
 <img alt="AI Processing Demo" src="images/bg-removal-jungle-demo.svg" style="width: 100%; height: auto; display: block;"/>
@@ -790,9 +798,11 @@
       showError('No image found. Please upload a file first.');
       backgroundChangeBtn.disabled = true;
       downloadBtn.disabled = true;
-      document.getElementById('processBtn').disabled = true;
+      const processBtn = document.getElementById('processBtn');
+      if (processBtn) processBtn.disabled = true;
     } else {
-      document.getElementById('processBtn').disabled = false;
+      const processBtn = document.getElementById('processBtn');
+      if (processBtn) processBtn.disabled = false;
       // Auto-process with free preview on load
       const qualitySelector = document.querySelector('input[name="quality"]');
       if (qualitySelector && qualitySelector.value === 'free') {
