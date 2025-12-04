@@ -51,3 +51,16 @@ api/background-remove-v2-alt.js
 api/background-remove-rembg.js
 api/free-preview-bg.js
 api/premium-bg.js
+
+# Individual API functions - now routed through api/router.js
+# Exclude these from api/ directory so Vercel doesn't create separate functions
+# They are now in api-handlers/ directory and loaded by router.js
+api/create-order.js
+api/credits/
+api/payments/
+api/send-receipt-email.js
+api/unlock-excel.js
+api/pdf-ocr/
+api/cloud/
+api/background-remove-v2.js
+api/remove-background.js

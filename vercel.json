@@ -5,6 +5,50 @@
   "trailingSlash": false,
   "rewrites": [
     {
+      "source": "/api/create-order",
+      "destination": "/api/router?endpoint=create-order"
+    },
+    {
+      "source": "/api/credits/balance",
+      "destination": "/api/router?endpoint=credits/balance"
+    },
+    {
+      "source": "/api/credits/purchase",
+      "destination": "/api/router?endpoint=credits/purchase"
+    },
+    {
+      "source": "/api/credits/verify",
+      "destination": "/api/router?endpoint=credits/verify"
+    },
+    {
+      "source": "/api/payments/razorpay/webhook",
+      "destination": "/api/router?endpoint=payments/razorpay/webhook"
+    },
+    {
+      "source": "/api/send-receipt-email",
+      "destination": "/api/router?endpoint=send-receipt-email"
+    },
+    {
+      "source": "/api/unlock-excel",
+      "destination": "/api/router?endpoint=unlock-excel"
+    },
+    {
+      "source": "/api/pdf-ocr/status",
+      "destination": "/api/router?endpoint=pdf-ocr/status"
+    },
+    {
+      "source": "/api/cloud/status",
+      "destination": "/api/router?endpoint=cloud/status"
+    },
+    {
+      "source": "/api/background-remove-v2",
+      "destination": "/api/router?endpoint=background-remove-v2"
+    },
+    {
+      "source": "/api/remove-background",
+      "destination": "/api/router?endpoint=remove-background"
+    },
+    {
       "source": "/(.*)",
       "destination": "/$1"
     }
