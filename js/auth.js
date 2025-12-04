@@ -121,7 +121,21 @@ async function ensureUserProfile(user, defaults = {}) {
       lastLogin: new Date().toISOString(),
       plan: 'free',
       totalConversions: 0,
+      // Initialize credit system
+      credits: 0,
+      totalCreditsEarned: 0,
+      totalCreditsUsed: 0,
     });
+    
+    // Initialize credit manager if available
+    try {
+      const creditModule = await import('./credit-manager.js');
+      if (creditModule && creditModule.initializeUserCredits) {
+        await creditModule.initializeUserCredits(user.uid);
+      }
+    } catch (e) {
+      // Credit module not available, continue
+    }
   } catch (error) {
     console.error('Failed to ensure user profile:', error);
   }

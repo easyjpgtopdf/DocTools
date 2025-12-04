@@ -932,7 +932,23 @@
 <p><strong>Email:</strong> <span class="user-email">Ã¢â‚¬â€</span></p>
 <p><strong>Plan:</strong> <span class="user-plan">Free</span></p>
 <p><strong>Total Conversions:</strong> <span class="user-conversions">0</span></p>
+<p><strong>Credit Balance:</strong> <span class="user-credits" style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">0</span> credits</p>
 <p><strong>Billing Address:</strong> <span class="user-billing-address">Not added yet.</span></p>
+</div>
+<div class="dashboard-card" id="credit-card" style="background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%); color: white; border: none;">
+<h3 style="color: white; margin-bottom: 16px;">
+<i class="fas fa-coins"></i> Credit Points
+</h3>
+<div style="display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px;">
+<span id="credit-balance-display" style="font-size: 2.5rem; font-weight: 700;">0</span>
+<span style="font-size: 1.2rem; opacity: 0.9;">credits</span>
+</div>
+<p style="margin: 8px 0; opacity: 0.9; font-size: 0.9rem;">
+<i class="fas fa-info-circle"></i> 1 credit = 1 HD background removal
+</p>
+<a href="pricing.html#credit-packs" class="btn" style="background: white; color: #4361ee; margin-top: 16px; display: inline-block; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+<i class="fas fa-shopping-cart"></i> Buy Credits
+</a>
 </div>
 <div class="dashboard-card">
 <h3>Recent Tool Usage</h3>
@@ -1009,6 +1025,22 @@
 <ul class="payment-list">
 <li>No payments found yet.</li>
 </ul>
+</div>
+</div>
+<div class="dashboard-panel" id="dashboard-credits">
+<div class="dashboard-card" id="credit-history-card">
+<h3>Credit Transaction History</h3>
+<div id="credit-transactions-list" style="margin-top: 20px;">
+<p style="color: #999; text-align: center; padding: 20px;">Loading credit history...</p>
+</div>
+</div>
+</div>
+<div class="dashboard-panel" id="dashboard-receipts">
+<div class="dashboard-card" id="receipts-card">
+<h3>Purchase Receipts</h3>
+<div id="receipts-list" style="margin-top: 20px;">
+<p style="color: #999; text-align: center; padding: 20px;">Loading receipts...</p>
+</div>
 </div>
 </div>
 <div class="dashboard-panel" id="dashboard-orders">
@@ -1223,6 +1255,12 @@ Monthly download: <span id="image-remover-download-used">0</span> MB / <span id=
                 // Load and display payment history
                 await loadPaymentHistory(user, firestore);
                 
+                // Load credit transactions
+                await loadCreditTransactions(user, firestore);
+                
+                // Load receipts
+                await loadReceipts(user, firestore);
+                
                 // Load user statistics
                 await loadUserStatistics(user, firestore);
                 
@@ -1235,7 +1273,7 @@ Monthly download: <span id="image-remover-download-used">0</span> MB / <span id=
         }
 
         // Update Profile Overview with real-time data
-        function updateProfileOverview(user, firestore) {
+        async function updateProfileOverview(user, firestore) {
             // Update all user-name elements
             document.querySelectorAll('.user-name').forEach(el => {
                 el.textContent = user.displayName || user.email || 'User';
@@ -1246,7 +1284,175 @@ Monthly download: <span id="image-remover-download-used">0</span> MB / <span id=
                 el.textContent = user.email || '—';
             });
             
+            // Load and update credit balance
+            await loadCreditBalance(user, firestore);
+            
             // Update user plan will be handled by dashboard-subscription.js
+        }
+        
+        // Load credit balance from Firestore
+        async function loadCreditBalance(user, firestore) {
+            try {
+                const userDocRef = doc(firestore, 'users', user.uid);
+                const userDoc = await getDoc(userDocRef);
+                
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    const credits = userData.credits || 0;
+                    
+                    // Update credit display elements
+                    document.querySelectorAll('.user-credits').forEach(el => {
+                        el.textContent = credits;
+                    });
+                    
+                    const creditBalanceDisplay = document.getElementById('credit-balance-display');
+                    if (creditBalanceDisplay) {
+                        creditBalanceDisplay.textContent = credits;
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load credit balance:', error);
+            }
+        }
+        
+        // Load credit transaction history
+        async function loadCreditTransactions(user, firestore) {
+            try {
+                const transactionsRef = collection(firestore, 'users', user.uid, 'creditTransactions');
+                const q = query(transactionsRef, orderBy('timestamp', 'desc'));
+                const querySnapshot = await getDocs(q);
+                
+                const transactionsList = document.getElementById('credit-transactions-list');
+                if (!transactionsList) return;
+                
+                if (querySnapshot.empty) {
+                    transactionsList.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;"><i class="fas fa-info-circle"></i> No credit transactions found yet.</p>';
+                    return;
+                }
+                
+                let html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+                querySnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const timestamp = data.timestamp?.toDate?.() || new Date();
+                    const dateStr = timestamp.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                    const timeStr = timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                    
+                    const isAddition = data.type === 'addition';
+                    const amount = data.amount || 0;
+                    const reason = data.reason || 'Credit transaction';
+                    
+                    html += `
+                        <div style="background: ${isAddition ? '#f0f9ff' : '#fff5f5'}; border-left: 4px solid ${isAddition ? '#10b981' : '#ef4444'}; padding: 16px; border-radius: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: start;">
+                                <div>
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                        <i class="fas fa-${isAddition ? 'plus-circle' : 'minus-circle'}" style="color: ${isAddition ? '#10b981' : '#ef4444'};"></i>
+                                        <strong style="color: #333; font-size: 1.1rem;">${isAddition ? '+' : '-'}${amount} credits</strong>
+                                    </div>
+                                    <p style="margin: 4px 0; color: #666; font-size: 0.9rem;">${reason}</p>
+                                    <p style="margin: 4px 0; color: #999; font-size: 0.85rem;">
+                                        <i class="fas fa-clock"></i> ${dateStr} at ${timeStr}
+                                    </p>
+                                    ${data.creditsBefore !== undefined ? `
+                                    <p style="margin: 4px 0; color: #999; font-size: 0.85rem;">
+                                        Balance: ${data.creditsBefore} → ${data.creditsAfter} credits
+                                    </p>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                transactionsList.innerHTML = html;
+            } catch (error) {
+                console.error('Failed to load credit transactions:', error);
+                const transactionsList = document.getElementById('credit-transactions-list');
+                if (transactionsList) {
+                    transactionsList.innerHTML = '<p style="color: #dc3545; padding: 20px;"><i class="fas fa-exclamation-triangle"></i> Failed to load credit transactions.</p>';
+                }
+            }
+        }
+        
+        // Load receipts
+        async function loadReceipts(user, firestore) {
+            try {
+                const receiptsRef = collection(firestore, 'users', user.uid, 'receipts');
+                const q = query(receiptsRef, orderBy('createdAt', 'desc'));
+                const querySnapshot = await getDocs(q);
+                
+                const receiptsList = document.getElementById('receipts-list');
+                if (!receiptsList) return;
+                
+                if (querySnapshot.empty) {
+                    receiptsList.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;"><i class="fas fa-info-circle"></i> No receipts found yet.</p>';
+                    return;
+                }
+                
+                let html = '<div style="display: flex; flex-direction: column; gap: 16px;">';
+                querySnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const timestamp = data.createdAt?.toDate?.() || new Date();
+                    const dateStr = timestamp.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                    const timeStr = timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                    
+                    const amount = data.amount || 0;
+                    const currency = data.currency || 'INR';
+                    const credits = data.credits || 0;
+                    const gstAmount = data.gstAmount || 0;
+                    const baseAmount = data.baseAmount || amount;
+                    
+                    html += `
+                        <div style="background: #f8f9fa; border: 1px solid #e9ecef; padding: 20px; border-radius: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+                                <div>
+                                    <h4 style="margin: 0 0 8px 0; color: #333;">Receipt #${data.orderId?.substring(0, 12) || 'N/A'}</h4>
+                                    <p style="margin: 0; color: #666; font-size: 0.9rem;">
+                                        <i class="fas fa-calendar"></i> ${dateStr} at ${timeStr}
+                                    </p>
+                                </div>
+                                <span style="background: #d4edda; color: #155724; padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+                                    <i class="fas fa-check-circle"></i> Paid
+                                </span>
+                            </div>
+                            <div style="border-top: 1px solid #e9ecef; padding-top: 16px; margin-top: 16px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <span style="color: #666;">Credits Purchased:</span>
+                                    <strong style="color: #333;">${credits} credits</strong>
+                                </div>
+                                ${currency === 'INR' && gstAmount > 0 ? `
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <span style="color: #666;">Base Amount:</span>
+                                    <span style="color: #333;">₹${baseAmount.toFixed(2)}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <span style="color: #666;">GST (18%):</span>
+                                    <span style="color: #333;">₹${gstAmount.toFixed(2)}</span>
+                                </div>
+                                ` : ''}
+                                <div style="display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 2px solid #333;">
+                                    <strong style="color: #333; font-size: 1.1rem;">Total Amount:</strong>
+                                    <strong style="color: #333; font-size: 1.1rem;">${currency === 'INR' ? '₹' : '$'}${amount.toFixed(2)}</strong>
+                                </div>
+                            </div>
+                            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e9ecef;">
+                                <a href="payment-receipt.html?orderId=${data.orderId || ''}" 
+                                   style="color: #4361ee; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
+                                    <i class="fas fa-download"></i> Download Receipt
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                receiptsList.innerHTML = html;
+            } catch (error) {
+                console.error('Failed to load receipts:', error);
+                const receiptsList = document.getElementById('receipts-list');
+                if (receiptsList) {
+                    receiptsList.innerHTML = '<p style="color: #dc3545; padding: 20px;"><i class="fas fa-exclamation-triangle"></i> Failed to load receipts.</p>';
+                }
+            }
         }
 
         // Load user statistics from Firestore

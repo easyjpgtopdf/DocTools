@@ -392,6 +392,80 @@
             </div>
             
         </div>
+      
+      <!-- Credit Packs Section -->
+      <div style="margin-top: 60px; padding: 40px; background: linear-gradient(135deg, #f8f9ff, #ffffff); border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <div style="text-align: center; margin-bottom: 40px;">
+          <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 12px;">
+            <i class="fas fa-coins" style="margin-right: 10px;"></i>
+            Credit Packs
+          </h2>
+          <p style="font-size: 1.1rem; color: #56607a; max-width: 600px; margin: 0 auto;">
+            Purchase credits for Premium HD Background Removal and other premium features. Credits never expire!
+          </p>
+        </div>
+        
+        <div class="plans" id="creditPacks" style="margin-top: 30px;">
+          <!-- Credit Pack 1: 50 Credits -->
+          <div class="plan featured" style="position: relative;">
+            <div style="position: absolute; top: 10px; right: 10px; background: #4361ee; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">POPULAR</div>
+            <h3>50 Credits</h3>
+            <div class="price">
+              <span id="price-50-usd" style="display: none;">$4</span>
+              <span id="price-50-inr">₹448</span>
+              <span>one-time</span>
+            </div>
+            <p style="font-size: 0.85rem; color: #999; margin-top: -8px;">
+              <span id="gst-50" style="display: none;">Base: ₹380 + GST (18%): ₹68</span>
+            </p>
+            <p>Perfect for regular users</p>
+            <ul>
+              <li>50 Premium HD Background Removals</li>
+              <li>1 credit = 1 HD image</li>
+              <li>Credits never expire</li>
+              <li>Minimum purchase required</li>
+            </ul>
+            <button class="btn-primary" data-credit-pack="pack-50" style="width: 100%; margin-top: 20px;">
+              Buy 50 Credits
+            </button>
+          </div>
+          
+          <!-- Credit Pack 2: 200 Credits -->
+          <div class="plan" style="position: relative;">
+            <div style="position: absolute; top: 10px; right: 10px; background: #22c55e; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">BEST VALUE</div>
+            <h3>200 Credits</h3>
+            <div class="price">
+              <span id="price-200-usd" style="display: none;">$15</span>
+              <span id="price-200-inr">₹1,682</span>
+              <span>one-time</span>
+            </div>
+            <p style="font-size: 0.85rem; color: #999; margin-top: -8px;">
+              <span id="gst-200" style="display: none;">Base: ₹1,425 + GST (18%): ₹257</span>
+            </p>
+            <p>Best value for power users</p>
+            <ul>
+              <li>200 Premium HD Background Removals</li>
+              <li>1 credit = 1 HD image</li>
+              <li>Credits never expire</li>
+              <li>Maximum savings</li>
+            </ul>
+            <button class="btn-primary" data-credit-pack="pack-200" style="width: 100%; margin-top: 20px;">
+              Buy 200 Credits
+            </button>
+          </div>
+        </div>
+        
+        <div style="margin-top: 30px; padding: 20px; background: white; border-radius: 12px; text-align: center;">
+          <p style="color: #56607a; margin: 0 0 12px 0;">
+            <i class="fas fa-info-circle" style="color: #4361ee; margin-right: 8px;"></i>
+            <strong>Note:</strong> 1 Credit = 1 Premium HD Background Removal (2000-4000px). Free Preview (512px) requires no credits and has no watermark.
+          </p>
+          <p style="color: #56607a; margin: 0; font-size: 0.9rem;">
+            <i class="fas fa-rupee-sign" style="color: #4361ee; margin-right: 8px;"></i>
+            <strong>Pricing:</strong> All prices include 18% GST for Indian users. Currency conversion: $1 = ₹95.
+          </p>
+        </div>
+      </div>
     </div>
 </main>
 
@@ -526,6 +600,33 @@
         });
       });
 
+      // Credit purchase handlers
+      document.querySelectorAll('button[data-credit-pack]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const creditPackId = btn.getAttribute('data-credit-pack');
+          const userId = await getCurrentUserId();
+          
+          if (!userId) {
+            // Store pending credit purchase
+            sessionStorage.setItem('pendingCreditPurchase', JSON.stringify({
+              creditPack: creditPackId,
+              timestamp: Date.now()
+            }));
+            window.location.href = `login.html?returnTo=${encodeURIComponent(window.location.href)}`;
+            return;
+          }
+          
+          try {
+            // Import credit manager
+            const { purchaseCredits } = await import('./js/credit-manager.js');
+            await purchaseCredits({ id: creditPackId }, userId);
+          } catch (error) {
+            console.error('Error purchasing credits:', error);
+            alert('Failed to initiate credit purchase. Please try again.');
+          }
+        });
+      });
+      
       // Listen for auth-action-resume event (dispatched by auth.js after login)
       let authResumeProcessed = false;
       // Only listen for auth-action-resume on pricing page

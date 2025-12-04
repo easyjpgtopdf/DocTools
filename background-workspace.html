@@ -4,9 +4,9 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
-<title>Background Workspace - Online Free Tool | easyjpgtopdf</title>
-    <meta name="description" content="Use our free Background Workspace tool online. Fast, secure, and easy to use.">
-    <meta name="keywords" content="background-workspace, background workspace, free background-workspace, online background-workspace">
+<title>Background Removal Workspace - AI Background Remover | Remove Background Online Free</title>
+    <meta name="description" content="Remove background from images online with AI. Free preview (512px) and premium HD quality (2000-4000px) background removal. Professional GPU-accelerated AI processing.">
+    <meta name="keywords" content="background removal, remove background, ai background remover, background workspace, free background removal, hd background removal, transparent background, png background remover">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://easyjpgtopdf.com/background-workspace.html">
     <meta property="og:title" content="Background Removal Workspace - Edit & Download Transparent Images">
@@ -15,13 +15,6 @@
     <meta property="og:url" content="https://easyjpgtopdf.com/background-workspace.html">
 <link href="css/footer.css" rel="stylesheet"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
-<script type="importmap">
-    {
-      "imports": {
-        "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort.min.mjs"
-      }
-    }
-  </script>
 <style>
     :root {
       --primary: #4361ee;
@@ -76,8 +69,8 @@
     {
       "@context": "https://schema.org",
       "@type": "WebPage",
-      "name": "Background Workspace - Online Free Tool | easyjpgtopdf",
-      "description": "Use our free Background Workspace tool online. Fast, secure, and easy to use.",
+      "name": "Background Removal Workspace - AI Background Remover | Remove Background Online Free",
+      "description": "Remove background from images online with AI. Free preview (512px) and premium HD quality (2000-4000px) background removal. Professional GPU-accelerated AI processing.",
       "url": "https://easyjpgtopdf.com/background-workspace.html",
       "inLanguage": "en-US",
       "isPartOf": {
@@ -109,7 +102,7 @@
     </nav>
 <main>
 <section class="panel">
-<h1>Background Workspace - Online Free Tool</h1>
+<h1>AI Background Removal Workspace - Remove Background Online Free</h1>
 <div class="preview-stage" id="previewStage">
 <img alt="Original" class="preview-original" hidden="" id="previewOriginal"/>
 <img alt="Result" class="preview-result" hidden="" id="previewResult"/>
@@ -253,224 +246,265 @@
     // Use proxy endpoint for processing
     // ============================================
     
-    // Device Fingerprinting - REMOVED (not needed for browser MODNet)
-    // All processing is done in browser - no backend needed
+    // All processing is done via backend API - GPU-accelerated server-side processing
     
     // ============================================
-    // MODNet Browser-Based Background Remover
-    // Unlimited, High-Quality, Original Quality
-    // Runs entirely in browser - No backend needed
+    // AI-Powered Background Remover
+    // FREE: 512px Preview (GPU-accelerated)
+    // PREMIUM: HD 2000-4000px (GPU-accelerated High-Resolution)
     // ============================================
     
-    let modnetSession = null;
-    let modnetModelLoaded = false;
-    const MODNET_MODEL_URL = 'https://github.com/ZHKKKe/MODNet/releases/download/v1.0.0/modnet_webcam_portrait_matting.onnx';
+    // Import subscription and credit modules
+    let subscriptionModule = null;
+    let creditModule = null;
+    let currentUserId = null;
     
-    // Load MODNet model using ONNX Runtime Web
-    async function loadMODNetModel() {
-      if (modnetModelLoaded && modnetSession) {
-        return modnetSession;
+    // Get API base URL
+    function getApiBaseUrl() {
+      const hostname = window.location.hostname;
+      const isDevelopment = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
+      if (isDevelopment) {
+        return 'http://localhost:3000';
       }
-      
+      const origin = window.location.origin;
+      return origin.endsWith('/') ? origin.slice(0, -1) : origin;
+    }
+    
+    const API_BASE_URL = getApiBaseUrl();
+    
+    // Load subscription module
+    async function loadSubscriptionModule() {
+      if (subscriptionModule) return subscriptionModule;
       try {
-        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">?? Loading MODNet AI model...</div>`;
-        
-        const ort = await import('onnxruntime-web');
-        
-        // Use GitHub releases URL (more reliable than jsdelivr)
-        // Try multiple sources for better reliability
-        const modelUrls = [
-          MODNET_MODEL_URL, // GitHub releases (primary)
-          'https://github.com/ZHKKKe/MODNet/releases/download/v1.0.0/modnet_webcam_portrait_matting.onnx',
-          'https://raw.githubusercontent.com/ZHKKKe/MODNet/master/pretrained/modnet_webcam_portrait_matting.onnx'
-        ];
-        
-        let lastError = null;
-        for (const modelUrl of modelUrls) {
-          try {
-            console.log(`🔄 Trying to load MODNet from: ${modelUrl}`);
-            modnetSession = await ort.InferenceSession.create(modelUrl, {
-              executionProviders: ['wasm'], // Use WebAssembly for better performance
-              graphOptimizationLevel: 'all'
-            });
-            modnetModelLoaded = true;
-            console.log('✅ MODNet model loaded successfully from:', modelUrl);
-            return modnetSession;
-          } catch (urlError) {
-            console.warn(`⚠️ Failed to load from ${modelUrl}:`, urlError);
-            lastError = urlError;
-            continue; // Try next URL
-          }
-        }
-        
-        // If all URLs failed, throw the last error
-        throw lastError || new Error('All MODNet model URLs failed');
+        subscriptionModule = await import('./js/subscription.js');
+        return subscriptionModule;
       } catch (error) {
-        console.error('❌ Failed to load MODNet model:', error);
-        throw new Error('MODNet model failed to load. Please refresh the page.');
+        console.warn('Failed to load subscription module:', error);
+        return null;
       }
     }
     
-    // Preprocess image for MODNet (resize to 512x512, normalize)
-    function preprocessImageForMODNet(image) {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const targetSize = 512;
-      
-      canvas.width = targetSize;
-      canvas.height = targetSize;
-      
-      // Draw image maintaining aspect ratio
-      ctx.drawImage(image, 0, 0, targetSize, targetSize);
-      
-      // Get image data
-      const imageData = ctx.getImageData(0, 0, targetSize, targetSize);
-      const data = imageData.data;
-      
-      // Convert to tensor format (normalize to 0-1, RGB format for MODNet)
-      const tensor = new Float32Array(3 * targetSize * targetSize);
-      
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-        
-        const idx = Math.floor(i / 4);
-        // RGB format and normalize (MODNet expects RGB)
-        tensor[idx] = (r / 255.0 - 0.5) / 0.5; // Normalize to [-1, 1]
-        tensor[idx + targetSize * targetSize] = (g / 255.0 - 0.5) / 0.5;
-        tensor[idx + 2 * targetSize * targetSize] = (b / 255.0 - 0.5) / 0.5;
-      }
-      
-      return {
-        tensorData: tensor,
-        tensorShape: [1, 3, targetSize, targetSize],
-        originalWidth: image.width,
-        originalHeight: image.height
-      };
-    }
-    
-    // Helper to create ONNX tensor
-    async function createONNXTensor(tensorData, tensorShape) {
-      const ort = await import('onnxruntime-web');
-      return new ort.Tensor('float32', tensorData, tensorShape);
-    }
-    
-    // Postprocess MODNet output (resize mask to original size, apply to image)
-    function postprocessMODNetMask(maskTensor, originalWidth, originalHeight, originalImage) {
-      const maskData = maskTensor.data;
-      const maskSize = Math.sqrt(maskData.length);
-      
-      // Create mask canvas
-      const maskCanvas = document.createElement('canvas');
-      const maskCtx = maskCanvas.getContext('2d');
-      maskCanvas.width = maskSize;
-      maskCanvas.height = maskSize;
-      
-      const maskImageData = maskCtx.createImageData(maskSize, maskSize);
-      
-      for (let i = 0; i < maskData.length; i++) {
-        const alpha = Math.min(255, Math.max(0, maskData[i] * 255));
-        const idx = i * 4;
-        maskImageData.data[idx] = alpha;     // R
-        maskImageData.data[idx + 1] = alpha; // G
-        maskImageData.data[idx + 2] = alpha; // B
-        maskImageData.data[idx + 3] = alpha; // A
-      }
-      
-      maskCtx.putImageData(maskImageData, 0, 0);
-      
-      // Resize mask to original image size
-      const resizedMaskCanvas = document.createElement('canvas');
-      const resizedMaskCtx = resizedMaskCanvas.getContext('2d');
-      resizedMaskCanvas.width = originalWidth;
-      resizedMaskCanvas.height = originalHeight;
-      resizedMaskCtx.drawImage(maskCanvas, 0, 0, originalWidth, originalHeight);
-      
-      // Apply mask to original image
-      const outputCanvas = document.createElement('canvas');
-      const outputCtx = outputCanvas.getContext('2d');
-      outputCanvas.width = originalWidth;
-      outputCanvas.height = originalHeight;
-      
-      // Draw original image
-      outputCtx.drawImage(originalImage, 0, 0);
-      
-      // Apply mask as alpha channel
-      const outputImageData = outputCtx.getImageData(0, 0, originalWidth, originalHeight);
-      const maskImageDataResized = resizedMaskCtx.getImageData(0, 0, originalWidth, originalHeight);
-      
-      for (let i = 0; i < outputImageData.data.length; i += 4) {
-        const alpha = maskImageDataResized.data[i]; // Use R channel as alpha
-        outputImageData.data[i + 3] = alpha; // Set alpha channel
-      }
-      
-      outputCtx.putImageData(outputImageData, 0, 0);
-      
-      return outputCanvas.toDataURL('image/png');
-    }
-    
-    // Process image with MODNet (browser-based)
-    async function processWithMODNet(dataURL) {
+    // Load credit manager module
+    async function loadCreditModule() {
+      if (creditModule) return creditModule;
       try {
-        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">?? Processing with MODNet AI...</div>`;
+        creditModule = await import('./js/credit-manager.js');
+        return creditModule;
+      } catch (error) {
+        console.warn('Failed to load credit module:', error);
+        return null;
+      }
+    }
+    
+    // Get current user ID
+    async function getCurrentUserId() {
+      if (currentUserId) return currentUserId;
+      try {
+        const authModule = await import('./js/auth.js');
+        if (authModule && authModule.getCurrentUser) {
+          const user = await authModule.getCurrentUser();
+          currentUserId = user?.uid || null;
+        }
+      } catch (error) {
+        console.warn('Failed to get user ID:', error);
+      }
+      return currentUserId;
+    }
+    
+    // Process with Free Preview API (512px BiRefNet GPU)
+    async function processWithFreePreview(dataURL) {
+      try {
+        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">Processing with Free Preview (512px GPU-accelerated)...</div>`;
         
-        // Load model if not loaded
-        const session = await loadMODNetModel();
-        
-        // Load original image
-        const img = new Image();
-        await new Promise((resolve, reject) => {
-          img.onload = resolve;
-          img.onerror = reject;
-          img.src = dataURL;
+        const response = await fetch(`${API_BASE_URL}/api/free-preview-bg`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ imageData: dataURL })
         });
         
-        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">?? Running AI inference...</div>`;
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: `Server error: ${response.status}` }));
+          throw new Error(errorData.error || `Server error: ${response.status}`);
+        }
         
-        // Preprocess
-        const { tensorData, tensorShape, originalWidth, originalHeight } = preprocessImageForMODNet(img);
+        const result = await response.json();
         
-        // Create ONNX tensor
-        const tensor = await createONNXTensor(tensorData, tensorShape);
-        
-        // Run inference
-        const feeds = { input: tensor };
-        const results = await session.run(feeds);
-        const maskTensor = results.output || results[Object.keys(results)[0]];
-        
-        // Postprocess
-        const resultDataURL = postprocessMODNetMask(maskTensor, originalWidth, originalHeight, img);
-        
-        return {
-          success: true,
-          dataUrl: resultDataURL,
-          processedWith: 'MODNet Browser AI'
-        };
+        if (result.success && result.resultImage) {
+          return {
+            success: true,
+            dataUrl: result.resultImage,
+            processedWith: 'Free Preview (512px GPU-accelerated)',
+            outputSize: result.outputSize,
+            outputSizeMB: result.outputSizeMB
+          };
+        } else {
+          throw new Error(result.error || 'Processing failed');
+        }
       } catch (error) {
-        console.error('MODNet processing error:', error);
+        console.error('Free preview processing error:', error);
         return {
           success: false,
-          error: `MODNet processing failed: ${error.message}`
+          error: error.message || 'Free preview processing failed'
         };
       }
     }
     
-    // Processing config - Always use browser MODNet (unlimited, high quality)
-    function getProcessingConfig(fileSize) {
-      const sizeMB = fileSize / (1024 * 1024);
+    // Process with Premium HD API (2000-4000px BiRefNet GPU High-Resolution)
+    async function processWithPremiumHD(dataURL) {
+      try {
+        // Check credits first
+        const subModule = await loadSubscriptionModule();
+        const userId = await getCurrentUserId();
+        
+        if (!userId) {
+          return {
+            success: false,
+            error: 'Please sign in to use Premium HD processing',
+            requiresAuth: true
+          };
+        }
+        
+        // Verify credits (this should be done on backend, but we check here for UX)
+        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">Verifying credits and processing with Premium HD (GPU-accelerated High-Resolution)...</div>`;
+        
+        const response = await fetch(`${API_BASE_URL}/api/premium-bg`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${await getAuthToken()}`
+          },
+          body: JSON.stringify({ 
+            imageData: dataURL,
+            userId: userId
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: `Server error: ${response.status}` }));
+          
+          if (response.status === 402 || errorData.error?.includes('credit') || errorData.error?.includes('insufficient')) {
+            return {
+              success: false,
+              error: 'Insufficient credits. Please purchase credits to use Premium HD processing.',
+              requiresCredits: true
+            };
+          }
+          
+          throw new Error(errorData.error || `Server error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success && result.resultImage) {
+          return {
+            success: true,
+            dataUrl: result.resultImage,
+            processedWith: 'Premium HD (2000-4000px GPU-accelerated High-Resolution)',
+            outputSize: result.outputSize,
+            outputSizeMB: result.outputSizeMB,
+            creditsUsed: result.creditsUsed
+          };
+        } else {
+          throw new Error(result.error || 'Processing failed');
+        }
+      } catch (error) {
+        console.error('Premium HD processing error:', error);
+        return {
+          success: false,
+          error: error.message || 'Premium HD processing failed'
+        };
+      }
+    }
+    
+    // Get auth token helper
+    async function getAuthToken() {
+      try {
+        const authModule = await import('./js/auth.js');
+        if (authModule && authModule.getAuthToken) {
+          return await authModule.getAuthToken();
+        }
+      } catch (error) {
+        console.warn('Failed to get auth token:', error);
+      }
+      return null;
+    }
+    
+    // Get selected quality mode
+    function getSelectedQuality() {
+      const qualityRadio = document.querySelector('input[name="quality"]:checked');
+      return qualityRadio ? qualityRadio.value : 'free';
+    }
+    
+    // Update credit info display
+    async function updateCreditInfo() {
+      const quality = getSelectedQuality();
+      const creditInfo = document.getElementById('creditInfo');
+      const creditText = document.getElementById('creditText');
       
-      return {
-        useBrowser: true,
-        description: 'MODNet Browser AI',
-        message: `Processing ${sizeMB.toFixed(1)} MB with MODNet AI`,
-        tier: 'browser-ai',
-        info: '?? MODNet Browser AI Processing',
-        quality: 1.0 // Original quality
-      };
+      if (quality === 'free') {
+        creditInfo.style.display = 'none';
+        return;
+      }
+      
+      // Premium mode - check credits
+      creditInfo.style.display = 'block';
+      creditText.textContent = 'Checking credits...';
+      
+      try {
+        const creditMod = await loadCreditModule();
+        const userId = await getCurrentUserId();
+        
+        if (!userId) {
+          creditText.innerHTML = '<a href="login.html" style="color: #4361ee; text-decoration: underline;">Sign in</a> required for Premium HD';
+          creditText.style.color = '#1f2559';
+          return;
+        }
+        
+        // Get user credits
+        if (creditMod && creditMod.getUserCredits) {
+          const creditData = await creditMod.getUserCredits(userId);
+          
+          if (creditData.unlimited) {
+            creditText.textContent = 'Premium plan active - Unlimited credits';
+            creditText.style.color = '#22c55e';
+          } else {
+            const credits = creditData.credits || 0;
+            if (credits > 0) {
+              creditText.innerHTML = `You have <strong>${credits}</strong> credit(s) - <a href="pricing.html" style="color: #4361ee; text-decoration: underline;">Buy more</a>`;
+              creditText.style.color = '#1f2559';
+            } else {
+              creditText.innerHTML = 'No credits - <a href="pricing.html" style="color: #4361ee; text-decoration: underline;">Purchase credits</a> for Premium HD';
+              creditText.style.color = '#dc2626';
+            }
+          }
+        } else {
+          // Fallback to subscription check
+          const subModule = await loadSubscriptionModule();
+          if (subModule && subModule.getCurrentSubscription) {
+            const subscription = await subModule.getCurrentSubscription(userId);
+            if (subscription.plan === 'premium' || subscription.plan === 'business') {
+              creditText.textContent = 'Premium plan active';
+              creditText.style.color = '#22c55e';
+            } else {
+              creditText.innerHTML = 'Credits required - <a href="pricing.html" style="color: #4361ee; text-decoration: underline;">Purchase</a>';
+              creditText.style.color = '#1f2559';
+            }
+          } else {
+            creditText.textContent = 'Credits required for Premium HD';
+          }
+        }
+      } catch (error) {
+        console.error('Error checking credits:', error);
+        creditText.textContent = 'Unable to check credits';
+        creditText.style.color = '#dc2626';
+      }
     }
 
-    // OLD BACKEND FUNCTION - REMOVED (Now using MODNet browser version)
+    // OLD FUNCTION - REMOVED (Now using backend API)
     // This function is kept for reference but NOT USED
     async function processWithBackend_OLD_UNUSED(dataURL, backendUrl, config) {
       try {
@@ -490,7 +524,7 @@
           // Get user info and device ID
           const userInfo = await getUserInfo();
           
-          // OLD BACKEND - NOT USED (MODNet browser version is used instead)
+          // OLD BACKEND - NOT USED (Backend API is used instead)
           response = await fetch('/api/background-remove-pytorch-DISABLED', {
             method: 'POST',
             headers: {
@@ -614,41 +648,75 @@
         previewOriginal.hidden = false;
         previewOriginal.src = dataURL;
         
-        // Get file size and optimal config
         const fileSize = Number(sessionStorage.getItem('bgRemover:originalSize') || 0);
-        const config = getProcessingConfig(fileSize);
+        const quality = getSelectedQuality();
         
-        // Check for error (file too large)
-        if (config.error) {
-          showError(config.message);
-          previewStage.classList.add('empty');
-          previewOverlay.style.opacity = 0;
-          previewPlaceholder.classList.remove('hidden');
+        let resultUrl = null;
+        let processingMethod = quality === 'free' ? 'Free Preview' : 'Premium HD';
+
+        // ===== API Processing (Free Preview or Premium HD) =====
+        
+        if (quality === 'free') {
+          // Free Preview (512px GPU-accelerated)
+          const freeResult = await processWithFreePreview(dataURL);
+          
+          if (freeResult.success) {
+            resultUrl = freeResult.dataUrl;
+            processingMethod = freeResult.processedWith || 'Free Preview (512px)';
+            console.log('✅ Free preview processing successful');
+          } else {
+            throw new Error(freeResult.error || 'Free preview processing failed');
+          }
+        } else {
+        // Premium HD (2000-4000px GPU-accelerated High-Resolution)
+        // Check credits before processing
+        const creditMod = await loadCreditModule();
+        const userId = await getCurrentUserId();
+        
+        if (!userId) {
+          if (confirm('Please sign in to use Premium HD processing. Would you like to sign in now?')) {
+            window.location.href = 'login.html?returnTo=' + encodeURIComponent(window.location.href);
+          }
           return;
         }
         
-        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">${config.message}...</div>`;
-
-        let resultUrl = null;
-        let processingMethod = 'Browser AI';
-
-        // ===== Browser MODNet Processing =====
-        if (config.useBrowser) {
-          statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">${config.info}</div>`;
+        // Verify credits before processing
+        if (creditMod && creditMod.hasSufficientCredits) {
+          const creditCheck = await creditMod.hasSufficientCredits(userId, 1);
           
-          const modnetResult = await processWithMODNet(dataURL);
-          
-          if (modnetResult.success) {
-            resultUrl = modnetResult.dataUrl;
-            processingMethod = modnetResult.processedWith || config.description;
-            
-            console.log('✅ MODNet processing successful:', {
-              tier: config.tier,
-              method: processingMethod
-            });
-          } else {
-            throw new Error(modnetResult.error || 'MODNet processing failed');
+          if (!creditCheck.hasCredits && !creditCheck.unlimited) {
+            if (confirm(`You need 1 credit for Premium HD. You have ${creditCheck.creditsAvailable || 0} credit(s). Would you like to purchase credits?`)) {
+              window.location.href = 'pricing.html#credits';
+            }
+            return;
           }
+        }
+        
+        const premiumResult = await processWithPremiumHD(dataURL);
+        
+        if (premiumResult.success) {
+          resultUrl = premiumResult.dataUrl;
+          processingMethod = premiumResult.processedWith || 'Premium HD (2000-4000px)';
+          console.log('✅ Premium HD processing successful', {
+            creditsUsed: premiumResult.creditsUsed
+          });
+          
+          // Update credit display after successful processing
+          await updateCreditInfo();
+        } else {
+          if (premiumResult.requiresAuth) {
+            if (confirm('Please sign in to use Premium HD processing. Would you like to sign in now?')) {
+              window.location.href = 'login.html?returnTo=' + encodeURIComponent(window.location.href);
+            }
+            return;
+          } else if (premiumResult.requiresCredits || premiumResult.error?.includes('credit')) {
+            if (confirm('Insufficient credits for Premium HD. Would you like to purchase credits?')) {
+              window.location.href = 'pricing.html#credits';
+            }
+            return;
+          }
+          throw new Error(premiumResult.error || 'Premium HD processing failed');
+        }
         }
         
         if (!resultUrl) {
@@ -714,9 +782,7 @@
       }
     }
 
-    // OLD BACKEND WARMUP CODE - REMOVED (MODNet browser version doesn't need backend)
-    // All processing is done in browser - no warmup needed
-    
+    // Initialize page
     const storedOriginal = sessionStorage.getItem(STORAGE_KEYS.original);
     if (!storedOriginal) {
       previewStage.classList.add('empty');
@@ -724,9 +790,53 @@
       showError('No image found. Please upload a file first.');
       backgroundChangeBtn.disabled = true;
       downloadBtn.disabled = true;
+      document.getElementById('processBtn').disabled = true;
     } else {
-      processImage(storedOriginal);
+      document.getElementById('processBtn').disabled = false;
+      // Auto-process with free preview on load
+      const qualitySelector = document.querySelector('input[name="quality"]');
+      if (qualitySelector && qualitySelector.value === 'free') {
+        processImage(storedOriginal);
+      }
     }
+    
+    // Quality selector change handler
+    document.querySelectorAll('input[name="quality"]').forEach(radio => {
+      radio.addEventListener('change', async () => {
+        const freeLabel = document.getElementById('freePreviewLabel');
+        const premiumLabel = document.getElementById('premiumHdLabel');
+        
+        if (radio.value === 'free') {
+          freeLabel.style.borderColor = '#4361ee';
+          freeLabel.style.background = 'white';
+          premiumLabel.style.borderColor = '#e2e6ff';
+          premiumLabel.style.background = 'white';
+        } else {
+          freeLabel.style.borderColor = '#e2e6ff';
+          freeLabel.style.background = 'white';
+          premiumLabel.style.borderColor = '#4361ee';
+          premiumLabel.style.background = 'white';
+        }
+        
+        await updateCreditInfo();
+      });
+    });
+    
+    // Process button handler
+    const processBtn = document.getElementById('processBtn');
+    if (processBtn) {
+      processBtn.addEventListener('click', () => {
+        const stored = sessionStorage.getItem(STORAGE_KEYS.original);
+        if (stored) {
+          processImage(stored);
+        } else {
+          showError('Please upload an image first.');
+        }
+      });
+    }
+    
+    // Initialize credit info
+    updateCreditInfo();
 
     backgroundChangeBtn.addEventListener('click', () => {
       if (backgroundChangeBtn.disabled) return;
@@ -765,9 +875,14 @@
       footerYear.textContent = new Date().getFullYear();
     }
     
-    // Initialize MODNet model on page load (preload for faster processing)
-    loadMODNetModel().catch(err => {
-      console.warn('MODNet preload failed (will load on first use):', err);
+    // Initialize modules on page load
+    Promise.all([
+      loadSubscriptionModule(),
+      loadCreditModule()
+    ]).then(() => {
+      updateCreditInfo();
+    }).catch(err => {
+      console.warn('Failed to load modules:', err);
     });
   </script>
     
@@ -776,6 +891,326 @@
     <!-- Global Footer Placeholder - Loaded by global-components.js -->
     <div id="global-footer-placeholder"></div>
     
+    <section class="explanatory-content" style="margin: 40px 0; padding: 40px; background: linear-gradient(135deg, #f8f9ff, #ffffff); border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <div class="container" style="max-width: 900px; margin: 0 auto;">
+            <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 20px; text-align: center;">
+                <i class="fas fa-info-circle" style="margin-right: 10px;"></i>
+                About Background Removal Workspace
+            </h2>
+            <div class="content-text" style="font-size: 1.1rem; color: #56607a; line-height: 1.8; text-align: center; margin-bottom: 30px;">
+                <p>Our Background Removal Workspace is a powerful AI-powered tool that removes backgrounds from images with professional precision. Using advanced GPU-accelerated AI technology, we offer two processing modes: Free Preview (512px output) for quick previews and Premium HD (2000-4000px output) for high-resolution professional results. The tool uses state-of-the-art deep learning models to accurately detect and remove backgrounds while preserving fine details, edges, and transparency. Whether you're creating product photos, social media content, or professional graphics, our background remover delivers studio-quality results. The free preview mode allows you to test the quality before committing credits, while premium HD mode provides print-ready transparent PNG files suitable for professional use. All processing is done securely in the cloud using GPU-accelerated servers, ensuring fast processing times and high-quality results. Your images are automatically deleted after processing to protect your privacy.</p>
+            </div>
+            
+            <div class="features-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 30px;">
+                <div class="feature-item" style="padding: 20px; background: white; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <i class="fas fa-robot" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                    <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px;">AI-Powered Processing</h3>
+                    <p style="color: #56607a; font-size: 0.95rem;">Advanced GPU-accelerated AI technology for accurate background removal</p>
+                </div>
+                
+                <div class="feature-item" style="padding: 20px; background: white; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <i class="fas fa-image" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                    <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px;">HD Quality Output</h3>
+                    <p style="color: #56607a; font-size: 0.95rem;">Premium mode delivers 2000-4000px resolution for professional use</p>
+                </div>
+                
+                <div class="feature-item" style="padding: 20px; background: white; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <i class="fas fa-shield-alt" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                    <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px;">Secure & Private</h3>
+                    <p style="color: #56607a; font-size: 0.95rem;">Your images are processed securely and deleted automatically</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="how-to-guide" style="margin: 40px 0; padding: 40px; background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
+            <i class="fas fa-book-open" style="margin-right: 10px;"></i>
+            How to Remove Background from Image
+        </h2>
+        <div class="steps-container" style="max-width: 800px; margin: 0 auto;">
+            <ol style="list-style: none; padding: 0; counter-reset: step-counter;">
+
+                <li style="counter-increment: step-counter; margin-bottom: 25px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee; position: relative; padding-left: 60px;">
+                    <span style="position: absolute; left: 15px; top: 20px; background: #4361ee; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">
+                        1
+                    </span>
+                    <p style="font-size: 1.1rem; color: #0b1630; line-height: 1.6; margin: 0;">
+                        Upload your image using the upload page or select an existing image from your workspace
+                    </p>
+                </li>
+
+                <li style="counter-increment: step-counter; margin-bottom: 25px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee; position: relative; padding-left: 60px;">
+                    <span style="position: absolute; left: 15px; top: 20px; background: #4361ee; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">
+                        2
+                    </span>
+                    <p style="font-size: 1.1rem; color: #0b1630; line-height: 1.6; margin: 0;">
+                        Choose your processing quality: Free Preview (512px) for quick preview or Premium HD (2000-4000px) for professional results
+                    </p>
+                </li>
+
+                <li style="counter-increment: step-counter; margin-bottom: 25px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee; position: relative; padding-left: 60px;">
+                    <span style="position: absolute; left: 15px; top: 20px; background: #4361ee; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">
+                        3
+                    </span>
+                    <p style="font-size: 1.1rem; color: #0b1630; line-height: 1.6; margin: 0;">
+                        Click "Process Image" to start AI background removal using GPU-accelerated technology
+                    </p>
+                </li>
+
+                <li style="counter-increment: step-counter; margin-bottom: 25px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee; position: relative; padding-left: 60px;">
+                    <span style="position: absolute; left: 15px; top: 20px; background: #4361ee; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">
+                        4
+                    </span>
+                    <p style="font-size: 1.1rem; color: #0b1630; line-height: 1.6; margin: 0;">
+                        Preview the result and download your transparent PNG image or change the background
+                    </p>
+                </li>
+
+            </ol>
+        </div>
+    </section>
+
+    <section class="related-tools" style="margin: 40px 0; padding: 40px; background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
+            <i class="fas fa-tools" style="margin-right: 10px;"></i>
+            Related Tools
+        </h2>
+        <div class="tools-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+
+            <a href="background-remover.html" style="display: block; padding: 20px; background: #f8f9ff; border-radius: 12px; text-decoration: none; text-align: center; transition: transform 0.3s, box-shadow 0.3s; border: 2px solid transparent;" 
+               onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(67,97,238,0.2)'; this.style.borderColor='#4361ee';"
+               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.borderColor='transparent';">
+                <i class="fas fa-magic" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                <h3 style="font-size: 1.1rem; color: #0b1630; margin: 0;">Background Remover</h3>
+            </a>
+
+            <a href="image-editor.html" style="display: block; padding: 20px; background: #f8f9ff; border-radius: 12px; text-decoration: none; text-align: center; transition: transform 0.3s, box-shadow 0.3s; border: 2px solid transparent;" 
+               onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(67,97,238,0.2)'; this.style.borderColor='#4361ee';"
+               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.borderColor='transparent';">
+                <i class="fas fa-edit" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                <h3 style="font-size: 1.1rem; color: #0b1630; margin: 0;">Image Editor</h3>
+            </a>
+
+            <a href="image-compressor.html" style="display: block; padding: 20px; background: #f8f9ff; border-radius: 12px; text-decoration: none; text-align: center; transition: transform 0.3s, box-shadow 0.3s; border: 2px solid transparent;" 
+               onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(67,97,238,0.2)'; this.style.borderColor='#4361ee';"
+               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.borderColor='transparent';">
+                <i class="fas fa-compress" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                <h3 style="font-size: 1.1rem; color: #0b1630; margin: 0;">Image Compressor</h3>
+            </a>
+
+        </div>
+    </section>
+
+    <section class="faq-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
+            <i class="fas fa-question-circle" style="margin-right: 10px;"></i>
+            Frequently Asked Questions
+        </h2>
+        <div class="faq-container" style="max-width: 800px; margin: 0 auto;">
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    What is the difference between Free Preview and Premium HD?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Free Preview provides 512px output using GPU-accelerated processing and requires no credits. Premium HD delivers 2000-4000px resolution using GPU-accelerated High-Resolution processing and requires credits. Both use the same advanced AI technology, but Premium HD provides higher resolution suitable for professional printing and large-format use.
+                </div>
+            </div>
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    How accurate is the background removal?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Our GPU-accelerated AI technology provides professional-grade accuracy, preserving fine details, hair, and complex edges. The AI model is trained on millions of images and delivers results comparable to professional photo editing software.
+                </div>
+            </div>
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    Will my images be secure?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Yes, all images are processed securely on GPU servers and automatically deleted after processing. We never store, share, or use your images for any purpose other than background removal.
+                </div>
+            </div>
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    What file formats are supported?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    We support all common image formats including JPG, JPEG, PNG, WEBP, and more. The output is always a transparent PNG file suitable for use in any design software.
+                </div>
+            </div>
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    How do I get credits for Premium HD?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Credits can be purchased through our pricing page. Premium and Business plan subscribers receive credits as part of their subscription. You can also purchase credit packs for one-time use.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+    function toggleFaq(element) {
+        const answer = element.nextElementSibling;
+        const icon = element.querySelector('i');
+        const isOpen = answer.style.display === 'block';
+
+        answer.style.display = isOpen ? 'none' : 'block';
+        icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+    }
+    </script>
+
+    <section class="feedback-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
+            <i class="fas fa-comments" style="margin-right: 10px;"></i>
+            Reviews & Comments
+        </h2>
+        
+        <div class="feedback-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: flex-start; max-width: 1200px; margin: 0 auto;">
+            <div class="feedback-card" style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); min-height: 400px; max-height: 600px; overflow-y: auto;">
+                <div class="thread-header" style="margin-bottom: 20px; border-bottom: 2px solid #e2e6ff; padding-bottom: 12px;">
+                    <h3 style="font-size: 1.3rem; color: #0b1630; margin-bottom: 8px;">Live Comments</h3>
+                    <p class="feedback-hint" style="font-size: 0.85rem; color: #9ca3af; margin: 0;">Share your experience and see what others are saying.</p>
+                </div>
+                <ul class="comment-list" id="feedbackList" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 16px;">
+                    <li class="feedback-muted" id="feedback-empty-state" style="text-align: center; padding: 40px 20px; color: #9ca3af; font-size: 0.95rem;">No comments yet. Start the conversation!</li>
+                </ul>
+            </div>
+            
+            <div class="feedback-form-card" style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 20px;">
+                <h3 style="font-size: 1.3rem; color: #0b1630; margin-bottom: 20px;">
+                    <i class="fas fa-edit" style="color: #4361ee; margin-right: 8px;"></i>
+                    Share Your Feedback
+                </h3>
+                <form id="feedbackForm" style="display: flex; flex-direction: column; gap: 15px;">
+                    <div class="form-group">
+                        <label for="feedbackName" style="display: block; margin-bottom: 8px; color: #56607a; font-weight: 600; font-size: 0.9rem;">Your Name</label>
+                        <input type="text" id="feedbackName" placeholder="Enter your name" required style="width: 100%; padding: 12px 16px; border: 1px solid #e2e6ff; border-radius: 8px; font-size: 0.95rem; transition: border-color 0.3s; box-sizing: border-box;" onfocus="this.style.borderColor='#4361ee'" onblur="this.style.borderColor='#e2e6ff'">
+                    </div>
+                    <div class="form-group">
+                        <label for="feedbackMessage" style="display: block; margin-bottom: 8px; color: #56607a; font-weight: 600; font-size: 0.9rem;">Your Comment</label>
+                        <textarea id="feedbackMessage" placeholder="Write your feedback or comment here..." required rows="5" style="width: 100%; padding: 12px 16px; border: 1px solid #e2e6ff; border-radius: 8px; font-size: 0.95rem; resize: vertical; transition: border-color 0.3s; font-family: inherit; box-sizing: border-box;" onfocus="this.style.borderColor='#4361ee'" onblur="this.style.borderColor='#e2e6ff'"></textarea>
+                    </div>
+                    <button type="submit" style="background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; width: 100%;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(67, 97, 238, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                        <i class="fas fa-paper-plane" style="margin-right: 8px;"></i>
+                        Submit Feedback
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <style>
+    @media (max-width: 768px) {
+        .feedback-grid {
+            grid-template-columns: 1fr !important;
+        }
+        .feedback-form-card {
+            position: static !important;
+        }
+    }
+    </style>
+
+    <script>
+    // Store feedback in localStorage (in production, use backend API)
+    const currentPage = window.location.pathname.split('/').pop() || 'background-workspace.html';
+    
+    function loadFeedbacks() {
+        const storedFeedbacks = JSON.parse(localStorage.getItem('feedbacks') || '{}');
+        const pageFeedbacks = (storedFeedbacks[currentPage] || []).slice(0, 3);
+        const feedbackList = document.getElementById('feedbackList');
+        const emptyState = document.getElementById('feedback-empty-state');
+        
+        if (!feedbackList) return;
+        
+        feedbackList.innerHTML = '';
+        
+        if (pageFeedbacks.length === 0) {
+            if (emptyState) {
+                feedbackList.appendChild(emptyState);
+            }
+            return;
+        }
+        
+        if (emptyState) emptyState.remove();
+        
+        pageFeedbacks.forEach(fb => {
+            const li = document.createElement('li');
+            li.style.cssText = 'background: #f8f9ff; padding: 16px; border-radius: 8px; border-left: 3px solid #4361ee; margin-bottom: 12px;';
+            
+            const header = document.createElement('div');
+            header.style.cssText = 'display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;';
+            
+            const nameDiv = document.createElement('div');
+            const name = document.createElement('h4');
+            name.style.cssText = 'font-size: 1rem; color: #0b1630; margin: 0 0 4px 0; font-weight: 600;';
+            name.textContent = fb.name || 'Anonymous';
+            
+            const time = document.createElement('span');
+            time.style.cssText = 'font-size: 0.8rem; color: #9ca3af;';
+            time.textContent = fb.date || 'Recently';
+            
+            nameDiv.appendChild(name);
+            nameDiv.appendChild(time);
+            header.appendChild(nameDiv);
+            li.appendChild(header);
+            
+            const body = document.createElement('p');
+            body.style.cssText = 'color: #56607a; line-height: 1.6; margin: 0; font-size: 0.9rem;';
+            body.textContent = fb.message || '';
+            li.appendChild(body);
+            
+            feedbackList.appendChild(li);
+        });
+    }
+    
+    const feedbackForm = document.getElementById('feedbackForm');
+    if (feedbackForm) {
+        feedbackForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('feedbackName').value.trim();
+            const message = document.getElementById('feedbackMessage').value.trim();
+            
+            if (!name || !message) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            const feedback = {
+                name: name,
+                message: message,
+                date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+                page: currentPage
+            };
+            
+            const storedFeedbacks = JSON.parse(localStorage.getItem('feedbacks') || '{}');
+            if (!storedFeedbacks[currentPage]) {
+                storedFeedbacks[currentPage] = [];
+            }
+            storedFeedbacks[currentPage].unshift(feedback);
+            localStorage.setItem('feedbacks', JSON.stringify(storedFeedbacks));
+            
+            this.reset();
+            loadFeedbacks();
+            alert('Thank you for your feedback!');
+        });
+    }
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadFeedbacks);
+    } else {
+        loadFeedbacks();
+    }
+    </script>
+
     <!-- Load global header and footer components -->
     <script src="js/global-components.js"></script>
     <script>
