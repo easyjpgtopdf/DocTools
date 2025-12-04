@@ -524,12 +524,12 @@
 
       function setProgress(percent, label){
         if (percent === null) {
-          if (progressWrapper) if (progressWrapper) progressWrapper.style.display = 'none';
+          if (progressWrapper) progressWrapper.style.display = 'none';
           return;
         }
-        if (progressWrapper) if (progressWrapper) progressWrapper.style.display = 'block';
-        if (progressBar) if (progressBar) progressBar.style.width = `${Math.min(100, Math.max(0, percent))}%`;
-        if (label && progressLabel) if (progressLabel) progressLabel.textContent = label;
+        if (progressWrapper) progressWrapper.style.display = 'block';
+        if (progressBar) progressBar.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+        if (label && progressLabel) progressLabel.textContent = label;
       }
 
       function resetUI(){
