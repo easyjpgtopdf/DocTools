@@ -516,7 +516,22 @@
       thumb.dataset.page = String(pageNum);
       thumb.appendChild(canvas);
       if(selected.has(pageNum)){
-        thumb.cla
+        thumb.classList.add('selected');
+        const badge = document.createElement('div');
+        badge.className = 'check-badge';
+        badge.innerHTML = '<i class="fas fa-check"></i>';
+        thumb.appendChild(badge);
+      }
+      thumb.addEventListener('click', async ()=>{
+        const isSelected = selected.has(pageNum);
+        updateSelection(pageNum, !isSelected);
+        await renderPreview();
+        await refreshSlidePreview();
+      });
+      previewEl.appendChild(thumb);
+    }
+  }
+
     <section class="faq-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
         <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
             <i class="fas fa-question-circle" style="margin-right: 10px;"></i>
@@ -581,23 +596,6 @@
         icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
     }
     </script>
-
-    
-ssList.add('selected');
-        const badge = document.createElement('div');
-        badge.className = 'check-badge';
-        badge.innerHTML = '<i class="fas fa-check"></i>';
-        thumb.appendChild(badge);
-      }
-      thumb.addEventListener('click', async ()=>{
-        const isSelected = selected.has(pageNum);
-        updateSelection(pageNum, !isSelected);
-        await renderPreview();
-        await refreshSlidePreview();
-      });
-      previewEl.appendChild(thumb);
-    }
-  }
 
   async function loadPdf(){
     const rec = await getPdf();
