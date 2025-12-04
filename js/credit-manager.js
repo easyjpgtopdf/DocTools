@@ -530,13 +530,14 @@ window.creditManager = {
   initializeUserCredits
 };
 
+// Export all functions (initializeUserCredits already exported above)
 export {
   getUserCredits,
   hasSufficientCredits,
   deductCredits,
   addCredits,
   getCreditHistory,
-  purchaseCredits,
-  initializeUserCredits
+  purchaseCredits
+  // initializeUserCredits already exported as named export above
 };
 

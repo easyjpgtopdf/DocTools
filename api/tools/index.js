@@ -111,9 +111,28 @@ module.exports = async function handler(req, res) {
   }
 
   // Extract route from query or path
+  // Vercel serves /api/tools/index.js for /api/tools/* routes
+  // Path format: /api/tools/bg-remove-free -> route = 'bg-remove-free'
   const url = new URL(req.url, `http://${req.headers.host}`);
   const pathParts = url.pathname.split('/').filter(p => p);
-  const route = pathParts[pathParts.length - 1] || 'bg-remove-free';
+  
+  // Find 'tools' in path and get the next part
+  const toolsIndex = pathParts.indexOf('tools');
+  let route = 'bg-remove-free'; // default
+  
+  if (toolsIndex >= 0 && pathParts.length > toolsIndex + 1) {
+    route = pathParts[toolsIndex + 1];
+  } else {
+    // Fallback: get last part of path
+    route = pathParts[pathParts.length - 1] || 'bg-remove-free';
+  }
+  
+  // Handle edge cases
+  if (route === 'index' || route === 'tools' || !route) {
+    route = url.searchParams.get('route') || 'bg-remove-free';
+  }
+  
+  console.log('Tools API route:', route, 'from path:', url.pathname);
 
   try {
     // Route: /api/tools/bg-remove-free (Free Preview 512px)

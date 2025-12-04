@@ -376,9 +376,19 @@
         }
       } catch (error) {
         console.error('Free preview processing error:', error);
+        let errorMessage = 'Free preview processing failed';
+        
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        } else if (error && error.error) {
+          errorMessage = error.error;
+        }
+        
         return {
           success: false,
-          error: error.message || 'Free preview processing failed'
+          error: errorMessage
         };
       }
     }
@@ -791,7 +801,16 @@
         let errorMsg = '';
         
         // Extract error message from error object
-        const errorMessage = error.message || error.error || 'Unknown error';
+        let errorMessage = 'Unknown error';
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        } else if (error && error.error) {
+          errorMessage = error.error;
+        } else if (error && typeof error === 'object') {
+          errorMessage = JSON.stringify(error);
+        }
         
         // Handle different error types
         if (errorMessage.includes('fetch') || errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch')) {
