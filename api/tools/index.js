@@ -258,7 +258,7 @@ async function handleBgRemovePremium(req, res) {
     }
 
     // Proxy to Cloud Run backend for premium HD
-    const response = await fetch(`${CLOUDRUN_API_URL}/api/premium-hd-bg`, {
+    const response = await fetch(`${CLOUDRUN_API_URL}/api/premium-bg`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
