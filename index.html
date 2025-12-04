@@ -1629,6 +1629,8 @@
 <body>
     <div id="global-header-placeholder"></div>
     <!-- Global header will be loaded here by global-components.js -->
+    <div id="global-breadcrumb-placeholder"></div>
+    <!-- Global breadcrumb will be loaded here by global-components.js -->
 
     <!-- Home Page -->
     <section id="home" class="page active">
@@ -5225,12 +5227,18 @@
     </footer>
     <script src="js/global-components.js"></script>
     <script>
-    // Ensure header loads - multiple attempts to guarantee it works
+    // Ensure header and breadcrumb load properly
     (function() {
         function tryLoadHeader() {
             if (typeof loadGlobalHeader === 'function') {
                 try {
                     loadGlobalHeader();
+                    // Also ensure breadcrumb loads
+                    if (typeof loadGlobalBreadcrumb === 'function') {
+                        setTimeout(function() {
+                            loadGlobalBreadcrumb();
+                        }, 100);
+                    }
                     return true;
                 } catch (e) {
                     console.error('Error calling loadGlobalHeader:', e);
@@ -5273,6 +5281,12 @@
             setTimeout(function() {
                 if (!document.querySelector('header') && typeof loadGlobalHeader === 'function') {
                     loadGlobalHeader();
+                }
+                // Ensure breadcrumb loads
+                if (typeof loadGlobalBreadcrumb === 'function') {
+                    setTimeout(function() {
+                        loadGlobalBreadcrumb();
+                    }, 200);
                 }
             }, 100);
         });

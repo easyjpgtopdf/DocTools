@@ -590,6 +590,7 @@ if (!window.globalComponentsInitialized) {
 // Export functions for manual use if needed
 window.loadGlobalHeader = loadGlobalHeader;
 window.loadGlobalFooter = loadGlobalFooter;
+window.loadGlobalBreadcrumb = loadGlobalBreadcrumb;
 window.loadAccountSection = loadAccountSection;
 window.highlightActiveAccountLink = highlightActiveAccountLink;
 
@@ -597,6 +598,7 @@ window.highlightActiveAccountLink = highlightActiveAccountLink;
 if (typeof window !== 'undefined') {
     window.loadGlobalHeader = loadGlobalHeader;
     window.loadGlobalFooter = loadGlobalFooter;
+    window.loadGlobalBreadcrumb = loadGlobalBreadcrumb;
     window.loadAccountSection = loadAccountSection;
     window.highlightActiveAccountLink = highlightActiveAccountLink;
 }
