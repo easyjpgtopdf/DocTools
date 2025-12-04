@@ -316,7 +316,7 @@
       try {
         statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">Processing with Free Preview (512px GPU-accelerated)...</div>`;
         
-        const response = await fetch(`${API_BASE_URL}/api/free-preview-bg`, {
+        const response = await fetch(`${API_BASE_URL}/api/tools/bg-remove-free`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -370,7 +370,7 @@
         // Verify credits (this should be done on backend, but we check here for UX)
         statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">Verifying credits and processing with Premium HD (GPU-accelerated High-Resolution)...</div>`;
         
-        const response = await fetch(`${API_BASE_URL}/api/premium-bg`, {
+        const response = await fetch(`${API_BASE_URL}/api/tools/bg-remove-premium`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

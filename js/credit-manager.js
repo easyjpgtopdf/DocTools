@@ -349,7 +349,7 @@ export async function purchaseCredits(creditPack, userId) {
     
     try {
         // Create Razorpay order
-        const response = await fetch(`${API_BASE_URL}/api/credits/purchase`, {
+        const response = await fetch(`${API_BASE_URL}/api/payment/purchase`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -416,7 +416,7 @@ export async function purchaseCredits(creditPack, userId) {
 async function handleCreditPurchaseSuccess(paymentResponse, userId, pack, orderId) {
   try {
     // Verify payment
-    const verifyResponse = await fetch(`${API_BASE_URL}/api/credits/verify`, {
+    const verifyResponse = await fetch(`${API_BASE_URL}/api/payment/verify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
