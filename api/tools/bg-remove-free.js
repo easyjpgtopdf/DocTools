@@ -48,7 +48,7 @@ module.exports = async function handler(req, res) {
         quality: 'preview',
         maxSize: 512
       }),
-      signal: AbortSignal.timeout(60000) // 60 seconds - optimized for faster free preview
+      signal: AbortSignal.timeout(90000) // 90 seconds - balanced timeout for free preview
     });
 
     if (!response.ok) {

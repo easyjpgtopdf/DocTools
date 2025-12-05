@@ -392,7 +392,7 @@
           };
         }
         
-        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⚡ Processing with Free Preview (512px GPU-accelerated)... This usually takes 10-30 seconds.</div>`;
+        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⚡ Processing with Free Preview (512px GPU-accelerated)... This usually takes 10-30 seconds. Please wait...</div>`;
         
         const apiUrl = `${API_BASE_URL}/api/tools/bg-remove-free`;
         console.log('Calling API:', apiUrl);
@@ -411,12 +411,12 @@
           }
         }, 5000);
         
-        // Add timeout for free preview (60 seconds - faster for better UX)
+        // Add timeout for free preview (90 seconds - balanced for reliability and speed)
         const controller = new AbortController();
         const timeout = setTimeout(() => {
           clearInterval(progressInterval);
           controller.abort();
-        }, 60000); // 60 seconds - optimized for speed
+        }, 90000); // 90 seconds - balanced timeout
         
         const response = await fetch(apiUrl, {
           method: 'POST',
@@ -514,6 +514,14 @@
           error: error
         });
         
+        // Handle AbortError FIRST - this happens when timeout occurs
+        if (error.name === 'AbortError' || error.message?.includes('aborted') || error.message?.includes('signal is aborted')) {
+          return {
+            success: false,
+            error: 'Request timeout. Free preview processing took longer than 90 seconds. The server may be busy or the image may be too complex. Please try again with a smaller image or wait a moment and retry.'
+          };
+        }
+        
         let errorMessage = 'Free preview processing failed';
         
         // Extract error message properly
@@ -544,7 +552,9 @@
         } else if (errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch') || errorMessage.includes('Network request failed')) {
           errorMessage = 'Network error. Please check your internet connection and try again.';
         } else if (errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
-          errorMessage = 'Request timeout. The server may be busy. Please try again.';
+          errorMessage = 'Request timeout. The server may be busy. Please try again with a smaller image.';
+        } else if (errorMessage.includes('Invalid image') || errorMessage.includes('Invalid image data') || errorMessage.includes('bytes-like object') || errorMessage.includes('Image object')) {
+          errorMessage = 'Invalid image file. Please ensure you are uploading a valid image file (JPG, PNG, etc.). The image may be corrupted or in an unsupported format. Please try uploading a different image.';
         }
         
         return {
@@ -1102,6 +1112,16 @@
         
         let errorMsg = '';
         
+        // Handle AbortError FIRST - this happens when timeout occurs
+        if (error.name === 'AbortError' || error.message?.includes('aborted') || error.message?.includes('signal is aborted')) {
+          errorMsg = 'Request timeout. The image processing took too long. The server may be busy or the image may be too complex. Please try again with a smaller image or wait a moment and retry.';
+          showError(errorMsg);
+          previewStage.classList.add('empty');
+          previewOverlay.style.opacity = 0;
+          previewPlaceholder.classList.remove('hidden');
+          return;
+        }
+        
         // Extract error message from error object - COMPLETE FIX for [object Object]
         let errorMessage = 'Unknown error';
         
@@ -1109,6 +1129,8 @@
           errorMessage = error.message || error.toString();
         } else if (typeof error === 'string') {
           errorMessage = error;
+        } else if (error && error.error) {
+          errorMessage = error.error;
         } else if (error && typeof error === 'object') {
           // Try multiple properties to extract error message
           errorMessage = error.error || error.message || error.errorMessage || error.msg || error.detail || error.description;
@@ -1123,7 +1145,7 @@
                 // Try to get any string property
                 const keys = Object.keys(error || {});
                 for (const key of keys) {
-                  if (typeof error[key] === 'string' && error[key]) {
+                  if (typeof error[key] === 'string' && error[key] && error[key] !== '[object Object]') {
                     errorMessage = error[key];
                     break;
                   }
@@ -1132,7 +1154,10 @@
             } catch (e) {
               // If stringify fails, try toString
               try {
-                errorMessage = error.toString();
+                const toStringResult = error.toString();
+                if (toStringResult && toStringResult !== '[object Object]') {
+                  errorMessage = toStringResult;
+                }
               } catch (e2) {
                 errorMessage = 'Processing failed. Please try again.';
               }
@@ -1141,7 +1166,7 @@
         }
         
         // Final cleanup - remove [object Object] if present
-        if (!errorMessage || errorMessage === '[object Object]' || errorMessage.toString() === '[object Object]') {
+        if (!errorMessage || errorMessage === '[object Object]' || (typeof errorMessage === 'string' && errorMessage.trim() === '[object Object]')) {
           errorMessage = 'Processing failed. Please try again.';
         }
         
@@ -1150,16 +1175,16 @@
           errorMsg = 'API endpoint not found. The service may be updating. Please refresh the page (Ctrl+Shift+R) and try again.';
         } else if (errorMessage.includes('fetch') || errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch')) {
           errorMsg = 'Network error. Please check your internet connection and try again.';
-        } else if (errorMessage.includes('timeout') || errorMessage.includes('AbortError')) {
+        } else if (errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
           errorMsg = 'Request timeout. The image may be too large or the server is busy. Please try again with a smaller image.';
+        } else if (errorMessage.includes('Invalid image') || errorMessage.includes('Invalid image data') || errorMessage.includes('bytes-like object') || errorMessage.includes('Image object')) {
+          errorMsg = 'Invalid image file. Please ensure you are uploading a valid image file (JPG, PNG, etc.). The image may be corrupted or in an unsupported format. Please try uploading a different image.';
         } else if (errorMessage.includes('memory') || errorMessage.includes('too large')) {
           errorMsg = 'Image too large or complex. Please try a smaller image (max 10MB).';
         } else if (errorMessage.includes('Processing failed') || errorMessage.includes('Internal server error')) {
           errorMsg = 'Processing failed. Please try again with a different image. If the problem persists, the service may be temporarily unavailable.';
         } else if (errorMessage.includes('temporarily unavailable') || errorMessage.includes('warming up')) {
           errorMsg = 'Service is warming up. Please wait 15-20 seconds and try again.';
-        } else if (errorMessage.includes('Invalid image') || errorMessage.includes('Failed to load image') || errorMessage.includes('Invalid image data') || errorMessage.includes('bytes-like object') || errorMessage.includes('Image object')) {
-          errorMsg = 'Invalid image file. Please ensure you are uploading a valid image file (JPG, PNG, etc.). The image may be corrupted or in an unsupported format. Please try uploading a different image.';
         } else {
           // Use the actual error message if available
           errorMsg = errorMessage || 'Failed to remove background. Please try again.';
