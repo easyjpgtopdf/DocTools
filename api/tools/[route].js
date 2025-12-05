@@ -114,20 +114,25 @@ module.exports = async function handler(req, res) {
   // Vercel provides route in req.query.route for /api/tools/[route].js
   let route = req.query.route;
   
+  // Debug logging
+  console.log('Tools API [route] - req.url:', req.url);
+  console.log('Tools API [route] - req.path:', req.path);
+  console.log('Tools API [route] - req.query:', req.query);
+  
   // Fallback: extract from URL path if not in query
   if (!route) {
-    // Get full URL with proper protocol
-    const protocol = req.headers['x-forwarded-proto'] || 'https';
-    const host = req.headers.host || req.headers['x-forwarded-host'] || 'localhost';
-    const url = new URL(req.url, `${protocol}://${host}`);
-    const pathParts = url.pathname.split('/').filter(p => p);
-    const toolsIndex = pathParts.indexOf('tools');
+    let urlPath = req.url || req.path || '';
     
-    if (toolsIndex >= 0 && pathParts.length > toolsIndex + 1) {
-      route = pathParts[toolsIndex + 1];
-    } else if (pathParts.length > 0) {
-      route = pathParts[pathParts.length - 1];
+    // Remove query string if present
+    if (urlPath.includes('?')) {
+      urlPath = urlPath.split('?')[0];
     }
+    
+    // Parse path parts
+    const pathParts = urlPath.split('/').filter(p => p && p !== 'api' && p !== 'tools');
+    
+    // Get route from path (should be the first part after /api/tools/)
+    route = pathParts[0] || null;
   }
   
   // Handle edge cases
@@ -135,7 +140,7 @@ module.exports = async function handler(req, res) {
     route = 'bg-remove-free';
   }
   
-  console.log('Tools API route:', route, 'from path:', req.url, 'query:', req.query);
+  console.log('Tools API [route] - Extracted route:', route);
 
   try {
     // Route: /api/tools/bg-remove-free (Free Preview 512px)

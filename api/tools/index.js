@@ -114,26 +114,33 @@ module.exports = async function handler(req, res) {
   // Vercel serves /api/tools/index.js for /api/tools/* routes
   // Path format: /api/tools/bg-remove-free -> route = 'bg-remove-free'
   
+  // Debug logging
+  console.log('Tools API - req.url:', req.url);
+  console.log('Tools API - req.path:', req.path);
+  console.log('Tools API - req.query:', req.query);
+  console.log('Tools API - headers:', {
+    host: req.headers.host,
+    'x-forwarded-proto': req.headers['x-forwarded-proto'],
+    'x-forwarded-path': req.headers['x-forwarded-path']
+  });
+  
   // Get full URL with proper protocol
-  const protocol = req.headers['x-forwarded-proto'] || 'https';
-  const host = req.headers.host || req.headers['x-forwarded-host'] || 'localhost';
-  const url = new URL(req.url, `${protocol}://${host}`);
-  const pathParts = url.pathname.split('/').filter(p => p);
+  let urlPath = req.url || req.path || '';
   
-  // Find 'tools' in path and get the next part
-  const toolsIndex = pathParts.indexOf('tools');
-  let route = null;
-  
-  if (toolsIndex >= 0 && pathParts.length > toolsIndex + 1) {
-    route = pathParts[toolsIndex + 1];
-  } else if (pathParts.length > 0) {
-    // Fallback: get last part of path
-    route = pathParts[pathParts.length - 1];
+  // Remove query string if present
+  if (urlPath.includes('?')) {
+    urlPath = urlPath.split('?')[0];
   }
   
-  // Handle edge cases - if route is 'index' or 'tools', try query param or default
+  // Parse path parts
+  const pathParts = urlPath.split('/').filter(p => p && p !== 'api' && p !== 'tools');
+  
+  // Get route from path (should be the first part after /api/tools/)
+  let route = pathParts[0] || null;
+  
+  // Handle edge cases - if route is 'index', try query param
   if (!route || route === 'index' || route === 'tools') {
-    route = url.searchParams.get('route') || null;
+    route = req.query.route || null;
   }
   
   // Final fallback
@@ -141,7 +148,7 @@ module.exports = async function handler(req, res) {
     route = 'bg-remove-free';
   }
   
-  console.log('Tools API route:', route, 'from path:', url.pathname, 'query:', req.query);
+  console.log('Tools API - Extracted route:', route, 'from pathParts:', pathParts);
 
   try {
     // Route: /api/tools/bg-remove-free (Free Preview 512px)
