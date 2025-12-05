@@ -344,12 +344,60 @@
     }
     
     // Process with Free Preview API (512px BiRefNet GPU)
+    // Validate image data URL format
+    function validateImageDataURL(dataURL) {
+      if (!dataURL || typeof dataURL !== 'string') {
+        return { valid: false, error: 'Image data is invalid or missing' };
+      }
+      
+      // Check if it's a data URL
+      if (!dataURL.startsWith('data:image/')) {
+        return { valid: false, error: 'Invalid image format. Please upload a valid image file (JPG, PNG, etc.).' };
+      }
+      
+      // Check if it has base64 data
+      if (!dataURL.includes(',')) {
+        return { valid: false, error: 'Image data is incomplete. Please try uploading the image again.' };
+      }
+      
+      // Extract base64 part
+      const parts = dataURL.split(',');
+      const base64Part = parts[1];
+      
+      if (!base64Part || base64Part.length < 100) {
+        return { valid: false, error: 'Image data is too small or corrupted. Please try a different image.' };
+      }
+      
+      // Check if it's valid base64 (basic check)
+      try {
+        const decoded = atob(base64Part.substring(0, 100)); // Just check first part
+        if (!decoded) {
+          return { valid: false, error: 'Image data is corrupted. Please try uploading again.' };
+        }
+      } catch (e) {
+        return { valid: false, error: 'Invalid image data format. Please upload a valid image file (JPG, PNG, etc.).' };
+      }
+      
+      return { valid: true };
+    }
+    
     async function processWithFreePreview(dataURL) {
       try {
+        // Validate image data before sending
+        const validation = validateImageDataURL(dataURL);
+        if (!validation.valid) {
+          return {
+            success: false,
+            error: validation.error || 'Invalid image file. Please ensure you are uploading a valid image (JPG, PNG, etc.).'
+          };
+        }
+        
         statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">Processing with Free Preview (512px GPU-accelerated)...</div>`;
         
         const apiUrl = `${API_BASE_URL}/api/tools/bg-remove-free`;
         console.log('Calling API:', apiUrl);
+        console.log('Image data URL length:', dataURL.length);
+        console.log('Image data URL preview:', dataURL.substring(0, 50) + '...');
         
         // Add timeout for free preview (3 minutes)
         const controller = new AbortController();
@@ -870,6 +918,16 @@
       previewOverlay.style.opacity = 1;
 
       try {
+        // Validate image data before processing
+        const validation = validateImageDataURL(dataURL);
+        if (!validation.valid) {
+          showError(validation.error || 'Invalid image file. Please ensure you are uploading a valid image (JPG, PNG, etc.).');
+          previewStage.classList.add('empty');
+          previewOverlay.style.opacity = 0;
+          previewPlaceholder.classList.remove('hidden');
+          return;
+        }
+        
         previewOriginal.hidden = false;
         previewOriginal.src = dataURL;
         
@@ -1049,8 +1107,8 @@
           errorMsg = 'Processing failed. Please try again with a different image. If the problem persists, the service may be temporarily unavailable.';
         } else if (errorMessage.includes('temporarily unavailable') || errorMessage.includes('warming up')) {
           errorMsg = 'Service is warming up. Please wait 15-20 seconds and try again.';
-        } else if (errorMessage.includes('Invalid image') || errorMessage.includes('Failed to load image')) {
-          errorMsg = 'Invalid image file. Please ensure you are uploading a valid image (JPG, PNG, etc.).';
+        } else if (errorMessage.includes('Invalid image') || errorMessage.includes('Failed to load image') || errorMessage.includes('Invalid image data') || errorMessage.includes('bytes-like object')) {
+          errorMsg = 'Invalid image file. Please ensure you are uploading a valid image (JPG, PNG, etc.). If the problem persists, try a different image.';
         } else {
           // Use the actual error message if available
           errorMsg = errorMessage || 'Failed to remove background. Please try again.';
