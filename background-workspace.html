@@ -351,35 +351,72 @@
         const apiUrl = `${API_BASE_URL}/api/tools/bg-remove-free`;
         console.log('Calling API:', apiUrl);
         
+        // Add timeout for free preview (3 minutes)
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 180000); // 3 minutes
+        
         const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
           },
-          body: JSON.stringify({ imageData: dataURL })
+          body: JSON.stringify({ imageData: dataURL }),
+          signal: controller.signal
         });
+        
+        clearTimeout(timeout);
         
         if (!response.ok) {
           let errorData = {};
+          let errorText = '';
+          
           try {
-            const errorText = await response.text();
-            try {
-              errorData = JSON.parse(errorText);
-            } catch (e) {
-              errorData = { error: errorText || `Server error: ${response.status}` };
+            errorText = await response.text();
+            console.error('API Error Response Text:', errorText);
+            
+            if (errorText) {
+              try {
+                errorData = JSON.parse(errorText);
+              } catch (e) {
+                errorData = { error: errorText };
+              }
             }
           } catch (e) {
-            errorData = { error: `Server error: ${response.status} ${response.statusText}` };
+            console.error('Error reading response:', e);
+            errorData = { error: `Failed to read error response: ${e.message}` };
           }
           
-          // Better error message
-          const errorMsg = errorData.error || errorData.message || `Server error: ${response.status}`;
-          console.error('API Error Response:', {
+          // Extract error message with better handling
+          let errorMsg = 'Unknown error';
+          if (errorData && typeof errorData === 'object') {
+            errorMsg = errorData.error || errorData.message || errorData.errorMessage || JSON.stringify(errorData);
+          } else if (typeof errorData === 'string') {
+            errorMsg = errorData;
+          } else if (errorText) {
+            errorMsg = errorText;
+          }
+          
+          // Fallback to status-based message
+          if (!errorMsg || errorMsg === 'Unknown error') {
+            if (response.status === 404) {
+              errorMsg = 'API endpoint not found (404). Please check the API URL and try again.';
+            } else if (response.status === 500) {
+              errorMsg = 'Server error (500). Please try again later.';
+            } else {
+              errorMsg = `Server error: ${response.status} ${response.statusText}`;
+            }
+          }
+          
+          console.error('API Error Details:', {
             status: response.status,
             statusText: response.statusText,
-            error: errorData
+            url: apiUrl,
+            errorData: errorData,
+            errorText: errorText,
+            finalError: errorMsg
           });
+          
           throw new Error(errorMsg);
         }
         
@@ -400,23 +437,45 @@
         }
       } catch (error) {
         console.error('Free preview processing error:', error);
+        console.error('Error type:', typeof error);
+        console.error('Error details:', {
+          name: error?.name,
+          message: error?.message,
+          stack: error?.stack,
+          error: error
+        });
+        
         let errorMessage = 'Free preview processing failed';
         
+        // Extract error message properly
         if (error instanceof Error) {
-          errorMessage = error.message;
+          errorMessage = error.message || error.toString();
         } else if (typeof error === 'string') {
           errorMessage = error;
         } else if (error && typeof error === 'object') {
-          errorMessage = error.error || error.message || JSON.stringify(error);
+          // Try multiple ways to extract error message
+          errorMessage = error.error || error.message || error.errorMessage || error.msg || JSON.stringify(error);
+        }
+        
+        // Clean up error message (remove [object Object])
+        if (errorMessage === '[object Object]' || errorMessage.includes('[object Object]')) {
+          try {
+            const errorObj = error && typeof error === 'object' ? error : {};
+            errorMessage = errorObj.error || errorObj.message || errorObj.errorMessage || 'Processing failed. Please try again.';
+          } catch (e) {
+            errorMessage = 'Processing failed. Please try again.';
+          }
         }
         
         // More specific error messages
         if (errorMessage.includes('404') || errorMessage.includes('not found') || errorMessage.includes('Route not found')) {
-          errorMessage = 'API endpoint not found. The service may be updating. Please refresh the page (Ctrl+Shift+R) and try again.';
+          errorMessage = 'API endpoint not found (404). The service may be updating. Please refresh the page (Ctrl+Shift+R) and try again.';
         } else if (errorMessage.includes('index.js')) {
           errorMessage = 'API routing error. Please refresh the page (Ctrl+Shift+R) and try again.';
-        } else if (errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch')) {
+        } else if (errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch') || errorMessage.includes('Network request failed')) {
           errorMessage = 'Network error. Please check your internet connection and try again.';
+        } else if (errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
+          errorMessage = 'Request timeout. The server may be busy. Please try again.';
         }
         
         return {
@@ -444,6 +503,10 @@
         // Verify credits (this should be done on backend, but we check here for UX)
         statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">Verifying credits and processing with Premium HD (GPU-accelerated High-Resolution)...</div>`;
         
+        // Add timeout for premium processing (5 minutes)
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 300000); // 5 minutes
+        
         const response = await fetch(`${API_BASE_URL}/api/tools/bg-remove-premium`, {
           method: 'POST',
           headers: {
@@ -454,13 +517,44 @@
           body: JSON.stringify({ 
             imageData: dataURL,
             userId: userId
-          })
+          }),
+          signal: controller.signal
         });
         
+        clearTimeout(timeout);
+        
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: `Server error: ${response.status}` }));
+          let errorData = {};
+          let errorText = '';
           
-          if (response.status === 402 || errorData.error?.includes('credit') || errorData.error?.includes('insufficient')) {
+          try {
+            errorText = await response.text();
+            console.error('Premium API Error Response Text:', errorText);
+            
+            if (errorText) {
+              try {
+                errorData = JSON.parse(errorText);
+              } catch (e) {
+                errorData = { error: errorText };
+              }
+            }
+          } catch (e) {
+            console.error('Error reading premium response:', e);
+            errorData = { error: `Failed to read error response: ${e.message}` };
+          }
+          
+          // Extract error message
+          let errorMsg = errorData.error || errorData.message || errorData.errorMessage || `Server error: ${response.status}`;
+          
+          if (response.status === 401) {
+            return {
+              success: false,
+              error: 'Please sign in to use Premium HD processing.',
+              requiresAuth: true
+            };
+          }
+          
+          if (response.status === 402 || errorMsg.includes('credit') || errorMsg.includes('insufficient')) {
             return {
               success: false,
               error: 'Insufficient credits. Please purchase credits to use Premium HD processing.',
@@ -468,7 +562,15 @@
             };
           }
           
-          throw new Error(errorData.error || `Server error: ${response.status}`);
+          console.error('Premium API Error Details:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorData: errorData,
+            errorText: errorText,
+            finalError: errorMsg
+          });
+          
+          throw new Error(errorMsg);
         }
         
         const result = await response.json();
@@ -487,9 +589,53 @@
         }
       } catch (error) {
         console.error('Premium HD processing error:', error);
+        console.error('Error type:', typeof error);
+        console.error('Error details:', {
+          name: error?.name,
+          message: error?.message,
+          stack: error?.stack,
+          error: error
+        });
+        
+        let errorMessage = 'Premium HD processing failed';
+        
+        // Extract error message properly
+        if (error instanceof Error) {
+          errorMessage = error.message || error.toString();
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        } else if (error && typeof error === 'object') {
+          errorMessage = error.error || error.message || error.errorMessage || error.msg || JSON.stringify(error);
+        }
+        
+        // Clean up error message
+        if (errorMessage === '[object Object]' || errorMessage.includes('[object Object]')) {
+          try {
+            const errorObj = error && typeof error === 'object' ? error : {};
+            errorMessage = errorObj.error || errorObj.message || errorObj.errorMessage || 'Premium HD processing failed. Please try again.';
+          } catch (e) {
+            errorMessage = 'Premium HD processing failed. Please try again.';
+          }
+        }
+        
+        // Handle timeout
+        if (error.name === 'AbortError' || errorMessage.includes('timeout') || errorMessage.includes('aborted')) {
+          errorMessage = 'Request timeout. Premium HD processing may take longer. Please try again with a smaller image or wait a moment.';
+        }
+        
+        // Handle network errors
+        if (errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch') || errorMessage.includes('Network request failed')) {
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+        }
+        
+        // Handle 404
+        if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+          errorMessage = 'API endpoint not found (404). Please refresh the page (Ctrl+Shift+R) and try again.';
+        }
+        
         return {
           success: false,
-          error: error.message || 'Premium HD processing failed'
+          error: errorMessage
         };
       }
     }
