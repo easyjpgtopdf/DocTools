@@ -25,16 +25,43 @@ module.exports = async function handler(req, res) {
   try {
     const { imageData } = req.body;
 
-    if (!imageData) {
+    // Validate imageData is present and not empty
+    if (!imageData || typeof imageData !== 'string') {
+      console.error('Invalid imageData received:', { 
+        hasImageData: !!imageData, 
+        type: typeof imageData,
+        length: imageData?.length 
+      });
       return res.status(400).json({
         success: false,
-        error: 'Missing imageData',
-        message: 'imageData is required in request body'
+        error: 'Missing or invalid imageData',
+        message: 'imageData is required in request body and must be a valid base64 data URL'
+      });
+    }
+
+    // Validate it's a data URL
+    if (!imageData.startsWith('data:image/')) {
+      console.error('Invalid image data format:', imageData.substring(0, 50));
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid image format',
+        message: 'imageData must be a valid data URL starting with data:image/'
+      });
+    }
+
+    // Check if base64 part exists
+    if (!imageData.includes(',') || imageData.split(',')[1].length < 100) {
+      console.error('Incomplete or corrupted image data');
+      return res.status(400).json({
+        success: false,
+        error: 'Incomplete or corrupted image data',
+        message: 'Image data appears to be incomplete or corrupted. Please try uploading again.'
       });
     }
 
     console.log('Free preview request received, proxying to Cloud Run...');
     console.log('Cloud Run URL:', CLOUDRUN_API_URL);
+    console.log('Image data length:', imageData.length, 'chars');
 
     // Proxy to Cloud Run backend for free preview (512px)
     const response = await fetch(`${CLOUDRUN_API_URL}/api/free-preview-bg`, {

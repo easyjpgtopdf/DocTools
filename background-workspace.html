@@ -344,10 +344,15 @@
     }
     
     // Process with Free Preview API (512px BiRefNet GPU)
-    // Validate image data URL format
+    // Validate image data URL format - COMPREHENSIVE VALIDATION
     function validateImageDataURL(dataURL) {
       if (!dataURL || typeof dataURL !== 'string') {
         return { valid: false, error: 'Image data is invalid or missing' };
+      }
+      
+      // Check minimum length
+      if (dataURL.length < 100) {
+        return { valid: false, error: 'Image data is too small or corrupted. Please try uploading again.' };
       }
       
       // Check if it's a data URL
@@ -368,10 +373,18 @@
         return { valid: false, error: 'Image data is too small or corrupted. Please try a different image.' };
       }
       
-      // Check if it's valid base64 (basic check)
+      // Check base64 format (should only contain valid base64 characters)
+      const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+      if (!base64Regex.test(base64Part)) {
+        return { valid: false, error: 'Invalid base64 format. Please try uploading the image again.' };
+      }
+      
+      // Try to decode a sample to verify it's valid base64
       try {
-        const decoded = atob(base64Part.substring(0, 100)); // Just check first part
-        if (!decoded) {
+        const sampleSize = Math.min(1000, base64Part.length);
+        const sample = base64Part.substring(0, sampleSize);
+        const decoded = atob(sample);
+        if (!decoded || decoded.length === 0) {
           return { valid: false, error: 'Image data is corrupted. Please try uploading again.' };
         }
       } catch (e) {
@@ -398,11 +411,23 @@
         console.log('Calling API:', apiUrl);
         console.log('Image data URL length:', dataURL.length);
         console.log('Image data URL preview:', dataURL.substring(0, 50) + '...');
+        console.log('Base64 part length:', dataURL.split(',')[1]?.length || 0);
+        
+        // Verify image data is complete before sending
+        const base64Part = dataURL.split(',')[1];
+        if (!base64Part || base64Part.length < 100) {
+          throw new Error('Image data is incomplete. Please try uploading the image again.');
+        }
         
         const startTime = Date.now();
         
         // Progress indicator - update every 5 seconds
-        let progressInterval = setInterval(() => {
+        let progressInterval = null;
+        let timeout = null;
+        const controller = new AbortController();
+        
+        // Progress indicator - update every 5 seconds
+        progressInterval = setInterval(() => {
           const elapsed = Math.floor((Date.now() - startTime) / 1000);
           if (elapsed < 30) {
             statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⚡ Processing... (${elapsed}s) - Please wait, this usually takes 10-30 seconds.</div>`;
@@ -411,12 +436,13 @@
           }
         }, 5000);
         
-        // Add timeout for free preview (90 seconds - balanced for reliability and speed)
-        const controller = new AbortController();
-        const timeout = setTimeout(() => {
-          clearInterval(progressInterval);
-          controller.abort();
-        }, 90000); // 90 seconds - balanced timeout
+        // Add timeout for free preview (120 seconds - increased for reliability)
+        timeout = setTimeout(() => {
+          if (!controller.signal.aborted) {
+            if (progressInterval) clearInterval(progressInterval);
+            controller.abort();
+          }
+        }, 120000); // 120 seconds - more time for complex images
         
         const response = await fetch(apiUrl, {
           method: 'POST',
@@ -428,7 +454,8 @@
           signal: controller.signal
         });
         
-        clearTimeout(timeout);
+        // Clear timeout and interval on successful response
+        if (timeout) clearTimeout(timeout);
         clearInterval(progressInterval);
         
         if (!response.ok) {
@@ -500,9 +527,12 @@
           throw new Error(errorMsg);
         }
       } catch (error) {
-        // Clean up progress interval if still running
-        if (typeof progressInterval !== 'undefined') {
+        // Clean up progress interval and timeout if still running
+        if (progressInterval) {
           clearInterval(progressInterval);
+        }
+        if (timeout) {
+          clearTimeout(timeout);
         }
         
         console.error('Free preview processing error:', error);
