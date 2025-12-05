@@ -531,13 +531,15 @@ window.creditManager = {
 };
 
 // Export all functions (purchaseCredits, getCreditHistory, addCredits, deductCredits, hasSufficientCredits, and initializeUserCredits already exported above as named exports)
+// Only export getUserCredits here - all other functions are already exported as named exports above
 export {
   getUserCredits
-  // purchaseCredits already exported at line 301 as: export async function purchaseCredits
-  // getCreditHistory already exported at line 273 as: export async function getCreditHistory
-  // addCredits already exported at line 224 as: export async function addCredits
-  // deductCredits already exported at line 158 as: export async function deductCredits
-  // hasSufficientCredits already exported at line 126 as: export async function hasSufficientCredits
-  // initializeUserCredits already exported as named export above
+  // All other functions already exported as named exports:
+  // - purchaseCredits: line 301
+  // - getCreditHistory: line 273
+  // - addCredits: line 224
+  // - deductCredits: line 158
+  // - hasSufficientCredits: line 126 (REMOVED FROM HERE TO FIX DUPLICATE EXPORT)
+  // - initializeUserCredits: line 61
 };
 
