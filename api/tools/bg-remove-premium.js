@@ -3,6 +3,55 @@
 
 const CLOUDRUN_API_URL = process.env.CLOUDRUN_API_URL_BG_REMOVAL || 'https://bg-removal-ai-564572183797.us-central1.run.app';
 
+function normalizeImageData(imageData) {
+  if (!imageData || typeof imageData !== 'string') {
+    return { ok: false, message: 'imageData is required and must be a string' };
+  }
+
+  const trimmed = imageData.trim();
+  const isDataUrl = trimmed.startsWith('data:');
+
+  let mime = 'image/png';
+  let base64Part = trimmed;
+
+  if (isDataUrl) {
+    const match = trimmed.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+    if (!match) {
+      return { ok: false, message: 'imageData must be a base64 data URL (data:image/...;base64,...)' };
+    }
+    mime = match[1];
+    base64Part = match[2];
+  }
+
+  // Clean and pad base64
+  base64Part = base64Part.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
+  if (base64Part.length < 100) {
+    return { ok: false, message: 'Image data is too small or corrupted' };
+  }
+  const remainder = base64Part.length % 4;
+  if (remainder) {
+    base64Part = base64Part.padEnd(base64Part.length + (4 - remainder), '=');
+  }
+
+  let buffer;
+  try {
+    buffer = Buffer.from(base64Part, 'base64');
+  } catch (err) {
+    return { ok: false, message: `Invalid base64 encoding: ${err.message}` };
+  }
+
+  if (!buffer?.length) {
+    return { ok: false, message: 'Decoded image is empty' };
+  }
+
+  return {
+    ok: true,
+    mime,
+    bytes: buffer.length,
+    dataUrl: `data:${mime};base64,${buffer.toString('base64')}`
+  };
+}
+
 // Firebase Admin SDK for credit verification
 let admin = null;
 let firebaseInitialized = false;
@@ -120,11 +169,12 @@ module.exports = async function handler(req, res) {
   try {
     const { imageData, userId } = req.body;
 
-    if (!imageData) {
+    const normalized = normalizeImageData(imageData);
+    if (!normalized.ok) {
       return res.status(400).json({
         success: false,
-        error: 'Missing imageData',
-        message: 'imageData is required in request body'
+        error: 'Invalid image data',
+        message: normalized.message
       });
     }
 
@@ -152,6 +202,7 @@ module.exports = async function handler(req, res) {
 
     console.log('Premium HD request received, proxying to Cloud Run...');
     console.log('Cloud Run URL:', CLOUDRUN_API_URL);
+    console.log('Decoded bytes:', normalized.bytes);
 
     // Proxy to Cloud Run backend for premium HD
     const response = await fetch(`${CLOUDRUN_API_URL}/api/premium-bg`, {
@@ -161,7 +212,7 @@ module.exports = async function handler(req, res) {
         'Accept': 'application/json'
       },
       body: JSON.stringify({
-        imageData: imageData,
+        imageData: normalized.dataUrl,
         quality: 'hd',
         maxSize: 4000
       }),

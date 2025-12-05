@@ -3,6 +3,55 @@
 
 const CLOUDRUN_API_URL = process.env.CLOUDRUN_API_URL_BG_REMOVAL || 'https://bg-removal-ai-564572183797.us-central1.run.app';
 
+function normalizeImageData(imageData) {
+  if (!imageData || typeof imageData !== 'string') {
+    return { ok: false, message: 'imageData is required and must be a string' };
+  }
+
+  const trimmed = imageData.trim();
+  const isDataUrl = trimmed.startsWith('data:');
+
+  let mime = 'image/png';
+  let base64Part = trimmed;
+
+  if (isDataUrl) {
+    const match = trimmed.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+    if (!match) {
+      return { ok: false, message: 'imageData must be a base64 data URL (data:image/...;base64,...)' };
+    }
+    mime = match[1];
+    base64Part = match[2];
+  }
+
+  // Clean and pad base64
+  base64Part = base64Part.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
+  if (base64Part.length < 100) {
+    return { ok: false, message: 'Image data is too small or corrupted' };
+  }
+  const remainder = base64Part.length % 4;
+  if (remainder) {
+    base64Part = base64Part.padEnd(base64Part.length + (4 - remainder), '=');
+  }
+
+  let buffer;
+  try {
+    buffer = Buffer.from(base64Part, 'base64');
+  } catch (err) {
+    return { ok: false, message: `Invalid base64 encoding: ${err.message}` };
+  }
+
+  if (!buffer?.length) {
+    return { ok: false, message: 'Decoded image is empty' };
+  }
+
+  return {
+    ok: true,
+    mime,
+    bytes: buffer.length,
+    dataUrl: `data:${mime};base64,${buffer.toString('base64')}`
+  };
+}
+
 module.exports = async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -25,53 +74,36 @@ module.exports = async function handler(req, res) {
   try {
     const { imageData } = req.body;
 
-    // Validate imageData is present and not empty
-    if (!imageData || typeof imageData !== 'string') {
-      console.error('Invalid imageData received:', { 
-        hasImageData: !!imageData, 
+    // Validate and normalize image data before proxying
+    const normalized = normalizeImageData(imageData);
+    if (!normalized.ok) {
+      console.error('Invalid imageData received:', {
+        hasImageData: !!imageData,
         type: typeof imageData,
-        length: imageData?.length 
+        length: imageData?.length,
+        reason: normalized.message
       });
       return res.status(400).json({
         success: false,
-        error: 'Missing or invalid imageData',
-        message: 'imageData is required in request body and must be a valid base64 data URL'
-      });
-    }
-
-    // Validate it's a data URL
-    if (!imageData.startsWith('data:image/')) {
-      console.error('Invalid image data format:', imageData.substring(0, 50));
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid image format',
-        message: 'imageData must be a valid data URL starting with data:image/'
-      });
-    }
-
-    // Check if base64 part exists
-    if (!imageData.includes(',') || imageData.split(',')[1].length < 100) {
-      console.error('Incomplete or corrupted image data');
-      return res.status(400).json({
-        success: false,
-        error: 'Incomplete or corrupted image data',
-        message: 'Image data appears to be incomplete or corrupted. Please try uploading again.'
+        error: 'Invalid image data',
+        message: normalized.message
       });
     }
 
     console.log('Free preview request received, proxying to Cloud Run...');
     console.log('Cloud Run URL:', CLOUDRUN_API_URL);
-    console.log('Image data length:', imageData.length, 'chars');
-    console.log('Image data format:', imageData.substring(0, 30) + '...');
+    console.log('Image data length:', normalized.dataUrl.length, 'chars');
+    console.log('Image data format:', normalized.dataUrl.substring(0, 30) + '...');
     
     // Extract base64 part for validation
-    const base64Part = imageData.includes(',') ? imageData.split(',')[1] : imageData;
+    const base64Part = normalized.dataUrl.includes(',') ? normalized.dataUrl.split(',')[1] : normalized.dataUrl;
     console.log('Base64 part length:', base64Part.length, 'chars');
     console.log('Base64 part preview:', base64Part.substring(0, 50) + '...');
+    console.log('Decoded bytes:', normalized.bytes);
 
     // Proxy to Cloud Run backend for free preview (512px)
     const requestPayload = {
-      imageData: imageData,
+      imageData: normalized.dataUrl,
       quality: 'preview',
       maxSize: 512
     };
