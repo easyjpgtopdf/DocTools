@@ -361,8 +361,26 @@
         });
         
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: `Server error: ${response.status}` }));
-          throw new Error(errorData.error || `Server error: ${response.status}`);
+          let errorData = {};
+          try {
+            const errorText = await response.text();
+            try {
+              errorData = JSON.parse(errorText);
+            } catch (e) {
+              errorData = { error: errorText || `Server error: ${response.status}` };
+            }
+          } catch (e) {
+            errorData = { error: `Server error: ${response.status} ${response.statusText}` };
+          }
+          
+          // Better error message
+          const errorMsg = errorData.error || errorData.message || `Server error: ${response.status}`;
+          console.error('API Error Response:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorData
+          });
+          throw new Error(errorMsg);
         }
         
         const result = await response.json();
@@ -376,7 +394,9 @@
             outputSizeMB: result.outputSizeMB
           };
         } else {
-          throw new Error(result.error || 'Processing failed');
+          const errorMsg = result.error || result.message || 'Processing failed';
+          console.error('Processing failed:', result);
+          throw new Error(errorMsg);
         }
       } catch (error) {
         console.error('Free preview processing error:', error);
@@ -386,8 +406,17 @@
           errorMessage = error.message;
         } else if (typeof error === 'string') {
           errorMessage = error;
-        } else if (error && error.error) {
-          errorMessage = error.error;
+        } else if (error && typeof error === 'object') {
+          errorMessage = error.error || error.message || JSON.stringify(error);
+        }
+        
+        // More specific error messages
+        if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+          errorMessage = 'API endpoint not found. Please refresh the page and try again.';
+        } else if (errorMessage.includes('Route not found')) {
+          errorMessage = 'API routing error. Please refresh the page and try again.';
+        } else if (errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch')) {
+          errorMessage = 'Network error. Please check your internet connection and try again.';
         }
         
         return {
@@ -802,6 +831,13 @@
         
       } catch (error) {
         console.error('Background removal failed', error);
+        console.error('Error details:', {
+          name: error?.name,
+          message: error?.message,
+          stack: error?.stack,
+          error: error
+        });
+        
         let errorMsg = '';
         
         // Extract error message from error object
@@ -816,8 +852,10 @@
           errorMessage = JSON.stringify(error);
         }
         
-        // Handle different error types
-        if (errorMessage.includes('fetch') || errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch')) {
+        // Handle different error types with better messages
+        if (errorMessage.includes('404') || errorMessage.includes('not found') || errorMessage.includes('Route not found')) {
+          errorMsg = 'API endpoint not found. The service may be updating. Please refresh the page (Ctrl+Shift+R) and try again.';
+        } else if (errorMessage.includes('fetch') || errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch')) {
           errorMsg = 'Network error. Please check your internet connection and try again.';
         } else if (errorMessage.includes('timeout') || errorMessage.includes('AbortError')) {
           errorMsg = 'Request timeout. The image may be too large or the server is busy. Please try again with a smaller image.';
