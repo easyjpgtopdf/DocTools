@@ -557,6 +557,15 @@
     // Process with Premium HD API (2000-4000px BiRefNet GPU High-Resolution)
     async function processWithPremiumHD(dataURL) {
       try {
+        // Validate image data before sending
+        const validation = validateImageDataURL(dataURL);
+        if (!validation.valid) {
+          return {
+            success: false,
+            error: validation.error || 'Invalid image file. Please ensure you are uploading a valid image (JPG, PNG, etc.).'
+          };
+        }
+        
         // Check credits first
         const subModule = await loadSubscriptionModule();
         const userId = await getCurrentUserId();
@@ -570,11 +579,26 @@
         }
         
         // Verify credits (this should be done on backend, but we check here for UX)
-        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">Verifying credits and processing with Premium HD (GPU-accelerated High-Resolution)...</div>`;
+        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⚡ Processing with Premium HD (GPU-accelerated High-Resolution)... This may take 30-90 seconds.</div>`;
+        
+        const startTime = Date.now();
+        
+        // Progress indicator - update every 10 seconds for premium
+        let progressInterval = setInterval(() => {
+          const elapsed = Math.floor((Date.now() - startTime) / 1000);
+          if (elapsed < 60) {
+            statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⚡ Premium HD processing... (${elapsed}s) - Please wait, high-quality processing takes 30-90 seconds.</div>`;
+          } else if (elapsed < 180) {
+            statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(255,193,7,0.12);color:#856404;font-weight:600;">⏳ Premium HD processing... (${elapsed}s) - High-quality processing takes longer. Almost done...</div>`;
+          }
+        }, 10000);
         
         // Add timeout for premium processing (5 minutes)
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 300000); // 5 minutes
+        const timeout = setTimeout(() => {
+          clearInterval(progressInterval);
+          controller.abort();
+        }, 300000); // 5 minutes
         
         const response = await fetch(`${API_BASE_URL}/api/tools/bg-remove-premium`, {
           method: 'POST',
@@ -591,6 +615,7 @@
         });
         
         clearTimeout(timeout);
+        clearInterval(progressInterval);
         
         if (!response.ok) {
           let errorData = {};
@@ -657,6 +682,11 @@
           throw new Error(result.error || 'Processing failed');
         }
       } catch (error) {
+        // Clean up progress interval if still running
+        if (typeof progressInterval !== 'undefined') {
+          clearInterval(progressInterval);
+        }
+        
         console.error('Premium HD processing error:', error);
         console.error('Error type:', typeof error);
         console.error('Error details:', {
@@ -1128,8 +1158,8 @@
           errorMsg = 'Processing failed. Please try again with a different image. If the problem persists, the service may be temporarily unavailable.';
         } else if (errorMessage.includes('temporarily unavailable') || errorMessage.includes('warming up')) {
           errorMsg = 'Service is warming up. Please wait 15-20 seconds and try again.';
-        } else if (errorMessage.includes('Invalid image') || errorMessage.includes('Failed to load image') || errorMessage.includes('Invalid image data') || errorMessage.includes('bytes-like object')) {
-          errorMsg = 'Invalid image file. Please ensure you are uploading a valid image (JPG, PNG, etc.). If the problem persists, try a different image.';
+        } else if (errorMessage.includes('Invalid image') || errorMessage.includes('Failed to load image') || errorMessage.includes('Invalid image data') || errorMessage.includes('bytes-like object') || errorMessage.includes('Image object')) {
+          errorMsg = 'Invalid image file. Please ensure you are uploading a valid image file (JPG, PNG, etc.). The image may be corrupted or in an unsupported format. Please try uploading a different image.';
         } else {
           // Use the actual error message if available
           errorMsg = errorMessage || 'Failed to remove background. Please try again.';
