@@ -395,6 +395,11 @@
     }
     
     async function processWithFreePreview(dataURL) {
+      // Declare variables in function scope for proper cleanup
+      let progressInterval = null;
+      let timeout = null;
+      const controller = new AbortController();
+      
       try {
         // Validate image data before sending
         const validation = validateImageDataURL(dataURL);
@@ -420,11 +425,6 @@
         }
         
         const startTime = Date.now();
-        
-        // Progress indicator - update every 5 seconds
-        let progressInterval = null;
-        let timeout = null;
-        const controller = new AbortController();
         
         // Progress indicator - update every 5 seconds
         progressInterval = setInterval(() => {
