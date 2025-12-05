@@ -250,7 +250,11 @@ def process_with_optimizations(input_image, session, is_premium=False):
     
     # Step 1: Remove background using BiRefNet (TensorRT FP16 via ONNX Runtime)
     logger.info("Step 1: Removing background with optimized BiRefNet model...")
-    output_bytes = remove(input_image, session=session)
+    # rembg expects bytes-like input in some versions; always send bytes
+    input_buffer = io.BytesIO()
+    input_image.save(input_buffer, format='PNG')
+    input_bytes = input_buffer.getvalue()
+    output_bytes = remove(input_bytes, session=session)
     output_image = Image.open(io.BytesIO(output_bytes))
     
     # Extract alpha mask
