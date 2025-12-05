@@ -583,7 +583,7 @@
           errorMessage = 'Network error. Please check your internet connection and try again.';
         } else if (errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
           errorMessage = 'Request timeout. The server may be busy. Please try again with a smaller image.';
-        } else if (errorMessage.includes('Invalid image') || errorMessage.includes('Invalid image data') || errorMessage.includes('bytes-like object') || errorMessage.includes('Image object')) {
+        } else if (errorMessage.includes('Invalid image') || errorMessage.includes('Invalid image data') || errorMessage.includes('bytes-like object') || errorMessage.includes('Image object') || errorMessage.includes('Invalid image data format')) {
           errorMessage = 'Invalid image file. Please ensure you are uploading a valid image file (JPG, PNG, etc.). The image may be corrupted or in an unsupported format. Please try uploading a different image.';
         }
         
