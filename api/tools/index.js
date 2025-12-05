@@ -110,45 +110,50 @@ module.exports = async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Extract route from query or path
-  // Vercel serves /api/tools/index.js for /api/tools/* routes
-  // Path format: /api/tools/bg-remove-free -> route = 'bg-remove-free'
+  // Extract route from query parameter (set by Vercel rewrite) or URL path
+  // Vercel rewrite: /api/tools/bg-remove-free -> /api/tools/index.js?route=bg-remove-free
   
-  // Debug logging
-  console.log('Tools API - req.url:', req.url);
-  console.log('Tools API - req.path:', req.path);
-  console.log('Tools API - req.query:', req.query);
-  console.log('Tools API - headers:', {
-    host: req.headers.host,
-    'x-forwarded-proto': req.headers['x-forwarded-proto'],
-    'x-forwarded-path': req.headers['x-forwarded-path']
-  });
+  // Try query parameter first (from Vercel rewrite)
+  let route = req.query.route || null;
   
-  // Get full URL with proper protocol
-  let urlPath = req.url || req.path || '';
-  
-  // Remove query string if present
-  if (urlPath.includes('?')) {
-    urlPath = urlPath.split('?')[0];
-  }
-  
-  // Parse path parts
-  const pathParts = urlPath.split('/').filter(p => p && p !== 'api' && p !== 'tools');
-  
-  // Get route from path (should be the first part after /api/tools/)
-  let route = pathParts[0] || null;
-  
-  // Handle edge cases - if route is 'index', try query param
-  if (!route || route === 'index' || route === 'tools') {
-    route = req.query.route || null;
-  }
-  
-  // Final fallback
+  // If not in query, try to extract from URL path
   if (!route) {
-    route = 'bg-remove-free';
+    // Get URL path - check multiple possible formats
+    let urlPath = req.url || '';
+    
+    // Check x-invoke-path header (Vercel internal)
+    if (!urlPath || urlPath === '/api/tools/index.js') {
+      urlPath = req.headers['x-invoke-path'] || req.headers['x-vercel-original-url'] || '';
+    }
+    
+    // Remove query string and protocol if present
+    if (urlPath.includes('?')) {
+      urlPath = urlPath.split('?')[0];
+    }
+    if (urlPath.includes('://')) {
+      try {
+        const url = new URL(urlPath);
+        urlPath = url.pathname;
+      } catch (e) {
+        // Not a full URL, use as is
+      }
+    }
+    
+    // Parse path: /api/tools/bg-remove-free -> bg-remove-free
+    const pathParts = urlPath.split('/').filter(p => p);
+    const toolsIndex = pathParts.indexOf('tools');
+    
+    if (toolsIndex >= 0 && pathParts.length > toolsIndex + 1) {
+      route = pathParts[toolsIndex + 1];
+    }
   }
   
-  console.log('Tools API - Extracted route:', route, 'from pathParts:', pathParts);
+  // Handle edge cases
+  if (!route || route === 'index' || route === 'tools') {
+    route = 'bg-remove-free'; // Default route
+  }
+  
+  console.log('Tools API - Route:', route, '| req.url:', req.url, '| req.query:', req.query);
 
   try {
     // Route: /api/tools/bg-remove-free (Free Preview 512px)
