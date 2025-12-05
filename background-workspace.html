@@ -163,7 +163,7 @@
 <h2>About This Tool</h2>
 <!-- Animated Demo -->
 <div style="margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(67,97,238,0.15);">
-<img alt="AI Processing Demo" src="images/bg-removal-jungle-demo.svg" style="width: 100%; height: auto; display: block;"/>
+<img alt="AI Processing Demo" src="images/bg-removal-jungle-demo.svg" style="width: 100%; height: auto; display: block;" onerror="this.style.display='none'; console.warn('Demo image not found');"/>
 </div>
 <div class="status-card">
 <strong>? Professional AI Processing</strong>
@@ -302,6 +302,7 @@
     }
     
     const API_BASE_URL = getApiBaseUrl();
+    console.log('API Base URL:', API_BASE_URL);
     
     // Load subscription module
     async function loadSubscriptionModule() {
@@ -347,7 +348,10 @@
       try {
         statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">Processing with Free Preview (512px GPU-accelerated)...</div>`;
         
-        const response = await fetch(`${API_BASE_URL}/api/tools/bg-remove-free`, {
+        const apiUrl = `${API_BASE_URL}/api/tools/bg-remove-free`;
+        console.log('Calling API:', apiUrl);
+        
+        const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

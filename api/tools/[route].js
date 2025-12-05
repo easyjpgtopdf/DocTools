@@ -1,6 +1,6 @@
-// Consolidated Tools API Router
-// Handles all tool-related endpoints in a single function
-// Routes: /api/tools/bg-remove-free, /api/tools/bg-remove-premium, /api/tools/unlock-excel, etc.
+// Dynamic route handler for Vercel
+// Handles /api/tools/bg-remove-free, /api/tools/bg-remove-premium, etc.
+// This file uses the same logic as index.js but handles Vercel's dynamic routing
 
 const CLOUDRUN_API_URL = process.env.CLOUDRUN_API_URL_BG_REMOVAL || 'https://bg-removal-ai-564572183797.us-central1.run.app';
 
@@ -110,38 +110,32 @@ module.exports = async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Extract route from query or path
-  // Vercel serves /api/tools/index.js for /api/tools/* routes
-  // Path format: /api/tools/bg-remove-free -> route = 'bg-remove-free'
+  // Extract route from Vercel dynamic route parameter or URL path
+  // Vercel provides route in req.query.route for /api/tools/[route].js
+  let route = req.query.route;
   
-  // Get full URL with proper protocol
-  const protocol = req.headers['x-forwarded-proto'] || 'https';
-  const host = req.headers.host || req.headers['x-forwarded-host'] || 'localhost';
-  const url = new URL(req.url, `${protocol}://${host}`);
-  const pathParts = url.pathname.split('/').filter(p => p);
-  
-  // Find 'tools' in path and get the next part
-  const toolsIndex = pathParts.indexOf('tools');
-  let route = null;
-  
-  if (toolsIndex >= 0 && pathParts.length > toolsIndex + 1) {
-    route = pathParts[toolsIndex + 1];
-  } else if (pathParts.length > 0) {
-    // Fallback: get last part of path
-    route = pathParts[pathParts.length - 1];
-  }
-  
-  // Handle edge cases - if route is 'index' or 'tools', try query param or default
-  if (!route || route === 'index' || route === 'tools') {
-    route = url.searchParams.get('route') || null;
-  }
-  
-  // Final fallback
+  // Fallback: extract from URL path if not in query
   if (!route) {
+    // Get full URL with proper protocol
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const host = req.headers.host || req.headers['x-forwarded-host'] || 'localhost';
+    const url = new URL(req.url, `${protocol}://${host}`);
+    const pathParts = url.pathname.split('/').filter(p => p);
+    const toolsIndex = pathParts.indexOf('tools');
+    
+    if (toolsIndex >= 0 && pathParts.length > toolsIndex + 1) {
+      route = pathParts[toolsIndex + 1];
+    } else if (pathParts.length > 0) {
+      route = pathParts[pathParts.length - 1];
+    }
+  }
+  
+  // Handle edge cases
+  if (!route || route === 'index' || route === 'tools') {
     route = 'bg-remove-free';
   }
   
-  console.log('Tools API route:', route, 'from path:', url.pathname, 'query:', req.query);
+  console.log('Tools API route:', route, 'from path:', req.url, 'query:', req.query);
 
   try {
     // Route: /api/tools/bg-remove-free (Free Preview 512px)

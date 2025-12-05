@@ -530,14 +530,14 @@ window.creditManager = {
   initializeUserCredits
 };
 
-// Export all functions (initializeUserCredits already exported above)
+// Export all functions (purchaseCredits and initializeUserCredits already exported above as named exports)
 export {
   getUserCredits,
   hasSufficientCredits,
   deductCredits,
   addCredits,
-  getCreditHistory,
-  purchaseCredits
+  getCreditHistory
+  // purchaseCredits already exported at line 301 as: export async function purchaseCredits
   // initializeUserCredits already exported as named export above
 };
 
