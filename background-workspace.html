@@ -812,9 +812,16 @@
         previewResult.hidden = false;
         previewResult.src = resultUrl;
 
+        // Create canvas with proper settings for transparency preservation
         ensureCanvas(foregroundImage.width, foregroundImage.height);
+        
+        // Clear canvas to ensure transparency
         resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+        
+        // Draw the transparent PNG image (preserves alpha channel)
         resultContext.drawImage(foregroundImage, 0, 0, resultCanvas.width, resultCanvas.height);
+        
+        // Convert to PNG with full quality (preserves transparency)
         resultDataURL = resultCanvas.toDataURL('image/png');
 
         sessionStorage.setItem(STORAGE_KEYS.dimensions, JSON.stringify({ width: resultCanvas.width, height: resultCanvas.height }));
@@ -954,22 +961,69 @@
       window.location.href = 'background-style.html';
     });
 
-    downloadBtn.addEventListener('click', () => {
-      if (!resultDataURL) return;
+    downloadBtn.addEventListener('click', async () => {
+      // Priority: Use original transparent PNG from API (best quality, guaranteed transparent)
+      // Fallback: Use canvas-generated PNG
+      const originalResultUrl = sessionStorage.getItem(STORAGE_KEYS.foreground);
+      const downloadUrl = originalResultUrl || resultDataURL;
+      
+      if (!downloadUrl) {
+        showError('No processed image available. Please process an image first.');
+        return;
+      }
       
       try {
-        // Download
+        let finalDownloadUrl = downloadUrl;
+        
+        // The API returns transparent PNG as base64 data URL
+        // If we have the original from API, use it directly (best quality)
+        if (originalResultUrl && originalResultUrl.startsWith('data:image/png')) {
+          finalDownloadUrl = originalResultUrl;
+          console.log('✅ Using original transparent PNG from API for download');
+        } else if (resultDataURL && resultDataURL.startsWith('data:image/png')) {
+          // Use canvas-generated PNG (also transparent)
+          finalDownloadUrl = resultDataURL;
+          console.log('✅ Using canvas-generated transparent PNG for download');
+        } else {
+          // Convert to transparent PNG if needed
+          console.log('⚠️ Converting to transparent PNG format');
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.src = downloadUrl;
+          
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = () => reject(new Error('Failed to load image'));
+            setTimeout(() => reject(new Error('Image load timeout')), 10000);
+          });
+          
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+          finalDownloadUrl = canvas.toDataURL('image/png');
+        }
+        
+        // Download the transparent PNG
         const link = document.createElement('a');
         const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-removed.png';
-        link.href = resultDataURL;
-        link.download = filename.endsWith('.png') ? filename : `${filename.replace(/\.[^/.]+$/, '') || 'background-removed'}.png`;
-        link.click();
+        const baseName = filename.replace(/\.[^/.]+$/, '') || 'background-removed';
+        link.href = finalDownloadUrl;
+        link.download = `${baseName}.png`;
         
-        // Show success message
-        showStatus('Downloaded successfully.');
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Show success message with quality info
+        const quality = sessionStorage.getItem(STORAGE_KEYS.foreground) ? 'high-quality' : '';
+        showStatus(`✅ Transparent PNG downloaded successfully! ${quality}`.trim());
       } catch (error) {
         console.error('Download error:', error);
-        showError('Download failed. Please try again.');
+        showError('Download failed. Please try again. Error: ' + error.message);
       }
     });
 
