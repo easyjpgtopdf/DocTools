@@ -151,35 +151,73 @@ module.exports = async function handler(req, res) {
     }
     
     if (originalUrl) {
-      // Remove query string
+      // Remove query string first
       if (originalUrl.includes('?')) {
-        originalUrl = originalUrl.split('?')[0];
-      }
-      
-      // Remove protocol
-      if (originalUrl.includes('://')) {
-        try {
-          const urlObj = new URL(originalUrl);
-          originalUrl = urlObj.pathname;
-        } catch (e) {
-          // Continue
+        const [pathPart, queryPart] = originalUrl.split('?');
+        originalUrl = pathPart;
+        // Also try to extract route from query string if present
+        if (queryPart) {
+          try {
+            const params = new URLSearchParams(queryPart);
+            const queryRoute = params.get('route');
+            if (queryRoute && queryRoute !== 'index.js' && queryRoute !== 'index') {
+              const validRoutes = ['bg-remove-free', 'bg-remove-premium', 'unlock-excel', 'health'];
+              if (validRoutes.includes(queryRoute)) {
+                route = queryRoute;
+                console.log('[METHOD 3a] Route from query string:', route);
+              }
+            }
+          } catch (e) {
+            // Continue with path parsing
+          }
         }
       }
       
-      // Parse: /api/tools/bg-remove-free -> bg-remove-free
-      const pathParts = originalUrl.split('/').filter(p => p);
-      const toolsIndex = pathParts.indexOf('tools');
-      
-      if (toolsIndex >= 0 && pathParts.length > toolsIndex + 1) {
-        const extractedRoute = pathParts[toolsIndex + 1];
-        // Validate - must be a real route name
-        const validRoutes = ['bg-remove-free', 'bg-remove-premium', 'unlock-excel', 'health'];
-        if (extractedRoute && validRoutes.includes(extractedRoute)) {
-          route = extractedRoute;
-          console.log('[METHOD 3] Route from path parsing:', route);
+      // If route still not found, parse path
+      if (!route && originalUrl) {
+        // Remove protocol
+        if (originalUrl.includes('://')) {
+          try {
+            const urlObj = new URL(originalUrl);
+            originalUrl = urlObj.pathname;
+          } catch (e) {
+            // Continue
+          }
+        }
+        
+        // Parse: /api/tools/bg-remove-free -> bg-remove-free
+        const pathParts = originalUrl.split('/').filter(p => p && p !== 'api' && p !== 'tools' && p !== 'index.js' && p !== 'index');
+        const toolsIndex = originalUrl.split('/').indexOf('tools');
+        
+        if (toolsIndex >= 0) {
+          const pathAfterTools = originalUrl.split('/').slice(toolsIndex + 1).filter(p => p);
+          const extractedRoute = pathAfterTools[0];
+          
+          // CRITICAL: Filter out index.js and index
+          if (extractedRoute && extractedRoute !== 'index.js' && extractedRoute !== 'index') {
+            // Validate - must be a real route name
+            const validRoutes = ['bg-remove-free', 'bg-remove-premium', 'unlock-excel', 'health'];
+            if (validRoutes.includes(extractedRoute)) {
+              route = extractedRoute;
+              console.log('[METHOD 3b] Route from path parsing:', route);
+            }
+          }
         }
       }
     }
+  }
+  
+  // CRITICAL VALIDATION: Reject invalid routes
+  const validRoutes = ['bg-remove-free', 'bg-remove-premium', 'unlock-excel', 'health'];
+  if (route && !validRoutes.includes(route)) {
+    console.error('[VALIDATION] Invalid route detected:', route, '| Rejecting and using fallback');
+    route = null;
+  }
+  
+  // Reject index.js or index explicitly
+  if (route === 'index.js' || route === 'index' || route === 'tools') {
+    console.error('[VALIDATION] Route is invalid (index.js/index/tools):', route, '| Using fallback');
+    route = null;
   }
   
   // METHOD 4: Final fallback - use default based on method

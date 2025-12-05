@@ -411,10 +411,10 @@
         }
         
         // More specific error messages
-        if (errorMessage.includes('404') || errorMessage.includes('not found')) {
-          errorMessage = 'API endpoint not found. Please refresh the page and try again.';
-        } else if (errorMessage.includes('Route not found')) {
-          errorMessage = 'API routing error. Please refresh the page and try again.';
+        if (errorMessage.includes('404') || errorMessage.includes('not found') || errorMessage.includes('Route not found')) {
+          errorMessage = 'API endpoint not found. The service may be updating. Please refresh the page (Ctrl+Shift+R) and try again.';
+        } else if (errorMessage.includes('index.js')) {
+          errorMessage = 'API routing error. Please refresh the page (Ctrl+Shift+R) and try again.';
         } else if (errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch')) {
           errorMessage = 'Network error. Please check your internet connection and try again.';
         }
@@ -853,7 +853,7 @@
         }
         
         // Handle different error types with better messages
-        if (errorMessage.includes('404') || errorMessage.includes('not found') || errorMessage.includes('Route not found')) {
+        if (errorMessage.includes('404') || errorMessage.includes('not found') || errorMessage.includes('Route not found') || errorMessage.includes('index.js')) {
           errorMsg = 'API endpoint not found. The service may be updating. Please refresh the page (Ctrl+Shift+R) and try again.';
         } else if (errorMessage.includes('fetch') || errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch')) {
           errorMsg = 'Network error. Please check your internet connection and try again.';
