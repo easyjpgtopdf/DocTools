@@ -120,6 +120,8 @@
     .download-modal-actions button { padding: 10px 20px; border-radius: 999px; border: none; cursor: pointer; font-weight: 600; font-size: 0.95rem; transition: transform 0.2s; }
     .download-modal-actions button:hover { transform: translateY(-1px); }
     .download-modal-actions .btn-cancel { background: #f5f5f5; color: #666; }
+    .download-modal-actions .btn-download { background: linear-gradient(135deg, #4361ee, #3a0ca3); color: #fff; box-shadow: 0 16px 30px rgba(67, 97, 238, 0.25); }
+    .download-option.selected { border-color: var(--primary); background: rgba(67, 97, 238, 0.05); }
     footer { background: #0d1530; color: #e8ecff; padding: 50px 0 30px; margin-top: auto; }
     .footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 30px; margin-bottom: 30px; }
     .footer-grid h3 { margin-bottom: 12px; font-size: 1rem; }
@@ -584,14 +586,37 @@
 <div id="downloadModal" class="download-modal">
   <div class="download-modal-content">
     <div class="download-modal-header">
-      <h3><i class="fas fa-download"></i> Choose Download Size</h3>
-      <p>Select your preferred download option</p>
+      <h3><i class="fas fa-download"></i> Download Image</h3>
+      <p>Choose your download quality</p>
     </div>
-    <div class="download-options" id="downloadOptions">
-      <!-- Options will be populated by JavaScript -->
+    <div class="download-options">
+      <div class="download-option" id="freeDownloadOption" data-quality="free">
+        <div class="download-option-header">
+          <div class="download-option-title">Free Preview</div>
+          <span class="download-option-badge free">Free</span>
+        </div>
+        <div class="download-option-details">
+          <strong>512px</strong> • No credits required • Instant download
+        </div>
+      </div>
+      <div class="download-option" id="premiumDownloadOption" data-quality="premium">
+        <div class="download-option-header">
+          <div class="download-option-title">Premium HD</div>
+          <span class="download-option-badge premium">Premium</span>
+        </div>
+        <div class="download-option-details">
+          <strong>2000-4000px</strong> • 1 credit per image • High-resolution quality
+        </div>
+        <div id="premiumCreditInfo" style="margin-top: 8px; padding: 8px; background: rgba(67, 97, 238, 0.08); border-radius: 8px; font-size: 0.85rem; color: #56607a; display: none;">
+          <span id="premiumCreditText">Checking credits...</span>
+        </div>
+      </div>
     </div>
     <div class="download-modal-actions">
-      <button class="btn-cancel" onclick="closeDownloadModal()">Cancel</button>
+      <button class="btn-cancel" id="cancelDownload">Cancel</button>
+      <button class="btn-download" id="confirmDownload" disabled>
+        <i class="fas fa-download"></i> Download
+      </button>
     </div>
   </div>
 </div>
@@ -1383,6 +1408,70 @@
       });
     }
 
+    // Helper functions for credit checking and API calls
+    async function loadCreditModule() {
+      try {
+        const creditMod = await import('./js/credit-manager.js');
+        return creditMod;
+      } catch (error) {
+        console.warn('Credit module not available:', error);
+        return null;
+      }
+    }
+    
+    async function getCurrentUserId() {
+      if (!auth || !currentUser) return null;
+      return currentUser.uid;
+    }
+    
+    async function processWithPremiumHD(dataURL) {
+      try {
+        const API_BASE_URL = window.API_BASE_URL || 'https://www.easyjpgtopdf.com';
+        const apiUrl = `${API_BASE_URL}/api/tools/bg-remove-premium`;
+        
+        setStatus('⚡ Processing Premium HD (2000-4000px)...');
+        
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ imageData: dataURL })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          if (response.status === 401) {
+            return { success: false, requiresAuth: true, error: 'Please sign in to use Premium HD' };
+          }
+          if (response.status === 402 || response.status === 403) {
+            return { success: false, requiresCredits: true, error: 'Insufficient credits for Premium HD' };
+          }
+          throw new Error(errorData.error || 'Premium HD processing failed');
+        }
+        
+        const result = await response.json();
+        
+        if (result.success && result.resultImage) {
+          return {
+            success: true,
+            dataUrl: result.resultImage,
+            processedWith: 'Premium HD (2000-4000px)',
+            creditsUsed: result.creditsUsed
+          };
+        } else {
+          throw new Error(result.error || 'Processing failed');
+        }
+      } catch (error) {
+        console.error('Premium HD processing error:', error);
+        return {
+          success: false,
+          error: error.message || 'Premium HD processing failed'
+        };
+      }
+    }
+    
     // Handle download with modal showing two options - UPDATED to match background-workspace.html
     async function handleDownload() {
       // Get the current canvas image as data URL
@@ -1594,8 +1683,293 @@
       setTimeout(() => clearStatus(), 4000);
     }
 
+    // Download Modal Management (matching background-workspace.html)
+    const freeDownloadOption = document.getElementById('freeDownloadOption');
+    const premiumDownloadOption = document.getElementById('premiumDownloadOption');
+    const confirmDownloadBtn = document.getElementById('confirmDownload');
+    const cancelDownloadBtn = document.getElementById('cancelDownload');
+    const premiumCreditInfo = document.getElementById('premiumCreditInfo');
+    const premiumCreditText = document.getElementById('premiumCreditText');
+    
+    let selectedDownloadQuality = null;
+    
+    // Update premium credit info
+    async function updatePremiumCreditInfo() {
+      try {
+        const creditMod = await loadCreditModule();
+        const userId = await getCurrentUserId();
+        
+        if (!userId) {
+          premiumCreditText.innerHTML = '<a href="login.html" style="color: #4361ee; text-decoration: underline;">Sign in</a> required for Premium HD';
+          premiumCreditInfo.style.display = 'block';
+          return;
+        }
+        
+        if (creditMod && creditMod.getUserCredits) {
+          const creditData = await creditMod.getUserCredits(userId);
+          
+          if (creditData.unlimited) {
+            premiumCreditText.textContent = 'Premium plan active - Unlimited credits';
+            premiumCreditText.style.color = '#22c55e';
+          } else {
+            const credits = creditData.credits || 0;
+            if (credits > 0) {
+              premiumCreditText.innerHTML = `You have <strong>${credits}</strong> credit(s) - <a href="pricing.html" style="color: #4361ee; text-decoration: underline;">Buy more</a>`;
+              premiumCreditText.style.color = '#1f2559';
+            } else {
+              premiumCreditText.innerHTML = 'No credits - <a href="pricing.html" style="color: #4361ee; text-decoration: underline;">Purchase credits</a> for Premium HD';
+              premiumCreditText.style.color = '#dc2626';
+            }
+          }
+          premiumCreditInfo.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Error checking credits:', error);
+        premiumCreditText.textContent = 'Unable to check credits';
+        premiumCreditText.style.color = '#dc2626';
+        premiumCreditInfo.style.display = 'block';
+      }
+    }
+    
+    // Handle quality selection
+    if (freeDownloadOption) {
+      freeDownloadOption.addEventListener('click', () => {
+        selectedDownloadQuality = 'free';
+        freeDownloadOption.classList.add('selected');
+        if (premiumDownloadOption) premiumDownloadOption.classList.remove('selected');
+        if (confirmDownloadBtn) confirmDownloadBtn.disabled = false;
+      });
+    }
+    
+    if (premiumDownloadOption) {
+      premiumDownloadOption.addEventListener('click', async () => {
+        const userId = await getCurrentUserId();
+        if (!userId) {
+          if (confirm('Please sign in to use Premium HD. Would you like to sign in now?')) {
+            window.location.href = 'login.html?returnTo=' + encodeURIComponent(window.location.href);
+          }
+          return;
+        }
+        
+        // Check credits
+        const creditMod = await loadCreditModule();
+        if (creditMod && creditMod.hasSufficientCredits) {
+          const creditCheck = await creditMod.hasSufficientCredits(userId, 1);
+          
+          if (!creditCheck.hasCredits && !creditCheck.unlimited) {
+            if (confirm(`You need 1 credit for Premium HD. You have ${creditCheck.creditsAvailable || 0} credit(s). Would you like to purchase credits?`)) {
+              window.location.href = 'pricing.html#credits';
+            }
+            return;
+          }
+        }
+        
+        selectedDownloadQuality = 'premium';
+        premiumDownloadOption.classList.add('selected');
+        if (freeDownloadOption) freeDownloadOption.classList.remove('selected');
+        if (confirmDownloadBtn) confirmDownloadBtn.disabled = false;
+      });
+    }
+    
+    // Cancel download modal
+    if (cancelDownloadBtn) {
+      cancelDownloadBtn.addEventListener('click', () => {
+        closeDownloadModal();
+        selectedDownloadQuality = null;
+      });
+    }
+    
+    // Handle confirm download
+    if (confirmDownloadBtn) {
+      confirmDownloadBtn.addEventListener('click', async () => {
+        if (!selectedDownloadQuality) return;
+        
+        const resultDataURL = previewCanvas.toDataURL('image/png', 1.0);
+        
+        if (!resultDataURL) {
+          setStatus('No processed image available. Please process an image first.');
+          closeDownloadModal();
+          return;
+        }
+        
+        try {
+          let finalDownloadUrl = resultDataURL;
+          
+          // If premium, process with premium HD first, then apply background style
+          if (selectedDownloadQuality === 'premium') {
+            const userId = await getCurrentUserId();
+            if (!userId) {
+              setStatus('Please sign in to use Premium HD download.');
+              closeDownloadModal();
+              return;
+            }
+            
+            // Get original image data
+            const originalDataUrl = sessionStorage.getItem(STORAGE_KEYS.original);
+            if (!originalDataUrl) {
+              setStatus('Original image not found. Please upload again.');
+              closeDownloadModal();
+              return;
+            }
+            
+            // Process with premium HD
+            setStatus('⚡ Processing Premium HD for download...');
+            closeDownloadModal();
+            
+            const premiumResult = await processWithPremiumHD(originalDataUrl);
+            
+            if (premiumResult.success) {
+              // Apply background style to premium HD result
+              const premiumImg = new Image();
+              premiumImg.crossOrigin = 'anonymous';
+              premiumImg.src = premiumResult.dataUrl;
+              await premiumImg.decode();
+              
+              // Get current background style
+              const currentBg = backgroundImage.src || 'transparent';
+              const isTransparent = currentBg === 'transparent' || !currentBg || currentBg === 'data:image/png;base64,';
+              
+              // Create canvas with premium HD dimensions
+              const premiumCanvas = document.createElement('canvas');
+              premiumCanvas.width = premiumImg.width;
+              premiumCanvas.height = premiumImg.height;
+              const premiumCtx = premiumCanvas.getContext('2d');
+              
+              // Draw background
+              if (!isTransparent && currentBg !== 'transparent') {
+                const bgImg = new Image();
+                bgImg.crossOrigin = 'anonymous';
+                bgImg.src = currentBg;
+                await bgImg.decode();
+                premiumCtx.drawImage(bgImg, 0, 0, premiumCanvas.width, premiumCanvas.height);
+              }
+              
+              // Draw foreground
+              premiumCtx.drawImage(premiumImg, 0, 0);
+              
+              // Apply overlay if enabled
+              if (overlayState.enabled && overlayState.text) {
+                // Apply overlay (same logic as preview)
+                premiumCtx.save();
+                premiumCtx.font = `${overlayState.fontWeight} ${overlayState.fontSize}px ${overlayState.fontFamily}`;
+                premiumCtx.fillStyle = overlayState.color;
+                premiumCtx.textAlign = 'center';
+                premiumCtx.textBaseline = 'middle';
+                const shadowBlur = overlayState.shadow;
+                premiumCtx.shadowColor = 'rgba(0,0,0,0.5)';
+                premiumCtx.shadowBlur = shadowBlur;
+                premiumCtx.shadowOffsetX = 0;
+                premiumCtx.shadowOffsetY = 0;
+                
+                let x = premiumCanvas.width / 2 + overlayState.offsetX;
+                let y = premiumCanvas.height / 2 + overlayState.offsetY;
+                
+                if (overlayState.position === 'top') y = 50 + overlayState.offsetY;
+                else if (overlayState.position === 'bottom') y = premiumCanvas.height - 50 + overlayState.offsetY;
+                else if (overlayState.position === 'left') { x = 50 + overlayState.offsetX; premiumCtx.textAlign = 'left'; }
+                else if (overlayState.position === 'right') { x = premiumCanvas.width - 50 + overlayState.offsetX; premiumCtx.textAlign = 'right'; }
+                
+                premiumCtx.fillText(overlayState.text, x, y);
+                premiumCtx.restore();
+              }
+              
+              finalDownloadUrl = premiumCanvas.toDataURL('image/png');
+              
+              setStatus('✅ Premium HD processed successfully!');
+            } else {
+              if (premiumResult.requiresAuth) {
+                if (confirm('Please sign in to use Premium HD. Would you like to sign in now?')) {
+                  window.location.href = 'login.html?returnTo=' + encodeURIComponent(window.location.href);
+                }
+              } else if (premiumResult.requiresCredits) {
+                if (confirm('Insufficient credits for Premium HD. Would you like to purchase credits?')) {
+                  window.location.href = 'pricing.html#credits';
+                }
+              } else {
+                setStatus(premiumResult.error || 'Premium HD processing failed');
+              }
+              return;
+            }
+          } else {
+            // Free Preview: Download current canvas at 512px
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.src = resultDataURL;
+            await img.decode();
+            
+            const freeCanvas = document.createElement('canvas');
+            const maxSize = 512;
+            let width = img.width;
+            let height = img.height;
+            
+            if (width > maxSize || height > maxSize) {
+              const scale = Math.min(maxSize / width, maxSize / height);
+              width = Math.round(width * scale);
+              height = Math.round(height * scale);
+            }
+            
+            freeCanvas.width = width;
+            freeCanvas.height = height;
+            const freeCtx = freeCanvas.getContext('2d');
+            freeCtx.drawImage(img, 0, 0, width, height);
+            finalDownloadUrl = freeCanvas.toDataURL('image/png');
+          }
+          
+          // Download the image
+          const link = document.createElement('a');
+          const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-styled.png';
+          const baseName = filename.replace(/\.[^/.]+$/, '') || 'background-styled';
+          const qualitySuffix = selectedDownloadQuality === 'premium' ? '-premium-hd' : '-free-preview';
+          link.href = finalDownloadUrl;
+          link.download = `${baseName}${qualitySuffix}.png`;
+          
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          // Show success message
+          const qualityLabel = selectedDownloadQuality === 'premium' ? 'Premium HD (2000-4000px)' : 'Free Preview (512px)';
+          setStatus(`✅ ${qualityLabel} downloaded successfully!`);
+          
+          // Close modal
+          closeDownloadModal();
+          selectedDownloadQuality = null;
+          
+          // Update credit info if premium
+          if (selectedDownloadQuality === 'premium') {
+            await updatePremiumCreditInfo();
+          }
+        } catch (error) {
+          console.error('Download error:', error);
+          setStatus('Download failed. Please try again. Error: ' + error.message);
+          closeDownloadModal();
+        }
+      });
+    }
+    
+    // Update download button to show modal
     if (downloadBtn) {
-      downloadBtn.addEventListener('click', handleDownload);
+      downloadBtn.addEventListener('click', async () => {
+        const resultDataURL = previewCanvas.toDataURL('image/png', 1.0);
+        
+        if (!resultDataURL) {
+          setStatus('No processed image available. Please process an image first.');
+          return;
+        }
+        
+        // Reset modal state
+        selectedDownloadQuality = null;
+        if (confirmDownloadBtn) confirmDownloadBtn.disabled = true;
+        if (freeDownloadOption) freeDownloadOption.classList.remove('selected');
+        if (premiumDownloadOption) premiumDownloadOption.classList.remove('selected');
+        if (premiumCreditInfo) premiumCreditInfo.style.display = 'none';
+        
+        // Update premium credit info
+        await updatePremiumCreditInfo();
+        
+        // Show modal
+        showDownloadModal();
+      });
     }
 
     if (backToPreview) {

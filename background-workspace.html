@@ -55,6 +55,30 @@
     .status-card { display: flex; flex-direction: column; gap: 18px; color: var(--muted); font-size: 0.95rem; line-height: 1.6; }
     .status-card strong { color: #1e254d; font-size: 1.05rem; }
     footer { text-align: center; padding: 24px 16px 40px; font-size: 0.85rem; color: var(--muted); }
+    /* Download Modal Styles */
+    .download-modal { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); z-index: 1000; align-items: center; justify-content: center; }
+    .download-modal.active { display: flex; }
+    .download-modal-content { background: #fff; border-radius: 20px; padding: 32px; max-width: 500px; width: 90%; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3); }
+    .download-modal-header { margin-bottom: 24px; }
+    .download-modal-header h3 { font-size: 1.4rem; color: #1a214d; margin-bottom: 8px; }
+    .download-modal-header p { color: var(--muted); font-size: 0.95rem; }
+    .download-options { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+    .download-option { border: 2px solid var(--border); border-radius: 16px; padding: 20px; cursor: pointer; transition: all 0.3s; background: #fff; position: relative; }
+    .download-option:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(67, 97, 238, 0.15); }
+    .download-option.disabled { opacity: 0.6; cursor: not-allowed; background: #f5f5f5; }
+    .download-option.selected { border-color: var(--primary); background: rgba(67, 97, 238, 0.05); }
+    .download-option-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .download-option-title { font-weight: 700; font-size: 1.1rem; color: #1a214d; }
+    .download-option-badge { padding: 4px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .download-option-badge.free { background: rgba(34, 197, 94, 0.15); color: #059669; }
+    .download-option-badge.premium { background: rgba(67, 97, 238, 0.15); color: var(--primary); }
+    .download-option-details { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+    .download-option-details strong { color: #1a214d; }
+    .download-modal-actions { display: flex; gap: 12px; justify-content: flex-end; }
+    .download-modal-actions button { padding: 10px 20px; border-radius: 999px; border: none; cursor: pointer; font-weight: 600; font-size: 0.95rem; transition: transform 0.2s; }
+    .download-modal-actions button:hover { transform: translateY(-1px); }
+    .download-modal-actions .btn-cancel { background: #f5f5f5; color: #666; }
+    .download-modal-actions .btn-download { background: linear-gradient(135deg, #4361ee, #3a0ca3); color: #fff; box-shadow: 0 16px 30px rgba(67, 97, 238, 0.25); }
     @keyframes spin { to { transform: rotate(360deg); } }
     @media (max-width: 960px) {
       main { grid-template-columns: 1fr; }
@@ -130,33 +154,12 @@
 <section class="panel">
 <h2>Processing Options</h2>
 <div class="status-card" id="statusMessage"></div>
-<!-- Quality Selector -->
+<!-- Process Button -->
 <div style="margin: 20px 0; padding: 20px; background: #f8f9ff; border-radius: 12px; border: 1px solid #e2e6ff;">
-  <h3 style="margin: 0 0 16px 0; color: #1f2559; font-size: 1.1rem;">Select Quality:</h3>
-  <div style="display: flex; gap: 16px; flex-wrap: wrap;">
-    <label id="freePreviewLabel" style="flex: 1; min-width: 200px; padding: 16px; background: white; border: 2px solid #4361ee; border-radius: 12px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 12px;">
-      <input type="radio" name="quality" value="free" checked style="margin: 0; width: 18px; height: 18px; cursor: pointer;">
-      <div style="flex: 1;">
-        <div style="font-weight: 600; color: #1f2559; margin-bottom: 4px;">Free Preview</div>
-        <div style="font-size: 0.85rem; color: #56607a;">512px • No credits required</div>
-      </div>
-    </label>
-    <label id="premiumHdLabel" style="flex: 1; min-width: 200px; padding: 16px; background: white; border: 2px solid #e2e6ff; border-radius: 12px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 12px;">
-      <input type="radio" name="quality" value="premium" style="margin: 0; width: 18px; height: 18px; cursor: pointer;">
-      <div style="flex: 1;">
-        <div style="font-weight: 600; color: #1f2559; margin-bottom: 4px;">Premium HD</div>
-        <div style="font-size: 0.85rem; color: #56607a;">2000-4000px • 1 credit per image</div>
-      </div>
-    </label>
-  </div>
-  <!-- Credit Info Display -->
-  <div id="creditInfo" style="margin-top: 16px; padding: 12px; background: white; border-radius: 8px; display: none;">
-    <div id="creditText" style="color: #1f2559; font-size: 0.9rem;">Checking credits...</div>
-  </div>
-  <!-- Process Button -->
-  <button id="processBtn" class="btn btn-primary" style="margin-top: 16px; width: 100%;">
+  <button id="processBtn" class="btn btn-primary" style="width: 100%;">
     <i class="fas fa-magic"></i> Process Image
   </button>
+  <p style="margin-top: 12px; font-size: 0.85rem; color: #56607a; text-align: center;">Process your image with AI background removal</p>
 </div>
 </section>
 <section class="panel">
@@ -792,81 +795,6 @@
       return null;
     }
     
-    // Get selected quality mode
-    function getSelectedQuality() {
-      const qualityRadio = document.querySelector('input[name="quality"]:checked');
-      return qualityRadio ? qualityRadio.value : 'free';
-    }
-    
-    // Update credit info display
-    async function updateCreditInfo() {
-      const quality = getSelectedQuality();
-      const creditInfo = document.getElementById('creditInfo');
-      const creditText = document.getElementById('creditText');
-      
-      // Check if elements exist before accessing
-      if (!creditInfo || !creditText) {
-        return; // Elements don't exist, skip
-      }
-      
-      if (quality === 'free') {
-        creditInfo.style.display = 'none';
-        return;
-      }
-      
-      // Premium mode - check credits
-      creditInfo.style.display = 'block';
-      creditText.textContent = 'Checking credits...';
-      
-      try {
-        const creditMod = await loadCreditModule();
-        const userId = await getCurrentUserId();
-        
-        if (!userId) {
-          creditText.innerHTML = '<a href="login.html" style="color: #4361ee; text-decoration: underline;">Sign in</a> required for Premium HD';
-          creditText.style.color = '#1f2559';
-          return;
-        }
-        
-        // Get user credits
-        if (creditMod && creditMod.getUserCredits) {
-          const creditData = await creditMod.getUserCredits(userId);
-          
-          if (creditData.unlimited) {
-            creditText.textContent = 'Premium plan active - Unlimited credits';
-            creditText.style.color = '#22c55e';
-          } else {
-            const credits = creditData.credits || 0;
-            if (credits > 0) {
-              creditText.innerHTML = `You have <strong>${credits}</strong> credit(s) - <a href="pricing.html" style="color: #4361ee; text-decoration: underline;">Buy more</a>`;
-              creditText.style.color = '#1f2559';
-            } else {
-              creditText.innerHTML = 'No credits - <a href="pricing.html" style="color: #4361ee; text-decoration: underline;">Purchase credits</a> for Premium HD';
-              creditText.style.color = '#dc2626';
-            }
-          }
-        } else {
-          // Fallback to subscription check
-          const subModule = await loadSubscriptionModule();
-          if (subModule && subModule.getCurrentSubscription) {
-            const subscription = await subModule.getCurrentSubscription(userId);
-            if (subscription.plan === 'premium' || subscription.plan === 'business') {
-              creditText.textContent = 'Premium plan active';
-              creditText.style.color = '#22c55e';
-            } else {
-              creditText.innerHTML = 'Credits required - <a href="pricing.html" style="color: #4361ee; text-decoration: underline;">Purchase</a>';
-              creditText.style.color = '#1f2559';
-            }
-          } else {
-            creditText.textContent = 'Credits required for Premium HD';
-          }
-        }
-      } catch (error) {
-        console.error('Error checking credits:', error);
-        creditText.textContent = 'Unable to check credits';
-        creditText.style.color = '#dc2626';
-      }
-    }
 
     // OLD FUNCTION - REMOVED (Now using backend API)
     // This function is kept for reference but NOT USED
@@ -1023,75 +951,17 @@
         previewOriginal.src = dataURL;
         
         const fileSize = Number(sessionStorage.getItem('bgRemover:originalSize') || 0);
-        const quality = getSelectedQuality();
         
-        let resultUrl = null;
-        let processingMethod = quality === 'free' ? 'Free Preview' : 'Premium HD';
-
-        // ===== API Processing (Free Preview or Premium HD) =====
+        // Always use Free Preview for processing (Premium HD available in download modal)
+        const freeResult = await processWithFreePreview(dataURL);
         
-        if (quality === 'free') {
-          // Free Preview (512px GPU-accelerated)
-          const freeResult = await processWithFreePreview(dataURL);
-          
-          if (freeResult.success) {
-            resultUrl = freeResult.dataUrl;
-            processingMethod = freeResult.processedWith || 'Free Preview (512px)';
-            console.log('✅ Free preview processing successful');
-          } else {
-            throw new Error(freeResult.error || 'Free preview processing failed');
-          }
-        } else {
-        // Premium HD (2000-4000px GPU-accelerated High-Resolution)
-        // Check credits before processing
-        const creditMod = await loadCreditModule();
-        const userId = await getCurrentUserId();
-        
-        if (!userId) {
-          if (confirm('Please sign in to use Premium HD processing. Would you like to sign in now?')) {
-            window.location.href = 'login.html?returnTo=' + encodeURIComponent(window.location.href);
-          }
-          return;
+        if (!freeResult.success) {
+          throw new Error(freeResult.error || 'Free preview processing failed');
         }
         
-        // Verify credits before processing
-        if (creditMod && creditMod.hasSufficientCredits) {
-          const creditCheck = await creditMod.hasSufficientCredits(userId, 1);
-          
-          if (!creditCheck.hasCredits && !creditCheck.unlimited) {
-            if (confirm(`You need 1 credit for Premium HD. You have ${creditCheck.creditsAvailable || 0} credit(s). Would you like to purchase credits?`)) {
-              window.location.href = 'pricing.html#credits';
-            }
-            return;
-          }
-        }
-        
-        const premiumResult = await processWithPremiumHD(dataURL);
-        
-        if (premiumResult.success) {
-          resultUrl = premiumResult.dataUrl;
-          processingMethod = premiumResult.processedWith || 'Premium HD (2000-4000px)';
-          console.log('✅ Premium HD processing successful', {
-            creditsUsed: premiumResult.creditsUsed
-          });
-          
-          // Update credit display after successful processing
-          await updateCreditInfo();
-        } else {
-          if (premiumResult.requiresAuth) {
-            if (confirm('Please sign in to use Premium HD processing. Would you like to sign in now?')) {
-              window.location.href = 'login.html?returnTo=' + encodeURIComponent(window.location.href);
-            }
-            return;
-          } else if (premiumResult.requiresCredits || premiumResult.error?.includes('credit')) {
-            if (confirm('Insufficient credits for Premium HD. Would you like to purchase credits?')) {
-              window.location.href = 'pricing.html#credits';
-            }
-            return;
-          }
-          throw new Error(premiumResult.error || 'Premium HD processing failed');
-        }
-        }
+        const resultUrl = freeResult.dataUrl;
+        const processingMethod = freeResult.processedWith || 'Free Preview (512px)';
+        console.log('✅ Free preview processing successful');
         
         if (!resultUrl) {
           throw new Error('Image processing failed. Please try again.');
@@ -1249,39 +1119,13 @@
       backgroundChangeBtn.disabled = false;
       downloadBtn.disabled = false;
       
-      // Auto-process with free preview on load (only if free is selected)
-      const qualitySelector = document.querySelector('input[name="quality"]:checked');
-      if (qualitySelector && qualitySelector.value === 'free') {
-        // Small delay to ensure UI is ready
-        setTimeout(() => {
-          processImage(storedOriginal);
-        }, 300);
-      }
+      // Auto-process with free preview on load
+      setTimeout(() => {
+        processImage(storedOriginal);
+      }, 300);
     }
     
-    // Quality selector change handler
-    document.querySelectorAll('input[name="quality"]').forEach(radio => {
-      radio.addEventListener('change', async () => {
-        const freeLabel = document.getElementById('freePreviewLabel');
-        const premiumLabel = document.getElementById('premiumHdLabel');
-        
-        if (radio.value === 'free') {
-          freeLabel.style.borderColor = '#4361ee';
-          freeLabel.style.background = 'white';
-          premiumLabel.style.borderColor = '#e2e6ff';
-          premiumLabel.style.background = 'white';
-        } else {
-          freeLabel.style.borderColor = '#e2e6ff';
-          freeLabel.style.background = 'white';
-          premiumLabel.style.borderColor = '#4361ee';
-          premiumLabel.style.background = 'white';
-        }
-        
-        await updateCreditInfo();
-      });
-    });
-    
-    // Process button handler
+    // Process button handler - always uses free preview
     const processBtn = document.getElementById('processBtn');
     if (processBtn) {
       processBtn.addEventListener('click', () => {
@@ -1293,18 +1137,25 @@
         }
       });
     }
-    
-    // Initialize credit info
-    updateCreditInfo();
 
     backgroundChangeBtn.addEventListener('click', () => {
       if (backgroundChangeBtn.disabled) return;
       window.location.href = 'background-style.html';
     });
 
+    // Download Modal Management
+    const downloadModal = document.getElementById('downloadModal');
+    const freeDownloadOption = document.getElementById('freeDownloadOption');
+    const premiumDownloadOption = document.getElementById('premiumDownloadOption');
+    const confirmDownloadBtn = document.getElementById('confirmDownload');
+    const cancelDownloadBtn = document.getElementById('cancelDownload');
+    const premiumCreditInfo = document.getElementById('premiumCreditInfo');
+    const premiumCreditText = document.getElementById('premiumCreditText');
+    
+    let selectedDownloadQuality = null;
+    
+    // Show download modal when download button is clicked
     downloadBtn.addEventListener('click', async () => {
-      // Priority: Use original transparent PNG from API (best quality, guaranteed transparent)
-      // Fallback: Use canvas-generated PNG
       const originalResultUrl = sessionStorage.getItem(STORAGE_KEYS.foreground);
       const downloadUrl = originalResultUrl || resultDataURL;
       
@@ -1313,24 +1164,189 @@
         return;
       }
       
+      // Reset modal state
+      selectedDownloadQuality = null;
+      confirmDownloadBtn.disabled = true;
+      freeDownloadOption.classList.remove('selected');
+      premiumDownloadOption.classList.remove('selected');
+      premiumCreditInfo.style.display = 'none';
+      
+      // Update premium credit info
+      await updatePremiumCreditInfo();
+      
+      // Show modal
+      downloadModal.classList.add('active');
+    });
+    
+    // Update premium credit info
+    async function updatePremiumCreditInfo() {
+      try {
+        const creditMod = await loadCreditModule();
+        const userId = await getCurrentUserId();
+        
+        if (!userId) {
+          premiumCreditText.innerHTML = '<a href="login.html" style="color: #4361ee; text-decoration: underline;">Sign in</a> required for Premium HD';
+          premiumCreditInfo.style.display = 'block';
+          return;
+        }
+        
+        if (creditMod && creditMod.getUserCredits) {
+          const creditData = await creditMod.getUserCredits(userId);
+          
+          if (creditData.unlimited) {
+            premiumCreditText.textContent = 'Premium plan active - Unlimited credits';
+            premiumCreditText.style.color = '#22c55e';
+          } else {
+            const credits = creditData.credits || 0;
+            if (credits > 0) {
+              premiumCreditText.innerHTML = `You have <strong>${credits}</strong> credit(s) - <a href="pricing.html" style="color: #4361ee; text-decoration: underline;">Buy more</a>`;
+              premiumCreditText.style.color = '#1f2559';
+            } else {
+              premiumCreditText.innerHTML = 'No credits - <a href="pricing.html" style="color: #4361ee; text-decoration: underline;">Purchase credits</a> for Premium HD';
+              premiumCreditText.style.color = '#dc2626';
+            }
+          }
+          premiumCreditInfo.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Error checking credits:', error);
+        premiumCreditText.textContent = 'Unable to check credits';
+        premiumCreditText.style.color = '#dc2626';
+        premiumCreditInfo.style.display = 'block';
+      }
+    }
+    
+    // Handle quality selection
+    freeDownloadOption.addEventListener('click', () => {
+      selectedDownloadQuality = 'free';
+      freeDownloadOption.classList.add('selected');
+      premiumDownloadOption.classList.remove('selected');
+      confirmDownloadBtn.disabled = false;
+    });
+    
+    premiumDownloadOption.addEventListener('click', async () => {
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        if (confirm('Please sign in to use Premium HD. Would you like to sign in now?')) {
+          window.location.href = 'login.html?returnTo=' + encodeURIComponent(window.location.href);
+        }
+        return;
+      }
+      
+      // Check credits
+      const creditMod = await loadCreditModule();
+      if (creditMod && creditMod.hasSufficientCredits) {
+        const creditCheck = await creditMod.hasSufficientCredits(userId, 1);
+        
+        if (!creditCheck.hasCredits && !creditCheck.unlimited) {
+          if (confirm(`You need 1 credit for Premium HD. You have ${creditCheck.creditsAvailable || 0} credit(s). Would you like to purchase credits?`)) {
+            window.location.href = 'pricing.html#credits';
+          }
+          return;
+        }
+      }
+      
+      selectedDownloadQuality = 'premium';
+      premiumDownloadOption.classList.add('selected');
+      freeDownloadOption.classList.remove('selected');
+      confirmDownloadBtn.disabled = false;
+    });
+    
+    // Cancel download modal
+    cancelDownloadBtn.addEventListener('click', () => {
+      downloadModal.classList.remove('active');
+      selectedDownloadQuality = null;
+    });
+    
+    // Close modal on outside click
+    downloadModal.addEventListener('click', (e) => {
+      if (e.target === downloadModal) {
+        downloadModal.classList.remove('active');
+        selectedDownloadQuality = null;
+      }
+    });
+    
+    // Handle confirm download
+    confirmDownloadBtn.addEventListener('click', async () => {
+      if (!selectedDownloadQuality) return;
+      
+      const originalResultUrl = sessionStorage.getItem(STORAGE_KEYS.foreground);
+      const downloadUrl = originalResultUrl || resultDataURL;
+      
+      if (!downloadUrl) {
+        showError('No processed image available. Please process an image first.');
+        downloadModal.classList.remove('active');
+        return;
+      }
+      
       try {
         let finalDownloadUrl = downloadUrl;
         
-        // The API returns transparent PNG as base64 data URL
-        // If we have the original from API, use it directly (best quality)
-        if (originalResultUrl && originalResultUrl.startsWith('data:image/png')) {
-          finalDownloadUrl = originalResultUrl;
-          console.log('✅ Using original transparent PNG from API for download');
-        } else if (resultDataURL && resultDataURL.startsWith('data:image/png')) {
-          // Use canvas-generated PNG (also transparent)
-          finalDownloadUrl = resultDataURL;
-          console.log('✅ Using canvas-generated transparent PNG for download');
+        // If premium, process with premium quality first
+        if (selectedDownloadQuality === 'premium') {
+          const userId = await getCurrentUserId();
+          if (!userId) {
+            showError('Please sign in to use Premium HD download.');
+            downloadModal.classList.remove('active');
+            return;
+          }
+          
+          // Get original image data
+          const originalDataUrl = sessionStorage.getItem(STORAGE_KEYS.original);
+          if (!originalDataUrl) {
+            showError('Original image not found. Please upload again.');
+            downloadModal.classList.remove('active');
+            return;
+          }
+          
+          // Process with premium HD
+          statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⚡ Processing Premium HD for download...</div>`;
+          downloadModal.classList.remove('active');
+          
+          const premiumResult = await processWithPremiumHD(originalDataUrl);
+          
+          if (premiumResult.success) {
+            finalDownloadUrl = premiumResult.dataUrl;
+            // Update stored foreground
+            sessionStorage.setItem(STORAGE_KEYS.foreground, premiumResult.dataUrl);
+            
+            // Update preview
+            previewResult.src = premiumResult.dataUrl;
+            const foregroundImage = new Image();
+            foregroundImage.crossOrigin = 'anonymous';
+            foregroundImage.src = premiumResult.dataUrl;
+            await foregroundImage.decode();
+            
+            ensureCanvas(foregroundImage.width, foregroundImage.height);
+            resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+            resultContext.drawImage(foregroundImage, 0, 0, resultCanvas.width, resultCanvas.height);
+            resultDataURL = resultCanvas.toDataURL('image/png');
+            
+            showStatus('✅ Premium HD processed successfully!');
+          } else {
+            if (premiumResult.requiresAuth) {
+              if (confirm('Please sign in to use Premium HD. Would you like to sign in now?')) {
+                window.location.href = 'login.html?returnTo=' + encodeURIComponent(window.location.href);
+              }
+            } else if (premiumResult.requiresCredits) {
+              if (confirm('Insufficient credits for Premium HD. Would you like to purchase credits?')) {
+                window.location.href = 'pricing.html#credits';
+              }
+            } else {
+              showError(premiumResult.error || 'Premium HD processing failed');
+            }
+            return;
+          }
+        }
+        
+        // Prepare download URL
+        if (finalDownloadUrl.startsWith('data:image/png')) {
+          // Already PNG, use directly
         } else {
-          // Convert to transparent PNG if needed
-          console.log('⚠️ Converting to transparent PNG format');
+          // Convert to PNG
           const img = new Image();
           img.crossOrigin = 'anonymous';
-          img.src = downloadUrl;
+          img.src = finalDownloadUrl;
           
           await new Promise((resolve, reject) => {
             img.onload = resolve;
@@ -1347,24 +1363,35 @@
           finalDownloadUrl = canvas.toDataURL('image/png');
         }
         
-        // Download the transparent PNG
+        // Download the image
         const link = document.createElement('a');
         const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-removed.png';
         const baseName = filename.replace(/\.[^/.]+$/, '') || 'background-removed';
+        const qualitySuffix = selectedDownloadQuality === 'premium' ? '-premium-hd' : '-free-preview';
         link.href = finalDownloadUrl;
-        link.download = `${baseName}.png`;
+        link.download = `${baseName}${qualitySuffix}.png`;
         
-        // Trigger download
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         
-        // Show success message with quality info
-        const quality = sessionStorage.getItem(STORAGE_KEYS.foreground) ? 'high-quality' : '';
-        showStatus(`✅ Transparent PNG downloaded successfully! ${quality}`.trim());
+        // Show success message
+        const qualityLabel = selectedDownloadQuality === 'premium' ? 'Premium HD (2000-4000px)' : 'Free Preview (512px)';
+        const wasPremium = selectedDownloadQuality === 'premium';
+        showStatus(`✅ ${qualityLabel} downloaded successfully!`);
+        
+        // Close modal
+        downloadModal.classList.remove('active');
+        selectedDownloadQuality = null;
+        
+        // Update credit info if premium
+        if (wasPremium) {
+          await updatePremiumCreditInfo();
+        }
       } catch (error) {
         console.error('Download error:', error);
         showError('Download failed. Please try again. Error: ' + error.message);
+        downloadModal.classList.remove('active');
       }
     });
 
@@ -1385,9 +1412,7 @@
     Promise.all([
       loadSubscriptionModule(),
       loadCreditModule()
-    ]).then(() => {
-      updateCreditInfo();
-    }).catch(err => {
+    ]).catch(err => {
       console.warn('Failed to load modules:', err);
     });
   </script>
@@ -1832,6 +1857,45 @@
         });
     })();
     </script>
+
+    <!-- Download Modal -->
+    <div class="download-modal" id="downloadModal">
+      <div class="download-modal-content">
+        <div class="download-modal-header">
+          <h3><i class="fas fa-download"></i> Download Image</h3>
+          <p>Choose your download quality</p>
+        </div>
+        <div class="download-options">
+          <div class="download-option" id="freeDownloadOption" data-quality="free">
+            <div class="download-option-header">
+              <div class="download-option-title">Free Preview</div>
+              <span class="download-option-badge free">Free</span>
+            </div>
+            <div class="download-option-details">
+              <strong>512px</strong> • No credits required • Instant download
+            </div>
+          </div>
+          <div class="download-option" id="premiumDownloadOption" data-quality="premium">
+            <div class="download-option-header">
+              <div class="download-option-title">Premium HD</div>
+              <span class="download-option-badge premium">Premium</span>
+            </div>
+            <div class="download-option-details">
+              <strong>2000-4000px</strong> • 1 credit per image • High-resolution quality
+            </div>
+            <div id="premiumCreditInfo" style="margin-top: 8px; padding: 8px; background: rgba(67, 97, 238, 0.08); border-radius: 8px; font-size: 0.85rem; color: #56607a; display: none;">
+              <span id="premiumCreditText">Checking credits...</span>
+            </div>
+          </div>
+        </div>
+        <div class="download-modal-actions">
+          <button class="btn-cancel" id="cancelDownload">Cancel</button>
+          <button class="btn-download" id="confirmDownload" disabled>
+            <i class="fas fa-download"></i> Download
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- Global Footer Placeholder - Loaded by global-components.js -->
     <div id="global-footer-placeholder"></div>
