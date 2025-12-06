@@ -421,57 +421,44 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
 
     debug_stats.update(mask_stats("mask_raw", mask))
 
-    # Step 2: Apply Guided Filter for smooth borders
+    # Step 2: Apply Guided Filter for smooth borders (Premium only)
     if is_premium and CV2_AVAILABLE:
         logger.info("Step 2: Applying guided filter for smooth borders...")
         mask = guided_filter(input_image, mask, radius=5, eps=0.01)
         debug_stats.update(mask_stats("mask_after_guided", mask))
-    elif not is_premium and CV2_AVAILABLE:
-        # Light guided filter for free preview (smaller radius)
-        logger.info("Step 2: Applying light guided filter for free preview...")
-        mask = guided_filter(input_image, mask, radius=3, eps=0.02)
-        debug_stats.update(mask_stats("mask_after_guided", mask))
+    else:
+        logger.info("Step 2: Skipping guided filter for free preview.")
+        debug_stats.update(mask_stats("mask_after_guided_skipped", mask))
     
-    # Step 3: Apply Feathering with configurable settings
+    # Step 3: Apply Feathering (Premium only - skip for free to avoid transparency)
     if is_premium and SCIPY_AVAILABLE:
         logger.info("Step 3: Applying feathering for natural smooth edges...")
         feather_radius = 3
         mask = apply_feathering(mask, feather_radius=feather_radius)
         debug_stats.update(mask_stats("mask_after_feather", mask))
-    elif not is_premium and SCIPY_AVAILABLE:
-        # Free preview: Use lighter feathering (feather_radius=1.5)
-        logger.info("Step 3: Applying light feathering for free preview (feather_radius=1.5)...")
-        feather_radius = 1.5
-        mask = apply_feathering(mask, feather_radius=feather_radius)
-        debug_stats.update(mask_stats("mask_after_feather", mask))
     else:
+        logger.info("Step 3: Skipping feathering for free preview to avoid transparency issues.")
         debug_stats.update(mask_stats("mask_after_feather_skipped", mask))
     
-    # Step 4: Apply Matte Strength for text preservation (especially for documents)
-    if not is_premium:
-        logger.info("Step 4: Applying matte strength (0.2) to preserve text and details...")
-        mask = apply_matte_strength(mask, matte_strength=0.2)
-        debug_stats.update(mask_stats("mask_after_matte", mask))
-    
-    # Step 5: Remove halos with configurable threshold
+    # Step 4: Remove halos (Premium only - skip for free to avoid transparency)
     if is_premium:
-        logger.info("Step 5: Removing halos and background leakage...")
+        logger.info("Step 4: Removing halos and background leakage...")
         mask = remove_halo(mask, input_image, threshold=0.15)
         debug_stats.update(mask_stats("mask_after_halo", mask))
-    elif not is_premium:
-        # Free preview: Use lighter halo removal (halo_soften=0.2)
-        logger.info("Step 5: Applying light halo removal for free preview (halo_soften=0.2)...")
-        mask = remove_halo(mask, input_image, threshold=0.2)
-        debug_stats.update(mask_stats("mask_after_halo", mask))
+    else:
+        logger.info("Step 4: Skipping halo removal for free preview to avoid transparency issues.")
+        debug_stats.update(mask_stats("mask_after_halo_skipped", mask))
     
-    # Step 6: Apply Alpha Anti-Bleed to fix border issues
-    if not is_premium:
-        logger.info("Step 6: Applying alpha anti-bleed (blur_radius=2) to fix borders...")
-        mask = apply_alpha_anti_bleed(mask, blur_radius=2)
-        debug_stats.update(mask_stats("mask_after_anti_bleed", mask))
+    # Step 5: Apply Matte Strength for documents only (to preserve text in forms)
+    if is_document and not is_premium:
+        logger.info("Step 5: Applying matte strength (0.2) for document text preservation...")
+        mask = apply_matte_strength(mask, matte_strength=0.2)
+        debug_stats.update(mask_stats("mask_after_matte", mask))
+    else:
+        debug_stats.update(mask_stats("mask_after_matte_skipped", mask))
     
-    # Step 7: Composite pro-level PNG
-    logger.info("Step 7: Creating pro-level PNG composite...")
+    # Step 6: Composite pro-level PNG
+    logger.info("Step 6: Creating pro-level PNG composite...")
     final_image = composite_pro_png(input_image, mask)
     debug_stats.update(mask_stats("mask_final_used", mask))
     
@@ -588,10 +575,11 @@ def free_preview_bg():
                 'processedWith': 'Free Preview (512px GPU-accelerated, Optimized)',
                 'processingTime': round(processing_time, 2),
                 'optimizations': {
-                    'model_tuning': 'BiRefNet',
-                    'feathering': True,
-                    'halo_removal': True,
-                    'composite': True
+                    'model_tuning': 'BiRefNet' if not is_document else 'RobustMatting',
+                    'feathering': False,
+                    'halo_removal': False,
+                    'composite': True,
+                    'document_mode': is_document
                 }
             }
             if os.environ.get('DEBUG_RETURN_STATS', '0') == '1':
