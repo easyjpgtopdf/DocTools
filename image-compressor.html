@@ -155,6 +155,7 @@
                   <button class="btn" data-format="jpeg" style="border:1px solid #ddd">JPEG</button>
                   <button class="btn" data-format="png" style="border:1px solid #ddd">PNG</button>
                   <button class="btn" data-format="webp" style="border:1px solid #ddd">WebP</button>
+                  <button class="btn" data-format="pdf" style="border:1px solid #ddd">PDF</button>
                 </div>
               </div>
             </div>
@@ -623,7 +624,19 @@
 
     function handleFile(file){ if(!file.type.startsWith('image/')){ alert('Please select an image'); return; } originalFile=file; const r=new FileReader(); r.onload=()=>{ const img=new Image(); img.onload=()=>{ originalImg=img; drawPreview(img); icOriginalSize.textContent = formatSize(file.size); estimateSize(); }; img.src=r.result; }; r.readAsDataURL(file); }
     function drawPreview(img){ icPreview.innerHTML=''; const el=document.createElement('img'); el.src=img.src; icPreview.appendChild(el); }
-    function estimateSize(){ if(!originalFile) return; const q=parseInt(icQuality.value)/100; const est = originalFile.size * (currentFormat==='png'? 0.9 : 0.6) * q; icNewSize.textContent = formatSize(est); }
+    function estimateSize(){ 
+      if(!originalFile) return; 
+      const q=parseInt(icQuality.value)/100; 
+      let est;
+      if(currentFormat === 'pdf'){
+        est = originalFile.size * 1.2; // PDFs are typically larger
+      } else if(currentFormat === 'png'){
+        est = originalFile.size * 0.9 * q;
+      } else {
+        est = originalFile.size * 0.6 * q;
+      }
+      icNewSize.textContent = formatSize(est); 
+    }
     function formatSize(bytes){ if(bytes<1024) return bytes+' B'; if(bytes<1048576) return (bytes/1024).toFixed(1)+' KB'; return (bytes/1048576).toFixed(2)+' MB'; }
 
     icApply.addEventListener('click',()=>{
@@ -655,16 +668,44 @@
     icDownload.addEventListener('click',()=>{
       if(!originalImg){ alert('Please upload an image first'); return; }
       if(!compressedDataUrl){
-        alert('Please click Compress button first to compress the image');
+        alert('Please click Compress button first to compress/convert the image');
         return;
       }
-      const fileExtension = currentFormat === 'jpeg' ? 'jpg' : currentFormat;
-      const a=document.createElement('a'); 
-      a.download = 'compressed.'+fileExtension; 
-      a.href = compressedDataUrl; 
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      
+      if(currentFormat === 'pdf'){
+        // Download PDF
+        try{
+          const { jsPDF } = window.jspdf;
+          const pdf = new jsPDF({
+            orientation: originalImg.naturalWidth > originalImg.naturalHeight ? 'landscape' : 'portrait',
+            unit: 'px',
+            format: [originalImg.naturalWidth, originalImg.naturalHeight]
+          });
+          
+          const canvas = document.createElement('canvas');
+          canvas.width = originalImg.naturalWidth;
+          canvas.height = originalImg.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(originalImg, 0, 0);
+          const q = parseInt(icQuality.value) / 100;
+          const imgData = canvas.toDataURL('image/jpeg', q);
+          
+          pdf.addImage(imgData, 'JPEG', 0, 0, originalImg.naturalWidth, originalImg.naturalHeight);
+          pdf.save('compressed.pdf');
+        }catch(e){
+          console.error('PDF download error:', e);
+          alert('Error downloading PDF. Please try again.');
+        }
+      } else {
+        // Download image
+        const fileExtension = currentFormat === 'jpeg' ? 'jpg' : currentFormat;
+        const a=document.createElement('a'); 
+        a.download = 'compressed.'+fileExtension; 
+        a.href = compressedDataUrl; 
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
     });
   </script>
 
