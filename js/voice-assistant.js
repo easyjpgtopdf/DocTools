@@ -443,7 +443,7 @@ class VoiceAssistant {
             { title: 'Resume Maker', url: 'resume-maker.html', keywords: ['resume', 'cv', 'create', 'make', 'job', 'biodata', 'रिज्यूमे'], category: 'Document Tools', description: 'Create professional resume' },
             { title: 'Indian Resume Maker', url: 'Indian-style-Resume-generator.html', keywords: ['indian', 'resume', 'cv', 'bharatiya', 'भारतीय', 'रिज्यूमे'], category: 'Document Tools', description: 'Create Indian-style resume' },
             { title: 'Online Resume Maker', url: 'online_resume_maker.html', keywords: ['online', 'resume', 'cv', 'web', 'ऑनलाइन'], category: 'Document Tools', description: 'Create resume online' },
-            { title: 'Biodata Maker', url: 'biodata-maker.html', keywords: ['biodata', 'create', 'make', 'personal', 'bio', 'बायोडाटा'], category: 'Document Tools', description: 'Create biodata form' },
+            { title: 'Marriage Biodata Maker', url: 'biodata-maker.html', keywords: ['marriage biodata', 'biodata', 'create', 'make', 'marriage', 'personal', 'bio', 'बायोडाटा', 'विवाह'], category: 'Document Tools', description: 'Create marriage biodata form' },
             { title: 'Marriage Card', url: 'marriage-card.html', keywords: ['marriage', 'wedding', 'card', 'invitation', 'shadi', 'vivah', 'शादी', 'विवाह'], category: 'Document Tools', description: 'Create marriage invitation card' },
             
             // Account & Navigation
