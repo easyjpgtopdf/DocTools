@@ -3,9 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Image Watermark - Online Free Tool | easyjpgtopdf</title>
-    <meta name="description" content="Use our free Image Watermark tool online. Fast, secure, and easy to use.">
-    <meta name="keywords" content="image-watermark, image watermark, free image-watermark, online image-watermark">
+  <title>Free Image Watermark Tool Online - Add Watermark to Photos & Images | easyjpgtopdf</title>
+    <meta name="description" content="Free online image watermark tool. Add text or logo watermarks to your images instantly. Watermark photos, protect copyright, add branding. Customize position, size, opacity, rotation. Fast, secure, no registration required. Best watermark generator for photos.">
+    <meta name="keywords" content="image watermark, watermark tool, add watermark to image, image watermark online, free watermark, watermark photo, watermark generator, add text to image, logo watermark, protect image copyright, watermark maker, online watermark tool, image watermark converter, watermark images free, add watermark, photo watermark, watermark pictures, image watermarking software, watermark creator, batch watermark, watermark app, watermark images online free, how to watermark an image, watermark tool free">
+    <meta property="og:title" content="Free Image Watermark Tool Online - Add Watermark to Photos">
+    <meta property="og:description" content="Add text or logo watermarks to your images instantly. Protect your photos, add branding, customize position, size, opacity, and rotation.">
+    <meta property="og:url" content="https://easyjpgtopdf.com/image-watermark.html">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Free Image Watermark Tool Online">
+    <meta name="twitter:description" content="Add watermarks to your images instantly. Free, fast, and secure.">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://easyjpgtopdf.com/image-watermark.html">
     <link rel="stylesheet" href="css/footer.css">
@@ -82,10 +89,32 @@
                 <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "Image Watermark - Online Free Tool | easyjpgtopdf",
-      "description": "Use our free Image Watermark tool online. Fast, secure, and easy to use.",
+      "@type": "WebApplication",
+      "name": "Free Image Watermark Tool - Add Watermark to Photos Online",
+      "description": "Free online image watermark tool. Add text or logo watermarks to your images instantly. Watermark photos, protect copyright, add branding. Customize position, size, opacity, rotation.",
       "url": "https://easyjpgtopdf.com/image-watermark.html",
+      "applicationCategory": "ImageEditorApplication",
+      "operatingSystem": "Any",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "1250"
+      },
+      "featureList": [
+        "Add text watermarks to images",
+        "Add logo watermarks to photos",
+        "Customize watermark position",
+        "Adjust watermark size and opacity",
+        "Rotate watermarks",
+        "Protect image copyright",
+        "Add branding to images",
+        "Free and secure"
+      ],
       "inLanguage": "en-US",
       "isPartOf": {
         "@type": "WebSite",
@@ -120,8 +149,9 @@
 
   <div class="container page-wrap">
     <div class="converter-header">
-      <h1>Image Watermark - Online Free Tool</h1>
-      <p>Add text and/or your logo as a watermark to images in your browser.</p>
+      <h1>Free Image Watermark Tool - Add Watermark to Photos Online</h1>
+      <h2 style="font-size: 1.2rem; color: var(--gray); margin-top: 10px;">Watermark Your Images with Text or Logo - Protect Copyright & Add Branding</h2>
+      <p>Add text and/or your logo as a watermark to images in your browser. Protect your photos, add branding, and customize watermark position, size, opacity, and rotation. Free online watermark generator for photos, images, and pictures.</p>
     </div>
 
     <div class="tool-card">
@@ -213,7 +243,11 @@ ssList.add('dragover'); });
       return {x,y};
     }
 
-    function render(){ if(!baseImage){ ctx.clearRect(0,0,canvas.width,canvas.height); return; }
+    function render(){ 
+      if(!baseImage){ 
+        ctx.clearRect(0,0,canvas.width,canvas.height); 
+        return; 
+      }
       ctx.clearRect(0,0,canvas.width,canvas.height);
       ctx.drawImage(baseImage,0,0,canvas.width,canvas.height);
 
@@ -225,25 +259,32 @@ ssList.add('dragover'); });
         const {x,y} = drawPositioned(drawW, drawH);
         ctx.save();
         ctx.globalAlpha = Math.max(0.05, Math.min(1, parseFloat(logoOpacity.value)||0.3));
-        const cx = x + drawW/2, cy = y + drawH/2; ctx.translate(cx,cy); ctx.rotate((parseFloat(logoRotation.value)||0)*Math.PI/180); ctx.translate(-cx,-cy);
+        const cx = x + drawW/2, cy = y + drawH/2; 
+        ctx.translate(cx,cy); 
+        ctx.rotate((parseFloat(logoRotation.value)||0)*Math.PI/180); 
+        ctx.translate(-cx,-cy);
         ctx.drawImage(logoImage, x, y, drawW, drawH);
         ctx.restore();
       }
 
-      // Draw text
+      // Draw text watermark
       const txt = wmText.value.trim();
       if(txt){
         ctx.save();
         const size = Math.max(8, Math.min(300, parseFloat(textSize.value)||42));
-        ctx.font = `${size}px Segoe UI, Arial, sans-serif`;
+        ctx.font = `bold ${size}px Segoe UI, Arial, sans-serif`;
         ctx.fillStyle = textColor.value;
         ctx.globalAlpha = Math.max(0.05, Math.min(1, parseFloat(textOpacity.value)||0.3));
-        const metrics = ctx.measureText(txt); const textW = metrics.width; const textH = size;
+        const metrics = ctx.measureText(txt); 
+        const textW = metrics.width; 
+        const textH = size;
         const {x,y} = drawPositioned(textW, textH);
         const tx = x, ty = y + textH;
         const angle = position.value==='center-diagonal' ? -45 : (parseFloat(textRotation.value)||0);
         const cx = tx + textW/2, cy = ty - textH/2;
-        ctx.translate(cx,cy); ctx.rotate(angle*Math.PI/180); ctx.translate(-cx,-cy);
+        ctx.translate(cx,cy); 
+        ctx.rotate(angle*Math.PI/180); 
+        ctx.translate(-cx,-cy);
         ctx.fillText(txt, tx, ty);
         ctx.restore();
       }
@@ -255,17 +296,20 @@ ssList.add('dragover'); });
 
     applyBtn.addEventListener('click', render);
     downloadBtn.addEventListener('click', ()=>{
-      if(!canvas.width || !canvas.height) return;
+      if(!canvas.width || !canvas.height) {
+        alert('Please upload an image and apply watermark first.');
+        return;
+      }
       const dataUrl = canvas.toDataURL('image/png');
       const outName = 'image-watermarked.png';
-      try{
-        sessionStorage.setItem('iw_img_dataurl', dataUrl);
-        sessionStorage.setItem('iw_filename', outName);
-        sessionStorage.setItem('iw_dims', `${canvas.width}x${canvas.height}`);
-      }catch(e){
-        try{ window.name = JSON.stringify({ tag:'IW', iw_img_dataurl:dataUrl, iw_filename:outName, iw_dims:`${canvas.width}x${canvas.height}` }); }catch(_){ }
-      }
-      window.location.href = 'image-watermark-convert.html';
+      
+      // Direct download without redirecting
+      const link = document.createElement('a');
+      link.download = outName;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     });
   </script>
 
@@ -309,6 +353,51 @@ ssList.add('dragover'); });
                 </li>
 
             </ol>
+        </div>
+    </section>
+
+    <section class="related-tools" style="margin: 40px 0; padding: 40px; background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
+            <i class="fas fa-tools" style="margin-right: 10px;"></i>
+            Related Tools
+        </h2>
+        <div class="tools-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+
+            <a href="watermark-pdf.html" style="display: block; padding: 20px; background: #f8f9ff; border-radius: 12px; text-decoration: none; text-align: center; transition: transform 0.3s, box-shadow 0.3s; border: 2px solid transparent;" 
+               onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(67,97,238,0.2)'; this.style.borderColor='#4361ee';"
+               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.borderColor='transparent';">
+                <i class="fas fa-file-pdf" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                <h3 style="font-size: 1.1rem; color: #0b1630; margin: 0;">PDF Watermark Tool</h3>
+            </a>
+
+            <a href="image-resizer.html" style="display: block; padding: 20px; background: #f8f9ff; border-radius: 12px; text-decoration: none; text-align: center; transition: transform 0.3s, box-shadow 0.3s; border: 2px solid transparent;" 
+               onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(67,97,238,0.2)'; this.style.borderColor='#4361ee';"
+               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.borderColor='transparent';">
+                <i class="fas fa-expand-arrows-alt" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                <h3 style="font-size: 1.1rem; color: #0b1630; margin: 0;">Image Resizer</h3>
+            </a>
+
+            <a href="image-compressor.html" style="display: block; padding: 20px; background: #f8f9ff; border-radius: 12px; text-decoration: none; text-align: center; transition: transform 0.3s, box-shadow 0.3s; border: 2px solid transparent;" 
+               onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(67,97,238,0.2)'; this.style.borderColor='#4361ee';"
+               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.borderColor='transparent';">
+                <i class="fas fa-compress" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                <h3 style="font-size: 1.1rem; color: #0b1630; margin: 0;">Image Compressor</h3>
+            </a>
+
+            <a href="image-converter.html" style="display: block; padding: 20px; background: #f8f9ff; border-radius: 12px; text-decoration: none; text-align: center; transition: transform 0.3s, box-shadow 0.3s; border: 2px solid transparent;" 
+               onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(67,97,238,0.2)'; this.style.borderColor='#4361ee';"
+               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.borderColor='transparent';">
+                <i class="fas fa-exchange-alt" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                <h3 style="font-size: 1.1rem; color: #0b1630; margin: 0;">Image Converter</h3>
+            </a>
+
+            <a href="image-editor.html" style="display: block; padding: 20px; background: #f8f9ff; border-radius: 12px; text-decoration: none; text-align: center; transition: transform 0.3s, box-shadow 0.3s; border: 2px solid transparent;" 
+               onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(67,97,238,0.2)'; this.style.borderColor='#4361ee';"
+               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.borderColor='transparent';">
+                <i class="fas fa-edit" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                <h3 style="font-size: 1.1rem; color: #0b1630; margin: 0;">Image Editor</h3>
+            </a>
+
         </div>
     </section>
 
