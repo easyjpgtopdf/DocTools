@@ -1258,7 +1258,6 @@
     <div class="container">
         <div class="app-container">
             <div class="form-section">
-                <h2 style="font-size: 1.8rem; color: var(--primary); margin-bottom: 20px;">Free Resume Builder - Create Your Professional Resume</h2>
                 <div class="personal-info-grid">
                     <div class="personal-fields">
                         <div class="form-group">
@@ -1497,7 +1496,7 @@
                 <div class="resume-preview" id="resumePreview">
                     <div class="resume-preview-header">
                         <div class="resume-header-details">
-                            <h1>Resume Maker - Online Free Tool</h1>
+                            <h1 id="previewFullName">Your Name</h1>
                             <h2 class="resume-preview-title" id="previewTitle">Professional Title</h2>
                             <div id="previewContact">
                                 <div>email@example.com | +1 (123) 456-7890 | City, State</div>
@@ -1647,6 +1646,7 @@
             const nationality = document.getElementById('nationality').value || 'N/A';
 
             document.getElementById('previewCandidateName').textContent = fullName;
+            document.getElementById('previewFullName').textContent = fullName;
             document.getElementById('previewTitle').textContent = jobTitle;
 
             const contactParts = [email, phone];
