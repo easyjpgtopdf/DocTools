@@ -1,121 +1,131 @@
-# Complete Deployment Script for Background Removal Service
-# Deploys Frontend (Vercel) + Backend (Google Cloud Run)
+# Complete Deployment Script for PDF Editor (PowerShell)
+# Deploys backend to Cloud Run and frontend to Vercel
 
-param(
-    [Parameter(Mandatory=$false)]
-    [string]$Message = "Deploy: Background removal service update"
-)
+$ErrorActionPreference = "Stop"
 
-Write-Host "`n╔════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║  🚀 Complete Deployment - Background Removal Service ║" -ForegroundColor Cyan
-Write-Host "╚════════════════════════════════════════════════════╝`n" -ForegroundColor Cyan
+Write-Host "🚀 Starting Complete Deployment..." -ForegroundColor Green
 
-# Step 1: Deploy Backend to Google Cloud Run
-Write-Host "📦 Step 1: Deploying Backend to Google Cloud Run..." -ForegroundColor Yellow
-Set-Location bg-removal-backend
+# Configuration
+$PROJECT_ID = if ($env:GCP_PROJECT_ID) { $env:GCP_PROJECT_ID } else { "your-project-id" }
+$SERVICE_NAME = "pdf-editor-service"
+$REGION = if ($env:GCP_REGION) { $env:GCP_REGION } else { "us-central1" }
+$BACKEND_URL = "https://${SERVICE_NAME}-${PROJECT_ID}.a.run.app"
 
-if (Test-Path "deploy-cloudrun.sh") {
-    Write-Host "   Running deploy-cloudrun.sh..." -ForegroundColor Gray
-    bash deploy-cloudrun.sh
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "❌ Backend deployment failed!`n" -ForegroundColor Red
-        Set-Location ..
-        exit 1
-    }
-} else {
-    Write-Host "   ⚠️  deploy-cloudrun.sh not found, using manual deployment..." -ForegroundColor Yellow
-    
-    # Get project ID from environment or prompt
-    $PROJECT_ID = $env:GOOGLE_CLOUD_PROJECT
-    if (-not $PROJECT_ID) {
-        $PROJECT_ID = Read-Host "Enter Google Cloud Project ID"
-    }
-    
-    $REGION = "us-central1"
-    $SERVICE_NAME = "bg-removal-ai"
-    
-    Write-Host "   Building Docker image..." -ForegroundColor Gray
-    docker build -t gcr.io/$PROJECT_ID/$SERVICE_NAME .
-    
-    Write-Host "   Pushing to Google Container Registry..." -ForegroundColor Gray
-    docker push gcr.io/$PROJECT_ID/$SERVICE_NAME
-    
-    Write-Host "   Deploying to Cloud Run..." -ForegroundColor Gray
-    gcloud run deploy $SERVICE_NAME `
-        --image gcr.io/$PROJECT_ID/$SERVICE_NAME `
-        --platform managed `
-        --region $REGION `
-        --allow-unauthenticated `
-        --memory 16Gi `
-        --cpu 4 `
-        --timeout 300 `
-        --min-instances 0 `
-        --max-instances 3 `
-        --gpu=1 `
-        --gpu-type=nvidia-l4 `
-        --no-gpu-zonal-redundancy `
-        --concurrency 5
-    
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "❌ Cloud Run deployment failed!`n" -ForegroundColor Red
-        Set-Location ..
-        exit 1
-    }
-    
-    # Get service URL
-    $SERVICE_URL = gcloud run services describe $SERVICE_NAME --region $REGION --format 'value(status.url)'
-    Write-Host "   ✅ Backend deployed: $SERVICE_URL" -ForegroundColor Green
-    Write-Host "   📝 Update Vercel env: CLOUDRUN_API_URL_BG_REMOVAL=$SERVICE_URL" -ForegroundColor Yellow
+Write-Host "Configuration:" -ForegroundColor Blue
+Write-Host "  Project ID: $PROJECT_ID"
+Write-Host "  Service Name: $SERVICE_NAME"
+Write-Host "  Region: $REGION"
+Write-Host "  Backend URL: $BACKEND_URL"
+Write-Host ""
+
+# Check if required tools are installed
+if (-not (Get-Command gcloud -ErrorAction SilentlyContinue)) {
+    Write-Host "Error: gcloud CLI not installed" -ForegroundColor Red
+    exit 1
 }
 
+if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+    Write-Host "Error: Docker not installed" -ForegroundColor Red
+    exit 1
+}
+
+if (-not (Get-Command vercel -ErrorAction SilentlyContinue)) {
+    Write-Host "Error: Vercel CLI not installed. Install with: npm i -g vercel" -ForegroundColor Red
+    exit 1
+}
+
+# Step 1: Deploy Backend to Cloud Run
+Write-Host "Step 1: Deploying Backend to Cloud Run..." -ForegroundColor Green
+Set-Location pdf-editor-backend
+
+# Build Docker image
+Write-Host "Building Docker image..."
+docker build -t "gcr.io/${PROJECT_ID}/${SERVICE_NAME}" .
+
+# Push to Google Container Registry
+Write-Host "Pushing to Google Container Registry..."
+docker push "gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
+
+# Deploy to Cloud Run
+Write-Host "Deploying to Cloud Run..."
+gcloud run deploy $SERVICE_NAME `
+  --image "gcr.io/${PROJECT_ID}/${SERVICE_NAME}" `
+  --platform managed `
+  --region $REGION `
+  --allow-unauthenticated `
+  --cpu 1 `
+  --memory 2Gi `
+  --min-instances 0 `
+  --max-instances 10 `
+  --timeout 300 `
+  --concurrency 80 `
+  --set-env-vars "API_BASE_URL=https://easyjpgtopdf.com"
+
+Write-Host "✅ Backend deployed successfully!" -ForegroundColor Green
+Write-Host "Backend URL: $BACKEND_URL"
+Write-Host ""
+
+# Step 2: Update Frontend Configuration
+Write-Host "Step 2: Updating Frontend Configuration..." -ForegroundColor Green
 Set-Location ..
 
-# Step 2: Commit and push to GitHub (triggers Vercel)
-Write-Host "`n📋 Step 2: Committing changes to Git..." -ForegroundColor Yellow
-$status = git status --short
-if ([string]::IsNullOrWhiteSpace($status)) {
-    Write-Host "   ✅ No changes to commit`n" -ForegroundColor Green
-} else {
-    Write-Host "   📝 Found changes:" -ForegroundColor Cyan
-    git status --short
-    Write-Host ""
+# Update backend URL in API client
+if (Test-Path "js/pdf-editor-api.js") {
+    # Create backup
+    Copy-Item "js/pdf-editor-api.js" "js/pdf-editor-api.js.bak"
     
-    Write-Host "   📦 Adding files..." -ForegroundColor Gray
-    git add .
-    
-    Write-Host "   💾 Committing..." -ForegroundColor Gray
-    git commit -m $Message
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "❌ Commit failed!`n" -ForegroundColor Red
-        exit 1
-    }
-    
-    Write-Host "   📤 Pushing to GitHub..." -ForegroundColor Gray
-    git push origin main
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "❌ Push failed!`n" -ForegroundColor Red
-        exit 1
-    }
-    
-    Write-Host "   ✅ Code pushed to GitHub`n" -ForegroundColor Green
+    # Update backend URL
+    (Get-Content "js/pdf-editor-api.js") -replace "https://pdf-editor-service-YOUR_PROJECT_ID.a.run.app", $BACKEND_URL | Set-Content "js/pdf-editor-api.js"
+    Write-Host "Updated backend URL in js/pdf-editor-api.js"
 }
 
-# Step 3: Wait for Vercel deployment
-Write-Host "⏳ Step 3: Waiting for Vercel deployment..." -ForegroundColor Yellow
-Write-Host "   (This takes about 30-60 seconds)`n" -ForegroundColor Gray
-Start-Sleep -Seconds 45
+# Step 3: Deploy Frontend to Vercel
+Write-Host "Step 3: Deploying Frontend to Vercel..." -ForegroundColor Green
 
-# Step 4: Summary
-Write-Host "`n╔════════════════════════════════════════════════════╗" -ForegroundColor Green
-Write-Host "║  ✅ Deployment Complete!                          ║" -ForegroundColor Green
-Write-Host "╚════════════════════════════════════════════════════╝`n" -ForegroundColor Green
+# Set environment variable
+Write-Host "Setting Vercel environment variable..."
+echo $BACKEND_URL | vercel env add PDF_EDITOR_BACKEND_URL production
 
-Write-Host "📊 Deployment Summary:" -ForegroundColor Cyan
-Write-Host "   • Backend: Google Cloud Run (GPU-enabled)" -ForegroundColor White
-Write-Host "   • Frontend: Vercel (auto-deployed from GitHub)" -ForegroundColor White
-Write-Host "   • API Endpoints: /api/free-preview-bg, /api/premium-bg" -ForegroundColor White
-Write-Host "`n🌐 Check deployment status:" -ForegroundColor Yellow
-Write-Host "   • Vercel Dashboard: https://vercel.com/dashboard" -ForegroundColor White
-Write-Host "   • Cloud Run Console: https://console.cloud.google.com/run" -ForegroundColor White
-Write-Host "`n"
+# Deploy
+Write-Host "Deploying to Vercel..."
+vercel --prod --yes
 
+Write-Host "✅ Frontend deployed successfully!" -ForegroundColor Green
+Write-Host ""
+
+# Step 4: Health Check
+Write-Host "Step 4: Verifying Deployment..." -ForegroundColor Green
+Start-Sleep -Seconds 5
+
+# Check backend health
+Write-Host "Checking backend health..."
+try {
+    $response = Invoke-WebRequest -Uri "https://${SERVICE_NAME}-${PROJECT_ID}.a.run.app/health" -UseBasicParsing
+    if ($response.Content -match "healthy") {
+        Write-Host "✅ Backend is healthy!" -ForegroundColor Green
+    } else {
+        Write-Host "⚠️  Backend health check failed" -ForegroundColor Yellow
+    }
+} catch {
+    Write-Host "⚠️  Backend health check failed: $_" -ForegroundColor Yellow
+}
+
+# Step 5: Git Commit (if in git repo)
+if (Test-Path ".git") {
+    Write-Host "Step 5: Committing changes to Git..." -ForegroundColor Green
+    git add .
+    git commit -m "Deploy PDF editor with 5 pages/day limit and device tracking" 2>&1 | Out-Null
+    git push origin main 2>&1 | Out-Null
+}
+
+Write-Host ""
+Write-Host "🎉 Deployment Complete!" -ForegroundColor Green
+Write-Host ""
+Write-Host "Next Steps:"
+Write-Host "1. Test the PDF editor at: https://easyjpgtopdf.com/pdf-editor-preview.html"
+Write-Host "2. Verify daily limit tracking"
+Write-Host "3. Test credit deduction"
+Write-Host "4. Monitor Cloud Run logs: gcloud run services logs read $SERVICE_NAME --region $REGION"
+Write-Host ""
+Write-Host "Backend URL: $BACKEND_URL"
+Write-Host "Frontend: https://easyjpgtopdf.com/pdf-editor-preview.html"
