@@ -1,0 +1,1784 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Biodata Maker - Online Free Tool | easyjpgtopdf</title>
+    <meta name="description" content="Use our free Biodata Maker tool online. Fast, secure, and easy to use.">
+    <meta name="keywords" content="biodata-maker, biodata maker, free biodata-maker, online biodata-maker">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://easyjpgtopdf.com/biodata-maker.html">
+<link href="css/footer.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', 'Noto Sans', 'Noto Sans Devanagari', 'Noto Sans Gurmukhi', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Malayalam', 'Noto Sans Arabic', sans-serif;
+    }
+
+    :root {
+      --primary: #4361ee;
+      --secondary: #3a0ca3;
+      --accent: #4cc9f0;
+      --dark: #1a1f36;
+      --muted: #667085;
+      --surface: #ffffff;
+      --background: #f5f7ff;
+      --border: #dee4ff;
+      --highlight: #eef2ff;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    body {
+      background: var(--background);
+      color: var(--dark);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.6;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    .logo i {
+      color: var(--secondary);
+    }
+
+    .nav-links > a,
+    .dropdown > a {
+      text-decoration: none;
+      color: var(--dark);
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-links a.active,
+    .nav-links a:hover {
+      color: var(--primary);
+    }
+
+    .dropdown-content a {
+      display: block;
+      padding: 10px 18px;
+      color: var(--dark);
+      text-decoration: none;
+    }
+
+    .dropdown-content a:hover {
+      background: rgba(67, 97, 238, 0.08);
+    }
+
+    .dropdown:hover 
+
+    .auth-buttons {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .auth-btn {
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: 1px solid var(--primary);
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .auth-btn.login {
+      background: transparent;
+      color: var(--primary);
+    }
+
+    .auth-btn.signup {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .auth-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(67, 97, 238, 0.18);
+    }
+
+    .hero {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff;
+      padding: 64px 0;
+      text-align: center;
+      border-radius: 0 0 24px 24px;
+      margin-bottom: 48px;
+    }
+
+    .hero h1 {
+      font-size: 2.9rem;
+      margin-bottom: 14px;
+    }
+
+    .hero p {
+      max-width: 640px;
+      margin: 0 auto;
+      font-size: 1.1rem;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    main {
+      flex: 1;
+      width: 100%;
+      margin-bottom: 60px;
+    }
+
+    .biodata-app {
+      background: var(--surface);
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: 0 22px 50px rgba(15, 23, 42, 0.08);
+      display: grid;
+      gap: 28px;
+      grid-template-columns: minmax(320px, 1.1fr) minmax(280px, 0.9fr);
+      align-items: flex-start;
+    }
+
+    .panel-header h2 {
+      font-size: 1.55rem;
+      color: var(--primary);
+    }
+
+    .panel-header p {
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .form-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .form-section {
+      background: var(--highlight);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .form-section h3 {
+      font-size: 1.05rem;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .field-grid {
+      display: grid;
+      gap: 14px 18px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--dark);
+    }
+
+    .form-control {
+      width: 100%;
+      border: 1px solid rgba(67, 97, 238, 0.3);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.95rem;
+      background: #fff;
+      transition: border 0.2s, box-shadow 0.2s;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.18);
+    }
+
+    textarea.form-control {
+      resize: vertical;
+      min-height: 90px;
+    }
+
+    .helper-text {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .inline-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 20px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--primary);
+      color: var(--primary);
+    }
+
+    .btn-neutral {
+      background: rgba(67, 97, 238, 0.12);
+      color: var(--primary);
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 22px rgba(67, 97, 238, 0.14);
+    }
+
+    .preview-panel {
+      position: sticky;
+      top: 110px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .preview-card {
+      background: var(--surface);
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .preview-header {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .photo-shell {
+      width: 98px;
+      height: 129px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid rgba(67, 97, 238, 0.3);
+      background: var(--highlight);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .photo-shell img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .preview-title h2 {
+      font-size: 1.8rem;
+      color: var(--primary);
+      line-height: 1.2;
+    }
+
+    .preview-title p {
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .info-grid {
+      display: grid;
+      list-style: none;
+      gap: 14px;
+      padding: 0;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    .info-item {
+      border: 1px dashed rgba(67, 97, 238, 0.25);
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: rgba(67, 97, 238, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .info-item .label {
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .info-item .value {
+      font-size: 0.96rem;
+      color: var(--dark);
+      word-break: break-word;
+    }
+
+    .preview-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .preview-section h3 {
+      font-size: 1.02rem;
+      color: var(--primary);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    [data-preview-wrapper].hidden,
+    [data-preview-section].hidden {
+      display: none !important;
+    }
+
+    .chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      background: rgba(67, 97, 238, 0.18);
+      color: var(--primary);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    .paragraph-block p {
+      margin-bottom: 8px;
+      background: rgba(67, 97, 238, 0.06);
+      padding: 10px 12px;
+      border-radius: 10px;
+      color: var(--dark);
+    }
+
+    .contact-card {
+      border: 1px dashed rgba(67, 97, 238, 0.25);
+      border-radius: 16px;
+      padding: 16px;
+      background: rgba(67, 97, 238, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .contact-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--dark);
+    }
+
+    .contact-row i {
+      color: var(--primary);
+    }
+
+    .preview-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .preview-hint {
+      font-size: 0.9rem;
+      color: var(--muted);
+      background: rgba(67, 97, 238, 0.08);
+      padding: 10px 12px;
+      border-radius: 12px;
+    }
+
+    .preview-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 12px;
+      z-index: 100;
+    }
+
+    .preview-overlay.visible {
+      display: flex;
+    }
+
+    .preview-modal {
+      background: #fff;
+      max-width: 900px;
+      width: 100%;
+      max-height: 95vh;
+      overflow-y: auto;
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: 0 40px 80px rgba(15, 23, 42, 0.25);
+      position: relative;
+    }
+
+    .close-overlay {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(67, 97, 238, 0.15);
+      color: var(--primary);
+      display: grid;
+      place-items: center;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    .comments {
+      margin: 60px 0 50px;
+      background: #fff;
+      border-radius: 20px;
+      padding: 40px 0;
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      color: var(--primary);
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .comment-form {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    footer {
+      background: #0f172a;
+      color: #fff;
+      padding: 60px 0 30px;
+    }
+
+    .footer-content {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 28px;
+    }
+
+    .footer-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .footer-links a {
+      text-decoration: none;
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 0.95rem;
+    }
+
+    .footer-links a:hover {
+      color: #fff;
+    }
+
+    .attribution {
+      margin-top: 30px;
+      text-align: center;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.65);
+    }
+
+    @media (max-width: 1080px) {
+      .biodata-app {
+        grid-template-columns: 1fr;
+      }
+
+      .preview-panel {
+        position: static;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .preview-card {
+        padding: 18px;
+      }
+
+      .preview-
+    }
+  </style>
+<link href="css/header.css" rel="stylesheet"/>
+<link href="css/theme-modern.css" rel="stylesheet"/>
+<link rel="stylesheet" href="css/voice-assistant.css">
+<script src="js/voice-assistant.js" defer></script>
+                <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Biodata Maker - Online Free Tool | easyjpgtopdf",
+      "description": "Use our free Biodata Maker tool online. Fast, secure, and easy to use.",
+      "url": "https://easyjpgtopdf.com/biodata-maker.html",
+      "inLanguage": "en-US",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "easyjpgtopdf",
+        "url": "https://easyjpgtopdf.com"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "easyjpgtopdf",
+        "url": "https://easyjpgtopdf.com"
+      }
+    }
+    </script>
+</head>
+<body>
+    <div id="global-header-placeholder"></div>
+
+
+        <nav aria-label="Breadcrumb" style="padding: 15px 0; background: #f8f9ff; border-bottom: 1px solid #e2e6ff;">
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 24px;">
+            <ol style="list-style: none; display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; align-items: center;">
+                <li><a href="feedback.html" style="color: #4361ee; text-decoration: none; font-weight: 500; transition: color 0.3s;" onmouseover="this.style.color='#3a0ca3'" onmouseout="this.style.color='#4361ee'">Home</a></li>
+                <li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
+                <li><a href="login.html" style="color: #56607a; font-weight: 500; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#4361ee'" onmouseout="this.style.color='#56607a'">Sign In</a></li>
+                <li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
+                <li><a href="signup.html" style="color: #56607a; font-weight: 500; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#4361ee'" onmouseout="this.style.color='#56607a'">Signup</a></li>
+            </ol>
+        </div>
+    </nav>
+
+<section class="hero">
+<div class="container">
+<h1>Biodata Maker - Online Free Tool</h1>
+<p>Fill in your details on the left, see a live preview on the right, and export a clean biodata that supports any Indian language.</p>
+</div>
+</section>
+<main>
+<div class="container">
+<div class="biodata-app" id="biodataApp">
+<section aria-label="Biodata form inputs" class="form-panel">
+<div class="panel-header">
+<h2>Upload File</h2>
+<p>Only the information you fill appears in the preview and export. Leave a field empty to hide it. Use the âFull Screen Previewâ button to review and download without reloading the page.</p>
+</div>
+<div aria-labelledby="basic-info" class="form-section">
+<h3 id="basic-info"><i class="fas fa-user"></i> Personal Information</h3>
+<div class="field-grid">
+<div class="form-group">
+<label for="fullName">Full Name</label>
+<input class="form-control" data-preview-target="fullName" id="fullName" placeholder="à¤à¤®à¤¿à¤¤ à¤¶à¤°à¥à¤®à¤¾ / Aditi Singh" required=""/>
+</div>
+<div class="form-group">
+<label for="gender">Gender</label>
+<select class="form-control" data-preview-target="gender" id="gender">
+<option value="">Select</option>
+<option value="Male">Male</option>
+<option value="Female">Female</option>
+<option value="Other">Other</option>
+</select>
+</div>
+<div class="form-group">
+<label for="dob">Date of Birth</label>
+<input class="form-control" data-preview-format="date" data-preview-target="dob" id="dob" type="date"/>
+</div>
+<div class="form-group">
+<label for="age">Age</label>
+<input class="form-control" data-preview-format="age" data-preview-target="age" id="age" placeholder="28"/>
+</div>
+<div class="form-group">
+<label for="height">Height</label>
+<input class="form-control" data-preview-target="height" id="height" placeholder="5'6&quot; / 168 cm"/>
+</div>
+<div class="form-group">
+<label for="religion">Religion</label>
+<input class="form-control" data-preview-target="religion" id="religion" placeholder="Hindu"/>
+</div>
+<div class="form-group">
+<label for="caste">Caste / Community</label>
+<input class="form-control" data-preview-target="caste" id="caste" placeholder="Brahmin"/>
+</div>
+<div class="form-group">
+<label for="motherTongue">Mother Tongue</label>
+<input class="form-control" data-preview-target="motherTongue" id="motherTongue" placeholder="Hindi"/>
+</div>
+</div>
+</div>
+<div aria-labelledby="contact-info" class="form-section">
+<h3 id="contact-info"><i class="fas fa-phone"></i> Contact Details</h3>
+<div class="field-grid">
+<div class="form-group">
+<label for="phone">Contact Number</label>
+<input class="form-control" data-preview-target="phone" id="phone" placeholder="+91 98765 43210"/>
+</div>
+<div class="form-group">
+<label for="email">Email ID</label>
+<input class="form-control" data-preview-target="email" id="email" placeholder="name@example.com" type="email"/>
+</div>
+<div class="form-group">
+<label for="address">Current Address</label>
+<textarea class="form-control" data-preview-format="multiline" data-preview-target="address" id="address" placeholder="House No., Street, City, State" rows="3"></textarea>
+</div>
+</div>
+</div>
+<div aria-labelledby="education-career" class="form-section">
+<h3 id="education-career"><i class="fas fa-graduation-cap"></i> Education &amp; Career</h3>
+<div class="field-grid">
+<div class="form-group">
+<label for="education">Highest Education</label>
+<input class="form-control" data-preview-target="education" id="education" placeholder="MBA (Finance)"/>
+</div>
+<div class="form-group">
+<label for="occupation">Occupation</label>
+<input class="form-control" data-preview-target="occupation" id="occupation" placeholder="Senior Analyst"/>
+</div>
+<div class="form-group">
+<label for="company">Company / Organization</label>
+<input class="form-control" data-preview-target="company" id="company" placeholder="Infosys"/>
+</div>
+<div class="form-group">
+<label for="income">Annual Income</label>
+<input class="form-control" data-preview-target="income" id="income" placeholder="â¹12 LPA"/>
+</div>
+</div>
+<div class="form-group">
+<label for="careerHighlights">Career Highlights</label>
+<textarea class="form-control" data-preview-format="multiline" data-preview-target="careerHighlights" id="careerHighlights" placeholder="Awards, promotions, international experience..." rows="3"></textarea>
+</div>
+</div>
+<div aria-labelledby="family-info" class="form-section">
+<h3 id="family-info"><i class="fas fa-people-group"></i> Family Background</h3>
+<div class="form-group">
+<label for="familyDetails">Family Details</label>
+<textarea class="form-control" data-preview-format="multiline" data-preview-target="familyDetails" id="familyDetails" placeholder="Father: Businessman, Mother: Homemaker, Siblings..." rows="4"></textarea>
+<p class="helper-text">Mention parents' occupation, siblings, cultural values, etc.</p>
+</div>
+<div class="form-group">
+<label for="familyValues">Family Values</label>
+<input class="form-control" data-preview-target="familyValues" id="familyValues" placeholder="Traditional yet progressive"/>
+</div>
+</div>
+<div aria-labelledby="about-partner" class="form-section">
+<h3 id="about-partner"><i class="fas fa-heart"></i> About Candidate &amp; Partner Preference</h3>
+<div class="form-group">
+<label for="about">About Me</label>
+<textarea class="form-control" data-preview-format="multiline" data-preview-target="about" id="about" placeholder="Describe personality, hobbies, lifestyle..." rows="4"></textarea>
+</div>
+<div class="form-group">
+<label for="expectations">Partner Expectations</label>
+<textarea class="form-control" data-preview-format="multiline" data-preview-target="expectations" id="expectations" placeholder="Education, profession, values, family preferences..." rows="4"></textarea>
+</div>
+<div class="form-group">
+<label for="languagesKnown">Languages Known (comma separated)</label>
+<input class="form-control" data-preview-format="chips" data-preview-target="languagesKnown" id="languagesKnown" placeholder="Hindi, English, Marathi"/>
+</div>
+<div class="form-group">
+<label for="hobbies">Hobbies / Interests (comma separated)</label>
+<input class="form-control" data-preview-format="chips" data-preview-target="hobbies" id="hobbies" placeholder="Classical music, Travel, Photography"/>
+</div>
+</div>
+<div aria-labelledby="extras" class="form-section">
+<h3 id="extras"><i class="fas fa-star"></i> Optional Sections</h3>
+<div class="field-grid">
+<div class="form-group">
+<label for="horoscope">Horoscope Details</label>
+<textarea class="form-control" data-preview-format="multiline" data-preview-target="horoscope" id="horoscope" placeholder="Nakshatra, Rashi, Manglik status..." rows="3"></textarea>
+</div>
+<div class="form-group">
+<label for="birthPlace">Birth Place</label>
+<input class="form-control" data-preview-target="birthPlace" id="birthPlace" placeholder="Mumbai, Maharashtra"/>
+</div>
+<div class="form-group">
+<label for="timeOfBirth">Time of Birth</label>
+<input class="form-control" data-preview-target="timeOfBirth" id="timeOfBirth" placeholder="06:45 AM"/>
+</div>
+</div>
+<div class="form-group">
+<label for="customNotes">Additional Notes</label>
+<textarea class="form-control" data-preview-format="multiline" data-preview-target="customNotes" id="customNotes" placeholder="Any other important information..." rows="3"></textarea>
+</div>
+</div>
+<div aria-labelledby="photo-section" class="form-section">
+<h3 id="photo-section"><i class="fas fa-camera"></i> Upload Photo</h3>
+<div class="inline-actions">
+<button class="btn btn-outline" id="photoUploadBtn" type="button"><i class="fas fa-image"></i> Choose Photo</button>
+<button class="btn btn-neutral" id="clearPhotoBtn" type="button"><i class="fas fa-ban"></i> Remove Photo</button>
+</div>
+<p class="helper-text">Best results with a clear portrait JPG/PNG under 2 MB. Unicode text is fully supported across the biodata.</p>
+<input accept="image/*" hidden="" id="photoInput" type="file"/>
+</div>
+</section>
+<aside aria-label="Live biodata preview" class="preview-panel">
+<div class="preview-card" id="previewCard">
+<div class="preview-header">
+<div class="photo-shell" id="previewPhotoShell">
+<span class="helper-text">Photo Preview</span>
+<img alt="Biodata photo" hidden="" id="previewPhoto"/>
+</div>
+<div class="preview-title">
+<h2 data-preview-field="fullName">Your Name</h2>
+<p data-preview-field="tagline">Update your information to personalise this biodata.</p>
+</div>
+</div>
+<ul aria-label="Quick facts" class="info-grid">
+<li class="info-item" data-preview-wrapper="gender">
+<span class="label">Gender</span>
+<span class="value" data-preview-field="gender">â</span>
+</li>
+<li class="info-item" data-preview-wrapper="dob">
+<span class="label">Date of Birth</span>
+<span class="value" data-preview-field="dob">â</span>
+</li>
+<li class="info-item" data-preview-wrapper="age">
+<span class="label">Age</span>
+<span class="value" data-preview-field="age">â</span>
+</li>
+<li class="info-item" data-preview-wrapper="height">
+<span class="label">Height</span>
+<span class="value" data-preview-field="height">â</span>
+</li>
+<li class="info-item" data-preview-wrapper="motherTongue">
+<span class="label">Mother Tongue</span>
+<span class="value" data-preview-field="motherTongue">â</span>
+</li>
+<li class="info-item" data-preview-wrapper="religion">
+<span class="label">Religion</span>
+<span class="value" data-preview-field="religion">â</span>
+</li>
+<li class="info-item" data-preview-wrapper="caste">
+<span class="label">Caste / Community</span>
+<span class="value" data-preview-field="caste">â</span>
+</li>
+<li class="info-item" data-preview-wrapper="birthPlace">
+<span class="label">Birth Place</span>
+<span class="value" data-preview-field="birthPlace">â</span>
+</li>
+<li class="info-item" data-preview-wrapper="timeOfBirth">
+<span class="label">Time of Birth</span>
+<span class="value" data-preview-field="timeOfBirth">â</span>
+</li>
+</ul>
+<section class="preview-section" data-preview-section="contact">
+<h3><i class="fas fa-phone"></i> Contact</h3>
+<div class="contact-card">
+<div class="contact-row" data-preview-wrapper="phone">
+<i class="fas fa-mobile-alt"></i>
+<span data-preview-field="phone">â</span>
+</div>
+<div class="contact-row" data-preview-wrapper="email">
+<i class="fas fa-envelope"></i>
+<span data-preview-field="email">â</span>
+</div>
+<div class="contact-row" data-preview-wrapper="address">
+<i class="fas fa-map-marker-alt"></i>
+<span data-preview-field="address">â</span>
+</div>
+</div>
+</section>
+<section class="preview-section" data-preview-section="education">
+<h3><i class="fas fa-graduation-cap"></i> Education &amp; Career</h3>
+<div class="info-item" data-preview-wrapper="education">
+<span class="label">Education</span>
+<span class="value" data-preview-field="education">â</span>
+</div>
+<div class="info-item" data-preview-wrapper="occupation">
+<span class="label">Occupation</span>
+<span class="value" data-preview-field="occupation">â</span>
+</div>
+<div class="info-item" data-preview-wrapper="company">
+<span class="label">Company</span>
+<span class="value" data-preview-field="company">â</span>
+</div>
+<div class="info-item" data-preview-wrapper="income">
+<span class="label">Annual Income</span>
+<span class="value" data-preview-field="income">â</span>
+</div>
+<div class="paragraph-block" data-preview-wrapper="careerHighlights">
+<p data-preview-field="careerHighlights"></p>
+</div>
+</section>
+<section class="preview-section" data-preview-section="family">
+<h3><i class="fas fa-people-group"></i> Family Background</h3>
+<div class="paragraph-block" data-preview-wrapper="familyDetails">
+<p data-preview-field="familyDetails"></p>
+</div>
+<div class="info-item" data-preview-wrapper="familyValues">
+<span class="label">Family Values</span>
+<span class="value" data-preview-field="familyValues">â</span>
+</div>
+</section>
+<section class="preview-section" data-preview-section="about">
+<h3><i class="fas fa-user-check"></i> About Me</h3>
+<div class="paragraph-block" data-preview-wrapper="about">
+<p data-preview-field="about"></p>
+</div>
+</section>
+<section class="preview-section" data-preview-section="preferences">
+<h3><i class="fas fa-ring"></i> Partner Expectations</h3>
+<div class="paragraph-block" data-preview-wrapper="expectations">
+<p data-preview-field="expectations"></p>
+</div>
+</section>
+<section class="preview-section" data-preview-section="languages">
+<h3><i class="fas fa-language"></i> Languages Known</h3>
+<div class="chip-list" data-chip-container="languagesKnown" data-preview-wrapper="languagesKnown"></div>
+</section>
+<section class="preview-section" data-preview-section="hobbies">
+<h3><i class="fas fa-music"></i> Hobbies &amp; Interests</h3>
+<div class="chip-list" data-chip-container="hobbies" data-preview-wrapper="hobbies"></div>
+</section>
+<section class="preview-section" data-preview-section="horoscope">
+<h3><i class="fas fa-sun"></i> Horoscope Details</h3>
+<div class="paragraph-block" data-preview-wrapper="horoscope">
+<p data-preview-field="horoscope"></p>
+</div>
+</section>
+<section class="preview-section" data-preview-section="notes">
+<h3><i class="fas fa-note-sticky"></i> Additional Notes</h3>
+<div class="paragraph-block" data-preview-wrapper="customNotes">
+<p data-preview-field="customNotes"></p>
+</div>
+</section>
+<div class="preview-actions">
+<button class="btn btn-primary" id="openPreviewBtn" type="button"><i class="fas fa-expand"></i> Full Screen Preview</button>
+<button class="btn btn-outline" id="downloadPdfBtn" type="button"><i class="fas fa-download"></i> Download PDF</button>
+<button class="btn btn-neutral" id="copyTextBtn" type="button"><i class="fas fa-copy"></i> Copy as Text</button>
+</div>
+</div>
+</aside>
+</div>
+</div>
+
+    <section class="explanatory-content" style="margin: 40px 0; padding: 40px; background: linear-gradient(135deg, #f8f9ff, #ffffff); border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <div class="container" style="max-width: 900px; margin: 0 auto;">
+            <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 20px; text-align: center;">
+                <i class="fas fa-info-circle" style="margin-right: 10px;"></i>
+                About Biodata Maker
+            </h2>
+            <div class="content-text" style="font-size: 1.1rem; color: #56607a; line-height: 1.8; text-align: center; margin-bottom: 30px;">
+                <p>Our biodata maker is a professional online tool that helps you create impressive biodata, resumes, and CVs with ease. This comprehensive tool is perfect for job seekers, professionals, and students who need to create professional biodata documents quickly and effectively. The biodata maker provides various templates, formats, and layouts to suit different industries and career levels. You can customize fonts, colors, sections, and layouts to create a biodata that reflects your personality and professional style. The tool includes sections for personal information, education, work experience, skills, achievements, and more. Whether you're creating a resume, CV, or biodata for job applications, our biodata maker provides a comprehensive solution. The tool allows you to export your biodata in PDF format for easy sharing and printing. All biodata creation happens securely in the cloud with automatic file deletion after processing. The tool is completely free to use with no watermarks, and premium users can access additional templates and advanced customization options. No software installation is required - simply use our online editor to create your biodata and download your professional document. Whether you're creating resumes, CVs, or biodata for job applications, our biodata maker provides a reliable, fast, and professional solution for all your biodata creation needs.</p>
+            </div>
+            
+            <div class="features-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 30px;">
+                <div class="feature-item" style="padding: 20px; background: white; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <i class="fas fa-bolt" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                    <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px;">Fast Processing</h3>
+                    <p style="color: #56607a; font-size: 0.95rem;">Process files in seconds with our optimized algorithms</p>
+                </div>
+                
+                <div class="feature-item" style="padding: 20px; background: white; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <i class="fas fa-shield-alt" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                    <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px;">Secure & Private</h3>
+                    <p style="color: #56607a; font-size: 0.95rem;">Your files are processed securely and deleted automatically</p>
+                </div>
+                
+                <div class="feature-item" style="padding: 20px; background: white; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <i class="fas fa-mobile-alt" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                    <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px;">Works Everywhere</h3>
+                    <p style="color: #56607a; font-size: 0.95rem;">Use on desktop, tablet, or mobile - no installation needed</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="how-to-guide" style="margin: 40px 0; padding: 40px; background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
+            <i class="fas fa-book-open" style="margin-right: 10px;"></i>
+            How to Use Biodata Maker
+        </h2>
+        <div class="steps-container" style="max-width: 800px; margin: 0 auto;">
+            <ol style="list-style: none; padding: 0; counter-reset: step-counter;">
+
+                <li style="counter-increment: step-counter; margin-bottom: 25px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee; position: relative; padding-left: 60px;">
+                    <span style="position: absolute; left: 15px; top: 20px; background: #4361ee; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">
+                        1
+                    </span>
+                    <p style="font-size: 1.1rem; color: #0b1630; line-height: 1.6; margin: 0;">
+                        Upload your file
+                    </p>
+                </li>
+
+                <li style="counter-increment: step-counter; margin-bottom: 25px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee; position: relative; padding-left: 60px;">
+                    <span style="position: absolute; left: 15px; top: 20px; background: #4361ee; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">
+                        2
+                    </span>
+                    <p style="font-size: 1.1rem; color: #0b1630; line-height: 1.6; margin: 0;">
+                        Process using our tool
+                    </p>
+                </li>
+
+                <li style="counter-increment: step-counter; margin-bottom: 25px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee; position: relative; padding-left: 60px;">
+                    <span style="position: absolute; left: 15px; top: 20px; background: #4361ee; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">
+                        3
+                    </span>
+                    <p style="font-size: 1.1rem; color: #0b1630; line-height: 1.6; margin: 0;">
+                        Download the result
+                    </p>
+                </li>
+
+            </ol>
+        </div>
+    </section>
+
+    <section class="faq-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
+            <i class="fas fa-question-circle" style="margin-right: 10px;"></i>
+            Frequently Asked Questions
+        </h2>
+        <div class="faq-container" style="max-width: 800px; margin: 0 auto;">
+
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    How accurate is the conversion?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Our conversion tools maintain 99% accuracy, preserving all formatting, fonts, and layout from your original files.
+                </div>
+            </div>
+
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    What file sizes are supported?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Free users can convert files up to 10MB. Premium users can process files up to 100MB with faster processing.
+                </div>
+            </div>
+
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    Will my data be secure?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Yes, all files are processed securely and automatically deleted after conversion. We never store or share your documents.
+                </div>
+            </div>
+
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    Can I convert multiple files at once?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Yes, premium users can convert multiple files simultaneously. Free users can process one file at a time.
+                </div>
+            </div>
+
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    What formats are supported?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    We support all major file formats. Check the tool page for specific format compatibility.
+                </div>
+            </div>
+
+        </div>
+    </section>
+    
+    <script>
+    function toggleFaq(element) {
+        const answer = element.nextElementSibling;
+        const icon = element.querySelector('i');
+        const isOpen = answer.style.display === 'block';
+        
+        answer.style.display = isOpen ? 'none' : 'block';
+        icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+    }
+    </script>
+
+    
+    
+
+    <section class="feedback-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
+            <i class="fas fa-comments" style="margin-right: 10px;"></i>
+            Reviews & Comments
+        </h2>
+        <div style="text-align: center; margin-bottom: 30px;">
+            <a href="feedback.html" style="display: inline-flex; align-items: center; gap: 8px; color: #4361ee; text-decoration: none; font-weight: 600; font-size: 1rem; transition: color 0.3s;" onmouseover="this.style.color='#3a0ca3'" onmouseout="this.style.color='#4361ee'">
+                <i class="fas fa-external-link-alt"></i>
+                View All Comments
+            </a>
+        </div>
+        
+        <div class="feedback-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: flex-start; max-width: 1200px; margin: 0 auto;">
+            <!-- Left Side: Comments List -->
+            <div class="feedback-card" style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); min-height: 400px; max-height: 600px; overflow-y: auto;">
+                <div class="thread-header" style="margin-bottom: 20px; border-bottom: 2px solid #e2e6ff; padding-bottom: 12px;">
+                    <h3 style="font-size: 1.3rem; color: #0b1630; margin-bottom: 8px;">Live Comments</h3>
+                    <p class="feedback-hint" style="font-size: 0.85rem; color: #9ca3af; margin: 0;">Share your experience and see what others are saying.</p>
+                </div>
+                <ul class="comment-list" id="feedbackList" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 16px;">
+                    <li class="feedback-muted" id="feedback-empty-state" style="text-align: center; padding: 40px 20px; color: #9ca3af; font-size: 0.95rem;">No comments yet. Start the conversation!</li>
+                </ul>
+            </div>
+            
+            <!-- Right Side: Feedback Form -->
+            <div class="feedback-form-card" style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 20px;">
+                <h3 style="font-size: 1.3rem; color: #0b1630; margin-bottom: 20px;">
+                    <i class="fas fa-edit" style="color: #4361ee; margin-right: 8px;"></i>
+                    Share Your Feedback
+                </h3>
+                <form id="feedbackForm" style="display: flex; flex-direction: column; gap: 15px;">
+                    <div class="form-group">
+                        <label for="feedbackName" style="display: block; margin-bottom: 8px; color: #56607a; font-weight: 600; font-size: 0.9rem;">Your Name</label>
+                        <input type="text" id="feedbackName" placeholder="Enter your name" required style="width: 100%; padding: 12px 16px; border: 1px solid #e2e6ff; border-radius: 8px; font-size: 0.95rem; transition: border-color 0.3s; box-sizing: border-box;" onfocus="this.style.borderColor='#4361ee'" onblur="this.style.borderColor='#e2e6ff'">
+                    </div>
+                    <div class="form-group">
+                        <label for="feedbackMessage" style="display: block; margin-bottom: 8px; color: #56607a; font-weight: 600; font-size: 0.9rem;">Your Comment</label>
+                        <textarea id="feedbackMessage" placeholder="Write your feedback or comment here..." required rows="5" style="width: 100%; padding: 12px 16px; border: 1px solid #e2e6ff; border-radius: 8px; font-size: 0.95rem; resize: vertical; transition: border-color 0.3s; font-family: inherit; box-sizing: border-box;" onfocus="this.style.borderColor='#4361ee'" onblur="this.style.borderColor='#e2e6ff'"></textarea>
+                    </div>
+                    <button type="submit" style="background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; width: 100%;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(67, 97, 238, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                        <i class="fas fa-paper-plane" style="margin-right: 8px;"></i>
+                        Submit Feedback
+                    </button>
+                </form>
+                <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e6ff;">
+                    <a href="feedback.html" style="color: #4361ee; text-decoration: none; font-weight: 600; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px; transition: color 0.3s;" onmouseover="this.style.color='#3a0ca3'" onmouseout="this.style.color='#4361ee'">
+                        <i class="fas fa-arrow-right"></i>
+                        View All Feedback
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <style>
+    @media (max-width: 768px) {
+        .feedback-grid {
+            grid-template-columns: 1fr !important;
+        }
+        .feedback-form-card {
+            position: static !important;
+        }
+    }
+    </style>
+
+    <script>
+    // Store feedback in localStorage (in production, use backend API)
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    
+    // Load feedbacks for this page (max 3, only genuine user comments)
+    function loadFeedbacks() {
+        const storedFeedbacks = JSON.parse(localStorage.getItem('feedbacks') || '{}');
+        const pageFeedbacks = (storedFeedbacks[currentPage] || []).slice(0, 3);
+        const feedbackList = document.getElementById('feedbackList');
+        const emptyState = document.getElementById('feedback-empty-state');
+        
+        if (!feedbackList) return;
+        
+        // Clear existing content
+        feedbackList.innerHTML = '';
+        
+        if (pageFeedbacks.length === 0) {
+            // Show empty state
+            if (emptyState) {
+                feedbackList.appendChild(emptyState);
+            } else {
+                const empty = document.createElement('li');
+                empty.className = 'feedback-muted';
+                empty.id = 'feedback-empty-state';
+                empty.style.cssText = 'text-align: center; padding: 40px 20px; color: #9ca3af; font-size: 0.95rem;';
+                empty.textContent = 'No comments yet. Start the conversation!';
+                feedbackList.appendChild(empty);
+            }
+            return;
+        }
+        
+        // Remove empty state
+        if (emptyState) {
+            emptyState.remove();
+        }
+        
+        // Display genuine user feedbacks
+        pageFeedbacks.forEach(fb => {
+            const li = document.createElement('li');
+            li.className = 'live-comment';
+            li.style.cssText = 'background: #f8f9ff; padding: 16px; border-radius: 8px; border-left: 3px solid #4361ee; margin-bottom: 12px;';
+            
+            const header = document.createElement('div');
+            header.style.cssText = 'display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;';
+            
+            const nameDiv = document.createElement('div');
+            const name = document.createElement('h4');
+            name.style.cssText = 'font-size: 1rem; color: #0b1630; margin: 0 0 4px 0; font-weight: 600;';
+            name.textContent = fb.name || 'Anonymous';
+            
+            const time = document.createElement('span');
+            time.style.cssText = 'font-size: 0.8rem; color: #9ca3af;';
+            time.textContent = fb.date || 'Recently';
+            
+            nameDiv.appendChild(name);
+            nameDiv.appendChild(time);
+            header.appendChild(nameDiv);
+            
+            li.appendChild(header);
+            
+            const body = document.createElement('p');
+            body.style.cssText = 'color: #56607a; line-height: 1.6; margin: 0 0 12px 0; font-size: 0.9rem;';
+            body.textContent = fb.message || '';
+            li.appendChild(body);
+            
+            // Add reply if exists
+            if (fb.reply) {
+                const replyDiv = document.createElement('div');
+                replyDiv.style.cssText = 'margin-left: 20px; padding: 12px; background: white; border-radius: 6px; margin-top: 10px; border-left: 2px solid #4361ee;';
+                
+                const replyHeader = document.createElement('div');
+                replyHeader.style.cssText = 'display: flex; align-items: center; gap: 8px; margin-bottom: 6px;';
+                
+                const replyIcon = document.createElement('i');
+                replyIcon.className = 'fas fa-reply';
+                replyIcon.style.cssText = 'color: #4361ee; font-size: 0.85rem;';
+                
+                const replyLabel = document.createElement('strong');
+                replyLabel.style.cssText = 'color: #4361ee; font-size: 0.85rem;';
+                replyLabel.textContent = 'Admin Reply:';
+                
+                replyHeader.appendChild(replyIcon);
+                replyHeader.appendChild(replyLabel);
+                replyDiv.appendChild(replyHeader);
+                
+                const replyText = document.createElement('p');
+                replyText.style.cssText = 'color: #56607a; font-size: 0.85rem; line-height: 1.5; margin: 0;';
+                replyText.textContent = fb.reply;
+                replyDiv.appendChild(replyText);
+                
+                li.appendChild(replyDiv);
+            }
+            
+            feedbackList.appendChild(li);
+        });
+    }
+    
+    // Handle feedback form submission
+    const feedbackForm = document.getElementById('feedbackForm');
+    if (feedbackForm) {
+        feedbackForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('feedbackName').value.trim();
+            const message = document.getElementById('feedbackMessage').value.trim();
+            
+            if (!name || !message) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            const feedback = {
+                name: name,
+                message: message,
+                date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+                page: currentPage
+            };
+            
+            // Store in localStorage
+            const storedFeedbacks = JSON.parse(localStorage.getItem('feedbacks') || '{}');
+            if (!storedFeedbacks[currentPage]) {
+                storedFeedbacks[currentPage] = [];
+            }
+            storedFeedbacks[currentPage].unshift(feedback);
+            localStorage.setItem('feedbacks', JSON.stringify(storedFeedbacks));
+            
+            // Reset form
+            this.reset();
+            
+            // Reload feedbacks
+            loadFeedbacks();
+            
+            alert('Thank you for your feedback!');
+        });
+    }
+    
+    // Load feedbacks on page load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadFeedbacks);
+    } else {
+        loadFeedbacks();
+    }
+    </script>
+<div class="trust-badges" style="text-align: center; padding: 20px; background: linear-gradient(135deg, #f8f9ff, #ffffff); border-radius: 12px; margin: 30px 0; border: 2px solid #e2e6ff;">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 40px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-shield-alt" style="font-size: 2rem; color: #4361ee;"></i>
+                <div style="text-align: left;">
+                    <div style="color: #0b1630; font-weight: 600; font-size: 1.1rem;">SSL Secured</div>
+                    <div style="color: #56607a; font-size: 0.9rem;">256-bit Encryption</div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-lock" style="font-size: 2rem; color: #4361ee;"></i>
+                <div style="text-align: left;">
+                    <div style="color: #0b1630; font-weight: 600; font-size: 1.1rem;">100% Secure</div>
+                    <div style="color: #56607a; font-size: 0.9rem;">Files Auto-Deleted</div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</main>
+<section aria-hidden="true" class="preview-overlay" id="previewOverlay">
+<div aria-label="Full biodata preview" aria-modal="true" class="preview-modal" role="dialog">
+<button aria-label="Close preview" class="close-overlay" id="closeOverlayBtn">×</button>
+<div id="overlayContent"></div>
+</div>
+</section>
+<script crossorigin="anonymous" integrity="sha512-/rQSxSX9+Kh4n1tldb9/QTCAbC+eZCr6O/oFzeB9kRU0Mf3n8clF4Uhe82c0mj3XH3hVYGIPVo52Tf5ZNVu+ig==" referrerpolicy="no-referrer" src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script crossorigin="anonymous" integrity="sha512-BNa5Gd+9Nfp503uVFiStpjXc1O4UNmd8nHweOZxF/2xYF9d70KX7O9fBIEMwRlC1mAHLWtyO6wlvpcBX13/tHQ==" referrerpolicy="no-referrer" src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+    (function () {
+      const formInputs = document.querySelectorAll('[data-preview-target]');
+      const previewFields = /** @type {Record<string, HTMLElement>} */ ({});
+      const previewSections = document.querySelectorAll('[data-preview-section]');
+      const taglineField = document.querySelector('[data-preview-field="tagline"]');
+      const overlay = document.getElementById('previewOverlay');
+      const overlayContent = document.getElementById('overlayContent');
+      const previewCard = document.getElementById('previewCard');
+      const openPreviewBtn = document.getElementById('openPreviewBtn');
+      const closeOverlayBtn = document.getElementById('closeOverlayBtn');
+      const copyTextBtn = document.getElementById('copyTextBtn');
+      const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+      const photoInput = document.getElementById('photoInput');
+      const photoUploadBtn = document.getElementById('photoUploadBtn');
+      const clearPhotoBtn = document.getElementById('clearPhotoBtn');
+      const previewPhoto = document.getElementById('previewPhoto');
+      const previewPhotoShell = document.getElementById('previewPhotoShell');
+      const wrapperMap = /** @type {Record<string, HTMLElement>} */ ({});
+      const chipContainerMap = /** @type {Record<string, HTMLElement>} */ ({});
+
+      function loadScript(src) {
+        return new Promise((resolve, reject) => {
+          if (!src) {
+            reject(new Error('Missing script source'));
+            return;
+          }
+          const existing = Array.from(document.scripts).find((script) => script.src === src);
+          if (existing) {
+            if (existing.hasAttribute('data-loaded')) {
+              resolve();
+              return;
+            }
+            existing.addEventListener('load', () => resolve());
+            existing.addEventListener('error', () => reject(new Error(`Failed loading ${src}`)));
+            return;
+          }
+          const script = document.createElement('script');
+          script.src = src;
+          script.async = true;
+          script.onload = () => {
+            script.setAttribute('data-loaded', 'true');
+            resolve();
+          };
+          script.onerror = () => reject(new Error(`Failed loading ${src}`));
+          document.head.appendChild(script);
+        });
+      }
+
+      async function ensureJsPdf() {
+        if (window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
+        try {
+          await loadScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js');
+        } catch (err) {
+          console.warn('Primary jsPDF CDN failed, attempting fallback.', err);
+          await loadScript('https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js');
+        }
+        if (window.jspdf && window.jspdf.jsPDF) {
+          return window.jspdf.jsPDF;
+        }
+        throw new Error('jsPDF failed to load');
+      }
+
+      async function ensureHtml2Canvas() {
+        if (typeof window.html2canvas === 'function') return window.html2canvas;
+        try {
+          await loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
+        } catch (err) {
+          console.warn('Primary html2canvas CDN failed, attempting fallback.', err);
+          await loadScript('https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js');
+        }
+        if (typeof window.html2canvas === 'function') {
+          return window.html2canvas;
+        }
+        throw new Error('html2canvas failed to load');
+      }
+
+      // Map preview fields
+      document.querySelectorAll('[data-preview-field]').forEach((el) => {
+        const key = el.getAttribute('data-preview-field');
+        if (key) previewFields[key] = el;
+      });
+
+      document.querySelectorAll('[data-preview-wrapper]').forEach((el) => {
+        const key = el.getAttribute('data-preview-wrapper');
+        if (key) wrapperMap[key] = el;
+      });
+
+      document.querySelectorAll('[data-chip-container]').forEach((el) => {
+        const key = el.getAttribute('data-chip-container');
+        if (key) chipContainerMap[key] = el;
+      });
+
+      // Helper to toggle visibility if empty
+      function toggleVisibility(element, isVisible) {
+        if (!element) return;
+        element.classList.toggle('hidden', !isVisible);
+      }
+
+      // Update tagline based on required fields
+      function updateTagline() {
+        const nameValue = previewFields.fullName?.textContent?.trim();
+        if (nameValue) {
+          taglineField.textContent = 'Preview and download your marriage biodata instantly.';
+        } else {
+          taglineField.textContent = 'Update your information to personalise this biodata.';
+        }
+      }
+
+      function formatValue(value, formatType) {
+        if (!value) return '';
+        switch (formatType) {
+          case 'date':
+            try {
+              const d = new Date(value);
+              if (!Number.isNaN(d.getTime())) {
+                return d.toLocaleDateString(undefined, {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric'
+                });
+              }
+            } catch (err) {
+              return value;
+            }
+            return value;
+          case 'age':
+            if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+              const birth = new Date(value);
+              const now = new Date();
+              let years = now.getFullYear() - birth.getFullYear();
+              const m = now.getMonth() - birth.getMonth();
+              if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
+                years--;
+              }
+              return years > 0 ? `${years} Years` : '';
+            }
+            return value;
+          case 'multiline':
+            return value
+              .split(/\r?\n/)
+              .filter(Boolean)
+              .map((line) => line.trim())
+              .join('\n');
+          case 'chips':
+            return value
+              .split(',')
+              .map((item) => item.trim())
+              .filter(Boolean);
+          default:
+            return value;
+        }
+      }
+
+      function updateSectionVisibility() {
+        previewSections.forEach((section) => {
+          const wrappers = section.querySelectorAll('[data-preview-wrapper]');
+          const hasVisibleChild = Array.from(wrappers).some((wrapper) => !wrapper.classList.contains('hidden'));
+          toggleVisibility(section, hasVisibleChild);
+        });
+      }
+
+      function updatePreview(evt) {
+        const input = evt.target;
+        const targetKey = input.getAttribute('data-preview-target');
+        if (!targetKey) return;
+
+        const formatType = input.getAttribute('data-preview-format');
+        const rawValue = input.value.trim();
+        const formattedValue = formatValue(rawValue, formatType);
+
+        const previewField = previewFields[targetKey];
+        const wrapper = wrapperMap[targetKey];
+
+        if (Array.isArray(formattedValue)) {
+          const container = chipContainerMap[targetKey];
+          if (container) {
+            container.innerHTML = '';
+            formattedValue.forEach((chipText) => {
+              const chip = document.createElement('span');
+              chip.className = 'chip';
+              chip.textContent = chipText;
+              container.appendChild(chip);
+            });
+            const chipWrapper = wrapperMap[targetKey] ?? container.closest('[data-preview-wrapper]');
+            toggleVisibility(chipWrapper, formattedValue.length > 0);
+          }
+        } else if (formatType === 'multiline') {
+          if (previewField) {
+            previewField.textContent = formattedValue;
+          }
+          toggleVisibility(wrapper, Boolean(formattedValue));
+        } else {
+          if (previewField) {
+            previewField.textContent = formattedValue || 'â';
+          }
+          toggleVisibility(wrapper, Boolean(formattedValue));
+        }
+
+        if (targetKey === 'fullName' && previewFields.fullName) {
+          const nameHeading = previewFields.fullName;
+          nameHeading.textContent = formattedValue || 'Your Name';
+        }
+
+        updateSectionVisibility();
+        updateTagline();
+      }
+
+      formInputs.forEach((input) => {
+        input.addEventListener('input', updatePreview);
+        if (input.type === 'date') {
+          input.addEventListener('change', updatePreview);
+        }
+      });
+
+      // photo upload
+      function resetPhoto() {
+        previewPhoto.src = '';
+        previewPhoto.hidden = true;
+        previewPhotoShell.classList.remove('has-image');
+      }
+
+      photoUploadBtn?.addEventListener('click', () => photoInput?.click());
+
+      clearPhotoBtn?.addEventListener('click', () => {
+        resetPhoto();
+        if (photoInput) photoInput.value = '';
+      });
+
+      photoInput?.addEventListener('change', () => {
+        const file = photoInput.files?.[0];
+        if (!file) {
+          resetPhoto();
+          return;
+        }
+        if (!file.type.startsWith('image/')) {
+          alert('Please select a valid image file.');
+          resetPhoto();
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          previewPhoto.src = reader.result;
+          previewPhoto.hidden = false;
+          previewPhotoShell.classList.add('has-image');
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // Overlay controls
+      function openOverlay() {
+        overlay.classList.add('visible');
+        overlay.setAttribute('aria-hidden', 'false');
+        overlayContent.innerHTML = '';
+        overlayContent.appendChild(previewCard.cloneNode(true));
+      }
+
+      function closeOverlay() {
+        overlay.classList.remove('visible');
+        overlay.setAttribute('aria-hidden', 'true');
+        overlayContent.innerHTML = '';
+      }
+
+      openPreviewBtn?.addEventListener('click', openOverlay);
+      closeOverlayBtn?.addEventListener('click', closeOverlay);
+      overlay?.addEventListener('click', (evt) => {
+        if (evt.target === overlay) {
+          closeOverlay();
+        }
+      });
+
+      document.addEventListener('keydown', (evt) => {
+        if (evt.key === 'Escape' && overlay.classList.contains('visible')) {
+          closeOverlay();
+        }
+      });
+
+      // Copy as text
+      function collectTextData() {
+        const sections = [
+          { label: 'Personal Information', keys: ['fullName', 'gender', 'dob', 'age', 'height', 'motherTongue', 'religion', 'caste', 'birthPlace', 'timeOfBirth'] },
+          { label: 'Contact', keys: ['phone', 'email', 'address'] },
+          { label: 'Education & Career', keys: ['education', 'occupation', 'company', 'income', 'careerHighlights'] },
+          { label: 'Family Background', keys: ['familyDetails', 'familyValues'] },
+          { label: 'About Me', keys: ['about'] },
+          { label: 'Partner Expectations', keys: ['expectations'] },
+          { label: 'Languages Known', keys: ['languagesKnown'] },
+          { label: 'Hobbies & Interests', keys: ['hobbies'] },
+          { label: 'Horoscope', keys: ['horoscope'] },
+          { label: 'Additional Notes', keys: ['customNotes'] }
+        ];
+
+        const lines = [];
+        sections.forEach((section) => {
+          const sectionLines = [];
+          section.keys.forEach((key) => {
+            const input = document.querySelector(`[data-preview-target="${key}"]`);
+            if (!input) return;
+            const value = input.value.trim();
+            if (!value) return;
+            if (['languagesKnown', 'hobbies'].includes(key)) {
+              sectionLines.push(`${key.replace(/([A-Z])/g, ' $1')}: ${value}`);
+            } else {
+              sectionLines.push(`${key.replace(/([A-Z])/g, ' $1')}: ${value}`);
+            }
+          });
+          if (sectionLines.length) {
+            lines.push(section.label + ':');
+            lines.push(...sectionLines.map((item) => `  ${item}`));
+            lines.push('');
+          }
+        });
+
+        return lines.join('\n');
+      }
+
+      copyTextBtn?.addEventListener('click', async () => {
+        const text = collectTextData();
+        if (!text.trim()) {
+          alert('Please fill some fields before copying.');
+          return;
+        }
+        try {
+          await navigator.clipboard.writeText(text);
+          copyTextBtn.textContent = 'Copied!';
+          setTimeout(() => {
+            copyTextBtn.innerHTML = '<i class="fas fa-copy"></i> Copy as Text';
+          }, 2000);
+        } catch (err) {
+          console.error(err);
+          alert('Copy failed. Please copy manually.');
+        }
+      });
+
+      downloadPdfBtn?.addEventListener('click', async () => {
+        let jsPDFConstructor;
+        let html2canvasFn;
+        try {
+          jsPDFConstructor = await ensureJsPdf();
+        } catch (err) {
+          console.error(err);
+          alert('PDF library failed to load. Please check your internet connection and try again.');
+          return;
+        }
+        try {
+          html2canvasFn = await ensureHtml2Canvas();
+        } catch (err) {
+          console.error(err);
+          alert('Preview renderer failed to load. Please check your internet connection and try again.');
+          return;
+        }
+
+        const clone = previewCard.cloneNode(true);
+        const actions = clone.querySelector('.preview-actions');
+        if (actions) actions.remove();
+
+        clone.classList.remove('preview-card');
+        clone.style.width = '794px';
+        clone.style.maxWidth = '794px';
+        clone.style.padding = '24px';
+        clone.style.border = '1px solid #d7d9e8';
+        clone.style.background = '#ffffff';
+
+        const tempWrapper = document.createElement('div');
+        tempWrapper.style.position = 'fixed';
+        tempWrapper.style.left = '-9999px';
+        tempWrapper.style.top = '0';
+        tempWrapper.style.zIndex = '-1';
+        tempWrapper.appendChild(clone);
+        document.body.appendChild(tempWrapper);
+
+        try {
+          const canvas = await html2canvasFn(clone, {
+            scale: 2,
+            backgroundColor: '#ffffff',
+            useCORS: true
+          });
+
+          const imgData = canvas.toDataURL('image/png');
+          const pdf = new jsPDFConstructor('p', 'pt', 'a4');
+          const pageWidth = pdf.internal.pageSize.getWidth();
+          const pageHeight = pdf.internal.pageSize.getHeight();
+          const margin = 32;
+          const renderWidth = pageWidth - margin * 2;
+          let renderHeight = (canvas.height * renderWidth) / canvas.width;
+
+          if (renderHeight > pageHeight - margin * 2) {
+            const scale = (pageHeight - margin * 2) / renderHeight;
+            renderHeight = renderHeight * scale;
+          }
+
+          pdf.addImage(imgData, 'PNG', margin, margin, renderWidth, renderHeight);
+
+          const rawName = previewFields.fullName?.textContent?.trim() || 'Marriage Biodata';
+          const safeName = rawName
+            .toLowerCase()
+            .replace(/[^\p{L}\p{N}\s-]/gu, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-');
+
+          pdf.save(`${safeName || 'marriage-biodata'}.pdf`);
+        } catch (err) {
+          console.error('PDF generation failed:', err);
+          alert('Unable to generate PDF. Please check the console for details.');
+        } finally {
+          tempWrapper.remove();
+        }
+      });
+
+      // Initialize visibility based on default values
+      formInputs.forEach((input) => {
+        if (input.value) {
+          const event = new Event('input');
+          input.dispatchEvent(event);
+        } else {
+          const key = input.getAttribute('data-preview-target');
+          const wrapper = wrapperMap[key];
+          toggleVisibility(wrapper, false);
+        }
+      });
+
+      // Also hide sections initially
+      updateSectionVisibility();
+    })();
+  </script>
+    
+<script src="js/auth.js" type="module"></script>
+
+    <footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+                <a href="dmca-en.html">DMCA</a>
+                <a href="blog.html">Blog</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
+            <p class="footer-credits">
+                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+                <a href="attributions.html">See full acknowledgements</a>.
+            </p>
+        </div>
+    </footer>
+    <script src="js/global-components.js"></script>
+    <script>
+    // Ensure header loads - multiple attempts to guarantee it works
+    (function() {
+        function tryLoadHeader() {
+            if (typeof loadGlobalHeader === 'function') {
+                try {
+                    loadGlobalHeader();
+                    return true;
+                } catch (e) {
+                    console.error('Error calling loadGlobalHeader:', e);
+                }
+            }
+            return false;
+        }
+        
+        // Try immediately if script already loaded
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            if (!tryLoadHeader()) {
+                // Script not loaded yet, wait for it
+                var attempts = 0;
+                var maxAttempts = 60; // 3 seconds total
+                var checkHeader = setInterval(function() {
+                    attempts++;
+                    if (tryLoadHeader() || attempts >= maxAttempts) {
+                        clearInterval(checkHeader);
+                    }
+                }, 50);
+            }
+        } else {
+            // Wait for DOM to be ready
+            document.addEventListener('DOMContentLoaded', function() {
+                if (!tryLoadHeader()) {
+                    var attempts = 0;
+                    var maxAttempts = 40;
+                    var checkHeader = setInterval(function() {
+                        attempts++;
+                        if (tryLoadHeader() || attempts >= maxAttempts) {
+                            clearInterval(checkHeader);
+                        }
+                    }, 50);
+                }
+            });
+        }
+        
+        // Final backup attempt on window load
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (!document.querySelector('header') && typeof loadGlobalHeader === 'function') {
+                    loadGlobalHeader();
+                }
+            }, 100);
+        });
+    })();
+    </script>
+
+        
+</body>
+</html>
