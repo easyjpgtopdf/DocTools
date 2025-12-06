@@ -151,6 +151,7 @@
               <div class="settings-group">
                 <h3>Output Format</h3>
                 <div class="format-options" id="ic-formats">
+                  <button class="btn active" data-format="jpeg" style="border:1px solid #ddd; background: #4361ee; color: white;">JPG</button>
                   <button class="btn" data-format="jpeg" style="border:1px solid #ddd">JPEG</button>
                   <button class="btn" data-format="png" style="border:1px solid #ddd">PNG</button>
                   <button class="btn" data-format="webp" style="border:1px solid #ddd">WebP</button>
@@ -612,7 +613,7 @@
     let originalImg=null, originalFile=null, currentFormat='jpeg', compressedDataUrl=null;
 
     icQuality.addEventListener('input',()=>{ icQualityValue.textContent = icQuality.value + '%'; });
-    icFormats.addEventListener('click',(e)=>{ const b=e.target.closest('[data-format]'); if(!b) return; currentFormat=b.getAttribute('data-format'); [...icFormats.children].forEach(c=>c.classList.remove('active')); b.classList.add('active'); if(originalImg) estimateSize(); });
+    icFormats.addEventListener('click',(e)=>{ const b=e.target.closest('[data-format]'); if(!b) return; currentFormat=b.getAttribute('data-format'); [...icFormats.children].forEach(c=>{c.classList.remove('active'); c.style.background=''; c.style.color='';}); b.classList.add('active'); b.style.background='#4361ee'; b.style.color='white'; if(originalImg) estimateSize(); });
 
     icUploadArea.addEventListener('click',()=>icFileInput.click());
     icUploadArea.addEventListener('dragover',(e)=>{e.preventDefault(); icUploadArea.style.borderColor='#10b981'; icUploadArea.style.backgroundColor='rgba(16,185,129,.05)';});
@@ -629,22 +630,41 @@
       if(!originalImg){ alert('Please upload an image first'); return; }
       const canvas=document.createElement('canvas');
       canvas.width=originalImg.naturalWidth; canvas.height=originalImg.naturalHeight;
-      const ctx=canvas.getContext('2d'); ctx.drawImage(originalImg,0,0);
+      const ctx=canvas.getContext('2d'); 
+      ctx.drawImage(originalImg,0,0);
       const q=parseInt(icQuality.value)/100;
-      compressedDataUrl = canvas.toDataURL('image/'+currentFormat, q);
+      const mimeType = currentFormat === 'jpeg' ? 'image/jpeg' : (currentFormat === 'png' ? 'image/png' : 'image/webp');
+      compressedDataUrl = canvas.toDataURL(mimeType, q);
       // Update preview to show compressed image
-      icPreview.innerHTML=''; const outImg=document.createElement('img'); outImg.src=compressedDataUrl; icPreview.appendChild(outImg);
+      icPreview.innerHTML=''; 
+      const outImg=document.createElement('img'); 
+      outImg.src=compressedDataUrl; 
+      icPreview.appendChild(outImg);
       // Compute actual compressed size and show on screen
-      try{ const bytes = atob(compressedDataUrl.split(',')[1]).length; icNewSize.textContent = formatSize(bytes); }catch(_){ estimateSize(); }
+      try{ 
+        const base64Data = compressedDataUrl.split(',')[1];
+        const bytes = atob(base64Data).length; 
+        icNewSize.textContent = formatSize(bytes);
+        alert('Image compressed successfully! Click Download to save.');
+      }catch(e){ 
+        console.error('Error calculating size:', e);
+        estimateSize(); 
+      }
     });
 
     icDownload.addEventListener('click',()=>{
       if(!originalImg){ alert('Please upload an image first'); return; }
       if(!compressedDataUrl){
-        const canvas=document.createElement('canvas'); canvas.width=originalImg.naturalWidth; canvas.height=originalImg.naturalHeight; const ctx=canvas.getContext('2d'); ctx.drawImage(originalImg,0,0);
-        const q=parseInt(icQuality.value)/100; compressedDataUrl = canvas.toDataURL('image/'+currentFormat, q);
+        alert('Please click Compress button first to compress the image');
+        return;
       }
-      const a=document.createElement('a'); a.download = 'compressed.'+currentFormat; a.href = compressedDataUrl; a.click();
+      const fileExtension = currentFormat === 'jpeg' ? 'jpg' : currentFormat;
+      const a=document.createElement('a'); 
+      a.download = 'compressed.'+fileExtension; 
+      a.href = compressedDataUrl; 
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     });
   </script>
 
