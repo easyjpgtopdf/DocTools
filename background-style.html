@@ -16,6 +16,7 @@
 <link href="css/footer.css" rel="stylesheet"/>
 <script type="module" src="js/device-fingerprint.js"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
     :root {
       --primary: #4361ee;
@@ -185,6 +186,29 @@
 <div class="preview-frame">
 <canvas id="previewCanvas"></canvas>
 </div>
+<!-- Multiple Images Grid Preview -->
+<div id="multipleImagesGrid" style="display: none; margin-top: 24px; padding: 20px; background: #f8f9ff; border-radius: 12px; border: 1px solid #e2e6ff;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-size: 1.1rem; color: #1f2559; margin: 0;">
+            <i class="fas fa-images" style="margin-right: 8px; color: #4361ee;"></i>
+            Images (<span id="imageCount">0</span>)
+        </h3>
+        <button id="clearAllImages" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.85rem;">
+            <i class="fas fa-trash"></i> Clear All
+        </button>
+    </div>
+    <div id="imagesGridContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(1cm, 1cm)); gap: 8px; max-height: 300px; overflow-y: auto; padding: 8px; background: white; border-radius: 8px;">
+        <!-- Images will be added here -->
+    </div>
+    <div style="margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
+        <button id="applyBgToAllBtn" class="btn btn-primary" style="flex: 1; min-width: 150px;">
+            <i class="fas fa-magic"></i> Apply BG Style to All
+        </button>
+        <button id="downloadAllBtn" class="btn btn-primary" disabled style="flex: 1; min-width: 150px;">
+            <i class="fas fa-download"></i> Download All (ZIP)
+        </button>
+    </div>
+</div>
 <div class="status" id="status"></div>
 <div class="actions">
 <button class="btn btn-outline" id="backToPreview"><i class="fas fa-arrow-left"></i> Back to Workspace</button>
@@ -218,6 +242,21 @@
 </div>
 </section>
 
+<section class="panel">
+<h2>About This Tool</h2>
+<div class="status-card">
+<strong>Background Style Editor</strong>
+<p>Apply custom backgrounds to your processed images</p>
+<p>Choose from magic photos, cityscapes, tech backgrounds, or solid colors</p>
+<p>Add text overlays with custom fonts and positioning</p>
+<p><strong>Premium Features:</strong></p>
+<p> Batch background style application to multiple images</p>
+<p> Download all styled images as ZIP file</p>
+<p> Grid preview of all images</p>
+<p> Apply same style to all or customize individually</p>
+<p><strong>Free Users:</strong> One image at a time</p>
+</div>
+</section>
     
     <section class="faq-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
         <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
@@ -664,8 +703,14 @@
       original: 'bgRemover:original',
       foreground: 'bgRemover:foreground',
       filename: 'bgRemover:filename',
-      dimensions: 'bgRemover:dimensions'
+      dimensions: 'bgRemover:dimensions',
+      multipleImages: 'bgRemover:multipleImages',
+      processedImages: 'bgRemover:processedImages'
     };
+    
+    let multipleImages = []; // Array to store multiple images with bg styles
+    let isPremiumUser = false;
+    let currentImageIndex = 0;
 
     // Limits - Same as background-workspace.html
     const FREE_UPLOAD_LIMIT = 1 * 1024 * 1024; // 1 MB - Free upload limit per image
@@ -860,26 +905,58 @@
       dimensions: dimensions
     });
 
+    // Check for multiple images first
+    loadMultipleImages();
+    
+    // If no multiple images but single image exists, convert it
+    if (multipleImages.length === 0 && foregroundDataUrl) {
+      const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'image.png';
+      multipleImages.push({
+        id: 'img_single',
+        dataURL: originalDataUrl,
+        resultURL: foregroundDataUrl,
+        filename: filename,
+        processed: true,
+        bgStyled: false,
+        bgStyle: null,
+        styledDataURL: null
+      });
+      saveMultipleImages();
+    }
+    
     if (!originalDataUrl || !foregroundDataUrl || !dimensions) {
-      statusEl.textContent = 'Missing image data. Please go back to workspace or upload an image.';
-      resetBtn.disabled = true;
-      downloadBtn.disabled = true;
-      
-      // Add helpful message and link
-      const previewFrame = document.querySelector('.preview-frame');
-      if (previewFrame) {
-        previewFrame.innerHTML = `
-          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 40px; text-align: center; color: var(--muted);">
-            <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: var(--primary); opacity: 0.5;"></i>
-            <div>
-              <h3 style="color: var(--dark); margin-bottom: 8px;">No Image Found</h3>
-              <p style="margin-bottom: 16px;">Please process an image first in the workspace.</p>
-              <a href="background-workspace.html" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white; text-decoration: none; border-radius: 999px; font-weight: 600;">
-                <i class="fas fa-arrow-left"></i> Go to Workspace
-              </a>
+      // Check if we have multiple images
+      if (multipleImages.length > 0) {
+        // Load first image
+        const firstImg = multipleImages[0];
+        originalDataUrl = firstImg.dataURL;
+        foregroundDataUrl = firstImg.resultURL || firstImg.dataURL;
+        dimensions = JSON.stringify({ width: 800, height: 600 }); // Default dimensions
+        sessionStorage.setItem(STORAGE_KEYS.original, originalDataUrl);
+        sessionStorage.setItem(STORAGE_KEYS.foreground, foregroundDataUrl);
+        sessionStorage.setItem(STORAGE_KEYS.dimensions, dimensions);
+        sessionStorage.setItem(STORAGE_KEYS.filename, firstImg.filename || 'image.png');
+      } else {
+        statusEl.textContent = 'Missing image data. Please go back to workspace or upload an image.';
+        resetBtn.disabled = true;
+        downloadBtn.disabled = true;
+        
+        // Add helpful message and link
+        const previewFrame = document.querySelector('.preview-frame');
+        if (previewFrame) {
+          previewFrame.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 40px; text-align: center; color: var(--muted);">
+              <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: var(--primary); opacity: 0.5;"></i>
+              <div>
+                <h3 style="color: var(--dark); margin-bottom: 8px;">No Image Found</h3>
+                <p style="margin-bottom: 16px;">Please process an image first in the workspace.</p>
+                <a href="background-workspace.html" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white; text-decoration: none; border-radius: 999px; font-weight: 600;">
+                  <i class="fas fa-arrow-left"></i> Go to Workspace
+                </a>
+              </div>
             </div>
-          </div>
-        `;
+          `;
+        }
       }
     }
 
@@ -1224,6 +1301,16 @@
       applyOverlay();
       if (downloadBtn) downloadBtn.disabled = false;
       if (resetBtn) resetBtn.disabled = false;
+      
+      // Save styled image to current image in multiple images array
+      if (multipleImages.length > 0 && currentImageIndex >= 0 && currentImageIndex < multipleImages.length) {
+        const styledDataURL = previewCanvas.toDataURL('image/png');
+        multipleImages[currentImageIndex].bgStyled = true;
+        multipleImages[currentImageIndex].bgStyle = currentBackgroundRef || background;
+        multipleImages[currentImageIndex].styledDataURL = styledDataURL;
+        saveMultipleImages();
+        updateImagesGrid();
+      }
     }
 
     async function init() {
@@ -1418,19 +1505,49 @@
     }
 
     // Helper functions for credit checking and API calls
-    async function loadCreditModule() {
+    let creditModule = null;
+    let subscriptionModule = null;
+    let currentUserId = null;
+    
+    async function loadSubscriptionModule() {
+      if (subscriptionModule) return subscriptionModule;
       try {
-        const creditMod = await import('./js/credit-manager.js');
-        return creditMod;
+        subscriptionModule = await import('./js/subscription.js');
+        return subscriptionModule;
       } catch (error) {
-        console.warn('Credit module not available:', error);
+        console.warn('Failed to load subscription module:', error);
+        return null;
+      }
+    }
+    
+    async function loadCreditModule() {
+      if (creditModule) return creditModule;
+      try {
+        creditModule = await import('./js/credit-manager.js');
+        return creditModule;
+      } catch (error) {
+        console.warn('Failed to load credit module:', error);
         return null;
       }
     }
     
     async function getCurrentUserId() {
-      if (!auth || !currentUser) return null;
-      return currentUser.uid;
+      if (currentUserId) return currentUserId;
+      if (!auth || !currentUser) {
+        try {
+          const authModule = await import('./js/auth.js');
+          if (authModule && authModule.getCurrentUser) {
+            const user = await authModule.getCurrentUser();
+            currentUserId = user?.uid || null;
+            currentUser = user;
+          }
+        } catch (error) {
+          console.warn('Failed to get user ID:', error);
+        }
+        return currentUserId;
+      }
+      currentUserId = currentUser.uid;
+      return currentUserId;
     }
     
     async function processWithPremiumHD(dataURL) {
@@ -1690,6 +1807,314 @@
       
       setStatus(`✅ Downloaded (${imageInfo.sizeKB} KB, ${imageInfo.width}×${imageInfo.height}px) - Premium`);
       setTimeout(() => clearStatus(), 4000);
+    }
+
+    // ========== MULTIPLE IMAGES SUPPORT ==========
+    
+    // Check if user is premium
+    async function checkPremiumUser() {
+      try {
+        const creditMod = await loadCreditModule();
+        const userId = await getCurrentUserId();
+        
+        if (!userId) {
+          isPremiumUser = false;
+          return false;
+        }
+        
+        if (creditMod && creditMod.getUserCredits) {
+          const creditData = await creditMod.getUserCredits(userId);
+          isPremiumUser = creditData.unlimited || (creditData.credits && creditData.credits > 0);
+          return isPremiumUser;
+        }
+        
+        // Fallback: check subscription
+        if (userSubscription) {
+          isPremiumUser = userSubscription && 
+                         (userSubscription.plan === 'premium' || userSubscription.plan === 'pro') && 
+                         userSubscription.isValid;
+          return isPremiumUser;
+        }
+        
+        isPremiumUser = false;
+        return false;
+      } catch (error) {
+        console.error('Error checking premium status:', error);
+        isPremiumUser = false;
+        return false;
+      }
+    }
+    
+    // Load multiple images from session storage
+    function loadMultipleImages() {
+      try {
+        const stored = sessionStorage.getItem(STORAGE_KEYS.multipleImages);
+        if (stored) {
+          multipleImages = JSON.parse(stored);
+          updateImagesGrid();
+        }
+      } catch (error) {
+        console.error('Error loading multiple images:', error);
+        multipleImages = [];
+      }
+    }
+    
+    // Save multiple images to session storage
+    function saveMultipleImages() {
+      try {
+        sessionStorage.setItem(STORAGE_KEYS.multipleImages, JSON.stringify(multipleImages));
+      } catch (error) {
+        console.error('Error saving multiple images:', error);
+      }
+    }
+    
+    // Update images grid display
+    function updateImagesGrid() {
+      const imagesGridContainer = document.getElementById('imagesGridContainer');
+      const imageCount = document.getElementById('imageCount');
+      const multipleImagesGrid = document.getElementById('multipleImagesGrid');
+      
+      if (!imagesGridContainer || !imageCount || !multipleImagesGrid) return;
+      
+      imageCount.textContent = multipleImages.length;
+      
+      if (multipleImages.length === 0) {
+        multipleImagesGrid.style.display = 'none';
+        return;
+      }
+      
+      multipleImagesGrid.style.display = 'block';
+      imagesGridContainer.innerHTML = '';
+      
+      multipleImages.forEach((img, index) => {
+        const frame = document.createElement('div');
+        frame.style.cssText = 'position: relative; width: 1cm; height: 1cm; border: 2px solid #e2e6ff; border-radius: 4px; overflow: hidden; cursor: pointer; background: #f8f9ff;';
+        
+        const imgElement = document.createElement('img');
+        imgElement.src = img.resultURL || img.dataURL;
+        imgElement.style.cssText = 'width: 100%; height: 100%; object-fit: cover; display: block;';
+        frame.appendChild(imgElement);
+        
+        // Styled indicator
+        if (img.bgStyled) {
+          const checkmark = document.createElement('div');
+          checkmark.style.cssText = 'position: absolute; top: 2px; right: 2px; background: #4361ee; color: white; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 10px;';
+          checkmark.innerHTML = '<i class="fas fa-palette"></i>';
+          frame.appendChild(checkmark);
+        }
+        
+        // Click to select image
+        frame.onclick = () => {
+          selectImage(index);
+        };
+        
+        imagesGridContainer.appendChild(frame);
+      });
+      
+      // Update buttons
+      const hasStyled = multipleImages.some(img => img.bgStyled);
+      const downloadAllBtn = document.getElementById('downloadAllBtn');
+      if (downloadAllBtn) {
+        downloadAllBtn.disabled = !hasStyled || multipleImages.length === 0;
+      }
+    }
+    
+    // Select image to edit
+    async function selectImage(index) {
+      if (index < 0 || index >= multipleImages.length) return;
+      
+      currentImageIndex = index;
+      const img = multipleImages[index];
+      
+      // Load image into canvas
+      const foregroundImg = new Image();
+      foregroundImg.crossOrigin = 'anonymous';
+      foregroundImg.src = img.resultURL || img.dataURL;
+      await foregroundImg.decode();
+      
+      previewCanvas.width = foregroundImg.width;
+      previewCanvas.height = foregroundImg.height;
+      const ctx = previewCanvas.getContext('2d');
+      ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+      ctx.drawImage(foregroundImg, 0, 0);
+      
+      // If bg style already applied, restore it
+      if (img.bgStyle) {
+        await drawComposite(img.bgStyle);
+      } else {
+        await drawComposite('transparent');
+      }
+      
+      setStatus(`Image ${index + 1} of ${multipleImages.length} selected`);
+    }
+    
+    // Apply current bg style to all images
+    async function applyBgStyleToAll() {
+      if (multipleImages.length === 0) {
+        setStatus('No images to apply background style to');
+        return;
+      }
+      
+      if (!isPremiumUser && multipleImages.length > 1) {
+        if (confirm('Batch background style application is available for premium users only. Would you like to upgrade to premium?')) {
+          window.location.href = 'pricing.html';
+        }
+        return;
+      }
+      
+      const applyAllBtn = document.getElementById('applyBgToAllBtn');
+      if (applyAllBtn) applyAllBtn.disabled = true;
+      
+      setStatus(`Applying background style to ${multipleImages.length} images...`);
+      
+      // Get current background style
+      const currentBg = backgroundImage.src || 'transparent';
+      const isTransparent = currentBg === 'transparent' || !currentBg || currentBg === 'data:image/png;base64,';
+      const bgStyle = isTransparent ? 'transparent' : currentBg;
+      
+      let successCount = 0;
+      
+      for (let i = 0; i < multipleImages.length; i++) {
+        try {
+          setStatus(`Applying style to image ${i + 1} of ${multipleImages.length}...`);
+          
+          const img = multipleImages[i];
+          const foregroundImg = new Image();
+          foregroundImg.crossOrigin = 'anonymous';
+          foregroundImg.src = img.resultURL || img.dataURL;
+          await foregroundImg.decode();
+          
+          // Create canvas for this image
+          const canvas = document.createElement('canvas');
+          canvas.width = foregroundImg.width;
+          canvas.height = foregroundImg.height;
+          const ctx = canvas.getContext('2d');
+          
+          // Draw background
+          if (!isTransparent && bgStyle !== 'transparent') {
+            const bgImg = new Image();
+            bgImg.crossOrigin = 'anonymous';
+            bgImg.src = bgStyle;
+            await bgImg.decode();
+            ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+          }
+          
+          // Draw foreground
+          ctx.drawImage(foregroundImg, 0, 0);
+          
+          // Apply overlay if enabled
+          if (overlayState.enabled && overlayState.text) {
+            ctx.save();
+            ctx.font = `${overlayState.fontWeight} ${overlayState.fontSize}px ${overlayState.fontFamily}`;
+            ctx.fillStyle = overlayState.color;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const shadowBlur = overlayState.shadow;
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowBlur = shadowBlur;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            
+            let x = canvas.width / 2 + overlayState.offsetX;
+            let y = canvas.height / 2 + overlayState.offsetY;
+            
+            if (overlayState.position === 'top') y = 50 + overlayState.offsetY;
+            else if (overlayState.position === 'bottom') y = canvas.height - 50 + overlayState.offsetY;
+            else if (overlayState.position === 'left') { x = 50 + overlayState.offsetX; ctx.textAlign = 'left'; }
+            else if (overlayState.position === 'right') { x = canvas.width - 50 + overlayState.offsetX; ctx.textAlign = 'right'; }
+            
+            ctx.fillText(overlayState.text, x, y);
+            ctx.restore();
+          }
+          
+          // Save styled image
+          img.bgStyled = true;
+          img.bgStyle = bgStyle;
+          img.styledDataURL = canvas.toDataURL('image/png');
+          successCount++;
+        } catch (error) {
+          console.error(`Error applying style to image ${i + 1}:`, error);
+        }
+      }
+      
+      saveMultipleImages();
+      updateImagesGrid();
+      if (applyAllBtn) applyAllBtn.disabled = false;
+      
+      setStatus(`✅ Background style applied to ${successCount} images!`);
+    }
+    
+    // Download all styled images as ZIP
+    async function downloadAllStyledImages() {
+      if (!window.JSZip) {
+        setStatus('ZIP library not loaded. Please refresh the page.');
+        return;
+      }
+      
+      const styledImages = multipleImages.filter(img => img.bgStyled);
+      if (styledImages.length === 0) {
+        setStatus('No styled images to download. Please apply background style first.');
+        return;
+      }
+      
+      if (!isPremiumUser && styledImages.length > 1) {
+        if (confirm('Multiple image download is available for premium users only. Would you like to upgrade to premium?')) {
+          window.location.href = 'pricing.html';
+        }
+        return;
+      }
+      
+      try {
+        setStatus('Creating ZIP file...');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        if (downloadAllBtn) downloadAllBtn.disabled = true;
+        
+        const zip = new JSZip();
+        
+        for (let i = 0; i < styledImages.length; i++) {
+          const img = styledImages[i];
+          const imgElement = new Image();
+          imgElement.crossOrigin = 'anonymous';
+          imgElement.src = img.styledDataURL;
+          
+          await new Promise((resolve, reject) => {
+            imgElement.onload = () => {
+              const canvas = document.createElement('canvas');
+              canvas.width = imgElement.width;
+              canvas.height = imgElement.height;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(imgElement, 0, 0);
+              
+              canvas.toBlob((blob) => {
+                const filename = img.filename || `image-${i + 1}.png`;
+                const baseName = filename.replace(/\.[^/.]+$/, '') || `image-${i + 1}`;
+                zip.file(`${baseName}-styled.png`, blob);
+                resolve();
+              }, 'image/png');
+            };
+            imgElement.onerror = reject;
+          });
+        }
+        
+        setStatus('Generating ZIP file...');
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(zipBlob);
+        link.download = `background-styled-images-${new Date().getTime()}.zip`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+        
+        setStatus(`✅ Downloaded ${styledImages.length} styled images as ZIP file!`);
+        if (downloadAllBtn) downloadAllBtn.disabled = false;
+      } catch (error) {
+        console.error('ZIP download error:', error);
+        setStatus('Failed to create ZIP file: ' + error.message);
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        if (downloadAllBtn) downloadAllBtn.disabled = false;
+      }
     }
 
     // Download Modal Management (matching background-workspace.html)
@@ -1986,6 +2411,40 @@
         window.location.href = 'background-workspace.html';
       });
     }
+    
+    // Multiple images event listeners
+    const applyBgToAllBtn = document.getElementById('applyBgToAllBtn');
+    const downloadAllBtn = document.getElementById('downloadAllBtn');
+    const clearAllImages = document.getElementById('clearAllImages');
+    
+    if (applyBgToAllBtn) {
+      applyBgToAllBtn.addEventListener('click', applyBgStyleToAll);
+    }
+    
+    if (downloadAllBtn) {
+      downloadAllBtn.addEventListener('click', downloadAllStyledImages);
+    }
+    
+    if (clearAllImages) {
+      clearAllImages.addEventListener('click', () => {
+        if (confirm('Clear all images?')) {
+          multipleImages = [];
+          saveMultipleImages();
+          updateImagesGrid();
+          window.location.href = 'background-workspace.html';
+        }
+      });
+    }
+    
+    // Initialize premium check and update grid on page load
+    (async () => {
+      await checkPremiumUser();
+      if (multipleImages.length > 0) {
+        updateImagesGrid();
+        // Select first image
+        await selectImage(0);
+      }
+    })();
 
     if (overlayToggle) {
       overlayToggle.addEventListener('change', () => {
