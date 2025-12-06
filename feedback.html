@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Feedback & Comments - easyjpgtopdf</title>
+    <meta name="description" content="View all user feedback and comments from easyjpgtopdf users. Read reviews, share your experience, and see what others are saying about our tools.">
+    <meta name="keywords" content="feedback, reviews, comments, user reviews, testimonials">
+    <link rel="canonical" href="https://easyjpgtopdf.com/feedback.html">
+    <link href="css/footer.css" rel="stylesheet"/>
+    <link href="css/header.css" rel="stylesheet"/>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --accent: #4cc9f0;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --success: #4bb543;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --gray: #6c757d;
+            --light-gray: #e9ecef;
+        }
+
+        body {
+            background-color: #f5f7ff;
+            color: var(--dark);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #fff;
+            padding: 60px 0;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        .feedback-main {
+            flex: 1;
+            padding: 40px 0;
+        }
+
+        .feedback-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .feedback-header h2 {
+            font-size: 2rem;
+            color: var(--primary);
+        }
+
+        .filter-section {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .filter-section h3 {
+            font-size: 1.2rem;
+            color: var(--dark);
+            margin-bottom: 15px;
+        }
+
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #e2e6ff;
+            background: white;
+            color: var(--primary);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .feedback-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .feedback-item {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .feedback-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .feedback-header-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+
+        .feedback-user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+
+        .user-details h4 {
+            font-size: 1.1rem;
+            color: var(--dark);
+            margin-bottom: 4px;
+        }
+
+        .user-details .page-name {
+            font-size: 0.85rem;
+            color: var(--gray);
+            text-decoration: none;
+        }
+
+        .user-details .page-name:hover {
+            color: var(--primary);
+        }
+
+        .feedback-date {
+            font-size: 0.85rem;
+            color: var(--gray);
+        }
+
+        .feedback-message {
+            color: #56607a;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+
+        .feedback-reply {
+            margin-left: 60px;
+            padding: 15px;
+            background: #f8f9ff;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .feedback-reply-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .feedback-reply-header i {
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+
+        .feedback-reply-header strong {
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+
+        .feedback-reply-text {
+            color: #56607a;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: var(--gray);
+            margin-bottom: 20px;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            color: var(--dark);
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            color: var(--gray);
+            font-size: 1rem;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .back-button:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .feedback-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .feedback-reply {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="global-header-placeholder"></div>
+
+    <section class="hero">
+        <div class="container">
+            <h1><i class="fas fa-comments" style="margin-right: 10px;"></i>All Feedback & Comments</h1>
+            <p>Read what our users are saying about our tools and services</p>
+        </div>
+    </section>
+
+    <main class="feedback-main">
+        <div class="container">
+            <a href="index.html" class="back-button">
+                <i class="fas fa-arrow-left"></i>
+                Back to Home
+            </a>
+
+            <div class="feedback-header">
+                <h2>User Reviews & Comments</h2>
+                <div id="feedback-count" style="color: var(--gray); font-size: 1rem;"></div>
+            </div>
+
+            <div class="filter-section">
+                <h3><i class="fas fa-filter" style="margin-right: 8px;"></i>Filter by Page</h3>
+                <div class="filter-buttons" id="filterButtons">
+                    <button class="filter-btn active" data-filter="all">All Pages</button>
+                </div>
+            </div>
+
+            <div id="feedbackList" class="feedback-list">
+                <div class="empty-state">
+                    <i class="fas fa-comments"></i>
+                    <h3>No feedback yet</h3>
+                    <p>Be the first to share your experience!</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+                <a href="dmca-en.html">DMCA</a>
+                <a href="blog.html">Blog</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
+            <p class="footer-credits">
+                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+                <a href="attributions.html">See full acknowledgements</a>.
+            </p>
+        </div>
+    </footer>
+
+    <script src="js/global-components.js"></script>
+    <script>
+        // Ensure header loads
+        (function() {
+            function tryLoadHeader() {
+                if (typeof loadGlobalHeader === 'function') {
+                    try {
+                        loadGlobalHeader();
+                        return true;
+                    } catch (e) {
+                        console.error('Error calling loadGlobalHeader:', e);
+                    }
+                }
+                return false;
+            }
+            
+            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                if (!tryLoadHeader()) {
+                    var attempts = 0;
+                    var maxAttempts = 60;
+                    var checkHeader = setInterval(function() {
+                        attempts++;
+                        if (tryLoadHeader() || attempts >= maxAttempts) {
+                            clearInterval(checkHeader);
+                        }
+                    }, 50);
+                }
+            } else {
+                document.addEventListener('DOMContentLoaded', function() {
+                    if (!tryLoadHeader()) {
+                        var attempts = 0;
+                        var maxAttempts = 40;
+                        var checkHeader = setInterval(function() {
+                            attempts++;
+                            if (tryLoadHeader() || attempts >= maxAttempts) {
+                                clearInterval(checkHeader);
+                            }
+                        }, 50);
+                    }
+                });
+            }
+            
+            window.addEventListener('load', function() {
+                setTimeout(function() {
+                    if (!document.querySelector('header') && typeof loadGlobalHeader === 'function') {
+                        loadGlobalHeader();
+                    }
+                }, 100);
+            });
+        })();
+
+        // Load all feedbacks
+        let allFeedbacks = [];
+        let currentFilter = 'all';
+
+        function loadAllFeedbacks() {
+            const storedFeedbacks = JSON.parse(localStorage.getItem('feedbacks') || '{}');
+            allFeedbacks = [];
+            
+            // Collect all feedbacks from all pages
+            Object.keys(storedFeedbacks).forEach(page => {
+                storedFeedbacks[page].forEach(fb => {
+                    allFeedbacks.push({
+                        ...fb,
+                        page: page
+                    });
+                });
+            });
+            
+            // Sort by date (newest first)
+            allFeedbacks.sort((a, b) => {
+                const dateA = new Date(a.date);
+                const dateB = new Date(b.date);
+                return dateB - dateA;
+            });
+            
+            // Update filter buttons
+            updateFilterButtons(storedFeedbacks);
+            
+            // Display feedbacks
+            displayFeedbacks();
+        }
+
+        function updateFilterButtons(feedbacks) {
+            const filterContainer = document.getElementById('filterButtons');
+            const pages = Object.keys(feedbacks);
+            
+            // Remove all except "All Pages"
+            const allBtn = filterContainer.querySelector('[data-filter="all"]');
+            filterContainer.innerHTML = '';
+            filterContainer.appendChild(allBtn);
+            
+            // Add page filters
+            pages.forEach(page => {
+                if (feedbacks[page].length > 0) {
+                    const btn = document.createElement('button');
+                    btn.className = 'filter-btn';
+                    btn.setAttribute('data-filter', page);
+                    btn.textContent = page.replace('.html', '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    btn.addEventListener('click', () => {
+                        currentFilter = page;
+                        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        displayFeedbacks();
+                    });
+                    filterContainer.appendChild(btn);
+                }
+            });
+        }
+
+        function displayFeedbacks() {
+            const feedbackList = document.getElementById('feedbackList');
+            const feedbackCount = document.getElementById('feedback-count');
+            
+            let filteredFeedbacks = allFeedbacks;
+            if (currentFilter !== 'all') {
+                filteredFeedbacks = allFeedbacks.filter(fb => fb.page === currentFilter);
+            }
+            
+            feedbackCount.textContent = `${filteredFeedbacks.length} ${filteredFeedbacks.length === 1 ? 'feedback' : 'feedbacks'}`;
+            
+            if (filteredFeedbacks.length === 0) {
+                feedbackList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-comments"></i>
+                        <h3>No feedback yet</h3>
+                        <p>Be the first to share your experience!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            feedbackList.innerHTML = filteredFeedbacks.map(fb => {
+                const initials = (fb.name || 'Anonymous').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                const pageName = fb.page.replace('.html', '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                
+                return `
+                    <div class="feedback-item">
+                        <div class="feedback-header-item">
+                            <div class="feedback-user-info">
+                                <div class="user-avatar">${initials}</div>
+                                <div class="user-details">
+                                    <h4>${fb.name || 'Anonymous'}</h4>
+                                    <a href="${fb.page}" class="page-name">
+                                        <i class="fas fa-link" style="font-size: 0.7rem;"></i> ${pageName}
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="feedback-date">${fb.date || 'Recently'}</div>
+                        </div>
+                        <div class="feedback-message">${escapeHtml(fb.message || '')}</div>
+                        ${fb.reply ? `
+                            <div class="feedback-reply">
+                                <div class="feedback-reply-header">
+                                    <i class="fas fa-reply"></i>
+                                    <strong>Admin Reply:</strong>
+                                </div>
+                                <div class="feedback-reply-text">${escapeHtml(fb.reply)}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Filter button handlers
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentFilter = this.getAttribute('data-filter');
+                displayFeedbacks();
+            });
+        });
+
+        // Load feedbacks on page load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadAllFeedbacks);
+        } else {
+            loadAllFeedbacks();
+        }
+    </script>
+</body>
+</html>
+
