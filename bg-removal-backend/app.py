@@ -247,6 +247,7 @@ def process_with_optimizations(input_image, session, is_premium=False):
     - Composite
     """
     start_opt = time.time()
+    debug_stats = {}
     
     # Step 1: Remove background using BiRefNet (TensorRT FP16 via ONNX Runtime)
     logger.info("Step 1: Removing background with optimized BiRefNet model...")
@@ -265,25 +266,84 @@ def process_with_optimizations(input_image, session, is_premium=False):
         # If no alpha, create from output
         mask = output_image.convert('L')
         foreground = output_image.convert('RGB')
+
+    # Debug: log mask statistics and save a preview
+    try:
+        mask_np = np.array(mask)
+        mask_min = float(mask_np.min()) if mask_np.size else 0.0
+        mask_max = float(mask_np.max()) if mask_np.size else 0.0
+        debug_stats.update({
+            "mask_min": mask_min,
+            "mask_max": mask_max,
+            "mask_shape": mask_np.shape,
+            "mask_dtype": str(mask_np.dtype),
+        })
+        logger.info(
+            f"Mask stats -> min: {mask_min}, max: {mask_max}, "
+            f"shape: {mask_np.shape}, dtype: {mask_np.dtype}"
+        )
+        # Save raw mask for inspection
+        try:
+            mask.save('/tmp/mask-preview.png')
+            logger.info("Saved mask preview to /tmp/mask-preview.png")
+        except Exception as e:
+            logger.warning(f"Could not save mask preview: {e}")
+    except Exception as e:
+        logger.warning(f"Failed to compute mask stats: {e}")
+
+    # Safeguard: if mask is empty, fall back to rembg output directly
+    hist = mask.histogram()
+    nonzero = sum(hist[1:])
+    if nonzero == 0:
+        logger.warning("Mask appears empty; returning rembg output directly")
+        debug_stats["mask_empty"] = True
+        final_buffer = io.BytesIO()
+        output_image.save(final_buffer, format='PNG', optimize=True)
+        return final_buffer.getvalue(), debug_stats
     
+    # Track mask stats helper
+    def mask_stats(tag, mask_img):
+        try:
+            arr = np.array(mask_img.convert('L'))
+            return {
+                f"{tag}_min": float(arr.min()) if arr.size else 0.0,
+                f"{tag}_max": float(arr.max()) if arr.size else 0.0,
+                f"{tag}_shape": arr.shape,
+                f"{tag}_dtype": str(arr.dtype),
+                f"{tag}_nonzero": int(np.count_nonzero(arr)),
+            }
+        except Exception:
+            return {}
+
+    debug_stats.update(mask_stats("mask_raw", mask))
+
     # Step 2: Apply Guided Filter for smooth borders (Premium only for performance)
     if is_premium and CV2_AVAILABLE:
         logger.info("Step 2: Applying guided filter for smooth borders...")
         mask = guided_filter(input_image, mask, radius=5, eps=0.01)
+        debug_stats.update(mask_stats("mask_after_guided", mask))
     
-    # Step 3: Apply Feathering for natural edges
-    if SCIPY_AVAILABLE:
+    # Step 3: Apply Feathering for natural edges (premium only; free keeps raw mask to avoid over-smoothing to zero)
+    if is_premium and SCIPY_AVAILABLE:
         logger.info("Step 3: Applying feathering for natural smooth edges...")
-        feather_radius = 3 if is_premium else 2
+        feather_radius = 3
         mask = apply_feathering(mask, feather_radius=feather_radius)
+        debug_stats.update(mask_stats("mask_after_feather", mask))
+    else:
+        debug_stats.update(mask_stats("mask_after_feather_skipped", mask))
     
-    # Step 4: Remove halos (background leakage cleanup)
-    logger.info("Step 4: Removing halos and background leakage...")
-    mask = remove_halo(mask, input_image, threshold=0.15 if is_premium else 0.2)
+    # Step 4: Remove halos (premium only; free keeps mask unchanged)
+    if is_premium:
+        logger.info("Step 4: Removing halos and background leakage...")
+        mask = remove_halo(mask, input_image, threshold=0.15)
+        debug_stats.update(mask_stats("mask_after_halo", mask))
+    else:
+        debug_stats.update(mask_stats("mask_after_halo_skipped", mask))
     
     # Step 5: Composite pro-level PNG
     logger.info("Step 5: Creating pro-level PNG composite...")
     final_image = composite_pro_png(input_image, mask)
+    debug_stats.update(mask_stats("mask_final_used", mask))
     
     opt_time = time.time() - start_opt
     logger.info(f"Optimization pipeline completed in {opt_time:.2f}s")
@@ -292,8 +352,21 @@ def process_with_optimizations(input_image, session, is_premium=False):
     output_buffer = io.BytesIO()
     final_image.save(output_buffer, format='PNG', optimize=True)
     output_bytes = output_buffer.getvalue()
+
+    # Final alpha stats from output
+    try:
+        out_arr = np.array(final_image.getchannel('A'))
+        debug_stats.update({
+            "alpha_out_min": float(out_arr.min()) if out_arr.size else 0.0,
+            "alpha_out_max": float(out_arr.max()) if out_arr.size else 0.0,
+            "alpha_out_nonzero": int(np.count_nonzero(out_arr)),
+            "alpha_out_shape": out_arr.shape,
+            "alpha_out_dtype": str(out_arr.dtype),
+        })
+    except Exception as e:
+        logger.warning(f"Failed to compute output alpha stats: {e}")
     
-    return output_bytes
+    return output_bytes, debug_stats
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -357,7 +430,7 @@ def free_preview_bg():
             
             # Process with optimizations (light mode for free preview)
             session = get_session_512()
-            output_bytes = process_with_optimizations(input_image, session, is_premium=False)
+            output_bytes, debug_stats = process_with_optimizations(input_image, session, is_premium=False)
             
             # Convert to base64
             output_b64 = base64.b64encode(output_bytes).decode()
@@ -368,7 +441,7 @@ def free_preview_bg():
             
             logger.info(f"Free preview processed in {processing_time:.2f}s, output size: {output_size / 1024:.2f} KB")
             
-            return jsonify({
+            response_payload = {
                 'success': True,
                 'resultImage': result_image,
                 'outputSize': output_size,
@@ -381,7 +454,11 @@ def free_preview_bg():
                     'halo_removal': True,
                     'composite': True
                 }
-            }), 200
+            }
+            if os.environ.get('DEBUG_RETURN_STATS', '0') == '1':
+                response_payload['debugMask'] = debug_stats
+
+            return jsonify(response_payload), 200
             
         except Exception as decode_error:
             logger.error(f"Image decode/process error: {str(decode_error)}")
@@ -450,7 +527,7 @@ def premium_bg():
             
             # Process with full optimizations
             session = get_session_hd()
-            output_bytes = process_with_optimizations(input_image, session, is_premium=True)
+            output_bytes, debug_stats = process_with_optimizations(input_image, session, is_premium=True)
             
             # Convert to base64
             output_b64 = base64.b64encode(output_bytes).decode()
@@ -461,7 +538,7 @@ def premium_bg():
             
             logger.info(f"Premium HD processed in {processing_time:.2f}s, output size: {output_size / 1024:.2f} KB, user: {user_id}")
             
-            return jsonify({
+            response_payload = {
                 'success': True,
                 'resultImage': result_image,
                 'outputSize': output_size,
@@ -477,7 +554,11 @@ def premium_bg():
                     'halo_removal': True,
                     'composite': 'Pro-level PNG'
                 }
-            }), 200
+            }
+            if os.environ.get('DEBUG_RETURN_STATS', '0') == '1':
+                response_payload['debugMask'] = debug_stats
+
+            return jsonify(response_payload), 200
             
         except Exception as decode_error:
             logger.error(f"Image decode/process error: {str(decode_error)}")
