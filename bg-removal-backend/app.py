@@ -45,6 +45,36 @@ app = Flask(__name__)
 # Initialize AI model sessions (lazy loading with optimization)
 session_512 = None
 session_hd = None
+session_robust = None
+
+def is_document_image(image):
+    """
+    Detect if image is a document (A4, letter, etc.) by aspect ratio
+    A4: 1.414 (width/height) or 0.707 (height/width)
+    Letter: 1.294 or 0.773
+    Documents typically have aspect ratio between 0.6-0.8 or 1.2-1.7
+    """
+    if isinstance(image, Image.Image):
+        width, height = image.size
+    else:
+        height, width = image.shape[:2]
+    
+    aspect_ratio = width / height if height > 0 else 1.0
+    inverse_aspect = height / width if width > 0 else 1.0
+    
+    # Check if aspect ratio matches document formats (A4, Letter, etc.)
+    # A4: 210x297mm = 0.707 or 1.414
+    # Letter: 8.5x11in = 0.773 or 1.294
+    # Documents typically: 0.6-0.85 (portrait) or 1.2-1.7 (landscape)
+    is_portrait_doc = 0.6 <= aspect_ratio <= 0.85
+    is_landscape_doc = 1.2 <= aspect_ratio <= 1.7
+    
+    is_doc = is_portrait_doc or is_landscape_doc
+    
+    if is_doc:
+        logger.info(f"Document detected: aspect_ratio={aspect_ratio:.3f}, size={width}x{height}")
+    
+    return is_doc
 
 def get_session_512():
     """Get or create optimized 512px preview session with BiRefNet tuning"""
@@ -56,6 +86,20 @@ def get_session_512():
         session_512 = new_session('birefnet')
         logger.info("Optimized AI model session initialized for 512px (BiRefNet tuned)")
     return session_512
+
+def get_session_robust():
+    """Get or create RobustMatting session for document images"""
+    global session_robust
+    if session_robust is None:
+        logger.info("Initializing RobustMatting session for document processing...")
+        try:
+            session_robust = new_session('rmbg14')
+            logger.info("RobustMatting session initialized (rmbg14)")
+        except Exception as e:
+            logger.warning(f"RobustMatting (rmbg14) not available, falling back to birefnet: {e}")
+            session_robust = new_session('birefnet')
+            logger.info("Falling back to BiRefNet for document processing")
+    return session_robust
 
 def get_session_hd():
     """Get or create optimized HD session with BiRefNet tuning"""
@@ -236,21 +280,80 @@ def composite_pro_png(original_image, mask):
         original_image.putalpha(mask)
         return original_image
 
-def process_with_optimizations(input_image, session, is_premium=False):
+def apply_alpha_anti_bleed(mask, blur_radius=2):
+    """
+    Apply alpha anti-bleed to prevent border artifacts
+    Uses slight blur to smooth edges and prevent hard borders
+    """
+    if not CV2_AVAILABLE:
+        return mask
+    
+    try:
+        # Convert to numpy
+        if isinstance(mask, Image.Image):
+            mask_array = np.array(mask.convert('L'))
+        else:
+            mask_array = mask
+        
+        # Apply slight Gaussian blur to smooth edges
+        blurred = cv2.GaussianBlur(mask_array.astype(np.float32), (blur_radius * 2 + 1, blur_radius * 2 + 1), blur_radius)
+        
+        # Preserve strong foreground/background while smoothing edges
+        # Keep values > 200 and < 50 mostly unchanged, smooth the middle
+        strong_fg = mask_array > 200
+        strong_bg = mask_array < 50
+        blurred[strong_fg] = mask_array[strong_fg] * 0.9 + blurred[strong_fg] * 0.1
+        blurred[strong_bg] = mask_array[strong_bg] * 0.9 + blurred[strong_bg] * 0.1
+        
+        return Image.fromarray(blurred.astype(np.uint8), mode='L')
+    except Exception as e:
+        logger.warning(f"Alpha anti-bleed failed, using original mask: {str(e)}")
+        return mask if isinstance(mask, Image.Image) else Image.fromarray(mask, mode='L')
+
+def apply_matte_strength(mask, matte_strength=0.2):
+    """
+    Apply matte strength to preserve text and fine details
+    Reduces transparency in areas that should be fully opaque
+    """
+    try:
+        if isinstance(mask, Image.Image):
+            mask_array = np.array(mask.convert('L')).astype(np.float32)
+        else:
+            mask_array = mask.astype(np.float32)
+        
+        # Boost values above threshold to preserve text/details
+        # matte_strength controls how much we boost
+        threshold = 128
+        boost_factor = 1.0 + matte_strength
+        
+        # Boost values above threshold
+        boosted = np.where(mask_array > threshold, 
+                          np.minimum(255, mask_array * boost_factor),
+                          mask_array)
+        
+        return Image.fromarray(boosted.astype(np.uint8), mode='L')
+    except Exception as e:
+        logger.warning(f"Matte strength failed, using original mask: {str(e)}")
+        return mask if isinstance(mask, Image.Image) else Image.fromarray(mask, mode='L')
+
+def process_with_optimizations(input_image, session, is_premium=False, is_document=False):
     """
     Process image with all optimizations:
-    - BiRefNet model (already in session)
+    - BiRefNet or RobustMatting model (based on image type)
     - TensorRT FP16 (handled by ONNX Runtime GPU)
     - Guided Filter
-    - Feathering
+    - Feathering (with configurable settings)
     - Halo Removal
+    - Alpha Anti-Bleed (for border fixes)
+    - Matte Strength (for text preservation)
     - Composite
     """
     start_opt = time.time()
     debug_stats = {}
     
-    # Step 1: Remove background using BiRefNet (TensorRT FP16 via ONNX Runtime)
-    logger.info("Step 1: Removing background with optimized BiRefNet model...")
+    # Step 1: Remove background using AI model
+    model_name = "RobustMatting" if is_document else "BiRefNet"
+    logger.info(f"Step 1: Removing background with {model_name} model...")
     # rembg expects bytes-like input in some versions; always send bytes
     input_buffer = io.BytesIO()
     input_image.save(input_buffer, format='PNG')
@@ -277,10 +380,11 @@ def process_with_optimizations(input_image, session, is_premium=False):
             "mask_max": mask_max,
             "mask_shape": mask_np.shape,
             "mask_dtype": str(mask_np.dtype),
+            "model_used": model_name,
         })
         logger.info(
             f"Mask stats -> min: {mask_min}, max: {mask_max}, "
-            f"shape: {mask_np.shape}, dtype: {mask_np.dtype}"
+            f"shape: {mask_np.shape}, dtype: {mask_np.dtype}, model: {model_name}"
         )
         # Save raw mask for inspection
         try:
@@ -317,31 +421,57 @@ def process_with_optimizations(input_image, session, is_premium=False):
 
     debug_stats.update(mask_stats("mask_raw", mask))
 
-    # Step 2: Apply Guided Filter for smooth borders (Premium only for performance)
+    # Step 2: Apply Guided Filter for smooth borders
     if is_premium and CV2_AVAILABLE:
         logger.info("Step 2: Applying guided filter for smooth borders...")
         mask = guided_filter(input_image, mask, radius=5, eps=0.01)
         debug_stats.update(mask_stats("mask_after_guided", mask))
+    elif not is_premium and CV2_AVAILABLE:
+        # Light guided filter for free preview (smaller radius)
+        logger.info("Step 2: Applying light guided filter for free preview...")
+        mask = guided_filter(input_image, mask, radius=3, eps=0.02)
+        debug_stats.update(mask_stats("mask_after_guided", mask))
     
-    # Step 3: Apply Feathering for natural edges (premium only; free keeps raw mask to avoid over-smoothing to zero)
+    # Step 3: Apply Feathering with configurable settings
     if is_premium and SCIPY_AVAILABLE:
         logger.info("Step 3: Applying feathering for natural smooth edges...")
         feather_radius = 3
         mask = apply_feathering(mask, feather_radius=feather_radius)
         debug_stats.update(mask_stats("mask_after_feather", mask))
+    elif not is_premium and SCIPY_AVAILABLE:
+        # Free preview: Use lighter feathering (feather_radius=1.5)
+        logger.info("Step 3: Applying light feathering for free preview (feather_radius=1.5)...")
+        feather_radius = 1.5
+        mask = apply_feathering(mask, feather_radius=feather_radius)
+        debug_stats.update(mask_stats("mask_after_feather", mask))
     else:
         debug_stats.update(mask_stats("mask_after_feather_skipped", mask))
     
-    # Step 4: Remove halos (premium only; free keeps mask unchanged)
+    # Step 4: Apply Matte Strength for text preservation (especially for documents)
+    if not is_premium:
+        logger.info("Step 4: Applying matte strength (0.2) to preserve text and details...")
+        mask = apply_matte_strength(mask, matte_strength=0.2)
+        debug_stats.update(mask_stats("mask_after_matte", mask))
+    
+    # Step 5: Remove halos with configurable threshold
     if is_premium:
-        logger.info("Step 4: Removing halos and background leakage...")
+        logger.info("Step 5: Removing halos and background leakage...")
         mask = remove_halo(mask, input_image, threshold=0.15)
         debug_stats.update(mask_stats("mask_after_halo", mask))
-    else:
-        debug_stats.update(mask_stats("mask_after_halo_skipped", mask))
+    elif not is_premium:
+        # Free preview: Use lighter halo removal (halo_soften=0.2)
+        logger.info("Step 5: Applying light halo removal for free preview (halo_soften=0.2)...")
+        mask = remove_halo(mask, input_image, threshold=0.2)
+        debug_stats.update(mask_stats("mask_after_halo", mask))
     
-    # Step 5: Composite pro-level PNG
-    logger.info("Step 5: Creating pro-level PNG composite...")
+    # Step 6: Apply Alpha Anti-Bleed to fix border issues
+    if not is_premium:
+        logger.info("Step 6: Applying alpha anti-bleed (blur_radius=2) to fix borders...")
+        mask = apply_alpha_anti_bleed(mask, blur_radius=2)
+        debug_stats.update(mask_stats("mask_after_anti_bleed", mask))
+    
+    # Step 7: Composite pro-level PNG
+    logger.info("Step 7: Creating pro-level PNG composite...")
     final_image = composite_pro_png(input_image, mask)
     debug_stats.update(mask_stats("mask_final_used", mask))
     
@@ -418,6 +548,9 @@ def free_preview_bg():
             elif input_image.mode != 'RGB':
                 input_image = input_image.convert('RGB')
             
+            # Detect if image is a document (A4, letter, etc.)
+            is_document = is_document_image(input_image)
+            
             # Resize to max 512px for preview
             original_size = input_image.size
             max_dimension = max(original_size)
@@ -428,9 +561,15 @@ def free_preview_bg():
                 input_image = input_image.resize(new_size, Image.Resampling.LANCZOS)
                 logger.info(f"Resized image from {original_size} to {new_size} for preview")
             
-            # Process with optimizations (light mode for free preview)
-            session = get_session_512()
-            output_bytes, debug_stats = process_with_optimizations(input_image, session, is_premium=False)
+            # Select model based on image type
+            if is_document:
+                logger.info("Document detected - using RobustMatting for better text preservation")
+                session = get_session_robust()
+            else:
+                session = get_session_512()
+            
+            # Process with optimizations (light mode for free preview with new config)
+            output_bytes, debug_stats = process_with_optimizations(input_image, session, is_premium=False, is_document=is_document)
             
             # Convert to base64
             output_b64 = base64.b64encode(output_bytes).decode()
