@@ -1628,46 +1628,6 @@
     </div>
 
     <script>
-        // Initialize the resume data
-        let resumeData = {
-            personal: {
-                name: '',
-                title: '',
-                email: '',
-                phone: '',
-                address: '',
-                linkedin: ''
-            },
-            summary: '',
-            experience: [
-                {
-                    title: 'Job Title',
-                    company: 'Company Name',
-                    duration: 'Jan 2020 - Present',
-                    description: 'Description of responsibilities and achievements...'
-                }
-            ],
-            education: [
-                {
-                    degree: 'Degree Name',
-                    institution: 'Institution Name',
-                    year: '2016 - 2020'
-                }
-            ],
-            skills: ['Skill 1', 'Skill 2']
-        };
-
-        // Update preview when the page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            updatePreview();
-            
-            // Set up event listeners for the first experience and education items
-            document.querySelectorAll('.job-title, .company, .duration, .description, .degree, .institution, .year')
-                .forEach(input => {
-                    input.addEventListener('input', updatePreview);
-                });
-        });
-
         // Update the preview with the current form data
         function updatePreview() {
             const fullName = document.getElementById('fullName').value || 'Your Name';
