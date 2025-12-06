@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resume Maker Online Free - Create Professional Resume & CV Builder 2025 | easyjpgtopdf</title>
-    <meta name="description" content="Create professional resumes and CVs online for free. Best free resume builder with templates. Download in PDF format. No registration required. Fast & secure resume maker.">
-    <meta name="keywords" content="resume maker, resume builder, cv builder, create resume online, free resume maker, resume template, professional resume, cv maker, online resume builder, resume generator, free cv builder, resume builder online, resume creator, cv creator, make resume, build resume, resume website, best resume builder, resume maker free, cv maker online, professional cv builder">
+    <meta name="description" content="Create professional resumes and CVs online for free. Best free resume builder with templates. Download in PDF or Word format instantly. No registration required. Fast, secure, and completely free resume maker tool.">
+    <meta name="keywords" content="resume maker, resume builder, cv builder, create resume online, free resume maker, resume template, professional resume, cv maker, online resume builder, resume generator, free cv builder, resume builder online, resume creator, cv creator, make resume, build resume, resume website, best resume builder, resume maker free, cv maker online, professional cv builder, free resume template, resume builder 2025, create cv online, resume maker tool, online cv builder, resume format, cv format, resume download, cv download">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://easyjpgtopdf.com/resume-maker.html">
     <meta property="og:title" content="Resume Maker Online Free - Create Professional Resume & CV Builder 2025">
@@ -1204,7 +1204,7 @@
       "@context": "https://schema.org",
       "@type": "WebApplication",
       "name": "Resume Maker Online Free - Create Professional Resume & CV Builder 2025",
-      "description": "Create professional resumes and CVs online for free. Best free resume builder with templates. Download in PDF format. No registration required. Fast & secure resume maker.",
+      "description": "Create professional resumes and CVs online for free. Best free resume builder with templates. Download in PDF or Word format instantly. No registration required. Fast, secure, and completely free resume maker tool.",
       "url": "https://easyjpgtopdf.com/resume-maker.html",
       "applicationCategory": "UtilityApplication",
       "operatingSystem": "Any",
@@ -1249,15 +1249,16 @@
 
 <section class="hero" style="background: linear-gradient(135deg, #4361ee, #3a0ca3); color: #fff; padding: 40px 0; text-align: center; margin-bottom: 24px;">
 <div class="container">
-<h1 style="font-size: 2.5rem; margin-bottom: 15px;">Resume Maker Online Free - Create Professional Resume & CV Builder 2025</h1>
-<p style="font-size: 1.2rem; opacity: 0.95;">Create professional resumes and CVs online for free. Best free resume builder with customizable templates. Download in PDF format instantly. No registration required.</p>
+<h1>Resume Maker Online Free - Create Professional Resume & CV Builder 2025</h1>
+<h2 style="font-size: 1.3rem; opacity: 0.95; margin-top: 10px; font-weight: 400;">Free Online Resume Builder with Live Preview</h2>
+<p style="font-size: 1.2rem; opacity: 0.95; margin-top: 15px;">Create professional resumes and CVs online for free. Best free resume builder with customizable templates. Download in PDF or Word format instantly. No registration required.</p>
 </div>
 </section>
 
     <div class="container">
         <div class="app-container">
             <div class="form-section">
-                <h2>Free Resume Builder - Create Your Professional Resume</h2>
+                <h2 style="font-size: 1.8rem; color: var(--primary); margin-bottom: 20px;">Free Resume Builder - Create Your Professional Resume</h2>
                 <div class="personal-info-grid">
                     <div class="personal-fields">
                         <div class="form-group">
@@ -2558,11 +2559,49 @@
                 }
             });
 
-            // Add auto-update listeners
-            document.querySelectorAll('input, textarea, select').forEach(element => {
-                element.addEventListener('input', updatePreview);
-                element.addEventListener('change', updatePreview);
+            // Add auto-update listeners - ensure all inputs update preview in real-time
+            function attachPreviewListeners() {
+                document.querySelectorAll('input, textarea, select').forEach(element => {
+                    // Remove existing listeners to avoid duplicates
+                    const newElement = element.cloneNode(true);
+                    element.parentNode.replaceChild(newElement, element);
+                    // Add listeners to new element
+                    newElement.addEventListener('input', updatePreview);
+                    newElement.addEventListener('change', updatePreview);
+                    if (newElement.type === 'date') {
+                        newElement.addEventListener('change', updatePreview);
+                    }
+                });
+            }
+            
+            // Attach listeners immediately
+            attachPreviewListeners();
+            
+            // Also attach listeners after a short delay to catch dynamically added elements
+            setTimeout(attachPreviewListeners, 500);
+            
+            // Use MutationObserver to watch for new form elements
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1) { // Element node
+                            if (node.matches && (node.matches('input, textarea, select') || node.querySelector('input, textarea, select'))) {
+                                const inputs = node.matches ? [node] : node.querySelectorAll('input, textarea, select');
+                                inputs.forEach(input => {
+                                    input.addEventListener('input', updatePreview);
+                                    input.addEventListener('change', updatePreview);
+                                });
+                            }
+                        }
+                    });
+                });
             });
+            
+            // Observe the form section for changes
+            const formSection = document.querySelector('.form-section');
+            if (formSection) {
+                observer.observe(formSection, { childList: true, subtree: true });
+            }
 
             // Watch for programmatic value changes in work experience fields
             function checkWorkExpChanges() {
@@ -2636,6 +2675,182 @@
             // Initialize the preview with default values
             updatePreview();
         });
+    </script>
+
+    <section class="explanatory-content" style="margin: 40px 0; padding: 40px; background: linear-gradient(135deg, #f8f9ff, #ffffff); border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <div class="container" style="max-width: 900px; margin: 0 auto;">
+            <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 20px; text-align: center;">
+                <i class="fas fa-info-circle" style="margin-right: 10px;"></i>
+                About Free Resume Maker
+            </h2>
+            <div class="content-text" style="font-size: 1.1rem; color: #56607a; line-height: 1.8; text-align: center; margin-bottom: 30px;">
+                <p>Looking for a quick way to create a professional resume? You've come to the right place. Our free resume maker lets you build a polished CV in minutes without any hassle. Just fill in your details, see the live preview update as you type, and download your resume in PDF or Word format when you're done.</p>
+                <p style="margin-top: 15px;">We built this tool because we know how frustrating it can be to format a resume from scratch. Whether you're a fresh graduate or an experienced professional, our resume builder adapts to your needs. You can add work experience, education details, skills, and personal information - everything you need to make a strong first impression.</p>
+                <p style="margin-top: 15px;">The best part? It's completely free and works right in your browser. No software to download, no accounts to create. Your data stays on your device, so you can work on your resume with complete privacy. Once you're happy with how it looks, download it and start applying for jobs right away.</p>
+            </div>
+            
+            <div class="features-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 30px;">
+                <div class="feature-item" style="padding: 20px; background: white; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <i class="fas fa-bolt" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                    <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px;">Instant Preview</h3>
+                    <p style="color: #56607a; font-size: 0.95rem;">See your resume update in real-time as you type</p>
+                </div>
+                
+                <div class="feature-item" style="padding: 20px; background: white; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <i class="fas fa-shield-alt" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                    <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px;">100% Private</h3>
+                    <p style="color: #56607a; font-size: 0.95rem;">Your data never leaves your browser - complete privacy</p>
+                </div>
+                
+                <div class="feature-item" style="padding: 20px; background: white; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <i class="fas fa-file-download" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                    <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px;">Multiple Formats</h3>
+                    <p style="color: #56607a; font-size: 0.95rem;">Download as PDF or Word document instantly</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="how-to-guide" style="margin: 40px 0; padding: 40px; background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
+            <i class="fas fa-book-open" style="margin-right: 10px;"></i>
+            How to Create Your Resume
+        </h2>
+        <div class="steps-container" style="max-width: 800px; margin: 0 auto;">
+            <ol style="list-style: none; padding: 0; counter-reset: step-counter;">
+
+                <li style="counter-increment: step-counter; margin-bottom: 25px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee; position: relative; padding-left: 60px;">
+                    <span style="position: absolute; left: 15px; top: 20px; background: #4361ee; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">
+                        1
+                    </span>
+                    <p style="font-size: 1.1rem; color: #0b1630; line-height: 1.6; margin: 0;">
+                        Fill in your personal information - name, contact details, and professional title. Upload a photo if you want.
+                    </p>
+                </li>
+
+                <li style="counter-increment: step-counter; margin-bottom: 25px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee; position: relative; padding-left: 60px;">
+                    <span style="position: absolute; left: 15px; top: 20px; background: #4361ee; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">
+                        2
+                    </span>
+                    <p style="font-size: 1.1rem; color: #0b1630; line-height: 1.6; margin: 0;">
+                        Add your work experience and education details. You can add multiple entries by clicking the "Add" buttons.
+                    </p>
+                </li>
+
+                <li style="counter-increment: step-counter; margin-bottom: 25px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee; position: relative; padding-left: 60px;">
+                    <span style="position: absolute; left: 15px; top: 20px; background: #4361ee; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">
+                        3
+                    </span>
+                    <p style="font-size: 1.1rem; color: #0b1630; line-height: 1.6; margin: 0;">
+                        Watch the live preview update as you type. Make sure everything looks good before downloading.
+                    </p>
+                </li>
+
+                <li style="counter-increment: step-counter; margin-bottom: 25px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee; position: relative; padding-left: 60px;">
+                    <span style="position: absolute; left: 15px; top: 20px; background: #4361ee; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">
+                        4
+                    </span>
+                    <p style="font-size: 1.1rem; color: #0b1630; line-height: 1.6; margin: 0;">
+                        Click "Download PDF" or "Download Word" to save your resume and start applying for jobs!
+                    </p>
+                </li>
+
+            </ol>
+        </div>
+    </section>
+
+    <section class="related-tools" style="margin: 40px 0; padding: 40px; background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
+            <i class="fas fa-tools" style="margin-right: 10px;"></i>
+            Related Tools
+        </h2>
+        <div class="tools-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+
+            <a href="biodata-maker.html" style="display: block; padding: 20px; background: #f8f9ff; border-radius: 12px; text-decoration: none; text-align: center; transition: transform 0.3s, box-shadow 0.3s; border: 2px solid transparent;" 
+               onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(67,97,238,0.2)'; this.style.borderColor='#4361ee';"
+               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.borderColor='transparent';">
+                <i class="fas fa-file-alt" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                <h3 style="font-size: 1.1rem; color: #0b1630; margin: 0;">Biodata Maker</h3>
+            </a>
+
+            <a href="marriage-card.html" style="display: block; padding: 20px; background: #f8f9ff; border-radius: 12px; text-decoration: none; text-align: center; transition: transform 0.3s, box-shadow 0.3s; border: 2px solid transparent;" 
+               onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(67,97,238,0.2)'; this.style.borderColor='#4361ee';"
+               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.borderColor='transparent';">
+                <i class="fas fa-heart" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                <h3 style="font-size: 1.1rem; color: #0b1630; margin: 0;">Marriage Card Maker</h3>
+            </a>
+
+            <a href="Indian-style-Resume-generator.html" style="display: block; padding: 20px; background: #f8f9ff; border-radius: 12px; text-decoration: none; text-align: center; transition: transform 0.3s, box-shadow 0.3s; border: 2px solid transparent;" 
+               onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(67,97,238,0.2)'; this.style.borderColor='#4361ee';"
+               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.borderColor='transparent';">
+                <i class="fas fa-file-invoice" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                <h3 style="font-size: 1.1rem; color: #0b1630; margin: 0;">Indian Style Resume</h3>
+            </a>
+
+            <a href="online_resume_maker.html" style="display: block; padding: 20px; background: #f8f9ff; border-radius: 12px; text-decoration: none; text-align: center; transition: transform 0.3s, box-shadow 0.3s; border: 2px solid transparent;" 
+               onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(67,97,238,0.2)'; this.style.borderColor='#4361ee';"
+               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.borderColor='transparent';">
+                <i class="fas fa-briefcase" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                <h3 style="font-size: 1.1rem; color: #0b1630; margin: 0;">Online Resume Maker</h3>
+            </a>
+
+        </div>
+    </section>
+
+    <section class="faq-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
+            <i class="fas fa-question-circle" style="margin-right: 10px;"></i>
+            Frequently Asked Questions
+        </h2>
+        <div class="faq-container" style="max-width: 800px; margin: 0 auto;">
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    Is this resume maker really free?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Yes, completely free! No hidden charges, no premium features locked behind paywalls. Create and download as many resumes as you want.
+                </div>
+            </div>
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    Do I need to create an account?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    No account needed! Just open the page, fill in your details, and download your resume. Your data stays on your device.
+                </div>
+            </div>
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    Can I download my resume in different formats?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Yes! You can download your resume as a PDF file or as a Word document. Both formats work great for job applications.
+                </div>
+            </div>
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    Is my data safe and private?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Absolutely! Everything you type stays in your browser. We don't store your information on any server. Your resume data is completely private.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+    function toggleFaq(element) {
+        const answer = element.nextElementSibling;
+        const icon = element.querySelector('i');
+        const isOpen = answer.style.display === 'block';
+
+        answer.style.display = isOpen ? 'none' : 'block';
+        icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+    }
     </script>
 
     <footer>
