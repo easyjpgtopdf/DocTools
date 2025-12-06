@@ -623,7 +623,43 @@
     const icOriginalSize = document.getElementById('ic-original-size');
     const icNewSize = document.getElementById('ic-new-size');
     const icFormats = document.getElementById('ic-formats');
+    const icTargetSize = document.getElementById('ic-target-size');
+    const icSizeUnit = document.getElementById('ic-size-unit');
     let originalImg=null, originalFile=null, currentFormat='jpeg', compressedDataUrl=null;
+    
+    // Function to compress image to target size
+    function compressToTargetSize(canvas, ctx, targetBytes, mimeType, maxIterations = 20) {
+      let minQuality = 0.1;
+      let maxQuality = 1.0;
+      let bestQuality = 0.5;
+      let bestDataUrl = null;
+      let bestSize = Infinity;
+      
+      for (let i = 0; i < maxIterations; i++) {
+        const quality = (minQuality + maxQuality) / 2;
+        const dataUrl = canvas.toDataURL(mimeType, quality);
+        const base64Data = dataUrl.split(',')[1];
+        const size = atob(base64Data).length;
+        
+        if (Math.abs(size - targetBytes) < Math.abs(bestSize - targetBytes)) {
+          bestSize = size;
+          bestQuality = quality;
+          bestDataUrl = dataUrl;
+        }
+        
+        if (size > targetBytes) {
+          maxQuality = quality;
+        } else {
+          minQuality = quality;
+        }
+        
+        if (Math.abs(size - targetBytes) < targetBytes * 0.05) {
+          break; // Within 5% of target
+        }
+      }
+      
+      return { dataUrl: bestDataUrl, quality: bestQuality, size: bestSize };
+    }
 
     icQuality.addEventListener('input',()=>{ icQualityValue.textContent = icQuality.value + '%'; });
     icFormats.addEventListener('click',(e)=>{ const b=e.target.closest('[data-format]'); if(!b) return; currentFormat=b.getAttribute('data-format'); [...icFormats.children].forEach(c=>{c.classList.remove('active'); c.style.background=''; c.style.color='';}); b.classList.add('active'); b.style.background='#4361ee'; b.style.color='white'; if(originalImg) estimateSize(); });
@@ -651,33 +687,113 @@
     }
     function formatSize(bytes){ if(bytes<1024) return bytes+' B'; if(bytes<1048576) return (bytes/1024).toFixed(1)+' KB'; return (bytes/1048576).toFixed(2)+' MB'; }
 
-    icApply.addEventListener('click',()=>{
+    icApply.addEventListener('click',async ()=>{
       if(!originalImg){ alert('Please upload an image first'); return; }
-      const canvas=document.createElement('canvas');
-      canvas.width=originalImg.naturalWidth; canvas.height=originalImg.naturalHeight;
-      const ctx=canvas.getContext('2d'); 
-      ctx.drawImage(originalImg,0,0);
-      const q=parseInt(icQuality.value)/100;
-      const mimeType = currentFormat === 'jpeg' ? 'image/jpeg' : (currentFormat === 'png' ? 'image/png' : 'image/webp');
-      compressedDataUrl = canvas.toDataURL(mimeType, q);
-      // Update preview to show compressed image
-      icPreview.innerHTML=''; 
-      const outImg=document.createElement('img'); 
-      outImg.src=compressedDataUrl; 
-      icPreview.appendChild(outImg);
-      // Compute actual compressed size and show on screen
-      try{ 
-        const base64Data = compressedDataUrl.split(',')[1];
-        const bytes = atob(base64Data).length; 
-        icNewSize.textContent = formatSize(bytes);
-        alert('Image compressed successfully! Click Download to save.');
-      }catch(e){ 
-        console.error('Error calculating size:', e);
-        estimateSize(); 
+      
+      if(currentFormat === 'pdf'){
+        // Handle PDF conversion
+        try{
+          if(!window.jspdf){
+            alert('PDF library is loading. Please wait a moment and try again.');
+            return;
+          }
+          const { jsPDF } = window.jspdf;
+          
+          // Convert image to data URL with quality
+          const canvas = document.createElement('canvas');
+          canvas.width = originalImg.naturalWidth;
+          canvas.height = originalImg.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(originalImg, 0, 0);
+          
+          let q = parseInt(icQuality.value) / 100;
+          let imgData = canvas.toDataURL('image/jpeg', q);
+          
+          // Check if target size is set
+          if(icTargetSize.value && parseFloat(icTargetSize.value) > 0){
+            const unit = icSizeUnit.value;
+            const targetSize = parseFloat(icTargetSize.value);
+            const targetBytes = unit === 'MB' ? targetSize * 1024 * 1024 : targetSize * 1024;
+            
+            // Compress to target size
+            const result = compressToTargetSize(canvas, ctx, targetBytes, 'image/jpeg');
+            imgData = result.dataUrl;
+            q = result.quality;
+            icQuality.value = Math.round(q * 100);
+            icQualityValue.textContent = Math.round(q * 100) + '%';
+          }
+          
+          // Create PDF with proper dimensions
+          const pdfWidth = originalImg.naturalWidth;
+          const pdfHeight = originalImg.naturalHeight;
+          const pdf = new jsPDF({
+            unit: 'px',
+            format: [pdfWidth, pdfHeight]
+          });
+          
+          pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+          
+          // Get PDF as blob for size calculation
+          const pdfBlob = pdf.output('blob');
+          compressedDataUrl = URL.createObjectURL(pdfBlob);
+          
+          // Update preview
+          icPreview.innerHTML='<p style="padding: 20px; color: #4361ee; font-weight: 600; text-align: center;"><i class="fas fa-file-pdf" style="font-size: 3rem; display: block; margin-bottom: 10px;"></i>PDF ready for download</p>';
+          
+          // Show actual PDF size
+          icNewSize.textContent = formatSize(pdfBlob.size);
+          alert('Image converted to PDF successfully! Click Download to save.');
+        }catch(e){
+          console.error('PDF conversion error:', e);
+          alert('Error converting to PDF. Please try again.');
+        }
+      } else {
+        // Handle image formats
+        const canvas=document.createElement('canvas');
+        canvas.width=originalImg.naturalWidth; 
+        canvas.height=originalImg.naturalHeight;
+        const ctx=canvas.getContext('2d'); 
+        ctx.drawImage(originalImg,0,0);
+        
+        const mimeType = currentFormat === 'jpeg' ? 'image/jpeg' : (currentFormat === 'png' ? 'image/png' : 'image/webp');
+        let q = parseInt(icQuality.value) / 100;
+        
+        // Check if target size is set
+        if(icTargetSize.value && parseFloat(icTargetSize.value) > 0){
+          const unit = icSizeUnit.value;
+          const targetSize = parseFloat(icTargetSize.value);
+          const targetBytes = unit === 'MB' ? targetSize * 1024 * 1024 : targetSize * 1024;
+          
+          // Compress to target size
+          const result = compressToTargetSize(canvas, ctx, targetBytes, mimeType);
+          compressedDataUrl = result.dataUrl;
+          q = result.quality;
+          icQuality.value = Math.round(q * 100);
+          icQualityValue.textContent = Math.round(q * 100) + '%';
+        } else {
+          compressedDataUrl = canvas.toDataURL(mimeType, q);
+        }
+        
+        // Update preview to show compressed image
+        icPreview.innerHTML=''; 
+        const outImg=document.createElement('img'); 
+        outImg.src=compressedDataUrl; 
+        icPreview.appendChild(outImg);
+        
+        // Compute actual compressed size and show on screen
+        try{ 
+          const base64Data = compressedDataUrl.split(',')[1];
+          const bytes = atob(base64Data).length; 
+          icNewSize.textContent = formatSize(bytes);
+          alert('Image compressed successfully! Click Download to save.');
+        }catch(e){ 
+          console.error('Error calculating size:', e);
+          estimateSize(); 
+        }
       }
     });
 
-    icDownload.addEventListener('click',()=>{
+    icDownload.addEventListener('click',async ()=>{
       if(!originalImg){ alert('Please upload an image first'); return; }
       if(!compressedDataUrl){
         alert('Please click Compress button first to compress/convert the image');
@@ -687,22 +803,43 @@
       if(currentFormat === 'pdf'){
         // Download PDF
         try{
+          if(!window.jspdf){
+            alert('PDF library is loading. Please wait a moment and try again.');
+            return;
+          }
           const { jsPDF } = window.jspdf;
-          const pdf = new jsPDF({
-            orientation: originalImg.naturalWidth > originalImg.naturalHeight ? 'landscape' : 'portrait',
-            unit: 'px',
-            format: [originalImg.naturalWidth, originalImg.naturalHeight]
-          });
           
+          // Convert image to data URL with quality
           const canvas = document.createElement('canvas');
           canvas.width = originalImg.naturalWidth;
           canvas.height = originalImg.naturalHeight;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(originalImg, 0, 0);
-          const q = parseInt(icQuality.value) / 100;
-          const imgData = canvas.toDataURL('image/jpeg', q);
           
-          pdf.addImage(imgData, 'JPEG', 0, 0, originalImg.naturalWidth, originalImg.naturalHeight);
+          let q = parseInt(icQuality.value) / 100;
+          let imgData = canvas.toDataURL('image/jpeg', q);
+          
+          // Check if target size is set
+          if(icTargetSize.value && parseFloat(icTargetSize.value) > 0){
+            const unit = icSizeUnit.value;
+            const targetSize = parseFloat(icTargetSize.value);
+            const targetBytes = unit === 'MB' ? targetSize * 1024 * 1024 : targetSize * 1024;
+            
+            // Compress to target size
+            const result = compressToTargetSize(canvas, ctx, targetBytes, 'image/jpeg');
+            imgData = result.dataUrl;
+            q = result.quality;
+          }
+          
+          // Create PDF with proper dimensions
+          const pdfWidth = originalImg.naturalWidth;
+          const pdfHeight = originalImg.naturalHeight;
+          const pdf = new jsPDF({
+            unit: 'px',
+            format: [pdfWidth, pdfHeight]
+          });
+          
+          pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
           pdf.save('compressed.pdf');
         }catch(e){
           console.error('PDF download error:', e);
