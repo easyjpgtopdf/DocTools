@@ -2203,14 +2203,15 @@ SSL Security & Trust Section -->
         
         // File upload handler - set up after DOM is ready
         function setupFileUploadHandler() {
-            if (!fileInput) {
+            const currentFileInput = document.getElementById('file-input');
+            if (!currentFileInput) {
                 console.error('File input not found');
                 return;
             }
             
-            // Remove existing listener if any
-            const newFileInput = fileInput.cloneNode(true);
-            fileInput.parentNode.replaceChild(newFileInput, fileInput);
+            // Remove existing listener if any by cloning
+            const newFileInput = currentFileInput.cloneNode(true);
+            currentFileInput.parentNode.replaceChild(newFileInput, currentFileInput);
             
             newFileInput.addEventListener('change', async function(e) {
                 const file = e.target.files[0];
