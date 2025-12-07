@@ -1260,9 +1260,9 @@
                         <div class="property-item">
                             <select class="property-input" id="export-format-select" style="margin-bottom: 5px;">
                                 <option value="pdf">PDF</option>
-                                <option value="word">Word (DOCX)</option>
-                                <option value="excel">Excel (XLSX)</option>
-                                <option value="powerpoint">PowerPoint (PPTX)</option>
+                                <option value="word" disabled>Word (DOCX) - Coming soon</option>
+                                <option value="excel" disabled>Excel (XLSX) - Coming soon</option>
+                                <option value="powerpoint" disabled>PowerPoint (PPTX) - Coming soon</option>
                                 <option value="image">Images (PNG)</option>
                             </select>
                             <button class="property-input" id="export-btn" style="width: 100%; padding: 8px; background: #0078d4; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
@@ -3233,132 +3233,7 @@ SSL Security & Trust Section -->
             });
         }
         
-        // Fast Server-Side OCR (Alternative fast processing)
-        if (ocrServerBtn) {
-            ocrServerBtn.addEventListener('click', async function() {
-                if (!currentSessionId) return;
-                
-                try {
-                    showLoading('Processing...', 10);
-                    
-                    // Use backend /page/render to get PNG image (NO PDF.js)
-                    if (!currentSessionId) {
-                        throw new Error('No active PDF session');
-                    }
-                    
-                    const { renderPage: renderPageBackend } = await import('./js/pdf-editor-api.js');
-                    const imageUrl = await renderPageBackend(currentSessionId, window.pdfEditorVars.currentPage, 2.0);
-                    
-                    // Convert image URL to data URL
-                    const img = new Image();
-                    img.crossOrigin = 'anonymous';
-                    const imageData = await new Promise((resolve, reject) => {
-                        img.onload = function() {
-                            const canvas = document.createElement('canvas');
-                            canvas.width = img.width;
-                            canvas.height = img.height;
-                            const ctx = canvas.getContext('2d');
-                            ctx.drawImage(img, 0, 0);
-                            resolve(canvas.toDataURL('image/png'));
-                            URL.revokeObjectURL(imageUrl);
-                        };
-                        img.onerror = reject;
-                        img.src = imageUrl;
-                    });
-                    
-                    // Use backend OCR API (same as regular OCR button)
-                    if (!currentSessionId) {
-                        throw new Error('No active PDF session. Please upload PDF first.');
-                    }
-                    
-                    const userId = await getCurrentUserId();
-                    const { ocrPage } = await import('./js/pdf-editor-api.js');
-                    
-                    let ocrResult;
-                    try {
-                        ocrResult = await ocrPage(currentSessionId, window.pdfEditorVars.currentPage, userId);
-                    } catch (ocrError) {
-                        // Better error handling for JSON parse errors
-                        if (ocrError.message && (ocrError.message.includes('JSON') || ocrError.message.includes('Unexpected token'))) {
-                            throw new Error('OCR service temporarily unavailable. Please try again in a moment.');
-                        }
-                        throw ocrError;
-                    }
-                    
-                    // Backend returns 'results' not 'texts'
-                    const ocrTexts = ocrResult.results || ocrResult.texts || [];
-                    
-                    if (!ocrTexts || ocrTexts.length === 0) {
-                        throw new Error('No text found in the image');
-                    }
-                    
-                    // Convert to expected format
-                    const result = {
-                        success: true,
-                        text: ocrTexts.map(t => t.text || '').join(' '),
-                        words: ocrTexts.map(word => {
-                            let bbox = word.bbox || [];
-                            let x0 = 0, y0 = 0, x1 = 0, y1 = 0;
-                            
-                            if (Array.isArray(bbox)) {
-                                if (bbox.length === 4 && typeof bbox[0] === 'number') {
-                                    [x0, y0, x1, y1] = bbox;
-                                } else if (bbox.length === 4 && Array.isArray(bbox[0])) {
-                                    const xs = bbox.map(p => p[0]);
-                                    const ys = bbox.map(p => p[1]);
-                                    x0 = Math.min(...xs);
-                                    y0 = Math.min(...ys);
-                                    x1 = Math.max(...xs);
-                                    y1 = Math.max(...ys);
-                                }
-                            }
-                            
-                            return {
-                                text: word.text || '',
-                                boundingBox: {
-                                    x: x0,
-                                    y: y0,
-                                    width: x1 - x0,
-                                    height: y1 - y0
-                                },
-                                confidence: word.confidence || 0.9
-                            };
-                        }),
-                        method: 'Fast Server-Side OCR'
-                    };
-                    
-                    if (result && result.success) {
-                        
-                        // Determine which service was actually used
-                        let serviceName = 'Fast Server OCR';
-                        if (result.method) {
-                            if (result.method.includes('server') || result.method.includes('advanced')) {
-                                serviceName = 'Server OCR (Fast)';
-                            } else if (result.method === 'client-side' || result.method.includes('client')) {
-                                serviceName = 'Client-side OCR';
-                            } else {
-                                serviceName = result.method || 'OCR';
-                            }
-                        }
-                        
-                        alert('Fast OCR completed! ' + (result.words ? result.words.length : 0) + ' words extracted.');
-                    }
-                    
-                    hideLoading();
-                } catch (error) {
-                    console.error('Fast OCR error:', error);
-                    hideLoading();
-                    // Better error handling for JSON parse errors
-                    let errorMsg = 'Error performing OCR';
-                    if (error.message && error.message.includes('JSON')) {
-                        errorMsg = 'OCR service temporarily unavailable. Please try again in a moment.';
-                    } else {
-                        errorMsg = 'Error performing OCR: ' + (error.message || 'Unknown error');
-                    }
-                    alert(errorMsg);
-                }
-            });
-        }
+        // Fast OCR removed - OCR functionality merged into single OCR button
         
         // Download with server processing - Returns edited PDF
         if (downloadBtn) {
