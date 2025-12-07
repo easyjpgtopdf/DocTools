@@ -6811,7 +6811,8 @@ SSL Security & Trust Section -->
                         showLoading('Starting advanced OCR...', 10);
                         updateProgress(20, 'Rendering page to image...');
                         
-                        const page = await window.pdfEditorVars.pdfDoc.getPage(window.pdfEditorVars.currentPage);
+                        // PDF.js removed - use backend /page/render instead
+                        // Page rendering is handled by renderPage() function
                         const viewport = page.getViewport({ scale: 3.0 }); // Higher scale for better accuracy
                         const canvas = document.createElement('canvas');
                         canvas.width = viewport.width;
