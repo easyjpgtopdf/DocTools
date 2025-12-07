@@ -6809,23 +6809,34 @@ SSL Security & Trust Section -->
                     
                     try {
                         showLoading('Starting advanced OCR...', 10);
-                        updateProgress(20, 'Rendering page to image...');
+                        updateProgress(20, 'Getting page image from backend...');
                         
-                        // PDF.js removed - use backend /page/render instead
-                        // Page rendering is handled by renderPage() function
-                        const viewport = page.getViewport({ scale: 3.0 }); // Higher scale for better accuracy
-                        const canvas = document.createElement('canvas');
-                        canvas.width = viewport.width;
-                        canvas.height = viewport.height;
-                        const context = canvas.getContext('2d');
+                        // Use backend /page/render to get PNG image (NO PDF.js)
+                        if (!currentSessionId) {
+                            throw new Error('No active PDF session');
+                        }
                         
-                        await page.render({
-                            canvasContext: context,
-                            viewport: viewport
-                        }).promise;
+                        const { renderPage: renderPageBackend } = await import('./js/pdf-editor-api.js');
+                        const imageUrl = await renderPageBackend(currentSessionId, window.pdfEditorVars.currentPage, 3.0);
                         
-                        updateProgress(40, 'Converting to image...');
-                        const imageData = canvas.toDataURL('image/png');
+                        // Convert image URL to data URL for OCR
+                        const img = new Image();
+                        img.crossOrigin = 'anonymous';
+                        const imageData = await new Promise((resolve, reject) => {
+                            img.onload = function() {
+                                const canvas = document.createElement('canvas');
+                                canvas.width = img.width;
+                                canvas.height = img.height;
+                                const ctx = canvas.getContext('2d');
+                                ctx.drawImage(img, 0, 0);
+                                resolve(canvas.toDataURL('image/png'));
+                                URL.revokeObjectURL(imageUrl);
+                            };
+                            img.onerror = reject;
+                            img.src = imageUrl;
+                        });
+                        
+                        updateProgress(40, 'Image ready for OCR...');
                         
                         updateProgress(50, 'Sending to OCR service...');
                         const apiBaseUrl = getApiBaseUrl();
