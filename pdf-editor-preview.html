@@ -3128,7 +3128,7 @@ SSL Security & Trust Section -->
                             const currentPage = window.pdfEditorVars?.currentPage || 1;
                             
                             const userId = await getCurrentUserId();
-                            const ocrResult = await ocrPage(sessionId, currentPage, userId);
+                            const ocrResult = await ocrPage(currentSessionId, currentPage, userId);
                             
                             updateProgress(95, 'Processing OCR results...');
                             
