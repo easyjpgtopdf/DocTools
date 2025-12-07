@@ -1003,14 +1003,10 @@
                     </div>
                     
                     <div class="tool-group">
-                        <div class="tool-group-title">OCR <span class="performance-badge">⚡ Fast</span></div>
-                        <div class="tool-item" id="ocr-btn" title="Advanced OCR">
+                        <div class="tool-group-title">OCR</div>
+                        <div class="tool-item" id="ocr-btn" title="Server-Side OCR">
                             <i class="fas fa-language"></i>
                             <span>OCR</span>
-                        </div>
-                        <div class="tool-item" id="ocr-server-btn" title="Server-Side Fast OCR">
-                            <i class="fas fa-server"></i>
-                            <span>Fast Server OCR</span>
                         </div>
                     </div>
                     
@@ -1062,32 +1058,7 @@
                         </div>
                     </div>
                     
-                    <div class="tool-group">
-                        <div class="tool-group-title">Export</div>
-                        <div class="tool-item" id="export-dropdown-btn" title="Export PDF" style="position: relative; cursor: pointer;">
-                            <i class="fas fa-download"></i>
-                            <span>Export</span>
-                            <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: 5px;"></i>
-                            <div id="export-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; background: #2d2d2d; border: 1px solid #3a3a3a; border-radius: 4px; min-width: 200px; z-index: 1000; margin-top: 5px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
-                                <div class="export-option" data-export="word" style="padding: 12px 15px; cursor: pointer; display: flex; align-items: center; gap: 12px; color: #e5e5e5; border-bottom: 1px solid #3a3a3a; transition: background 0.2s;">
-                                    <i class="fas fa-file-word" style="color: #2b579a; font-size: 18px;"></i>
-                                    <span>Export to Word</span>
-                                </div>
-                                <div class="export-option" data-export="excel" style="padding: 12px 15px; cursor: pointer; display: flex; align-items: center; gap: 12px; color: #e5e5e5; border-bottom: 1px solid #3a3a3a; transition: background 0.2s;">
-                                    <i class="fas fa-file-excel" style="color: #217346; font-size: 18px;"></i>
-                                    <span>Export to Excel</span>
-                                </div>
-                                <div class="export-option" data-export="powerpoint" style="padding: 12px 15px; cursor: pointer; display: flex; align-items: center; gap: 12px; color: #e5e5e5; border-bottom: 1px solid #3a3a3a; transition: background 0.2s;">
-                                    <i class="fas fa-file-powerpoint" style="color: #d04423; font-size: 18px;"></i>
-                                    <span>Export to PowerPoint</span>
-                                </div>
-                                <div class="export-option" data-export="image" style="padding: 12px 15px; cursor: pointer; display: flex; align-items: center; gap: 12px; color: #e5e5e5; transition: background 0.2s;">
-                                    <i class="fas fa-file-image" style="color: #4caf50; font-size: 18px;"></i>
-                                    <span>Export to Images</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Export removed from left panel - available in right panel only -->
                     
                     <div class="tool-group">
                         <div class="tool-group-title">Page Management</div>
@@ -1931,7 +1902,7 @@ SSL Security & Trust Section -->
         const uploadBtn = document.getElementById('upload-btn');
         const saveCloudBtn = document.getElementById('save-cloud-btn');
         const ocrBtn = document.getElementById('ocr-btn');
-        const ocrServerBtn = document.getElementById('ocr-server-btn');
+        // Fast OCR removed - using single OCR button
         const addTextBtn = document.getElementById('add-text-btn');
         const addImageBtn = document.getElementById('add-image-btn');
         const highlightBtn = document.getElementById('highlight-btn');
