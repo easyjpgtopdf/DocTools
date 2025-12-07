@@ -33,16 +33,24 @@ async function getCurrentUserId() {
   return sessionStorage.getItem('userId') || null;
 }
 
-// Get user credit info
+// Get user credit info from backend
 export async function getUserCreditInfo() {
   const userId = await getCurrentUserId();
   if (!userId) {
+    // For non-logged-in users, return free tier info
     return { credits: 0, unlimited: false, isPremium: false };
   }
   
   try {
-    const apiBase = window.location.origin;
-    const response = await fetch(`${apiBase}/api/credits/balance?userId=${userId}`);
+    // Try backend API first
+    const backendUrl = getBackendUrl();
+    const response = await fetch(`${backendUrl}/user/credits?userId=${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
     if (response.ok) {
       const data = await response.json();
       return {
@@ -52,9 +60,26 @@ export async function getUserCreditInfo() {
       };
     }
   } catch (e) {
-    console.error('Error fetching credit info:', e);
+    console.warn('Backend credits API not available, trying fallback:', e);
+    
+    // Fallback to frontend API if backend not available
+    try {
+      const apiBase = window.location.origin;
+      const response = await fetch(`${apiBase}/api/credits/balance?userId=${userId}`);
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          credits: data.credits || 0,
+          unlimited: data.unlimited || false,
+          isPremium: data.isPremium || false
+        };
+      }
+    } catch (fallbackError) {
+      console.error('Error fetching credit info from fallback:', fallbackError);
+    }
   }
   
+  // Default: free tier
   return { credits: 0, unlimited: false, isPremium: false };
 }
 
