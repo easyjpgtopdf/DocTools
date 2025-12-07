@@ -3111,66 +3111,8 @@ SSL Security & Trust Section -->
                     let result = null;
                     let useClientSideOCR = false;
                     
-                    // Try server-side OCR first (using new backend API)
-                    try {
-                        updateProgress(50, 'Processing with server OCR...');
-                        
-                        // Use canvas image data for OCR (already rendered above)
-                        // Convert canvas to base64 image for OCR
-                        const imageBase64 = canvas.toDataURL('image/png');
-                        
-                        // Get API base URL
-                        const apiBaseUrl = getApiBaseUrl();
-                        const ocrUrl = `${apiBaseUrl}/api/pdf/ocr`;
-                        
-                        // Get fileId if available, otherwise send image data directly
-                        const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
-                        
-                        const requestBody = fileId ? {
-                            fileId: fileId,
-                            pageIndex: window.pdfEditorVars.currentPage - 1,
-                            imageData: imageBase64, // Also send image for direct processing
-                            scale: 2.0,
-                            languageHints: ['en']
-                        } : {
-                            imageData: imageBase64, // Send image directly if no fileId
-                            pageIndex: window.pdfEditorVars.currentPage - 1,
-                            scale: 2.0,
-                            languageHints: ['en']
-                        };
-                        
-                        const response = await fetch(ocrUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(requestBody)
-                        });
-                        
-                        if (!response.ok) {
-                            const errorData = await response.json().catch(() => ({}));
-                            throw new Error(errorData.error || `Server OCR failed: ${response.status}`);
-                        }
-                        
-                        result = await response.json();
-                        
-                        if (result.success) {
-                            updateProgress(80, 'Receiving OCR results...');
-                            // Transform result to match expected format
-                            result = {
-                                success: true,
-                                text: result.text || result.detectedText || '',
-                                words: result.words || result.detections || [],
-                                method: result.method || 'Server OCR Engine'
-                            };
-                            updateProgress(95, 'Processing results...');
-                            console.log('Server-side OCR successful');
-                        } else {
-                            throw new Error(result.error || 'OCR failed');
-                        }
-                    } catch (fetchError) {
-                        // Network error or server not available, use client-side OCR
-                        console.warn('Server OCR unavailable, using client-side OCR fallback:', fetchError.message);
-                        useClientSideOCR = true;
-                    }
+                    // Skip old API endpoint - use backend OCR directly
+                    useClientSideOCR = true;
                     
                     // Use backend OCR
                     if (useClientSideOCR || !result) {
@@ -5017,7 +4959,7 @@ SSL Security & Trust Section -->
         
         // Export Function
         async function exportToFormat(format) {
-            if (!window.pdfEditorVars.pdfDoc) {
+            if (!currentSessionId) {
                 alert('No PDF loaded');
                 return;
             }
@@ -5164,7 +5106,7 @@ SSL Security & Trust Section -->
         // Watermark Implementation
         if (watermarkBtn) {
             watermarkBtn.addEventListener('click', async function() {
-                if (!window.pdfEditorVars.pdfDoc) {
+                if (!currentSessionId) {
                     alert('No PDF loaded');
                     return;
                 }
@@ -5244,7 +5186,7 @@ SSL Security & Trust Section -->
         // Sign Implementation
         if (signBtn) {
             signBtn.addEventListener('click', async function() {
-                if (!window.pdfEditorVars.pdfDoc) {
+                if (!currentSessionId) {
                     alert('No PDF loaded');
                     return;
                 }
@@ -5458,7 +5400,7 @@ SSL Security & Trust Section -->
         // Compression Implementation
         if (compressBtn) {
             compressBtn.addEventListener('click', async function() {
-                if (!window.pdfEditorVars.pdfDoc) {
+                if (!currentSessionId) {
                     alert('No PDF loaded');
                     return;
                 }
@@ -5528,7 +5470,7 @@ SSL Security & Trust Section -->
         // Protect PDF Implementation
         if (protectBtn) {
             protectBtn.addEventListener('click', async function() {
-                if (!window.pdfEditorVars.pdfDoc) {
+                if (!currentSessionId) {
                     alert('No PDF loaded');
                     return;
                 }
@@ -5614,7 +5556,7 @@ SSL Security & Trust Section -->
         // Rotate Page 90 degrees
         if (rotate90Btn) {
             rotate90Btn.addEventListener('click', async function() {
-                if (!window.pdfEditorVars.pdfDoc) {
+                if (!currentSessionId) {
                     alert('No PDF loaded');
                     return;
                 }
@@ -5662,7 +5604,7 @@ SSL Security & Trust Section -->
         // Delete Current Page
         if (deleteCurrentPageBtn) {
             deleteCurrentPageBtn.addEventListener('click', async function() {
-                if (!window.pdfEditorVars.pdfDoc) {
+                if (!currentSessionId) {
                     alert('No PDF loaded');
                     return;
                 }
@@ -5712,7 +5654,7 @@ SSL Security & Trust Section -->
         // Fill Form Fields
         if (fillFormBtn) {
             fillFormBtn.addEventListener('click', async function() {
-                if (!window.pdfEditorVars.pdfDoc) {
+                if (!currentSessionId) {
                     alert('No PDF loaded');
                     return;
                 }
@@ -5804,7 +5746,7 @@ SSL Security & Trust Section -->
         // Export to Different Formats - Enhanced with Progress
         if (exportBtn) {
             exportBtn.addEventListener('click', async function() {
-                if (!window.pdfEditorVars.pdfDoc) {
+                if (!currentSessionId) {
                     alert('No PDF loaded');
                     return;
                 }
@@ -5836,8 +5778,8 @@ SSL Security & Trust Section -->
         // Compress PDF
         if (compressPdfBtn) {
             compressPdfBtn.addEventListener('click', async function() {
-                if (!window.pdfEditorVars.pdfDoc) {
-                    alert('No PDF loaded');
+                if (!currentSessionId) {
+                    alert('No PDF loaded. Please upload a PDF first.');
                     return;
                 }
                 
