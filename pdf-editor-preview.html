@@ -2430,28 +2430,78 @@ SSL Security & Trust Section -->
                                 sessionStorage.setItem('pdfFileURL', blobURL);
                                 sessionStorage.setItem('pdfFileName', file.name);
                                 
-                                updateProgress(90, 'Starting backend session and rendering...');
-                                
-                                // PERMANENT FIX: Ensure preview container is visible before rendering
-                                const previewContainer = document.getElementById('preview-container');
-                                const pdfPageWrapper = document.getElementById('pdf-page-wrapper');
-                                if (previewContainer) {
-                                    previewContainer.style.display = 'flex';
-                                    previewContainer.style.visibility = 'visible';
-                                    previewContainer.style.opacity = '1';
-                                }
-                                if (pdfPageWrapper) {
-                                    pdfPageWrapper.style.display = 'block';
-                                    pdfPageWrapper.style.visibility = 'visible';
-                                    pdfPageWrapper.setAttribute('data-loaded', 'true');
-                                }
-                                
-                                await renderPDF(arrayBuffer);
-                                window.pdfEditorVars.loadedInitialPdf = true;
-                                
-                                hideLoading();
-                                console.log('✅ PDF session started. Session ID:', currentSessionId);
-                                console.log('✅ PDF rendered and visible');
+                        updateProgress(90, 'Rendering PDF page...');
+                        
+                        // PERMANENT FIX: Ensure preview container is visible before rendering
+                        const previewContainer = document.getElementById('preview-container');
+                        const pdfPageWrapper = document.getElementById('pdf-page-wrapper');
+                        const pdfCanvas = document.getElementById('pdf-canvas');
+                        
+                        if (previewContainer) {
+                            previewContainer.style.display = 'flex';
+                            previewContainer.style.visibility = 'visible';
+                            previewContainer.style.opacity = '1';
+                            previewContainer.style.minHeight = '600px';
+                            console.log('✅ Preview container made visible');
+                        } else {
+                            console.error('❌ Preview container not found!');
+                        }
+                        if (pdfPageWrapper) {
+                            pdfPageWrapper.style.display = 'block';
+                            pdfPageWrapper.style.visibility = 'visible';
+                            pdfPageWrapper.style.opacity = '1';
+                            pdfPageWrapper.setAttribute('data-loaded', 'true');
+                            console.log('✅ PDF page wrapper made visible');
+                        } else {
+                            console.error('❌ PDF page wrapper not found!');
+                        }
+                        if (pdfCanvas) {
+                            pdfCanvas.style.display = 'block';
+                            pdfCanvas.style.visibility = 'visible';
+                            console.log('✅ PDF canvas made visible');
+                        } else {
+                            console.error('❌ PDF canvas not found!');
+                        }
+                        
+                        // Render first page using backend (session already created)
+                        window.pdfEditorVars.currentPage = 1;
+                        const { renderPage: renderPageBackend } = await import('./js/pdf-editor-api.js');
+                        const zoom = window.pdfEditorVars.scale || 1.5;
+                        const imageUrl = await renderPageBackend(currentSessionId, 1, zoom);
+                        
+                        // Display rendered PNG on canvas
+                        if (pdfCanvas) {
+                            const img = new Image();
+                            img.crossOrigin = 'anonymous';
+                            await new Promise((resolve, reject) => {
+                                img.onload = function() {
+                                    try {
+                                        const ctx = pdfCanvas.getContext('2d');
+                                        pdfCanvas.width = img.width;
+                                        pdfCanvas.height = img.height;
+                                        ctx.clearRect(0, 0, pdfCanvas.width, pdfCanvas.height);
+                                        ctx.drawImage(img, 0, 0);
+                                        if (imageUrl.startsWith('blob:') || imageUrl.startsWith('data:')) {
+                                            URL.revokeObjectURL(imageUrl);
+                                        }
+                                        console.log('✅ Page rendered successfully: 1');
+                                        resolve();
+                                    } catch (error) {
+                                        console.error('Error drawing image to canvas:', error);
+                                        reject(error);
+                                    }
+                                };
+                                img.onerror = reject;
+                                img.src = imageUrl;
+                            });
+                        }
+                        
+                        window.pdfEditorVars.loadedInitialPdf = true;
+                        updatePageButtons();
+                        
+                        hideLoading();
+                        console.log('✅ PDF session started. Session ID:', currentSessionId);
+                        console.log('✅ PDF rendered and visible');
                             } catch (error) {
                                 console.error('Error loading PDF:', error);
                                 hideLoading();
