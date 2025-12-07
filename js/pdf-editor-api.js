@@ -4,7 +4,7 @@
  */
 
 // Get backend URL
-function getBackendUrl() {
+export function getBackendUrl() {
   const hostname = window.location.hostname;
   const isDevelopment = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
   if (isDevelopment) {
@@ -384,6 +384,69 @@ export async function exportPDF(sessionId, format, userId) {
     return { success: true };
   } catch (error) {
     console.error('Error exporting PDF:', error);
+    throw error;
+  }
+}
+
+/**
+ * Validate that exported PDF contains expected text objects (not images)
+ * @param {Blob|string} pdfBlob - PDF blob or base64 string
+ * @param {string[]} expectedTexts - Array of text strings that should exist in PDF
+ * @param {number|null} pageNumber - Optional page number to validate
+ * @returns {Promise<Object>} Validation result with pass/fail
+ */
+export async function validatePDF(pdfBlob, expectedTexts, pageNumber = null) {
+  try {
+    // Convert blob to base64 if needed
+    let pdfBase64;
+    if (pdfBlob instanceof Blob) {
+      pdfBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          // Convert ArrayBuffer to base64
+          const bytes = new Uint8Array(reader.result);
+          let binary = '';
+          for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          resolve(btoa(binary));
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(pdfBlob);
+      });
+    } else if (typeof pdfBlob === 'string') {
+      // Already base64 or data URL
+      if (pdfBlob.startsWith('data:application/pdf;base64,')) {
+        pdfBase64 = pdfBlob.split(',')[1];
+      } else {
+        pdfBase64 = pdfBlob;
+      }
+    } else {
+      throw new Error('Invalid PDF format. Expected Blob or base64 string.');
+    }
+    
+    // Call validation endpoint
+    const response = await fetch(`${BACKEND_URL}/validate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        pdf_bytes: pdfBase64,
+        expected_texts: expectedTexts,
+        page_number: pageNumber
+      })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Validation failed');
+    }
+    
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Error validating PDF:', error);
     throw error;
   }
 }

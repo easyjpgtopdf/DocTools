@@ -15,6 +15,7 @@ from .models import (
     SearchRequest,
     OcrPageRequest,
     ExportRequest,
+    ValidateRequest,
 )
 from .storage import create_session, get_pdf_bytes, update_pdf_bytes, session_exists
 from .pdf_engine import (
@@ -178,4 +179,59 @@ async def export_pdf(req: ExportRequest):
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@app.post("/validate")
+async def validate_pdf(req: ValidateRequest):
+    """
+    Validate that exported PDF contains expected text objects (not just images).
+    Returns pass/fail result for debugging.
+    """
+    import base64
+    
+    try:
+        # Decode base64 PDF
+        if req.pdf_bytes.startswith("data:application/pdf;base64,"):
+            pdf_bytes = base64.b64decode(req.pdf_bytes.split(",", 1)[1])
+        else:
+            pdf_bytes = base64.b64decode(req.pdf_bytes)
+        
+        # Search for each expected text
+        validation_results = []
+        all_found = True
+        
+        for expected_text in req.expected_texts:
+            if not expected_text or not expected_text.strip():
+                continue
+                
+            # Search for text in PDF
+            matches = search_text(pdf_bytes, expected_text.strip())
+            
+            # Filter by page if specified
+            if req.page_number:
+                matches = [m for m in matches if m["page_number"] == req.page_number]
+            
+            found = len(matches) > 0
+            all_found = all_found and found
+            
+            validation_results.append({
+                "text": expected_text,
+                "found": found,
+                "match_count": len(matches),
+                "matches": matches[:5] if matches else []  # Limit to first 5 matches
+            })
+        
+        return {
+            "success": True,
+            "valid": all_found,
+            "results": validation_results,
+            "summary": {
+                "total_expected": len(req.expected_texts),
+                "total_found": sum(1 for r in validation_results if r["found"]),
+                "all_found": all_found
+            }
+        }
+    except Exception as e:
+        logger.error(f"Validation error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Validation failed: {str(e)}")
 

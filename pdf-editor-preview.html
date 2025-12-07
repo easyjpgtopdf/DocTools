@@ -1912,7 +1912,8 @@ SSL Security & Trust Section -->
                 highlightStart: null,
                 highlightEnd: null,
                 isDrawing: false,
-                loadedInitialPdf: false
+                loadedInitialPdf: false,
+                expectedTexts: [] // Track texts added/edited for validation
             };
         }
         
@@ -3504,6 +3505,42 @@ SSL Security & Trust Section -->
                         
                         updateProgress(90, 'Preparing download...');
                         
+                        // Validate exported PDF contains actual text objects (not images)
+                        const expectedTexts = window.pdfEditorVars.expectedTexts || [];
+                        if (expectedTexts.length > 0) {
+                            try {
+                                updateProgress(92, 'Validating exported PDF...');
+                                const { validatePDF } = await import('./js/pdf-editor-api.js');
+                                const validationResult = await validatePDF(
+                                    pdfBlob,
+                                    expectedTexts,
+                                    window.pdfEditorVars.currentPage
+                                );
+                                
+                                // Log validation result to console for debugging
+                                console.group('📋 PDF Export Validation');
+                                console.log('✅ Validation completed:', validationResult.valid ? 'PASS' : 'FAIL');
+                                console.log('📊 Summary:', validationResult.summary);
+                                console.log('📝 Results:', validationResult.results);
+                                
+                                if (validationResult.valid) {
+                                    console.log('✅ All expected texts found in exported PDF (actual text objects, not images)');
+                                } else {
+                                    console.warn('⚠️ Some expected texts not found in exported PDF');
+                                    const missing = validationResult.results.filter(r => !r.found);
+                                    console.warn('Missing texts:', missing.map(r => r.text));
+                                }
+                                console.groupEnd();
+                                
+                                updateProgress(95, validationResult.valid ? 'Validation passed!' : 'Validation warning');
+                            } catch (validationError) {
+                                console.warn('Validation error (non-blocking):', validationError);
+                                // Don't block download if validation fails
+                            }
+                        } else {
+                            console.log('ℹ️ No expected texts to validate (no edits made yet)');
+                        }
+                        
                         // Create download link
                         const url = URL.createObjectURL(pdfBlob);
                         const a = document.createElement('a');
@@ -3531,28 +3568,80 @@ SSL Security & Trust Section -->
                             console.log('PDF downloaded successfully:', filename);
                         }, 500);
                     } else {
-                        // Fallback: Use direct PDF data if no fileId
-                        updateProgress(20, 'Collecting PDF data...');
+                        // Use backend /export endpoint for session-based export
+                        updateProgress(20, 'Exporting PDF from backend session...');
                         
-                        // Get current PDF data (should already have edits applied)
-                        if (!window.pdfEditorVars.currentPdfData) {
-                            throw new Error('PDF data not available');
+                        if (!currentSessionId) {
+                            throw new Error('No active PDF session');
                         }
                         
-                        updateProgress(50, 'Processing PDF...');
+                        const { exportPDF } = await import('./js/pdf-editor-api.js');
+                        const userId = await getCurrentUserId();
                         
-                        // Extract base64 from data URL
-                        let pdfBase64 = window.pdfEditorVars.currentPdfData;
-                        if (pdfBase64.startsWith('data:application/pdf;base64,')) {
-                            pdfBase64 = pdfBase64.split(',')[1];
+                        // Export PDF from backend
+                        const exportResult = await exportPDF(currentSessionId, 'pdf', userId);
+                        
+                        // Get exported PDF blob for validation
+                        updateProgress(70, 'Receiving exported PDF...');
+                        const { getBackendUrl } = await import('./js/pdf-editor-api.js');
+                        const backendUrl = getBackendUrl();
+                        const exportResponse = await fetch(`${backendUrl}/export`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                session_id: currentSessionId,
+                                format: 'pdf'
+                            })
+                        });
+                        
+                        if (!exportResponse.ok) {
+                            throw new Error('Export failed');
                         }
                         
-                        updateProgress(80, 'Preparing download...');
+                        const pdfBlob = await exportResponse.blob();
                         
-                        // Convert to blob and download
-                        const pdfBytes = Uint8Array.from(atob(pdfBase64), c => c.charCodeAt(0));
-                        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                        const url = URL.createObjectURL(blob);
+                        // Validate exported PDF contains actual text objects (not images)
+                        const expectedTexts = window.pdfEditorVars.expectedTexts || [];
+                        if (expectedTexts.length > 0) {
+                            try {
+                                updateProgress(85, 'Validating exported PDF...');
+                                const { validatePDF } = await import('./js/pdf-editor-api.js');
+                                const validationResult = await validatePDF(
+                                    pdfBlob,
+                                    expectedTexts,
+                                    window.pdfEditorVars.currentPage
+                                );
+                                
+                                // Log validation result to console for debugging
+                                console.group('📋 PDF Export Validation');
+                                console.log('✅ Validation completed:', validationResult.valid ? 'PASS' : 'FAIL');
+                                console.log('📊 Summary:', validationResult.summary);
+                                console.log('📝 Results:', validationResult.results);
+                                
+                                if (validationResult.valid) {
+                                    console.log('✅ All expected texts found in exported PDF (actual text objects, not images)');
+                                } else {
+                                    console.warn('⚠️ Some expected texts not found in exported PDF');
+                                    const missing = validationResult.results.filter(r => !r.found);
+                                    console.warn('Missing texts:', missing.map(r => r.text));
+                                }
+                                console.groupEnd();
+                                
+                                updateProgress(92, validationResult.valid ? 'Validation passed!' : 'Validation warning');
+                            } catch (validationError) {
+                                console.warn('Validation error (non-blocking):', validationError);
+                                // Don't block download if validation fails
+                            }
+                        } else {
+                            console.log('ℹ️ No expected texts to validate (no edits made yet)');
+                        }
+                        
+                        updateProgress(95, 'Preparing download...');
+                        
+                        // Create download link
+                        const url = URL.createObjectURL(pdfBlob);
                         const a = document.createElement('a');
                         a.href = url;
                         a.download = sessionStorage.getItem('pdfFileName') || 'edited-document.pdf';
@@ -3853,6 +3942,12 @@ SSL Security & Trust Section -->
                             colorArray,
                             userId
                         );
+                        
+                        // Track expected text for validation
+                        if (!window.pdfEditorVars.expectedTexts) {
+                            window.pdfEditorVars.expectedTexts = [];
+                        }
+                        window.pdfEditorVars.expectedTexts.push(lines[i].trim());
                     }
                 }
                 

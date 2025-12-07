@@ -54,3 +54,9 @@ class ExportRequest(BaseModel):
     session_id: str
     format: Literal["pdf"] = "pdf"
 
+
+class ValidateRequest(BaseModel):
+    pdf_bytes: str  # base64 encoded PDF
+    expected_texts: list[str]  # List of text strings that should exist in PDF
+    page_number: Optional[int] = None  # Optional: validate on specific page only
+
