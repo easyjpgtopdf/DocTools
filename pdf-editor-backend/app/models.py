@@ -1,0 +1,56 @@
+from typing import Optional, Literal
+
+from pydantic import BaseModel
+
+
+class StartSessionResponse(BaseModel):
+    session_id: str
+    page_count: int
+
+
+class RenderPageRequest(BaseModel):
+    session_id: str
+    page_number: int
+    zoom: float = 1.0
+
+
+class AddTextRequest(BaseModel):
+    session_id: str
+    page_number: int
+    x: float
+    y: float
+    text: str
+    font_name: str = "Helvetica"
+    font_size: float = 12
+    color: str | list[float] | None = "#000000"  # hex string or [r,g,b]
+
+
+class EditTextRequest(BaseModel):
+    session_id: str
+    page_number: int
+    old_text: str
+    new_text: str
+    max_replacements: int = 1
+
+
+class DeleteTextRequest(BaseModel):
+    session_id: str
+    page_number: int
+    bbox: Optional[list[float]] = None  # [x0, y0, x1, y1]
+
+
+class SearchRequest(BaseModel):
+    session_id: str
+    query: str
+
+
+class OcrPageRequest(BaseModel):
+    session_id: str
+    page_number: int
+    lang: str = "en"
+
+
+class ExportRequest(BaseModel):
+    session_id: str
+    format: Literal["pdf"] = "pdf"
+

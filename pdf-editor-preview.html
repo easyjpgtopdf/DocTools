@@ -1452,7 +1452,8 @@ SSL Security & Trust Section -->
     <!-- Features & Tools Description Section -->
     <section class="features-feedback-section" style="background: #ffffff; padding: 60px 20px; margin-top: 20px;">
         <div class="container">
-            <h2 style="text-align: center; font-size: 2rem; color: #0b1630; margin-bottom: 50px;">📝 PDF Editor Features & Tools</h2>
+            <h2 style="text-align: center; font-size: 2rem; color: #0b1630; margin-bottom: 50px;">🛠️ Key Features & Characteristics</h2>
+            <h3 style="text-align: center; font-size: 1.1rem; color: #64748b; margin-bottom: 30px; font-weight: 400;">Native PDF editing, OCR, export, security, and performance in one workspace</h3>
             
             <div style="max-width: 1000px; margin: 0 auto;">
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; margin-bottom: 40px;">
@@ -1814,6 +1815,7 @@ SSL Security & Trust Section -->
                 currentPage: 1,
                 totalPages: 1,
                 scale: 1.5,
+                loadedFromStorage: false,
                 textAnnotations: [],
                 annotationHistory: [],
                 redoHistory: [],
@@ -1828,7 +1830,8 @@ SSL Security & Trust Section -->
                 },
                 highlightStart: null,
                 highlightEnd: null,
-                isDrawing: false
+                isDrawing: false,
+                loadedInitialPdf: false
             };
         }
         
@@ -2184,6 +2187,7 @@ SSL Security & Trust Section -->
                         currentSessionId = sessionResult.session_id;
                         window.pdfEditorVars.sessionId = currentSessionId;
                         window.pdfEditorVars.totalPages = sessionResult.page_count;
+                        window.pdfEditorVars.loadedInitialPdf = false;
                         
                         updateProgress(50, 'Loading PDF...');
                         
@@ -2215,6 +2219,7 @@ SSL Security & Trust Section -->
                                 
                                 updateProgress(90, 'Rendering PDF...');
                                 await renderPDF(arrayBuffer);
+                                window.pdfEditorVars.loadedInitialPdf = true;
                                 
                                 hideLoading();
                                 console.log('✅ PDF session started. Session ID:', currentSessionId);
@@ -2267,6 +2272,7 @@ SSL Security & Trust Section -->
                             sessionStorage.setItem('pdfFileName', file.name);
                             
                             await renderPDF(pdfData);
+                            window.pdfEditorVars.loadedInitialPdf = true;
                             
                             // Increment usage after successful render
                             try {
@@ -2315,6 +2321,10 @@ SSL Security & Trust Section -->
         
         // Check for PDF from edit-pdf.html on page load
         async function checkForStoredPDF() {
+            if (window.pdfEditorVars.loadedInitialPdf || window.pdfEditorVars.loadedFromStorage) {
+                console.log('PDF already loaded, skipping re-load');
+                return;
+            }
             try {
                 // Check for PDF server URL first (from edit-pdf.html upload)
                 const pdfServerUrl = sessionStorage.getItem('pdfServerUrl');
@@ -2350,7 +2360,9 @@ SSL Security & Trust Section -->
                                 window.pdfEditorVars.currentFileId = pdfFileId;
                             }
                             
-                            await renderPDF(arrayBuffer);
+                        await renderPDF(arrayBuffer);
+                        window.pdfEditorVars.loadedInitialPdf = true;
+                        window.pdfEditorVars.loadedFromStorage = true;
                             hideLoading();
                             console.log('PDF loaded from server successfully');
                             return;
@@ -2402,6 +2414,8 @@ SSL Security & Trust Section -->
                         
                         // Render PDF
                         await renderPDF(arrayBuffer);
+                        window.pdfEditorVars.loadedInitialPdf = true;
+                        window.pdfEditorVars.loadedFromStorage = true;
                         hideLoading();
                         return;
                     } catch (error) {
@@ -2437,6 +2451,8 @@ SSL Security & Trust Section -->
                         // Render PDF
                         console.log('Rendering PDF from base64, arrayBuffer size:', arrayBuffer.byteLength);
                         await renderPDF(arrayBuffer);
+                        window.pdfEditorVars.loadedInitialPdf = true;
+                        window.pdfEditorVars.loadedFromStorage = true;
                         hideLoading();
                         console.log('✅ PDF loaded from base64 successfully');
                         console.log('PDF Doc:', window.pdfEditorVars.pdfDoc);
@@ -2588,9 +2604,39 @@ SSL Security & Trust Section -->
             console.error('PDF Editor Error:', message);
         }
         
+        // Safe base64 encoder to avoid call stack overflow
+        function bufferToBase64(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            const chunkSize = 0x8000; // 32KB chunks to avoid stack overflow
+            for (let i = 0; i < bytes.length; i += chunkSize) {
+                const chunk = bytes.subarray(i, i + chunkSize);
+                binary += String.fromCharCode.apply(null, chunk);
+            }
+            return btoa(binary);
+        }
+        
         // Render PDF (Fast PDF.js rendering)
         async function renderPDF(pdfData) {
             try {
+                // Allow calls without pdfData (use stored buffer/base64)
+                if (!pdfData) {
+                    if (window.pdfEditorVars.currentPdfBuffer) {
+                        pdfData = window.pdfEditorVars.currentPdfBuffer.slice(0);
+                    } else if (window.pdfEditorVars.currentPdfData && window.pdfEditorVars.currentPdfData.startsWith('data:')) {
+                        const base64 = window.pdfEditorVars.currentPdfData.split(',')[1];
+                        const binaryString = atob(base64);
+                        const len = binaryString.length;
+                        const bytes = new Uint8Array(len);
+                        for (let i = 0; i < len; i++) {
+                            bytes[i] = binaryString.charCodeAt(i);
+                        }
+                        pdfData = bytes.buffer;
+                    } else {
+                        throw new Error('No PDF data available to render');
+                    }
+                }
+                
                 // Check usage limit before rendering (only for authenticated users)
                 try {
                     const { checkUsageLimit, incrementUsage } = await import('./js/usage-limits.js');
@@ -2646,12 +2692,9 @@ SSL Security & Trust Section -->
                 // Store PDF data for editing
                 // Create a copy of ArrayBuffer to avoid detached buffer error
                 if (pdfData instanceof ArrayBuffer) {
-                    // Create a new Uint8Array from the buffer to ensure it's not detached
-                    const uint8Array = new Uint8Array(pdfData);
-                    const base64 = btoa(String.fromCharCode(...uint8Array));
-                    window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
-                    // Also store the original buffer copy for rendering
                     window.pdfEditorVars.currentPdfBuffer = new Uint8Array(pdfData).buffer;
+                    const base64 = bufferToBase64(pdfData);
+                    window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
                 } else if (typeof pdfData === 'string') {
                     window.pdfEditorVars.currentPdfData = pdfData;
                 }
@@ -5775,33 +5818,22 @@ SSL Security & Trust Section -->
             const fileInput = document.getElementById('file-input');
             const imageInput = document.getElementById('image-input');
             
-            // Upload button - remove any existing listeners first
+            // Upload button (single-click, single input dialog)
             if (uploadBtn && fileInput) {
-                // Clone and replace to remove all event listeners
-                const newUploadBtn = uploadBtn.cloneNode(true);
-                uploadBtn.parentNode.replaceChild(newUploadBtn, uploadBtn);
-                const newFileInput = fileInput.cloneNode(true);
-                fileInput.parentNode.replaceChild(newFileInput, fileInput);
-                
-                // Get fresh references
-                const freshUploadBtn = document.getElementById('upload-btn');
-                const freshFileInput = document.getElementById('file-input');
-                
-                if (freshUploadBtn && freshFileInput) {
-                    freshUploadBtn.addEventListener('click', function(e) {
+                if (!uploadBtn.dataset.bound) {
+                    uploadBtn.dataset.bound = 'true';
+                    uploadBtn.addEventListener('click', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
                         console.log('Upload button clicked');
                         try {
-                            freshFileInput.click();
+                            fileInput.click();
                         } catch (error) {
                             console.error('Error clicking file input:', error);
                             alert('Error opening file dialog. Please try again.');
                         }
                     });
                     console.log('✅ Upload button listener added');
-                } else {
-                    console.error('❌ Upload button or file input not found after clone!');
                 }
             } else {
                 console.error('❌ Upload button or file input not found!', { uploadBtn, fileInput });

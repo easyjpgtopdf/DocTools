@@ -4,7 +4,7 @@ Google Cloud Run service for real-time native PDF editing
 Features: Text add/edit/delete, OCR, page rendering, export to Word/Excel/PPT
 """
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Body
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Body, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
@@ -230,6 +230,16 @@ async def health():
         "paddleocr": PADDLEOCR_AVAILABLE,
         "ocr_initialized": ocr_engine is not None if PADDLEOCR_AVAILABLE else False
     }
+
+
+@app.get("/api/device/ip")
+async def get_device_ip(request: Request):
+    """
+    Lightweight endpoint to provide client IP for device fingerprint.
+    Prevents 404s from frontend device-fingerprint.js.
+    """
+    client_ip = request.client.host if request.client else "unknown"
+    return {"ip": client_ip}
 
 @app.post("/session/start")
 async def start_session(file: UploadFile = File(...), userId: Optional[str] = Form(None), deviceId: Optional[str] = Form(None)):

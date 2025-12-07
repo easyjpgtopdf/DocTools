@@ -3,17 +3,12 @@ FROM python:3.11-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    libgl1 \
+    build-essential \
     libglib2.0-0 \
-    libgomp1 \
-    libgthread-2.0-0 \
-    libgtk-3-0 \
     libsm6 \
+    libxrender1 \
     libxext6 \
-    libxrender-dev \
-    libgdk-pixbuf-xlib-2.0-0 \
-    libfontconfig1 \
-    libxft2 \
+    libgl1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -26,11 +21,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY app.py .
+COPY app ./app
 
 # Expose port
 EXPOSE 8080
 
 # Run with uvicorn
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1"]
 

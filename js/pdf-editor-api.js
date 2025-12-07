@@ -14,7 +14,7 @@ function getBackendUrl() {
   // Set this in your deployment environment
   const envUrl = window.PDF_EDITOR_BACKEND_URL || 
                  (typeof process !== 'undefined' && process.env && process.env.PDF_EDITOR_BACKEND_URL) ||
-                 'https://pdf-editor-service-easyjpgtopdf-de346.a.run.app';
+                 'https://pdf-editor-service-564572183797.us-central1.run.app';
   return envUrl;
 }
 
@@ -34,7 +34,7 @@ async function getCurrentUserId() {
 }
 
 // Get user credit info
-async function getUserCreditInfo() {
+export async function getUserCreditInfo() {
   const userId = await getCurrentUserId();
   if (!userId) {
     return { credits: 0, unlimited: false, isPremium: false };

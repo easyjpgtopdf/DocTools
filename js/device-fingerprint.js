@@ -47,22 +47,7 @@ function getDeviceId() {
 
 // Get client IP (via backend)
 async function getClientIP() {
-  try {
-    const apiBaseUrl = window.location.origin;
-    const response = await fetch(`${apiBaseUrl}/api/device/ip`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      return data.ip || 'unknown';
-    }
-  } catch (error) {
-    console.warn('Failed to get client IP:', error);
-  }
+  // Disable IP fetch to avoid 404s on environments without this endpoint
   return 'unknown';
 }
 
