@@ -14,7 +14,7 @@ export function getBackendUrl() {
   // Set this in your deployment environment
   const envUrl = window.PDF_EDITOR_BACKEND_URL || 
                  (typeof process !== 'undefined' && process.env && process.env.PDF_EDITOR_BACKEND_URL) ||
-                 'https://pdf-editor-backend-564572183797.us-central1.run.app';
+                 'https://pdf-editor-service-564572183797.us-central1.run.app';
   return envUrl;
 }
 
@@ -250,7 +250,7 @@ export async function editText(sessionId, pageNumber, oldText, newText, maxRepla
 /**
  * Add new text to PDF
  */
-export async function addText(sessionId, pageNumber, x, y, text, fontName, fontSize, color, userId) {
+export async function addText(sessionId, pageNumber, x, y, text, fontName, fontSize, color, userId, canvasWidth = null, canvasHeight = null) {
   try {
     const deviceId = await getDeviceId();
     
@@ -268,6 +268,8 @@ export async function addText(sessionId, pageNumber, x, y, text, fontName, fontS
         font_name: fontName || 'Helvetica',
         font_size: fontSize || 12,
         color: color || [0, 0, 0],
+        canvas_width: canvasWidth,
+        canvas_height: canvasHeight,
         userId: userId,
         deviceId: deviceId
       })

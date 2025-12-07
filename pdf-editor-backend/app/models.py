@@ -23,6 +23,8 @@ class AddTextRequest(BaseModel):
     font_name: str = "Helvetica"
     font_size: float = 12
     color: str | list[float] | None = "#000000"  # hex string or [r,g,b]
+    canvas_width: Optional[float] = None  # Canvas width in pixels for coordinate conversion
+    canvas_height: Optional[float] = None  # Canvas height in pixels for coordinate conversion
 
 
 class EditTextRequest(BaseModel):

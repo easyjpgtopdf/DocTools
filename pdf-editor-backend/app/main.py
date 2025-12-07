@@ -22,9 +22,10 @@ from .pdf_engine import (
     get_page_count,
     render_page_to_png,
     add_text_to_page,
-    replace_text_simple,
+    replace_text_native,
     delete_text_by_bbox,
     search_text,
+    load_document,
 )
 from .ocr_engine import run_ocr_on_image_bytes
 
@@ -128,6 +129,8 @@ async def add_text(req: AddTextRequest):
         font_name=req.font_name,
         font_size=req.font_size,
         color_hex=color_hex,
+        canvas_width=req.canvas_width,
+        canvas_height=req.canvas_height,
     )
     update_pdf_bytes(req.session_id, updated)
 
@@ -141,7 +144,7 @@ async def edit_text(req: EditTextRequest):
     except KeyError:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    updated = replace_text_simple(
+    updated = replace_text_native(
         pdf_bytes,
         page_number=req.page_number,
         old_text=req.old_text,
@@ -185,9 +188,66 @@ async def ocr_page(req: OcrPageRequest):
     except KeyError:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    png = render_page_to_png(pdf_bytes, req.page_number, zoom=1.5)
+    # Render page at higher zoom for better OCR accuracy
+    png = render_page_to_png(pdf_bytes, req.page_number, zoom=2.0)
     ocr_result = run_ocr_on_image_bytes(png, lang=req.lang)
-    return {"page": req.page_number, "results": ocr_result}
+    
+    # Convert OCR bbox from image pixel coordinates to PDF point coordinates
+    # OCR image was rendered at 2.0x zoom, so we need to scale down
+    doc = load_document(pdf_bytes)
+    try:
+        page = doc.load_page(req.page_number - 1)
+        page_rect = page.rect
+        page_width = page_rect.width
+        page_height = page_rect.height
+        
+        # Get OCR image dimensions (rendered at 2.0x zoom)
+        from PIL import Image
+        import io
+        ocr_img = Image.open(io.BytesIO(png))
+        ocr_img_width = ocr_img.width
+        ocr_img_height = ocr_img.height
+        
+        # Convert each OCR result bbox from image pixels to PDF points
+        converted_results = []
+        for item in ocr_result:
+            bbox = item.get("bbox", [])
+            if bbox and len(bbox) >= 4:
+                # Handle both formats: [[x,y], [x,y], ...] or [x0, y0, x1, y1]
+                if isinstance(bbox[0], (list, tuple)):
+                    # Format: [[x0,y0], [x1,y1], [x2,y2], [x3,y3]]
+                    xs = [p[0] for p in bbox]
+                    ys = [p[1] for p in bbox]
+                    x0_img = min(xs)
+                    y0_img = min(ys)
+                    x1_img = max(xs)
+                    y1_img = max(ys)
+                else:
+                    # Format: [x0, y0, x1, y1]
+                    x0_img, y0_img, x1_img, y1_img = bbox[:4]
+                
+                # Convert from OCR image pixel coordinates to PDF point coordinates
+                # OCR image is at 2.0x zoom, so divide by 2.0
+                x0_pdf = (x0_img / 2.0) * (page_width / (ocr_img_width / 2.0))
+                y0_pdf = (y0_img / 2.0) * (page_height / (ocr_img_height / 2.0))
+                x1_pdf = (x1_img / 2.0) * (page_width / (ocr_img_width / 2.0))
+                y1_pdf = (y1_img / 2.0) * (page_height / (ocr_img_height / 2.0))
+                
+                # PDF coordinates: bottom-left origin, so y needs to be flipped
+                y0_pdf_flipped = page_height - y1_pdf
+                y1_pdf_flipped = page_height - y0_pdf
+                
+                converted_results.append({
+                    "text": item.get("text", ""),
+                    "bbox": [x0_pdf, y0_pdf_flipped, x1_pdf, y1_pdf_flipped],  # PDF coordinates
+                    "confidence": item.get("confidence", 0.9)
+                })
+            else:
+                converted_results.append(item)
+        
+        return {"page": req.page_number, "results": converted_results}
+    finally:
+        doc.close()
 
 
 @app.post("/export")

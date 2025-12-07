@@ -271,7 +271,8 @@
         
         /* Center Preview Panel */
         .preview-panel {
-            flex: 1;
+            flex: 1 1 60%; /* Increased from 1 to take 60% of space, can grow */
+            min-width: 600px; /* Minimum width for better editing */
             display: flex;
             flex-direction: column;
             background: #1e1e1e;
@@ -325,6 +326,7 @@
             background: #525252;
             padding: 20px;
             min-height: 100%;
+            flex: 1 1 auto; /* Allow it to grow and take available space */
         }
         
         .pdf-page-wrapper {
@@ -533,8 +535,9 @@
 
         /* Right Properties Panel */
         .properties-panel {
-            width: 280px;
+            width: 300px;
             min-width: 280px;
+            max-width: 350px;
             background: #1e1e1e;
             border-left: 1px solid #3a3a3a;
             display: flex;
@@ -1160,6 +1163,7 @@
                         </div>
                         <div id="pdf-page-wrapper" class="pdf-page-wrapper" style="display: block; visibility: visible; position: relative;">
                             <canvas id="pdf-canvas" class="pdf-canvas"></canvas>
+                            <canvas id="search-highlight-canvas" style="position: absolute; top: 0; left: 0; pointer-events: none; z-index: 10;"></canvas>
                             <div id="deletion-layer" class="deletion-layer"></div>
                             <div id="text-layer" class="text-layer"></div>
                         </div>
@@ -1814,11 +1818,22 @@ SSL Security & Trust Section -->
     <script src="js/mobile-menu-init.js"></script>
     <script>
         // Get API base URL helper
+        // IMPORTANT: This should point to Cloud Run backend for production
         function getApiBaseUrl() {
-            if (window.location.protocol === 'file:') {
-                return 'http://localhost:3000';
+            const hostname = window.location.hostname;
+            const isDevelopment = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
+            
+            if (isDevelopment) {
+                return 'http://localhost:8080'; // Local backend
             }
-            return '';
+            
+            // Production: Use Cloud Run backend URL
+            // Check for environment variable or use default Cloud Run URL
+            const cloudRunUrl = window.PDF_EDITOR_BACKEND_URL || 
+                               'https://pdf-editor-service-564572183797.us-central1.run.app';
+            
+            console.log(`🔧 API Base URL configured: ${cloudRunUrl}`);
+            return cloudRunUrl;
         }
         
         // Loading overlay functions
@@ -2035,14 +2050,15 @@ SSL Security & Trust Section -->
                         // Convert backend matches to frontend format
                         currentSearchMatches = result.matches.map(match => ({
                             pageIndex: match.page_number - 1,
+                            page_number: match.page_number,
                             text: match.text,
-                            bbox: match.bbox,
+                            bbox: match.bbox, // [x0, y0, x1, y1] in PDF coordinates
                             matchIndex: 0,
                             matchLength: query.length
                         }));
                         currentSearchIndex = -1;
                         
-                        // Display results
+                        // Display results in side panel
                         displaySearchResults(currentSearchMatches, query);
                         
                         // Update match count
@@ -2050,7 +2066,7 @@ SSL Security & Trust Section -->
                             searchMatchCount.textContent = `Found ${currentSearchMatches.length} match(es)`;
                         }
                         
-                        // Navigate to first match
+                        // Navigate to first match and highlight on canvas
                         if (currentSearchMatches.length > 0) {
                             navigateToMatch(0);
                         }
@@ -2184,7 +2200,7 @@ SSL Security & Trust Section -->
             return div.innerHTML;
         }
         
-        // Navigate to match
+        // Navigate to match and highlight on canvas
         async function navigateToMatch(index) {
             if (index < 0 || index >= currentSearchMatches.length) return;
             
@@ -2197,7 +2213,7 @@ SSL Security & Trust Section -->
                 await renderPage(window.pdfEditorVars.currentPage);
             }
             
-            // Highlight active result
+            // Highlight active result in side panel
             const resultItems = searchResults.querySelectorAll('.search-result-item');
             resultItems.forEach((item, i) => {
                 item.classList.toggle('active', i === index);
@@ -2206,6 +2222,85 @@ SSL Security & Trust Section -->
             // Scroll to result item
             if (resultItems[index]) {
                 resultItems[index].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+            
+            // Draw highlight rectangle on canvas overlay
+            drawSearchHighlight(match);
+        }
+        
+        // Draw search highlight on canvas overlay
+        function drawSearchHighlight(match) {
+            const highlightCanvas = document.getElementById('search-highlight-canvas');
+            if (!highlightCanvas || !pdfCanvas || !match.bbox) return;
+            
+            // Only highlight if match is on current page
+            if (match.page_number !== window.pdfEditorVars.currentPage) return;
+            
+            // Sync canvas size with PDF canvas
+            highlightCanvas.width = pdfCanvas.width;
+            highlightCanvas.height = pdfCanvas.height;
+            highlightCanvas.style.width = pdfCanvas.style.width || pdfCanvas.width + 'px';
+            highlightCanvas.style.height = pdfCanvas.style.height || pdfCanvas.height + 'px';
+            
+            const ctx = highlightCanvas.getContext('2d');
+            ctx.clearRect(0, 0, highlightCanvas.width, highlightCanvas.height);
+            
+            // Get canvas dimensions
+            const canvasWidth = highlightCanvas.width;
+            const canvasHeight = highlightCanvas.height;
+            
+            // Backend returns bbox in PDF coordinates [x0, y0, x1, y1] (bottom-left origin)
+            // We need to get the actual PDF page dimensions from the rendered image
+            // The rendered image dimensions represent the PDF page at the current zoom
+            
+            // Get PDF page dimensions - we need to query backend or estimate from canvas
+            // For now, estimate: canvas represents PDF page at zoom level
+            // Standard PDF is ~612x792 points, but rendered image may be different size
+            
+            // Get the actual rendered page dimensions from backend
+            // Since we rendered at zoom, we need to scale PDF coordinates to canvas coordinates
+            const zoom = window.pdfEditorVars.scale || 1.5;
+            
+            // Estimate PDF page size from canvas (assuming standard aspect ratio)
+            // Or better: get actual page dimensions from backend
+            const estimatedPdfWidth = 612; // Standard PDF width in points
+            const estimatedPdfHeight = 792; // Standard PDF height in points
+            
+            // Scale factor from PDF points to canvas pixels
+            const scaleX = canvasWidth / estimatedPdfWidth;
+            const scaleY = canvasHeight / estimatedPdfHeight;
+            
+            // Convert PDF bbox [x0, y0, x1, y1] to canvas coordinates
+            const x0 = match.bbox[0] * scaleX;
+            const x1 = match.bbox[2] * scaleX;
+            
+            // PDF Y is bottom-left origin, canvas Y is top-left origin
+            const y0_pdf = match.bbox[1]; // Bottom of text in PDF coordinates
+            const y1_pdf = match.bbox[3]; // Top of text in PDF coordinates
+            
+            // Convert to canvas Y (flip vertically)
+            const y0_canvas = canvasHeight - (y1_pdf * scaleY); // Top of highlight
+            const y1_canvas = canvasHeight - (y0_pdf * scaleY); // Bottom of highlight
+            
+            const width = x1 - x0;
+            const height = y1_canvas - y0_canvas;
+            
+            // Draw semi-transparent highlight rectangle
+            ctx.fillStyle = 'rgba(255, 235, 59, 0.4)'; // Yellow highlight with transparency
+            ctx.fillRect(x0, y0_canvas, width, height);
+            
+            // Draw border
+            ctx.strokeStyle = 'rgba(255, 235, 59, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x0, y0_canvas, width, height);
+        }
+        
+        // Clear search highlights
+        function clearSearchHighlights() {
+            const highlightCanvas = document.getElementById('search-highlight-canvas');
+            if (highlightCanvas) {
+                const ctx = highlightCanvas.getContext('2d');
+                ctx.clearRect(0, 0, highlightCanvas.width, highlightCanvas.height);
             }
         }
         
@@ -2833,6 +2928,9 @@ SSL Security & Trust Section -->
                 if (pageNum) pageNum.textContent = pageNumber;
                 window.pdfEditorVars.currentPage = pageNumber;
                 
+                // Clear search highlights when page changes
+                clearSearchHighlights();
+                
                 // Update page buttons
                 updatePageButtons();
                 
@@ -2842,51 +2940,35 @@ SSL Security & Trust Section -->
             }
         }
         
-        // Apply OCR texts to PDF natively
+        // Apply OCR texts to PDF natively - DISABLED: Now handled directly in OCR button handler
+        // OCR text is now embedded immediately via backend /text/add API
         async function applyOCRTextsToPDF() {
-            try {
-                if (!window.pdfEditorVars.ocrTextsForPDF || window.pdfEditorVars.ocrTextsForPDF.length === 0) {
-                    return;
-                }
-                
-                const currentPdfData = window.pdfEditorVars.currentPdfData;
-                if (!currentPdfData) {
-                    throw new Error('No PDF loaded');
-                }
-                
-                let apiUrl = '/api/pdf/edit';
-                if (window.location.protocol === 'file:') {
-                    apiUrl = 'http://localhost:3000/api/pdf/edit';
-                }
-                
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        pdfData: currentPdfData,
-                        edits: {
-                            ocrTexts: window.pdfEditorVars.ocrTextsForPDF
-                        }
-                    })
-                });
-                
-                if (response.success) {
-                    const result = response;
-                    window.pdfEditorVars.currentPdfData = result.pdfData;
-                    await reloadPDF();
-                    window.pdfEditorVars.ocrTextsForPDF = []; // Clear after embedding
-                } else {
-                    throw new Error(result.error || 'Failed to embed OCR text');
-                }
-            } catch (error) {
-                console.error('Error applying OCR texts:', error);
-                showError('Failed to embed OCR text: ' + error.message);
-            }
+            // This function is deprecated - OCR text is now embedded directly via /text/add
+            console.warn('applyOCRTextsToPDF is deprecated - OCR text is embedded directly');
+            return;
         }
         
-        // Apply native text edit using pdf-lib backend (NO HTML overlays - direct PDF editing)
-        // Sends text edits to /api/pdf/edit-text endpoint for actual PDF modification
+        // Apply native text edit - DISABLED: Now uses session-based backend /text/edit
+        // This function is deprecated - use backend /text/edit endpoint directly
         async function applyNativeTextEdit(editData) {
+            console.warn('applyNativeTextEdit is deprecated - use backend /text/edit directly');
+            // Redirect to new backend API
+            if (!currentSessionId) {
+                throw new Error('No active PDF session. Please upload PDF first.');
+            }
+            
+            const { editText } = await import('./js/pdf-editor-api.js');
+            const userId = await getCurrentUserId();
+            
+            return await editText(
+                currentSessionId,
+                editData.pageIndex + 1,
+                editData.oldText || '',
+                editData.newText || '',
+                1,
+                userId
+            );
+        }
             try {
                 let { pageIndex, oldText, newText, x, y, fontSize, fontName, fontColor } = editData;
                 
@@ -3125,7 +3207,7 @@ SSL Security & Trust Section -->
                             
                             updateProgress(95, 'Processing OCR results...');
                             
-                            // Backend returns 'results' not 'texts'
+                            // Backend returns 'results' array with bbox in PDF coordinates
                             const ocrTexts = ocrResult.results || ocrResult.texts || [];
                             
                             if (!ocrTexts || ocrTexts.length === 0) {
@@ -3136,27 +3218,18 @@ SSL Security & Trust Section -->
                                 success: true,
                                 text: ocrTexts.map(t => t.text || '').join(' '),
                                 words: ocrTexts.map(word => {
-                                    // Handle bbox format - can be array of 4 points or [x0, y0, x1, y1]
+                                    // Backend OCR returns bbox: [x0, y0, x1, y1] in PDF coordinates
                                     let bbox = word.bbox || [];
                                     let x0 = 0, y0 = 0, x1 = 0, y1 = 0;
                                     
-                                    if (Array.isArray(bbox)) {
-                                        if (bbox.length === 4 && typeof bbox[0] === 'number') {
-                                            // [x0, y0, x1, y1]
-                                            [x0, y0, x1, y1] = bbox;
-                                        } else if (bbox.length === 4 && Array.isArray(bbox[0])) {
-                                            // [[x0,y0], [x1,y1], [x2,y2], [x3,y3]]
-                                            const xs = bbox.map(p => p[0]);
-                                            const ys = bbox.map(p => p[1]);
-                                            x0 = Math.min(...xs);
-                                            y0 = Math.min(...ys);
-                                            x1 = Math.max(...xs);
-                                            y1 = Math.max(...ys);
-                                        }
+                                    if (Array.isArray(bbox) && bbox.length >= 4) {
+                                        // [x0, y0, x1, y1] in PDF coordinates (bottom-left origin)
+                                        [x0, y0, x1, y1] = bbox;
                                     }
                                     
                                     return {
                                         text: word.text || '',
+                                        bbox: bbox, // Keep PDF coordinates for backend
                                         boundingBox: {
                                             x: x0,
                                             y: y0,
@@ -3189,41 +3262,45 @@ SSL Security & Trust Section -->
                         const imageWidth = pdfCanvas.width;
                         const imageHeight = pdfCanvas.height;
                         
-                        // Prepare text edits for native PDF embedding using pdf-lib
+                        // Prepare text edits for native PDF embedding
+                        // Backend OCR now returns bbox in PDF coordinates [x0, y0, x1, y1]
+                        // We need to convert PDF coordinates to canvas coordinates for addText API
                         const textEdits = [];
                         
+                        // Get current canvas dimensions
+                        const canvasWidth = pdfCanvas.width;
+                        const canvasHeight = pdfCanvas.height;
+                        
+                        // Estimate PDF page dimensions (standard is ~612x792 points)
+                        // We'll get actual dimensions from the rendered image aspect ratio
+                        const estimatedPdfWidth = 612;
+                        const estimatedPdfHeight = 792;
+                        const scaleX = canvasWidth / estimatedPdfWidth;
+                        const scaleY = canvasHeight / estimatedPdfHeight;
+                        
                         result.words.forEach((word) => {
-                            if (word.text && word.boundingBox && word.text.trim()) {
-                                // Convert image coordinates to PDF coordinates
-                                // Image: top-left origin, Y increases downward
-                                // PDF: bottom-left origin, Y increases upward
+                            if (word.text && word.text.trim() && word.bbox && Array.isArray(word.bbox) && word.bbox.length >= 4) {
+                                // Backend returns bbox: [x0, y0, x1, y1] in PDF point coordinates
+                                // x0, y0 = bottom-left, x1, y1 = top-right (PDF coordinate system)
+                                const [x0_pdf, y0_pdf, x1_pdf, y1_pdf] = word.bbox;
                                 
-                                let imageX = word.boundingBox.x || 0;
-                                let imageY = word.boundingBox.y || 0;
+                                // Convert PDF coordinates to canvas coordinates
+                                // PDF X maps directly (both left-to-right)
+                                const canvasX = x0_pdf * scaleX;
                                 
-                                // Handle different coordinate formats
-                                if (word.pdfCoordinates) {
-                                    // Use PDF coordinates if available (from server OCR)
-                                    imageX = word.pdfCoordinates.x || imageX;
-                                    imageY = word.pdfCoordinates.y || imageY;
-                                } else {
-                                    // Convert from image coordinates
-                                    // Normalize to 0-1 range
-                                    const normalizedX = imageX / imageWidth;
-                                    const normalizedY = 1 - ((imageY + (word.boundingBox.height || 12)) / imageHeight);
-                                    
-                                    // Map to PDF coordinates
-                                    imageX = normalizedX * pdfPageWidth;
-                                    imageY = normalizedY * pdfPageHeight;
-                                }
+                                // PDF Y is bottom-left origin, canvas Y is top-left origin
+                                // y1_pdf is the top of the text in PDF coordinates
+                                const pdfY_fromTop = estimatedPdfHeight - y1_pdf;
+                                const canvasY = pdfY_fromTop * scaleY;
                                 
-                                // Calculate font size based on bounding box height
-                                const fontSize = Math.max(8, Math.min(20, (word.boundingBox.height || 12) * (pdfPageHeight / imageHeight)));
+                                // Calculate font size from bbox height in PDF points
+                                const bboxHeight_pdf = y1_pdf - y0_pdf;
+                                const fontSize = Math.max(8, Math.min(200, bboxHeight_pdf / 1.2));
                                 
                                 textEdits.push({
                                     pageIndex: window.pdfEditorVars.currentPage - 1,
-                                    x: imageX,
-                                    y: imageY,
+                                    x: canvasX, // Canvas X coordinate (pixels)
+                                    y: canvasY, // Canvas Y coordinate (pixels, top-left origin)
                                     text: word.text.trim(),
                                     fontSize: fontSize,
                                     fontName: 'Helvetica',
@@ -3245,6 +3322,9 @@ SSL Security & Trust Section -->
                             const userId = await getCurrentUserId();
                             
                             let addedCount = 0;
+                            const canvasWidth = pdfCanvas.width;
+                            const canvasHeight = pdfCanvas.height;
+                            
                             for (const textEdit of textEdits) {
                                 try {
                                     await addText(
@@ -3256,7 +3336,9 @@ SSL Security & Trust Section -->
                                         textEdit.fontName || 'Helvetica',
                                         textEdit.fontSize || 12,
                                         textEdit.fontColor || [0, 0, 0],
-                                        userId
+                                        userId,
+                                        canvasWidth,
+                                        canvasHeight
                                     );
                                     addedCount++;
                                     
@@ -3742,10 +3824,12 @@ SSL Security & Trust Section -->
                 const rgbColor = hexToRgb(fontColor);
                 const colorArray = [rgbColor.r, rgbColor.g, rgbColor.b];
                 
-                // Get canvas coordinates
+                // Get canvas coordinates and dimensions
                 const rect = pdfCanvas.getBoundingClientRect();
                 const canvasX = textEditPosition.x;
                 const canvasY = textEditPosition.y;
+                const canvasWidth = pdfCanvas.width;
+                const canvasHeight = pdfCanvas.height;
                 
                 // Get current user ID
                 const userId = await getCurrentUserId();
@@ -3769,7 +3853,9 @@ SSL Security & Trust Section -->
                             fontName,
                             fontSize,
                             colorArray,
-                            userId
+                            userId,
+                            canvasWidth,
+                            canvasHeight
                         );
                         
                         // Track expected text for validation
@@ -4226,6 +4312,12 @@ SSL Security & Trust Section -->
                     const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
                     
                     updateProgress(40, 'Detecting form fields...');
+                    // DISABLED: Form detection not yet implemented in new session-based backend
+                    hideLoading();
+                    alert('Form detection is not yet available in the new backend. This feature will be added soon.');
+                    return;
+                    
+                    /* OLD CODE - DISABLED
                     let apiUrl = '/api/pdf/forms/get-fields';
                     if (window.location.protocol === 'file:') {
                         apiUrl = 'http://localhost:3000/api/pdf/forms/get-fields';
