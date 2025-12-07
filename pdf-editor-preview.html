@@ -2081,47 +2081,57 @@ SSL Security & Trust Section -->
                     return;
                 }
                 
-                const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
-                if (!fileId) {
+                if (!currentSessionId) {
                     alert('No PDF loaded. Please upload a PDF first.');
                     return;
                 }
                 
                 try {
                     showLoading('Replacing text...', 30);
-                    const apiBaseUrl = getApiBaseUrl();
-                    const response = await fetch(`${apiBaseUrl}/api/pdf/replace-all`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            fileId: fileId,
-                            searchText: searchText,
-                            replaceText: replaceText,
-                            caseSensitive: caseSensitiveCheck.checked,
-                            wholeWords: wholeWordsCheck.checked
-                        })
-                    });
                     
-                    if (!response.ok) {
-                        throw new Error('Replace failed: ' + response.status);
+                    // Search for all occurrences first
+                    const { searchText: searchTextBackend } = await import('./js/pdf-editor-api.js');
+                    const searchResult = await searchTextBackend(currentSessionId, searchText);
+                    
+                    if (!searchResult.matches || searchResult.matches.length === 0) {
+                        alert('No matches found to replace.');
+                        hideLoading();
+                        return;
                     }
                     
-                    const result = await response.json();
+                    // Replace each match using backend /text/edit
+                    const { editText } = await import('./js/pdf-editor-api.js');
+                    const userId = await getCurrentUserId();
+                    let replacedCount = 0;
                     
-                    if (result.success) {
-                        // Update PDF data
-                        window.pdfEditorVars.currentPdfData = result.pdfData;
-                        await reloadPDF();
-                        
-                        alert(`Successfully replaced ${result.replacementsCount} occurrence(s)`);
-                        // Clear search results
-                        currentSearchMatches = [];
-                        currentSearchIndex = -1;
-                        searchMatchCount.textContent = '';
-                        searchResults.innerHTML = '';
-                    } else {
-                        alert('Replace failed: ' + (result.error || 'Unknown error'));
+                    for (const match of searchResult.matches) {
+                        try {
+                            // Use old_text from search result and new_text from replace input
+                            const oldText = match.text || searchText;
+                            await editText(
+                                currentSessionId,
+                                match.page_number,
+                                oldText,
+                                replaceText,
+                                1, // max_replacements
+                                userId
+                            );
+                            replacedCount++;
+                        } catch (editError) {
+                            console.warn('Failed to replace match:', editError);
+                        }
                     }
+                    
+                    // Reload page to show changes
+                    await renderPage(window.pdfEditorVars.currentPage);
+                    
+                    alert(`Successfully replaced ${replacedCount} occurrence(s)`);
+                    
+                    // Clear search results
+                    currentSearchMatches = [];
+                    currentSearchIndex = -1;
+                    if (searchMatchCount) searchMatchCount.textContent = '';
+                    if (searchResults) searchResults.innerHTML = '';
                     
                     hideLoading();
                 } catch (error) {
@@ -2436,9 +2446,7 @@ SSL Security & Trust Section -->
                             // Also store base64 as fallback (more reliable)
                             sessionStorage.setItem('pdfFileBase64', base64);
                             
-                            if (pdfFileId) {
-                                window.pdfEditorVars.currentFileId = pdfFileId;
-                            }
+                            // File ID storage removed - using session-based approach
                             
                         await renderPDF(arrayBuffer);
                         window.pdfEditorVars.loadedInitialPdf = true;
@@ -2455,55 +2463,7 @@ SSL Security & Trust Section -->
                     }
                 }
                 
-                // Fallback: Check for PDF file ID from server upload
-                if (pdfFileId && !pdfServerUrl) {
-                    console.log('Found PDF file ID:', pdfFileId);
-                    showLoading('Loading PDF from server...', 20);
-                    
-                    try {
-                        // Load PDF from backend using file ID
-                        const apiBaseUrl = getApiBaseUrl();
-                        const loadUrl = `${apiBaseUrl}/api/pdf/load/${pdfFileId}`;
-                        
-                        const response = await fetch(loadUrl);
-                        
-                        if (!response.ok) {
-                            throw new Error(`Failed to load PDF: ${response.status}`);
-                        }
-                        
-                        const arrayBuffer = await response.arrayBuffer();
-                        
-                        // Store as current PDF data (chunked for large files)
-                        const uint8Array = new Uint8Array(arrayBuffer);
-                        let base64 = '';
-                        const chunkSize = 8192; // Process in 8KB chunks
-                        for (let i = 0; i < uint8Array.length; i += chunkSize) {
-                            const chunk = uint8Array.subarray(i, i + chunkSize);
-                            base64 += String.fromCharCode.apply(null, chunk);
-                        }
-                        base64 = btoa(base64);
-                        window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
-                        window.pdfEditorVars.currentFileId = pdfFileId;
-                        
-                        // Store in sessionStorage for fallback (both blob URL and base64)
-                        const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
-                        const blobURL = URL.createObjectURL(blob);
-                        sessionStorage.setItem('pdfFileURL', blobURL);
-                        // Also store base64 as fallback (more reliable)
-                        sessionStorage.setItem('pdfFileBase64', base64);
-                        
-                        // Render PDF
-                        await renderPDF(arrayBuffer);
-                        window.pdfEditorVars.loadedInitialPdf = true;
-                        window.pdfEditorVars.loadedFromStorage = true;
-                        hideLoading();
-                        return;
-                    } catch (error) {
-                        console.error('Error loading PDF from server:', error);
-                        hideLoading();
-                        // Fall through to blob URL fallback
-                    }
-                }
+                // File ID loading removed - use session-based approach only
                 
                 // Fallback: Check sessionStorage for PDF blob URL or base64
                 const pdfFileURL = sessionStorage.getItem('pdfFileURL');
@@ -4147,46 +4107,11 @@ SSL Security & Trust Section -->
                     const pdfArrayBuffer = await response.arrayBuffer();
                     const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
                     
-                    updateProgress(50, 'Rotating page...');
-                    let apiUrl = '/api/pdf/pages/rotate';
-                    if (window.location.protocol === 'file:') {
-                        apiUrl = 'http://localhost:3000/api/pdf/pages/rotate';
-                    }
-                    
-                    const rotateResponse = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            pdfData: `data:application/pdf;base64,${pdfBase64}`,
-                            rotations: [{ pageIndex: window.pdfEditorVars.currentPage - 1, angle: 90 }]
-                        })
-                    });
-                    
-                    updateProgress(80, 'Updating PDF...');
-                    
-                    if (rotateResponse.ok) {
-                        const result = await rotateResponse.json();
-                        if (result.success) {
-                            updateProgress(90, 'Rendering...');
-                            const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
-                            
-                            const blob = new Blob([pdfData], { type: 'application/pdf' });
-                            const newUrl = URL.createObjectURL(blob);
-                            sessionStorage.setItem('pdfFileURL', newUrl);
-                            
-                            const base64 = btoa(String.fromCharCode(...new Uint8Array(pdfData)));
-                            window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
-                            
-                            await reloadPDF();
-                            
-                            updateProgress(100, 'Page rotated!');
-                            setTimeout(() => hideLoading(), 300);
-                        } else {
-                            throw new Error(result.error || 'Rotation failed');
-                        }
-                    } else {
-                        throw new Error('Rotation request failed');
-                    }
+                    // Page rotation temporarily disabled - backend API not yet implemented
+                    // TODO: Implement /page/rotate endpoint in backend
+                    hideLoading();
+                    alert('Page rotation feature is temporarily unavailable. This feature will be available soon.');
+                    return;
                 } catch (error) {
                     console.error('Error rotating page:', error);
                     hideLoading();
@@ -4217,51 +4142,11 @@ SSL Security & Trust Section -->
                     const pdfArrayBuffer = await response.arrayBuffer();
                     const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
                     
-                    updateProgress(50, 'Deleting page...');
-                    let apiUrl = '/api/pdf/pages/delete';
-                    if (window.location.protocol === 'file:') {
-                        apiUrl = 'http://localhost:3000/api/pdf/pages/delete';
-                    }
-                    
-                    const deleteResponse = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            pdfData: `data:application/pdf;base64,${pdfBase64}`,
-                            pageIndices: [window.pdfEditorVars.currentPage - 1]
-                        })
-                    });
-                    
-                    updateProgress(80, 'Updating PDF...');
-                    
-                    if (deleteResponse.ok) {
-                        const result = await deleteResponse.json();
-                        if (result.success) {
-                            updateProgress(90, 'Rendering...');
-                            const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
-                            
-                            const blob = new Blob([pdfData], { type: 'application/pdf' });
-                            const newUrl = URL.createObjectURL(blob);
-                            sessionStorage.setItem('pdfFileURL', newUrl);
-                            
-                            const base64 = btoa(String.fromCharCode(...new Uint8Array(pdfData)));
-                            window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
-                            
-                            // Adjust current page if needed
-                            if (window.pdfEditorVars.currentPage > window.pdfEditorVars.totalPages - 1) {
-                                window.pdfEditorVars.currentPage = Math.max(1, window.pdfEditorVars.totalPages - 1);
-                            }
-                            
-                            await reloadPDF();
-                            
-                            updateProgress(100, 'Page deleted!');
-                            setTimeout(() => hideLoading(), 300);
-                        } else {
-                            throw new Error(result.error || 'Deletion failed');
-                        }
-                    } else {
-                        throw new Error('Deletion request failed');
-                    }
+                    // Page deletion temporarily disabled - backend API not yet implemented
+                    // TODO: Implement /page/delete endpoint in backend
+                    hideLoading();
+                    alert('Page deletion feature is temporarily unavailable. This feature will be available soon.');
+                    return;
                 } catch (error) {
                     console.error('Error deleting page:', error);
                     hideLoading();
@@ -4300,46 +4185,11 @@ SSL Security & Trust Section -->
                     const pdfArrayBuffer = await response.arrayBuffer();
                     const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
                     
-                    updateProgress(50, 'Reordering pages...');
-                    let apiUrl = '/api/pdf/pages/reorder';
-                    if (window.location.protocol === 'file:') {
-                        apiUrl = 'http://localhost:3000/api/pdf/pages/reorder';
-                    }
-                    
-                    const reorderResponse = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            pdfData: `data:application/pdf;base64,${pdfBase64}`,
-                            newOrder: newOrder
-                        })
-                    });
-                    
-                    updateProgress(80, 'Updating PDF...');
-                    
-                    if (reorderResponse.ok) {
-                        const result = await reorderResponse.json();
-                        if (result.success) {
-                            updateProgress(90, 'Rendering...');
-                            const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
-                            
-                            const blob = new Blob([pdfData], { type: 'application/pdf' });
-                            const newUrl = URL.createObjectURL(blob);
-                            sessionStorage.setItem('pdfFileURL', newUrl);
-                            
-                            const base64 = btoa(String.fromCharCode(...new Uint8Array(pdfData)));
-                            window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
-                            
-                            await reloadPDF();
-                            
-                            updateProgress(100, 'Pages reordered!');
-                            setTimeout(() => hideLoading(), 300);
-                        } else {
-                            throw new Error(result.error || 'Reordering failed');
-                        }
-                    } else {
-                        throw new Error('Reordering request failed');
-                    }
+                    // Page reordering temporarily disabled - backend API not yet implemented
+                    // TODO: Implement /page/reorder endpoint in backend
+                    hideLoading();
+                    alert('Page reordering feature is temporarily unavailable. This feature will be available soon.');
+                    return;
                 } catch (error) {
                     console.error('Error reordering pages:', error);
                     hideLoading();
@@ -4371,45 +4221,11 @@ SSL Security & Trust Section -->
                     const pdfArrayBuffer = await response.arrayBuffer();
                     const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
                     
-                    updateProgress(50, 'Extracting page...');
-                    let apiUrl = '/api/pdf/pages/extract';
-                    if (window.location.protocol === 'file:') {
-                        apiUrl = 'http://localhost:3000/api/pdf/pages/extract';
-                    }
-                    
-                    const extractResponse = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            pdfData: `data:application/pdf;base64,${pdfBase64}`,
-                            pageIndices: [window.pdfEditorVars.currentPage - 1]
-                        })
-                    });
-                    
-                    updateProgress(80, 'Preparing download...');
-                    
-                    if (extractResponse.ok) {
-                        const result = await extractResponse.json();
-                        if (result.success) {
-                            updateProgress(90, 'Downloading...');
-                            const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
-                            
-                            const blob = new Blob([pdfData], { type: 'application/pdf' });
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = `page-${pageNum}.pdf`;
-                            a.click();
-                            URL.revokeObjectURL(url);
-                            
-                            updateProgress(100, 'Page extracted!');
-                            setTimeout(() => hideLoading(), 300);
-                        } else {
-                            throw new Error(result.error || 'Extraction failed');
-                        }
-                    } else {
-                        throw new Error('Extraction request failed');
-                    }
+                    // Page extraction temporarily disabled - backend API not yet implemented
+                    // TODO: Implement /page/extract endpoint in backend
+                    hideLoading();
+                    alert('Page extraction feature is temporarily unavailable. This feature will be available soon.');
+                    return;
                 } catch (error) {
                     console.error('Error extracting page:', error);
                     hideLoading();
@@ -6207,180 +6023,9 @@ SSL Security & Trust Section -->
                 });
             }
             
-            // Watermark
-            const watermarkBtn = document.getElementById('watermark-btn');
-            if (watermarkBtn) {
-                watermarkBtn.addEventListener('click', async function() {
-                    if (!currentSessionId) {
-                        alert('No PDF loaded.');
-                        return;
-                    }
-                    
-                    const watermarkText = prompt('Enter watermark text:', 'CONFIDENTIAL');
-                    if (!watermarkText) return;
-                    
-                    const position = prompt('Enter position (center, top-left, top-right, bottom-left, bottom-right):', 'center');
-                    const opacity = prompt('Enter opacity (0.1 to 1.0):', '0.3');
-                    
-                    try {
-                        showLoading('Adding watermark...', 50);
-                        const apiBaseUrl = getApiBaseUrl();
-                        const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
-                        
-                        const response = await fetch(`${apiBaseUrl}/api/pdf/watermark`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                fileId: fileId,
-                                watermark: {
-                                    type: 'text',
-                                    text: watermarkText,
-                                    position: position || 'center',
-                                    opacity: parseFloat(opacity) || 0.3,
-                                    fontSize: 48,
-                                    rotation: -45
-                                }
-                            })
-                        });
-                        
-                        const result = await response.json();
-                        
-                        if (result.success) {
-                            window.pdfEditorVars.currentPdfData = result.pdfData;
-                            await reloadPDF();
-                            hideLoading();
-                            alert('Watermark added successfully!');
-                        } else {
-                            throw new Error(result.error || 'Watermark failed');
-                        }
-                    } catch (error) {
-                        hideLoading();
-                        alert('Error adding watermark: ' + error.message);
-                    }
-                });
-            }
-            
-            // Digital Signature
-            const signBtn = document.getElementById('sign-btn');
-            if (signBtn) {
-                signBtn.addEventListener('click', function() {
-                    if (!currentSessionId) {
-                        alert('No PDF loaded.');
-                        return;
-                    }
-                    
-                    window.pdfEditorVars.activeTool = 'signature';
-                    if (signBtn) signBtn.classList.add('active');
-                    if (pdfCanvas) {
-                        pdfCanvas.style.cursor = 'crosshair';
-                        pdfCanvas.addEventListener('click', async function signHandler(e) {
-                            if (window.pdfEditorVars.activeTool !== 'signature') {
-                                pdfCanvas.removeEventListener('click', signHandler);
-                                return;
-                            }
-                            
-                            const rect = pdfCanvas.getBoundingClientRect();
-                            const x = e.clientX - rect.left;
-                            const y = e.clientY - rect.top;
-                            
-                            const signatureText = prompt('Enter signature text:', 'John Doe');
-                            if (!signatureText) {
-                                pdfCanvas.removeEventListener('click', signHandler);
-                                window.pdfEditorVars.activeTool = 'select';
-                                if (signBtn) signBtn.classList.remove('active');
-                                return;
-                            }
-                            
-                            const width = 200;
-                            const height = 60;
-                            
-                            try {
-                                showLoading('Adding signature...', 50);
-                                const apiBaseUrl = getApiBaseUrl();
-                                const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
-                                
-                                const response = await fetch(`${apiBaseUrl}/api/pdf/signature`, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        fileId: fileId,
-                                        signature: {
-                                            pageIndex: window.pdfEditorVars.currentPage - 1,
-                                            x: x,
-                                            y: y,
-                                            width: width,
-                                            height: height,
-                                            text: signatureText
-                                        }
-                                    })
-                                });
-                                
-                                const result = await response.json();
-                                
-                                if (result.success) {
-                                    window.pdfEditorVars.currentPdfData = result.pdfData;
-                                    await reloadPDF();
-                                    hideLoading();
-                                    alert('Signature added successfully!');
-                                } else {
-                                    throw new Error(result.error || 'Signature failed');
-                                }
-                            } catch (error) {
-                                hideLoading();
-                                alert('Error adding signature: ' + error.message);
-                            }
-                            
-                            pdfCanvas.removeEventListener('click', signHandler);
-                            window.pdfEditorVars.activeTool = 'select';
-                            if (signBtn) signBtn.classList.remove('active');
-                            if (pdfCanvas) pdfCanvas.style.cursor = 'default';
-                        }, { once: false });
-                    }
-                });
-            }
-            
-            // Export Formats
-            const exportDropdown = document.getElementById('export-dropdown-menu');
-            const exportOptions = document.querySelectorAll('.export-option');
-            exportOptions.forEach(option => {
-                option.addEventListener('click', async function() {
-                    const exportType = this.getAttribute('data-export');
-                    if (!currentSessionId) {
-                        alert('No PDF loaded.');
-                        return;
-                    }
-                    
-                    try {
-                        showLoading(`Exporting to ${exportType}...`, 30);
-                        const apiBaseUrl = getApiBaseUrl();
-                        const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
-                        
-                        let endpoint, mimeType, filename;
-                        if (exportType === 'word') {
-                            endpoint = '/export/word';
-                            mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-                            filename = 'export.docx';
-                        } else if (exportType === 'excel') {
-                            endpoint = '/export/excel';
-                            mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-                            filename = 'export.xlsx';
-                        } else if (exportType === 'powerpoint') {
-                            endpoint = '/export/powerpoint';
-                            mimeType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
-                            filename = 'export.pptx';
-                        } else if (exportType === 'image') {
-                            endpoint = '/export/images';
-                            mimeType = 'image/png';
-                            filename = 'export.png';
-                        } else {
-                            throw new Error('Invalid export type');
-                        }
-                        
-                        const response = await fetch(`${apiBaseUrl}/api/pdf${endpoint}`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ fileId: fileId })
-                        });
+            // Watermark - Disabled (duplicate removed, handled in initButtonEventListeners)
+            // Digital Signature - Disabled (duplicate removed, handled in initButtonEventListeners)
+            // Export Formats - Use backend /export endpoint (handled in export dropdown)
                         
                         const result = await response.json();
                         
@@ -6849,113 +6494,7 @@ SSL Security & Trust Section -->
             }
         }
         
-        // Enhanced OCR with multi-language support
-        function enhanceOCR() {
-            const ocrServerBtn = document.getElementById('ocr-server-btn');
-            if (ocrServerBtn) {
-                ocrServerBtn.addEventListener('click', async function() {
-                    if (!currentSessionId) {
-                        alert('No PDF loaded. Please upload a PDF first.');
-                        return;
-                    }
-                    
-                    const language = prompt('Select OCR language:\n1. English (eng)\n2. Hindi (hin)\n3. Spanish (spa)\n4. French (fra)\n5. German (deu)\n\nEnter 1-5 (default: 1):', '1');
-                    const langMap = { '1': 'eng', '2': 'hin', '3': 'spa', '4': 'fra', '5': 'deu' };
-                    const langCode = langMap[language] || 'eng';
-                    
-                    try {
-                        showLoading('Starting advanced OCR...', 10);
-                        updateProgress(20, 'Getting page image from backend...');
-                        
-                        // Use backend /page/render to get PNG image (NO PDF.js)
-                        if (!currentSessionId) {
-                            throw new Error('No active PDF session');
-                        }
-                        
-                        const { renderPage: renderPageBackend } = await import('./js/pdf-editor-api.js');
-                        const imageUrl = await renderPageBackend(currentSessionId, window.pdfEditorVars.currentPage, 3.0);
-                        
-                        // Convert image URL to data URL for OCR
-                        const img = new Image();
-                        img.crossOrigin = 'anonymous';
-                        const imageData = await new Promise((resolve, reject) => {
-                            img.onload = function() {
-                                const canvas = document.createElement('canvas');
-                                canvas.width = img.width;
-                                canvas.height = img.height;
-                                const ctx = canvas.getContext('2d');
-                                ctx.drawImage(img, 0, 0);
-                                resolve(canvas.toDataURL('image/png'));
-                                URL.revokeObjectURL(imageUrl);
-                            };
-                            img.onerror = reject;
-                            img.src = imageUrl;
-                        });
-                        
-                        updateProgress(40, 'Image ready for OCR...');
-                        
-                        updateProgress(50, 'Sending to OCR service...');
-                        const apiBaseUrl = getApiBaseUrl();
-                        
-                        const response = await fetch(`${apiBaseUrl}/api/pdf/ocr`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                imageData: imageData,
-                                pdfData: window.pdfEditorVars.currentPdfData,
-                                pageIndex: window.pdfEditorVars.currentPage - 1,
-                                language: langCode,
-                                fileName: sessionStorage.getItem('pdfFileName') || 'document.pdf'
-                            })
-                        });
-                        
-                        const result = await response.json();
-                        
-                        if (result.success) {
-                            updateProgress(90, 'Processing OCR results...');
-                            
-                            // Store OCR results
-                            if (!window.pdfEditorVars.ocrTextsForPDF) {
-                                window.pdfEditorVars.ocrTextsForPDF = [];
-                            }
-                            
-                            if (result.words && result.words.length > 0) {
-                                const currentViewport = page.getViewport({ scale: window.pdfEditorVars.scale });
-                                const scaleX = pdfCanvas.width / viewport.width;
-                                const scaleY = pdfCanvas.height / viewport.height;
-                                
-                                result.words.forEach((word) => {
-                                    if (word.text && word.boundingBox) {
-                                        window.pdfEditorVars.ocrTextsForPDF.push({
-                                            pageIndex: window.pdfEditorVars.currentPage - 1,
-                                            text: word.text,
-                                            x: word.boundingBox.x * scaleX,
-                                            y: word.boundingBox.y * scaleY,
-                                            fontSize: 12,
-                                            fontColor: [0, 0, 0],
-                                            fontName: 'Helvetica'
-                                        });
-                                    }
-                                });
-                                
-                                saveState();
-                            }
-                            
-                            hideLoading();
-                            alert(`OCR completed! Extracted ${result.words ? result.words.length : 0} words.\nLanguage: ${langCode.toUpperCase()}\nMethod: ${result.method || 'Server OCR'}`);
-                        } else {
-                            throw new Error(result.error || 'OCR failed');
-                        }
-                    } catch (error) {
-                        hideLoading();
-                        alert('Error performing OCR: ' + error.message);
-                    }
-                });
-            }
-        }
-        
-        // Initialize enhanced OCR
-        enhanceOCR();
+        // Enhanced OCR is handled by ocrServerBtn in initButtonEventListeners - no duplicate needed
         
         // Theme Toggle Functionality
         function initTheme() {

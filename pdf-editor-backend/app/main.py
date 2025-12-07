@@ -46,6 +46,33 @@ async def health():
     return {"status": "ok", "service": "pdf-native-editor"}
 
 
+@app.get("/user/credits")
+async def get_user_credits(userId: Optional[str] = None):
+    """
+    Get user credit balance and premium status.
+    For now, returns default values. In production, this should query a database.
+    """
+    if not userId:
+        return {
+            "credits": 0,
+            "unlimited": False,
+            "isPremium": False
+        }
+    
+    # TODO: Query database for actual user credits
+    # For now, return default values
+    # In production, implement:
+    # - Query user table for credits balance
+    # - Check premium subscription status
+    # - Return actual values
+    
+    return {
+        "credits": 0,  # Placeholder - replace with actual query
+        "unlimited": False,  # Placeholder - replace with actual query
+        "isPremium": False  # Placeholder - replace with actual query
+    }
+
+
 @app.get("/device/ip")
 @app.get("/api/device/ip")
 async def device_ip(request: Request):

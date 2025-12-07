@@ -178,7 +178,7 @@ export async function searchText(sessionId, query) {
 /**
  * Edit/replace text in PDF
  */
-export async function editText(sessionId, pageNumber, bbox, newText, fontName, fontSize, color, userId) {
+export async function editText(sessionId, pageNumber, oldText, newText, maxReplacements = 1, userId = null) {
   try {
     const deviceId = await getDeviceId();
     
@@ -190,11 +190,9 @@ export async function editText(sessionId, pageNumber, bbox, newText, fontName, f
       body: JSON.stringify({
         session_id: sessionId,
         page_number: pageNumber,
-        bbox: bbox,
+        old_text: oldText,
         new_text: newText,
-        font_name: fontName || 'Helvetica',
-        font_size: fontSize || 12,
-        color: color || [0, 0, 0],
+        max_replacements: maxReplacements,
         userId: userId,
         deviceId: deviceId
       })
