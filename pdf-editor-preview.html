@@ -1761,7 +1761,7 @@ SSL Security & Trust Section -->
                             <h4 style="font-size: 1.3rem; color: #0b1630; margin-bottom: 15px; font-weight: 600;">✨ Key Features</h4>
                             <ul style="color: #56607a; line-height: 2; font-size: 1rem; list-style: none; padding: 0;">
                                 <li style="margin-bottom: 10px;">✅ <strong>Native PDF Editing:</strong> Real text editing, not HTML overlays - changes are permanent</li>
-                                <li style="margin-bottom: 10px;">✅ <strong>Server-Side OCR:</strong> Advanced PaddleOCR for accurate text extraction from scanned documents</li>
+                                <li style="margin-bottom: 10px;">✅ <strong>Server-Side OCR:</strong> Advanced OCR engine for accurate text extraction from scanned documents</li>
                                 <li style="margin-bottom: 10px;">✅ <strong>Multi-Language Support:</strong> OCR works with Hindi, English, and 80+ languages</li>
                                 <li style="margin-bottom: 10px;">✅ <strong>Font Customization:</strong> Change font family, size, color, and style for any text</li>
                                 <li style="margin-bottom: 10px;">✅ <strong>Image Insertion:</strong> Add images, logos, and graphics to your PDFs</li>
@@ -2174,7 +2174,7 @@ SSL Security & Trust Section -->
         }
         
         // Navigate to match
-        function navigateToMatch(index) {
+        async function navigateToMatch(index) {
             if (index < 0 || index >= currentSearchMatches.length) return;
             
             currentSearchIndex = index;
@@ -2803,26 +2803,45 @@ SSL Security & Trust Section -->
                                 ctx.clearRect(0, 0, pdfCanvas.width, pdfCanvas.height);
                                 ctx.drawImage(img, 0, 0);
                                 
+                                // Ensure preview container is visible
+                                if (previewContainer) {
+                                    previewContainer.style.display = 'flex';
+                                    previewContainer.style.visibility = 'visible';
+                                }
+                                if (pdfPageWrapper) {
+                                    pdfPageWrapper.style.display = 'block';
+                                    pdfPageWrapper.style.visibility = 'visible';
+                                }
+                                
                                 // Clean up object URL
                                 if (imageUrl.startsWith('blob:') || imageUrl.startsWith('data:')) {
                                     URL.revokeObjectURL(imageUrl);
                                 }
                                 
+                                console.log('✅ Page rendered successfully:', pageNumber);
                                 resolve();
                             } catch (error) {
+                                console.error('Error drawing image to canvas:', error);
                                 reject(error);
                             }
                         };
                         img.onerror = function(error) {
+                            console.error('Error loading image:', error);
                             reject(new Error('Failed to load rendered image: ' + error));
                         };
                         img.src = imageUrl;
                     });
+                } else {
+                    console.error('❌ PDF canvas element not found!');
+                    throw new Error('PDF canvas element not found');
                 }
                 
                 // No overlay layers - pure backend rendering
                 if (pageNum) pageNum.textContent = pageNumber;
                 window.pdfEditorVars.currentPage = pageNumber;
+                
+                // Update page buttons
+                updatePageButtons();
                 
             } catch (error) {
                 console.error('Error rendering page from backend:', error);
@@ -3153,10 +3172,10 @@ SSL Security & Trust Section -->
                         useClientSideOCR = true;
                     }
                     
-                    // Use backend OCR (PaddleOCR)
+                    // Use backend OCR
                     if (useClientSideOCR || !result) {
-                        updateProgress(50, 'Using server-side OCR (PaddleOCR)...');
-                        console.log('Starting server-side OCR with PaddleOCR...');
+                        updateProgress(50, 'Using server-side OCR...');
+                        console.log('Starting server-side OCR...');
                         try {
                             // Call backend OCR API
                             const { ocrPage } = await import('./js/pdf-editor-api.js');
@@ -3213,7 +3232,7 @@ SSL Security & Trust Section -->
                                         confidence: word.confidence || 0.9
                                     };
                                 }),
-                                method: 'PaddleOCR (Server-Side)'
+                                method: 'Server-Side OCR'
                             };
                         } catch (ocrError) {
                             console.error('OCR error:', ocrError);
@@ -3434,7 +3453,7 @@ SSL Security & Trust Section -->
                                 confidence: word.confidence || 0.9
                             };
                         }),
-                        method: 'PaddleOCR (Fast Server-Side)'
+                        method: 'Fast Server-Side OCR'
                     };
                     
                     if (result && result.success) {
