@@ -3299,59 +3299,52 @@ SSL Security & Trust Section -->
                         });
                         
                         if (textEdits.length > 0) {
-                            // Get file ID
-                            const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
-                            
-                            if (!fileId) {
-                                throw new Error('No file ID available. Please upload PDF first.');
+                            // Use backend session-based text add API
+                            if (!currentSessionId) {
+                                throw new Error('No active PDF session. Please upload PDF first.');
                             }
                             
-                            // Send OCR text to backend for native PDF embedding using pdf-lib
+                            // Add each OCR text using backend /text/add API
                             updateProgress(98, 'Applying OCR text to PDF natively...');
                             
-                            const apiBaseUrl = getApiBaseUrl();
-                            const apiUrl = `${apiBaseUrl}/api/pdf/edit-text`;
+                            const { addText } = await import('./js/pdf-editor-api.js');
+                            const userId = await getCurrentUserId();
                             
-                            const editResponse = await fetch(apiUrl, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    fileId: fileId,
-                                    textEdits: textEdits
-                                })
-                            });
-                            
-                            if (!editResponse.ok) {
-                                const errorData = await editResponse.json().catch(() => ({}));
-                                throw new Error(errorData.error || 'Failed to embed OCR text into PDF');
+                            let addedCount = 0;
+                            for (const textEdit of textEdits) {
+                                try {
+                                    await addText(
+                                        currentSessionId,
+                                        textEdit.pageIndex + 1,
+                                        textEdit.x,
+                                        textEdit.y,
+                                        textEdit.text,
+                                        textEdit.fontName || 'Helvetica',
+                                        textEdit.fontSize || 12,
+                                        textEdit.fontColor || [0, 0, 0],
+                                        userId
+                                    );
+                                    addedCount++;
+                                    
+                                    // Track expected text for validation
+                                    if (!window.pdfEditorVars.expectedTexts) {
+                                        window.pdfEditorVars.expectedTexts = [];
+                                    }
+                                    window.pdfEditorVars.expectedTexts.push(textEdit.text);
+                                } catch (addError) {
+                                    console.warn('Failed to add OCR text:', textEdit.text, addError);
+                                }
                             }
                             
-                            const editResult = await editResponse.json();
+                            updateProgress(100, 'OCR text embedded natively into PDF!');
                             
-                            if (editResult.success) {
-                                updateProgress(100, 'OCR text embedded natively into PDF!');
-                                
-                                // Update PDF data and reload to show native changes (NO HTML overlays)
-                                window.pdfEditorVars.currentPdfData = editResult.pdfData;
-                                
-                                // Update stored file
-                                const pdfBase64 = editResult.pdfData.split(',')[1] || editResult.pdfData;
-                                const pdfBytes = Uint8Array.from(atob(pdfBase64), c => c.charCodeAt(0));
-                                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                                const newUrl = URL.createObjectURL(blob);
-                                sessionStorage.setItem('pdfFileURL', newUrl);
-                                sessionStorage.setItem('pdfFileBase64', pdfBase64);
-                                
-                                // Reload PDF to show native changes (NO HTML overlays - pure PDF editing)
-                                await reloadPDF();
-                                
-                                setTimeout(() => {
-                                    hideLoading();
-                                    alert(`✅ OCR completed! ${textEdits.length} words embedded into PDF natively (like iLovePDF Pro). Text is now part of the PDF structure.`);
-                                }, 500);
-                            } else {
-                                throw new Error(editResult.error || 'Failed to embed OCR text');
-                            }
+                            // Reload PDF to show native changes
+                            await renderPage(window.pdfEditorVars.currentPage);
+                            
+                            setTimeout(() => {
+                                hideLoading();
+                                alert(`✅ OCR completed! ${addedCount} words embedded into PDF natively. Text is now part of the PDF structure.`);
+                            }, 500);
                         } else {
                             hideLoading();
                             alert('OCR completed but no valid text found to embed.');
@@ -3402,17 +3395,23 @@ SSL Security & Trust Section -->
                     });
                     
                     // Use backend OCR API (same as regular OCR button)
-                    const sessionId = window.pdfEditorVars?.sessionId;
-                    const currentPage = window.pdfEditorVars?.currentPage || 1;
-                    
-                    if (!sessionId) {
-                        throw new Error('No active PDF session');
+                    if (!currentSessionId) {
+                        throw new Error('No active PDF session. Please upload PDF first.');
                     }
                     
                     const userId = await getCurrentUserId();
                     const { ocrPage } = await import('./js/pdf-editor-api.js');
                     
-                    const ocrResult = await ocrPage(sessionId, currentPage, userId);
+                    let ocrResult;
+                    try {
+                        ocrResult = await ocrPage(currentSessionId, window.pdfEditorVars.currentPage, userId);
+                    } catch (ocrError) {
+                        // Better error handling for JSON parse errors
+                        if (ocrError.message && (ocrError.message.includes('JSON') || ocrError.message.includes('Unexpected token'))) {
+                            throw new Error('OCR service temporarily unavailable. Please try again in a moment.');
+                        }
+                        throw ocrError;
+                    }
                     
                     // Backend returns 'results' not 'texts'
                     const ocrTexts = ocrResult.results || ocrResult.texts || [];
@@ -3810,10 +3809,15 @@ SSL Security & Trust Section -->
             // Create dialog
             textEditDialog = document.createElement('div');
             textEditDialog.className = 'text-edit-dialog';
+            // Position dialog in center of canvas or at click position (relative to canvas)
+            const canvasRect = pdfCanvas ? pdfCanvas.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+            const dialogX = x ? (canvasRect.left + Math.min(x, canvasRect.width - 350)) : (canvasRect.left + (canvasRect.width / 2) - 175);
+            const dialogY = y ? (canvasRect.top + Math.min(y, canvasRect.height - 200)) : (canvasRect.top + (canvasRect.height / 2) - 100);
+            
             textEditDialog.style.cssText = `
-                position: absolute;
-                left: ${x}px;
-                top: ${y}px;
+                position: fixed;
+                left: ${dialogX}px;
+                top: ${dialogY}px;
                 background: #2d2d2d;
                 border: 2px solid #0078d4;
                 border-radius: 8px;
@@ -3885,12 +3889,9 @@ SSL Security & Trust Section -->
             textEditDialog.appendChild(textEditTextarea);
             textEditDialog.appendChild(buttonContainer);
             
-            // Append to preview container
-            const previewContainer = document.getElementById('preview-container');
-            if (previewContainer) {
-                previewContainer.appendChild(textEditDialog);
-                textEditTextarea.focus();
-            }
+            // Append to body (fixed positioning relative to viewport)
+            document.body.appendChild(textEditDialog);
+            textEditTextarea.focus();
             
             // Keyboard shortcuts
             textEditTextarea.addEventListener('keydown', function(e) {
