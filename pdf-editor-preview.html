@@ -2327,16 +2327,29 @@ SSL Security & Trust Section -->
         let currentSessionId = null;
         
         // File upload handler - set up after DOM is ready
+        // PERMANENT FIX: Ensure this is called only once and properly
+        let fileUploadHandlerSetup = false;
         function setupFileUploadHandler() {
+            // Prevent multiple setups
+            if (fileUploadHandlerSetup) {
+                console.log('File upload handler already setup, skipping...');
+                return;
+            }
+            
             const currentFileInput = document.getElementById('file-input');
             if (!currentFileInput) {
-                console.error('File input not found');
+                console.error('File input not found, retrying in 100ms...');
+                setTimeout(setupFileUploadHandler, 100);
                 return;
             }
             
             // Remove existing listener if any by cloning
             const newFileInput = currentFileInput.cloneNode(true);
             currentFileInput.parentNode.replaceChild(newFileInput, currentFileInput);
+            
+            // Mark as setup
+            fileUploadHandlerSetup = true;
+            console.log('✅ File upload handler setup complete');
             
             newFileInput.addEventListener('change', async function(e) {
                 const file = e.target.files[0];
@@ -2514,13 +2527,25 @@ SSL Security & Trust Section -->
             });
         }
         
-        // Setup file upload handler when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', setupFileUploadHandler);
-        } else {
-            // DOM already loaded, setup immediately
-            setTimeout(setupFileUploadHandler, 100);
+        // PERMANENT FIX: Setup file upload handler with multiple fallbacks
+        function initializeFileUpload() {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
+                    setTimeout(setupFileUploadHandler, 50);
+                });
+            } else if (document.readyState === 'interactive') {
+                setTimeout(setupFileUploadHandler, 50);
+            } else {
+                // DOM already loaded
+                setupFileUploadHandler();
+            }
+            
+            // Also try after a short delay as fallback
+            setTimeout(setupFileUploadHandler, 200);
         }
+        
+        // Initialize immediately
+        initializeFileUpload();
         
         // Check for PDF from edit-pdf.html on page load
         async function checkForStoredPDF() {
@@ -2818,7 +2843,7 @@ SSL Security & Trust Section -->
                     window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
                 }
                 
-                // Ensure preview container is visible BEFORE rendering
+                // PERMANENT FIX: Ensure preview container is visible BEFORE rendering
                 const previewContainerEl = document.getElementById('preview-container');
                 const pdfPageWrapperEl = document.getElementById('pdf-page-wrapper');
                 const pdfCanvasEl = document.getElementById('pdf-canvas');
@@ -2828,16 +2853,26 @@ SSL Security & Trust Section -->
                     previewContainerEl.style.visibility = 'visible';
                     previewContainerEl.style.minHeight = '600px';
                     previewContainerEl.style.opacity = '1';
+                    previewContainerEl.style.position = 'relative';
+                    console.log('✅ Preview container made visible');
+                } else {
+                    console.error('❌ Preview container not found!');
                 }
                 if (pdfPageWrapperEl) {
                     pdfPageWrapperEl.style.display = 'block';
                     pdfPageWrapperEl.style.visibility = 'visible';
                     pdfPageWrapperEl.style.opacity = '1';
                     pdfPageWrapperEl.setAttribute('data-loaded', 'true');
+                    console.log('✅ PDF page wrapper made visible');
+                } else {
+                    console.error('❌ PDF page wrapper not found!');
                 }
                 if (pdfCanvasEl) {
                     pdfCanvasEl.style.display = 'block';
                     pdfCanvasEl.style.visibility = 'visible';
+                    console.log('✅ PDF canvas made visible');
+                } else {
+                    console.error('❌ PDF canvas not found!');
                 }
                 
                 if (pageCount) pageCount.textContent = sessionResult.page_count;
@@ -5654,6 +5689,7 @@ SSL Security & Trust Section -->
             const imageInput = document.getElementById('image-input');
             
             // Upload button (single-click, single input dialog)
+            // PERMANENT FIX: Ensure file input exists and upload button works
             const currentFileInput = document.getElementById('file-input');
             if (uploadBtn && currentFileInput) {
                 // Remove old listener if exists
@@ -5665,7 +5701,14 @@ SSL Security & Trust Section -->
                     e.stopPropagation();
                     console.log('Upload button clicked');
                     try {
-                        currentFileInput.click();
+                        // Ensure file input exists and is accessible
+                        const fileInput = document.getElementById('file-input');
+                        if (!fileInput) {
+                            console.error('File input not found when button clicked');
+                            alert('File input not found. Please refresh the page.');
+                            return;
+                        }
+                        fileInput.click();
                     } catch (error) {
                         console.error('Error clicking file input:', error);
                         alert('Error opening file dialog. Please try again.');
@@ -5677,6 +5720,15 @@ SSL Security & Trust Section -->
                     uploadBtn: !!uploadBtn, 
                     fileInput: !!currentFileInput 
                 });
+                // Retry after a delay
+                setTimeout(function() {
+                    const retryFileInput = document.getElementById('file-input');
+                    const retryUploadBtn = document.getElementById('upload-btn');
+                    if (retryFileInput && retryUploadBtn) {
+                        console.log('Retrying upload button setup...');
+                        initButtonEventListeners();
+                    }
+                }, 500);
             }
             
             // Download button - already has listener, but verify
