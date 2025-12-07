@@ -3002,23 +3002,31 @@ SSL Security & Trust Section -->
         // Apply native text edit - DISABLED: Now uses session-based backend /text/edit
         // This function is deprecated - use backend /text/edit endpoint directly
         async function applyNativeTextEdit(editData) {
-            console.warn('applyNativeTextEdit is deprecated - use backend /text/edit directly');
-            // Redirect to new backend API
-            if (!currentSessionId) {
-                throw new Error('No active PDF session. Please upload PDF first.');
+            try {
+                console.warn('applyNativeTextEdit is deprecated - use backend /text/edit directly');
+                // Redirect to new backend API
+                if (!currentSessionId) {
+                    showError('No active PDF session. Please upload PDF first.');
+                    return Promise.resolve(false);
+                }
+                
+                const { editText } = await import('./js/pdf-editor-api.js');
+                const userId = await getCurrentUserId();
+                
+                await editText(
+                    currentSessionId,
+                    editData.pageIndex + 1,
+                    editData.oldText || '',
+                    editData.newText || '',
+                    1,
+                    userId
+                );
+                return Promise.resolve(true);
+            } catch (error) {
+                console.error('Error in applyNativeTextEdit:', error);
+                showError('Failed to apply text edit: ' + error.message);
+                return Promise.resolve(false);
             }
-            
-            const { editText } = await import('./js/pdf-editor-api.js');
-            const userId = await getCurrentUserId();
-            
-            return await editText(
-                currentSessionId,
-                editData.pageIndex + 1,
-                editData.oldText || '',
-                editData.newText || '',
-                1,
-                userId
-            );
         }
             try {
                 let { pageIndex, oldText, newText, x, y, fontSize, fontName, fontColor } = editData;
