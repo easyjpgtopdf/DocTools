@@ -2426,11 +2426,27 @@ SSL Security & Trust Section -->
                                 sessionStorage.setItem('pdfFileName', file.name);
                                 
                                 updateProgress(90, 'Starting backend session and rendering...');
+                                
+                                // PERMANENT FIX: Ensure preview container is visible before rendering
+                                const previewContainer = document.getElementById('preview-container');
+                                const pdfPageWrapper = document.getElementById('pdf-page-wrapper');
+                                if (previewContainer) {
+                                    previewContainer.style.display = 'flex';
+                                    previewContainer.style.visibility = 'visible';
+                                    previewContainer.style.opacity = '1';
+                                }
+                                if (pdfPageWrapper) {
+                                    pdfPageWrapper.style.display = 'block';
+                                    pdfPageWrapper.style.visibility = 'visible';
+                                    pdfPageWrapper.setAttribute('data-loaded', 'true');
+                                }
+                                
                                 await renderPDF(arrayBuffer);
                                 window.pdfEditorVars.loadedInitialPdf = true;
                                 
                                 hideLoading();
                                 console.log('✅ PDF session started. Session ID:', currentSessionId);
+                                console.log('✅ PDF rendered and visible');
                             } catch (error) {
                                 console.error('Error loading PDF:', error);
                                 hideLoading();
