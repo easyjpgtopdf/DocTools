@@ -41,13 +41,10 @@
     <link rel="stylesheet" href="css/theme-modern.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- PDF.js for rendering (Fast, Lightweight) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    
     <!-- PDF Editor API Client (Backend Integration) -->
     <script type="module" src="js/pdf-editor-api.js"></script>
     
-    <!-- Professional PDF Editor using enhanced pdf.js + pdf-lib -->
+    <!-- Professional PDF Editor using backend rendering (NO PDF.js) -->
     
     <!-- Schema Markup for SEO -->
     <script type="application/ld+json">
@@ -1321,7 +1318,7 @@
                         <div class="property-group-title">Performance</div>
                         <div class="property-item">
                             <div class="property-label">Rendering</div>
-                            <div style="color: #28a745; font-size: 11px;">⚡ PDF.js (Fast)</div>
+                            <div style="color: #28a745; font-size: 11px;">⚡ Backend Rendering</div>
                         </div>
                         <div class="property-item">
                             <div class="property-label">Processing</div>
@@ -1867,7 +1864,7 @@ SSL Security & Trust Section -->
         }
         
         // Professional PDF Editor Implementation
-        // Features: PDF.js rendering, Server processing, Fast OCR, Native editing, Cloud integration
+        // Features: Backend rendering, Server processing, Fast OCR, Native editing, Cloud integration
         
         // Initialize device fingerprinting for quota tracking
         let deviceInfo = null;
@@ -1890,10 +1887,7 @@ SSL Security & Trust Section -->
         // Initialize device tracking on page load
         initDeviceTracking();
         
-        // Set PDF.js worker for performance
-        if (typeof pdfjsLib !== 'undefined') {
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        }
+        // PDF.js removed - using backend /page/render for all rendering
         
         // Global variables
         if (typeof window.pdfEditorVars === 'undefined') {
@@ -1927,8 +1921,7 @@ SSL Security & Trust Section -->
         const loadingOverlay = document.getElementById('loading-overlay');
         const pdfPageWrapper = document.getElementById('pdf-page-wrapper');
         const pdfCanvas = document.getElementById('pdf-canvas');
-        const textLayer = document.getElementById('text-layer');
-        const deletionLayer = document.getElementById('deletion-layer');
+        // Overlay layers removed - using backend rendering only
         const pageNum = document.getElementById('page-num');
         const pageCount = document.getElementById('page-count');
         const prevPageBtn = document.getElementById('prev-page');
@@ -2189,7 +2182,7 @@ SSL Security & Trust Section -->
             // Navigate to page
             if (match.pageIndex + 1 !== window.pdfEditorVars.currentPage) {
                 window.pdfEditorVars.currentPage = match.pageIndex + 1;
-                renderPDF();
+                await renderPage(window.pdfEditorVars.currentPage);
             }
             
             // Highlight active result
@@ -2283,7 +2276,7 @@ SSL Security & Trust Section -->
                         reader.onload = async function(e) {
                             try {
                                 const arrayBuffer = e.target.result;
-                                window.pdfEditorVars.pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                                // PDF.js removed - backend session will be created in renderPDF()
                                 window.pdfEditorVars.currentPage = 1;
                                 
                                 // Store PDF data
@@ -2302,9 +2295,8 @@ SSL Security & Trust Section -->
                                 const blobURL = URL.createObjectURL(blob);
                                 sessionStorage.setItem('pdfFileURL', blobURL);
                                 sessionStorage.setItem('pdfFileName', file.name);
-                                sessionStorage.setItem('pdfSessionId', currentSessionId);
                                 
-                                updateProgress(90, 'Rendering PDF...');
+                                updateProgress(90, 'Starting backend session and rendering...');
                                 await renderPDF(arrayBuffer);
                                 window.pdfEditorVars.loadedInitialPdf = true;
                                 
@@ -2658,27 +2650,24 @@ SSL Security & Trust Section -->
         }
         
         // Reload PDF after edits (refreshes display with updated PDF)
+        // Reload PDF page using backend /page/render (NO PDF.js, NO overlay)
         async function reloadPDF() {
             try {
-                if (!window.pdfEditorVars.currentPdfData) {
-                    throw new Error('No PDF data available to reload');
-                }
-                
-                showLoading('Reloading PDF...', 20);
-                
-                // Load from stored base64 data
-                const success = await loadPDFFromBase64(window.pdfEditorVars.currentPdfData);
-                
-                if (success) {
-                    hideLoading();
+                if (currentSessionId) {
+                    // Use backend /page/render to reload current page
+                    await renderPage(window.pdfEditorVars.currentPage || 1);
                     return true;
-                } else {
-                    hideLoading();
-                    return false;
                 }
+                
+                // If no session, try to start one from stored data
+                if (window.pdfEditorVars.currentPdfData || window.pdfEditorVars.currentPdfBuffer) {
+                    await renderPDF();
+                    return true;
+                }
+                
+                throw new Error('No PDF session or data available to reload');
             } catch (error) {
                 console.error('Error reloading PDF:', error);
-                hideLoading();
                 showError('Failed to reload PDF: ' + error.message);
                 return false;
             }
@@ -2703,10 +2692,16 @@ SSL Security & Trust Section -->
             return btoa(binary);
         }
         
-        // Render PDF (Fast PDF.js rendering)
+        // Render PDF using backend session (NO PDF.js - uses /page/render)
         async function renderPDF(pdfData) {
             try {
-                // Allow calls without pdfData (use stored buffer/base64)
+                // If we already have a session, just render the current page
+                if (currentSessionId) {
+                    await renderPage(window.pdfEditorVars.currentPage || 1);
+                    return;
+                }
+                
+                // Need to start a new session with backend
                 if (!pdfData) {
                     if (window.pdfEditorVars.currentPdfBuffer) {
                         pdfData = window.pdfEditorVars.currentPdfBuffer.slice(0);
@@ -2724,28 +2719,32 @@ SSL Security & Trust Section -->
                     }
                 }
                 
-                // Check usage limit before rendering (only for authenticated users)
-                try {
-                    const { checkUsageLimit, incrementUsage } = await import('./js/usage-limits.js');
-                    const limitCheck = await checkUsageLimit('pdf');
-                    
-                    if (!limitCheck.allowed) {
-                        const { showUsageLimitMessage } = await import('./js/usage-limits.js');
-                        showUsageLimitMessage(limitCheck.message || 'Usage limit reached. Please upgrade your plan.', true);
-                        throw new Error('Usage limit reached');
-                    }
-                } catch (limitError) {
-                    if (limitError.message === 'Usage limit reached') {
-                        throw limitError;
-                    }
-                    // If limit check fails, continue (fail-open for better UX)
+                // Convert ArrayBuffer to Blob for FormData
+                let pdfBlob;
+                if (pdfData instanceof ArrayBuffer) {
+                    pdfBlob = new Blob([pdfData], { type: 'application/pdf' });
+                } else if (pdfData instanceof Blob) {
+                    pdfBlob = pdfData;
+                } else {
+                    throw new Error('Invalid PDF data format');
                 }
                 
-                if (!pdfjsLib) {
-                    throw new Error('PDF.js library not loaded');
+                // Start session with backend
+                const { startSession } = await import('./js/pdf-editor-api.js');
+                const sessionResult = await startSession(pdfBlob);
+                
+                currentSessionId = sessionResult.session_id;
+                window.pdfEditorVars.sessionId = currentSessionId;
+                window.pdfEditorVars.totalPages = sessionResult.page_count;
+                
+                // Store PDF data
+                if (pdfData instanceof ArrayBuffer) {
+                    window.pdfEditorVars.currentPdfBuffer = new Uint8Array(pdfData).buffer;
+                    const base64 = bufferToBase64(pdfData);
+                    window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
                 }
                 
-                // Ensure preview container is visible FIRST
+                // Ensure preview container is visible
                 if (previewContainer) {
                     previewContainer.style.display = 'flex';
                     previewContainer.style.visibility = 'visible';
@@ -2757,43 +2756,15 @@ SSL Security & Trust Section -->
                     pdfPageWrapper.setAttribute('data-loaded', 'true');
                 }
                 
-                console.log('Rendering PDF...', { 
-                    previewContainer: !!previewContainer, 
-                    pdfPageWrapper: !!pdfPageWrapper,
-                    pdfCanvas: !!pdfCanvas 
-                });
+                if (pageCount) pageCount.textContent = sessionResult.page_count;
                 
-                // Fix ArrayBuffer detached error - create a copy
-                let pdfDataToLoad = pdfData;
-                if (pdfData instanceof ArrayBuffer) {
-                    // Create a new Uint8Array and copy to avoid detached buffer
-                    const uint8Array = new Uint8Array(pdfData);
-                    pdfDataToLoad = new Uint8Array(uint8Array).buffer;
-                }
-                
-                const loadingTask = pdfjsLib.getDocument({ data: pdfDataToLoad });
-                const pdfDoc = await loadingTask.promise;
-                window.pdfEditorVars.pdfDoc = pdfDoc;
-                window.pdfEditorVars.totalPages = pdfDoc.numPages;
-                
-                // Store PDF data for editing
-                // Create a copy of ArrayBuffer to avoid detached buffer error
-                if (pdfData instanceof ArrayBuffer) {
-                    window.pdfEditorVars.currentPdfBuffer = new Uint8Array(pdfData).buffer;
-                    const base64 = bufferToBase64(pdfData);
-                    window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
-                } else if (typeof pdfData === 'string') {
-                    window.pdfEditorVars.currentPdfData = pdfData;
-                }
-                
-                if (pageCount) pageCount.textContent = pdfDoc.numPages;
-                
+                // Render first page using backend
                 await renderPage(1);
                 updatePageButtons();
                 
                 if (downloadBtn) downloadBtn.disabled = false;
                 
-                console.log('PDF rendered successfully');
+                console.log('PDF session started and rendered successfully');
                 
             } catch (error) {
                 console.error('Error rendering PDF:', error);
@@ -2801,261 +2772,61 @@ SSL Security & Trust Section -->
             }
         }
         
-        // Render specific page (with backend API support)
-        let currentPageRenderTask = null;
+        // Render specific page using backend /page/render (NO PDF.js)
         async function renderPage(pageNumber) {
             try {
-                // Try backend rendering first if session exists
-                if (currentSessionId) {
-                    try {
-                        const { renderPage: renderPageBackend } = await import('./js/pdf-editor-api.js');
-                        const zoom = window.pdfEditorVars.scale || 1.5;
-                        const imageUrl = await renderPageBackend(currentSessionId, pageNumber, zoom);
-                        
-                        // Display rendered image
-                        if (pdfCanvas) {
-                            const img = new Image();
-                            img.onload = function() {
+                if (!currentSessionId) {
+                    console.warn('No session ID available for backend rendering');
+                    showError('Please upload PDF first to start a session');
+                    return;
+                }
+                
+                // Always use backend rendering
+                const { renderPage: renderPageBackend } = await import('./js/pdf-editor-api.js');
+                const zoom = window.pdfEditorVars.scale || 1.5;
+                
+                // Fetch PNG from backend
+                const imageUrl = await renderPageBackend(currentSessionId, pageNumber, zoom);
+                
+                // Display rendered PNG image on canvas
+                if (pdfCanvas) {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    
+                    await new Promise((resolve, reject) => {
+                        img.onload = function() {
+                            try {
                                 const ctx = pdfCanvas.getContext('2d');
                                 pdfCanvas.width = img.width;
                                 pdfCanvas.height = img.height;
+                                ctx.clearRect(0, 0, pdfCanvas.width, pdfCanvas.height);
                                 ctx.drawImage(img, 0, 0);
-                            };
-                            img.src = imageUrl;
-                        }
-                        
-                        if (pageNum) pageNum.textContent = pageNumber;
-                        window.pdfEditorVars.currentPage = pageNumber;
-                        return;
-                    } catch (backendError) {
-                        console.warn('Backend rendering failed, using PDF.js:', backendError);
-                        // Fall through to PDF.js rendering
-                    }
-                }
-                
-                // Fallback to PDF.js rendering
-                const pdfDoc = window.pdfEditorVars.pdfDoc;
-                if (!pdfDoc) {
-                    console.warn('PDF document not loaded');
-                    return;
-                }
-                
-                // Validate page number
-                if (pageNumber < 1 || pageNumber > pdfDoc.numPages) {
-                    console.warn(`Invalid page number: ${pageNumber}`);
-                    return;
-                }
-                
-                // Cancel previous render task to prevent memory leaks
-                if (currentPageRenderTask) {
-                    try {
-                        currentPageRenderTask.cancel();
-                    } catch (e) {
-                        // Ignore cancel errors
-                    }
-                    currentPageRenderTask = null;
-                }
-                
-                // Clear canvas and layers
-                const context = pdfCanvas.getContext('2d');
-                if (context) {
-                    context.clearRect(0, 0, pdfCanvas.width, pdfCanvas.height);
-                }
-                if (textLayer) textLayer.innerHTML = '';
-                if (deletionLayer) deletionLayer.innerHTML = '';
-                
-                // Get page with error handling
-                let page;
-                try {
-                    page = await pdfDoc.getPage(pageNumber);
-                } catch (error) {
-                    console.error(`Error getting page ${pageNumber}:`, error);
-                    showError(`Failed to load page ${pageNumber}`);
-                    return;
-                }
-                
-                // Calculate device pixel ratio for high DPI displays
-                const dpr = window.devicePixelRatio || 1;
-                const scale = window.pdfEditorVars.scale * dpr;
-                
-                const viewport = page.getViewport({ scale: window.pdfEditorVars.scale });
-                
-                // Set canvas size with high DPI support
-                pdfCanvas.height = viewport.height;
-                pdfCanvas.width = viewport.width;
-                
-                // Scale canvas for high DPI
-                if (dpr > 1) {
-                    pdfCanvas.style.width = viewport.width + 'px';
-                    pdfCanvas.style.height = viewport.height + 'px';
-                    context.scale(dpr, dpr);
-                }
-                
-                // Create render task with improved quality settings
-                const renderTask = page.render({
-                    canvasContext: context,
-                    viewport: viewport,
-                    // Enable text selection and better rendering
-                    enableWebGL: false, // Disable WebGL for better compatibility
-                    renderInteractiveForms: true
-                });
-                currentPageRenderTask = renderTask;
-                
-                // Wait for render with timeout
-                await Promise.race([
-                    renderTask.promise,
-                    new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Render timeout')), 30000)
-                    )
-                ]);
-                currentPageRenderTask = null;
-                
-                // Extract and render text layer
-                try {
-                    const textContent = await page.getTextContent();
-                    renderTextLayer(textContent, viewport, pageNumber);
-                } catch (textError) {
-                    console.warn('Error rendering text layer:', textError);
-                    // Continue without text layer if it fails
-                }
-                
-                // Update page number and UI
-                window.pdfEditorVars.currentPage = pageNumber;
-                if (pageNum) pageNum.textContent = pageNumber;
-                if (pageCount) pageCount.textContent = pdfDoc.numPages;
-                
-                // Update thumbnails selection
-                updateThumbnailSelection();
-                
-                // Update status bar
-                updateStatusBar(null, pageNumber, pdfDoc.numPages, Math.round(window.pdfEditorVars.scale * 100), null);
-                
-                // Update page buttons
-                updatePageButtons();
-                
-                // Clean up page object (help with memory)
-                if (page.cleanup) {
-                    try {
-                        page.cleanup();
-                    } catch (e) {
-                        // Ignore cleanup errors
-                    }
-                }
-                
-                // Initialize deletion layer
-                if (deletionLayer) {
-                    deletionLayer.style.width = viewport.width + 'px';
-                    deletionLayer.style.height = viewport.height + 'px';
-                }
-                
-                // Update zoom level display
-                if (zoomLevel) {
-                    zoomLevel.textContent = Math.round(window.pdfEditorVars.scale * 100) + '%';
-                }
-                
-            } catch (error) {
-                console.error('Error rendering page:', error);
-                showError(`Failed to render page ${pageNumber}: ${error.message}`);
-            }
-        }
-        
-        // Render text layer (with page tracking for multi-page editing)
-        // Render text layer - NO HTML overlays, only invisible click zones for native editing
-        function renderTextLayer(textContent, viewport, pageNumber = 1) {
-            if (!textLayer) return;
-            
-            // Clear text layer - NO HTML overlays
-            textLayer.innerHTML = '';
-            textLayer.style.width = viewport.width + 'px';
-            textLayer.style.height = viewport.height + 'px';
-            
-            // Create invisible click zones for native editing (NO visual HTML overlays)
-            textContent.items.forEach((item, index) => {
-                if (item.str && item.str.trim()) {
-                    const words = item.str.split(/(\s+)/);
-                    let currentX = item.transform[4];
-                    const baseY = viewport.height - item.transform[5];
-                    const fontSize = Math.abs(item.transform[0]) || 12;
-                    const fontFamily = item.fontName || 'Arial';
-                    
-                    words.forEach((word, wordIndex) => {
-                        if (word.trim()) {
-                            // Invisible click zone (NO visual HTML overlay)
-                            const clickZone = document.createElement('div');
-                            clickZone.style.position = 'absolute';
-                            clickZone.style.left = currentX + 'px';
-                            clickZone.style.top = (baseY - fontSize) + 'px';
-                            clickZone.style.width = (word.length * fontSize * 0.6) + 'px';
-                            clickZone.style.height = fontSize + 'px';
-                            clickZone.style.pointerEvents = 'auto';
-                            clickZone.style.cursor = 'text';
-                            clickZone.style.opacity = '0'; // Completely invisible
-                            clickZone.dataset.text = word;
-                            clickZone.dataset.page = pageNumber;
-                            clickZone.title = 'Click to edit (Native PDF editing)';
-                            
-                            // Visual text selection (HIGH PRIORITY)
-                            let isSelecting = false;
-                            let selectionStart = null;
-                            
-                            // Mouse down - start selection
-                            clickZone.addEventListener('mousedown', function(e) {
-                                if (window.pdfEditorVars.activeTool === 'select') {
-                                    e.stopPropagation();
-                                    isSelecting = true;
-                                    selectionStart = { x: currentX, y: baseY, word: word };
-                                    clickZone.style.backgroundColor = 'rgba(0, 120, 212, 0.3)';
+                                
+                                // Clean up object URL
+                                if (imageUrl.startsWith('blob:') || imageUrl.startsWith('data:')) {
+                                    URL.revokeObjectURL(imageUrl);
                                 }
-                            });
-                            
-                            // Mouse up - end selection
-                            clickZone.addEventListener('mouseup', function(e) {
-                                if (isSelecting && window.pdfEditorVars.activeTool === 'select') {
-                                    e.stopPropagation();
-                                    isSelecting = false;
-                                    // Show text selection menu
-                                    showTextSelectionMenu(currentX, baseY, word, pageNumber - 1);
-                                }
-                            });
-                            
-                            // Click - edit text (if not selecting)
-                            clickZone.addEventListener('click', function(e) {
-                                if (window.pdfEditorVars.activeTool !== 'select') {
-                                    e.stopPropagation();
-                                    // Use multi-line text editing dialog
-                                    textEditPosition = { x: currentX, y: baseY };
-                                    createTextEditDialog(e.clientX, e.clientY);
-                                    // Pre-fill with current text
-                                    if (textEditTextarea) {
-                                        textEditTextarea.value = word;
-                                    }
-                                }
-                            });
-                            
-                            // Hover effect for visual feedback
-                            clickZone.addEventListener('mouseenter', function() {
-                                if (window.pdfEditorVars.activeTool === 'select') {
-                                    clickZone.style.backgroundColor = 'rgba(0, 120, 212, 0.2)';
-                                    clickZone.style.cursor = 'text';
-                                } else {
-                                    clickZone.style.cursor = 'pointer';
-                                }
-                            });
-                            
-                            clickZone.addEventListener('mouseleave', function() {
-                                if (!isSelecting) {
-                                    clickZone.style.backgroundColor = 'transparent';
-                                }
-                            });
-                            
-                            textLayer.appendChild(clickZone);
-                            currentX += word.length * (fontSize * 0.6);
-                        } else if (word) {
-                            currentX += fontSize * 0.3;
-                        }
+                                
+                                resolve();
+                            } catch (error) {
+                                reject(error);
+                            }
+                        };
+                        img.onerror = function(error) {
+                            reject(new Error('Failed to load rendered image: ' + error));
+                        };
+                        img.src = imageUrl;
                     });
                 }
-            });
+                
+                // No overlay layers - pure backend rendering
+                if (pageNum) pageNum.textContent = pageNumber;
+                window.pdfEditorVars.currentPage = pageNumber;
+                
+            } catch (error) {
+                console.error('Error rendering page from backend:', error);
+                showError('Failed to render page: ' + error.message);
+            }
         }
         
         // Apply OCR texts to PDF natively
@@ -3190,11 +2961,9 @@ SSL Security & Trust Section -->
                 
                 // Wait for backend confirmation before updating the UI
                 if (result.success) {
-                    updateProgress(90, 'Reloading PDF...');
-                    // Update PDF data and reload (native changes from pdf-lib)
-                    // CRITICAL: Only update UI after successful backend edit
-                    window.pdfEditorVars.currentPdfData = result.pdfData;
-                    await reloadPDF();
+                    updateProgress(90, 'Reloading page from backend...');
+                    // Re-render page using backend /page/render (NO overlay, native changes)
+                    await renderPage(window.pdfEditorVars.currentPage || 1);
                     updateProgress(100, 'Edit applied successfully!');
                     setTimeout(() => {
                         hideLoading();
@@ -3251,10 +3020,10 @@ SSL Security & Trust Section -->
                     userId
                 );
                 
-                updateProgress(90, 'Reloading PDF...');
+                updateProgress(90, 'Reloading page from backend...');
                 
-                // Re-render page to show changes
-                await renderPDF();
+                // Re-render page using backend /page/render to show changes (NO overlay)
+                await renderPage(window.pdfEditorVars.currentPage);
                 
                 updateProgress(100, 'Text deleted successfully!');
                 setTimeout(() => {
@@ -3281,29 +3050,41 @@ SSL Security & Trust Section -->
         if (ocrBtn) {
             ocrBtn.addEventListener('click', async function() {
                 console.log('OCR button clicked');
-                if (!window.pdfEditorVars.pdfDoc) {
+                if (!currentSessionId) {
                     alert('No PDF loaded. Please upload a PDF first.');
                     return;
                 }
                 
                 try {
                     showLoading('Starting OCR...', 5);
-                    updateProgress(10, 'Rendering page to image...');
+                    updateProgress(10, 'Getting page image from backend...');
                     
-                    const page = await window.pdfEditorVars.pdfDoc.getPage(window.pdfEditorVars.currentPage);
-                    const viewport = page.getViewport({ scale: 2.0 });
-                    const canvas = document.createElement('canvas');
-                    canvas.width = viewport.width;
-                    canvas.height = viewport.height;
-                    const context = canvas.getContext('2d');
+                    // Use backend /page/render to get PNG image (NO PDF.js)
+                    if (!currentSessionId) {
+                        throw new Error('No active PDF session');
+                    }
                     
-                    await page.render({
-                        canvasContext: context,
-                        viewport: viewport
-                    }).promise;
+                    const { renderPage: renderPageBackend } = await import('./js/pdf-editor-api.js');
+                    const imageUrl = await renderPageBackend(currentSessionId, window.pdfEditorVars.currentPage, 2.0);
                     
-                    updateProgress(30, 'Converting to image...');
-                    const imageData = canvas.toDataURL('image/png');
+                    // Convert image URL to data URL for OCR
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    const imageData = await new Promise((resolve, reject) => {
+                        img.onload = function() {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0);
+                            resolve(canvas.toDataURL('image/png'));
+                            URL.revokeObjectURL(imageUrl);
+                        };
+                        img.onerror = reject;
+                        img.src = imageUrl;
+                    });
+                    
+                    updateProgress(30, 'Image ready for OCR...');
                     
                     updateProgress(40, 'Sending to OCR service...');
                     
@@ -3446,15 +3227,13 @@ SSL Security & Trust Section -->
                         // Process OCR results and embed directly into PDF (Native editing - NO HTML overlays)
                         updateProgress(95, 'Embedding OCR text into PDF natively...');
                         
-                        // Get PDF page dimensions for coordinate conversion
-                        const pdfPage = await window.pdfEditorVars.pdfDoc.getPage(window.pdfEditorVars.currentPage);
-                        const pdfViewport = pdfPage.getViewport({ scale: 1.0 });
-                        const pdfPageHeight = pdfViewport.height;
-                        const pdfPageWidth = pdfViewport.width;
+                        // Get PDF page dimensions from canvas (backend rendered PNG)
+                        const pdfPageHeight = pdfCanvas.height;
+                        const pdfPageWidth = pdfCanvas.width;
                         
-                        // Convert image coordinates to PDF coordinates
-                        const imageWidth = viewport.width;
-                        const imageHeight = viewport.height;
+                        // Image dimensions (OCR was done on 2.0x scale image)
+                        const imageWidth = pdfCanvas.width;
+                        const imageHeight = pdfCanvas.height;
                         
                         // Prepare text edits for native PDF embedding using pdf-lib
                         const textEdits = [];
@@ -3572,25 +3351,35 @@ SSL Security & Trust Section -->
         // Fast Server-Side OCR (Alternative fast processing)
         if (ocrServerBtn) {
             ocrServerBtn.addEventListener('click', async function() {
-                if (!window.pdfEditorVars.pdfDoc) return;
+                if (!currentSessionId) return;
                 
                 try {
                     showLoading('Processing...', 10);
                     
-                    // Use fast server-side processing
-                    const page = await window.pdfEditorVars.pdfDoc.getPage(window.pdfEditorVars.currentPage);
-                    const viewport = page.getViewport({ scale: 2.0 });
-                    const canvas = document.createElement('canvas');
-                    canvas.width = viewport.width;
-                    canvas.height = viewport.height;
-                    const context = canvas.getContext('2d');
+                    // Use backend /page/render to get PNG image (NO PDF.js)
+                    if (!currentSessionId) {
+                        throw new Error('No active PDF session');
+                    }
                     
-                    await page.render({
-                        canvasContext: context,
-                        viewport: viewport
-                    }).promise;
+                    const { renderPage: renderPageBackend } = await import('./js/pdf-editor-api.js');
+                    const imageUrl = await renderPageBackend(currentSessionId, window.pdfEditorVars.currentPage, 2.0);
                     
-                    const imageData = canvas.toDataURL('image/png');
+                    // Convert image URL to data URL
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    const imageData = await new Promise((resolve, reject) => {
+                        img.onload = function() {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0);
+                            resolve(canvas.toDataURL('image/png'));
+                            URL.revokeObjectURL(imageUrl);
+                        };
+                        img.onerror = reject;
+                        img.src = imageUrl;
+                    });
                     
                     // Use backend OCR API (same as regular OCR button)
                     const sessionId = window.pdfEditorVars?.sessionId;
@@ -3684,7 +3473,7 @@ SSL Security & Trust Section -->
         if (downloadBtn) {
             downloadBtn.addEventListener('click', async function() {
                 console.log('Download button clicked');
-                if (!window.pdfEditorVars.pdfDoc) {
+                if (!currentSessionId) {
                     alert('No PDF loaded. Please upload a PDF first.');
                     return;
                 }
@@ -4245,9 +4034,7 @@ SSL Security & Trust Section -->
                             imgElement.style.maxWidth = '200px';
                             imgElement.style.maxHeight = '200px';
                             
-                            if (textLayer) {
-                                textLayer.appendChild(imgElement);
-                            }
+                            // Overlay removed - images are added via backend API, then page reloads
                         }
                     };
                     img.src = e.target.result;
@@ -4289,7 +4076,7 @@ SSL Security & Trust Section -->
         // Rotate Current Page 90°
         if (rotate90Btn) {
             rotate90Btn.addEventListener('click', async function() {
-                if (!window.pdfEditorVars.pdfDoc) {
+                if (!currentSessionId) {
                     showError('No PDF loaded');
                     return;
                 }
@@ -4355,7 +4142,7 @@ SSL Security & Trust Section -->
         // Delete Current Page
         if (deleteCurrentPageBtn) {
             deleteCurrentPageBtn.addEventListener('click', async function() {
-                if (!window.pdfEditorVars.pdfDoc) {
+                if (!currentSessionId) {
                     showError('No PDF loaded');
                     return;
                 }
@@ -4430,7 +4217,7 @@ SSL Security & Trust Section -->
         // Reorder Pages
         if (reorderPagesBtn) {
             reorderPagesBtn.addEventListener('click', async function() {
-                if (!window.pdfEditorVars.pdfDoc) {
+                if (!currentSessionId) {
                     showError('No PDF loaded');
                     return;
                 }
@@ -4508,7 +4295,7 @@ SSL Security & Trust Section -->
         // Extract Page
         if (extractPageBtn) {
             extractPageBtn.addEventListener('click', async function() {
-                if (!window.pdfEditorVars.pdfDoc) {
+                if (!currentSessionId) {
                     showError('No PDF loaded');
                     return;
                 }
@@ -4582,7 +4369,7 @@ SSL Security & Trust Section -->
         // Detect Form Fields
         if (detectFormBtn) {
             detectFormBtn.addEventListener('click', async function() {
-                if (!window.pdfEditorVars.pdfDoc) {
+                if (!currentSessionId) {
                     showError('No PDF loaded');
                     return;
                 }
@@ -4642,7 +4429,7 @@ SSL Security & Trust Section -->
         // Fill Form Fields
         if (fillFormBtn) {
             fillFormBtn.addEventListener('click', async function() {
-                if (!window.pdfEditorVars.pdfDoc) {
+                if (!currentSessionId) {
                     showError('No PDF loaded');
                     return;
                 }
@@ -6066,7 +5853,7 @@ SSL Security & Trust Section -->
             const detectFormBtn = document.getElementById('detect-form-btn');
             if (detectFormBtn) {
                 detectFormBtn.addEventListener('click', async function() {
-                    if (!window.pdfEditorVars.pdfDoc) {
+                    if (!currentSessionId) {
                         alert('No PDF loaded. Please upload a PDF first.');
                         return;
                     }
@@ -6106,7 +5893,7 @@ SSL Security & Trust Section -->
             const fillFormBtn = document.getElementById('fill-form-btn');
             if (fillFormBtn) {
                 fillFormBtn.addEventListener('click', async function() {
-                    if (!window.pdfEditorVars.pdfDoc) {
+                    if (!currentSessionId) {
                         alert('No PDF loaded. Please upload a PDF first.');
                         return;
                     }
@@ -6199,7 +5986,7 @@ SSL Security & Trust Section -->
             const rotatePageBtn = document.getElementById('rotate-page-btn');
             if (rotatePageBtn) {
                 rotatePageBtn.addEventListener('click', async function() {
-                    if (!window.pdfEditorVars.pdfDoc) {
+                    if (!currentSessionId) {
                         alert('No PDF loaded.');
                         return;
                     }
@@ -6247,7 +6034,7 @@ SSL Security & Trust Section -->
             const deletePageBtn = document.getElementById('delete-page-btn');
             if (deletePageBtn) {
                 deletePageBtn.addEventListener('click', async function() {
-                    if (!window.pdfEditorVars.pdfDoc) {
+                    if (!currentSessionId) {
                         alert('No PDF loaded.');
                         return;
                     }
@@ -6291,7 +6078,7 @@ SSL Security & Trust Section -->
             const redactBtn = document.getElementById('redact-btn');
             if (redactBtn) {
                 redactBtn.addEventListener('click', function() {
-                    if (!window.pdfEditorVars.pdfDoc) {
+                    if (!currentSessionId) {
                         alert('No PDF loaded.');
                         return;
                     }
@@ -6368,7 +6155,7 @@ SSL Security & Trust Section -->
             const watermarkBtn = document.getElementById('watermark-btn');
             if (watermarkBtn) {
                 watermarkBtn.addEventListener('click', async function() {
-                    if (!window.pdfEditorVars.pdfDoc) {
+                    if (!currentSessionId) {
                         alert('No PDF loaded.');
                         return;
                     }
@@ -6421,7 +6208,7 @@ SSL Security & Trust Section -->
             const signBtn = document.getElementById('sign-btn');
             if (signBtn) {
                 signBtn.addEventListener('click', function() {
-                    if (!window.pdfEditorVars.pdfDoc) {
+                    if (!currentSessionId) {
                         alert('No PDF loaded.');
                         return;
                     }
@@ -6502,7 +6289,7 @@ SSL Security & Trust Section -->
             exportOptions.forEach(option => {
                 option.addEventListener('click', async function() {
                     const exportType = this.getAttribute('data-export');
-                    if (!window.pdfEditorVars.pdfDoc) {
+                    if (!currentSessionId) {
                         alert('No PDF loaded.');
                         return;
                     }
@@ -6591,7 +6378,7 @@ SSL Security & Trust Section -->
             const reorderPagesBtn = document.getElementById('reorder-pages-btn');
             if (reorderPagesBtn) {
                 reorderPagesBtn.addEventListener('click', async function() {
-                    if (!window.pdfEditorVars.pdfDoc) {
+                    if (!currentSessionId) {
                         alert('No PDF loaded.');
                         return;
                     }
@@ -6639,7 +6426,7 @@ SSL Security & Trust Section -->
             const extractPageBtn = document.getElementById('extract-page-btn');
             if (extractPageBtn) {
                 extractPageBtn.addEventListener('click', async function() {
-                    if (!window.pdfEditorVars.pdfDoc) {
+                    if (!currentSessionId) {
                         alert('No PDF loaded.');
                         return;
                     }
@@ -6685,7 +6472,7 @@ SSL Security & Trust Section -->
             const addPageBtn = document.getElementById('add-page-btn');
             if (addPageBtn) {
                 addPageBtn.addEventListener('click', async function() {
-                    if (!window.pdfEditorVars.pdfDoc) {
+                    if (!currentSessionId) {
                         alert('No PDF loaded.');
                         return;
                     }
@@ -6802,7 +6589,7 @@ SSL Security & Trust Section -->
             const splitBtn = document.getElementById('split-btn');
             if (splitBtn) {
                 splitBtn.addEventListener('click', async function() {
-                    if (!window.pdfEditorVars.pdfDoc) {
+                    if (!currentSessionId) {
                         alert('No PDF loaded.');
                         return;
                     }
@@ -7011,7 +6798,7 @@ SSL Security & Trust Section -->
             const ocrServerBtn = document.getElementById('ocr-server-btn');
             if (ocrServerBtn) {
                 ocrServerBtn.addEventListener('click', async function() {
-                    if (!window.pdfEditorVars.pdfDoc) {
+                    if (!currentSessionId) {
                         alert('No PDF loaded. Please upload a PDF first.');
                         return;
                     }
