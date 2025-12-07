@@ -2229,7 +2229,7 @@ SSL Security & Trust Section -->
                     
                     if (!quotaCheck.allowed) {
                         alert(`Quota exceeded: ${quotaCheck.message}\n\nYou have used ${quotaCheck.currentUsage.count || 0} of ${quotaCheck.limit} PDFs this month.\n\nPlease upgrade to Premium for unlimited PDF editing.`);
-                        fileInput.value = ''; // Clear file input
+                        newFileInput.value = ''; // Clear file input
                         return;
                     }
                     
@@ -2237,7 +2237,7 @@ SSL Security & Trust Section -->
                     const fileSizeMB = file.size / (1024 * 1024);
                     if (fileSizeMB > 50) {
                         alert(`File size limit exceeded: ${fileSizeMB.toFixed(2)} MB\n\nFree plan allows up to 50 MB per PDF.\n\nPlease upgrade to Premium for larger files.`);
-                        fileInput.value = '';
+                        newFileInput.value = '';
                         return;
                     }
                 } catch (quotaError) {
