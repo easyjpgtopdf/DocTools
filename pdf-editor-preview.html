@@ -2353,7 +2353,12 @@ SSL Security & Trust Section -->
             
             newFileInput.addEventListener('change', async function(e) {
                 const file = e.target.files[0];
-                if (!file) return;
+                if (!file) {
+                    console.log('No file selected');
+                    return;
+                }
+                
+                console.log('✅ File selected:', file.name, 'Size:', (file.size / 1024).toFixed(2), 'KB');
                 
                 if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
                     alert('Please select a valid PDF file');
