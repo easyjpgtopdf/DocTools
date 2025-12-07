@@ -2727,21 +2727,25 @@ SSL Security & Trust Section -->
                 }
                 
                 // Ensure preview container is visible BEFORE rendering
-                if (previewContainer) {
-                    previewContainer.style.display = 'flex';
-                    previewContainer.style.visibility = 'visible';
-                    previewContainer.style.minHeight = '600px';
-                    previewContainer.style.opacity = '1';
+                const previewContainerEl = document.getElementById('preview-container');
+                const pdfPageWrapperEl = document.getElementById('pdf-page-wrapper');
+                const pdfCanvasEl = document.getElementById('pdf-canvas');
+                
+                if (previewContainerEl) {
+                    previewContainerEl.style.display = 'flex';
+                    previewContainerEl.style.visibility = 'visible';
+                    previewContainerEl.style.minHeight = '600px';
+                    previewContainerEl.style.opacity = '1';
                 }
-                if (pdfPageWrapper) {
-                    pdfPageWrapper.style.display = 'block';
-                    pdfPageWrapper.style.visibility = 'visible';
-                    pdfPageWrapper.style.opacity = '1';
-                    pdfPageWrapper.setAttribute('data-loaded', 'true');
+                if (pdfPageWrapperEl) {
+                    pdfPageWrapperEl.style.display = 'block';
+                    pdfPageWrapperEl.style.visibility = 'visible';
+                    pdfPageWrapperEl.style.opacity = '1';
+                    pdfPageWrapperEl.setAttribute('data-loaded', 'true');
                 }
-                if (pdfCanvas) {
-                    pdfCanvas.style.display = 'block';
-                    pdfCanvas.style.visibility = 'visible';
+                if (pdfCanvasEl) {
+                    pdfCanvasEl.style.display = 'block';
+                    pdfCanvasEl.style.visibility = 'visible';
                 }
                 
                 if (pageCount) pageCount.textContent = sessionResult.page_count;
