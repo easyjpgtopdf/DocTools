@@ -3121,12 +3121,11 @@ SSL Security & Trust Section -->
                         try {
                             // Call backend OCR API
                             const { ocrPage } = await import('./js/pdf-editor-api.js');
-                            const sessionId = window.pdfEditorVars?.sessionId;
-                            const currentPage = window.pdfEditorVars?.currentPage || 1;
-                            
-                            if (!sessionId) {
-                                throw new Error('No active PDF session');
+                            if (!currentSessionId) {
+                                throw new Error('No active PDF session. Please upload PDF first.');
                             }
+                            
+                            const currentPage = window.pdfEditorVars?.currentPage || 1;
                             
                             const userId = await getCurrentUserId();
                             const ocrResult = await ocrPage(sessionId, currentPage, userId);
