@@ -2389,6 +2389,14 @@ SSL Security & Trust Section -->
             });
         }
         
+        // Setup file upload handler when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupFileUploadHandler);
+        } else {
+            // DOM already loaded, setup immediately
+            setTimeout(setupFileUploadHandler, 100);
+        }
+        
         // Check for PDF from edit-pdf.html on page load
         async function checkForStoredPDF() {
             if (window.pdfEditorVars.loadedInitialPdf || window.pdfEditorVars.loadedFromStorage) {
