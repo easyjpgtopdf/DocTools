@@ -2760,13 +2760,16 @@ SSL Security & Trust Section -->
                                 ctx.drawImage(img, 0, 0);
                                 
                                 // Ensure preview container is visible
-                                if (previewContainer) {
-                                    previewContainer.style.display = 'flex';
-                                    previewContainer.style.visibility = 'visible';
+                                const previewContainerEl = document.getElementById('preview-container');
+                                const pdfPageWrapperEl = document.getElementById('pdf-page-wrapper');
+                                
+                                if (previewContainerEl) {
+                                    previewContainerEl.style.display = 'flex';
+                                    previewContainerEl.style.visibility = 'visible';
                                 }
-                                if (pdfPageWrapper) {
-                                    pdfPageWrapper.style.display = 'block';
-                                    pdfPageWrapper.style.visibility = 'visible';
+                                if (pdfPageWrapperEl) {
+                                    pdfPageWrapperEl.style.display = 'block';
+                                    pdfPageWrapperEl.style.visibility = 'visible';
                                 }
                                 
                                 // Clean up object URL
@@ -5902,39 +5905,6 @@ SSL Security & Trust Section -->
             // Watermark - Disabled (duplicate removed, handled in initButtonEventListeners)
             // Digital Signature - Disabled (duplicate removed, handled in initButtonEventListeners)
             // Export dropdown is handled in initAdvancedFeatures - no duplicate needed
-                        
-                        const result = await response.json();
-                        
-                        if (result.success) {
-                            hideLoading();
-                            
-                            if (exportType === 'image' && result.images) {
-                                // Download all images as ZIP
-                                alert('Image export ready. Downloading...');
-                                result.images.forEach((img, index) => {
-                                    const link = document.createElement('a');
-                                    link.href = img.image;
-                                    link.download = `page-${img.pageIndex + 1}.${img.format}`;
-                                    link.click();
-                                });
-                            } else {
-                                // Download single file
-                                const link = document.createElement('a');
-                                link.href = result.fileData || result.pdfData;
-                                link.download = result.filename || filename;
-                                link.click();
-                            }
-                            
-                            alert('Export completed!');
-                        } else {
-                            throw new Error(result.error || 'Export failed');
-                        }
-                    } catch (error) {
-                        hideLoading();
-                        alert('Error exporting: ' + error.message);
-                    }
-                });
-            });
             
             // Export dropdown toggle
             const exportDropdownBtn = document.getElementById('export-dropdown-btn');
