@@ -2201,10 +2201,18 @@ SSL Security & Trust Section -->
         // Global session ID for backend
         let currentSessionId = null;
         
-        // File upload handler - will be set up in initButtonEventListeners
-        // This prevents duplicate listeners
-        if (fileInput) {
-            fileInput.addEventListener('change', async function(e) {
+        // File upload handler - set up after DOM is ready
+        function setupFileUploadHandler() {
+            if (!fileInput) {
+                console.error('File input not found');
+                return;
+            }
+            
+            // Remove existing listener if any
+            const newFileInput = fileInput.cloneNode(true);
+            fileInput.parentNode.replaceChild(newFileInput, fileInput);
+            
+            newFileInput.addEventListener('change', async function(e) {
                 const file = e.target.files[0];
                 if (!file) return;
                 
@@ -2676,16 +2684,22 @@ SSL Security & Trust Section -->
                     window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
                 }
                 
-                // Ensure preview container is visible
+                // Ensure preview container is visible BEFORE rendering
                 if (previewContainer) {
                     previewContainer.style.display = 'flex';
                     previewContainer.style.visibility = 'visible';
                     previewContainer.style.minHeight = '600px';
+                    previewContainer.style.opacity = '1';
                 }
                 if (pdfPageWrapper) {
                     pdfPageWrapper.style.display = 'block';
                     pdfPageWrapper.style.visibility = 'visible';
+                    pdfPageWrapper.style.opacity = '1';
                     pdfPageWrapper.setAttribute('data-loaded', 'true');
+                }
+                if (pdfCanvas) {
+                    pdfCanvas.style.display = 'block';
+                    pdfCanvas.style.visibility = 'visible';
                 }
                 
                 if (pageCount) pageCount.textContent = sessionResult.page_count;
@@ -2697,6 +2711,8 @@ SSL Security & Trust Section -->
                 if (downloadBtn) downloadBtn.disabled = false;
                 
                 console.log('PDF session started and rendered successfully');
+                console.log('Preview container visible:', previewContainer ? previewContainer.style.display : 'not found');
+                console.log('Canvas visible:', pdfCanvas ? pdfCanvas.style.display : 'not found');
                 
             } catch (error) {
                 console.error('Error rendering PDF:', error);
@@ -5500,24 +5516,29 @@ SSL Security & Trust Section -->
             const imageInput = document.getElementById('image-input');
             
             // Upload button (single-click, single input dialog)
-            if (uploadBtn && fileInput) {
-                if (!uploadBtn.dataset.bound) {
-                    uploadBtn.dataset.bound = 'true';
-                    uploadBtn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        console.log('Upload button clicked');
-                        try {
-                            fileInput.click();
-                        } catch (error) {
-                            console.error('Error clicking file input:', error);
-                            alert('Error opening file dialog. Please try again.');
-                        }
-                    });
-                    console.log('✅ Upload button listener added');
-                }
+            const currentFileInput = document.getElementById('file-input');
+            if (uploadBtn && currentFileInput) {
+                // Remove old listener if exists
+                const newUploadBtn = uploadBtn.cloneNode(true);
+                uploadBtn.parentNode.replaceChild(newUploadBtn, uploadBtn);
+                
+                newUploadBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Upload button clicked');
+                    try {
+                        currentFileInput.click();
+                    } catch (error) {
+                        console.error('Error clicking file input:', error);
+                        alert('Error opening file dialog. Please try again.');
+                    }
+                });
+                console.log('✅ Upload button listener added');
             } else {
-                console.error('❌ Upload button or file input not found!', { uploadBtn, fileInput });
+                console.error('❌ Upload button or file input not found!', { 
+                    uploadBtn: !!uploadBtn, 
+                    fileInput: !!currentFileInput 
+                });
             }
             
             // Download button - already has listener, but verify
@@ -5871,55 +5892,7 @@ SSL Security & Trust Section -->
             
             // Watermark - Disabled (duplicate removed, handled in initButtonEventListeners)
             // Digital Signature - Disabled (duplicate removed, handled in initButtonEventListeners)
-            // Export Formats - Handle export dropdown options
-            const exportDropdown = document.getElementById('export-dropdown-menu');
-            const exportOptions = document.querySelectorAll('.export-option');
-            exportOptions.forEach(option => {
-                option.addEventListener('click', async function() {
-                    const exportType = this.getAttribute('data-export');
-                    if (!currentSessionId) {
-                        alert('No PDF loaded. Please upload a PDF first.');
-                        return;
-                    }
-                    
-                    // Temporarily disable Word/Excel/PowerPoint export
-                    if (exportType === 'word' || exportType === 'excel' || exportType === 'powerpoint') {
-                        alert(`${exportType.toUpperCase()} export is temporarily unavailable. This feature will be available soon.`);
-                        if (exportDropdown) exportDropdown.style.display = 'none';
-                        return;
-                    }
-                    
-                    // Handle PDF and Image export
-                    try {
-                        if (exportType === 'pdf') {
-                            const { exportPDF } = await import('./js/pdf-editor-api.js');
-                            const userId = await getCurrentUserId();
-                            await exportPDF(currentSessionId, 'pdf', userId);
-                        } else if (exportType === 'image') {
-                            alert('Image export is temporarily unavailable. Only PDF export is currently supported.');
-                        }
-                        if (exportDropdown) exportDropdown.style.display = 'none';
-                    } catch (error) {
-                        console.error('Export error:', error);
-                        alert('Error exporting: ' + error.message);
-                    }
-                });
-            });
-            
-            // Export dropdown toggle
-            const exportDropdownBtn = document.getElementById('export-dropdown-btn');
-            if (exportDropdownBtn && exportDropdown) {
-                exportDropdownBtn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    exportDropdown.style.display = exportDropdown.style.display === 'none' ? 'block' : 'none';
-                });
-                
-                document.addEventListener('click', function(e) {
-                    if (!exportDropdownBtn.contains(e.target) && !exportDropdown.contains(e.target)) {
-                        exportDropdown.style.display = 'none';
-                    }
-                });
-            }
+            // Export dropdown is handled in initAdvancedFeatures - no duplicate needed
                         
                         const result = await response.json();
                         
