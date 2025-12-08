@@ -4575,66 +4575,7 @@ SSL Security & Trust Section -->
             });
         }
         
-        // Watermark Implementation - DISABLED
-        /* DISABLED - Coming soon
-        if (watermarkBtn) {
-            watermarkBtn.addEventListener('click', async function() {
-                if (!currentSessionId) {
-                    alert('No PDF loaded. Please upload a PDF first.');
-                    return;
-                }
-                
-                const watermarkText = prompt('Enter watermark text:', 'CONFIDENTIAL');
-                if (!watermarkText) return;
-                
-                const opacity = prompt('Enter opacity (0.1 to 1.0):', '0.3');
-                const opacityValue = parseFloat(opacity) || 0.3;
-                
-                try {
-                    showLoading('Adding watermark...', 10);
-                    
-                    updateProgress(30, 'Applying watermark to all pages...');
-                    
-                    // Use session-based backend to add watermark text to all pages
-                    const { getBackendUrl } = await import('./js/pdf-editor-api.js?v=2002');
-                    const { addText } = await import('./js/pdf-editor-api.js?v=2002');
-                    const backendUrl = getBackendUrl();
-                    const userId = await getCurrentUserId();
-                    
-                    // Add watermark to all pages
-                    for (let i = 1; i <= window.pdfEditorVars.totalPages; i++) {
-                        await addText(
-                            currentSessionId,
-                            i,
-                            200, // x
-                            400, // y
-                            watermarkText,
-                            'Helvetica',
-                            48,
-                            [179, 179, 179], // RGB for gray (0.7 * 255)
-                            userId,
-                            800, // canvas width (approximate)
-                            600  // canvas height (approximate)
-                        );
-                    }
-                    
-                    updateProgress(80, 'Re-rendering page...');
-                    
-                    // Re-render current page to show watermark
-                    await renderPage(window.pdfEditorVars.currentPage);
-                    
-                    updateProgress(100, 'Watermark added!');
-                    setTimeout(() => {
-                        hideLoading();
-                        alert('Watermark added successfully!');
-                    }, 500);
-                } catch (error) {
-                    console.error('Watermark error:', error);
-                    hideLoading();
-                    alert('Error adding watermark: ' + error.message);
-                }
-            });
-        }
+        // Watermark Implementation - DISABLED (Coming soon)
         
         // Sign Implementation
         if (signBtn) {
