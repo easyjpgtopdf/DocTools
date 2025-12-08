@@ -2313,22 +2313,33 @@ SSL Security & Trust Section -->
         
         // Click handling on textCanvas for text editing
         if (textCanvas) {
-            textCanvas.addEventListener('click', async function(e) {
-                if (!currentSessionId || !window.pdfEditorVars.currentTextLayer) return;
+            // Define click handler function first
+            async function handleTextCanvasClick(e) {
+                if (!currentSessionId || !window.pdfEditorVars.currentTextLayer) {
+                    console.warn('Cannot handle click: No session or text layer');
+                    return;
+                }
                 
                 const rect = textCanvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
+                const scaleX = textCanvas.width / rect.width;
+                const scaleY = textCanvas.height / rect.height;
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
                 
-                // Find clicked text item
+                console.log(`Click detected at canvas coordinates: (${x}, ${y})`);
+                
+                // Find clicked text item by checking all bboxes
                 const textLayer = window.pdfEditorVars.currentTextLayer;
                 let clickedItem = null;
                 
                 for (const item of textLayer) {
-                    if (!item.canvasBbox) continue;
+                    if (!item.canvasBbox || item.canvasBbox.length < 4) continue;
                     const [x0, y0, x1, y1] = item.canvasBbox;
+                    
+                    // Check if click is within bounding box
                     if (x >= x0 && x <= x1 && y >= y0 && y <= y1) {
                         clickedItem = item;
+                        console.log(`✅ Clicked on text: "${item.text}" at bbox [${x0}, ${y0}, ${x1}, ${y1}]`);
                         break;
                     }
                 }
@@ -2345,27 +2356,34 @@ SSL Security & Trust Section -->
                             const { editText } = await import('./js/pdf-editor-api.js?v=1001');
                             const userId = await getCurrentUserId();
                             
+                            console.log(`Calling /text/edit: page=${window.pdfEditorVars.currentPage}, old="${oldText}", new="${newText}"`);
+                            
                             await editText(
                                 currentSessionId,
                                 window.pdfEditorVars.currentPage,
                                 oldText,
                                 newText,
-                                1,
+                                1, // max_replacements
                                 userId
                             );
+                            
+                            console.log('✅ Text edited successfully, re-rendering page...');
                             
                             // Re-render page to show changes
                             await renderPage(window.pdfEditorVars.currentPage);
                             
                             hideLoading();
+                            console.log('✅ Page re-rendered with updated text');
                         } catch (error) {
                             console.error('Error editing text:', error);
                             hideLoading();
                             showError('Failed to edit text: ' + error.message);
                         }
                     }
+                } else {
+                    console.log('Click not on any text item');
                 }
-            });
+            }
         }
         
         // Keyboard shortcuts for search
@@ -3029,12 +3047,12 @@ SSL Security & Trust Section -->
                 window.pdfEditorVars.currentPageHeight = pageHeight;
                 
                 // Load PNG image
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                
-                await new Promise((resolve, reject) => {
-                    img.onload = function() {
-                        try {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    
+                    await new Promise((resolve, reject) => {
+                        img.onload = function() {
+                            try {
                             // Calculate canvas dimensions (scale to fit viewport)
                             const maxWidth = pdfPageWrapper ? pdfPageWrapper.clientWidth - 40 : img.width;
                             const scale = Math.min(1, maxWidth / img.width);
@@ -3062,7 +3080,7 @@ SSL Security & Trust Section -->
                             const pdfToCanvasX = canvasWidth / pageWidth;
                             const pdfToCanvasY = canvasHeight / pageHeight;
                             
-                            // Draw invisible rectangles for each text item
+                            // Draw invisible clickable rectangles for each text item on textCanvas
                             textLayer.forEach((item, index) => {
                                 const bbox = item.bbox; // [x0, y0, x1, y1] in PDF coordinates (bottom-left origin)
                                 if (!bbox || bbox.length < 4) return;
@@ -3070,51 +3088,64 @@ SSL Security & Trust Section -->
                                 // Convert PDF coordinates to canvas coordinates
                                 // PDF: bottom-left origin, Canvas: top-left origin
                                 const x0 = bbox[0] * pdfToCanvasX;
-                                const y0 = (pageHeight - bbox[3]) * pdfToCanvasY; // Flip Y
+                                const y0 = (pageHeight - bbox[3]) * pdfToCanvasY; // Flip Y (bbox[3] is top in PDF, becomes y0 in canvas)
                                 const x1 = bbox[2] * pdfToCanvasX;
-                                const y1 = (pageHeight - bbox[1]) * pdfToCanvasY; // Flip Y
+                                const y1 = (pageHeight - bbox[1]) * pdfToCanvasY; // Flip Y (bbox[1] is bottom in PDF, becomes y1 in canvas)
+                                
+                                // Ensure valid coordinates
+                                const rectX = Math.min(x0, x1);
+                                const rectY = Math.min(y0, y1);
+                                const rectWidth = Math.abs(x1 - x0);
+                                const rectHeight = Math.abs(y1 - y0);
                                 
                                 // Store canvas coordinates in item for click detection
-                                item.canvasBbox = [x0, y0, x1, y1];
+                                item.canvasBbox = [rectX, rectY, rectX + rectWidth, rectY + rectHeight];
                                 
-                                // Draw invisible rectangle (for debugging, can make visible with stroke)
+                                // Draw invisible clickable rectangle (fully transparent but clickable)
                                 textCtx.fillStyle = 'rgba(0, 0, 0, 0)'; // Fully transparent
-                                textCtx.fillRect(x0, y0, x1 - x0, y1 - y0);
+                                textCtx.fillRect(rectX, rectY, rectWidth, rectHeight);
+                                
+                                // Optional: For debugging, uncomment to see text bounding boxes
+                                // textCtx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
+                                // textCtx.lineWidth = 1;
+                                // textCtx.strokeRect(rectX, rectY, rectWidth, rectHeight);
                             });
+                            
+                            console.log(`✅ Drew ${textLayer.length} text layer items on textCanvas`);
                             
                             // Clear highlight canvas
                             const highlightCtx = highlightCanvas.getContext('2d');
                             highlightCtx.clearRect(0, 0, highlightCanvas.width, highlightCanvas.height);
-                            
-                            // Ensure preview container is visible
-                            const previewContainerEl = document.getElementById('preview-container');
-                            const pdfPageWrapperEl = document.getElementById('pdf-page-wrapper');
-                            
-                            if (previewContainerEl) {
-                                previewContainerEl.style.display = 'flex';
-                                previewContainerEl.style.visibility = 'visible';
-                            }
-                            if (pdfPageWrapperEl) {
-                                pdfPageWrapperEl.style.display = 'block';
-                                pdfPageWrapperEl.style.visibility = 'visible';
+                                
+                                // Ensure preview container is visible
+                                const previewContainerEl = document.getElementById('preview-container');
+                                const pdfPageWrapperEl = document.getElementById('pdf-page-wrapper');
+                                
+                                if (previewContainerEl) {
+                                    previewContainerEl.style.display = 'flex';
+                                    previewContainerEl.style.visibility = 'visible';
+                                }
+                                if (pdfPageWrapperEl) {
+                                    pdfPageWrapperEl.style.display = 'block';
+                                    pdfPageWrapperEl.style.visibility = 'visible';
                                 pdfPageWrapperEl.style.width = canvasWidth + 'px';
                                 pdfPageWrapperEl.style.height = canvasHeight + 'px';
-                            }
-                            
-                            console.log('✅ Page rendered successfully:', pageNumber);
+                                }
+                                
+                                console.log('✅ Page rendered successfully:', pageNumber);
                             console.log('✅ Text layer items:', textLayer.length);
-                            resolve();
-                        } catch (error) {
-                            console.error('Error drawing image to canvas:', error);
-                            reject(error);
-                        }
-                    };
-                    img.onerror = function(error) {
-                        console.error('Error loading image:', error);
-                        reject(new Error('Failed to load rendered image: ' + error));
-                    };
+                                resolve();
+                            } catch (error) {
+                                console.error('Error drawing image to canvas:', error);
+                                reject(error);
+                            }
+                        };
+                        img.onerror = function(error) {
+                            console.error('Error loading image:', error);
+                            reject(new Error('Failed to load rendered image: ' + error));
+                        };
                     img.src = 'data:image/png;base64,' + imageBase64;
-                });
+                    });
                 
                 // Update page info
                 if (pageNum) pageNum.textContent = pageNumber;
@@ -3256,12 +3287,12 @@ SSL Security & Trust Section -->
                     updateProgress(90, 'Re-rendering page...');
                     
                     // Re-render page to show OCR text in textLayer
-                    await renderPage(window.pdfEditorVars.currentPage);
-                    
+                            await renderPage(window.pdfEditorVars.currentPage);
+                            
                     updateProgress(100, 'OCR applied successfully!');
-                    setTimeout(() => {
-                        hideLoading();
-                    }, 500);
+                            setTimeout(() => {
+                                hideLoading();
+                            }, 500);
                     
                     alert('OCR applied successfully! The page is now searchable.');
                 } catch (error) {
@@ -3904,7 +3935,7 @@ SSL Security & Trust Section -->
         if (rotate90Btn) {
             rotate90Btn.addEventListener('click', async function() {
                 // Feature disabled - will be implemented with session-based /page/rotate endpoint
-                alert('Page rotation feature is temporarily unavailable. This feature will be available soon.');
+                    alert('Page rotation feature is temporarily unavailable. This feature will be available soon.');
             });
         }
         */
@@ -3914,7 +3945,7 @@ SSL Security & Trust Section -->
         if (deleteCurrentPageBtn) {
             deleteCurrentPageBtn.addEventListener('click', async function() {
                 // Feature disabled - will be implemented with session-based /page/delete endpoint
-                alert('Page deletion feature is temporarily unavailable. This feature will be available soon.');
+                    alert('Page deletion feature is temporarily unavailable. This feature will be available soon.');
             });
         }
         */
@@ -3924,7 +3955,7 @@ SSL Security & Trust Section -->
         if (reorderPagesBtn) {
             reorderPagesBtn.addEventListener('click', async function() {
                 // Feature disabled - will be implemented with session-based /page/reorder endpoint
-                alert('Page reordering feature is temporarily unavailable. This feature will be available soon.');
+                    alert('Page reordering feature is temporarily unavailable. This feature will be available soon.');
             });
         }
         */
@@ -3934,7 +3965,7 @@ SSL Security & Trust Section -->
         if (extractPageBtn) {
             extractPageBtn.addEventListener('click', async function() {
                 // Feature disabled - will be implemented with session-based /page/extract endpoint
-                alert('Page extraction feature is temporarily unavailable. This feature will be available soon.');
+                    alert('Page extraction feature is temporarily unavailable. This feature will be available soon.');
             });
         }
         */
