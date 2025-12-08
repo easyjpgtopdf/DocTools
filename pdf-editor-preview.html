@@ -42,7 +42,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- PDF Editor API Client (Backend Integration) -->
-    <script type="module" src="js/pdf-editor-api.js?v=2002"></script>
+    <script type="module" src="js/pdf-editor-api.js?v=2003"></script>
     
     <!-- Professional PDF Editor using backend rendering (NO PDF.js) -->
     
@@ -915,7 +915,7 @@
             </ol>
         </div>
     </nav>
-    <script src="js/global-components.js?v=2002"></script>
+    <script src="js/global-components.js?v=2003"></script>
     <script>
     // Ensure header loads - multiple attempts to guarantee it works
     (function() {
@@ -1849,7 +1849,7 @@ SSL Security & Trust Section -->
     <input type="file" id="file-input" accept="application/pdf,.pdf" style="display: none;">
     <input type="file" id="image-input" accept="image/*" style="display: none;">
     
-    <script src="js/mobile-menu-init.js?v=2002"></script>
+    <script src="js/mobile-menu-init.js?v=2003"></script>
     <script>
         // Get API base URL helper
         // IMPORTANT: This should point to Cloud Run backend for production
@@ -1920,7 +1920,7 @@ SSL Security & Trust Section -->
         let deviceInfo = null;
         async function initDeviceTracking() {
             try {
-                const { getDeviceInfo } = await import('./js/device-fingerprint.js?v=2002');
+                const { getDeviceInfo } = await import('./js/device-fingerprint.js?v=2003');
                 deviceInfo = await getDeviceInfo();
                 console.log('✅ Device tracking initialized for PDF editor:', {
                     deviceId: deviceInfo.deviceId,
@@ -2151,7 +2151,7 @@ SSL Security & Trust Section -->
                     showLoading('Searching PDF...', 30);
                     
                     // Import backend API
-                    const { searchText } = await import('./js/pdf-editor-api.js?v=2002');
+                    const { searchText } = await import('./js/pdf-editor-api.js?v=2003');
                     
                     const result = await searchText(currentSessionId, query);
                     
@@ -2216,7 +2216,7 @@ SSL Security & Trust Section -->
                     showLoading('Replacing text...', 30);
                     
                     // Search for all occurrences first
-                    const { searchText: searchTextBackend } = await import('./js/pdf-editor-api.js?v=2002');
+                    const { searchText: searchTextBackend } = await import('./js/pdf-editor-api.js?v=2003');
                     const searchResult = await searchTextBackend(currentSessionId, searchText);
                     
                     if (!searchResult.matches || searchResult.matches.length === 0) {
@@ -2226,7 +2226,7 @@ SSL Security & Trust Section -->
                     }
                     
                     // Replace each match using backend /text/edit
-                    const { editText } = await import('./js/pdf-editor-api.js?v=2002');
+                    const { editText } = await import('./js/pdf-editor-api.js?v=2003');
                     const userId = await getCurrentUserId();
                     let replacedCount = 0;
                     
@@ -2406,7 +2406,7 @@ SSL Security & Trust Section -->
             textCanvas.style.pointerEvents = 'auto';
             textCanvas.style.cursor = 'text';
             
-            // Define click handler function for native text editing
+            // Define click handler function for native text editing with FIXED hit-testing
             async function handleTextCanvasClick(e) {
                 // Prevent event bubbling
                 e.stopPropagation();
@@ -2418,92 +2418,55 @@ SSL Security & Trust Section -->
                 
                 // Get click coordinates relative to canvas
                 const rect = textCanvas.getBoundingClientRect();
+                
+                // Mouse in CSS pixels
+                const cssX = e.clientX - rect.left;
+                const cssY = e.clientY - rect.top;
+                
+                // Convert to canvas coordinate space
                 const scaleX = textCanvas.width / rect.width;
                 const scaleY = textCanvas.height / rect.height;
-                const x = (e.clientX - rect.left) * scaleX;
-                const y = (e.clientY - rect.top) * scaleY;
                 
-                console.log(`🔍 Click detected at canvas coordinates: (${x.toFixed(2)}, ${y.toFixed(2)})`);
-                console.log(`📋 Text layer items: ${window.pdfEditorVars.currentTextLayer.length}`);
+                const x = cssX * scaleX;
+                const y = cssY * scaleY;
                 
-                // Find clicked text item by checking all bboxes (like Acrobat)
-                const textLayer = window.pdfEditorVars.currentTextLayer;
+                console.log('🔍 Click detected at canvas coordinates:', x.toFixed(2), y.toFixed(2));
+                
+                const items = window.pdfEditorVars.currentTextLayer || [];
+                console.log('📋 Text layer items:', items.length);
+                
+                // Find clicked text item by checking all canvasBboxes
                 let clickedItem = null;
-                let clickedIndex = -1;
-                
-                // Check each text item's bounding box
-                for (let i = 0; i < textLayer.length; i++) {
-                    const item = textLayer[i];
-                    if (!item.canvasBbox || item.canvasBbox.length < 4) continue;
+                for (const item of items) {
+                    const box = item.canvasBbox;
+                    if (!box || box.length < 4) continue;
                     
-                    const [x0, y0, x1, y1] = item.canvasBbox;
+                    const [bx0, by0, bx1, by1] = box;
                     
-                    // Check if click is within bounding box (with small tolerance)
-                    const tolerance = 2; // pixels
-                    if (x >= (x0 - tolerance) && x <= (x1 + tolerance) && 
-                        y >= (y0 - tolerance) && y <= (y1 + tolerance)) {
+                    // Check if click is within bounding box
+                    if (x >= bx0 && x <= bx1 && y >= by0 && y <= by1) {
                         clickedItem = item;
-                        clickedIndex = i;
-                        console.log(`✅ Clicked on text item ${i}: "${item.text}" at bbox [${x0.toFixed(2)}, ${y0.toFixed(2)}, ${x1.toFixed(2)}, ${y1.toFixed(2)}]`);
                         break;
                     }
                 }
                 
-                if (clickedItem) {
-                    // Open text edit dialog (like Acrobat)
-                    const oldText = clickedItem.text || '';
-                    const newText = prompt('Edit text:', oldText);
-                    
-                    if (newText !== null && newText !== oldText) {
-                        try {
-                            showLoading('Editing text...', 10);
-                            
-                            const { editText } = await import('./js/pdf-editor-api.js?v=2002');
-                            const userId = await getCurrentUserId();
-                            
-                            // Get font color from color picker (ALWAYS default to black to prevent invisible text)
-                            let fontColor = textColorInput?.value || '#000000';
-                            
-                            // Force black if color is white, transparent, or undefined
-                            if (!fontColor || 
-                                fontColor === '#ffffff' || 
-                                fontColor === '#FFFFFF' || 
-                                fontColor === 'white' ||
-                                fontColor === 'transparent' ||
-                                fontColor.trim() === '') {
-                                fontColor = '#000000'; // Force black for visible text
-                                if (textColorInput) textColorInput.value = '#000000'; // Update UI
-                            }
-                            
-                            console.log(`📤 Calling /text/edit: page=${window.pdfEditorVars.currentPage}, old="${oldText}", new="${newText}"`);
-                            
-                            // Call backend to edit text natively
-                            await editText(
-                                currentSessionId,
-                                window.pdfEditorVars.currentPage,
-                                oldText,
-                                newText,
-                                1, // max_replacements
-                                userId
-                            );
-                            
-                            console.log('✅ Text edited successfully, re-rendering page with updated textLayer...');
-                            
-                            // CRITICAL: Re-render page to get updated textLayer from backend
-                            // This repaints both baseCanvas (PNG) and textCanvas (bounding boxes)
-                            await renderPage(window.pdfEditorVars.currentPage);
-                            
-                            hideLoading();
-                            console.log('✅ Page re-rendered with updated textLayer');
-                        } catch (error) {
-                            console.error('❌ Error editing text:', error);
-                            hideLoading();
-                            alert('Error editing text: ' + error.message);
-                        }
-                    }
-                } else {
-                    console.log('ℹ️ No text item clicked (clicked outside text bounding boxes)');
+                if (!clickedItem) {
+                    console.info('ℹ️ No text item clicked (clicked outside text bounding boxes)');
+                    return;
                 }
+                
+                console.log('✅ CLICKED text item:', clickedItem.text, 'pdfBbox:', clickedItem.pdfBbox, 'canvasBbox:', clickedItem.canvasBbox);
+                
+                // Visually highlight selected bbox on highlightCanvas
+                const hctx = highlightCanvas.getContext('2d');
+                hctx.clearRect(0, 0, highlightCanvas.width, highlightCanvas.height);
+                const [boxX0, boxY0, boxX1, boxY1] = clickedItem.canvasBbox;
+                hctx.fillStyle = 'rgba(255, 255, 0, 0.35)';
+                hctx.fillRect(boxX0, boxY0, boxX1 - boxX0, boxY1 - boxY0);
+                
+                // Store selection and open edit dialog
+                window.pdfEditorVars.selectedTextItem = clickedItem;
+                openNativeEditDialog(clickedItem);
             }
             
             // Attach click event listener to textCanvas (remove old one if exists)
@@ -2575,7 +2538,7 @@ SSL Security & Trust Section -->
                 
                 // Check device quota before uploading
                 try {
-                    const { checkDeviceQuota } = await import('./js/device-fingerprint.js?v=2002');
+                    const { checkDeviceQuota } = await import('./js/device-fingerprint.js?v=2003');
                     const quotaCheck = await checkDeviceQuota('pdfEdit');
                     
                     if (!quotaCheck.allowed) {
@@ -2602,7 +2565,7 @@ SSL Security & Trust Section -->
                     // Start backend session for PDF editing
                     try {
                         updateProgress(20, 'Starting PDF session...');
-                        const { startSession } = await import('./js/pdf-editor-api.js?v=2002');
+                        const { startSession } = await import('./js/pdf-editor-api.js?v=2003');
                         const userId = await getCurrentUserId();
                         
                         const sessionResult = await startSession(file);
@@ -2704,7 +2667,7 @@ SSL Security & Trust Section -->
                             
                             // Increment device quota after successful client-side processing
                             try {
-                                const { incrementDeviceQuota } = await import('./js/device-fingerprint.js?v=2002');
+                                const { incrementDeviceQuota } = await import('./js/device-fingerprint.js?v=2003');
                                 await incrementDeviceQuota('pdfEdit', 1, file.size);
                                 console.log('✅ Device quota incremented for PDF upload (client-side)');
                             } catch (quotaError) {
@@ -2732,7 +2695,7 @@ SSL Security & Trust Section -->
                             
                             // Increment usage after successful render
                             try {
-                                const { incrementUsage } = await import('./js/usage-limits.js?v=2002');
+                                const { incrementUsage } = await import('./js/usage-limits.js?v=2003');
                                 await incrementUsage('pdf', 1);
                             } catch (usageError) {
                                 console.warn('Failed to increment usage:', usageError);
@@ -2750,7 +2713,7 @@ SSL Security & Trust Section -->
                         showError('Error reading PDF file. Please try again.');
                     };
                     // Check usage limit before uploading
-                    const { checkUsageLimit, incrementUsage, showUsageLimitMessage } = await import('./js/usage-limits.js?v=2002');
+                    const { checkUsageLimit, incrementUsage, showUsageLimitMessage } = await import('./js/usage-limits.js?v=2003');
                     const limitCheck = await checkUsageLimit('pdf');
                     
                     if (!limitCheck.allowed) {
@@ -3077,7 +3040,7 @@ SSL Security & Trust Section -->
                 }
                 
                 // Start session with backend
-                const { startSession } = await import('./js/pdf-editor-api.js?v=2002');
+                const { startSession } = await import('./js/pdf-editor-api.js?v=2003');
                 const sessionResult = await startSession(pdfBlob);
                 
                 currentSessionId = sessionResult.session_id;
@@ -3160,21 +3123,20 @@ SSL Security & Trust Section -->
                 const backendZoom = userZoom;
                 
                 // Always use backend rendering
-                const { renderPage: renderPageBackend } = await import('./js/pdf-editor-api.js?v=2002');
+                const { renderPage: renderPageBackend } = await import('./js/pdf-editor-api.js?v=2003');
                 
                 // Fetch PNG + textLayer from backend
                 const renderResult = await renderPageBackend(currentSessionId, pageNumber, backendZoom);
                 
-                // Extract data from backend
+                // Extract data from backend - use exact field names from backend response
                 const imageBase64 = renderResult.image;
-                const pdfPageWidth = renderResult.pageWidth;  // PDF page width in points
-                const pdfPageHeight = renderResult.pageHeight; // PDF page height in points
-                const textLayer = renderResult.textLayer || [];
+                const pdfPageWidth = renderResult.pageWidth || renderResult.page_width;  // PDF page width in points
+                const pdfPageHeight = renderResult.pageHeight || renderResult.page_height; // PDF page height in points
+                const rawTextLayer = renderResult.textLayer || renderResult.text_layer || [];
                 
-                // Store PDF dimensions and text layer globally
-                window.pdfEditorVars.currentTextLayer = textLayer;
-                window.pdfEditorVars.currentPageWidth = pdfPageWidth;
-                window.pdfEditorVars.currentPageHeight = pdfPageHeight;
+                // Store PDF dimensions globally
+                window.pdfEditorVars.pdfPageWidth = pdfPageWidth;
+                window.pdfEditorVars.pdfPageHeight = pdfPageHeight;
                 
                 // Load PNG image
                 const img = new Image();
@@ -3187,17 +3149,15 @@ SSL Security & Trust Section -->
                             const containerWidth = previewContainer ? previewContainer.clientWidth : 800;
                             
                             // Calculate fit scale: fit PDF page width to container width
-                            const fitScale = containerWidth / pdfPageWidth;
+                            const baseFitScale = containerWidth / pdfPageWidth;
                             
                             // Apply user zoom on top of fit scale
-                            const currentScale = fitScale * userZoom;
+                            const zoom = userZoom || 1.0;
+                            const scale = baseFitScale * zoom;
                             
                             // Calculate final canvas dimensions using PDF dimensions (not image dimensions)
-                            const canvasWidth = pdfPageWidth * currentScale;
-                            const canvasHeight = pdfPageHeight * currentScale;
-                            
-                            // Store scale for use in coordinate mapping
-                            window.pdfEditorVars.currentScale = currentScale;
+                            const canvasWidth = pdfPageWidth * scale;
+                            const canvasHeight = pdfPageHeight * scale;
                             
                             // Set canvas dimensions
                             baseCanvas.width = canvasWidth;
@@ -3207,57 +3167,83 @@ SSL Security & Trust Section -->
                             highlightCanvas.width = canvasWidth;
                             highlightCanvas.height = canvasHeight;
                             
+                            // Set canvas CSS dimensions to match
+                            baseCanvas.style.width = canvasWidth + 'px';
+                            baseCanvas.style.height = canvasHeight + 'px';
+                            textCanvas.style.width = canvasWidth + 'px';
+                            textCanvas.style.height = canvasHeight + 'px';
+                            highlightCanvas.style.width = canvasWidth + 'px';
+                            highlightCanvas.style.height = canvasHeight + 'px';
+                            
                             // Draw PNG to baseCanvas with final scale
                             const baseCtx = baseCanvas.getContext('2d');
-                            baseCtx.clearRect(0, 0, baseCanvas.width, baseCanvas.height);
+                            baseCtx.clearRect(0, 0, canvasWidth, canvasHeight);
                             baseCtx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
+                            
+                            // Store dimensions globally for coordinate mapping
+                            window.pdfEditorVars.pdfPageWidth = pdfPageWidth;
+                            window.pdfEditorVars.pdfPageHeight = pdfPageHeight;
+                            window.pdfEditorVars.canvasWidth = canvasWidth;
+                            window.pdfEditorVars.canvasHeight = canvasHeight;
                             
                             // Update zoom UI after render
                             updateZoomUI();
                             
+                            // Build normalized textLayer with CANVAS bounding boxes
+                            const normalizedTextLayer = [];
+                            
+                            // Scale factors from PDF points to canvas pixels
+                            const sx = canvasWidth / pdfPageWidth;
+                            const sy = canvasHeight / pdfPageHeight;
+                            
                             // Draw invisible clickable rectangles on textCanvas
                             const textCtx = textCanvas.getContext('2d');
-                            textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+                            textCtx.clearRect(0, 0, canvasWidth, canvasHeight);
                             
-                            // Scale factor from PDF points to canvas pixels
-                            const pdfToCanvasX = canvasWidth / pdfPageWidth;
-                            const pdfToCanvasY = canvasHeight / pdfPageHeight;
+                            // For debugging: draw green rectangles to visualize bboxes
+                            textCtx.lineWidth = 1;
+                            textCtx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
                             
-                            // Draw invisible clickable rectangles for each text item on textCanvas
-                            // This enables click-to-edit functionality (like Acrobat)
-                            textLayer.forEach((item, index) => {
-                                const bbox = item.bbox; // [x0, y0, x1, y1] in PDF coordinates (bottom-left origin)
-                                if (!bbox || bbox.length < 4) return;
+                            for (const item of rawTextLayer) {
+                                const bbox = item.bbox || [];
+                                if (!bbox || bbox.length < 4) continue;
                                 
-                                // Convert PDF coordinates to canvas coordinates
-                                // PDF uses bottom-left origin, Canvas uses top-left origin
-                                const bboxX0 = bbox[0]; // Left edge in PDF
-                                const bboxY0 = bbox[1]; // Bottom edge in PDF
-                                const bboxX1 = bbox[2]; // Right edge in PDF
-                                const bboxY1 = bbox[3]; // Top edge in PDF
+                                const [x0, y0, x1, y1] = bbox;
+                                if (x0 == null || y0 == null || x1 == null || y1 == null) continue;
                                 
-                                // Map to canvas coordinates
-                                const canvasX = bboxX0 * pdfToCanvasX;
-                                const canvasY = (pdfPageHeight - bboxY1) * pdfToCanvasY; // Invert Y: PDF top becomes canvas top
-                                const canvasW = (bboxX1 - bboxX0) * pdfToCanvasX;
-                                const canvasH = (bboxY1 - bboxY0) * pdfToCanvasY;
+                                // Assume backend uses PDF coords with origin at bottom-left
+                                // Convert to canvas coords (origin top-left):
+                                const cx0 = x0 * sx;
+                                const cx1 = x1 * sx;
+                                const cy0 = canvasHeight - (y1 * sy); // Invert Y: PDF top (y1) becomes canvas top
+                                const cy1 = canvasHeight - (y0 * sy); // Invert Y: PDF bottom (y0) becomes canvas bottom
+                                const cWidth = cx1 - cx0;
+                                const cHeight = cy1 - cy0;
                                 
-                                // Store canvas coordinates in item for click detection
-                                item.canvasBbox = [canvasX, canvasY, canvasX + canvasW, canvasY + canvasH];
-                                item.pageNumber = pageNumber; // Store page number
-                                item.originalText = item.text || ''; // Store original text
+                                // Store canvas bbox [x0, y0, x1, y1]
+                                const canvasBbox = [cx0, cy0, cx1, cy1];
+                                
+                                // Add to normalized text layer
+                                normalizedTextLayer.push({
+                                    ...item,
+                                    pdfBbox: bbox,
+                                    canvasBbox: canvasBbox,
+                                    pageNumber: pageNumber,
+                                    originalText: item.text || ''
+                                });
                                 
                                 // Draw invisible clickable rectangle (fully transparent but clickable)
                                 textCtx.fillStyle = 'rgba(0, 0, 0, 0)'; // Fully transparent but clickable
-                                textCtx.fillRect(canvasX, canvasY, canvasW, canvasH);
+                                textCtx.fillRect(cx0, cy0, cWidth, cHeight);
                                 
-                                // Optional: For debugging, uncomment to see text bounding boxes
-                                // textCtx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
-                                // textCtx.lineWidth = 1;
-                                // textCtx.strokeRect(rectX, rectY, rectWidth, rectHeight);
-                            });
+                                // For debugging: draw green rectangle to see where the bbox is
+                                textCtx.strokeRect(cx0, cy0, cWidth, cHeight);
+                            }
                             
-                            console.log(`✅ Drew ${textLayer.length} text layer items on textCanvas`);
+                            // Store normalized text layer globally
+                            window.pdfEditorVars.currentTextLayer = normalizedTextLayer;
+                            
+                            console.log(`✅ Drew ${normalizedTextLayer.length} text items with canvasBbox`);
                             
                             // Clear highlight canvas
                             const highlightCtx = highlightCanvas.getContext('2d');
@@ -3277,7 +3263,7 @@ SSL Security & Trust Section -->
                             }
                             
                             console.log('✅ Page rendered successfully:', pageNumber);
-                            console.log('✅ Text layer items:', textLayer.length);
+                            console.log('✅ Text layer items:', normalizedTextLayer.length);
                             resolve();
                         } catch (error) {
                             console.error('Error drawing image to canvas:', error);
@@ -3326,7 +3312,7 @@ SSL Security & Trust Section -->
                     return Promise.resolve(false);
                 }
                 
-                const { editText } = await import('./js/pdf-editor-api.js?v=2002');
+                const { editText } = await import('./js/pdf-editor-api.js?v=2003');
                 const userId = await getCurrentUserId();
                 
                 await editText(
@@ -3370,7 +3356,7 @@ SSL Security & Trust Section -->
                 const userId = await getCurrentUserId();
                 
                 // Import backend API
-                const { deleteText } = await import('./js/pdf-editor-api.js?v=2002');
+                const { deleteText } = await import('./js/pdf-editor-api.js?v=2003');
                 
                 updateProgress(30, 'Sending deletion to server...');
                 
@@ -3424,7 +3410,7 @@ SSL Security & Trust Section -->
                     updateProgress(20, 'Running OCR on page...');
                     
                     // Use new /ocr/apply endpoint
-                    const { applyOCR } = await import('./js/pdf-editor-api.js?v=2002');
+                    const { applyOCR } = await import('./js/pdf-editor-api.js?v=2003');
                     
                     await applyOCR(currentSessionId, window.pdfEditorVars.currentPage, 'en');
                     
@@ -3472,11 +3458,11 @@ SSL Security & Trust Section -->
                     if (currentSessionId) {
                         updateProgress(30, 'Exporting PDF from session...');
                         
-                        const { exportPDF } = await import('./js/pdf-editor-api.js?v=2002');
+                        const { exportPDF } = await import('./js/pdf-editor-api.js?v=2003');
                         const userId = await getCurrentUserId();
                         
                         // Export PDF from backend session
-                        const backendUrl = (await import('./js/pdf-editor-api.js?v=2002')).getBackendUrl();
+                        const backendUrl = (await import('./js/pdf-editor-api.js?v=2003')).getBackendUrl();
                         const response = await fetch(`${backendUrl}/export`, {
                             method: 'POST',
                             headers: {
@@ -3504,7 +3490,7 @@ SSL Security & Trust Section -->
                         if (expectedTexts.length > 0) {
                             try {
                                 updateProgress(92, 'Validating exported PDF...');
-                                const { validatePDF } = await import('./js/pdf-editor-api.js?v=2002');
+                                const { validatePDF } = await import('./js/pdf-editor-api.js?v=2003');
                                 const validationResult = await validatePDF(
                                     pdfBlob,
                                     expectedTexts,
@@ -3569,7 +3555,7 @@ SSL Security & Trust Section -->
                             throw new Error('No active PDF session');
                         }
                         
-                        const { exportPDF } = await import('./js/pdf-editor-api.js?v=2002');
+                        const { exportPDF } = await import('./js/pdf-editor-api.js?v=2003');
                         const userId = await getCurrentUserId();
                         
                         // Export PDF from backend
@@ -3577,7 +3563,7 @@ SSL Security & Trust Section -->
                         
                         // Get exported PDF blob for validation
                         updateProgress(70, 'Receiving exported PDF...');
-                        const { getBackendUrl } = await import('./js/pdf-editor-api.js?v=2002');
+                        const { getBackendUrl } = await import('./js/pdf-editor-api.js?v=2003');
                         const backendUrl = getBackendUrl();
                         const exportResponse = await fetch(`${backendUrl}/export`, {
                             method: 'POST',
@@ -3601,7 +3587,7 @@ SSL Security & Trust Section -->
                         if (expectedTexts.length > 0) {
                             try {
                                 updateProgress(85, 'Validating exported PDF...');
-                                const { validatePDF } = await import('./js/pdf-editor-api.js?v=2002');
+                                const { validatePDF } = await import('./js/pdf-editor-api.js?v=2003');
                                 const validationResult = await validatePDF(
                                     pdfBlob,
                                     expectedTexts,
@@ -3766,6 +3752,110 @@ SSL Security & Trust Section -->
         let textEditTextarea = null;
         let textEditPosition = null;
         
+        // Open native edit dialog for clicked text item
+        function openNativeEditDialog(clickedItem) {
+            if (!clickedItem) return;
+            
+            // Use existing text edit dialog
+            const dialogEl = textEditDialog || createTextEditDialog();
+            const textarea = textEditTextarea || dialogEl.querySelector('textarea');
+            const saveBtn = dialogEl.querySelector('button[onclick*="saveTextEdit"], button:last-child') || dialogEl.querySelector('button');
+            const cancelBtn = dialogEl.querySelector('button:first-child');
+            
+            // Pre-fill with clicked item's text
+            if (textarea) {
+                textarea.value = clickedItem.text || '';
+            }
+            
+            // Store selected item for save handler
+            window.pdfEditorVars.selectedTextItem = clickedItem;
+            
+            // Show dialog
+            if (dialogEl) {
+                dialogEl.style.display = 'flex';
+            }
+            
+            // Focus textarea
+            if (textarea) {
+                textarea.focus();
+                textarea.select();
+            }
+            
+            // Remove old listeners and add new ones
+            const onSave = async () => {
+                if (!textarea) return;
+                
+                const newText = textarea.value.trim();
+                if (!newText) {
+                    cancelTextEdit();
+                    return;
+                }
+                
+                dialogEl.style.display = 'none';
+                saveBtn.removeEventListener('click', onSave);
+                if (cancelBtn) cancelBtn.removeEventListener('click', onCancel);
+                
+                const apiBaseUrl = getApiBaseUrl();
+                const sessionId = window.pdfEditorVars.currentSessionId;
+                const pageNumber = window.pdfEditorVars.currentPage || clickedItem.pageNumber;
+                
+                const body = {
+                    session_id: sessionId,
+                    page_number: pageNumber,
+                    old_text: clickedItem.text || clickedItem.originalText || '',
+                    new_text: newText,
+                    max_replacements: 1
+                };
+                
+                try {
+                    showLoading('Applying text edit...', 40);
+                    
+                    const res = await fetch(`${apiBaseUrl}/text/edit`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                    
+                    if (!res.ok) {
+                        const errorData = await res.json().catch(() => ({ error: 'Backend edit failed' }));
+                        throw new Error(errorData.error || 'Backend edit failed');
+                    }
+                    
+                    const result = await res.json();
+                    if (!result.success) {
+                        throw new Error(result.error || 'Edit failed');
+                    }
+                    
+                    // Re-render page to show changes
+                    await renderPage(pageNumber);
+                    
+                    hideLoading();
+                    console.log('✅ Native text edit applied for:', newText);
+                } catch (err) {
+                    hideLoading();
+                    console.error('❌ Error applying native edit', err);
+                    showError('Failed to apply text edit: ' + err.message);
+                }
+            };
+            
+            const onCancel = () => {
+                dialogEl.style.display = 'none';
+                saveBtn.removeEventListener('click', onSave);
+                if (cancelBtn) cancelBtn.removeEventListener('click', onCancel);
+            };
+            
+            // Remove old listeners first
+            const newSaveBtn = dialogEl.querySelector('button:last-child');
+            const newCancelBtn = dialogEl.querySelector('button:first-child');
+            
+            if (newSaveBtn) {
+                newSaveBtn.onclick = onSave;
+            }
+            if (newCancelBtn) {
+                newCancelBtn.onclick = onCancel;
+            }
+        }
+        
         // Create multi-line text editing dialog
         function createTextEditDialog(x, y) {
             // Remove existing dialog if any
@@ -3928,7 +4018,7 @@ SSL Security & Trust Section -->
                 const userId = await getCurrentUserId();
                 
                 // Import backend API
-                const { addText } = await import('./js/pdf-editor-api.js?v=2002');
+                const { addText } = await import('./js/pdf-editor-api.js?v=2003');
                 
                 // Add text via backend (for multi-line, add each line separately)
                 const lines = text.split('\n');
@@ -3974,14 +4064,66 @@ SSL Security & Trust Section -->
             cancelTextEdit();
         }
         
+        // Handle native text edit (for clicked text items)
+        async function handleNativeTextEdit(clickedItem, newText) {
+            if (!clickedItem || !newText) return;
+            
+            const apiBaseUrl = getApiBaseUrl();
+            const sessionId = window.pdfEditorVars.currentSessionId;
+            const pageNumber = window.pdfEditorVars.currentPage || clickedItem.pageNumber;
+            
+            const body = {
+                session_id: sessionId,
+                page_number: pageNumber,
+                old_text: clickedItem.text || clickedItem.originalText || '',
+                new_text: newText,
+                max_replacements: 1
+            };
+            
+            try {
+                showLoading('Applying text edit...', 40);
+                
+                const res = await fetch(`${apiBaseUrl}/text/edit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                
+                if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({ error: 'Backend edit failed' }));
+                    throw new Error(errorData.error || 'Backend edit failed');
+                }
+                
+                const result = await res.json();
+                if (!result.success) {
+                    throw new Error(result.error || 'Edit failed');
+                }
+                
+                // Clear selection
+                window.pdfEditorVars.selectedTextItem = null;
+                
+                // Re-render page to show changes
+                await renderPage(pageNumber);
+                
+                hideLoading();
+                console.log('✅ Native text edit applied for:', newText);
+            } catch (err) {
+                hideLoading();
+                console.error('❌ Error applying native edit', err);
+                showError('Failed to apply text edit: ' + err.message);
+            }
+            
+            cancelTextEdit();
+        }
+        
         // Cancel text edit
         function cancelTextEdit() {
             if (textEditDialog) {
-                textEditDialog.remove();
-                textEditDialog = null;
-                textEditTextarea = null;
-                textEditPosition = null;
+                textEditDialog.style.display = 'none';
+                // Don't remove, just hide for reuse
             }
+            window.pdfEditorVars.selectedTextItem = null; // Clear selection
+            textEditPosition = null;
         }
         
         // Convert hex to RGB
@@ -4880,7 +5022,7 @@ SSL Security & Trust Section -->
                 try {
                     showLoading('Protecting PDF...', 30);
                     
-                    const { getBackendUrl } = await import('./js/pdf-editor-api.js?v=2002');
+                    const { getBackendUrl } = await import('./js/pdf-editor-api.js?v=2003');
                     const backendUrl = getBackendUrl();
                     const response = await fetch(`${backendUrl}/protect`, {
                         method: 'POST',
@@ -5798,7 +5940,7 @@ SSL Security & Trust Section -->
         // Get current user ID helper
         async function getCurrentUserId() {
             try {
-                const { auth } = await import('./js/firebase-init.js?v=2002');
+                const { auth } = await import('./js/firebase-init.js?v=2003');
                 if (auth && auth.currentUser) {
                     return auth.currentUser.uid;
                 }
@@ -5811,7 +5953,7 @@ SSL Security & Trust Section -->
         // Load and display credit balance
         async function loadCreditBalance() {
             try {
-                const { getUserCreditInfo } = await import('./js/pdf-editor-api.js?v=2002');
+                const { getUserCreditInfo } = await import('./js/pdf-editor-api.js?v=2003');
                 const creditInfo = await getUserCreditInfo();
                 
                 const creditDisplay = document.getElementById('credit-count');
