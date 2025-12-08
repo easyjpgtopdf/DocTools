@@ -42,7 +42,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- PDF Editor API Client (Backend Integration) -->
-    <script type="module" src="js/pdf-editor-api.js?v=1006"></script>
+    <script type="module" src="js/pdf-editor-api.js?v=1010"></script>
     
     <!-- Professional PDF Editor using backend rendering (NO PDF.js) -->
     
@@ -321,6 +321,8 @@
             height: 100%;
             display: flex;
             justify-content: center;
+            align-items: flex-start;
+            overflow: auto; /* Allow scroll when zoomed in */
             align-items: flex-start;
             overflow: auto;
             background: #525252;
@@ -913,7 +915,7 @@
             </ol>
         </div>
     </nav>
-    <script src="js/global-components.js?v=1006"></script>
+    <script src="js/global-components.js?v=1010"></script>
     <script>
     // Ensure header loads - multiple attempts to guarantee it works
     (function() {
@@ -1847,7 +1849,7 @@ SSL Security & Trust Section -->
     <input type="file" id="file-input" accept="application/pdf,.pdf" style="display: none;">
     <input type="file" id="image-input" accept="image/*" style="display: none;">
     
-    <script src="js/mobile-menu-init.js?v=1006"></script>
+    <script src="js/mobile-menu-init.js?v=1010"></script>
     <script>
         // Get API base URL helper
         // IMPORTANT: This should point to Cloud Run backend for production
@@ -1918,7 +1920,7 @@ SSL Security & Trust Section -->
         let deviceInfo = null;
         async function initDeviceTracking() {
             try {
-                const { getDeviceInfo } = await import('./js/device-fingerprint.js?v=1006');
+                const { getDeviceInfo } = await import('./js/device-fingerprint.js?v=1010');
                 deviceInfo = await getDeviceInfo();
                 console.log('✅ Device tracking initialized for PDF editor:', {
                     deviceId: deviceInfo.deviceId,
@@ -1942,7 +1944,7 @@ SSL Security & Trust Section -->
             window.pdfEditorVars = {
                 currentPage: 1,
                 totalPages: 1,
-                scale: 1.5,
+                scale: 1, // Start at 100% (1.0) for proper zoom
                 loadedFromStorage: false,
                 textAnnotations: [],
                 annotationHistory: [],
@@ -2023,57 +2025,65 @@ SSL Security & Trust Section -->
             });
         }
         
-        // Initialize zoom scale factor
-        if (!window.pdfEditorVars.scale) {
-            window.pdfEditorVars.scale = 1.5;
+        // Initialize window.pdfEditorVars if not exists
+        window.pdfEditorVars = window.pdfEditorVars || {};
+        window.pdfEditorVars.currentPage = window.pdfEditorVars.currentPage || 1;
+        window.pdfEditorVars.totalPages = window.pdfEditorVars.totalPages || 1;
+        window.pdfEditorVars.scale = window.pdfEditorVars.scale || 1; // Start at 100% (1.0)
+        window.pdfEditorVars.currentSessionId = window.pdfEditorVars.currentSessionId || null;
+        
+        // Update zoom level display
+        function updateZoomUI() {
+            if (zoomLevel) {
+                const val = Math.round((window.pdfEditorVars.scale || 1) * 100);
+                zoomLevel.textContent = val + '%';
+            }
         }
+        
+        // Initialize zoom UI
+        updateZoomUI();
         
         // Zoom In/Out buttons - re-render with scale factor (NOT CSS zoom)
         if (zoomInBtn) {
             zoomInBtn.addEventListener('click', async function() {
-                // Increase scale factor
-                window.pdfEditorVars.scale = Math.min(window.pdfEditorVars.scale + 0.1, 5.0);
-                const zoomPercent = Math.round(window.pdfEditorVars.scale * 100);
-                if (zoomLevel) zoomLevel.textContent = zoomPercent + '%';
+                if (!currentSessionId || !window.pdfEditorVars.currentSessionId) {
+                    console.warn('No active session, cannot zoom');
+                    return;
+                }
                 
-                // Save scroll position
-                const scrollX = window.scrollX || window.pageXOffset;
-                const scrollY = window.scrollY || window.pageYOffset;
+                // Increase scale factor by 25% (1.25x multiplier)
+                const current = window.pdfEditorVars.scale || 1;
+                window.pdfEditorVars.scale = Math.min(current * 1.25, 5); // up to 500%
+                updateZoomUI();
                 
-                // Re-render page with new scale factor (repaints both image and textLayer)
-                if (currentSessionId && window.pdfEditorVars.currentPage) {
-                    showLoading('Zooming...', 10);
-                    await renderPage(window.pdfEditorVars.currentPage, window.pdfEditorVars.scale);
+                // Re-render page with new scale factor
+                if (window.pdfEditorVars.currentPage) {
+                    showLoading('Zooming in...', 10);
+                    await renderPage(window.pdfEditorVars.currentPage);
                     hideLoading();
-                    window.scrollTo(scrollX, scrollY);
                 }
             });
         }
         
         if (zoomOutBtn) {
             zoomOutBtn.addEventListener('click', async function() {
-                // Decrease scale factor
-                window.pdfEditorVars.scale = Math.max(window.pdfEditorVars.scale - 0.1, 0.5);
-                const zoomPercent = Math.round(window.pdfEditorVars.scale * 100);
-                if (zoomLevel) zoomLevel.textContent = zoomPercent + '%';
+                if (!currentSessionId || !window.pdfEditorVars.currentSessionId) {
+                    console.warn('No active session, cannot zoom');
+                    return;
+                }
                 
-                // Save scroll position
-                const scrollX = window.scrollX || window.pageXOffset;
-                const scrollY = window.scrollY || window.pageYOffset;
+                // Decrease scale factor by 25% (divide by 1.25)
+                const current = window.pdfEditorVars.scale || 1;
+                window.pdfEditorVars.scale = Math.max(current / 1.25, 0.25); // down to 25%
+                updateZoomUI();
                 
-                // Re-render page with new scale factor (repaints both image and textLayer)
-                if (currentSessionId && window.pdfEditorVars.currentPage) {
-                    showLoading('Zooming...', 10);
-                    await renderPage(window.pdfEditorVars.currentPage, window.pdfEditorVars.scale);
+                // Re-render page with new scale factor
+                if (window.pdfEditorVars.currentPage) {
+                    showLoading('Zooming out...', 10);
+                    await renderPage(window.pdfEditorVars.currentPage);
                     hideLoading();
-                    window.scrollTo(scrollX, scrollY);
                 }
             });
-        }
-        
-        // Update zoom level display on page render
-        if (zoomLevel) {
-            zoomLevel.textContent = Math.round((window.pdfEditorVars.scale || 1.5) * 100 / 1.5) + '%';
         }
         
         // Search & Replace functionality (HIGH PRIORITY)
@@ -2141,7 +2151,7 @@ SSL Security & Trust Section -->
                     showLoading('Searching PDF...', 30);
                     
                     // Import backend API
-                    const { searchText } = await import('./js/pdf-editor-api.js?v=1006');
+                    const { searchText } = await import('./js/pdf-editor-api.js?v=1010');
                     
                     const result = await searchText(currentSessionId, query);
                     
@@ -2206,7 +2216,7 @@ SSL Security & Trust Section -->
                     showLoading('Replacing text...', 30);
                     
                     // Search for all occurrences first
-                    const { searchText: searchTextBackend } = await import('./js/pdf-editor-api.js?v=1006');
+                    const { searchText: searchTextBackend } = await import('./js/pdf-editor-api.js?v=1010');
                     const searchResult = await searchTextBackend(currentSessionId, searchText);
                     
                     if (!searchResult.matches || searchResult.matches.length === 0) {
@@ -2216,7 +2226,7 @@ SSL Security & Trust Section -->
                     }
                     
                     // Replace each match using backend /text/edit
-                    const { editText } = await import('./js/pdf-editor-api.js?v=1006');
+                    const { editText } = await import('./js/pdf-editor-api.js?v=1010');
                     const userId = await getCurrentUserId();
                     let replacedCount = 0;
                     
@@ -2441,7 +2451,7 @@ SSL Security & Trust Section -->
                         try {
                             showLoading('Editing text...', 10);
                             
-                            const { editText } = await import('./js/pdf-editor-api.js?v=1006');
+                            const { editText } = await import('./js/pdf-editor-api.js?v=1010');
                             const userId = await getCurrentUserId();
                             
                             // Get font color from color picker (ALWAYS default to black to prevent invisible text)
@@ -2558,7 +2568,7 @@ SSL Security & Trust Section -->
                 
                 // Check device quota before uploading
                 try {
-                    const { checkDeviceQuota } = await import('./js/device-fingerprint.js?v=1006');
+                    const { checkDeviceQuota } = await import('./js/device-fingerprint.js?v=1010');
                     const quotaCheck = await checkDeviceQuota('pdfEdit');
                     
                     if (!quotaCheck.allowed) {
@@ -2585,12 +2595,13 @@ SSL Security & Trust Section -->
                     // Start backend session for PDF editing
                     try {
                         updateProgress(20, 'Starting PDF session...');
-                        const { startSession } = await import('./js/pdf-editor-api.js?v=1006');
+                        const { startSession } = await import('./js/pdf-editor-api.js?v=1010');
                         const userId = await getCurrentUserId();
                         
                         const sessionResult = await startSession(file);
                         currentSessionId = sessionResult.session_id;
                         window.pdfEditorVars.sessionId = currentSessionId;
+                        window.pdfEditorVars.currentSessionId = currentSessionId; // Sync for zoom checks
                         window.pdfEditorVars.totalPages = sessionResult.page_count;
                         window.pdfEditorVars.loadedInitialPdf = false;
                         
@@ -2686,7 +2697,7 @@ SSL Security & Trust Section -->
                             
                             // Increment device quota after successful client-side processing
                             try {
-                                const { incrementDeviceQuota } = await import('./js/device-fingerprint.js?v=1006');
+                                const { incrementDeviceQuota } = await import('./js/device-fingerprint.js?v=1010');
                                 await incrementDeviceQuota('pdfEdit', 1, file.size);
                                 console.log('✅ Device quota incremented for PDF upload (client-side)');
                             } catch (quotaError) {
@@ -2714,7 +2725,7 @@ SSL Security & Trust Section -->
                             
                             // Increment usage after successful render
                             try {
-                                const { incrementUsage } = await import('./js/usage-limits.js?v=1006');
+                                const { incrementUsage } = await import('./js/usage-limits.js?v=1010');
                                 await incrementUsage('pdf', 1);
                             } catch (usageError) {
                                 console.warn('Failed to increment usage:', usageError);
@@ -2732,7 +2743,7 @@ SSL Security & Trust Section -->
                         showError('Error reading PDF file. Please try again.');
                     };
                     // Check usage limit before uploading
-                    const { checkUsageLimit, incrementUsage, showUsageLimitMessage } = await import('./js/usage-limits.js?v=1006');
+                    const { checkUsageLimit, incrementUsage, showUsageLimitMessage } = await import('./js/usage-limits.js?v=1010');
                     const limitCheck = await checkUsageLimit('pdf');
                     
                     if (!limitCheck.allowed) {
@@ -3059,7 +3070,7 @@ SSL Security & Trust Section -->
                 }
                 
                 // Start session with backend
-                const { startSession } = await import('./js/pdf-editor-api.js?v=1006');
+                const { startSession } = await import('./js/pdf-editor-api.js?v=1010');
                 const sessionResult = await startSession(pdfBlob);
                 
                 currentSessionId = sessionResult.session_id;
@@ -3136,13 +3147,15 @@ SSL Security & Trust Section -->
                 }
                 
                 // Use provided scaleFactor or default from window.pdfEditorVars.scale
-                const zoom = scaleFactor !== null ? scaleFactor : (window.pdfEditorVars.scale || 1.5);
+                // Backend zoom is for rendering quality, frontend scale is for display size
+                const backendZoom = scaleFactor !== null ? scaleFactor : (window.pdfEditorVars.scale || 1);
+                const frontendScale = window.pdfEditorVars.scale || 1;
                 
                 // Always use backend rendering with scale factor
-                const { renderPage: renderPageBackend } = await import('./js/pdf-editor-api.js?v=1006');
+                const { renderPage: renderPageBackend } = await import('./js/pdf-editor-api.js?v=1010');
                 
                 // Fetch PNG + textLayer from backend with zoom scale
-                const renderResult = await renderPageBackend(currentSessionId, pageNumber, zoom);
+                const renderResult = await renderPageBackend(currentSessionId, pageNumber, backendZoom);
                 
                 // Extract data
                 const imageBase64 = renderResult.image;
@@ -3162,22 +3175,19 @@ SSL Security & Trust Section -->
                     await new Promise((resolve, reject) => {
                         img.onload = function() {
                             try {
-                            // Calculate canvas dimensions (auto-fit to container width, height proportional)
-                            // Use existing pdfPageWrapper variable (declared at top level)
-                            const containerEl = pdfPageWrapper || previewContainer;
+                            // Calculate canvas dimensions with auto-fit + zoom
+                            // Available width inside the central preview area
+                            const containerWidth = previewContainer ? previewContainer.clientWidth : (pdfPageWrapper ? pdfPageWrapper.clientWidth : img.width);
                             
-                            // Get container width (use offsetWidth for accurate measurement)
-                            let containerWidth = 800; // default
-                            if (pdfPageWrapper && pdfPageWrapper.offsetWidth > 0) {
-                                containerWidth = pdfPageWrapper.offsetWidth - 40;
-                            } else if (previewContainer && previewContainer.offsetWidth > 0) {
-                                containerWidth = previewContainer.offsetWidth - 40;
-                            }
+                            // Fit the page width to container width (base fit scale)
+                            const baseFitScale = containerWidth / img.width;
                             
-                            // Calculate aspect ratio from original image
-                            const aspectRatio = img.height / img.width;
-                            const canvasWidth = containerWidth;
-                            const canvasHeight = containerWidth * aspectRatio;
+                            // Apply zoom scale on top of base fit
+                            const finalScale = baseFitScale * frontendScale;
+                            
+                            // Calculate final canvas dimensions
+                            const canvasWidth = img.width * finalScale;
+                            const canvasHeight = img.height * finalScale;
                             
                             // Set canvas dimensions
                             baseCanvas.width = canvasWidth;
@@ -3187,16 +3197,19 @@ SSL Security & Trust Section -->
                             highlightCanvas.width = canvasWidth;
                             highlightCanvas.height = canvasHeight;
                             
-                            // Draw PNG to baseCanvas
+                            // Draw PNG to baseCanvas with final scale
                             const baseCtx = baseCanvas.getContext('2d');
                             baseCtx.clearRect(0, 0, baseCanvas.width, baseCanvas.height);
                             baseCtx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
+                            
+                            // Update zoom UI after render
+                            updateZoomUI();
                             
                             // Draw invisible clickable rectangles on textCanvas
                             const textCtx = textCanvas.getContext('2d');
                             textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
                             
-                            // Scale factor from PDF points to canvas pixels
+                            // Scale factor from PDF points to canvas pixels (using final scale)
                             const pdfToCanvasX = canvasWidth / pageWidth;
                             const pdfToCanvasY = canvasHeight / pageHeight;
                             
@@ -3304,7 +3317,7 @@ SSL Security & Trust Section -->
                     return Promise.resolve(false);
                 }
                 
-                const { editText } = await import('./js/pdf-editor-api.js?v=1006');
+                const { editText } = await import('./js/pdf-editor-api.js?v=1010');
                 const userId = await getCurrentUserId();
                 
                 await editText(
@@ -3348,7 +3361,7 @@ SSL Security & Trust Section -->
                 const userId = await getCurrentUserId();
                 
                 // Import backend API
-                const { deleteText } = await import('./js/pdf-editor-api.js?v=1006');
+                const { deleteText } = await import('./js/pdf-editor-api.js?v=1010');
                 
                 updateProgress(30, 'Sending deletion to server...');
                 
@@ -3402,7 +3415,7 @@ SSL Security & Trust Section -->
                     updateProgress(20, 'Running OCR on page...');
                     
                     // Use new /ocr/apply endpoint
-                    const { applyOCR } = await import('./js/pdf-editor-api.js?v=1006');
+                    const { applyOCR } = await import('./js/pdf-editor-api.js?v=1010');
                     
                     await applyOCR(currentSessionId, window.pdfEditorVars.currentPage, 'en');
                     
@@ -3444,11 +3457,11 @@ SSL Security & Trust Section -->
                     if (currentSessionId) {
                         updateProgress(30, 'Exporting PDF from session...');
                         
-                        const { exportPDF } = await import('./js/pdf-editor-api.js?v=1006');
+                        const { exportPDF } = await import('./js/pdf-editor-api.js?v=1010');
                         const userId = await getCurrentUserId();
                         
                         // Export PDF from backend session
-                        const backendUrl = (await import('./js/pdf-editor-api.js?v=1006')).getBackendUrl();
+                        const backendUrl = (await import('./js/pdf-editor-api.js?v=1010')).getBackendUrl();
                         const response = await fetch(`${backendUrl}/export`, {
                             method: 'POST',
                             headers: {
@@ -3476,7 +3489,7 @@ SSL Security & Trust Section -->
                         if (expectedTexts.length > 0) {
                             try {
                                 updateProgress(92, 'Validating exported PDF...');
-                                const { validatePDF } = await import('./js/pdf-editor-api.js?v=1006');
+                                const { validatePDF } = await import('./js/pdf-editor-api.js?v=1010');
                                 const validationResult = await validatePDF(
                                     pdfBlob,
                                     expectedTexts,
@@ -3541,7 +3554,7 @@ SSL Security & Trust Section -->
                             throw new Error('No active PDF session');
                         }
                         
-                        const { exportPDF } = await import('./js/pdf-editor-api.js?v=1006');
+                        const { exportPDF } = await import('./js/pdf-editor-api.js?v=1010');
                         const userId = await getCurrentUserId();
                         
                         // Export PDF from backend
@@ -3549,7 +3562,7 @@ SSL Security & Trust Section -->
                         
                         // Get exported PDF blob for validation
                         updateProgress(70, 'Receiving exported PDF...');
-                        const { getBackendUrl } = await import('./js/pdf-editor-api.js?v=1006');
+                        const { getBackendUrl } = await import('./js/pdf-editor-api.js?v=1010');
                         const backendUrl = getBackendUrl();
                         const exportResponse = await fetch(`${backendUrl}/export`, {
                             method: 'POST',
@@ -3573,7 +3586,7 @@ SSL Security & Trust Section -->
                         if (expectedTexts.length > 0) {
                             try {
                                 updateProgress(85, 'Validating exported PDF...');
-                                const { validatePDF } = await import('./js/pdf-editor-api.js?v=1006');
+                                const { validatePDF } = await import('./js/pdf-editor-api.js?v=1010');
                                 const validationResult = await validatePDF(
                                     pdfBlob,
                                     expectedTexts,
@@ -3909,7 +3922,7 @@ SSL Security & Trust Section -->
                 const userId = await getCurrentUserId();
                 
                 // Import backend API
-                const { addText } = await import('./js/pdf-editor-api.js?v=1006');
+                const { addText } = await import('./js/pdf-editor-api.js?v=1010');
                 
                 // Add text via backend (for multi-line, add each line separately)
                 const lines = text.split('\n');
@@ -4569,8 +4582,8 @@ SSL Security & Trust Section -->
                     updateProgress(30, 'Applying watermark to all pages...');
                     
                     // Use session-based backend to add watermark text to all pages
-                    const { getBackendUrl } = await import('./js/pdf-editor-api.js?v=1006');
-                    const { addText } = await import('./js/pdf-editor-api.js?v=1006');
+                    const { getBackendUrl } = await import('./js/pdf-editor-api.js?v=1010');
+                    const { addText } = await import('./js/pdf-editor-api.js?v=1010');
                     const backendUrl = getBackendUrl();
                     const userId = await getCurrentUserId();
                     
@@ -4912,7 +4925,7 @@ SSL Security & Trust Section -->
                 try {
                     showLoading('Protecting PDF...', 30);
                     
-                    const { getBackendUrl } = await import('./js/pdf-editor-api.js?v=1006');
+                    const { getBackendUrl } = await import('./js/pdf-editor-api.js?v=1010');
                     const backendUrl = getBackendUrl();
                     const response = await fetch(`${backendUrl}/protect`, {
                         method: 'POST',
@@ -5869,7 +5882,7 @@ SSL Security & Trust Section -->
         // Get current user ID helper
         async function getCurrentUserId() {
             try {
-                const { auth } = await import('./js/firebase-init.js?v=1006');
+                const { auth } = await import('./js/firebase-init.js?v=1010');
                 if (auth && auth.currentUser) {
                     return auth.currentUser.uid;
                 }
@@ -5882,7 +5895,7 @@ SSL Security & Trust Section -->
         // Load and display credit balance
         async function loadCreditBalance() {
             try {
-                const { getUserCreditInfo } = await import('./js/pdf-editor-api.js?v=1006');
+                const { getUserCreditInfo } = await import('./js/pdf-editor-api.js?v=1010');
                 const creditInfo = await getUserCreditInfo();
                 
                 const creditDisplay = document.getElementById('credit-count');
