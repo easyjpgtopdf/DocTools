@@ -5182,49 +5182,10 @@ SSL Security & Trust Section -->
             
             // Page Rotation
             const rotatePageBtn = document.getElementById('rotate-page-btn');
+            // Rotate Page - DISABLED (Coming soon)
             if (rotatePageBtn) {
-                rotatePageBtn.addEventListener('click', async function() {
-                    if (!currentSessionId) {
-                        alert('No PDF loaded.');
-                        return;
-                    }
-                    
-                    const angle = prompt('Enter rotation angle (90, 180, or 270):', '90');
-                    if (!angle || !['90', '180', '270'].includes(angle)) {
-                        return;
-                    }
-                    
-                    try {
-                        showLoading('Rotating page...', 50);
-                        const apiBaseUrl = getApiBaseUrl();
-                        const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
-                        
-                        const response = await fetch(`${apiBaseUrl}/api/pdf/pages/rotate`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                fileId: fileId,
-                                rotations: [{
-                                    pageIndex: window.pdfEditorVars.currentPage - 1,
-                                    angle: parseInt(angle)
-                                }]
-                            })
-                        });
-                        
-                        const result = await response.json();
-                        
-                        if (result.success) {
-                            window.pdfEditorVars.currentPdfData = result.pdfData;
-                            await reloadPDF();
-                            hideLoading();
-                            alert('Page rotated successfully!');
-                        } else {
-                            throw new Error(result.error || 'Rotation failed');
-                        }
-                    } catch (error) {
-                        hideLoading();
-                        alert('Error rotating page: ' + error.message);
-                    }
+                rotatePageBtn.addEventListener('click', function() {
+                    showToast('Coming soon');
                 });
             }
             
