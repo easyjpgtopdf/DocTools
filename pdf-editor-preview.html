@@ -2046,7 +2046,7 @@ SSL Security & Trust Section -->
         // Zoom In/Out buttons - re-render with scale factor (NOT CSS zoom)
         if (zoomInBtn) {
             zoomInBtn.addEventListener('click', async function() {
-                if (!currentSessionId || !window.pdfEditorVars.currentSessionId) {
+                if (!currentSessionId) {
                     console.warn('No active session, cannot zoom');
                     return;
                 }
