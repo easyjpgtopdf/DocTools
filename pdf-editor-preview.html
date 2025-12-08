@@ -3926,7 +3926,22 @@ SSL Security & Trust Section -->
                 cursor: pointer;
                 font-weight: 600;
             `;
-            saveBtn.onclick = () => saveTextEdit();
+            saveBtn.onclick = async () => {
+                // Check if this is a native edit (clicked text) or new text (add text tool)
+                if (window.pdfEditorVars.selectedTextItem) {
+                    // Native edit - use handleNativeTextEdit
+                    const clickedItem = window.pdfEditorVars.selectedTextItem;
+                    const newText = textEditTextarea.value.trim();
+                    if (!newText) {
+                        cancelTextEdit();
+                        return;
+                    }
+                    await handleNativeTextEdit(clickedItem, newText);
+                } else {
+                    // New text - use existing saveTextEdit
+                    await saveTextEdit();
+                }
+            };
             
             // Cancel button
             const cancelBtn = document.createElement('button');
@@ -3952,10 +3967,21 @@ SSL Security & Trust Section -->
             textEditTextarea.focus();
             
             // Keyboard shortcuts
-            textEditTextarea.addEventListener('keydown', function(e) {
+            textEditTextarea.addEventListener('keydown', async function(e) {
                 if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                     e.preventDefault();
-                    saveTextEdit();
+                    // Check if native edit or new text
+                    if (window.pdfEditorVars.selectedTextItem) {
+                        const clickedItem = window.pdfEditorVars.selectedTextItem;
+                        const newText = textEditTextarea.value.trim();
+                        if (newText) {
+                            await handleNativeTextEdit(clickedItem, newText);
+                        } else {
+                            cancelTextEdit();
+                        }
+                    } else {
+                        await saveTextEdit();
+                    }
                 } else if (e.key === 'Escape') {
                     e.preventDefault();
                     cancelTextEdit();
