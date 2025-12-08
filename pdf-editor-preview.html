@@ -2028,15 +2028,23 @@ SSL Security & Trust Section -->
             window.pdfEditorVars.scale = 1.5;
         }
         
-        // Zoom In/Out buttons
+        // Zoom In/Out buttons - re-render with scale factor (NOT CSS zoom)
         if (zoomInBtn) {
             zoomInBtn.addEventListener('click', async function() {
-                window.pdfEditorVars.scale = Math.min(window.pdfEditorVars.scale * 1.2, 5.0);
-                if (zoomLevel) zoomLevel.textContent = Math.round(window.pdfEditorVars.scale * 100 / 1.5) + '%';
+                // Increase scale factor
+                window.pdfEditorVars.scale = Math.min(window.pdfEditorVars.scale + 0.1, 5.0);
+                const zoomPercent = Math.round(window.pdfEditorVars.scale * 100);
+                if (zoomLevel) zoomLevel.textContent = zoomPercent + '%';
+                
+                // Save scroll position
                 const scrollX = window.scrollX || window.pageXOffset;
                 const scrollY = window.scrollY || window.pageYOffset;
+                
+                // Re-render page with new scale factor (repaints both image and textLayer)
                 if (currentSessionId && window.pdfEditorVars.currentPage) {
-                    await renderPage(window.pdfEditorVars.currentPage);
+                    showLoading('Zooming...', 10);
+                    await renderPage(window.pdfEditorVars.currentPage, window.pdfEditorVars.scale);
+                    hideLoading();
                     window.scrollTo(scrollX, scrollY);
                 }
             });
@@ -2044,12 +2052,20 @@ SSL Security & Trust Section -->
         
         if (zoomOutBtn) {
             zoomOutBtn.addEventListener('click', async function() {
-                window.pdfEditorVars.scale = Math.max(window.pdfEditorVars.scale / 1.2, 0.5);
-                if (zoomLevel) zoomLevel.textContent = Math.round(window.pdfEditorVars.scale * 100 / 1.5) + '%';
+                // Decrease scale factor
+                window.pdfEditorVars.scale = Math.max(window.pdfEditorVars.scale - 0.1, 0.5);
+                const zoomPercent = Math.round(window.pdfEditorVars.scale * 100);
+                if (zoomLevel) zoomLevel.textContent = zoomPercent + '%';
+                
+                // Save scroll position
                 const scrollX = window.scrollX || window.pageXOffset;
                 const scrollY = window.scrollY || window.pageYOffset;
+                
+                // Re-render page with new scale factor (repaints both image and textLayer)
                 if (currentSessionId && window.pdfEditorVars.currentPage) {
-                    await renderPage(window.pdfEditorVars.currentPage);
+                    showLoading('Zooming...', 10);
+                    await renderPage(window.pdfEditorVars.currentPage, window.pdfEditorVars.scale);
+                    hideLoading();
                     window.scrollTo(scrollX, scrollY);
                 }
             });
@@ -3080,7 +3096,8 @@ SSL Security & Trust Section -->
         }
         
         // Render specific page using dual-layer canvas system
-        async function renderPage(pageNumber) {
+        // scaleFactor: zoom level (1.0 = 100%, 1.5 = 150%, etc.)
+        async function renderPage(pageNumber, scaleFactor = null) {
             try {
                 if (!currentSessionId) {
                     console.warn('No session ID available for backend rendering');
@@ -3093,11 +3110,13 @@ SSL Security & Trust Section -->
                     throw new Error('Canvas elements not found');
                 }
                 
-                // Always use backend rendering
-                const { renderPage: renderPageBackend } = await import('./js/pdf-editor-api.js?v=1005');
-                const zoom = window.pdfEditorVars.scale || 1.5;
+                // Use provided scaleFactor or default from window.pdfEditorVars.scale
+                const zoom = scaleFactor !== null ? scaleFactor : (window.pdfEditorVars.scale || 1.5);
                 
-                // Fetch PNG + textLayer from backend
+                // Always use backend rendering with scale factor
+                const { renderPage: renderPageBackend } = await import('./js/pdf-editor-api.js?v=1005');
+                
+                // Fetch PNG + textLayer from backend with zoom scale
                 const renderResult = await renderPageBackend(currentSessionId, pageNumber, zoom);
                 
                 // Extract data
@@ -3119,11 +3138,21 @@ SSL Security & Trust Section -->
                         img.onload = function() {
                             try {
                             // Calculate canvas dimensions (auto-fit to container width, height proportional)
-                            const container = pdfPageWrapper || previewContainerEl;
-                            const containerWidth = container ? container.clientWidth - 40 : img.width;
-                            const scale = containerWidth / img.width;
+                            const previewContainerEl = document.getElementById('preview-container');
+                            const pdfPageWrapperEl = document.getElementById('pdf-page-wrapper');
+                            
+                            // Get container width (use offsetWidth for accurate measurement)
+                            let containerWidth = 800; // default
+                            if (pdfPageWrapperEl && pdfPageWrapperEl.offsetWidth > 0) {
+                                containerWidth = pdfPageWrapperEl.offsetWidth - 40;
+                            } else if (previewContainerEl && previewContainerEl.offsetWidth > 0) {
+                                containerWidth = previewContainerEl.offsetWidth - 40;
+                            }
+                            
+                            // Calculate aspect ratio from original image
+                            const aspectRatio = img.height / img.width;
                             const canvasWidth = containerWidth;
-                            const canvasHeight = img.height * scale;
+                            const canvasHeight = containerWidth * aspectRatio;
                             
                             // Set canvas dimensions
                             baseCanvas.width = canvasWidth;
@@ -3147,6 +3176,7 @@ SSL Security & Trust Section -->
                             const pdfToCanvasY = canvasHeight / pageHeight;
                             
                             // Draw invisible clickable rectangles for each text item on textCanvas
+                            // This enables click-to-edit functionality (like Acrobat)
                             textLayer.forEach((item, index) => {
                                 const bbox = item.bbox; // [x0, y0, x1, y1] in PDF coordinates (bottom-left origin)
                                 if (!bbox || bbox.length < 4) return;
@@ -3165,10 +3195,13 @@ SSL Security & Trust Section -->
                                 const rectHeight = Math.abs(y1 - y0);
                                 
                                 // Store canvas coordinates in item for click detection
+                                // This is critical for click-to-edit functionality
                                 item.canvasBbox = [rectX, rectY, rectX + rectWidth, rectY + rectHeight];
+                                item.index = index; // Store index for reference
                                 
                                 // Draw invisible clickable rectangle (fully transparent but clickable)
-                                textCtx.fillStyle = 'rgba(0, 0, 0, 0)'; // Fully transparent
+                                // This creates the click detection layer
+                                textCtx.fillStyle = 'rgba(0, 0, 0, 0)'; // Fully transparent but clickable
                                 textCtx.fillRect(rectX, rectY, rectWidth, rectHeight);
                                 
                                 // Optional: For debugging, uncomment to see text bounding boxes
@@ -3820,10 +3853,19 @@ SSL Security & Trust Section -->
                 // Get font properties
                 const fontSize = parseFloat(fontSizeInput?.value || 12);
                 const fontName = fontFamilySelect?.value || 'Helvetica';
-                // Get font color from color picker (force black if not set or invisible)
+                // Get font color from color picker (ALWAYS default to black to prevent invisible text)
+                // This fixes the white-on-white invisible text issue
                 let fontColor = textColorInput?.value || '#000000';
-                if (!fontColor || fontColor === '#ffffff' || fontColor === '#FFFFFF' || fontColor === 'transparent') {
-                    fontColor = '#000000'; // Force black for invisible text
+                
+                // Force black if color is white, transparent, or undefined
+                if (!fontColor || 
+                    fontColor === '#ffffff' || 
+                    fontColor === '#FFFFFF' || 
+                    fontColor === 'white' ||
+                    fontColor === 'transparent' ||
+                    fontColor.trim() === '') {
+                    fontColor = '#000000'; // Force black for visible text
+                    if (textColorInput) textColorInput.value = '#000000'; // Update UI
                 }
                 
                 // Convert hex color to RGB array [0-255]
