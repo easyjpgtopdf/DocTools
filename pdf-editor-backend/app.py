@@ -399,34 +399,48 @@ async def edit_text(request: TextEditRequest):
             session["pages_edited"].add(request.page_number)
             increment_daily_page_count(device_id)
         
-        # Find text to replace
+        # Find text to replace using native redaction (Adobe Acrobat Pro style)
+        bbox = None
         if request.bbox:
             bbox = fitz.Rect(request.bbox)
-            # Delete old text by drawing white rectangle
-            page.draw_rect(bbox, color=(1, 1, 1), fill=(1, 1, 1))
-            # Add new text at same position
-            point = fitz.Point(bbox.x0, bbox.y1)
         elif request.match_id:
             # Find match by ID (simplified - in production, store matches)
             text_instances = page.search_for(request.new_text)
             if text_instances:
                 bbox = text_instances[0]
-                page.draw_rect(bbox, color=(1, 1, 1), fill=(1, 1, 1))
-                point = fitz.Point(bbox.x0, bbox.y1)
             else:
                 raise HTTPException(status_code=404, detail="Text match not found")
         else:
             raise HTTPException(status_code=400, detail="bbox or match_id required")
         
-        # Insert new text
-        font = fitz.Font(request.font_name)
+        # Step 1: Add redaction annotation to mark text for deletion
+        page.add_redact_annot(bbox)
+        
+        # Step 2: Apply redactions to actually remove the text from PDF
+        page.apply_redactions()
+        
+        # Step 3: Insert new text using textbox (native PDF text with font embedding)
+        font_size = request.font_size
+        avg_char_width = font_size * 0.6
+        text_width = len(request.new_text) * avg_char_width
+        text_height = font_size * 1.2
+        
+        # Create textbox rect at the redacted position
+        textbox_rect = fitz.Rect(
+            bbox.x0,
+            bbox.y0,
+            bbox.x0 + text_width,
+            bbox.y0 + text_height
+        )
+        
         color = tuple(c / 255.0 for c in request.color[:3])
-        page.insert_text(
-            point,
+        page.insert_textbox(
+            textbox_rect,
             request.new_text,
-            fontsize=request.font_size,
             fontname=request.font_name,
-            color=color
+            fontsize=font_size,
+            color=color,
+            align=0  # Left align
         )
         
         # Update PDF in memory (save to bytes buffer)
@@ -528,17 +542,29 @@ async def add_text(request: TextAddRequest):
         page_height = page.rect.height
         pdf_y = page_height - request.y
         
-        # Insert text
-        font = fitz.Font(request.font_name)
-        color = tuple(c / 255.0 for c in request.color[:3])
-        point = fitz.Point(request.x, pdf_y)
+        # Calculate textbox dimensions
+        font_size = request.font_size
+        avg_char_width = font_size * 0.6
+        text_width = len(request.text) * avg_char_width
+        text_height = font_size * 1.2
         
-        page.insert_text(
-            point,
+        # Create textbox rectangle
+        textbox_rect = fitz.Rect(
+            request.x,
+            pdf_y - text_height,
+            request.x + text_width,
+            pdf_y
+        )
+        
+        # Insert text using textbox (native PDF text with font embedding)
+        color = tuple(c / 255.0 for c in request.color[:3])
+        page.insert_textbox(
+            textbox_rect,
             request.text,
-            fontsize=request.font_size,
             fontname=request.font_name,
-            color=color
+            fontsize=font_size,
+            color=color,
+            align=0  # Left align
         )
         
         # Update PDF in memory (save to bytes buffer)
@@ -636,10 +662,13 @@ async def delete_text(request: TextDeleteRequest):
             session["pages_edited"].add(request.page_number)
             increment_daily_page_count(device_id)
         
-        # Delete text by drawing white rectangle
+        # Delete text using native redaction (Adobe Acrobat Pro style)
         if request.bbox:
             bbox = fitz.Rect(request.bbox)
-            page.draw_rect(bbox, color=(1, 1, 1), fill=(1, 1, 1))
+            # Add redaction annotation to mark text for deletion
+            page.add_redact_annot(bbox)
+            # Apply redactions to actually remove the text from PDF
+            page.apply_redactions()
         elif request.match_id:
             # Find and delete by match_id (simplified)
             # In production, maintain a match registry

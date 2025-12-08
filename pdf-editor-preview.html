@@ -342,6 +342,32 @@
             height: auto;
         }
         
+        /* Dual-layer canvas system */
+        #pdf-canvas-base {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        #pdf-canvas-text {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+            pointer-events: auto;
+            cursor: text;
+        }
+        
+        #pdf-canvas-highlight {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 3;
+            pointer-events: none;
+        }
+        
         .text-layer {
             position: absolute;
             top: 0;
@@ -1160,7 +1186,12 @@
                             <div class="loading-percentage" id="loading-percentage">0%</div>
                         </div>
                         <div id="pdf-page-wrapper" class="pdf-page-wrapper" style="display: block; visibility: visible; position: relative;">
-                            <canvas id="pdf-canvas" class="pdf-canvas"></canvas>
+                            <!-- Dual-layer canvas system: baseCanvas (PNG) + textCanvas (clickable) + highlightCanvas (search highlights) -->
+                            <canvas id="pdf-canvas-base" class="pdf-canvas" style="position: absolute; top: 0; left: 0; z-index: 1;"></canvas>
+                            <canvas id="pdf-canvas-text" class="pdf-canvas" style="position: absolute; top: 0; left: 0; z-index: 2; pointer-events: auto;"></canvas>
+                            <canvas id="pdf-canvas-highlight" class="pdf-canvas" style="position: absolute; top: 0; left: 0; z-index: 3; pointer-events: none;"></canvas>
+                            <!-- Keep old canvas for backward compatibility during transition -->
+                            <canvas id="pdf-canvas" class="pdf-canvas" style="display: none;"></canvas>
                             <canvas id="search-highlight-canvas" style="position: absolute; top: 0; left: 0; pointer-events: none; z-index: 10;"></canvas>
                             <div id="deletion-layer" class="deletion-layer"></div>
                             <div id="text-layer" class="text-layer"></div>
@@ -1906,7 +1937,6 @@ SSL Security & Trust Section -->
         // Global variables
         if (typeof window.pdfEditorVars === 'undefined') {
             window.pdfEditorVars = {
-                pdfDoc: null,
                 currentPage: 1,
                 totalPages: 1,
                 scale: 1.5,
@@ -1927,7 +1957,11 @@ SSL Security & Trust Section -->
                 highlightEnd: null,
                 isDrawing: false,
                 loadedInitialPdf: false,
-                expectedTexts: [] // Track texts added/edited for validation
+                expectedTexts: [], // Track texts added/edited for validation
+                currentTextLayer: [], // Text layer from backend
+                currentPageWidth: 0,
+                currentPageHeight: 0,
+                sessionId: null // Session ID for backend
             };
         }
         
@@ -1935,8 +1969,10 @@ SSL Security & Trust Section -->
         const previewContainer = document.getElementById('preview-container');
         const loadingOverlay = document.getElementById('loading-overlay');
         const pdfPageWrapper = document.getElementById('pdf-page-wrapper');
-        const pdfCanvas = document.getElementById('pdf-canvas');
-        // Overlay layers removed - using backend rendering only
+        const pdfCanvas = document.getElementById('pdf-canvas'); // Old canvas (hidden)
+        const baseCanvas = document.getElementById('pdf-canvas-base'); // PNG rendering
+        const textCanvas = document.getElementById('pdf-canvas-text'); // Text layer (clickable)
+        const highlightCanvas = document.getElementById('pdf-canvas-highlight'); // Search highlights
         const pageNum = document.getElementById('page-num');
         const pageCount = document.getElementById('page-count');
         const prevPageBtn = document.getElementById('prev-page');
@@ -2226,59 +2262,33 @@ SSL Security & Trust Section -->
             drawSearchHighlight(match);
         }
         
-        // Draw search highlight on canvas overlay
+        // Draw search highlight on highlightCanvas
         function drawSearchHighlight(match) {
-            const highlightCanvas = document.getElementById('search-highlight-canvas');
-            if (!highlightCanvas || !pdfCanvas || !match.bbox) return;
+            if (!highlightCanvas || !match.bbox) return;
             
             // Only highlight if match is on current page
             if (match.page_number !== window.pdfEditorVars.currentPage) return;
             
-            // Sync canvas size with PDF canvas
-            highlightCanvas.width = pdfCanvas.width;
-            highlightCanvas.height = pdfCanvas.height;
-            highlightCanvas.style.width = pdfCanvas.style.width || pdfCanvas.width + 'px';
-            highlightCanvas.style.height = pdfCanvas.style.height || pdfCanvas.height + 'px';
-            
             const ctx = highlightCanvas.getContext('2d');
             ctx.clearRect(0, 0, highlightCanvas.width, highlightCanvas.height);
             
-            // Get canvas dimensions
+            // Get page dimensions from stored values
+            const pageWidth = window.pdfEditorVars.currentPageWidth || 612;
+            const pageHeight = window.pdfEditorVars.currentPageHeight || 792;
             const canvasWidth = highlightCanvas.width;
             const canvasHeight = highlightCanvas.height;
             
-            // Backend returns bbox in PDF coordinates [x0, y0, x1, y1] (bottom-left origin)
-            // We need to get the actual PDF page dimensions from the rendered image
-            // The rendered image dimensions represent the PDF page at the current zoom
-            
-            // Get PDF page dimensions - we need to query backend or estimate from canvas
-            // For now, estimate: canvas represents PDF page at zoom level
-            // Standard PDF is ~612x792 points, but rendered image may be different size
-            
-            // Get the actual rendered page dimensions from backend
-            // Since we rendered at zoom, we need to scale PDF coordinates to canvas coordinates
-            const zoom = window.pdfEditorVars.scale || 1.5;
-            
-            // Estimate PDF page size from canvas (assuming standard aspect ratio)
-            // Or better: get actual page dimensions from backend
-            const estimatedPdfWidth = 612; // Standard PDF width in points
-            const estimatedPdfHeight = 792; // Standard PDF height in points
-            
             // Scale factor from PDF points to canvas pixels
-            const scaleX = canvasWidth / estimatedPdfWidth;
-            const scaleY = canvasHeight / estimatedPdfHeight;
+            const pdfToCanvasX = canvasWidth / pageWidth;
+            const pdfToCanvasY = canvasHeight / pageHeight;
             
             // Convert PDF bbox [x0, y0, x1, y1] to canvas coordinates
-            const x0 = match.bbox[0] * scaleX;
-            const x1 = match.bbox[2] * scaleX;
+            const x0 = match.bbox[0] * pdfToCanvasX;
+            const x1 = match.bbox[2] * pdfToCanvasX;
             
             // PDF Y is bottom-left origin, canvas Y is top-left origin
-            const y0_pdf = match.bbox[1]; // Bottom of text in PDF coordinates
-            const y1_pdf = match.bbox[3]; // Top of text in PDF coordinates
-            
-            // Convert to canvas Y (flip vertically)
-            const y0_canvas = canvasHeight - (y1_pdf * scaleY); // Top of highlight
-            const y1_canvas = canvasHeight - (y0_pdf * scaleY); // Bottom of highlight
+            const y0_canvas = (pageHeight - match.bbox[3]) * pdfToCanvasY; // Top of highlight
+            const y1_canvas = (pageHeight - match.bbox[1]) * pdfToCanvasY; // Bottom of highlight
             
             const width = x1 - x0;
             const height = y1_canvas - y0_canvas;
@@ -2295,11 +2305,67 @@ SSL Security & Trust Section -->
         
         // Clear search highlights
         function clearSearchHighlights() {
-            const highlightCanvas = document.getElementById('search-highlight-canvas');
             if (highlightCanvas) {
                 const ctx = highlightCanvas.getContext('2d');
                 ctx.clearRect(0, 0, highlightCanvas.width, highlightCanvas.height);
             }
+        }
+        
+        // Click handling on textCanvas for text editing
+        if (textCanvas) {
+            textCanvas.addEventListener('click', async function(e) {
+                if (!currentSessionId || !window.pdfEditorVars.currentTextLayer) return;
+                
+                const rect = textCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                // Find clicked text item
+                const textLayer = window.pdfEditorVars.currentTextLayer;
+                let clickedItem = null;
+                
+                for (const item of textLayer) {
+                    if (!item.canvasBbox) continue;
+                    const [x0, y0, x1, y1] = item.canvasBbox;
+                    if (x >= x0 && x <= x1 && y >= y0 && y <= y1) {
+                        clickedItem = item;
+                        break;
+                    }
+                }
+                
+                if (clickedItem) {
+                    // Open text edit dialog
+                    const oldText = clickedItem.text;
+                    const newText = prompt('Edit text:', oldText);
+                    
+                    if (newText !== null && newText !== oldText) {
+                        try {
+                            showLoading('Editing text...', 10);
+                            
+                            const { editText } = await import('./js/pdf-editor-api.js');
+                            const userId = await getCurrentUserId();
+                            
+                            await editText(
+                                currentSessionId,
+                                window.pdfEditorVars.currentPage,
+                                oldText,
+                                newText,
+                                1,
+                                userId
+                            );
+                            
+                            // Re-render page to show changes
+                            await renderPage(window.pdfEditorVars.currentPage);
+                            
+                            hideLoading();
+                        } catch (error) {
+                            console.error('Error editing text:', error);
+                            hideLoading();
+                            showError('Failed to edit text: ' + error.message);
+                        }
+                    }
+                }
+            });
         }
         
         // Keyboard shortcuts for search
@@ -2702,7 +2768,7 @@ SSL Security & Trust Section -->
                         window.pdfEditorVars.loadedFromStorage = true;
                         hideLoading();
                         console.log('✅ PDF loaded from base64 successfully');
-                        console.log('PDF Doc:', window.pdfEditorVars.pdfDoc);
+                        // PDF.js removed - using session-based backend
                         console.log('Total Pages:', window.pdfEditorVars.totalPages);
                         return;
                     } catch (error) {
@@ -2962,7 +3028,7 @@ SSL Security & Trust Section -->
             }
         }
         
-        // Render specific page using backend /page/render (NO PDF.js)
+        // Render specific page using dual-layer canvas system
         async function renderPage(pageNumber) {
             try {
                 if (!currentSessionId) {
@@ -2971,64 +3037,118 @@ SSL Security & Trust Section -->
                     return;
                 }
                 
+                if (!baseCanvas || !textCanvas || !highlightCanvas) {
+                    console.error('Canvas elements not found');
+                    throw new Error('Canvas elements not found');
+                }
+                
                 // Always use backend rendering
                 const { renderPage: renderPageBackend } = await import('./js/pdf-editor-api.js');
                 const zoom = window.pdfEditorVars.scale || 1.5;
                 
-                // Fetch PNG from backend
-                const imageUrl = await renderPageBackend(currentSessionId, pageNumber, zoom);
+                // Fetch PNG + textLayer from backend
+                const renderResult = await renderPageBackend(currentSessionId, pageNumber, zoom);
                 
-                // Display rendered PNG image on canvas
-                if (pdfCanvas) {
-                    const img = new Image();
-                    img.crossOrigin = 'anonymous';
-                    
-                    await new Promise((resolve, reject) => {
-                        img.onload = function() {
-                            try {
-                                const ctx = pdfCanvas.getContext('2d');
-                                pdfCanvas.width = img.width;
-                                pdfCanvas.height = img.height;
-                                ctx.clearRect(0, 0, pdfCanvas.width, pdfCanvas.height);
-                                ctx.drawImage(img, 0, 0);
+                // Extract data
+                const imageBase64 = renderResult.image;
+                const pageWidth = renderResult.pageWidth;
+                const pageHeight = renderResult.pageHeight;
+                const textLayer = renderResult.textLayer || [];
+                
+                // Store text layer globally
+                window.pdfEditorVars.currentTextLayer = textLayer;
+                window.pdfEditorVars.currentPageWidth = pageWidth;
+                window.pdfEditorVars.currentPageHeight = pageHeight;
+                
+                // Load PNG image
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                
+                await new Promise((resolve, reject) => {
+                    img.onload = function() {
+                        try {
+                            // Calculate canvas dimensions (scale to fit viewport)
+                            const maxWidth = pdfPageWrapper ? pdfPageWrapper.clientWidth - 40 : img.width;
+                            const scale = Math.min(1, maxWidth / img.width);
+                            const canvasWidth = img.width * scale;
+                            const canvasHeight = img.height * scale;
+                            
+                            // Set canvas dimensions
+                            baseCanvas.width = canvasWidth;
+                            baseCanvas.height = canvasHeight;
+                            textCanvas.width = canvasWidth;
+                            textCanvas.height = canvasHeight;
+                            highlightCanvas.width = canvasWidth;
+                            highlightCanvas.height = canvasHeight;
+                            
+                            // Draw PNG to baseCanvas
+                            const baseCtx = baseCanvas.getContext('2d');
+                            baseCtx.clearRect(0, 0, baseCanvas.width, baseCanvas.height);
+                            baseCtx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
+                            
+                            // Draw invisible clickable rectangles on textCanvas
+                            const textCtx = textCanvas.getContext('2d');
+                            textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+                            
+                            // Scale factor from PDF points to canvas pixels
+                            const pdfToCanvasX = canvasWidth / pageWidth;
+                            const pdfToCanvasY = canvasHeight / pageHeight;
+                            
+                            // Draw invisible rectangles for each text item
+                            textLayer.forEach((item, index) => {
+                                const bbox = item.bbox; // [x0, y0, x1, y1] in PDF coordinates (bottom-left origin)
+                                if (!bbox || bbox.length < 4) return;
                                 
-                                // Ensure preview container is visible
-                                const previewContainerEl = document.getElementById('preview-container');
-                                const pdfPageWrapperEl = document.getElementById('pdf-page-wrapper');
+                                // Convert PDF coordinates to canvas coordinates
+                                // PDF: bottom-left origin, Canvas: top-left origin
+                                const x0 = bbox[0] * pdfToCanvasX;
+                                const y0 = (pageHeight - bbox[3]) * pdfToCanvasY; // Flip Y
+                                const x1 = bbox[2] * pdfToCanvasX;
+                                const y1 = (pageHeight - bbox[1]) * pdfToCanvasY; // Flip Y
                                 
-                                if (previewContainerEl) {
-                                    previewContainerEl.style.display = 'flex';
-                                    previewContainerEl.style.visibility = 'visible';
-                                }
-                                if (pdfPageWrapperEl) {
-                                    pdfPageWrapperEl.style.display = 'block';
-                                    pdfPageWrapperEl.style.visibility = 'visible';
-                                }
+                                // Store canvas coordinates in item for click detection
+                                item.canvasBbox = [x0, y0, x1, y1];
                                 
-                                // Clean up object URL
-                                if (imageUrl.startsWith('blob:') || imageUrl.startsWith('data:')) {
-                                    URL.revokeObjectURL(imageUrl);
-                                }
-                                
-                                console.log('✅ Page rendered successfully:', pageNumber);
-                                resolve();
-                            } catch (error) {
-                                console.error('Error drawing image to canvas:', error);
-                                reject(error);
+                                // Draw invisible rectangle (for debugging, can make visible with stroke)
+                                textCtx.fillStyle = 'rgba(0, 0, 0, 0)'; // Fully transparent
+                                textCtx.fillRect(x0, y0, x1 - x0, y1 - y0);
+                            });
+                            
+                            // Clear highlight canvas
+                            const highlightCtx = highlightCanvas.getContext('2d');
+                            highlightCtx.clearRect(0, 0, highlightCanvas.width, highlightCanvas.height);
+                            
+                            // Ensure preview container is visible
+                            const previewContainerEl = document.getElementById('preview-container');
+                            const pdfPageWrapperEl = document.getElementById('pdf-page-wrapper');
+                            
+                            if (previewContainerEl) {
+                                previewContainerEl.style.display = 'flex';
+                                previewContainerEl.style.visibility = 'visible';
                             }
-                        };
-                        img.onerror = function(error) {
-                            console.error('Error loading image:', error);
-                            reject(new Error('Failed to load rendered image: ' + error));
-                        };
-                        img.src = imageUrl;
-                    });
-                } else {
-                    console.error('❌ PDF canvas element not found!');
-                    throw new Error('PDF canvas element not found');
-                }
+                            if (pdfPageWrapperEl) {
+                                pdfPageWrapperEl.style.display = 'block';
+                                pdfPageWrapperEl.style.visibility = 'visible';
+                                pdfPageWrapperEl.style.width = canvasWidth + 'px';
+                                pdfPageWrapperEl.style.height = canvasHeight + 'px';
+                            }
+                            
+                            console.log('✅ Page rendered successfully:', pageNumber);
+                            console.log('✅ Text layer items:', textLayer.length);
+                            resolve();
+                        } catch (error) {
+                            console.error('Error drawing image to canvas:', error);
+                            reject(error);
+                        }
+                    };
+                    img.onerror = function(error) {
+                        console.error('Error loading image:', error);
+                        reject(new Error('Failed to load rendered image: ' + error));
+                    };
+                    img.src = 'data:image/png;base64,' + imageBase64;
+                });
                 
-                // No overlay layers - pure backend rendering
+                // Update page info
                 if (pageNum) pageNum.textContent = pageNumber;
                 window.pdfEditorVars.currentPage = pageNumber;
                 
@@ -3147,26 +3267,47 @@ SSL Security & Trust Section -->
             }
         }
         
-        // Edit (formerly OCR) - server-side text extraction and embed
+        // OCR button - apply OCR to make scanned PDF searchable
         if (ocrBtn) {
             ocrBtn.addEventListener('click', async function() {
-                console.log('Edit (OCR) button clicked');
+                console.log('OCR button clicked');
                 if (!currentSessionId) {
                     alert('No PDF loaded. Please upload a PDF first.');
                     return;
                 }
                 
                 try {
-                    showLoading('Starting Edit...', 5);
-                    updateProgress(10, 'Preparing page image...');
+                    showLoading('Applying OCR...', 10);
+                    updateProgress(20, 'Running OCR on page...');
                     
-                    // Use backend /page/render to get PNG image (NO PDF.js)
-                    if (!currentSessionId) {
-                        throw new Error('No active PDF session');
-                    }
+                    // Use new /ocr/apply endpoint
+                    const { applyOCR } = await import('./js/pdf-editor-api.js');
                     
-                    const { renderPage: renderPageBackend } = await import('./js/pdf-editor-api.js');
-                    const imageUrl = await renderPageBackend(currentSessionId, window.pdfEditorVars.currentPage, 2.0);
+                    await applyOCR(currentSessionId, window.pdfEditorVars.currentPage, 'en');
+                    
+                    updateProgress(90, 'Re-rendering page...');
+                    
+                    // Re-render page to show OCR text in textLayer
+                    await renderPage(window.pdfEditorVars.currentPage);
+                    
+                    updateProgress(100, 'OCR applied successfully!');
+                    setTimeout(() => {
+                        hideLoading();
+                    }, 500);
+                    
+                    alert('OCR applied successfully! The page is now searchable.');
+                } catch (error) {
+                    console.error('Error applying OCR:', error);
+                    hideLoading();
+                    showError('Failed to apply OCR: ' + error.message);
+                }
+            });
+        }
+        
+        // Old OCR code removed - using /ocr/apply endpoint now
+        if (false) {
+            // This block is disabled - kept for reference
+            const oldOcrCode = async function() {
                     
                     // Convert image URL to data URL for OCR
                     const img = new Image();
@@ -3397,20 +3538,28 @@ SSL Security & Trust Section -->
                 try {
                     showLoading('Preparing download...', 10);
                     
-                    // Get file ID from sessionStorage
-                    const fileId = sessionStorage.getItem('pdfFileId') || window.pdfEditorVars.currentFileId;
-                    
-                    if (fileId) {
-                        // Use fileId-based download endpoint (returns edited PDF)
-                        updateProgress(30, 'Fetching edited PDF from server...');
+                    // Use session-based export endpoint (new system)
+                    if (currentSessionId) {
+                        updateProgress(30, 'Exporting PDF from session...');
                         
-                        const apiBaseUrl = getApiBaseUrl();
-                        const downloadUrl = `${apiBaseUrl}/api/pdf/download/${fileId}`;
+                        const { exportPDF } = await import('./js/pdf-editor-api.js');
+                        const userId = await getCurrentUserId();
                         
-                        const response = await fetch(downloadUrl);
+                        // Export PDF from backend session
+                        const backendUrl = (await import('./js/pdf-editor-api.js')).getBackendUrl();
+                        const response = await fetch(`${backendUrl}/export`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                session_id: currentSessionId,
+                                format: 'pdf'
+                            })
+                        });
                         
                         if (!response.ok) {
-                            throw new Error(`Download failed: ${response.status} ${response.statusText}`);
+                            throw new Error(`Export failed: ${response.status} ${response.statusText}`);
                         }
                         
                         updateProgress(70, 'Receiving PDF data...');
@@ -3633,10 +3782,10 @@ SSL Security & Trust Section -->
                 if (highlightBtn) highlightBtn.classList.remove('active');
                 if (selectTool) selectTool.classList.remove('active');
                 
-                // Add text on canvas click
-                if (pdfCanvas) {
-                    pdfCanvas.style.cursor = 'crosshair';
-                    pdfCanvas.addEventListener('click', addTextOnCanvas, { once: true });
+                // Add text on textCanvas click (use textCanvas instead of old pdfCanvas)
+                if (textCanvas) {
+                    textCanvas.style.cursor = 'crosshair';
+                    textCanvas.addEventListener('click', addTextOnCanvas, { once: true });
                 }
             });
         }
@@ -3707,7 +3856,8 @@ SSL Security & Trust Section -->
             textEditDialog = document.createElement('div');
             textEditDialog.className = 'text-edit-dialog';
             // Position dialog in center of canvas or at click position (relative to canvas)
-            const canvasRect = pdfCanvas ? pdfCanvas.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+            const canvas = baseCanvas || textCanvas;
+            const canvasRect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
             const dialogX = x ? (canvasRect.left + Math.min(x, canvasRect.width - 350)) : (canvasRect.left + (canvasRect.width / 2) - 175);
             const dialogY = y ? (canvasRect.top + Math.min(y, canvasRect.height - 200)) : (canvasRect.top + (canvasRect.height / 2) - 100);
             
@@ -3830,12 +3980,15 @@ SSL Security & Trust Section -->
                 const rgbColor = hexToRgb(fontColor);
                 const colorArray = [rgbColor.r, rgbColor.g, rgbColor.b];
                 
-                // Get canvas coordinates and dimensions
-                const rect = pdfCanvas.getBoundingClientRect();
+                // Get canvas coordinates and dimensions (use baseCanvas or textCanvas)
+                const canvas = baseCanvas || textCanvas;
+                if (!canvas) {
+                    throw new Error('Canvas not found');
+                }
                 const canvasX = textEditPosition.x;
                 const canvasY = textEditPosition.y;
-                const canvasWidth = pdfCanvas.width;
-                const canvasHeight = pdfCanvas.height;
+                const canvasWidth = canvas.width;
+                const canvasHeight = canvas.height;
                 
                 // Get current user ID
                 const userId = await getCurrentUserId();
@@ -3872,10 +4025,10 @@ SSL Security & Trust Section -->
                     }
                 }
                 
-                updateProgress(90, 'Reloading PDF...');
+                updateProgress(90, 'Re-rendering page...');
                 
                 // Re-render page to show changes
-                await renderPDF();
+                await renderPage(window.pdfEditorVars.currentPage);
                 
                 hideLoading();
             } catch (error) {
@@ -3910,7 +4063,11 @@ SSL Security & Trust Section -->
         async function addTextOnCanvas(e) {
             if (window.pdfEditorVars.activeTool !== 'text') return;
             
-            const rect = pdfCanvas.getBoundingClientRect();
+            // Use textCanvas instead of old pdfCanvas
+            const canvas = textCanvas || baseCanvas;
+            if (!canvas) return;
+            
+            const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             
@@ -3919,105 +4076,7 @@ SSL Security & Trust Section -->
             createTextEditDialog(e.clientX, e.clientY);
             return;
             
-            // OLD CODE (replaced with multi-line dialog above):
-            // const text = prompt('Enter text:');
-            // if (!text) return;
-            
-            const fontSize = fontSizeInput ? parseInt(fontSizeInput.value) || 12 : 12;
-            const fontFamily = fontFamilySelect ? fontFamilySelect.value || 'Helvetica' : 'Helvetica';
-            const textColor = textColorInput ? textColorInput.value || '#000000' : '#000000';
-            
-            // Convert hex color to RGB
-            const hexToRgb = (hex) => {
-                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-                return result ? [
-                    parseInt(result[1], 16) / 255,
-                    parseInt(result[2], 16) / 255,
-                    parseInt(result[3], 16) / 255
-                ] : [0, 0, 0];
-            };
-            
-            try {
-                showLoading('Adding text to PDF...', 10);
-                
-                // Get current PDF
-                const pdfFileURL = sessionStorage.getItem('pdfFileURL');
-                if (!pdfFileURL) throw new Error('PDF file not found');
-                
-                updateProgress(30, 'Loading PDF...');
-                const response = await fetch(pdfFileURL);
-                const pdfArrayBuffer = await response.arrayBuffer();
-                const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
-                
-                // Get file ID for backend editing
-                const fileId = window.pdfEditorVars.currentFileId || sessionStorage.getItem('pdfFileId');
-                
-                if (!fileId) {
-                    showError('No file ID available. Please upload PDF first.');
-                    return;
-                }
-                
-                // Apply edit directly to PDF using pdf-lib backend
-                updateProgress(50, 'Applying text to PDF with pdf-lib...');
-                const apiBaseUrl = getApiBaseUrl();
-                const apiUrl = `${apiBaseUrl}/api/pdf/edit-text`;
-                
-                // Convert hex color to RGB array
-                const fontColorRgb = hexToRgb(textColor);
-                
-                const editResponse = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        fileId: fileId,
-                        textEdits: [{
-                            pageIndex: window.pdfEditorVars.currentPage - 1,
-                            x: x,
-                            y: y,
-                            text: text,
-                            fontSize: fontSize,
-                            fontName: fontFamily,
-                            fontColor: hexToRgb(textColor)
-                        }]
-                    })
-                });
-                
-                updateProgress(80, 'Processing with backend...');
-                
-                if (!editResponse.ok) {
-                    const errorData = await editResponse.json().catch(() => ({}));
-                    throw new Error(errorData.error || 'Server error: ' + editResponse.status);
-                }
-                
-                const result = await editResponse.json();
-                
-                // Wait for backend confirmation before updating UI
-                if (result.success) {
-                    updateProgress(90, 'Reloading PDF...');
-                    // Update PDF data and reload (native changes from pdf-lib)
-                    // CRITICAL: Only update UI after successful backend edit
-                    window.pdfEditorVars.currentPdfData = result.pdfData;
-                    const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
-                    
-                    const blob = new Blob([pdfData], { type: 'application/pdf' });
-                    const newUrl = URL.createObjectURL(blob);
-                    sessionStorage.setItem('pdfFileURL', newUrl);
-                    
-                    await reloadPDF();
-                    
-                    updateProgress(100, 'Text added successfully!');
-                    setTimeout(() => {
-                        hideLoading();
-                    }, 300);
-                } else {
-                    throw new Error(result.error || 'Failed to add text');
-                }
-            } catch (error) {
-                console.error('Error adding text:', error);
-                hideLoading();
-                // Handle backend errors gracefully
-                showError('Error adding text: ' + error.message);
-            }
+            // Old code removed - now uses saveTextEdit() function with session-based /text/add endpoint
             
             // Reset tool
             window.pdfEditorVars.activeTool = 'select';
@@ -6352,7 +6411,7 @@ SSL Security & Trust Section -->
             const saveCloudBtn = document.getElementById('save-cloud-btn');
             if (saveCloudBtn) {
                 saveCloudBtn.addEventListener('click', async function() {
-                    if (!window.pdfEditorVars.pdfDoc || !window.pdfEditorVars.currentPdfData) {
+                    if (!currentSessionId) {
                         alert('No PDF to save. Please load a PDF first.');
                         return;
                     }

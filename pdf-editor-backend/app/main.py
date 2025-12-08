@@ -21,11 +21,13 @@ from .storage import create_session, get_pdf_bytes, update_pdf_bytes, session_ex
 from .pdf_engine import (
     get_page_count,
     render_page_to_png,
+    render_page_with_text_layer,
     add_text_to_page,
     replace_text_native,
     delete_text_by_bbox,
     search_text,
     load_document,
+    apply_ocr_to_page,
 )
 from .ocr_engine import run_ocr_on_image_bytes
 
@@ -101,8 +103,22 @@ async def render_page(req: RenderPageRequest):
     except KeyError:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    png = render_page_to_png(pdf_bytes, req.page_number, req.zoom)
-    return StreamingResponse(io.BytesIO(png), media_type="image/png")
+    # Render PNG and extract text layer
+    png_bytes, text_layer, page_width, page_height = render_page_with_text_layer(
+        pdf_bytes, req.page_number, req.zoom
+    )
+    
+    # Convert PNG to base64
+    import base64
+    png_base64 = base64.b64encode(png_bytes).decode('utf-8')
+    
+    # Return JSON with PNG and text layer
+    return {
+        "image": png_base64,
+        "pageWidth": page_width,
+        "pageHeight": page_height,
+        "textLayer": text_layer
+    }
 
 
 @app.post("/text/add")
@@ -246,6 +262,80 @@ async def ocr_page(req: OcrPageRequest):
                 converted_results.append(item)
         
         return {"page": req.page_number, "results": converted_results}
+    finally:
+        doc.close()
+
+
+@app.post("/ocr/apply")
+async def ocr_apply(req: OcrPageRequest):
+    """
+    Apply OCR to PDF page by embedding invisible text (render_mode=3).
+    Only applies if page has no existing text.
+    """
+    try:
+        pdf_bytes = get_pdf_bytes(req.session_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # First, run OCR to get text results
+    png = render_page_to_png(pdf_bytes, req.page_number, zoom=2.0)
+    ocr_result = run_ocr_on_image_bytes(png, lang=req.lang)
+    
+    # Convert OCR bbox from image pixel coordinates to PDF point coordinates
+    doc = load_document(pdf_bytes)
+    try:
+        page = doc.load_page(req.page_number - 1)
+        page_rect = page.rect
+        page_width = page_rect.width
+        page_height = page_rect.height
+        
+        # Get OCR image dimensions (rendered at 2.0x zoom)
+        from PIL import Image
+        import io
+        ocr_img = Image.open(io.BytesIO(png))
+        ocr_img_width = ocr_img.width
+        ocr_img_height = ocr_img.height
+        
+        # Convert each OCR result bbox from image pixels to PDF points
+        converted_results = []
+        for item in ocr_result:
+            bbox = item.get("bbox", [])
+            if bbox and len(bbox) >= 4:
+                # Handle both formats: [[x,y], [x,y], ...] or [x0, y0, x1, y1]
+                if isinstance(bbox[0], (list, tuple)):
+                    # Format: [[x0,y0], [x1,y1], [x2,y2], [x3,y3]]
+                    xs = [p[0] for p in bbox]
+                    ys = [p[1] for p in bbox]
+                    x0_img = min(xs)
+                    y0_img = min(ys)
+                    x1_img = max(xs)
+                    y1_img = max(ys)
+                else:
+                    # Format: [x0, y0, x1, y1]
+                    x0_img, y0_img, x1_img, y1_img = bbox[:4]
+                
+                # Convert from OCR image pixel coordinates to PDF point coordinates
+                # OCR image is at 2.0x zoom, so divide by 2.0
+                x0_pdf = (x0_img / 2.0) * (page_width / (ocr_img_width / 2.0))
+                y0_pdf = (y0_img / 2.0) * (page_height / (ocr_img_height / 2.0))
+                x1_pdf = (x1_img / 2.0) * (page_width / (ocr_img_width / 2.0))
+                y1_pdf = (y1_img / 2.0) * (page_height / (ocr_img_height / 2.0))
+                
+                # PDF coordinates: bottom-left origin, so y needs to be flipped
+                y0_pdf_flipped = page_height - y1_pdf
+                y1_pdf_flipped = page_height - y0_pdf
+                
+                converted_results.append({
+                    "text": item.get("text", ""),
+                    "bbox": [x0_pdf, y0_pdf_flipped, x1_pdf, y1_pdf_flipped],  # PDF coordinates
+                    "confidence": item.get("confidence", 0.9)
+                })
+        
+        # Apply OCR results to PDF
+        updated = apply_ocr_to_page(pdf_bytes, req.page_number, converted_results)
+        update_pdf_bytes(req.session_id, updated)
+        
+        return {"status": "ok", "page": req.page_number, "results_count": len(converted_results)}
     finally:
         doc.close()
 

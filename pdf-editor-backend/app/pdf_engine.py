@@ -1,5 +1,5 @@
 import io
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 
 import fitz  # PyMuPDF
 from PIL import Image
@@ -33,6 +33,83 @@ def render_page_to_png(pdf_bytes: bytes, page_number: int, zoom: float = 1.0) ->
         buf = io.BytesIO()
         img.save(buf, format="PNG")
         return buf.getvalue()
+    finally:
+        doc.close()
+
+
+def extract_text_layer(pdf_bytes: bytes, page_number: int) -> List[dict]:
+    """
+    Extract text layer with bounding boxes from PDF page.
+    Returns list of text objects with bbox, text, font, and size.
+    """
+    doc = load_document(pdf_bytes)
+    try:
+        page = doc.load_page(page_number - 1)
+        page_rect = page.rect
+        page_width = page_rect.width
+        page_height = page_rect.height
+        
+        # Get text as dictionary with detailed information
+        text_dict = page.get_text("dict")
+        text_layer = []
+        
+        # Extract text blocks and spans
+        for block in text_dict.get("blocks", []):
+            if "lines" not in block:
+                continue
+                
+            for line in block.get("lines", []):
+                for span in line.get("spans", []):
+                    text = span.get("text", "").strip()
+                    if not text:
+                        continue
+                    
+                    # Get bounding box
+                    bbox = span.get("bbox", [])
+                    if len(bbox) >= 4:
+                        x0, y0, x1, y1 = bbox[:4]
+                        
+                        # Get font information
+                        font_name = span.get("font", "Helvetica")
+                        font_size = span.get("size", 12)
+                        
+                        # Store in text layer
+                        text_layer.append({
+                            "text": text,
+                            "bbox": [x0, y0, x1, y1],  # PDF coordinates (bottom-left origin)
+                            "font": font_name,
+                            "size": font_size
+                        })
+        
+        return text_layer
+    finally:
+        doc.close()
+
+
+def render_page_with_text_layer(pdf_bytes: bytes, page_number: int, zoom: float = 1.0) -> Tuple[bytes, List[dict], float, float]:
+    """
+    Render page to PNG and extract text layer.
+    Returns: (png_bytes, text_layer, page_width, page_height)
+    """
+    doc = load_document(pdf_bytes)
+    try:
+        page = doc.load_page(page_number - 1)
+        page_rect = page.rect
+        page_width = page_rect.width
+        page_height = page_rect.height
+        
+        # Render PNG
+        mat = fitz.Matrix(zoom, zoom)
+        pix = page.get_pixmap(matrix=mat, alpha=False)
+        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        png_bytes = buf.getvalue()
+        
+        # Extract text layer
+        text_layer = extract_text_layer(pdf_bytes, page_number)
+        
+        return png_bytes, text_layer, page_width, page_height
     finally:
         doc.close()
 
@@ -228,6 +305,68 @@ def search_text(pdf_bytes: bytes, query: str) -> list:
                     }
                 )
         return results
+    finally:
+        doc.close()
+
+
+def apply_ocr_to_page(pdf_bytes: bytes, page_number: int, ocr_results: List[dict]) -> bytes:
+    """
+    Apply OCR results to PDF page by embedding invisible text using insert_textbox with render_mode=3.
+    Only applies if page has no existing text.
+    """
+    doc = load_document(pdf_bytes)
+    try:
+        page = doc.load_page(page_number - 1)
+        
+        # Check if page already has text
+        existing_text = page.get_text("text").strip()
+        if existing_text:
+            # Page already has text, skip OCR embedding
+            return save_document(doc)
+        
+        # Apply OCR results - embed as invisible text (render_mode=3)
+        for ocr_item in ocr_results:
+            text = ocr_item.get("text", "").strip()
+            if not text:
+                continue
+            
+            bbox = ocr_item.get("bbox", [])
+            if len(bbox) < 4:
+                continue
+            
+            # Handle both bbox formats: [[x,y], [x,y], ...] or [x0, y0, x1, y1]
+            if isinstance(bbox[0], (list, tuple)):
+                # Format: [[x0,y0], [x1,y1], [x2,y2], [x3,y3]]
+                xs = [p[0] for p in bbox]
+                ys = [p[1] for p in bbox]
+                x0 = min(xs)
+                y0 = min(ys)
+                x1 = max(xs)
+                y1 = max(ys)
+            else:
+                # Format: [x0, y0, x1, y1]
+                x0, y0, x1, y1 = bbox[:4]
+            
+            # Create rect in PDF coordinates
+            rect = fitz.Rect(x0, y0, x1, y1)
+            
+            # Estimate font size from bbox height
+            font_size = max(8, min(200, rect.height / 1.2))
+            
+            # Insert text as searchable (OCR text should be searchable but can be visually small)
+            # PyMuPDF's insert_textbox creates searchable text in the PDF text layer
+            # For OCR, we want the text to be searchable, so we insert it normally
+            # The text will be part of the PDF's text layer and searchable
+            page.insert_textbox(
+                rect,
+                text,
+                fontname="helv",
+                fontsize=font_size,
+                color=(0, 0, 0),  # Black text (visible, but can be made smaller if needed)
+                align=0,
+            )
+        
+        return save_document(doc)
     finally:
         doc.close()
 

@@ -144,7 +144,8 @@ export async function startSession(pdfFile) {
 }
 
 /**
- * Render a PDF page as PNG
+ * Render a PDF page as PNG with text layer
+ * Returns: { image: base64, pageWidth, pageHeight, textLayer: [...] }
  */
 export async function renderPage(sessionId, pageNumber, zoom = 1.5) {
   try {
@@ -164,8 +165,8 @@ export async function renderPage(sessionId, pageNumber, zoom = 1.5) {
       throw new Error('Failed to render page');
     }
     
-    const blob = await response.blob();
-    return URL.createObjectURL(blob);
+    const data = await response.json();
+    return data; // { image: base64, pageWidth, pageHeight, textLayer: [...] }
   } catch (error) {
     console.error('Error rendering page:', error);
     throw error;
@@ -345,9 +346,9 @@ export async function deleteText(sessionId, pageNumber, bbox, userId) {
 }
 
 /**
- * Run OCR on a PDF page
+ * Run OCR on a PDF page (returns OCR results)
  */
-export async function ocrPage(sessionId, pageNumber, userId) {
+export async function ocrPage(sessionId, pageNumber, lang = 'en') {
   try {
     const response = await fetch(`${BACKEND_URL}/ocr/page`, {
       method: 'POST',
@@ -357,7 +358,7 @@ export async function ocrPage(sessionId, pageNumber, userId) {
       body: JSON.stringify({
         session_id: sessionId,
         page_number: pageNumber,
-        userId: userId
+        lang: lang
       })
     });
     
@@ -370,6 +371,36 @@ export async function ocrPage(sessionId, pageNumber, userId) {
     return data;
   } catch (error) {
     console.error('Error running OCR:', error);
+    throw error;
+  }
+}
+
+/**
+ * Apply OCR to PDF page (embeds invisible text)
+ */
+export async function applyOCR(sessionId, pageNumber, lang = 'en') {
+  try {
+    const response = await fetch(`${BACKEND_URL}/ocr/apply`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        session_id: sessionId,
+        page_number: pageNumber,
+        lang: lang
+      })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to apply OCR');
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error applying OCR:', error);
     throw error;
   }
 }
