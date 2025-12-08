@@ -3120,36 +3120,36 @@ SSL Security & Trust Section -->
                             // Clear highlight canvas
                             const highlightCtx = highlightCanvas.getContext('2d');
                             highlightCtx.clearRect(0, 0, highlightCanvas.width, highlightCanvas.height);
-                                
-                                // Ensure preview container is visible
-                                const previewContainerEl = document.getElementById('preview-container');
-                                const pdfPageWrapperEl = document.getElementById('pdf-page-wrapper');
-                                
-                                if (previewContainerEl) {
-                                    previewContainerEl.style.display = 'flex';
-                                    previewContainerEl.style.visibility = 'visible';
-                                }
-                                if (pdfPageWrapperEl) {
-                                    pdfPageWrapperEl.style.display = 'block';
-                                    pdfPageWrapperEl.style.visibility = 'visible';
+                            
+                            // Ensure preview container is visible
+                            const previewContainerEl = document.getElementById('preview-container');
+                            const pdfPageWrapperEl = document.getElementById('pdf-page-wrapper');
+                            
+                            if (previewContainerEl) {
+                                previewContainerEl.style.display = 'flex';
+                                previewContainerEl.style.visibility = 'visible';
+                            }
+                            if (pdfPageWrapperEl) {
+                                pdfPageWrapperEl.style.display = 'block';
+                                pdfPageWrapperEl.style.visibility = 'visible';
                                 pdfPageWrapperEl.style.width = canvasWidth + 'px';
                                 pdfPageWrapperEl.style.height = canvasHeight + 'px';
-                                }
-                                
-                                console.log('✅ Page rendered successfully:', pageNumber);
-                            console.log('✅ Text layer items:', textLayer.length);
-                                resolve();
-                            } catch (error) {
-                                console.error('Error drawing image to canvas:', error);
-                                reject(error);
                             }
-                        };
-                        img.onerror = function(error) {
-                            console.error('Error loading image:', error);
-                            reject(new Error('Failed to load rendered image: ' + error));
-                        };
+                            
+                            console.log('✅ Page rendered successfully:', pageNumber);
+                            console.log('✅ Text layer items:', textLayer.length);
+                            resolve();
+                        } catch (error) {
+                            console.error('Error drawing image to canvas:', error);
+                            reject(error);
+                        }
+                    };
+                    img.onerror = function(error) {
+                        console.error('Error loading image:', error);
+                        reject(new Error('Failed to load rendered image: ' + error));
+                    };
                     img.src = 'data:image/png;base64,' + imageBase64;
-                    });
+                });
                 
                 // Update page info
                 if (pageNum) pageNum.textContent = pageNumber;
@@ -3186,7 +3186,7 @@ SSL Security & Trust Section -->
                     return Promise.resolve(false);
                 }
                 
-                const { editText } = await import('./js/pdf-editor-api.js');
+                const { editText } = await import('./js/pdf-editor-api.js?v=1001');
                 const userId = await getCurrentUserId();
                 
                 await editText(
