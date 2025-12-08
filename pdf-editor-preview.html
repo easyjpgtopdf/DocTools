@@ -42,7 +42,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- PDF Editor API Client (Backend Integration) -->
-    <script type="module" src="js/pdf-editor-api.js?v=1003"></script>
+    <script type="module" src="js/pdf-editor-api.js?v=1004"></script>
     
     <!-- Professional PDF Editor using backend rendering (NO PDF.js) -->
     
@@ -913,7 +913,7 @@
             </ol>
         </div>
     </nav>
-    <script src="js/global-components.js?v=1003"></script>
+    <script src="js/global-components.js?v=1004"></script>
     <script>
     // Ensure header loads - multiple attempts to guarantee it works
     (function() {
@@ -1844,7 +1844,7 @@ SSL Security & Trust Section -->
     <input type="file" id="file-input" accept="application/pdf,.pdf" style="display: none;">
     <input type="file" id="image-input" accept="image/*" style="display: none;">
     
-    <script src="js/mobile-menu-init.js?v=1003"></script>
+    <script src="js/mobile-menu-init.js?v=1004"></script>
     <script>
         // Get API base URL helper
         // IMPORTANT: This should point to Cloud Run backend for production
@@ -1915,7 +1915,7 @@ SSL Security & Trust Section -->
         let deviceInfo = null;
         async function initDeviceTracking() {
             try {
-                const { getDeviceInfo } = await import('./js/device-fingerprint.js?v=1003');
+                const { getDeviceInfo } = await import('./js/device-fingerprint.js?v=1004');
                 deviceInfo = await getDeviceInfo();
                 console.log('✅ Device tracking initialized for PDF editor:', {
                     deviceId: deviceInfo.deviceId,
@@ -2076,7 +2076,7 @@ SSL Security & Trust Section -->
                     showLoading('Searching PDF...', 30);
                     
                     // Import backend API
-                    const { searchText } = await import('./js/pdf-editor-api.js?v=1003');
+                    const { searchText } = await import('./js/pdf-editor-api.js?v=1004');
                     
                     const result = await searchText(currentSessionId, query);
                     
@@ -2141,7 +2141,7 @@ SSL Security & Trust Section -->
                     showLoading('Replacing text...', 30);
                     
                     // Search for all occurrences first
-                    const { searchText: searchTextBackend } = await import('./js/pdf-editor-api.js?v=1003');
+                    const { searchText: searchTextBackend } = await import('./js/pdf-editor-api.js?v=1004');
                     const searchResult = await searchTextBackend(currentSessionId, searchText);
                     
                     if (!searchResult.matches || searchResult.matches.length === 0) {
@@ -2151,7 +2151,7 @@ SSL Security & Trust Section -->
                     }
                     
                     // Replace each match using backend /text/edit
-                    const { editText } = await import('./js/pdf-editor-api.js?v=1003');
+                    const { editText } = await import('./js/pdf-editor-api.js?v=1004');
                     const userId = await getCurrentUserId();
                     let replacedCount = 0;
                     
@@ -2353,7 +2353,7 @@ SSL Security & Trust Section -->
                         try {
                             showLoading('Editing text...', 10);
                             
-                            const { editText } = await import('./js/pdf-editor-api.js?v=1003');
+                            const { editText } = await import('./js/pdf-editor-api.js?v=1004');
                             const userId = await getCurrentUserId();
                             
                             console.log(`Calling /text/edit: page=${window.pdfEditorVars.currentPage}, old="${oldText}", new="${newText}"`);
@@ -2453,7 +2453,7 @@ SSL Security & Trust Section -->
                 
                 // Check device quota before uploading
                 try {
-                    const { checkDeviceQuota } = await import('./js/device-fingerprint.js?v=1003');
+                    const { checkDeviceQuota } = await import('./js/device-fingerprint.js?v=1004');
                     const quotaCheck = await checkDeviceQuota('pdfEdit');
                     
                     if (!quotaCheck.allowed) {
@@ -2480,7 +2480,7 @@ SSL Security & Trust Section -->
                     // Start backend session for PDF editing
                     try {
                         updateProgress(20, 'Starting PDF session...');
-                        const { startSession } = await import('./js/pdf-editor-api.js?v=1003');
+                        const { startSession } = await import('./js/pdf-editor-api.js?v=1004');
                         const userId = await getCurrentUserId();
                         
                         const sessionResult = await startSession(file);
@@ -2581,7 +2581,7 @@ SSL Security & Trust Section -->
                             
                             // Increment device quota after successful client-side processing
                             try {
-                                const { incrementDeviceQuota } = await import('./js/device-fingerprint.js?v=1003');
+                                const { incrementDeviceQuota } = await import('./js/device-fingerprint.js?v=1004');
                                 await incrementDeviceQuota('pdfEdit', 1, file.size);
                                 console.log('✅ Device quota incremented for PDF upload (client-side)');
                             } catch (quotaError) {
@@ -2609,7 +2609,7 @@ SSL Security & Trust Section -->
                             
                             // Increment usage after successful render
                             try {
-                                const { incrementUsage } = await import('./js/usage-limits.js?v=1003');
+                                const { incrementUsage } = await import('./js/usage-limits.js?v=1004');
                                 await incrementUsage('pdf', 1);
                             } catch (usageError) {
                                 console.warn('Failed to increment usage:', usageError);
@@ -2627,7 +2627,7 @@ SSL Security & Trust Section -->
                         showError('Error reading PDF file. Please try again.');
                     };
                     // Check usage limit before uploading
-                    const { checkUsageLimit, incrementUsage, showUsageLimitMessage } = await import('./js/usage-limits.js?v=1003');
+                    const { checkUsageLimit, incrementUsage, showUsageLimitMessage } = await import('./js/usage-limits.js?v=1004');
                     const limitCheck = await checkUsageLimit('pdf');
                     
                     if (!limitCheck.allowed) {
@@ -2954,7 +2954,7 @@ SSL Security & Trust Section -->
                 }
                 
                 // Start session with backend
-                const { startSession } = await import('./js/pdf-editor-api.js?v=1003');
+                const { startSession } = await import('./js/pdf-editor-api.js?v=1004');
                 const sessionResult = await startSession(pdfBlob);
                 
                 currentSessionId = sessionResult.session_id;
@@ -3033,7 +3033,7 @@ SSL Security & Trust Section -->
                 }
                 
                 // Always use backend rendering
-                const { renderPage: renderPageBackend } = await import('./js/pdf-editor-api.js?v=1003');
+                const { renderPage: renderPageBackend } = await import('./js/pdf-editor-api.js?v=1004');
                 const zoom = window.pdfEditorVars.scale || 1.5;
                 
                 // Fetch PNG + textLayer from backend
@@ -3186,7 +3186,7 @@ SSL Security & Trust Section -->
                     return Promise.resolve(false);
                 }
                 
-                const { editText } = await import('./js/pdf-editor-api.js?v=1003');
+                const { editText } = await import('./js/pdf-editor-api.js?v=1004');
                 const userId = await getCurrentUserId();
                 
                 await editText(
@@ -3230,7 +3230,7 @@ SSL Security & Trust Section -->
                 const userId = await getCurrentUserId();
                 
                 // Import backend API
-                const { deleteText } = await import('./js/pdf-editor-api.js?v=1003');
+                const { deleteText } = await import('./js/pdf-editor-api.js?v=1004');
                 
                 updateProgress(30, 'Sending deletion to server...');
                 
@@ -3284,7 +3284,7 @@ SSL Security & Trust Section -->
                     updateProgress(20, 'Running OCR on page...');
                     
                     // Use new /ocr/apply endpoint
-                    const { applyOCR } = await import('./js/pdf-editor-api.js?v=1003');
+                    const { applyOCR } = await import('./js/pdf-editor-api.js?v=1004');
                     
                     await applyOCR(currentSessionId, window.pdfEditorVars.currentPage, 'en');
                     
@@ -3326,11 +3326,11 @@ SSL Security & Trust Section -->
                     if (currentSessionId) {
                         updateProgress(30, 'Exporting PDF from session...');
                         
-                        const { exportPDF } = await import('./js/pdf-editor-api.js?v=1003');
+                        const { exportPDF } = await import('./js/pdf-editor-api.js?v=1004');
                         const userId = await getCurrentUserId();
                         
                         // Export PDF from backend session
-                        const backendUrl = (await import('./js/pdf-editor-api.js?v=1003')).getBackendUrl();
+                        const backendUrl = (await import('./js/pdf-editor-api.js?v=1004')).getBackendUrl();
                         const response = await fetch(`${backendUrl}/export`, {
                             method: 'POST',
                             headers: {
@@ -3358,7 +3358,7 @@ SSL Security & Trust Section -->
                         if (expectedTexts.length > 0) {
                             try {
                                 updateProgress(92, 'Validating exported PDF...');
-                                const { validatePDF } = await import('./js/pdf-editor-api.js?v=1003');
+                                const { validatePDF } = await import('./js/pdf-editor-api.js?v=1004');
                                 const validationResult = await validatePDF(
                                     pdfBlob,
                                     expectedTexts,
@@ -3423,7 +3423,7 @@ SSL Security & Trust Section -->
                             throw new Error('No active PDF session');
                         }
                         
-                        const { exportPDF } = await import('./js/pdf-editor-api.js?v=1003');
+                        const { exportPDF } = await import('./js/pdf-editor-api.js?v=1004');
                         const userId = await getCurrentUserId();
                         
                         // Export PDF from backend
@@ -3431,7 +3431,7 @@ SSL Security & Trust Section -->
                         
                         // Get exported PDF blob for validation
                         updateProgress(70, 'Receiving exported PDF...');
-                        const { getBackendUrl } = await import('./js/pdf-editor-api.js?v=1003');
+                        const { getBackendUrl } = await import('./js/pdf-editor-api.js?v=1004');
                         const backendUrl = getBackendUrl();
                         const exportResponse = await fetch(`${backendUrl}/export`, {
                             method: 'POST',
@@ -3455,7 +3455,7 @@ SSL Security & Trust Section -->
                         if (expectedTexts.length > 0) {
                             try {
                                 updateProgress(85, 'Validating exported PDF...');
-                                const { validatePDF } = await import('./js/pdf-editor-api.js?v=1003');
+                                const { validatePDF } = await import('./js/pdf-editor-api.js?v=1004');
                                 const validationResult = await validatePDF(
                                     pdfBlob,
                                     expectedTexts,
@@ -3778,7 +3778,7 @@ SSL Security & Trust Section -->
                 const userId = await getCurrentUserId();
                 
                 // Import backend API
-                const { addText } = await import('./js/pdf-editor-api.js?v=1003');
+                const { addText } = await import('./js/pdf-editor-api.js?v=1004');
                 
                 // Add text via backend (for multi-line, add each line separately)
                 const lines = text.split('\n');
@@ -5030,41 +5030,43 @@ SSL Security & Trust Section -->
             */
             
             // Rest of advanced features can go here when implemented with session-based backend
-                        const formFields = detectResult.formFields.map((field, index) => {
-                            const input = document.getElementById(`form-field-${index}`);
-                            let value;
-                            if (field.type === 'checkbox') {
-                                value = input ? input.checked : false;
-                            } else {
-                                value = input ? input.value : '';
-                            }
-                            return { fieldName: field.name, value: value };
-                        });
-                        
-                        showLoading('Filling form fields...', 50);
-                        
-                        const fillResponse = await fetch(`${apiBaseUrl}/api/pdf/forms/fill`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ fileId: fileId, formFields: formFields })
-                        });
-                        
-                        const fillResult = await fillResponse.json();
-                        
-                        if (fillResult.success) {
-                            window.pdfEditorVars.currentPdfData = fillResult.pdfData;
-                            await reloadPDF();
-                            hideLoading();
-                            alert('Form fields filled successfully!');
-                        } else {
-                            throw new Error(fillResult.error || 'Failed to fill form');
-                        }
-                    } catch (error) {
-                        hideLoading();
-                        alert('Error filling form: ' + error.message);
-                    }
-                });
+            /* ORPHANED CODE REMOVED - This code block was not inside any function and contained await statements
+            const formFields = detectResult.formFields.map((field, index) => {
+                const input = document.getElementById(`form-field-${index}`);
+                let value;
+                if (field.type === 'checkbox') {
+                    value = input ? input.checked : false;
+                } else {
+                    value = input ? input.value : '';
+                }
+                return { fieldName: field.name, value: value };
+            });
+            
+            showLoading('Filling form fields...', 50);
+            
+            const fillResponse = await fetch(`${apiBaseUrl}/api/pdf/forms/fill`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fileId: fileId, formFields: formFields })
+            });
+            
+            const fillResult = await fillResponse.json();
+            
+            if (fillResult.success) {
+                window.pdfEditorVars.currentPdfData = fillResult.pdfData;
+                await reloadPDF();
+                hideLoading();
+                alert('Form fields filled successfully!');
+            } else {
+                throw new Error(fillResult.error || 'Failed to fill form');
             }
+        } catch (error) {
+            hideLoading();
+            alert('Error filling form: ' + error.message);
+        }
+    });
+}
+            */
             
             // Page Rotation
             const rotatePageBtn = document.getElementById('rotate-page-btn');
@@ -5723,7 +5725,7 @@ SSL Security & Trust Section -->
         // Get current user ID helper
         async function getCurrentUserId() {
             try {
-                const { auth } = await import('./js/firebase-init.js?v=1003');
+                const { auth } = await import('./js/firebase-init.js?v=1004');
                 if (auth && auth.currentUser) {
                     return auth.currentUser.uid;
                 }
@@ -5736,7 +5738,7 @@ SSL Security & Trust Section -->
         // Load and display credit balance
         async function loadCreditBalance() {
             try {
-                const { getUserCreditInfo } = await import('./js/pdf-editor-api.js?v=1003');
+                const { getUserCreditInfo } = await import('./js/pdf-editor-api.js?v=1004');
                 const creditInfo = await getUserCreditInfo();
                 
                 const creditDisplay = document.getElementById('credit-count');
