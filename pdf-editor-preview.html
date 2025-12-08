@@ -2382,42 +2382,59 @@ SSL Security & Trust Section -->
             }
         }
         
-        // Click handling on textCanvas for text editing
+        // Click handling on textCanvas for text editing (Acrobat-style native editing)
+        // This is the core click-to-edit functionality
         if (textCanvas) {
-            // Define click handler function first
+            // Ensure textCanvas has pointer events enabled for click detection
+            textCanvas.style.pointerEvents = 'auto';
+            textCanvas.style.cursor = 'text';
+            
+            // Define click handler function for native text editing
             async function handleTextCanvasClick(e) {
+                // Prevent event bubbling
+                e.stopPropagation();
+                
                 if (!currentSessionId || !window.pdfEditorVars.currentTextLayer) {
                     console.warn('Cannot handle click: No session or text layer');
                     return;
                 }
                 
+                // Get click coordinates relative to canvas
                 const rect = textCanvas.getBoundingClientRect();
                 const scaleX = textCanvas.width / rect.width;
                 const scaleY = textCanvas.height / rect.height;
                 const x = (e.clientX - rect.left) * scaleX;
                 const y = (e.clientY - rect.top) * scaleY;
                 
-                console.log(`Click detected at canvas coordinates: (${x}, ${y})`);
+                console.log(`🔍 Click detected at canvas coordinates: (${x.toFixed(2)}, ${y.toFixed(2)})`);
+                console.log(`📋 Text layer items: ${window.pdfEditorVars.currentTextLayer.length}`);
                 
-                // Find clicked text item by checking all bboxes
+                // Find clicked text item by checking all bboxes (like Acrobat)
                 const textLayer = window.pdfEditorVars.currentTextLayer;
                 let clickedItem = null;
+                let clickedIndex = -1;
                 
-                for (const item of textLayer) {
+                // Check each text item's bounding box
+                for (let i = 0; i < textLayer.length; i++) {
+                    const item = textLayer[i];
                     if (!item.canvasBbox || item.canvasBbox.length < 4) continue;
+                    
                     const [x0, y0, x1, y1] = item.canvasBbox;
                     
-                    // Check if click is within bounding box
-                    if (x >= x0 && x <= x1 && y >= y0 && y <= y1) {
+                    // Check if click is within bounding box (with small tolerance)
+                    const tolerance = 2; // pixels
+                    if (x >= (x0 - tolerance) && x <= (x1 + tolerance) && 
+                        y >= (y0 - tolerance) && y <= (y1 + tolerance)) {
                         clickedItem = item;
-                        console.log(`✅ Clicked on text: "${item.text}" at bbox [${x0}, ${y0}, ${x1}, ${y1}]`);
+                        clickedIndex = i;
+                        console.log(`✅ Clicked on text item ${i}: "${item.text}" at bbox [${x0.toFixed(2)}, ${y0.toFixed(2)}, ${x1.toFixed(2)}, ${y1.toFixed(2)}]`);
                         break;
                     }
                 }
                 
                 if (clickedItem) {
-                    // Open text edit dialog
-                    const oldText = clickedItem.text;
+                    // Open text edit dialog (like Acrobat)
+                    const oldText = clickedItem.text || '';
                     const newText = prompt('Edit text:', oldText);
                     
                     if (newText !== null && newText !== oldText) {
@@ -2427,14 +2444,23 @@ SSL Security & Trust Section -->
                             const { editText } = await import('./js/pdf-editor-api.js?v=1005');
                             const userId = await getCurrentUserId();
                             
-                            // Get font color from color picker (force black if not set or invisible)
+                            // Get font color from color picker (ALWAYS default to black to prevent invisible text)
                             let fontColor = textColorInput?.value || '#000000';
-                            if (!fontColor || fontColor === '#ffffff' || fontColor === '#FFFFFF' || fontColor === 'transparent') {
-                                fontColor = '#000000'; // Force black for invisible text
+                            
+                            // Force black if color is white, transparent, or undefined
+                            if (!fontColor || 
+                                fontColor === '#ffffff' || 
+                                fontColor === '#FFFFFF' || 
+                                fontColor === 'white' ||
+                                fontColor === 'transparent' ||
+                                fontColor.trim() === '') {
+                                fontColor = '#000000'; // Force black for visible text
+                                if (textColorInput) textColorInput.value = '#000000'; // Update UI
                             }
                             
-                            console.log(`Calling /text/edit: page=${window.pdfEditorVars.currentPage}, old="${oldText}", new="${newText}"`);
+                            console.log(`📤 Calling /text/edit: page=${window.pdfEditorVars.currentPage}, old="${oldText}", new="${newText}"`);
                             
+                            // Call backend to edit text natively
                             await editText(
                                 currentSessionId,
                                 window.pdfEditorVars.currentPage,
@@ -2444,27 +2470,29 @@ SSL Security & Trust Section -->
                                 userId
                             );
                             
-                            console.log('✅ Text edited successfully, re-rendering page...');
+                            console.log('✅ Text edited successfully, re-rendering page with updated textLayer...');
                             
-                            // Re-render page to show changes
+                            // CRITICAL: Re-render page to get updated textLayer from backend
+                            // This repaints both baseCanvas (PNG) and textCanvas (bounding boxes)
                             await renderPage(window.pdfEditorVars.currentPage);
                             
                             hideLoading();
-                            console.log('✅ Page re-rendered with updated text');
+                            console.log('✅ Page re-rendered with updated textLayer');
                         } catch (error) {
-                            console.error('Error editing text:', error);
+                            console.error('❌ Error editing text:', error);
                             hideLoading();
-                            showError('Failed to edit text: ' + error.message);
+                            alert('Error editing text: ' + error.message);
                         }
                     }
                 } else {
-                    console.log('Click not on any text item');
+                    console.log('ℹ️ No text item clicked (clicked outside text bounding boxes)');
                 }
             }
             
-            // Add click handler for text editing
+            // Attach click event listener to textCanvas (remove old one if exists)
+            textCanvas.removeEventListener('click', handleTextCanvasClick);
             textCanvas.addEventListener('click', handleTextCanvasClick);
-            console.log('✅ Text canvas click handler attached');
+            console.log('✅ Text canvas click handler attached for native editing');
         }
         
         // Keyboard shortcuts for search
