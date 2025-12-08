@@ -2499,7 +2499,6 @@ SSL Security & Trust Section -->
                         // PERMANENT FIX: Ensure preview container is visible before rendering
                         const previewContainer = document.getElementById('preview-container');
                         const pdfPageWrapper = document.getElementById('pdf-page-wrapper');
-                        const pdfCanvas = document.getElementById('pdf-canvas');
                         
                         if (previewContainer) {
                             previewContainer.style.display = 'flex';
@@ -2518,13 +2517,6 @@ SSL Security & Trust Section -->
                             console.log('✅ PDF page wrapper made visible');
                         } else {
                             console.error('❌ PDF page wrapper not found!');
-                        }
-                        if (pdfCanvas) {
-                            pdfCanvas.style.display = 'block';
-                            pdfCanvas.style.visibility = 'visible';
-                            console.log('✅ PDF canvas made visible');
-                        } else {
-                            console.error('❌ PDF canvas not found!');
                         }
                         
                         // Render first page using backend (session already created)
