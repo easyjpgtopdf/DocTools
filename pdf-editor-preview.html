@@ -1005,13 +1005,7 @@
                         </div>
                     </div>
                     
-                    <div class="tool-group">
-                        <div class="tool-group-title">OCR</div>
-                        <div class="tool-item" id="ocr-btn" title="Server-Side OCR">
-                            <i class="fas fa-language"></i>
-                            <span>OCR</span>
-                        </div>
-                    </div>
+                    <!-- OCR button moved to preview toolbar -->
                     
                     <div class="tool-group">
                         <div class="tool-group-title">Page Management</div>
@@ -1131,6 +1125,10 @@
                         </span>
                         <button class="preview-toolbar-btn" id="next-page" disabled>
                             Next <i class="fas fa-chevron-right"></i>
+                        </button>
+                        <button class="preview-toolbar-btn" id="ocr-btn" title="Edit (OCR)">
+                            <i class="fas fa-edit"></i>
+                            <span>Edit</span>
                         </button>
                         <div style="flex: 1;"></div>
                         <!-- Theme Toggle -->
@@ -3149,18 +3147,18 @@ SSL Security & Trust Section -->
             }
         }
         
-        // Fast Server-Side OCR
+        // Edit (formerly OCR) - server-side text extraction and embed
         if (ocrBtn) {
             ocrBtn.addEventListener('click', async function() {
-                console.log('OCR button clicked');
+                console.log('Edit (OCR) button clicked');
                 if (!currentSessionId) {
                     alert('No PDF loaded. Please upload a PDF first.');
                     return;
                 }
                 
                 try {
-                    showLoading('Starting OCR...', 5);
-                    updateProgress(10, 'Getting page image from backend...');
+                    showLoading('Starting Edit...', 5);
+                    updateProgress(10, 'Preparing page image...');
                     
                     // Use backend /page/render to get PNG image (NO PDF.js)
                     if (!currentSessionId) {
@@ -4324,89 +4322,6 @@ SSL Security & Trust Section -->
                     hideLoading();
                     alert('Form detection is not yet available in the new backend. This feature will be added soon.');
                     return;
-                    
-                    /* OLD CODE - DISABLED
-                    let apiUrl = '/api/pdf/forms/get-fields';
-                    if (window.location.protocol === 'file:') {
-                        apiUrl = 'http://localhost:3000/api/pdf/forms/get-fields';
-                    }
-                    
-                    const detectResponse = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            pdfData: `data:application/pdf;base64,${pdfBase64}`
-                        })
-                    });
-                    
-                    if (!detectResponse.ok) {
-                        throw new Error('Form detection failed');
-                    }
-                    
-                    const detectResult = await detectResponse.json();
-                    if (!detectResult.success || !detectResult.formFields || detectResult.formFields.length === 0) {
-                        alert('No form fields found in this PDF.');
-                        hideLoading();
-                        return;
-                    }
-                    
-                    // Collect form field values from user
-                    const formFields = [];
-                    for (const field of detectResult.formFields) {
-                        let value = prompt(`Enter value for "${field.name}" (${field.type}):`, field.value || '');
-                        if (value !== null) {
-                            formFields.push({
-                                fieldName: field.name,
-                                value: value
-                            });
-                        }
-                    }
-                    
-                    if (formFields.length === 0) {
-                        hideLoading();
-                        return;
-                    }
-                    
-                    updateProgress(60, 'Filling form fields...');
-                    apiUrl = '/api/pdf/forms/fill';
-                    if (window.location.protocol === 'file:') {
-                        apiUrl = 'http://localhost:3000/api/pdf/forms/fill';
-                    }
-                    
-                    const fillResponse = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            pdfData: `data:application/pdf;base64,${pdfBase64}`,
-                            formFields: formFields
-                        })
-                    });
-                    
-                    updateProgress(80, 'Updating PDF...');
-                    
-                    if (fillResponse.ok) {
-                        const result = await fillResponse.json();
-                        if (result.success) {
-                            updateProgress(90, 'Rendering...');
-                            const pdfData = await fetch(result.pdfData).then(r => r.arrayBuffer());
-                            
-                            const blob = new Blob([pdfData], { type: 'application/pdf' });
-                            const newUrl = URL.createObjectURL(blob);
-                            sessionStorage.setItem('pdfFileURL', newUrl);
-                            
-                            const base64 = btoa(String.fromCharCode(...new Uint8Array(pdfData)));
-                            window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${base64}`;
-                            
-                            await reloadPDF();
-                            
-                            updateProgress(100, 'Form filled!');
-                            setTimeout(() => hideLoading(), 300);
-                        } else {
-                            throw new Error(result.error || 'Form filling failed');
-                        }
-                    } else {
-                        throw new Error('Form filling request failed');
-                    }
                 } catch (error) {
                     console.error('Error filling form:', error);
                     hideLoading();
