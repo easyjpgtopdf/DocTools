@@ -3196,6 +3196,9 @@ SSL Security & Trust Section -->
                             const canvasWidth = pdfPageWidth * currentScale;
                             const canvasHeight = pdfPageHeight * currentScale;
                             
+                            // Store scale for use in coordinate mapping
+                            window.pdfEditorVars.currentScale = currentScale;
+                            
                             // Set canvas dimensions
                             baseCanvas.width = canvasWidth;
                             baseCanvas.height = canvasHeight;
@@ -3717,19 +3720,10 @@ SSL Security & Trust Section -->
             });
         }
         
-        // Add Image button
+        // Add Image button - DISABLED (Coming soon)
         if (addImageBtn) {
             addImageBtn.addEventListener('click', function() {
-                console.log('Add Image button clicked');
-                window.pdfEditorVars.activeTool = 'image';
-                if (addImageBtn) addImageBtn.classList.add('active');
-                if (addTextBtn) addTextBtn.classList.remove('active');
-                if (highlightBtn) highlightBtn.classList.remove('active');
-                if (selectTool) selectTool.classList.remove('active');
-                
-                if (imageInput) {
-                    imageInput.click();
-                }
+                showToast('Coming soon');
             });
         }
         
