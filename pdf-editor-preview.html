@@ -2067,7 +2067,7 @@ SSL Security & Trust Section -->
         
         if (zoomOutBtn) {
             zoomOutBtn.addEventListener('click', async function() {
-                if (!currentSessionId || !window.pdfEditorVars.currentSessionId) {
+                if (!currentSessionId) {
                     console.warn('No active session, cannot zoom');
                     return;
                 }
@@ -3157,6 +3157,9 @@ SSL Security & Trust Section -->
                 // Fetch PNG + textLayer from backend with zoom scale
                 const renderResult = await renderPageBackend(currentSessionId, pageNumber, backendZoom);
                 
+                // Store frontendScale in closure for use in img.onload
+                const finalFrontendScale = frontendScale;
+                
                 // Extract data
                 const imageBase64 = renderResult.image;
                 const pageWidth = renderResult.pageWidth;
@@ -3183,7 +3186,7 @@ SSL Security & Trust Section -->
                             const baseFitScale = containerWidth / img.width;
                             
                             // Apply zoom scale on top of base fit
-                            const finalScale = baseFitScale * frontendScale;
+                            const finalScale = baseFitScale * finalFrontendScale;
                             
                             // Calculate final canvas dimensions
                             const canvasWidth = img.width * finalScale;
