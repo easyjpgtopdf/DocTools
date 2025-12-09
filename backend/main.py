@@ -34,6 +34,9 @@ def _lazy_import_multi_processor():
     global _get_available_processors, _get_processor_id_func, _process_pdf_with_processor_func
     if _get_available_processors is None:
         try:
+            # Import with explicit error handling
+            import sys
+            import traceback
             from docai_multi_processor import (
                 get_available_processors,
                 get_processor_id,
@@ -43,11 +46,12 @@ def _lazy_import_multi_processor():
             _get_processor_id_func = get_processor_id
             _process_pdf_with_processor_func = process_pdf_with_processor
         except Exception as e:
-            logger.warning(f"Could not load multi-processor module: {e}")
-            # Return empty functions
+            logger.error(f"Could not load multi-processor module: {e}")
+            logger.error(traceback.format_exc())
+            # Return empty functions that won't break the app
             _get_available_processors = lambda: []
             _get_processor_id_func = lambda x: None
-            _process_pdf_with_processor_func = lambda *args: None
+            _process_pdf_with_processor_func = lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("Multi-processor module not available"))
 
 def get_available_processors():
     """Get available processors."""
@@ -422,23 +426,27 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
         )
 
 
-@app.get("/api/docai/processors")
-async def get_processors():
-    """
-    Get list of available Document AI processors.
-    """
-    return {
-        "success": True,
-        "processors": get_available_processors(),
-        "processor_map": {
-            ptype: get_processor_id(ptype) 
-            for ptype in get_available_processors()
-        }
-    }
+# Multi-processor routes (only register if module loads successfully)
+try:
+    _lazy_import_multi_processor()
+    # Test if import worked
+    if _get_available_processors and callable(_get_available_processors):
+        @app.get("/api/docai/processors")
+        async def get_processors():
+            """
+            Get list of available Document AI processors.
+            """
+            return {
+                "success": True,
+                "processors": get_available_processors(),
+                "processor_map": {
+                    ptype: get_processor_id(ptype) 
+                    for ptype in get_available_processors()
+                }
+            }
 
-
-@app.post("/api/docai/process/{processor_type}")
-async def process_with_docai(
+        @app.post("/api/docai/process/{processor_type}")
+        async def process_with_docai(
     processor_type: str,
     request: Request,
     file: UploadFile = File(...)
