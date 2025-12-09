@@ -354,7 +354,8 @@
 <div class="table-empty">Select a page to inspect its table data.</div>
 </div>
 <div class="convert-actions">
-<button class="btn" id="downloadExcel"><i class="fas fa-file-excel"></i> Download Excel</button>
+<button class="btn" id="downloadExcel"><i class="fas fa-file-excel"></i> Download Excel (Textract)</button>
+<button class="btn" id="downloadExcelDocAI" style="background: #0f9d58;"><i class="fas fa-file-excel"></i> Download Excel (DocAI)</button>
 <button class="btn secondary" id="backBtn"><i class="fas fa-arrow-left"></i> Back</button>
 <button class="btn secondary" id="refreshBtn"><i class="fas fa-arrows-rotate"></i> Reload file</button>
 </div>
@@ -554,38 +555,62 @@
     }
   }
 
+  // Backend API URL - Cloud Run deployment
+  const API_BASE_URL = 'https://pdf-to-excel-backend-564572183797.us-central1.run.app';
+  
   async function exportExcel(){
     if(!pdfDoc){
       showToast('Load a PDF first.', true);
       return;
     }
-    const rangeMode = (document.querySelector('input[name="range"]:checked') || {}).value;
-    let pages = [];
-    if(rangeMode === 'custom'){
-      pages = Array.from(selected).sort((a,b)=>a-b);
-      if(!pages.length){
-        showToast('Select at least one page.', true);
+    
+    // Get PDF file from storage
+    const rec = await getPdf();
+    if(!rec || !rec.blob){
+      showToast('PDF file not found. Please upload again.', true);
+      location.href = 'pdf-to-excel.html';
+      return;
+    }
+    
+    // Show loading state
+    downloadBtn.disabled = true;
+    showToast('Converting PDF to Excel...', false);
+    
+    try {
+      // Create FormData with PDF file
+      const fd = new FormData();
+      const pdfFile = new File([rec.blob], rec.name || 'document.pdf', { type: 'application/pdf' });
+      fd.append('file', pdfFile);
+      
+      // Call backend API
+      const response = await fetch(`${API_BASE_URL}/api/pdf-to-excel`, {
+        method: 'POST',
+        body: fd
+      });
+      
+      const result = await response.json();
+      
+      // Check for insufficient credits
+      if(result.insufficient_credits){
+        alert(`Not enough credits. You need ${result.required} credits but only have ${result.available}. Please buy more credits.`);
+        downloadBtn.disabled = false;
         return;
       }
-    } else {
-      pages = Array.from({length: pdfDoc.numPages}, (_,idx)=>idx+1);
-    }
-    await ensureTableData(pages);
-    const workbook = XLSX.utils.book_new();
-    for(const page of pages){
-      const data = pageTables.get(page);
-      if(!data || !data.length){
-        XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([["No table data detected."]]), `Page ${page}`);
-        continue;
+      
+      // Check for errors
+      if(!response.ok || !result.success){
+        throw new Error(result.message || result.detail || 'Conversion failed');
       }
-      const sheet = XLSX.utils.aoa_to_sheet(data);
-      XLSX.utils.book_append_sheet(workbook, sheet, `Page ${page}`);
+      
+      // Success - redirect to download URL
+      showToast(`Success! Converted ${result.pagesConverted} pages. Credits left: ${result.creditsLeft}`, false);
+      window.location.href = result.downloadUrl;
+      
+    } catch(err){
+      console.error('Conversion error:', err);
+      showToast('Failed to convert PDF to Excel: ' + err.message, true);
+      downloadBtn.disabled = false;
     }
-    const baseName = (pdfNameEl.textContent || 'document').replace(/\.pdf$/i, '');
-    const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    saveAs(blob, `${baseName}-tables.xlsx`);
-    showToast('Excel exported successfully!');
   }
 
   selectAllBtn.addEventListener('click', ()=>{
@@ -606,6 +631,65 @@
       showToast('Failed to export Excel.', true);
     });
   });
+
+  // Document AI endpoint handler
+  if (downloadDocAIBtn) {
+    downloadDocAIBtn.addEventListener('click', async ()=>{
+      if(!pdfDoc){
+        showToast('Load a PDF first.', true);
+        return;
+      }
+      
+      // Get PDF file from storage
+      const rec = await getPdf();
+      if(!rec || !rec.blob){
+        showToast('PDF file not found. Please upload again.', true);
+        location.href = 'pdf-to-excel.html';
+        return;
+      }
+      
+      // Show loading state
+      downloadDocAIBtn.disabled = true;
+      showToast('Converting PDF to Excel with Document AI...', false);
+      
+      try {
+        // Create FormData with PDF file
+        const fd = new FormData();
+        const pdfFile = new File([rec.blob], rec.name || 'document.pdf', { type: 'application/pdf' });
+        fd.append('file', pdfFile);
+        
+        // Call Document AI backend API
+        const response = await fetch(`${API_BASE_URL}/api/pdf-to-excel-docai`, {
+          method: 'POST',
+          body: fd
+        });
+        
+        const result = await response.json();
+        
+        // Check for insufficient credits
+        if(result.insufficient_credits){
+          alert(`Not enough credits. You need ${result.required} credits but only have ${result.available}. Please buy more credits.`);
+          downloadDocAIBtn.disabled = false;
+          return;
+        }
+        
+        // Check for errors
+        if(!response.ok || result.status !== 'success'){
+          const errorMsg = result.error || result.detail || result.message || 'Conversion failed';
+          throw new Error(errorMsg);
+        }
+        
+        // Success - redirect to download URL
+        showToast(`Success! Processed ${result.pagesProcessed} pages. Credits left: ${result.creditsLeft}`, false);
+        window.location.href = result.downloadUrl;
+        
+      } catch(err){
+        console.error('Document AI conversion error:', err);
+        showToast('Failed to convert PDF to Excel: ' + err.message, true);
+        downloadDocAIBtn.disabled = false;
+      }
+    });
+  }
 
   backBtn.addEventListener('click', ()=>{
     location.href = 'pdf-to-excel.html';
