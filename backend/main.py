@@ -15,6 +15,7 @@ from credit import get_user_id, get_credits, deduct_credits, check_sufficient_cr
 from storage_gcs import upload_excel_to_gcs
 from document_ai_service import convert_pdf_to_excel
 from docai_service import process_pdf_to_excel_docai
+from docai_multi_processor import process_pdf_with_processor, get_available_processors, get_processor_id
 
 # Configure logging
 logging.basicConfig(
@@ -50,11 +51,15 @@ async def root():
     return {
         "status": "ok",
         "service": "PDF to Excel Converter API",
-        "version": "2.1.0",
+        "version": "3.0.0",
+        "providers": ["AWS Textract (optional)", "Google Document AI"],
         "endpoints": {
-            "textract": "/api/pdf-to-excel (AWS Textract - fallback)",
-            "docai": "/api/pdf-to-excel-docai (Google Document AI)"
-        }
+            "textract": "/api/pdf-to-excel (AWS Textract - requires S3_BUCKET)",
+            "docai": "/api/pdf-to-excel-docai (Google Document AI - default)",
+            "multi_processor": "/api/docai/process/{type} (Multi-processor Document AI)",
+            "processors_list": "/api/docai/processors (List available processors)"
+        },
+        "available_processors": get_available_processors()
     }
 
 
@@ -164,7 +169,10 @@ async def pdf_to_excel_endpoint(request: Request, file: UploadFile = File(...)):
         S3_BUCKET = os.environ.get('S3_BUCKET')
         if not S3_BUCKET:
             delete_from_s3(s3_key)
-            raise HTTPException(status_code=500, detail="S3_BUCKET environment variable not set")
+            raise HTTPException(
+                status_code=500,
+                detail="S3_BUCKET environment variable not configured. AWS Textract requires S3 bucket. Please use Document AI endpoint instead: /api/pdf-to-excel-docai"
+            )
         
         textract_response = analyze_document_with_tables(S3_BUCKET, s3_key)
         page_count = get_page_count(textract_response)
@@ -351,6 +359,130 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
         raise HTTPException(
             status_code=500,
             detail=f"Conversion failed: {str(e)}"
+        )
+
+
+@app.get("/api/docai/processors")
+async def get_processors():
+    """
+    Get list of available Document AI processors.
+    """
+    return {
+        "success": True,
+        "processors": get_available_processors(),
+        "processor_map": {
+            ptype: get_processor_id(ptype) 
+            for ptype in get_available_processors()
+        }
+    }
+
+
+@app.post("/api/docai/process/{processor_type}")
+async def process_with_docai(
+    processor_type: str,
+    request: Request,
+    file: UploadFile = File(...)
+):
+    """
+    Process PDF with specified Document AI processor type.
+    
+    Supported types:
+    - form-parser-docai
+    - layout-parser-docai
+    - bank-docai
+    - expense-docai
+    - identity-docai
+    - pay-slip-docai
+    - utility-docai
+    - w2-docai
+    - w9-docai
+    - pdf-to-excel-docai (default)
+    """
+    try:
+        # Step 1: Validate file
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="No file provided")
+        
+        if not file.filename.lower().endswith('.pdf'):
+            raise HTTPException(status_code=400, detail="File must be a PDF")
+        
+        # Read file content
+        file_content = await file.read()
+        file_size = len(file_content)
+        
+        if file_size > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File size exceeds {MAX_FILE_SIZE / (1024*1024):.0f}MB limit"
+            )
+        
+        if file_size == 0:
+            raise HTTPException(status_code=400, detail="File is empty")
+        
+        logger.info(f"Received PDF file for {processor_type}: {file.filename}, size: {file_size} bytes")
+        
+        # Step 2: Validate processor type
+        processor_id = get_processor_id(processor_type)
+        if not processor_id:
+            available = get_available_processors()
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid processor type: {processor_type}. Available: {', '.join(available)}"
+            )
+        
+        # Step 3: Get user ID
+        user_id = get_user_id(request)
+        logger.info(f"Processing {processor_type} request for user: {user_id}")
+        
+        # Step 4: Process PDF with Document AI
+        logger.info(f"Processing PDF with {processor_type}...")
+        download_url, pages_processed, tables_found, extracted_data = await process_pdf_with_processor(
+            file_content, file.filename, processor_type
+        )
+        
+        logger.info(f"PDF processed. Pages: {pages_processed}, Tables: {tables_found}")
+        
+        # Step 5: Check credits
+        if not check_sufficient_credits(user_id, pages_processed):
+            return JSONResponse(
+                status_code=402,
+                content={
+                    "insufficient_credits": True,
+                    "message": f"Insufficient credits. Need {pages_processed} credits, have {get_credits(user_id)}",
+                    "required": pages_processed,
+                    "available": get_credits(user_id)
+                }
+            )
+        
+        # Step 6: Deduct credits (only after successful conversion)
+        deduct_credits(user_id, pages_processed)
+        credits_left = get_credits(user_id)
+        logger.info(f"Credits deducted: {pages_processed}, remaining: {credits_left}")
+        
+        # Step 7: Return success response
+        return {
+            "success": True,
+            "engine": "docai",
+            "processor_type": processor_type,
+            "downloadUrl": download_url,
+            "pagesConverted": pages_processed,
+            "creditsLeft": credits_left,
+            "tablesFound": tables_found,
+            "entitiesFound": len(extracted_data.get('entities', [])),
+            "filename": f"{file.filename.replace('.pdf', '').replace('.PDF', '')}_{processor_type}.xlsx"
+        }
+        
+    except HTTPException:
+        raise
+    except ValueError as e:
+        logger.error(f"Value error in {processor_type}: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Unexpected error in {processor_type}: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Document AI processing failed: {str(e)}"
         )
 
 

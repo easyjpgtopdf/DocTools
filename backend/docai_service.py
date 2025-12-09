@@ -15,7 +15,7 @@ import logging
 import uuid
 from datetime import datetime
 
-from storage_gcs import upload_excel_to_gcs
+from storage_gcs import upload_excel_to_gcs, upload_pdf_to_gcs_temp, delete_from_gcs_temp
 
 logger = logging.getLogger(__name__)
 
@@ -102,17 +102,20 @@ async def process_pdf_to_excel_docai(file_bytes: bytes, filename: str) -> Tuple[
         client = get_document_ai_client()
         
         # Configure the process request
-        gcs_document = documentai.GcsDocument(
+        # Use the client's process_document method with proper parameters
+        from google.cloud.documentai_v1.types import document_processor_service
+        
+        gcs_document = document_processor_service.GcsDocument(
             gcs_uri=gcs_uri,
             mime_type="application/pdf"
         )
         
-        input_config = documentai.InputConfig(
+        input_config = document_processor_service.InputConfig(
             gcs_document=gcs_document,
             mime_type="application/pdf"
         )
         
-        request = documentai.ProcessRequest(
+        request = document_processor_service.ProcessRequest(
             name=processor_name,
             input_config=input_config
         )
