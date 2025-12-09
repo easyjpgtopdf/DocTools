@@ -103,7 +103,7 @@ async def process_pdf_to_excel_docai(file_bytes: bytes, filename: str) -> Tuple[
         
         # Configure the process request
         gcs_document = documentai.GcsDocument(
-            uri=gcs_uri,
+            gcs_uri=gcs_uri,
             mime_type="application/pdf"
         )
         
