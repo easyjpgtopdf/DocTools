@@ -102,20 +102,34 @@ async def process_pdf_to_excel_docai(file_bytes: bytes, filename: str) -> Tuple[
         client = get_document_ai_client()
         
         # Configure the process request
-        # Use the client's process_document method with proper parameters
-        from google.cloud.documentai_v1.types import document_processor_service
+        # Try different import approaches for compatibility
+        try:
+            from google.cloud.documentai_v1.types import document_processor_service
+            GcsDocument = document_processor_service.GcsDocument
+            InputConfig = document_processor_service.InputConfig
+            ProcessRequest = document_processor_service.ProcessRequest
+        except ImportError:
+            # Fallback: use documentai types directly
+            try:
+                from google.cloud import documentai
+                GcsDocument = documentai.GcsDocument
+                InputConfig = documentai.InputConfig
+                ProcessRequest = documentai.ProcessRequest
+            except (ImportError, AttributeError):
+                # Last resort: construct manually
+                raise ValueError("Could not import Document AI types. Please check google-cloud-documentai installation.")
         
-        gcs_document = document_processor_service.GcsDocument(
+        gcs_document = GcsDocument(
             gcs_uri=gcs_uri,
             mime_type="application/pdf"
         )
         
-        input_config = document_processor_service.InputConfig(
+        input_config = InputConfig(
             gcs_document=gcs_document,
             mime_type="application/pdf"
         )
         
-        request = document_processor_service.ProcessRequest(
+        request = ProcessRequest(
             name=processor_name,
             input_config=input_config
         )
