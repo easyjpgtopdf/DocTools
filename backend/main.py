@@ -123,7 +123,8 @@ async def root():
             "multi_processor": "/api/docai/process/{type} (Multi-processor Document AI)",
             "processors_list": "/api/docai/processors (List available processors)"
         },
-        "available_processors": processors
+        "available_processors": processors,
+        "note": "Multi-processor routes temporarily disabled"
     }
 
 
@@ -426,7 +427,9 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
         )
 
 
-# Multi-processor routes (only register if module loads successfully)
+# Multi-processor routes (temporarily disabled until import issue is resolved)
+# TODO: Re-enable after fixing docai_multi_processor import issues
+"""
 try:
     _lazy_import_multi_processor()
     # Test if import worked
