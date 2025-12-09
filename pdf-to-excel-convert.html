@@ -379,6 +379,7 @@
   const selectAllBtn = document.getElementById('selectAll');
   const clearBtn = document.getElementById('clearSelection');
   const downloadBtn = document.getElementById('downloadExcel');
+  const downloadDocAIBtn = document.getElementById('downloadExcelDocAI');
   const backBtn = document.getElementById('backBtn');
   const refreshBtn = document.getElementById('refreshBtn');
   const tablePreview = document.getElementById('tablePreview');
@@ -634,7 +635,7 @@
 
   // Document AI endpoint handler
   if (downloadDocAIBtn) {
-    downloadDocAIBtn.addEventListener('click', async ()=>{
+    downloadDocAIBtn.addEventListener('click', async function convertPdfToExcelDocAI(){
       if(!pdfDoc){
         showToast('Load a PDF first.', true);
         return;
@@ -704,9 +705,11 @@
   });
 
   loadPdf().catch(err=>{
-    console.error(err);
-    alert('Unable to open uploaded PDF. Please upload again.');
-    location.href = 'pdf-to-excel.html';
+    console.error('PDF loading error:', err);
+    showToast('Unable to open uploaded PDF. Please upload again.', true);
+    setTimeout(() => {
+      location.href = 'pdf-to-excel.html';
+    }, 2000);
   });
 })();
 </script>
