@@ -13,8 +13,8 @@ import traceback
 
 from credit import get_user_id, get_credits, deduct_credits, check_sufficient_credits, get_credit_info
 from storage_gcs import upload_excel_to_gcs
-from document_ai_service import convert_pdf_to_excel
 from docai_service import process_pdf_to_excel_docai
+# from document_ai_service import convert_pdf_to_excel  # Not used, commented out
 
 # Configure logging FIRST
 logging.basicConfig(
