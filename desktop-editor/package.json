@@ -1,0 +1,48 @@
+{
+  "name": "pdf-editor-desktop-pro",
+  "version": "1.0.0",
+  "description": "Desktop Pro PDF Editor - Enterprise-ready PDF editing with Acrobat-like features",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux"
+  },
+  "keywords": [
+    "pdf",
+    "editor",
+    "desktop",
+    "electron"
+  ],
+  "author": "easyjpgtopdf",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "build": {
+    "appId": "com.easyjpgtopdf.pdfeditor",
+    "productName": "PDF Editor Pro",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.icns"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/icon.png"
+    }
+  }
+}
+

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Editor Pro - Desktop</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #1e1e1e;
+            color: #e5e5e5;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .sidebar {
+            width: 250px;
+            background: #2d2d2d;
+            border-right: 1px solid #3a3a3a;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .sidebar-section {
+            margin-bottom: 20px;
+        }
+        
+        .sidebar-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #9ca3af;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 10px;
+            background: #4361ee;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        
+        .btn:hover {
+            background: #3a0ca3;
+        }
+        
+        .btn:disabled {
+            background: #3a3a3a;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .toolbar {
+            height: 50px;
+            background: #2d2d2d;
+            border-bottom: 1px solid #3a3a3a;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 10px;
+        }
+        
+        .pdf-viewer {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #1e1e1e;
+            overflow: auto;
+            padding: 20px;
+        }
+        
+        .pdf-canvas {
+            max-width: 100%;
+            max-height: 100%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        
+        .properties-panel {
+            width: 300px;
+            background: #2d2d2d;
+            border-left: 1px solid #3a3a3a;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .status {
+            padding: 10px;
+            background: #2d2d2d;
+            border-top: 1px solid #3a3a3a;
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        
+        .welcome-screen {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .welcome-screen h2 {
+            margin-bottom: 20px;
+            color: #e5e5e5;
+        }
+        
+        .welcome-screen p {
+            color: #9ca3af;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Left Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-section">
+            <div class="sidebar-title">File</div>
+            <button class="btn" id="open-btn">Open PDF</button>
+            <button class="btn" id="save-btn" disabled>Save PDF</button>
+        </div>
+        
+        <div class="sidebar-section">
+            <div class="sidebar-title">Edit</div>
+            <button class="btn" id="edit-text-btn" disabled>Edit Text</button>
+            <button class="btn" id="add-text-btn" disabled>Add Text</button>
+        </div>
+        
+        <div class="sidebar-section">
+            <div class="sidebar-title">Tools</div>
+            <button class="btn" id="ocr-btn" disabled>OCR</button>
+            <button class="btn" id="search-btn" disabled>Search</button>
+        </div>
+        
+        <div class="sidebar-section">
+            <div class="sidebar-title">Account</div>
+            <div id="credits-display" style="padding: 10px; background: #3a3a3a; border-radius: 4px; font-size: 12px;">
+                Credits: <span id="credits-count">Loading...</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="toolbar">
+            <button class="btn" id="zoom-in-btn" disabled>Zoom In</button>
+            <button class="btn" id="zoom-out-btn" disabled>Zoom Out</button>
+            <span style="margin-left: 20px; color: #9ca3af;" id="page-info">No PDF loaded</span>
+        </div>
+        
+        <div class="pdf-viewer" id="pdf-viewer">
+            <div class="welcome-screen">
+                <h2>PDF Editor Pro</h2>
+                <p>Open a PDF file to start editing</p>
+                <button class="btn" onclick="document.getElementById('open-btn').click()">Open PDF</button>
+            </div>
+        </div>
+        
+        <div class="status" id="status-bar">
+            Ready
+        </div>
+    </div>
+    
+    <!-- Right Properties Panel -->
+    <div class="properties-panel">
+        <div class="sidebar-title">Properties</div>
+        <div style="margin-top: 20px;">
+            <label style="display: block; margin-bottom: 5px; color: #9ca3af; font-size: 12px;">Font Size</label>
+            <input type="number" id="font-size" value="12" min="8" max="72" style="width: 100%; padding: 8px; background: #3a3a3a; border: 1px solid #555; border-radius: 4px; color: #e5e5e5;">
+        </div>
+        <div style="margin-top: 15px;">
+            <label style="display: block; margin-bottom: 5px; color: #9ca3af; font-size: 12px;">Font Color</label>
+            <input type="color" id="font-color" value="#000000" style="width: 100%; height: 40px; background: #3a3a3a; border: 1px solid #555; border-radius: 4px;">
+        </div>
+    </div>
+    
+    <script>
+        // Electron API integration
+        let currentPdfPath = null;
+        let currentSessionId = null;
+        
+        // Open PDF file
+        document.getElementById('open-btn').addEventListener('click', async () => {
+            const filePath = await window.electronAPI.openPdfFile();
+            if (filePath) {
+                currentPdfPath = filePath;
+                updateStatus('Loading PDF...');
+                
+                // Read file and start session with backend
+                const fs = require('fs');
+                const pdfBytes = fs.readFileSync(filePath);
+                const pdfBase64 = pdfBytes.toString('base64');
+                
+                // Start session with backend
+                const sessionResult = await window.electronAPI.apiCall({
+                    endpoint: '/session/start',
+                    method: 'POST',
+                    data: {
+                        pdf_data: pdfBase64
+                    }
+                });
+                
+                if (sessionResult.success) {
+                    currentSessionId = sessionResult.data.session_id;
+                    updateStatus('PDF loaded successfully');
+                    enableButtons();
+                    loadPdfPage(1);
+                } else {
+                    updateStatus('Error loading PDF: ' + sessionResult.error);
+                }
+            }
+        });
+        
+        // Load PDF page
+        async function loadPdfPage(pageNumber) {
+            if (!currentSessionId) return;
+            
+            updateStatus('Rendering page...');
+            const result = await window.electronAPI.apiCall({
+                endpoint: '/page/render',
+                method: 'POST',
+                data: {
+                    session_id: currentSessionId,
+                    page_number: pageNumber,
+                    zoom: 1.0
+                }
+            });
+            
+            if (result.success) {
+                const imageBase64 = result.data.image;
+                const img = document.createElement('img');
+                img.src = 'data:image/png;base64,' + imageBase64;
+                img.className = 'pdf-canvas';
+                img.onload = () => {
+                    const viewer = document.getElementById('pdf-viewer');
+                    viewer.innerHTML = '';
+                    viewer.appendChild(img);
+                    updateStatus('Page rendered');
+                };
+            }
+        }
+        
+        function enableButtons() {
+            document.getElementById('save-btn').disabled = false;
+            document.getElementById('edit-text-btn').disabled = false;
+            document.getElementById('add-text-btn').disabled = false;
+            document.getElementById('ocr-btn').disabled = false;
+            document.getElementById('search-btn').disabled = false;
+            document.getElementById('zoom-in-btn').disabled = false;
+            document.getElementById('zoom-out-btn').disabled = false;
+        }
+        
+        function updateStatus(message) {
+            document.getElementById('status-bar').textContent = message;
+        }
+        
+        // Check credits on load
+        window.addEventListener('DOMContentLoaded', async () => {
+            // Get user ID from stored device fingerprint or login
+            const userId = localStorage.getItem('userId') || 'guest';
+            const creditsResult = await window.electronAPI.checkCredits(userId);
+            if (creditsResult.success) {
+                document.getElementById('credits-count').textContent = creditsResult.credits;
+            }
+        });
+    </script>
+</body>
+</html>
+

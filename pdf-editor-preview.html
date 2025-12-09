@@ -42,9 +42,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- PDF Editor API Client (Backend Integration) -->
-    <script type="module" src="js/pdf-editor-api.js?v=2004"></script>
+    <script type="module" src="js/pdf-editor-api.js?v=3000"></script>
     
-    <!-- Professional PDF Editor using backend rendering (NO PDF.js) -->
+    <!-- Professional PDF Editor using backend rendering -->
     
     <!-- Schema Markup for SEO -->
     <script type="application/ld+json">
@@ -323,19 +323,65 @@
             justify-content: center;
             align-items: flex-start;
             overflow: auto; /* Allow scroll when zoomed in */
-            align-items: flex-start;
-            overflow: auto;
-            background: #525252;
+            background: #e5e5e5; /* White/gray background */
             padding: 20px;
             min-height: 100%;
             flex: 1 1 auto; /* Allow it to grow and take available space */
         }
         
+        /* Floating toolbar */
+        .toolbar-icon-btn {
+            padding: 8px 10px;
+            background: transparent;
+            border: none;
+            color: #e5e5e5;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .toolbar-icon-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .toolbar-icon-btn.active {
+            background: #0078d4;
+            color: white;
+        }
+        
+        /* Thumbnails sidebar */
+        .thumbnails-sidebar {
+            scrollbar-width: thin;
+            scrollbar-color: #3a3a3a #1a1a1a;
+        }
+        
+        .thumbnails-sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .thumbnails-sidebar::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        
+        .thumbnails-sidebar::-webkit-scrollbar-thumb {
+            background: #3a3a3a;
+            border-radius: 3px;
+        }
+        
+        .thumbnails-sidebar::-webkit-scrollbar-thumb:hover {
+            background: #4a4a4a;
+        }
+        
         .pdf-page-wrapper {
             position: relative;
             background: white;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2); /* Document shadow */
             margin: 0 auto;
+            transition: transform 0.1s ease-out;
         }
         
         .pdf-canvas {
@@ -360,6 +406,11 @@
             z-index: 2;
             pointer-events: auto;
             cursor: text;
+            transition: opacity 0.2s;
+        }
+        
+        #pdf-canvas-text:hover {
+            opacity: 0.95;
         }
         
         #pdf-canvas-highlight {
@@ -915,7 +966,7 @@
             </ol>
         </div>
     </nav>
-    <script src="js/global-components.js?v=2004"></script>
+    <script src="js/global-components.js?v=3000"></script>
     <script>
     // Ensure header loads - multiple attempts to guarantee it works
     (function() {
@@ -1037,19 +1088,20 @@
                     
                     <div class="tool-group">
                         <div class="tool-group-title">Page Management</div>
-                        <div class="tool-item" id="rotate-page-btn" title="Rotate Page">
+                        <!-- DISABLED: Coming soon (Pro version) -->
+                        <div class="tool-item" id="rotate-page-btn" title="Coming soon (Pro version)" style="opacity: 0.5; cursor: not-allowed;" onclick="if(typeof showToast==='function') showToast('Coming soon (Pro version)')">
                             <i class="fas fa-redo"></i>
                             <span>Rotate</span>
                         </div>
-                        <div class="tool-item" id="delete-page-btn" title="Delete Page">
+                        <div class="tool-item" id="delete-page-btn" title="Coming soon (Pro version)" style="opacity: 0.5; cursor: not-allowed;" onclick="if(typeof showToast==='function') showToast('Coming soon (Pro version)')">
                             <i class="fas fa-trash"></i>
                             <span>Delete Page</span>
                         </div>
-                        <div class="tool-item" id="reorder-pages-btn" title="Reorder Pages">
+                        <div class="tool-item" id="reorder-pages-btn" title="Coming soon (Pro version)" style="opacity: 0.5; cursor: not-allowed;" onclick="if(typeof showToast==='function') showToast('Coming soon (Pro version)')">
                             <i class="fas fa-sort"></i>
                             <span>Reorder</span>
                         </div>
-                        <div class="tool-item" id="extract-page-btn" title="Extract Page">
+                        <div class="tool-item" id="extract-page-btn" title="Coming soon (Pro version)" style="opacity: 0.5; cursor: not-allowed;" onclick="showToast('Coming soon (Pro version)')">
                             <i class="fas fa-file-export"></i>
                             <span>Extract</span>
                         </div>
@@ -1111,19 +1163,20 @@
                     
                     <div class="tool-group">
                         <div class="tool-group-title">Security & Extra</div>
-                        <div class="tool-item" id="watermark-btn" title="Add Watermark">
+                        <!-- DISABLED: Coming soon (Pro version) -->
+                        <div class="tool-item" id="watermark-btn" title="Coming soon (Pro version)" style="opacity: 0.5; cursor: not-allowed;" onclick="showToast('Coming soon (Pro version)')">
                             <i class="fas fa-tint"></i>
                             <span>Watermark</span>
                         </div>
-                        <div class="tool-item" id="sign-btn" title="Digital Signature">
+                        <div class="tool-item" id="sign-btn" title="Coming soon (Pro version)" style="opacity: 0.5; cursor: not-allowed;" onclick="showToast('Coming soon (Pro version)')">
                             <i class="fas fa-signature"></i>
                             <span>Sign</span>
                         </div>
-                        <div class="tool-item" id="redact-btn" title="Redact Text">
+                        <div class="tool-item" id="redact-btn" title="Coming soon (Pro version)" style="opacity: 0.5; cursor: not-allowed;" onclick="showToast('Coming soon (Pro version)')">
                             <i class="fas fa-eye-slash"></i>
                             <span>Redact</span>
                         </div>
-                        <div class="tool-item" id="protect-btn" title="Protect PDF">
+                        <div class="tool-item" id="protect-btn" title="Coming soon (Pro version)" style="opacity: 0.5; cursor: not-allowed;" onclick="showToast('Coming soon (Pro version)')">
                             <i class="fas fa-lock"></i>
                             <span>Protect</span>
                         </div>
@@ -1142,8 +1195,52 @@
                     </div>
                 </div>
                 
+                <!-- Page Thumbnails Sidebar -->
+                <div class="thumbnails-sidebar" id="thumbnails-sidebar" style="width: 200px; background: #1a1a1a; border-right: 1px solid #3a3a3a; overflow-y: auto; display: none;">
+                    <!-- Thumbnails will be rendered here by PDFThumbnailsController -->
+                </div>
+                
                 <!-- Center Preview Panel -->
                 <div class="preview-panel">
+                    <!-- Floating Toolbar -->
+                    <div class="floating-toolbar" id="floating-toolbar" style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; background: rgba(42, 42, 42, 0.95); backdrop-filter: blur(10px); border-radius: 8px; padding: 8px 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); display: none; flex-wrap: wrap; gap: 4px;">
+                        <!-- Zoom Controls -->
+                        <button class="toolbar-icon-btn" id="zoom-fit-width-btn" title="Fit to Width"><i class="fas fa-arrows-alt-h"></i></button>
+                        <button class="toolbar-icon-btn" id="zoom-fit-page-btn" title="Fit to Page"><i class="fas fa-expand"></i></button>
+                        <button class="toolbar-icon-btn" id="zoom-reset-btn" title="Reset Zoom"><i class="fas fa-search"></i></button>
+                        <div style="width: 1px; background: #3a3a3a; margin: 0 4px;"></div>
+                        <button class="toolbar-icon-btn" id="zoom-out-btn-new" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
+                        <span class="zoom-level-display" id="zoom-level-display" style="color: #e5e5e5; font-size: 12px; padding: 0 8px; min-width: 50px; text-align: center;">100%</span>
+                        <button class="toolbar-icon-btn" id="zoom-in-btn-new" title="Zoom In"><i class="fas fa-search-plus"></i></button>
+                        <div style="width: 1px; background: #3a3a3a; margin: 0 4px;"></div>
+                        <!-- Page Navigation -->
+                        <button class="toolbar-icon-btn" id="prev-page-new" title="Previous Page"><i class="fas fa-chevron-left"></i></button>
+                        <span class="page-info-display" id="page-info-display" style="color: #e5e5e5; font-size: 12px; padding: 0 8px;">1 / 1</span>
+                        <button class="toolbar-icon-btn" id="next-page-new" title="Next Page"><i class="fas fa-chevron-right"></i></button>
+                        <div style="width: 1px; background: #3a3a3a; margin: 0 4px;"></div>
+                        <!-- Tools -->
+                        <button class="toolbar-icon-btn" id="select-tool-new" title="Select" data-tool="select"><i class="fas fa-mouse-pointer"></i></button>
+                        <button class="toolbar-icon-btn" id="add-text-tool-new" title="Add Text" data-tool="text"><i class="fas fa-font"></i></button>
+                        <button class="toolbar-icon-btn" id="highlight-tool-new" title="Highlight" data-tool="highlight"><i class="fas fa-highlighter"></i></button>
+                        <button class="toolbar-icon-btn" id="ocr-tool-new" title="OCR"><i class="fas fa-edit"></i></button>
+                        <div style="width: 1px; background: #3a3a3a; margin: 0 4px;"></div>
+                        <!-- Undo/Redo -->
+                        <button class="toolbar-icon-btn" id="undo-btn" title="Undo (Ctrl+Z)"><i class="fas fa-undo"></i></button>
+                        <button class="toolbar-icon-btn" id="redo-btn" title="Redo (Ctrl+Y)"><i class="fas fa-redo"></i></button>
+                        <div style="width: 1px; background: #3a3a3a; margin: 0 4px;"></div>
+                        <!-- Download -->
+                        <button class="toolbar-icon-btn" id="download-btn-new" title="Download"><i class="fas fa-download"></i></button>
+                    </div>
+                    
+                    <!-- Font Controls Toolbar -->
+                    <div class="font-controls-toolbar" id="font-controls-toolbar" style="position: absolute; top: 70px; left: 50%; transform: translateX(-50%); z-index: 999; display: none;">
+                        <!-- Font controls will be rendered here by FontControlsController -->
+                    </div>
+                    
+                    <!-- Editor Notice Banner -->
+                    <div id="editor-notice-banner" style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 12px 16px; margin: 12px 16px; color: #856404; font-size: 13px; line-height: 1.5;">
+                        <strong>ℹ️ Note:</strong> This is a best-effort PDF editor optimized for short text fields (name, address, roll number, exam center, etc.). Exact layout may not be 100% perfect on all PDFs. For heavy editing and complex layouts, use our <strong>Desktop Pro Editor</strong> (coming soon).
+                    </div>
                     <div class="preview-toolbar">
                         <button class="preview-toolbar-btn" id="prev-page" disabled>
                             <i class="fas fa-chevron-left"></i> Prev
@@ -1187,7 +1284,7 @@
                             </div>
                             <div class="loading-percentage" id="loading-percentage">0%</div>
                         </div>
-                        <div id="pdf-page-wrapper" class="pdf-page-wrapper" style="display: block; visibility: visible; position: relative;">
+                        <div id="pdf-page-wrapper" class="pdf-page-wrapper" style="display: block; visibility: visible; position: relative; transform-origin: top left;">
                             <!-- Dual-layer canvas system: baseCanvas (PNG) + textCanvas (clickable) + highlightCanvas (search highlights) -->
                             <canvas id="pdf-canvas-base" class="pdf-canvas" style="position: absolute; top: 0; left: 0; z-index: 1;"></canvas>
                             <canvas id="pdf-canvas-text" class="pdf-canvas" style="position: absolute; top: 0; left: 0; z-index: 2; pointer-events: auto;"></canvas>
@@ -1849,7 +1946,7 @@ SSL Security & Trust Section -->
     <input type="file" id="file-input" accept="application/pdf,.pdf" style="display: none;">
     <input type="file" id="image-input" accept="image/*" style="display: none;">
     
-    <script src="js/mobile-menu-init.js?v=2004"></script>
+    <script src="js/mobile-menu-init.js?v=3000"></script>
     <script>
         // Get API base URL helper
         // IMPORTANT: This should point to Cloud Run backend for production
@@ -1913,6 +2010,67 @@ SSL Security & Trust Section -->
             alert('Error: ' + message);
         }
         
+        // Success/Error message functions for better UX
+        function showSuccessMessage(message) {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #4caf50;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 4px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 10001;
+                font-size: 14px;
+                animation: slideIn 0.3s ease;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+        
+        function showErrorMessage(message) {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #f44336;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 4px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 10001;
+                font-size: 14px;
+                animation: slideIn 0.3s ease;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+        
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+        
         // Professional PDF Editor Implementation
         // Features: Backend rendering, Server processing, Fast OCR, Native editing, Cloud integration
         
@@ -1920,7 +2078,7 @@ SSL Security & Trust Section -->
         let deviceInfo = null;
         async function initDeviceTracking() {
             try {
-                const { getDeviceInfo } = await import('./js/device-fingerprint.js?v=2004');
+                const { getDeviceInfo } = await import('./js/device-fingerprint.js?v=3000');
                 deviceInfo = await getDeviceInfo();
                 console.log('✅ Device tracking initialized for PDF editor:', {
                     deviceId: deviceInfo.deviceId,
@@ -1937,7 +2095,7 @@ SSL Security & Trust Section -->
         // Initialize device tracking on page load
         initDeviceTracking();
         
-        // PDF.js removed - using backend /page/render for all rendering
+        // Using backend /page/render for all rendering
         
         // Global variables
         if (typeof window.pdfEditorVars === 'undefined') {
@@ -2032,16 +2190,206 @@ SSL Security & Trust Section -->
         window.pdfEditorVars.scale = window.pdfEditorVars.scale || 1; // Start at 100% (1.0)
         window.pdfEditorVars.currentSessionId = window.pdfEditorVars.currentSessionId || null;
         
-        // Update zoom level display
+        // Module instances
+        let zoomController = null;
+        let thumbnailsController = null;
+        let fontControlsController = null;
+        let undoRedoController = null;
+        
+        // Initialize editor modules
+        async function initEditorModules() {
+            try {
+                // Initialize Zoom Controller
+                const { PDFZoomController } = await import('./js/pdf-editor-zoom.js?v=3000');
+                zoomController = new PDFZoomController({
+                    initialScale: window.pdfEditorVars.scale || 1.0,
+                    minScale: 0.25,
+                    maxScale: 5.0,
+                    step: 0.1,
+                    wrapper: pdfPageWrapper,
+                    container: previewContainer,
+                    onZoomChange: (scale) => {
+                        window.pdfEditorVars.scale = scale;
+                        updateZoomUI();
+                    }
+                });
+                zoomController.enablePan();
+                
+                // Initialize Thumbnails Controller
+                const { PDFThumbnailsController } = await import('./js/pdf-editor-thumbnails.js?v=3000');
+                const { getBackendUrl } = await import('./js/pdf-editor-api.js?v=3000');
+                const thumbnailsSidebar = document.getElementById('thumbnails-sidebar');
+                if (thumbnailsSidebar) {
+                    thumbnailsController = new PDFThumbnailsController({
+                        container: thumbnailsSidebar,
+                        apiBaseUrl: getBackendUrl(),
+                        onPageSelect: async (pageNumber) => {
+                            window.pdfEditorVars.currentPage = pageNumber;
+                            await renderPage(pageNumber);
+                        }
+                    });
+                }
+                
+                // Initialize Font Controls
+                const { FontControlsController } = await import('./js/pdf-editor-font-controls.js?v=3000');
+                const fontControlsToolbar = document.getElementById('font-controls-toolbar');
+                if (fontControlsToolbar) {
+                    fontControlsController = new FontControlsController({
+                        container: fontControlsToolbar,
+                        onFontChange: (font) => {
+                            window.pdfEditorVars.currentFont = font;
+                        }
+                    });
+                }
+                
+                // Initialize Undo/Redo
+                const { UndoRedoController } = await import('./js/pdf-editor-undo-redo.js?v=3000');
+                undoRedoController = new UndoRedoController({
+                    maxHistory: 50,
+                    onStateChange: async (state, action) => {
+                        // Restore state (implement based on your state structure)
+                        if (state.sessionId) {
+                            window.pdfEditorVars.currentSessionId = state.sessionId;
+                        }
+                        if (state.currentPage) {
+                            await renderPage(state.currentPage);
+                        }
+                    }
+                });
+                
+                // Setup keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (undoRedoController && undoRedoController.canUndo()) {
+                            undoRedoController.undo();
+                        }
+                    } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+                        e.preventDefault();
+                        if (undoRedoController && undoRedoController.canRedo()) {
+                            undoRedoController.redo();
+                        }
+                    } else if (e.key === 'PageUp' || e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        if (window.pdfEditorVars.currentPage > 1) {
+                            window.pdfEditorVars.currentPage--;
+                            renderPage(window.pdfEditorVars.currentPage);
+                        }
+                    } else if (e.key === 'PageDown' || e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        if (window.pdfEditorVars.currentPage < window.pdfEditorVars.totalPages) {
+                            window.pdfEditorVars.currentPage++;
+                            renderPage(window.pdfEditorVars.currentPage);
+                        }
+                    }
+                });
+                
+                // Setup floating toolbar buttons
+                setupFloatingToolbar();
+                
+                console.log('✅ Editor modules initialized');
+            } catch (error) {
+                console.error('Error initializing editor modules:', error);
+            }
+        }
+        
+        // Setup floating toolbar
+        function setupFloatingToolbar() {
+            const floatingToolbar = document.getElementById('floating-toolbar');
+            if (!floatingToolbar) return;
+            
+            // Show toolbar when PDF is loaded
+            if (currentSessionId) {
+                floatingToolbar.style.display = 'flex';
+            }
+            
+            // Zoom controls
+            const zoomFitWidthBtn = document.getElementById('zoom-fit-width-btn');
+            const zoomFitPageBtn = document.getElementById('zoom-fit-page-btn');
+            const zoomResetBtn = document.getElementById('zoom-reset-btn');
+            const zoomInBtnNew = document.getElementById('zoom-in-btn-new');
+            const zoomOutBtnNew = document.getElementById('zoom-out-btn-new');
+            const zoomLevelDisplay = document.getElementById('zoom-level-display');
+            
+            if (zoomFitWidthBtn && zoomController) {
+                zoomFitWidthBtn.addEventListener('click', () => zoomController.fitToWidth());
+            }
+            if (zoomFitPageBtn && zoomController) {
+                zoomFitPageBtn.addEventListener('click', () => zoomController.fitToPage());
+            }
+            if (zoomResetBtn && zoomController) {
+                zoomResetBtn.addEventListener('click', () => zoomController.reset());
+            }
+            if (zoomInBtnNew && zoomController) {
+                zoomInBtnNew.addEventListener('click', () => zoomController.zoomIn());
+            }
+            if (zoomOutBtnNew && zoomController) {
+                zoomOutBtnNew.addEventListener('click', () => zoomController.zoomOut());
+            }
+            
+            // Page navigation
+            const prevPageNew = document.getElementById('prev-page-new');
+            const nextPageNew = document.getElementById('next-page-new');
+            const pageInfoDisplay = document.getElementById('page-info-display');
+            
+            if (prevPageNew) {
+                prevPageNew.addEventListener('click', async () => {
+                    if (window.pdfEditorVars.currentPage > 1) {
+                        window.pdfEditorVars.currentPage--;
+                        await renderPage(window.pdfEditorVars.currentPage);
+                    }
+                });
+            }
+            if (nextPageNew) {
+                nextPageNew.addEventListener('click', async () => {
+                    if (window.pdfEditorVars.currentPage < window.pdfEditorVars.totalPages) {
+                        window.pdfEditorVars.currentPage++;
+                        await renderPage(window.pdfEditorVars.currentPage);
+                    }
+                });
+            }
+            
+            // Update page info
+            if (pageInfoDisplay) {
+                pageInfoDisplay.textContent = `${window.pdfEditorVars.currentPage} / ${window.pdfEditorVars.totalPages}`;
+            }
+            
+            // Undo/Redo buttons
+            const undoBtnNew = document.getElementById('undo-btn');
+            const redoBtnNew = document.getElementById('redo-btn');
+            
+            if (undoBtnNew && undoRedoController) {
+                undoBtnNew.addEventListener('click', () => undoRedoController.undo());
+                undoBtnNew.disabled = !undoRedoController.canUndo();
+            }
+            if (redoBtnNew && undoRedoController) {
+                redoBtnNew.addEventListener('click', () => undoRedoController.redo());
+                redoBtnNew.disabled = !undoRedoController.canRedo();
+            }
+        }
+        
+        // Update zoom level display (for both old and new UI)
         function updateZoomUI() {
             if (zoomLevel) {
                 const val = Math.round((window.pdfEditorVars.scale || 1) * 100);
                 zoomLevel.textContent = val + '%';
             }
+            const zoomLevelDisplay = document.getElementById('zoom-level-display');
+            if (zoomLevelDisplay) {
+                const val = Math.round((window.pdfEditorVars.scale || 1) * 100);
+                zoomLevelDisplay.textContent = val + '%';
+            }
         }
         
         // Initialize zoom UI
         updateZoomUI();
+        
+        // Initialize editor modules after DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initEditorModules);
+        } else {
+            initEditorModules();
+        }
         
         // Zoom In/Out buttons - re-render with scale factor (NOT CSS zoom)
         if (zoomInBtn) {
@@ -2151,7 +2499,7 @@ SSL Security & Trust Section -->
                     showLoading('Searching PDF...', 30);
                     
                     // Import backend API
-                    const { searchText } = await import('./js/pdf-editor-api.js?v=2004');
+                    const { searchText } = await import('./js/pdf-editor-api.js?v=3000');
                     
                     const result = await searchText(currentSessionId, query);
                     
@@ -2216,7 +2564,7 @@ SSL Security & Trust Section -->
                     showLoading('Replacing text...', 30);
                     
                     // Search for all occurrences first
-                    const { searchText: searchTextBackend } = await import('./js/pdf-editor-api.js?v=2004');
+                    const { searchText: searchTextBackend } = await import('./js/pdf-editor-api.js?v=3000');
                     const searchResult = await searchTextBackend(currentSessionId, searchText);
                     
                     if (!searchResult.matches || searchResult.matches.length === 0) {
@@ -2226,7 +2574,7 @@ SSL Security & Trust Section -->
                     }
                     
                     // Replace each match using backend /text/edit
-                    const { editText } = await import('./js/pdf-editor-api.js?v=2004');
+                    const { editText } = await import('./js/pdf-editor-api.js?v=3000');
                     const userId = await getCurrentUserId();
                     let replacedCount = 0;
                     
@@ -2360,8 +2708,8 @@ SSL Security & Trust Section -->
             const ctx = highlightCanvas.getContext('2d');
             
             // Get PDF page dimensions from stored values
-            const pdfPageWidth = window.pdfEditorVars.currentPageWidth || 612;
-            const pdfPageHeight = window.pdfEditorVars.currentPageHeight || 792;
+            const pdfPageWidth = window.pdfEditorVars.pdfPageWidth || 612;
+            const pdfPageHeight = window.pdfEditorVars.pdfPageHeight || 792;
             const canvasWidth = highlightCanvas.width;
             const canvasHeight = highlightCanvas.height;
             
@@ -2399,7 +2747,7 @@ SSL Security & Trust Section -->
             }
         }
         
-        // Click handling on textCanvas for text editing (Acrobat-style native editing)
+        // Click handling on textCanvas for text editing (native editing)
         // This is the core click-to-edit functionality
         if (textCanvas) {
             // Ensure textCanvas has pointer events enabled for click detection
@@ -2424,21 +2772,23 @@ SSL Security & Trust Section -->
                 const cssY = e.clientY - rect.top;
                 
                 // Convert to canvas coordinate space
-                const scaleX = textCanvas.width / rect.width;
-                const scaleY = textCanvas.height / rect.height;
+                // Account for CSS transform scale on wrapper
+                const currentZoom = window.pdfEditorVars.scale || 1.0;
                 
-                const x = cssX * scaleX;
-                const y = cssY * scaleY;
-                
-                console.log('🔍 Click detected at canvas coordinates:', x.toFixed(2), y.toFixed(2));
+                // Actual click position = (mouse - rect) / zoom
+                // Since wrapper is scaled, we need to divide by zoom
+                const x = cssX / currentZoom;
+                const y = cssY / currentZoom;
                 
                 const items = window.pdfEditorVars.currentTextLayer || [];
-                console.log('📋 Text layer items:', items.length);
                 
-                // Find clicked text item by checking all canvasBboxes with padding
-                const hitPadding = 3; // 3px padding for easier clicking
+                // Find clicked text block by checking all canvasBboxes with padding
+                const hitPadding = 5; // 5px padding for easier clicking
                 let clickedItem = null;
+                let minDistance = Infinity;
                 
+                // Use canvas coordinates for hit-testing
+                // Find the closest block to the click point
                 for (const item of items) {
                     const box = item.canvasBbox;
                     if (!box || box.length < 4) continue;
@@ -2450,26 +2800,35 @@ SSL Security & Trust Section -->
                         x <= (bx1 + hitPadding) && 
                         y >= (by0 - hitPadding) && 
                         y <= (by1 + hitPadding)) {
-                        clickedItem = item;
-                        break;
+                        // Calculate distance from click to center of block
+                        const centerX = (bx0 + bx1) / 2;
+                        const centerY = (by0 + by1) / 2;
+                        const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+                        
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            clickedItem = item;
+                        }
                     }
                 }
                 
                 if (!clickedItem) {
-                    console.info('ℹ️ No text item clicked (clicked outside text bounding boxes)');
-                    return;
+                    return; // Silent fail - user clicked outside text
                 }
                 
-                console.log('✅ CLICKED text item:', clickedItem.text, 'pdfBbox:', clickedItem.pdfBbox, 'canvasBbox:', clickedItem.canvasBbox);
+                console.log('Clicked block:', clickedItem.text?.substring(0, 50) || '[empty]');
                 
-                // Visually highlight selected bbox on highlightCanvas
+                // Visually highlight selected block on highlightCanvas (blue translucent rectangle)
                 const hctx = highlightCanvas.getContext('2d');
                 hctx.clearRect(0, 0, highlightCanvas.width, highlightCanvas.height);
                 const [boxX0, boxY0, boxX1, boxY1] = clickedItem.canvasBbox;
-                hctx.fillStyle = 'rgba(255, 255, 0, 0.35)';
+                hctx.fillStyle = 'rgba(0, 123, 255, 0.3)'; // Blue translucent for block selection
                 hctx.fillRect(boxX0, boxY0, boxX1 - boxX0, boxY1 - boxY0);
+                hctx.strokeStyle = 'rgba(0, 123, 255, 0.8)';
+                hctx.lineWidth = 2;
+                hctx.strokeRect(boxX0, boxY0, boxX1 - boxX0, boxY1 - boxY0);
                 
-                // Store selection and open edit dialog
+                // Store selection and open edit dialog for the entire block
                 window.pdfEditorVars.selectedTextItem = clickedItem;
                 openNativeEditDialog(clickedItem);
             }
@@ -2543,7 +2902,7 @@ SSL Security & Trust Section -->
                 
                 // Check device quota before uploading
                 try {
-                    const { checkDeviceQuota } = await import('./js/device-fingerprint.js?v=2004');
+                    const { checkDeviceQuota } = await import('./js/device-fingerprint.js?v=3000');
                     const quotaCheck = await checkDeviceQuota('pdfEdit');
                     
                     if (!quotaCheck.allowed) {
@@ -2570,7 +2929,7 @@ SSL Security & Trust Section -->
                     // Start backend session for PDF editing
                     try {
                         updateProgress(20, 'Starting PDF session...');
-                        const { startSession } = await import('./js/pdf-editor-api.js?v=2004');
+                        const { startSession } = await import('./js/pdf-editor-api.js?v=3000');
                         const userId = await getCurrentUserId();
                         
                         const sessionResult = await startSession(file);
@@ -2582,12 +2941,12 @@ SSL Security & Trust Section -->
                         
                         updateProgress(50, 'Loading PDF...');
                         
-                        // Load PDF for preview using PDF.js
+                        // Load PDF for preview
                         const reader = new FileReader();
                         reader.onload = async function(e) {
                             try {
                                 const arrayBuffer = e.target.result;
-                                // PDF.js removed - backend session will be created in renderPDF()
+                                // Backend session will be created in renderPDF()
                                 window.pdfEditorVars.currentPage = 1;
                                 
                                 // Store PDF data
@@ -2672,7 +3031,7 @@ SSL Security & Trust Section -->
                             
                             // Increment device quota after successful client-side processing
                             try {
-                                const { incrementDeviceQuota } = await import('./js/device-fingerprint.js?v=2004');
+                                const { incrementDeviceQuota } = await import('./js/device-fingerprint.js?v=3000');
                                 await incrementDeviceQuota('pdfEdit', 1, file.size);
                                 console.log('✅ Device quota incremented for PDF upload (client-side)');
                             } catch (quotaError) {
@@ -2849,7 +3208,7 @@ SSL Security & Trust Section -->
                         window.pdfEditorVars.loadedFromStorage = true;
                         hideLoading();
                         console.log('✅ PDF loaded from base64 successfully');
-                        // PDF.js removed - using session-based backend
+                        // Using session-based backend
                         console.log('Total Pages:', window.pdfEditorVars.totalPages);
                         return;
                     } catch (error) {
@@ -2965,7 +3324,7 @@ SSL Security & Trust Section -->
         }
         
         // Reload PDF after edits (refreshes display with updated PDF)
-        // Reload PDF page using backend /page/render (NO PDF.js, NO overlay)
+        // Reload PDF page using backend /page/render
         async function reloadPDF() {
             try {
                 if (currentSessionId) {
@@ -3007,7 +3366,7 @@ SSL Security & Trust Section -->
             return btoa(binary);
         }
         
-        // Render PDF using backend session (NO PDF.js - uses /page/render)
+        // Render PDF using backend session (uses /page/render)
         async function renderPDF(pdfData) {
             try {
                 // If we already have a session, just render the current page
@@ -3045,7 +3404,7 @@ SSL Security & Trust Section -->
                 }
                 
                 // Start session with backend
-                const { startSession } = await import('./js/pdf-editor-api.js?v=2004');
+                const { startSession } = await import('./js/pdf-editor-api.js?v=3000');
                 const sessionResult = await startSession(pdfBlob);
                 
                 currentSessionId = sessionResult.session_id;
@@ -3096,6 +3455,23 @@ SSL Security & Trust Section -->
                 
                 if (downloadBtn) downloadBtn.disabled = false;
                 
+                // Initialize thumbnails after session starts
+                if (thumbnailsController) {
+                    thumbnailsController.setSessionId(currentSessionId);
+                    thumbnailsController.setTotalPages(window.pdfEditorVars.totalPages);
+                    thumbnailsController.setCurrentPage(1);
+                    const thumbnailsSidebar = document.getElementById('thumbnails-sidebar');
+                    if (thumbnailsSidebar) {
+                        thumbnailsSidebar.style.display = 'block';
+                    }
+                }
+                
+                // Show floating toolbar
+                const floatingToolbar = document.getElementById('floating-toolbar');
+                if (floatingToolbar) {
+                    floatingToolbar.style.display = 'flex';
+                }
+                
                 console.log('PDF session started and rendered successfully');
                 console.log('Preview container visible:', previewContainer ? previewContainer.style.display : 'not found');
                 console.log('Canvas visible:', pdfCanvas ? pdfCanvas.style.display : 'not found');
@@ -3128,7 +3504,7 @@ SSL Security & Trust Section -->
                 const backendZoom = userZoom;
                 
                 // Always use backend rendering
-                const { renderPage: renderPageBackend } = await import('./js/pdf-editor-api.js?v=2004');
+                const { renderPage: renderPageBackend } = await import('./js/pdf-editor-api.js?v=3000');
                 
                 // Fetch PNG + textLayer from backend
                 const renderResult = await renderPageBackend(currentSessionId, pageNumber, backendZoom);
@@ -3157,12 +3533,22 @@ SSL Security & Trust Section -->
                             const baseFitScale = containerWidth / pdfPageWidth;
                             
                             // Apply user zoom on top of fit scale
-                            const zoom = userZoom || 1.0;
+                            // Use zoom controller if available, otherwise use userZoom
+                            let zoom = userZoom || 1.0;
+                            if (zoomController) {
+                                zoom = zoomController.getScale();
+                            }
                             const scale = baseFitScale * zoom;
                             
                             // Calculate final canvas dimensions using PDF dimensions (not image dimensions)
                             const canvasWidth = pdfPageWidth * scale;
                             const canvasHeight = pdfPageHeight * scale;
+                            
+                            // Update wrapper size for zoom controller
+                            if (pdfPageWrapper) {
+                                pdfPageWrapper.style.width = canvasWidth + 'px';
+                                pdfPageWrapper.style.height = canvasHeight + 'px';
+                            }
                             
                             // Set canvas dimensions
                             baseCanvas.width = canvasWidth;
@@ -3194,6 +3580,17 @@ SSL Security & Trust Section -->
                             // Update zoom UI after render
                             updateZoomUI();
                             
+                            // Update thumbnails current page
+                            if (thumbnailsController) {
+                                thumbnailsController.setCurrentPage(pageNumber);
+                            }
+                            
+                            // Update page info in floating toolbar
+                            const pageInfoDisplay = document.getElementById('page-info-display');
+                            if (pageInfoDisplay) {
+                                pageInfoDisplay.textContent = `${pageNumber} / ${window.pdfEditorVars.totalPages}`;
+                            }
+                            
                             // Build normalized textLayer with CANVAS bounding boxes
                             const normalizedTextLayer = [];
                             
@@ -3205,53 +3602,104 @@ SSL Security & Trust Section -->
                             const textCtx = textCanvas.getContext('2d');
                             textCtx.clearRect(0, 0, canvasWidth, canvasHeight);
                             
-                            // For debugging: draw green rectangles to visualize bboxes
-                            textCtx.lineWidth = 1;
-                            textCtx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
+                            // Group text items into logical blocks (lines) for block-level editing
+                            // This makes editing more predictable for short fields (name, address, etc.)
+                            const textBlocks = [];
+                            const processedIndices = new Set();
                             
-                            for (const item of rawTextLayer) {
+                            for (let i = 0; i < rawTextLayer.length; i++) {
+                                if (processedIndices.has(i)) continue;
+                                
+                                const item = rawTextLayer[i];
                                 const bbox = item.bbox || [];
                                 if (!bbox || bbox.length < 4) continue;
                                 
                                 const [x0, y0, x1, y1] = bbox;
                                 if (x0 == null || y0 == null || x1 == null || y1 == null) continue;
                                 
-                                // Assume backend uses PDF coords with origin at bottom-left
-                                // Convert to canvas coords (origin top-left):
-                                // PDF: (x0, y0) = bottom-left, (x1, y1) = top-right
-                                // Canvas: (0, 0) = top-left
-                                const cx0 = (x0 / pdfPageWidth) * canvasWidth;
-                                const cx1 = (x1 / pdfPageWidth) * canvasWidth;
-                                const cy0 = canvasHeight - ((y1 / pdfPageHeight) * canvasHeight); // Invert Y: PDF top (y1) becomes canvas top
-                                const cy1 = canvasHeight - ((y0 / pdfPageHeight) * canvasHeight); // Invert Y: PDF bottom (y0) becomes canvas bottom
+                                // Group items on the same line (similar y coordinates, within tolerance)
+                                // More accurate grouping: only group if items are close horizontally too
+                                const yTolerance = Math.max((y1 - y0) * 0.2, 2); // 20% of text height, min 2px
+                                const xProximity = (x1 - x0) * 2; // Items within 2x text width
+                                const block = {
+                                    items: [item],
+                                    minX: x0,
+                                    maxX: x1,
+                                    minY: y0,
+                                    maxY: y1,
+                                    text: item.text || ''
+                                };
+                                
+                                // Find other items on the same line AND close horizontally
+                                for (let j = i + 1; j < rawTextLayer.length; j++) {
+                                    if (processedIndices.has(j)) continue;
+                                    
+                                    const otherItem = rawTextLayer[j];
+                                    const otherBbox = otherItem.bbox || [];
+                                    if (!otherBbox || otherBbox.length < 4) continue;
+                                    
+                                    const [ox0, oy0, ox1, oy1] = otherBbox;
+                                    // Check if on same line (y coordinates overlap within tolerance)
+                                    const yOverlap = Math.abs(oy0 - y0) < yTolerance && Math.abs(oy1 - y1) < yTolerance;
+                                    // Check if horizontally close (within 2x text width)
+                                    const xClose = (ox0 <= x1 + xProximity) && (ox1 >= x0 - xProximity);
+                                    
+                                    if (yOverlap && xClose) {
+                                        block.items.push(otherItem);
+                                        block.minX = Math.min(block.minX, ox0);
+                                        block.maxX = Math.max(block.maxX, ox1);
+                                        block.minY = Math.min(block.minY, oy0);
+                                        block.maxY = Math.max(block.maxY, oy1);
+                                        block.text += (block.text ? ' ' : '') + (otherItem.text || '');
+                                        processedIndices.add(j);
+                                    }
+                                }
+                                
+                                processedIndices.add(i);
+                                textBlocks.push(block);
+                            }
+                            
+                            // Convert blocks to canvas coordinates and draw
+                            textCtx.lineWidth = 1;
+                            
+                            for (const block of textBlocks) {
+                                // Convert block bbox to canvas coordinates
+                                const cx0 = (block.minX / pdfPageWidth) * canvasWidth;
+                                const cx1 = (block.maxX / pdfPageWidth) * canvasWidth;
+                                const cy0 = canvasHeight - ((block.maxY / pdfPageHeight) * canvasHeight);
+                                const cy1 = canvasHeight - ((block.minY / pdfPageHeight) * canvasHeight);
                                 const cWidth = cx1 - cx0;
                                 const cHeight = cy1 - cy0;
                                 
-                                // Store canvas bbox [x0, y0, x1, y1]
+                                // Store canvas bbox for the entire block
                                 const canvasBbox = [cx0, cy0, cx1, cy1];
                                 
-                                // Add to normalized text layer
-                                normalizedTextLayer.push({
-                                    ...item,
-                                    text: item.text || '',
-                                    pdfBbox: bbox,
+                                // Create block-level text item
+                                const blockItem = {
+                                    text: block.text || '[empty]', // Show placeholder if empty
+                                    pdfBbox: [block.minX, block.minY, block.maxX, block.maxY],
                                     canvasBbox: canvasBbox,
                                     pageNumber: pageNumber,
-                                    originalText: item.text || ''
-                                });
+                                    originalText: block.text || '',
+                                    isBlock: true,
+                                    blockItems: block.items // Store original items for reference
+                                };
                                 
-                                // Draw invisible clickable rectangle (fully transparent but clickable)
+                                normalizedTextLayer.push(blockItem);
+                                
+                                // Draw invisible clickable rectangle for the entire block
                                 textCtx.fillStyle = 'rgba(0, 0, 0, 0)'; // Fully transparent but clickable
                                 textCtx.fillRect(cx0, cy0, cWidth, cHeight);
                                 
-                                // For debugging: draw green rectangle to see where the bbox is
+                                // Draw subtle blue outline for block (visible on hover)
+                                textCtx.strokeStyle = 'rgba(0, 123, 255, 0.2)';
                                 textCtx.strokeRect(cx0, cy0, cWidth, cHeight);
                             }
                             
                             // Store normalized text layer globally
                             window.pdfEditorVars.currentTextLayer = normalizedTextLayer;
                             
-                            console.log(`✅ Drew ${normalizedTextLayer.length} text items with canvasBbox`);
+                            // Text layer drawn (silent)
                             
                             // Clear highlight canvas
                             const highlightCtx = highlightCanvas.getContext('2d');
@@ -3266,12 +3714,22 @@ SSL Security & Trust Section -->
                             if (pdfPageWrapper) {
                                 pdfPageWrapper.style.display = 'block';
                                 pdfPageWrapper.style.visibility = 'visible';
-                                pdfPageWrapper.style.width = canvasWidth + 'px';
-                                pdfPageWrapper.style.height = canvasHeight + 'px';
+                                // Use base fit scale for wrapper size, zoom applied via CSS transform
+                                const baseFitWidth = pdfPageWidth * baseFitScale;
+                                const baseFitHeight = pdfPageHeight * baseFitScale;
+                                pdfPageWrapper.style.width = baseFitWidth + 'px';
+                                pdfPageWrapper.style.height = baseFitHeight + 'px';
+                                // Apply zoom via CSS transform for better performance
+                                pdfPageWrapper.style.transform = `scale(${zoom})`;
+                                pdfPageWrapper.style.transformOrigin = 'top left';
+                                
+                                // Store base fit dimensions for zoom calculations
+                                window.pdfEditorVars.baseFitWidth = baseFitWidth;
+                                window.pdfEditorVars.baseFitHeight = baseFitHeight;
+                                window.pdfEditorVars.baseFitScale = baseFitScale;
                             }
                             
-                            console.log('✅ Page rendered successfully:', pageNumber);
-                            console.log('✅ Text layer items:', normalizedTextLayer.length);
+                            // Page rendered (silent)
                             resolve();
                         } catch (error) {
                             console.error('Error drawing image to canvas:', error);
@@ -3320,7 +3778,7 @@ SSL Security & Trust Section -->
                     return Promise.resolve(false);
                 }
                 
-                const { editText } = await import('./js/pdf-editor-api.js?v=2004');
+                const { editText } = await import('./js/pdf-editor-api.js?v=3000');
                 const userId = await getCurrentUserId();
                 
                 await editText(
@@ -3364,7 +3822,7 @@ SSL Security & Trust Section -->
                 const userId = await getCurrentUserId();
                 
                 // Import backend API
-                const { deleteText } = await import('./js/pdf-editor-api.js?v=2004');
+                const { deleteText } = await import('./js/pdf-editor-api.js?v=3000');
                 
                 updateProgress(30, 'Sending deletion to server...');
                 
@@ -3418,7 +3876,7 @@ SSL Security & Trust Section -->
                     updateProgress(20, 'Running OCR on page...');
                     
                     // Use new /ocr/apply endpoint
-                    const { applyOCR } = await import('./js/pdf-editor-api.js?v=2004');
+                    const { applyOCR } = await import('./js/pdf-editor-api.js?v=3000');
                     
                     await applyOCR(currentSessionId, window.pdfEditorVars.currentPage, 'en');
                     
@@ -3438,7 +3896,7 @@ SSL Security & Trust Section -->
                         hideLoading();
                     }, 500);
                     
-                    alert('OCR applied successfully! The page is now searchable.');
+                    showSuccessMessage('OCR applied. Editable blocks are approximate.');
                 } catch (error) {
                     console.error('Error applying OCR:', error);
                     hideLoading();
@@ -3466,11 +3924,11 @@ SSL Security & Trust Section -->
                     if (currentSessionId) {
                         updateProgress(30, 'Exporting PDF from session...');
                         
-                        const { exportPDF } = await import('./js/pdf-editor-api.js?v=2004');
+                        const { exportPDF } = await import('./js/pdf-editor-api.js?v=3000');
                         const userId = await getCurrentUserId();
                         
                         // Export PDF from backend session
-                        const backendUrl = (await import('./js/pdf-editor-api.js?v=2004')).getBackendUrl();
+                        const backendUrl = (await import('./js/pdf-editor-api.js?v=3000')).getBackendUrl();
                         const response = await fetch(`${backendUrl}/export`, {
                             method: 'POST',
                             headers: {
@@ -3498,7 +3956,7 @@ SSL Security & Trust Section -->
                         if (expectedTexts.length > 0) {
                             try {
                                 updateProgress(92, 'Validating exported PDF...');
-                                const { validatePDF } = await import('./js/pdf-editor-api.js?v=2004');
+                                const { validatePDF } = await import('./js/pdf-editor-api.js?v=3000');
                                 const validationResult = await validatePDF(
                                     pdfBlob,
                                     expectedTexts,
@@ -3563,7 +4021,7 @@ SSL Security & Trust Section -->
                             throw new Error('No active PDF session');
                         }
                         
-                        const { exportPDF } = await import('./js/pdf-editor-api.js?v=2004');
+                        const { exportPDF } = await import('./js/pdf-editor-api.js?v=3000');
                         const userId = await getCurrentUserId();
                         
                         // Export PDF from backend
@@ -3571,7 +4029,7 @@ SSL Security & Trust Section -->
                         
                         // Get exported PDF blob for validation
                         updateProgress(70, 'Receiving exported PDF...');
-                        const { getBackendUrl } = await import('./js/pdf-editor-api.js?v=2004');
+                        const { getBackendUrl } = await import('./js/pdf-editor-api.js?v=3000');
                         const backendUrl = getBackendUrl();
                         const exportResponse = await fetch(`${backendUrl}/export`, {
                             method: 'POST',
@@ -3595,7 +4053,7 @@ SSL Security & Trust Section -->
                         if (expectedTexts.length > 0) {
                             try {
                                 updateProgress(85, 'Validating exported PDF...');
-                                const { validatePDF } = await import('./js/pdf-editor-api.js?v=2004');
+                                const { validatePDF } = await import('./js/pdf-editor-api.js?v=3000');
                                 const validationResult = await validatePDF(
                                     pdfBlob,
                                     expectedTexts,
@@ -3777,17 +4235,24 @@ SSL Security & Trust Section -->
                 return;
             }
             
-            // Get canvas bbox
+            // Get canvas bbox (account for zoom transform)
             const [cx0, cy0, cx1, cy1] = clickedItem.canvasBbox;
+            const currentZoom = window.pdfEditorVars.scale || 1.0;
             const wrapperRect = wrapper.getBoundingClientRect();
             
-            // Calculate absolute position
-            const left = wrapperRect.left + cx0 + window.scrollX;
-            const top = wrapperRect.top + cy0 + window.scrollY;
-            const width = Math.max(200, cx1 - cx0); // Minimum 200px width
-            const height = Math.max(60, (cy1 - cy0) * 1.5); // 1.5x height for multi-line
+            // Calculate absolute position (account for CSS transform scale)
+            const left = wrapperRect.left + (cx0 * currentZoom) + window.scrollX;
+            const top = wrapperRect.top + (cy0 * currentZoom) + window.scrollY;
+            const width = Math.max(200, (cx1 - cx0) * currentZoom); // Account for zoom
+            const height = Math.max(60, ((cy1 - cy0) * currentZoom) * 1.5); // 1.5x height for multi-line
             
-            // Create inline editor container
+            // Remove any existing inline editor
+            const existingEditor = document.getElementById('inline-text-editor');
+            if (existingEditor) {
+                existingEditor.remove();
+            }
+            
+            // Create inline editor container - positioned relative to wrapper
             const editorDiv = document.createElement('div');
             editorDiv.id = 'inline-text-editor';
             editorDiv.style.cssText = `
@@ -3796,28 +4261,37 @@ SSL Security & Trust Section -->
                 top: ${top}px;
                 width: ${width}px;
                 min-height: ${height}px;
-                background: rgba(255, 255, 255, 0.95);
+                background: rgba(255, 255, 255, 0.98);
                 border: 2px solid #0078d4;
-                border-radius: 4px;
-                padding: 8px;
+                border-radius: 6px;
+                padding: 10px;
                 z-index: 10000;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             `;
             
-            // Create textarea
+            // Append to wrapper (not body) so it moves with the page
+            wrapper.appendChild(editorDiv);
+            
+            // Create textarea - seamless inline editing
             const textarea = document.createElement('textarea');
-            textarea.value = clickedItem.text || '';
+            const displayText = clickedItem.text && clickedItem.text !== '[empty]' ? clickedItem.text : '';
+            textarea.value = displayText;
+            textarea.placeholder = clickedItem.text === '[empty]' ? '[empty]' : 'Enter text...';
             textarea.style.cssText = `
                 width: 100%;
-                min-height: ${height - 50}px;
-                padding: 6px;
-                border: 1px solid #ccc;
-                border-radius: 2px;
+                min-height: ${height - 60}px;
+                padding: 8px;
+                border: 1px solid #0078d4;
+                border-radius: 4px;
                 font-size: 14px;
-                font-family: inherit;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                 resize: vertical;
                 outline: none;
                 box-sizing: border-box;
+                background: white;
+                color: #333;
+                line-height: 1.5;
             `;
             
             // Create button container
@@ -3859,23 +4333,31 @@ SSL Security & Trust Section -->
             editorDiv.appendChild(textarea);
             editorDiv.appendChild(buttonContainer);
             
-            // Append to body (absolute positioning)
-            document.body.appendChild(editorDiv);
+            // Already appended to wrapper above
             
             // Focus and select text
             textarea.focus();
             textarea.select();
             
-            // Save handler
+            // Save handler - ensure we never silently delete the block
             const onSave = async () => {
-                const newText = textarea.value.trim();
+                let newText = textarea.value.trim();
+                // If text becomes empty, keep a placeholder to prevent silent deletion
                 if (!newText) {
-                    editorDiv.remove();
-                    return;
+                    newText = '[empty]';
                 }
                 
-                await handleNativeTextEdit(clickedItem, newText);
-                editorDiv.remove();
+                try {
+                    showLoading('Applying edit...', 20);
+                    await handleNativeTextEdit(clickedItem, newText);
+                    editorDiv.remove();
+                    hideLoading();
+                    showSuccessMessage('Edit applied');
+                } catch (error) {
+                    hideLoading();
+                    showErrorMessage('Edit failed: ' + (error.message || 'Unknown error'));
+                    // Keep editor open on error
+                }
             };
             
             // Cancel handler
@@ -4089,7 +4571,7 @@ SSL Security & Trust Section -->
                 const userId = await getCurrentUserId();
                 
                 // Import backend API
-                const { addText } = await import('./js/pdf-editor-api.js?v=2004');
+                const { addText } = await import('./js/pdf-editor-api.js?v=3000');
                 
                 // Add text via backend (for multi-line, add each line separately)
                 const lines = text.split('\n');
@@ -4183,7 +4665,7 @@ SSL Security & Trust Section -->
                 await renderPage(pageNumber, currentZoom);
                 
                 hideLoading();
-                console.log('✅ Native text edit applied for:', newText);
+                console.log('Applied edit:', newText.substring(0, 50));
             } catch (err) {
                 hideLoading();
                 console.error('❌ Error applying native edit', err);
@@ -5098,7 +5580,7 @@ SSL Security & Trust Section -->
                 try {
                     showLoading('Protecting PDF...', 30);
                     
-                    const { getBackendUrl } = await import('./js/pdf-editor-api.js?v=2004');
+                    const { getBackendUrl } = await import('./js/pdf-editor-api.js?v=3000');
                     const backendUrl = getBackendUrl();
                     const response = await fetch(`${backendUrl}/protect`, {
                         method: 'POST',
@@ -6029,7 +6511,7 @@ SSL Security & Trust Section -->
         // Load and display credit balance
         async function loadCreditBalance() {
             try {
-                const { getUserCreditInfo } = await import('./js/pdf-editor-api.js?v=2004');
+                const { getUserCreditInfo } = await import('./js/pdf-editor-api.js?v=3000');
                 const creditInfo = await getUserCreditInfo();
                 
                 const creditDisplay = document.getElementById('credit-count');
