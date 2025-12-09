@@ -106,12 +106,6 @@ MAX_FILE_SIZE = 100 * 1024 * 1024  # 100 MB
 @app.get("/")
 async def root():
     """Health check endpoint."""
-    try:
-        processors = get_available_processors()
-    except Exception as e:
-        logger.warning(f"Could not load processors: {e}")
-        processors = []
-    
     return {
         "status": "ok",
         "service": "PDF to Excel Converter API",
@@ -119,12 +113,8 @@ async def root():
         "providers": ["AWS Textract (optional)", "Google Document AI"],
         "endpoints": {
             "textract": "/api/pdf-to-excel (AWS Textract - requires S3_BUCKET)",
-            "docai": "/api/pdf-to-excel-docai (Google Document AI - default)",
-            "multi_processor": "/api/docai/process/{type} (Multi-processor Document AI)",
-            "processors_list": "/api/docai/processors (List available processors)"
-        },
-        "available_processors": processors,
-        "note": "Multi-processor routes temporarily disabled"
+            "docai": "/api/pdf-to-excel-docai (Google Document AI - default)"
+        }
     }
 
 
