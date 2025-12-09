@@ -674,13 +674,14 @@
         }
         
         // Check for errors
-        if(!response.ok || result.status !== 'success'){
+        if(!response.ok || (result.status !== 'success' && !result.success)){
           const errorMsg = result.error || result.detail || result.message || 'Conversion failed';
           throw new Error(errorMsg);
         }
         
         // Success - redirect to download URL
-        showToast(`Success! Processed ${result.pagesProcessed} pages. Credits left: ${result.creditsLeft}`, false);
+        const pages = result.pagesConverted || result.pagesProcessed || 0;
+        showToast(`Success! Converted ${pages} pages using DocAI. Credits left: ${result.creditsLeft}`, false);
         window.location.href = result.downloadUrl;
         
       } catch(err){
