@@ -898,6 +898,11 @@ ssLabel">Preparingâ¦</span>
         console.error('Required elements not found');
         return;
       }
+      
+      // Handle optional ocrStatus element
+      if (!ocrStatus) {
+        console.warn('ocrStatus element not found, OCR status updates will be skipped');
+      }
 
       const pdfjsLib = window['pdfjs-dist/build/pdf'];
       if (pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
@@ -1006,7 +1011,7 @@ ssLabel">Preparingâ¦</span>
         ocrResults.style.display = 'none';
         ocrText.value = '';
         downloadOcrDocx.disabled = true;
-        ocrStatus.textContent = 'Ready';
+        if (ocrStatus) ocrStatus.textContent = 'Ready';
         setProgress(null);
         setStatus('No file selected. Drop a PDF or browse to begin.');
       }
@@ -1152,9 +1157,11 @@ ssLabel">Preparingâ¦</span>
       }
 
       function updateOcrStatus(text, type='info'){
-        ocrStatus.textContent = text;
-        ocrStatus.style.background = type === 'error' ? 'rgba(239,68,68,0.15)' : 'rgba(67,97,238,0.12)';
-        ocrStatus.style.color = type === 'error' ? '#b91c1c' : '#4338ca';
+        if (ocrStatus) {
+          ocrStatus.textContent = text;
+          ocrStatus.style.background = type === 'error' ? 'rgba(239,68,68,0.15)' : 'rgba(67,97,238,0.12)';
+          ocrStatus.style.color = type === 'error' ? '#b91c1c' : '#4338ca';
+        }
       }
 
       async function runOcr(){
