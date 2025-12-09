@@ -15,7 +15,30 @@ from credit import get_user_id, get_credits, deduct_credits, check_sufficient_cr
 from storage_gcs import upload_excel_to_gcs
 from document_ai_service import convert_pdf_to_excel
 from docai_service import process_pdf_to_excel_docai
-from docai_multi_processor import process_pdf_with_processor, get_available_processors, get_processor_id
+
+# Import multi-processor functions (lazy import to avoid circular dependencies)
+def get_available_processors():
+    """Lazy import to avoid startup errors."""
+    try:
+        from docai_multi_processor import get_available_processors as _get_processors
+        return _get_processors()
+    except Exception as e:
+        logger.warning(f"Could not load processors: {e}")
+        return []
+
+def get_processor_id(processor_type: str):
+    """Lazy import to avoid startup errors."""
+    try:
+        from docai_multi_processor import get_processor_id as _get_id
+        return _get_id(processor_type)
+    except Exception as e:
+        logger.warning(f"Could not get processor ID: {e}")
+        return None
+
+def process_pdf_with_processor(file_bytes: bytes, filename: str, processor_type: str):
+    """Lazy import to avoid startup errors."""
+    from docai_multi_processor import process_pdf_with_processor as _process
+    return _process(file_bytes, filename, processor_type)
 
 # Configure logging
 logging.basicConfig(

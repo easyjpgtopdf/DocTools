@@ -117,6 +117,7 @@ async def process_pdf_with_processor(
         client = get_document_ai_client()
         
         # Configure the process request
+        # Use the same approach as docai_service.py
         from google.cloud.documentai_v1.types import document_processor_service
         
         gcs_document = document_processor_service.GcsDocument(
