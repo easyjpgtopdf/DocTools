@@ -3,6 +3,7 @@ import logging
 from typing import Optional
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request
+from fastapi import Request as FastAPIRequest
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
@@ -154,20 +155,49 @@ async def add_text(req: AddTextRequest):
 
 
 @app.post("/text/edit")
-async def edit_text(req: EditTextRequest):
+async def edit_text(request: FastAPIRequest):
+    """
+    Edit text in PDF using native replacement.
+    Uses Request instead of Pydantic model to avoid 422 validation errors.
+    """
     try:
-        pdf_bytes = get_pdf_bytes(req.session_id)
+        body = await request.json()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
+    
+    # Parse request body manually
+    session_id = body.get("session_id")
+    page_number = int(body.get("page_number") or 1)
+    old_text = (body.get("old_text") or "").strip()
+    new_text = (body.get("new_text") or "").strip()
+    max_replacements = int(body.get("max_replacements") or 1)
+    
+    # Validate required fields
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id is required")
+    if not old_text:
+        raise HTTPException(status_code=400, detail="old_text is required")
+    if not new_text:
+        raise HTTPException(status_code=400, detail="new_text is required")
+    
+    # Get PDF bytes
+    try:
+        pdf_bytes = get_pdf_bytes(session_id)
     except KeyError:
         raise HTTPException(status_code=404, detail="Session not found")
-
+    
+    # Replace text using native replacement
     updated = replace_text_native(
         pdf_bytes,
-        page_number=req.page_number,
-        old_text=req.old_text,
-        new_text=req.new_text,
-        max_replacements=req.max_replacements,
+        page_number=page_number,
+        old_text=old_text,
+        new_text=new_text,
+        max_replacements=max_replacements,
     )
-    update_pdf_bytes(req.session_id, updated)
+    
+    # Update PDF in storage
+    update_pdf_bytes(session_id, updated)
+    
     return {"status": "ok"}
 
 
