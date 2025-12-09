@@ -16,36 +16,67 @@ from storage_gcs import upload_excel_to_gcs
 from document_ai_service import convert_pdf_to_excel
 from docai_service import process_pdf_to_excel_docai
 
-# Import multi-processor functions (lazy import to avoid circular dependencies)
-def get_available_processors():
-    """Lazy import to avoid startup errors."""
-    try:
-        from docai_multi_processor import get_available_processors as _get_processors
-        return _get_processors()
-    except Exception as e:
-        logger.warning(f"Could not load processors: {e}")
-        return []
-
-def get_processor_id(processor_type: str):
-    """Lazy import to avoid startup errors."""
-    try:
-        from docai_multi_processor import get_processor_id as _get_id
-        return _get_id(processor_type)
-    except Exception as e:
-        logger.warning(f"Could not get processor ID: {e}")
-        return None
-
-def process_pdf_with_processor(file_bytes: bytes, filename: str, processor_type: str):
-    """Lazy import to avoid startup errors."""
-    from docai_multi_processor import process_pdf_with_processor as _process
-    return _process(file_bytes, filename, processor_type)
-
-# Configure logging
+# Configure logging FIRST
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Multi-processor functions (lazy import to avoid startup errors)
+# These will be imported only when needed
+_get_available_processors = None
+_get_processor_id_func = None
+_process_pdf_with_processor_func = None
+
+def _lazy_import_multi_processor():
+    """Lazy import multi-processor module."""
+    global _get_available_processors, _get_processor_id_func, _process_pdf_with_processor_func
+    if _get_available_processors is None:
+        try:
+            from docai_multi_processor import (
+                get_available_processors,
+                get_processor_id,
+                process_pdf_with_processor
+            )
+            _get_available_processors = get_available_processors
+            _get_processor_id_func = get_processor_id
+            _process_pdf_with_processor_func = process_pdf_with_processor
+        except Exception as e:
+            logger.warning(f"Could not load multi-processor module: {e}")
+            # Return empty functions
+            _get_available_processors = lambda: []
+            _get_processor_id_func = lambda x: None
+            _process_pdf_with_processor_func = lambda *args: None
+
+def get_available_processors():
+    """Get available processors."""
+    _lazy_import_multi_processor()
+    if _get_available_processors:
+        try:
+            return _get_available_processors()
+        except Exception as e:
+            logger.warning(f"Error getting processors: {e}")
+            return []
+    return []
+
+def get_processor_id(processor_type: str):
+    """Get processor ID."""
+    _lazy_import_multi_processor()
+    if _get_processor_id_func:
+        try:
+            return _get_processor_id_func(processor_type)
+        except Exception as e:
+            logger.warning(f"Error getting processor ID: {e}")
+            return None
+    return None
+
+def process_pdf_with_processor(file_bytes: bytes, filename: str, processor_type: str):
+    """Process PDF with processor."""
+    _lazy_import_multi_processor()
+    if _process_pdf_with_processor_func:
+        return _process_pdf_with_processor_func(file_bytes, filename, processor_type)
+    raise ValueError("Multi-processor module not available")
 
 # Initialize FastAPI app
 app = FastAPI(
