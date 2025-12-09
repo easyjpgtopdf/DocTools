@@ -895,9 +895,18 @@ ssLabel">Preparingâ¦</span>
 
       // Validate all required elements exist
       if (!dropzone || !fileInput || !statusMessage || !fileInfo || !convertBtn || !clearBtn) {
-        console.error('Required elements not found');
+        console.error('Required elements not found', {
+          dropzone: !!dropzone,
+          fileInput: !!fileInput,
+          statusMessage: !!statusMessage,
+          fileInfo: !!fileInfo,
+          convertBtn: !!convertBtn,
+          clearBtn: !!clearBtn
+        });
         return;
       }
+      
+      console.log('All elements found, initializing upload handlers...');
       
       // Handle optional ocrStatus element
       if (!ocrStatus) {
@@ -1140,15 +1149,20 @@ ssLabel">Preparingâ¦</span>
         pdfBytes = arrayBuffer;
         pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         setProgress(30, 'Rendering previewâ¦');
-        await renderPreview();
-        await renderThumbnails();
-        updateBadges();
-        setProgress(null);
-        convertBtn.disabled = false;
-        clearBtn.disabled = false;
-        ocrBtn.disabled = false;
-        dropzone.classList.add('has-file');
-        setStatus('Ready to convert. Choose an export mode and click Convert to DOCX.', 'success');
+          await renderPreview();
+          await renderThumbnails();
+          updateBadges();
+          setProgress(null);
+          convertBtn.disabled = false;
+          clearBtn.disabled = false;
+          ocrBtn.disabled = false;
+          dropzone.classList.add('has-file');
+          setStatus('Ready to convert. Choose an export mode and click Convert to DOCX.', 'success');
+          console.log('PDF loaded successfully, pages:', pdfDoc.numPages);
+        } catch (error) {
+          console.error('Error in loadPdf:', error);
+          throw error;
+        }
       }
 
       function getPagesForOcr(){
@@ -1341,8 +1355,21 @@ ssLabel">Preparingâ¦</span>
       }
 
       function handleFile(file){
-        if (!file) return;
-        if (!file.type || !/pdf$/i.test(file.type)){ setStatus('Please select a valid PDF file.', 'error'); return; }
+        if (!file) {
+          console.log('No file provided');
+          return;
+        }
+        
+        console.log('File selected:', file.name, file.type, file.size);
+        // Check file type - accept PDF MIME types or .pdf extension
+        const isPdfByType = file.type === 'application/pdf' || /pdf$/i.test(file.type);
+        const isPdfByExt = /\.pdf$/i.test(file.name);
+        
+        if (!isPdfByType && !isPdfByExt) {
+          setStatus('Please select a valid PDF file.', 'error');
+          console.error('Invalid file type:', file.type, file.name);
+          return;
+        }
         if (file.size > 50 * 1024 * 1024){ setStatus('File too large. Please choose a PDF under 50 MB.', 'error'); return; }
         fileName = file.name;
         fileInfo.style.display = 'flex';
@@ -1357,10 +1384,17 @@ ssLabel">Preparingâ¦</span>
 
       // File upload event handlers - fixed
       dropzone.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+        // Don't trigger if clicking on buttons or links inside dropzone
+        const target = e.target;
+        if (target.closest('button') || target.closest('a')) {
+          return;
+        }
+        // Trigger file input click
         if (fileInput) {
+          console.log('Dropzone clicked, triggering file input...');
           fileInput.click();
+        } else {
+          console.error('File input not found!');
         }
       });
 
@@ -1388,9 +1422,14 @@ ssLabel">Preparingâ¦</span>
 
       fileInput.addEventListener('change', (e) => {
         const file = e.target.files?.[0];
+        console.log('File input changed:', file ? file.name : 'no file');
         if (file) {
           handleFile(file);
+        } else {
+          console.warn('No file selected in input change event');
         }
+        // Reset input to allow selecting same file again
+        e.target.value = '';
       });
 
       // Also handle keyboard events for accessibility
