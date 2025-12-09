@@ -861,6 +861,14 @@ ssLabel">Preparingâ¦</span>
       footerYearEl.textContent = new Date().getFullYear();
     }
     (function(){
+      // Ensure DOM is ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+
+      function init() {
       const dropzone = document.getElementById('dropzone');
       const fileInput = document.getElementById('pdf-input');
       const statusMessage = document.getElementById('statusMessage');
@@ -884,6 +892,12 @@ ssLabel">Preparingâ¦</span>
       const ocrText = document.getElementById('ocrText');
       const downloadOcrDocx = document.getElementById('downloadOcrDocx');
       const dismissOcr = document.getElementById('dismissOcr');
+
+      // Validate all required elements exist
+      if (!dropzone || !fileInput || !statusMessage || !fileInfo || !convertBtn || !clearBtn) {
+        console.error('Required elements not found');
+        return;
+      }
 
       const pdfjsLib = window['pdfjs-dist/build/pdf'];
       if (pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
@@ -1334,18 +1348,50 @@ ssLabel">Preparingâ¦</span>
         });
       }
 
-      dropzone.addEventListener('click', () => fileInput.click());
-      dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
-      dropzone.addEventListener('dragleave', (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); });
+      // File upload event handlers - fixed
+      dropzone.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (fileInput) {
+          fileInput.click();
+        }
+      });
+
+      dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.add('dragover');
+      });
+
+      dropzone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.remove('dragover');
+      });
+
       dropzone.addEventListener('drop', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         dropzone.classList.remove('dragover');
         const file = e.dataTransfer?.files?.[0];
-        handleFile(file);
+        if (file) {
+          handleFile(file);
+        }
       });
+
       fileInput.addEventListener('change', (e) => {
         const file = e.target.files?.[0];
-        handleFile(file);
+        if (file) {
+          handleFile(file);
+        }
+      });
+
+      // Also handle keyboard events for accessibility
+      dropzone.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          fileInput.click();
+        }
       });
 
       pageRadios.forEach(radio => radio.addEventListener('change', () => {
@@ -1411,6 +1457,7 @@ ssLabel">Preparingâ¦</span>
       modeRadios.forEach(radio => radio.addEventListener('change', updateBadges));
 
       resetUI();
+      } // end init function
     })();
   </script>
     
