@@ -1027,14 +1027,18 @@ ssLabel">Preparingâ¦</span>
 
       function setProgress(value, label){
         if (value === null) {
-          progressWrapper.style.display = 'none';
+          if (progressWrapper) progressWrapper.style.display = 'none';
+          return;
+        }
+        if (!progressWrapper || !progressBar || !progressPercent) {
+          console.warn('Progress elements not found');
           return;
         }
         progressWrapper.style.display = 'block';
         const safeValue = Math.min(100, Math.max(0, value));
         progressBar.style.width = safeValue + '%';
         progressPercent.textContent = safeValue.toFixed(0) + '%';
-        if (label) progressLabel.textContent = label;
+        if (label && progressLabel) progressLabel.textContent = label;
       }
 
       function formatBytes(size){
