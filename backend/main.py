@@ -427,8 +427,9 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
 
 # Multi-processor routes (temporarily disabled until import issue is resolved)
 # TODO: Re-enable after fixing docai_multi_processor import issues
+# Commented out to prevent syntax errors - uncomment when ready
 """
-try:
+# try:
     _lazy_import_multi_processor()
     # Test if import worked
     if _get_available_processors and callable(_get_available_processors):
