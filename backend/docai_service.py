@@ -4,7 +4,8 @@ New endpoint: /api/pdf-to-excel-docai
 """
 
 import os
-from google.cloud import documentai
+# Lazy import for documentai to avoid startup errors
+# from google.cloud import documentai
 from google.api_core import exceptions as gcp_exceptions
 from typing import Tuple
 import openpyxl
