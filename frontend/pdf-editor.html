@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Editor - Annotate PDFs</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .toolbar {
+            background: white;
+            padding: 15px 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .btn.active {
+            background: #28a745;
+            color: white;
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .sidebar {
+            width: 200px;
+            background: white;
+            border-right: 1px solid #ddd;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #e0e0e0;
+            position: relative;
+            overflow: auto;
+        }
+        
+        #pdfCanvas {
+            background: white;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            margin: 20px;
+        }
+        
+        #annotationCanvas {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 1px solid #ccc;
+        }
+        
+        .upload-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 40px;
+        }
+        
+        .upload-area.hidden {
+            display: none;
+        }
+        
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: none;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .page-info {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1><i class="fas fa-edit"></i> PDF Editor</h1>
+        <p style="font-size: 14px; opacity: 0.9;">Annotate and edit your PDF files</p>
+    </div>
+    
+    <div class="toolbar">
+        <input type="file" id="fileInput" class="file-input" accept=".pdf">
+        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+            <i class="fas fa-file-pdf"></i> Load PDF
+        </button>
+        <button class="btn btn-secondary" id="textBtn" onclick="setTool('text')">
+            <i class="fas fa-font"></i> Text
+        </button>
+        <button class="btn btn-secondary" id="highlightBtn" onclick="setTool('highlight')">
+            <i class="fas fa-highlighter"></i> Highlight
+        </button>
+        <button class="btn btn-secondary" id="rectBtn" onclick="setTool('rect')">
+            <i class="fas fa-square"></i> Rectangle
+        </button>
+        <button class="btn btn-secondary" onclick="undo()">
+            <i class="fas fa-undo"></i> Undo
+        </button>
+        <button class="btn btn-primary" id="saveBtn" onclick="saveAnnotations()" disabled>
+            <i class="fas fa-save"></i> Save Changes
+        </button>
+        <div class="status" id="status"></div>
+    </div>
+    
+    <div class="main-content">
+        <div class="sidebar">
+            <div class="page-info" id="pageInfo">No PDF loaded</div>
+        </div>
+        
+        <div class="canvas-container">
+            <div class="upload-area" id="uploadArea">
+                <i class="fas fa-file-pdf" style="font-size: 64px; color: #667eea; margin-bottom: 20px;"></i>
+                <h2>Load a PDF to start editing</h2>
+                <p style="color: #999; margin-top: 10px;">Click "Load PDF" button above</p>
+            </div>
+            <canvas id="pdfCanvas"></canvas>
+            <canvas id="annotationCanvas"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://pdf-to-word-converter-iwumaktavq-uc.a.run.app';
+        
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        
+        let pdfDoc = null;
+        let currentPage = 1;
+        let annotationCanvas = null;
+        let pdfCanvas = null;
+        let pdfContext = null;
+        let currentTool = null;
+        let canvasWidth = 800;
+        let canvasHeight = 600;
+        let pdfFile = null;
+        
+        const fileInput = document.getElementById('fileInput');
+        const pdfCanvasEl = document.getElementById('pdfCanvas');
+        const annotationCanvasEl = document.getElementById('annotationCanvas');
+        const uploadArea = document.getElementById('uploadArea');
+        const status = document.getElementById('status');
+        const saveBtn = document.getElementById('saveBtn');
+        const pageInfo = document.getElementById('pageInfo');
+        
+        pdfContext = pdfCanvasEl.getContext('2d');
+        
+        // Initialize Fabric.js canvas for annotations
+        annotationCanvas = new fabric.Canvas('annotationCanvas', {
+            width: canvasWidth,
+            height: canvasHeight,
+            backgroundColor: 'transparent'
+        });
+        
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file && file.type === 'application/pdf') {
+                pdfFile = file;
+                await loadPDF(file);
+            }
+        });
+        
+        async function loadPDF(file) {
+            try {
+                showStatus('Loading PDF...', 'info');
+                const arrayBuffer = await file.arrayBuffer();
+                pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                
+                uploadArea.classList.add('hidden');
+                pdfCanvasEl.style.display = 'block';
+                annotationCanvasEl.style.display = 'block';
+                
+                await renderPage(1);
+                saveBtn.disabled = false;
+                hideStatus();
+            } catch (error) {
+                showStatus('Error loading PDF: ' + error.message, 'error');
+            }
+        }
+        
+        async function renderPage(pageNum) {
+            if (!pdfDoc) return;
+            
+            currentPage = pageNum;
+            const page = await pdfDoc.getPage(pageNum);
+            const viewport = page.getViewport({ scale: 1.5 });
+            
+            // Set canvas dimensions
+            canvasWidth = viewport.width;
+            canvasHeight = viewport.height;
+            pdfCanvasEl.width = canvasWidth;
+            pdfCanvasEl.height = canvasHeight;
+            
+            // Update annotation canvas size
+            annotationCanvas.setDimensions({ width: canvasWidth, height: canvasHeight });
+            
+            // Render PDF page
+            await page.render({
+                canvasContext: pdfContext,
+                viewport: viewport
+            }).promise;
+            
+            pageInfo.textContent = `Page ${pageNum} of ${pdfDoc.numPages}`;
+        }
+        
+        function setTool(tool) {
+            currentTool = tool;
+            
+            // Update button states
+            document.getElementById('textBtn').classList.remove('active');
+            document.getElementById('highlightBtn').classList.remove('active');
+            document.getElementById('rectBtn').classList.remove('active');
+            
+            if (tool === 'text') {
+                document.getElementById('textBtn').classList.add('active');
+                annotationCanvas.defaultCursor = 'text';
+                annotationCanvas.on('mouse:down', addText);
+            } else if (tool === 'highlight') {
+                document.getElementById('highlightBtn').classList.add('active');
+                annotationCanvas.defaultCursor = 'crosshair';
+                annotationCanvas.isDrawingMode = false;
+                annotationCanvas.on('mouse:down', startHighlight);
+                annotationCanvas.on('mouse:up', endHighlight);
+            } else if (tool === 'rect') {
+                document.getElementById('rectBtn').classList.add('active');
+                annotationCanvas.defaultCursor = 'crosshair';
+                annotationCanvas.on('mouse:down', startRect);
+                annotationCanvas.on('mouse:up', endRect);
+            }
+        }
+        
+        let isDrawing = false;
+        let startPoint = null;
+        
+        function addText(e) {
+            if (currentTool !== 'text') return;
+            
+            const pointer = annotationCanvas.getPointer(e.e);
+            const text = prompt('Enter text:');
+            if (!text) return;
+            
+            const textObj = new fabric.Text(text, {
+                left: pointer.x,
+                top: pointer.y,
+                fontSize: 20,
+                fill: '#ff0000'
+            });
+            
+            annotationCanvas.add(textObj);
+        }
+        
+        function startHighlight(e) {
+            if (currentTool !== 'highlight') return;
+            isDrawing = true;
+            const pointer = annotationCanvas.getPointer(e.e);
+            startPoint = pointer;
+        }
+        
+        function endHighlight(e) {
+            if (!isDrawing || currentTool !== 'highlight') return;
+            isDrawing = false;
+            
+            const pointer = annotationCanvas.getPointer(e.e);
+            const rect = new fabric.Rect({
+                left: Math.min(startPoint.x, pointer.x),
+                top: Math.min(startPoint.y, pointer.y),
+                width: Math.abs(pointer.x - startPoint.x),
+                height: Math.abs(pointer.y - startPoint.y),
+                fill: 'rgba(255, 255, 0, 0.3)',
+                stroke: 'rgba(255, 255, 0, 0.5)',
+                strokeWidth: 2
+            });
+            
+            annotationCanvas.add(rect);
+        }
+        
+        function startRect(e) {
+            if (currentTool !== 'rect') return;
+            isDrawing = true;
+            const pointer = annotationCanvas.getPointer(e.e);
+            startPoint = pointer;
+        }
+        
+        function endRect(e) {
+            if (!isDrawing || currentTool !== 'rect') return;
+            isDrawing = false;
+            
+            const pointer = annotationCanvas.getPointer(e.e);
+            const rect = new fabric.Rect({
+                left: Math.min(startPoint.x, pointer.x),
+                top: Math.min(startPoint.y, pointer.y),
+                width: Math.abs(pointer.x - startPoint.x),
+                height: Math.abs(pointer.y - startPoint.y),
+                fill: 'transparent',
+                stroke: '#000000',
+                strokeWidth: 2
+            });
+            
+            annotationCanvas.add(rect);
+        }
+        
+        function undo() {
+            const objects = annotationCanvas.getObjects();
+            if (objects.length > 0) {
+                annotationCanvas.remove(objects[objects.length - 1]);
+                annotationCanvas.renderAll();
+            }
+        }
+        
+        async function saveAnnotations() {
+            if (!pdfFile || !annotationCanvas) {
+                showStatus('Please load a PDF first', 'error');
+                return;
+            }
+            
+            const objects = annotationCanvas.getObjects();
+            if (objects.length === 0) {
+                showStatus('No annotations to save', 'error');
+                return;
+            }
+            
+            try {
+                showStatus('Saving annotations...', 'info');
+                saveBtn.disabled = true;
+                
+                // Collect annotations
+                const annotations = objects.map(obj => {
+                    const coords = obj.getBoundingRect();
+                    
+                    if (obj.type === 'text') {
+                        return {
+                            type: 'text',
+                            page: currentPage,
+                            x: coords.left,
+                            y: coords.top,
+                            text: obj.text,
+                            font_size: obj.fontSize || 20,
+                            color: obj.fill || '#ff0000'
+                        };
+                    } else if (obj.fill && obj.fill.includes('rgba(255, 255, 0')) {
+                        // Highlight
+                        return {
+                            type: 'highlight',
+                            page: currentPage,
+                            x: coords.left,
+                            y: coords.top,
+                            width: coords.width,
+                            height: coords.height,
+                            color: '#ffff00'
+                        };
+                    } else {
+                        // Rectangle
+                        return {
+                            type: 'rect',
+                            page: currentPage,
+                            x: coords.left,
+                            y: coords.top,
+                            width: coords.width,
+                            height: coords.height,
+                            border_color: obj.stroke || '#000000'
+                        };
+                    }
+                });
+                
+                // Send to backend
+                const formData = new FormData();
+                formData.append('file', pdfFile);
+                formData.append('annotations', JSON.stringify(annotations));
+                formData.append('canvas_width', canvasWidth.toString());
+                formData.append('canvas_height', canvasHeight.toString());
+                
+                const response = await fetch(`${API_BASE_URL}/api/pdf/apply-annotations`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || error.detail || 'Failed to save annotations');
+                }
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    showStatus('Annotations saved successfully!', 'success');
+                    
+                    // Create download link
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = result.download_url;
+                    downloadLink.download = pdfFile.name.replace('.pdf', '-annotated.pdf');
+                    downloadLink.textContent = 'Download Annotated PDF';
+                    downloadLink.className = 'btn btn-primary';
+                    downloadLink.style.marginTop = '10px';
+                    
+                    // Remove old download link if exists
+                    const oldLink = document.querySelector('.download-link');
+                    if (oldLink) oldLink.remove();
+                    
+                    downloadLink.classList.add('download-link');
+                    status.parentNode.appendChild(downloadLink);
+                    downloadLink.click();
+                } else {
+                    throw new Error(result.error || 'Failed to save');
+                }
+                
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+            } finally {
+                saveBtn.disabled = false;
+            }
+        }
+        
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+        
+        function hideStatus() {
+            status.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
+

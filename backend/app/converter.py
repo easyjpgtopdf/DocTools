@@ -1,21 +1,59 @@
+
 """
 PDF to Word conversion module.
 Handles PDF text detection and conversion using LibreOffice or Document AI.
 """
 import subprocess
 import os
+import time
 import logging
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 from pathlib import Path
+from enum import Enum
+from dataclasses import dataclass
 from pdfminer.high_level import extract_text as pdf_extract_text
 from pdfminer.layout import LAParams
 from docx import Document
 from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
-from app.docai_client import process_pdf_to_layout, ParsedDocument
+from app.docai_client import process_pdf_to_layout, ParsedDocument, get_docai_confidence
 
 logger = logging.getLogger(__name__)
+
+try:
+    import fitz  # PyMuPDF
+    HAS_PYMUPDF = True
+except ImportError:
+    HAS_PYMUPDF = False
+    logger.warning("PyMuPDF (fitz) not available. PDF to JPG conversion will not work.")
+
+try:
+    from PIL import Image
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
+    logger.warning("Pillow (PIL) not available. Image processing will be limited.")
+
+
+class ConversionMethod(str, Enum):
+    """Enum for conversion methods."""
+    LIBREOFFICE = "libreoffice"
+    DOCAI = "docai"
+
+
+@dataclass
+class SmartConversionResult:
+    """Result of smart PDF to Word conversion with primary and alternative."""
+    main_docx_path: str
+    main_method: ConversionMethod
+    alt_docx_path: Optional[str]
+    alt_method: Optional[ConversionMethod]
+    pages: int
+    used_docai: bool
+    conversion_time_ms: int
+    docai_confidence: Optional[float] = None  # Average confidence from DocAI if used
+    parsed_document: Optional[ParsedDocument] = None  # Store parsed doc for confidence extraction
 
 
 def pdf_has_text(pdf_path: str, max_pages_to_check: int = 3) -> bool:
@@ -175,66 +213,61 @@ def convert_pdf_to_docx_with_docai(
         
     Returns:
         Path to created DOCX file
-        
-    Raises:
-        Exception: If DOCX creation fails
     """
     try:
-        logger.info(f"Creating DOCX from Document AI results: {output_path}")
+        logger.info(f"Converting PDF to DOCX with Document AI: {pdf_path}")
         
         # Create new Word document
         doc = Document()
         
-        # Process each page from Document AI
+        # Process each page
         for page_num, page_blocks in enumerate(parsed_doc.pages, start=1):
-            # Add page break for pages after the first
+            # Add page break before each page (except first)
             if page_num > 1:
                 doc.add_page_break()
             
-            # Add page header for clarity
-            page_heading = doc.add_heading(f"Page {page_num}", level=2)
-            page_heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            
-            # Process text blocks on this page
+            # Process text blocks
             for block in page_blocks:
                 if block.is_heading:
                     # Determine heading level based on font size
-                    # Larger fonts (>=18pt) -> Level 1, smaller -> Level 2
-                    heading_level = 1 if block.font_size and block.font_size >= 18 else 2
-                    doc.add_heading(block.text, level=heading_level)
+                    if block.font_size and block.font_size >= 18:
+                        doc.add_heading(block.text, level=1)
+                    elif block.font_size and block.font_size >= 14:
+                        doc.add_heading(block.text, level=2)
+                    else:
+                        doc.add_heading(block.text, level=3)
                 else:
-                    # Add as regular paragraph
-                    paragraph = doc.add_paragraph(block.text)
-                    
-                    # Apply font size if available (clamp between 8-72pt)
+                    # Regular paragraph
+                    p = doc.add_paragraph(block.text)
                     if block.font_size:
-                        for run in paragraph.runs:
-                            run.font.size = Pt(max(8, min(block.font_size, 72)))
-            
-            # Add tables for this page if any
-            for table_data in parsed_doc.tables:
-                if table_data.page_number == page_num and table_data.rows:
-                    # Create table with appropriate dimensions
-                    num_rows = len(table_data.rows)
-                    num_cols = len(table_data.rows[0]) if table_data.rows else 0
-                    
-                    if num_rows > 0 and num_cols > 0:
-                        table = doc.add_table(rows=num_rows, cols=num_cols)
-                        
-                        # Populate table cells
-                        for row_idx, row_data in enumerate(table_data.rows):
-                            if row_idx < len(table.rows):
-                                for col_idx, cell_text in enumerate(row_data):
-                                    if col_idx < len(table.rows[row_idx].cells):
-                                        table.rows[row_idx].cells[col_idx].text = cell_text
+                        for run in p.runs:
+                            run.font.size = Pt(block.font_size)
         
-        # Save the document
+        # Add tables if present
+        for table_data in parsed_doc.tables:
+            # Add page break if table is on different page
+            if table_data.page_number > 1:
+                doc.add_page_break()
+            
+            # Create table in Word document
+            table = doc.add_table(rows=len(table_data.rows), cols=len(table_data.rows[0]) if table_data.rows else 0)
+            table.style = 'Light Grid Accent 1'
+            
+            # Populate table cells
+            for row_idx, row_data in enumerate(table_data.rows):
+                for col_idx, cell_data in enumerate(row_data):
+                    if row_idx < len(table.rows) and col_idx < len(table.rows[row_idx].cells):
+                        table.rows[row_idx].cells[col_idx].text = str(cell_data)
+        
+        # Save document
+        os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else '.', exist_ok=True)
         doc.save(output_path)
-        logger.info(f"DOCX created successfully: {output_path}")
+        
+        logger.info(f"Document AI conversion successful: {output_path}")
         return output_path
         
     except Exception as e:
-        logger.error(f"Error creating DOCX from Document AI: {e}")
+        logger.error(f"Document AI conversion error: {e}")
         raise
 
 
@@ -300,3 +333,204 @@ def convert_pdf_to_docx(
         output_path = convert_pdf_to_docx_with_libreoffice(pdf_path, output_dir)
         return output_path, False
 
+
+def smart_convert_pdf_to_word(
+    pdf_path: str,
+    output_dir: str,
+    settings,
+    generate_alternative: bool = True
+) -> SmartConversionResult:
+    """
+    Intelligently convert PDF to Word, choosing best method and optionally generating alternative.
+    
+    This function automatically detects if the PDF has extractable text:
+    - If text exists: Uses LibreOffice (primary), Document AI (alternative if requested)
+    - If no text (scanned): Uses Document AI (primary), LibreOffice (alternative if requested)
+    
+    Args:
+        pdf_path: Path to input PDF file
+        output_dir: Directory for output DOCX files
+        settings: Settings object with project_id, docai_location, docai_processor_id
+        generate_alternative: Whether to generate alternative conversion
+        
+    Returns:
+        SmartConversionResult with primary and optional alternative conversions
+    """
+    start_time = time.time()
+    
+    # Check if PDF has text
+    has_text = pdf_has_text(pdf_path)
+    pages = get_page_count(pdf_path)
+    
+    # Determine primary method
+    if has_text:
+        primary_method = ConversionMethod.LIBREOFFICE
+        logger.info("Using LibreOffice as primary method (text-based PDF)")
+    else:
+        primary_method = ConversionMethod.DOCAI
+        logger.info("Using Document AI as primary method (scanned PDF)")
+    
+    # Initialize variables
+    docai_confidence = None
+    parsed_doc = None
+    primary_docx = None
+    alt_docx = None
+    alt_method = None
+    
+    # Generate primary conversion
+    primary_start = time.time()
+    if primary_method == ConversionMethod.LIBREOFFICE:
+        primary_docx = convert_pdf_to_docx_with_libreoffice(pdf_path, output_dir)
+        used_docai = False
+    else:
+        # DocAI conversion
+        with open(pdf_path, "rb") as f:
+            pdf_bytes = f.read()
+        
+        parsed_doc = process_pdf_to_layout(
+            settings.project_id,
+            settings.docai_location,
+            settings.docai_processor_id,
+            pdf_bytes
+        )
+        
+        # Extract DocAI confidence
+        docai_confidence = get_docai_confidence(parsed_doc)
+        if docai_confidence is not None:
+            logger.info(f"DocAI confidence extracted: {docai_confidence:.3f}")
+        
+        primary_docx = os.path.join(output_dir, f"primary-{Path(pdf_path).stem}.docx")
+        convert_pdf_to_docx_with_docai(pdf_path, primary_docx, parsed_doc)
+        used_docai = True
+    
+    primary_time = time.time() - primary_start
+    
+    # Generate alternative conversion if requested
+    if generate_alternative:
+        alt_start = time.time()
+        if primary_method == ConversionMethod.LIBREOFFICE:
+            # Alternative: Use DocAI
+            alt_method = ConversionMethod.DOCAI
+            logger.info("Generating alternative using Document AI")
+            
+            with open(pdf_path, "rb") as f:
+                pdf_bytes = f.read()
+            
+            parsed_doc_alt = process_pdf_to_layout(
+                settings.project_id,
+                settings.docai_location,
+                settings.docai_processor_id,
+                pdf_bytes
+            )
+            
+            # Use parsed doc for confidence if primary didn't use DocAI
+            if docai_confidence is None:
+                docai_confidence = get_docai_confidence(parsed_doc_alt)
+                if docai_confidence is not None:
+                    logger.info(f"DocAI confidence extracted from alternative: {docai_confidence:.3f}")
+            
+            alt_docx = os.path.join(output_dir, f"alt-{Path(pdf_path).stem}.docx")
+            convert_pdf_to_docx_with_docai(pdf_path, alt_docx, parsed_doc_alt)
+        else:
+            # Alternative: Use LibreOffice
+            alt_method = ConversionMethod.LIBREOFFICE
+            logger.info("Generating alternative using LibreOffice")
+            alt_docx = convert_pdf_to_docx_with_libreoffice(pdf_path, output_dir)
+        
+        alt_time = time.time() - alt_start
+        logger.info(f"Alternative conversion completed in {alt_time:.2f}s")
+    
+    total_time_ms = int((time.time() - start_time) * 1000)
+    
+    result = SmartConversionResult(
+        main_docx_path=primary_docx,
+        main_method=primary_method,
+        alt_docx_path=alt_docx,
+        alt_method=alt_method,
+        pages=pages,
+        used_docai=used_docai,
+        conversion_time_ms=total_time_ms,
+        docai_confidence=docai_confidence,
+        parsed_document=parsed_doc if used_docai else None
+    )
+    
+    logger.info(f"Smart conversion completed in {total_time_ms}ms")
+    return result
+
+
+# PDF to JPG conversion (using PyMuPDF)
+if HAS_PYMUPDF:
+    def convert_pdf_to_jpg(pdf_path: str, output_dir: str, dpi: int = 150) -> List[str]:
+        """
+        Convert each page of a PDF to a JPG image.
+        
+        Args:
+            pdf_path: Path to input PDF file
+            output_dir: Directory to save JPG images
+            dpi: Resolution for output images (default: 150)
+            
+        Returns:
+            List of paths to created JPG files
+        """
+        logger.info(f"Converting PDF to JPG: {pdf_path} with {dpi} DPI")
+        output_image_paths = []
+        
+        try:
+            doc = fitz.open(pdf_path)
+            for page_num in range(len(doc)):
+                page = doc.load_page(page_num)
+                pix = page.get_pixmap(matrix=fitz.Matrix(dpi / 72, dpi / 72))
+                
+                output_filename = f"page_{page_num + 1:03d}.jpg"
+                output_path = os.path.join(output_dir, output_filename)
+                pix.save(output_path)
+                output_image_paths.append(output_path)
+                logger.debug(f"Saved JPG for page {page_num + 1} to {output_path}")
+            
+            doc.close()
+            logger.info(f"Converted {len(output_image_paths)} pages to JPG.")
+            return output_image_paths
+        except Exception as e:
+            logger.error(f"Error converting PDF to JPG: {e}")
+            raise
+else:
+    def convert_pdf_to_jpg(pdf_path: str, output_dir: str, dpi: int = 150) -> List[str]:
+        raise ImportError("PyMuPDF (fitz) is required for PDF to JPG conversion.")
+
+
+# PDF thumbnail generation (using PyMuPDF)
+if HAS_PYMUPDF:
+    def generate_pdf_thumbnail(pdf_path: str, output_path: str, width_px: int = 300) -> str:
+        """
+        Generate a thumbnail (first page as JPG) of a PDF.
+        
+        Args:
+            pdf_path: Path to input PDF file
+            output_path: Path to save thumbnail JPG
+            width_px: Desired width of thumbnail in pixels (default: 300)
+            
+        Returns:
+            Path to created thumbnail file
+        """
+        logger.info(f"Generating thumbnail for {pdf_path} with width {width_px}px")
+        
+        try:
+            doc = fitz.open(pdf_path)
+            page = doc.load_page(0)  # First page
+            
+            # Calculate DPI based on desired width
+            zoom = width_px / page.rect.width
+            mat = fitz.Matrix(zoom, zoom)
+            
+            pix = page.get_pixmap(matrix=mat)
+            pix.save(output_path)
+            doc.close()
+            
+            logger.info(f"Thumbnail saved to {output_path}")
+            return output_path
+        except Exception as e:
+            logger.error(f"Error generating PDF thumbnail: {e}")
+            raise
+else:
+    def generate_pdf_thumbnail(pdf_path: str, output_path: str, width_px: int = 300) -> str:
+        raise ImportError("PyMuPDF (fitz) is required for PDF thumbnail generation.")

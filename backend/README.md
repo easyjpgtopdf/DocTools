@@ -4,10 +4,38 @@ Production-ready PDF to Word conversion service using Python, FastAPI, LibreOffi
 
 ## Features
 
-- **Dual Conversion Methods**:
-  - LibreOffice headless for PDFs with extractable text
-  - Google Document AI for scanned/image-based PDFs with OCR
-  
+- **PDF to Word Conversion**:
+  - Dual conversion methods:
+    - LibreOffice headless for PDFs with extractable text
+    - Google Document AI for scanned/image-based PDFs with OCR
+  - Automatic method selection based on PDF content
+  - Preserves formatting, headings, and tables
+
+- **PDF to JPG Conversion**:
+  - Convert each PDF page to high-quality JPG images
+  - Configurable DPI (default: 150)
+  - Returns signed URLs for all page images
+
+- **PDF Editor & Annotations**:
+  - Browser-based PDF viewer using PDF.js
+  - Interactive annotation tools:
+    - Text annotations
+    - Highlighting
+    - Rectangle shapes
+  - "Burn" annotations into PDF using PyMuPDF
+  - Real-time preview and editing
+
+- **PDF Thumbnail Generation**:
+  - Generate preview thumbnails for PDFs
+  - Configurable width/height
+  - First page preview
+
+- **Job Tracking System**:
+  - Track conversion jobs with unique IDs
+  - Status tracking (pending, processing, done, error)
+  - Job status API endpoint
+  - Ready for migration to Firestore/Redis
+
 - **Google Cloud Integration**:
   - Google Cloud Storage for file storage
   - Signed URLs for secure file downloads
@@ -16,8 +44,8 @@ Production-ready PDF to Word conversion service using Python, FastAPI, LibreOffi
 - **Production Ready**:
   - Docker containerization
   - Deployable to Google Cloud Run
-  - Comprehensive error handling
-  - Logging and monitoring
+  - Comprehensive error handling and logging
+  - File size limits and validation
 
 ## Tech Stack
 
@@ -28,8 +56,9 @@ Production-ready PDF to Word conversion service using Python, FastAPI, LibreOffi
 - **Storage**: Google Cloud Storage
 - **OCR**: Google Document AI
 - **Conversion**: LibreOffice headless
-- **PDF Processing**: pdfminer.six
+- **PDF Processing**: pdfminer.six, PyMuPDF (fitz)
 - **Word Processing**: python-docx
+- **Image Processing**: Pillow (PIL)
 
 ## Prerequisites
 
@@ -159,8 +188,10 @@ The API will be available at `http://localhost:8080`
 
 ### Health Check
 
+**GET/POST** `/api/health`
+
 ```bash
-curl -X POST http://localhost:8080/api/health
+curl -X GET http://localhost:8080/api/health
 ```
 
 Response:
@@ -172,6 +203,8 @@ Response:
 ```
 
 ### Convert PDF to Word
+
+**POST** `/api/convert/pdf-to-word`
 
 **Basic request (without authentication):**
 
@@ -197,9 +230,180 @@ curl -X POST "http://localhost:8080/api/convert/pdf-to-word" \
   "used_docai": false,
   "pages": 5,
   "conversion_time_ms": 1234,
-  "file_size_bytes": 45678
+  "file_size_bytes": 45678,
+  "job_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
+
+### Convert PDF to JPG
+
+**POST** `/api/convert/pdf-to-jpg`
+
+Convert each page of a PDF to JPG images.
+
+```bash
+curl -X POST "http://localhost:8080/api/convert/pdf-to-jpg?dpi=150" \
+  -F "file=@document.pdf"
+```
+
+**Query Parameters:**
+- `dpi` (optional): Resolution in DPI (default: 150)
+
+**Response:**
+```json
+{
+  "status": "success",
+  "pages": 5,
+  "images": [
+    {"page": 1, "url": "https://storage.googleapis.com/..."},
+    {"page": 2, "url": "https://storage.googleapis.com/..."},
+    ...
+  ],
+  "job_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+### Generate PDF Thumbnail
+
+**GET** `/api/pdf/thumbnail`
+
+Generate a thumbnail of the first page of a PDF.
+
+```bash
+curl "http://localhost:8080/api/pdf/thumbnail?file_url=https://example.com/file.pdf&width=300"
+```
+
+**Query Parameters:**
+- `file_url` (required): URL to PDF file
+- `job_id` (optional): Job ID from previous conversion
+- `page` (optional): Page number (default: 1)
+- `width` (optional): Thumbnail width in pixels (default: 300)
+
+**Response:**
+```json
+{
+  "status": "success",
+  "thumbnail_url": "https://storage.googleapis.com/..."
+}
+```
+
+### Apply Annotations to PDF
+
+**POST** `/api/pdf/apply-annotations`
+
+Apply annotations (text, highlights, rectangles) to a PDF.
+
+```bash
+curl -X POST "http://localhost:8080/api/pdf/apply-annotations" \
+  -F "file=@document.pdf" \
+  -F "annotations=[{\"type\":\"text\",\"page\":1,\"x\":100,\"y\":150,\"text\":\"Hello\",\"font_size\":14,\"color\":\"#ff0000\"}]" \
+  -F "canvas_width=800" \
+  -F "canvas_height=600"
+```
+
+**Form Data:**
+- `file` (required): PDF file
+- `annotations` (required): JSON string with annotations array
+- `canvas_width` (optional): Canvas width used in frontend (default: 800)
+- `canvas_height` (optional): Canvas height used in frontend (default: 600)
+
+**Annotations Format:**
+```json
+[
+  {
+    "type": "text",
+    "page": 1,
+    "x": 100,
+    "y": 150,
+    "text": "Hello World",
+    "font_size": 14,
+    "color": "#ff0000"
+  },
+  {
+    "type": "highlight",
+    "page": 1,
+    "x": 50,
+    "y": 200,
+    "width": 200,
+    "height": 30,
+    "color": "#ffff00"
+  },
+  {
+    "type": "rect",
+    "page": 1,
+    "x": 80,
+    "y": 120,
+    "width": 100,
+    "height": 50,
+    "border_color": "#000000"
+  }
+]
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "download_url": "https://storage.googleapis.com/...",
+  "job_id": "550e8400-e29b-41d4-a716-446655440000",
+  "pages": 5
+}
+```
+
+### Get Job Status
+
+**GET** `/api/jobs/{job_id}`
+
+Get the status of a conversion job.
+
+```bash
+curl "http://localhost:8080/api/jobs/550e8400-e29b-41d4-a716-446655440000"
+```
+
+**Response:**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "type": "pdf-to-word",
+  "status": "done",
+  "created_at": "2024-01-01T00:00:00",
+  "updated_at": "2024-01-01T00:00:05",
+  "result_url": "https://storage.googleapis.com/...",
+  "pages": 5,
+  "used_docai": false,
+  "conversion_time_ms": 1234
+}
+```
+
+## Frontend Pages
+
+Three complete frontend pages are included in the `frontend/` directory:
+
+1. **`pdf-to-word.html`**: PDF to Word converter with drag-and-drop
+2. **`pdf-to-jpg.html`**: PDF to JPG converter with image gallery
+3. **`pdf-editor.html`**: Interactive PDF editor with annotation tools
+
+These pages can be served as static files via FastAPI or any web server.
+
+### Serving Frontend Files
+
+**Option 1: FastAPI Static Files**
+
+Add to `main.py`:
+```python
+from fastapi.staticfiles import StaticFiles
+
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
+```
+
+**Option 2: Simple HTTP Server**
+
+```bash
+cd frontend
+python -m http.server 3000
+```
+
+Access at `http://localhost:3000/pdf-to-word.html`
 
 ## Frontend Integration Examples
 

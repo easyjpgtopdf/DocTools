@@ -1,64 +1,27 @@
 {
   "version": 2,
-  "public": true,
-  "cleanUrls": true,
-  "trailingSlash": false,
-  "rewrites": [
+  "builds": [
     {
-      "source": "/api/create-order",
-      "destination": "/api/router?endpoint=create-order"
+      "src": "frontend/**/*.html",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/pdf-to-word",
+      "dest": "/frontend/pdf-to-word.html"
     },
     {
-      "source": "/api/credits/balance",
-      "destination": "/api/router?endpoint=credits/balance"
+      "src": "/pdf-to-jpg",
+      "dest": "/frontend/pdf-to-jpg.html"
     },
     {
-      "source": "/api/credits/purchase",
-      "destination": "/api/router?endpoint=credits/purchase"
+      "src": "/pdf-editor",
+      "dest": "/frontend/pdf-editor.html"
     },
     {
-      "source": "/api/credits/verify",
-      "destination": "/api/router?endpoint=credits/verify"
-    },
-    {
-      "source": "/api/payments/razorpay/webhook",
-      "destination": "/api/router?endpoint=payments/razorpay/webhook"
-    },
-    {
-      "source": "/api/send-receipt-email",
-      "destination": "/api/router?endpoint=send-receipt-email"
-    },
-    {
-      "source": "/api/unlock-excel",
-      "destination": "/api/router?endpoint=unlock-excel"
-    },
-    {
-      "source": "/api/pdf-ocr/status",
-      "destination": "/api/router?endpoint=pdf-ocr/status"
-    },
-    {
-      "source": "/api/cloud/status",
-      "destination": "/api/router?endpoint=cloud/status"
-    },
-    {
-      "source": "/api/background-remove-v2",
-      "destination": "/api/router?endpoint=background-remove-v2"
-    },
-    {
-      "source": "/api/remove-background",
-      "destination": "/api/router?endpoint=remove-background"
-    },
-    {
-      "source": "/api/tools/unlock-excel",
-      "destination": "/api/tools/index.js?route=unlock-excel"
-    },
-    {
-      "source": "/api/tools/health",
-      "destination": "/api/tools/index.js?route=health"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/$1"
+      "src": "/(.*)",
+      "dest": "/frontend/$1"
     }
   ],
   "headers": [
@@ -66,51 +29,16 @@
       "source": "/(.*)",
       "headers": [
         {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
         },
         {
-          "key": "X-Frame-Options",
-          "value": "DENY"
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, OPTIONS"
         },
         {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        }
-      ]
-    },
-    {
-      "source": "/js/:path*.js",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/javascript; charset=utf-8"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/css/:path*.css",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "text/css; charset=utf-8"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/:path*.(json|xml|txt|ico|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|eot)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type"
         }
       ]
     }

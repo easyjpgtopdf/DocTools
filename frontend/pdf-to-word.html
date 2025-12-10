@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF to Word Converter</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .upload-section {
+            grid-column: 1 / -1;
+        }
+        
+        .results-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .download-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .download-card.recommended {
+            border-color: #28a745;
+            background: #f0fff4;
+        }
+        
+        .download-card h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 18px;
+        }
+        
+        .download-card.recommended h3 {
+            color: #28a745;
+        }
+        
+        .method-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            background: #667eea;
+            color: white;
+        }
+        
+        .method-badge.libreoffice {
+            background: #007bff;
+        }
+        
+        .method-badge.docai {
+            background: #6f42c1;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+        
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+            margin-top: 15px;
+        }
+        
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .file-info {
+            margin: 15px 0;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .download-link {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 12px 24px;
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        
+        .download-link:hover {
+            background: #218838;
+        }
+        
+        /* Dark mode support */
+        :root[data-theme="dark"] {
+            --bg-primary: #020617;
+            --bg-surface: #1e293b;
+            --text-primary: #e5e7eb;
+            --text-secondary: #9ca3af;
+            --border-color: #1f2937;
+        }
+        
+        body[data-theme="dark"] {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: var(--text-primary);
+        }
+        
+        body[data-theme="dark"] .container {
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+        }
+        
+        body[data-theme="dark"] .upload-area {
+            border-color: var(--border-color);
+            background: #1e293b;
+        }
+        
+        body[data-theme="dark"] .upload-area:hover {
+            border-color: #667eea;
+            background: #334155;
+        }
+        
+        body[data-theme="dark"] .file-info,
+        body[data-theme="dark"] .download-card {
+            background: #1e293b;
+            color: var(--text-primary);
+            border-color: var(--border-color);
+        }
+        
+        body[data-theme="dark"] .status.success {
+            background: #064e3b;
+            color: #6ee7b7;
+            border-color: #047857;
+        }
+        
+        body[data-theme="dark"] .status.error {
+            background: #7f1d1d;
+            color: #fca5a5;
+            border-color: #991b1b;
+        }
+        
+        body[data-theme="dark"] .status.info {
+            background: #1e3a8a;
+            color: #93c5fd;
+            border-color: #1e40af;
+        }
+        
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid #667eea;
+            background: transparent;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .theme-toggle:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        body[data-theme="dark"] .theme-toggle {
+            border-color: #818cf8;
+            color: #818cf8;
+        }
+        
+        body[data-theme="dark"] .theme-toggle:hover {
+            background: #818cf8;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button id="themeToggle" class="theme-toggle">🌙 Dark</button>
+        <h1><i class="fas fa-file-word"></i> PDF to Word Converter</h1>
+        <p class="subtitle">Convert your PDF files to editable Word documents</p>
+        
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">
+                <i class="fas fa-cloud-upload-alt"></i>
+            </div>
+            <p><strong>Click to upload</strong> or drag and drop</p>
+            <p style="color: #999; font-size: 12px; margin-top: 5px;">PDF files only (max 50MB)</p>
+            <input type="file" id="fileInput" class="file-input" accept=".pdf">
+        </div>
+        
+        <div class="upload-section">
+            <div class="file-info" id="fileInfo"></div>
+            
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            
+            <div class="status" id="status"></div>
+            
+            <button class="btn" id="convertBtn" disabled>
+                <i class="fas fa-sync-alt"></i> Convert to Word
+            </button>
+        </div>
+        
+        <div class="main-content" id="resultsSection" style="display: none;">
+            <div class="results-section">
+                <div class="download-card recommended" id="primaryCard">
+                    <h3><i class="fas fa-star"></i> Recommended Version</h3>
+                    <span class="method-badge" id="primaryMethod">libreoffice</span>
+                    <p style="color: #666; font-size: 14px; margin: 10px 0;">Best conversion quality for your PDF</p>
+                    <a href="#" id="primaryDownload" class="download-link" download style="display: block; text-align: center; margin-top: 10px;">
+                        <i class="fas fa-download"></i> Download Recommended
+                    </a>
+                </div>
+                
+                <div class="download-card" id="altCard" style="display: none;">
+                    <h3><i class="fas fa-adjust"></i> Alternative Version</h3>
+                    <span class="method-badge" id="altMethod">alternative</span>
+                    <p style="color: #666; font-size: 14px; margin: 10px 0;">Alternative conversion method</p>
+                    <a href="#" id="altDownload" class="download-link" download style="display: block; text-align: center; margin-top: 10px; background: #6c757d;">
+                        <i class="fas fa-download"></i> Download Alternative
+                    </a>
+                </div>
+            </div>
+            
+            <div class="results-section">
+                <div class="file-info" style="display: block;">
+                    <h4 style="margin: 0 0 10px 0;">Conversion Details</h4>
+                    <div id="conversionDetails" style="font-size: 14px; color: #666; line-height: 1.8;">
+                        <!-- Details will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://pdf-to-word-converter-iwumaktavq-uc.a.run.app';
+        
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const convertBtn = document.getElementById('convertBtn');
+        const fileInfo = document.getElementById('fileInfo');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        const status = document.getElementById('status');
+        const resultsSection = document.getElementById('resultsSection');
+        const primaryCard = document.getElementById('primaryCard');
+        const altCard = document.getElementById('altCard');
+        const primaryDownload = document.getElementById('primaryDownload');
+        const altDownload = document.getElementById('altDownload');
+        const primaryMethod = document.getElementById('primaryMethod');
+        const altMethod = document.getElementById('altMethod');
+        const conversionDetails = document.getElementById('conversionDetails');
+        const themeToggle = document.getElementById('themeToggle');
+        
+        let currentFile = null;
+        
+        // Theme toggle functionality
+        if (themeToggle) {
+            // Load saved theme
+            const savedTheme = localStorage.getItem('pdf2word-theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.body.setAttribute('data-theme', 'dark');
+                themeToggle.textContent = '☀️ Light';
+            }
+            
+            themeToggle.addEventListener('click', () => {
+                const isDark = document.body.getAttribute('data-theme') === 'dark';
+                if (isDark) {
+                    document.documentElement.removeAttribute('data-theme');
+                    document.body.removeAttribute('data-theme');
+                    localStorage.setItem('pdf2word-theme', 'light');
+                    themeToggle.textContent = '🌙 Dark';
+                } else {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    document.body.setAttribute('data-theme', 'dark');
+                    localStorage.setItem('pdf2word-theme', 'dark');
+                    themeToggle.textContent = '☀️ Light';
+                }
+            });
+        }
+        
+        // Upload area click
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        });
+        
+        function handleFile(file) {
+            if (!file.type.includes('pdf')) {
+                showStatus('Please select a PDF file', 'error');
+                return;
+            }
+            
+            if (file.size > 50 * 1024 * 1024) {
+                showStatus('File is too large. Maximum size is 50MB', 'error');
+                return;
+            }
+            
+            currentFile = file;
+            fileInfo.style.display = 'block';
+            fileInfo.innerHTML = `
+                <i class="fas fa-file-pdf"></i> <strong>${file.name}</strong><br>
+                <small>${formatFileSize(file.size)}</small>
+            `;
+            convertBtn.disabled = false;
+            resultsSection.style.display = 'none';
+            hideStatus();
+        }
+        
+        convertBtn.addEventListener('click', async () => {
+            if (!currentFile) return;
+            
+            convertBtn.disabled = true;
+            progressBar.style.display = 'block';
+            progressFill.style.width = '10%';
+            showStatus('Uploading PDF...', 'info');
+            resultsSection.style.display = 'none';
+            
+            try {
+                // Create FormData and append file immediately
+                const formData = new FormData();
+                formData.append('file', currentFile);
+                
+                progressFill.style.width = '20%';
+                showStatus('Status: Uploading PDF...', 'info');
+                
+                // Upload starts immediately when fetch is called
+                const response = await fetch(`${API_BASE_URL}/api/convert/pdf-to-word`, {
+                    method: 'POST',
+                    body: formData,
+                    mode: 'cors',  // Explicitly enable CORS
+                    credentials: 'omit'  // Don't send credentials for CORS compatibility
+                });
+                
+                progressFill.style.width = '40%';
+                showStatus('Status: Converting on server...', 'info');
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || error.detail || 'Conversion failed');
+                }
+                
+                progressFill.style.width = '70%';
+                const result = await response.json();
+                
+                if (result.status !== 'success') {
+                    throw new Error(result.error || 'Conversion failed');
+                }
+                
+                progressFill.style.width = '90%';
+                showStatus('Status: Downloading Word file...', 'info');
+                
+                // Update primary download
+                primaryDownload.href = result.primary_download_url || result.download_url;
+                primaryDownload.download = currentFile.name.replace('.pdf', '-primary.docx');
+                // Map backend method to display label
+                const primaryMethodLabel = result.primary_method === 'docai' ? 'AI-Powered OCR' : 'Direct Conversion';
+                primaryMethod.textContent = primaryMethodLabel;
+                primaryMethod.className = `method-badge ${result.primary_method}`;
+                
+                // Update alternative download if available
+                if (result.alt_download_url) {
+                    altCard.style.display = 'block';
+                    altDownload.href = result.alt_download_url;
+                    altDownload.download = currentFile.name.replace('.pdf', '-alternative.docx');
+                    // Map backend method to display label
+                    const altMethodLabel = result.alt_method === 'docai' ? 'AI-Powered OCR' : 'Direct Conversion';
+                    altMethod.textContent = altMethodLabel;
+                    altMethod.className = `method-badge ${result.alt_method}`;
+                } else {
+                    altCard.style.display = 'none';
+                }
+                
+                // Determine engine and method label
+                const engine = result.engine || result.primary_method || (result.used_docai ? 'docai' : 'libreoffice');
+                const methodLabel = engine === 'docai' ? 'AI-Powered OCR' : 'Direct Conversion';
+                
+                const timeInfo = result.conversion_time_ms
+                    ? ` in ${(result.conversion_time_ms / 1000).toFixed(1)}s`
+                    : '';
+                
+                // DocAI confidence info
+                let confidenceInfo = '';
+                if (engine === 'docai' || result.used_docai) {
+                    if (typeof result.docai_confidence === 'number') {
+                        const pct = (result.docai_confidence * 100).toFixed(1);
+                        confidenceInfo = ` · OCR confidence ~${pct}%`;
+                    } else {
+                        confidenceInfo = ' · OCR confidence estimated by AI-powered OCR technology';
+                    }
+                }
+                
+                // Job info
+                let jobInfo = '';
+                if (result.job_id) {
+                    jobInfo = ` · Job ID: ${result.job_id.substring(0, 8)}...`;
+                }
+                
+                // Job status
+                const statusText = result.job_status === 'completed' ? 'completed' : 
+                                  result.job_status === 'failed' ? 'failed' : 
+                                  result.status === 'success' ? 'completed' : 'unknown';
+                
+                // Auto-download primary file
+                const url = result.primary_download_url || result.download_url;
+                const a = document.createElement('a');
+                a.href = url;
+                const safeName = (currentFile.name || 'converted').replace(/\.pdf$/i, '') + '-primary.docx';
+                a.download = safeName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                showStatus(
+                    `Conversion successful! Used ${methodLabel}${timeInfo}${confidenceInfo}${jobInfo}. Your Word document is downloading.`,
+                    'success'
+                );
+                
+                // Update conversion details
+                const details = [];
+                details.push(`<strong>Pages:</strong> ${result.pages || 'N/A'}`);
+                details.push(`<strong>Conversion Method:</strong> ${methodLabel}`);
+                details.push(`<strong>Time:</strong> ${(result.conversion_time_ms / 1000).toFixed(1)}s`);
+                if (confidenceInfo && typeof result.docai_confidence === 'number') {
+                    details.push(`<strong>OCR Confidence:</strong> ${(result.docai_confidence * 100).toFixed(1)}%`);
+                }
+                if (result.job_id) {
+                    details.push(`<strong>Job ID:</strong> <small style="font-family: monospace;">${result.job_id}</small>`);
+                }
+                if (statusText) {
+                    details.push(`<strong>Status:</strong> <span style="color: #28a745;">${statusText}</span>`);
+                }
+                conversionDetails.innerHTML = details.join('<br>');
+                
+                // Show results section
+                resultsSection.style.display = 'grid';
+                
+                // Auto-scroll to results
+                resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                    progressFill.style.width = '0%';
+                }, 2000);
+                
+            } catch (error) {
+                showStatus(error.message || 'Conversion failed. Please try again.', 'error');
+                progressBar.style.display = 'none';
+                progressFill.style.width = '0%';
+                resultsSection.style.display = 'none';
+            } finally {
+                convertBtn.disabled = false;
+            }
+        });
+        
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+        
+        function hideStatus() {
+            status.style.display = 'none';
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+    </script>
+</body>
+</html>
+

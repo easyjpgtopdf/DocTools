@@ -56,6 +56,7 @@ class ParsedDocument:
     pages: List[List[TextBlock]]
     tables: List[TableData]
     full_text: str
+    raw_document: Optional[Any] = None  # Store raw Document AI Document for confidence extraction
 
 
 class DocumentAIClient:
@@ -187,7 +188,8 @@ class DocumentAIClient:
             return ParsedDocument(
                 pages=pages,
                 tables=tables,
-                full_text=full_text
+                full_text=full_text,
+                raw_document=document  # Store raw document for confidence extraction
             )
             
         except Exception as e:
