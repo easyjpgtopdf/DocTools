@@ -47,7 +47,12 @@ def get_document_ai_client():
     """Initialize and return Document AI client using Application Default Credentials."""
     global document_ai_client
     if document_ai_client is None:
-        document_ai_client = documentai.DocumentProcessorServiceClient()
+        # Lazy import to avoid startup errors
+        try:
+            from google.cloud import documentai
+            document_ai_client = documentai.DocumentProcessorServiceClient()
+        except ImportError as e:
+            raise ImportError(f"Failed to import google.cloud.documentai: {e}. Please install google-cloud-documentai.")
     return document_ai_client
 
 def get_processor_id(processor_type: str) -> Optional[str]:
@@ -125,17 +130,14 @@ async def process_pdf_with_processor(
             InputConfig = document_processor_service.InputConfig
             ProcessRequest = document_processor_service.ProcessRequest
         except ImportError:
-            # Fallback to direct documentai types
+            # Fallback: try alternative import path
             try:
-                from google.cloud.documentai import types
-                GcsDocument = types.GcsDocument
-                InputConfig = types.InputConfig
-                ProcessRequest = types.ProcessRequest
-            except ImportError:
-                # Last resort: use documentai directly
-                GcsDocument = documentai.GcsDocument
-                InputConfig = documentai.InputConfig
-                ProcessRequest = documentai.ProcessRequest
+                from google.cloud import documentai_v1
+                GcsDocument = documentai_v1.types.GcsDocument
+                InputConfig = documentai_v1.types.InputConfig
+                ProcessRequest = documentai_v1.types.ProcessRequest
+            except (ImportError, AttributeError) as e:
+                raise ImportError(f"Could not import Document AI types: {e}. Please check google-cloud-documentai installation.")
         
         gcs_document = GcsDocument(
             gcs_uri=gcs_temp_uri,

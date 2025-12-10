@@ -34,7 +34,12 @@ def get_document_ai_client():
     """Initialize and return Document AI client using Application Default Credentials."""
     global document_ai_client
     if document_ai_client is None:
-        document_ai_client = documentai.DocumentProcessorServiceClient()
+        # Lazy import to avoid startup errors
+        try:
+            from google.cloud import documentai
+            document_ai_client = documentai.DocumentProcessorServiceClient()
+        except ImportError as e:
+            raise ImportError(f"Failed to import google.cloud.documentai: {e}. Please install google-cloud-documentai.")
     return document_ai_client
 
 
@@ -110,15 +115,14 @@ async def process_pdf_to_excel_docai(file_bytes: bytes, filename: str) -> Tuple[
             InputConfig = document_processor_service.InputConfig
             ProcessRequest = document_processor_service.ProcessRequest
         except ImportError:
-            # Fallback: use documentai types directly
+            # Fallback: try alternative import path
             try:
-                from google.cloud import documentai
-                GcsDocument = documentai.GcsDocument
-                InputConfig = documentai.InputConfig
-                ProcessRequest = documentai.ProcessRequest
-            except (ImportError, AttributeError):
-                # Last resort: construct manually
-                raise ValueError("Could not import Document AI types. Please check google-cloud-documentai installation.")
+                from google.cloud import documentai_v1
+                GcsDocument = documentai_v1.types.GcsDocument
+                InputConfig = documentai_v1.types.InputConfig
+                ProcessRequest = documentai_v1.types.ProcessRequest
+            except (ImportError, AttributeError) as e:
+                raise ImportError(f"Could not import Document AI types: {e}. Please check google-cloud-documentai installation.")
         
         gcs_document = GcsDocument(
             gcs_uri=gcs_uri,
@@ -168,7 +172,11 @@ async def process_pdf_to_excel_docai(file_bytes: bytes, filename: str) -> Tuple[
         raise
 
 
-def extract_tables_from_document(document: documentai.Document) -> list:
+def extract_tables_from_document(document) -> list:
+    """
+    Extract tables from Document AI document.
+    Note: document type is documentai.Document but we avoid type hint to prevent import errors.
+    """
     """
     Extract tables from Document AI document.
     Returns list of tables, each table is a 2D list (rows x columns).
@@ -186,7 +194,11 @@ def extract_tables_from_document(document: documentai.Document) -> list:
     return tables
 
 
-def parse_docai_table(table: documentai.Document.Page.Table, full_text: str) -> list:
+def parse_docai_table(table, full_text: str) -> list:
+    """
+    Parse a Document AI table into a 2D list.
+    Note: table type is documentai.Document.Page.Table but we avoid type hint to prevent import errors.
+    """
     """
     Parse a single table from Document AI.
     Returns 2D list (rows x columns).
@@ -227,7 +239,11 @@ def parse_docai_table(table: documentai.Document.Page.Table, full_text: str) -> 
     return grid
 
 
-def extract_text_from_layout(layout: documentai.Document.Page.Layout, full_text: str) -> str:
+def extract_text_from_layout(layout, full_text: str) -> str:
+    """
+    Extract text from a Document AI layout element.
+    Note: layout type is documentai.Document.Page.Layout but we avoid type hint to prevent import errors.
+    """
     """Extract text from a layout element using text anchor."""
     if not layout or not layout.text_anchor:
         return ''

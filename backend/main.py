@@ -368,10 +368,18 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
         user_id = get_user_id(request)
         logger.info(f"Processing request for user: {user_id}")
         
-        # Step 4: Process PDF with Document AI
+        # Step 4: Process PDF with Document AI (lazy import)
         # This will return page count and create Excel
         logger.info("Processing PDF with Google Document AI...")
-        download_url, pages_processed = await process_pdf_to_excel_docai(file_content, file.filename)
+        try:
+            from docai_service import process_pdf_to_excel_docai
+            download_url, pages_processed = await process_pdf_to_excel_docai(file_content, file.filename)
+        except ImportError as e:
+            logger.error(f"Failed to import docai_service: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail="Document AI service not available. Please check dependencies."
+            )
         
         logger.info(f"PDF processed. Pages: {pages_processed}")
         
