@@ -1,0 +1,36 @@
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/pdf-to-word-converter', './backend']
+
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/pdf-to-word-converter']
+
+  # Deploy container image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'pdf-to-word-converter'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/pdf-to-word-converter'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--memory'
+      - '2Gi'
+      - '--cpu'
+      - '2'
+      - '--timeout'
+      - '540'
+      - '--allow-unauthenticated'
+
+images:
+  - 'gcr.io/$PROJECT_ID/pdf-to-word-converter'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
