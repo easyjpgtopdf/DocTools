@@ -1145,9 +1145,10 @@ ssLabel">Preparingâ¦</span>
 
       async function loadPdf(file){
         setProgress(5, 'Loading PDFâ¦');
-        const arrayBuffer = await file.arrayBuffer();
-        pdfBytes = arrayBuffer;
-        pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          const arrayBuffer = await file.arrayBuffer();
+          pdfBytes = arrayBuffer;
+          console.log('PDF loaded, parsing document...');
+          pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         setProgress(30, 'Rendering previewâ¦');
           await renderPreview();
           await renderThumbnails();
