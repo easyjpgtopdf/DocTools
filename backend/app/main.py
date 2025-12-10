@@ -86,9 +86,10 @@ async def get_current_user_dep(
     return user_info
 
 
+@app.get("/api/health", response_model=HealthResponse)
 @app.post("/api/health", response_model=HealthResponse)
 async def health_check():
-    """Health check endpoint."""
+    """Health check endpoint. Supports both GET and POST methods."""
     return HealthResponse()
 
 

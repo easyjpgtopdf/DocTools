@@ -376,9 +376,17 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
             download_url, pages_processed = await process_pdf_to_excel_docai(file_content, file.filename)
         except ImportError as e:
             logger.error(f"Failed to import docai_service: {e}")
+            logger.error(traceback.format_exc())
             raise HTTPException(
                 status_code=500,
-                detail="Document AI service not available. Please check dependencies."
+                detail=f"Document AI service import failed: {str(e)}. Please check google-cloud-documentai installation."
+            )
+        except Exception as e:
+            logger.error(f"Document AI processing error: {e}")
+            logger.error(traceback.format_exc())
+            raise HTTPException(
+                status_code=500,
+                detail=f"Document AI processing failed: {str(e)}"
             )
         
         logger.info(f"PDF processed. Pages: {pages_processed}")

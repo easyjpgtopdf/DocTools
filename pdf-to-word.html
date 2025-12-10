@@ -326,31 +326,14 @@
 <div aria-label="Upload PDF" class="upload-area" id="dropzone" role="button" tabindex="0">
 <i class="fas fa-cloud-upload-alt" style="font-size:42px;color:var(--primary);"></i>
 <h3 style="margin:12px 0 6px;">Drag &amp; drop or click to choose</h3>
-<p style="color:var(--muted);">Supports Unicode text Â· up to 50 MB PDFs Â· processing happens in your browser.</p>
+<p style="color:var(--muted);">Supports Unicode text Â· up to 50 MB PDFs Â· secure server-side processing.</p>
 <input accept="application/pdf" hidden="" id="pdf-input" type="file"/>
 </div>
 <div class="badge-row" id="fileInfo" style="margin-top:14px; display:none;"></div>
 <div class="actions">
 <button class="btn" disabled="" id="convertBtn"><i class="fas fa-file-word"></i> Convert to DOCX</button>
 <button class="btn secondary" disabled="" id="clearBtn"><i class="fas fa-rotate-left"></i> Clear</button>
-<button class="btn secondary" disabled="" id="ocrBtn"><i class="fas fa-eye"></i> Continue with OCR</button>
 <a class="btn secondary" href="index.html"><i class="fas fa-house"></i> Home</a>
-</div>
-<div class="info-card" style="margin-top:-6px;">
-<h3 style="display:flex;align-items:center;gap:8px;font-size:1rem;"><i class="fas fa-filter"></i> Page Selection</h3>
-<p style="font-size:0.92rem;color:var(--muted);margin-bottom:12px;">Choose which pages to include in the DOCX export.</p>
-<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
-<label style="display:flex;align-items:center;gap:6px;font-weight:600;color:var(--dark);">
-<input checked="" name="pageMode" type="radio" value="all"/> All pages
-            </label>
-<label style="display:flex;align-items:center;gap:6px;font-weight:600;color:var(--dark);">
-<input name="pageMode" type="radio" value="range"/> Range
-            </label>
-<label style="display:flex;align-items:center;gap:6px;font-weight:600;color:var(--dark);">
-<input name="pageMode" type="radio" value="selected"/> Selected
-            </label>
-<input class="btn secondary" disabled="" id="pageRange" placeholder="e.g. 1-3,5" style="padding:10px 14px;border-radius:14px;min-width:180px;"/>
-</div>
 </div>
 <div id="progressWrapper" style="margin-top:20px; display:none;">
 <div style="display:flex;justify-content:space-between;font-size:0.9rem;color:var(--muted);margin-bottom:6px;">
@@ -358,27 +341,6 @@
 <span id="progressPercent">0%</span>
 </div>
 <div class="progress"><span id="progressBar"></span></div>
-</div>
-<div class="preview-area">
-<div class="preview-frame">
-<canvas aria-hidden="true" class="preview-canvas" height="0" id="previewCanvas"></canvas>
-</div>
-<div>
-<div class="badge-row">
-<span class="badge" id="pageCount" style="display:none;"></span>
-<span class="badge" id="modeBadge" style="display:none;"></span>
-</div>
-<div aria-label="Page thumbnails" class="page-slider" id="pageSlider"></div>
-<div class="slider-hint">Tick the pages you want and choose âSelectedâ above to export only those pages.</div>
-</div>
-</div>
-<div class="ocr-results" id="ocrResults">
-<textarea id="ocrText" placeholder="OCR output will appear here. You can edit before downloading."></textarea>
-<div style="display:flex;gap:12px;flex-wrap:wrap;">
-<button class="btn" disabled="" id="downloadOcrDocx"><i class="fas fa-download"></i> Download OCR DOCX</button>
-<button class="btn secondary" id="dismissOcr"><i class="fas fa-xmark"></i> Dismiss</button>
-</div>
-</div>
 </div>
 <aside class="meta-card">
 <div class="info-card">
@@ -389,33 +351,6 @@
 <li><i class="fas fa-check-circle"></i> RTL languages via Wordâs layout engine</li>
 <li><i class="fas fa-check-circle"></i> Automatic fallback to images if text is embedded</li>
 </ul>
-</div>
-<div class="info-card">
-<h3><i class="fas fa-sliders-h"></i> Export Mode</h3>
-<p>Select how pages should be transferred into Word.</p>
-<div class="export-options">
-<label class="radio-card">
-<input checked="" name="exportMode" type="radio" value="smart"/>
-<div>
-<label>Smart (Recommended)</label>
-<small>Extract selectable text, fallback to images if the page is scanned.</small>
-</div>
-</label>
-<label class="radio-card">
-<input name="exportMode" type="radio" value="text"/>
-<div>
-<label>Text Only</label>
-<small>For clean PDFs with selectable text. Ignores graphics.</small>
-</div>
-</label>
-<label class="radio-card">
-<input name="exportMode" type="radio" value="image"/>
-<div>
-<label>Image Pages</label>
-<small>Render every page as an image in the DOCX. Preserves layout.</small>
-</div>
-</label>
-</div>
 </div>
 <div class="info-card">
 <h3><i class="fas fa-lightbulb"></i> Tips</h3>
@@ -849,10 +784,6 @@
         </div>
     </div>
 </main>
-<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.5/dist/tesseract.min.js"></script>
 <script>
     const footerYearEl = document.getElementById('year');
     if (footerYearEl) {
@@ -873,154 +804,39 @@
       const fileInfo = document.getElementById('fileInfo');
       const convertBtn = document.getElementById('convertBtn');
       const clearBtn = document.getElementById('clearBtn');
-      const previewCanvas = document.getElementById('previewCanvas');
-      const pageCountBadge = document.getElementById('pageCount');
-      const modeBadge = document.getElementById('modeBadge');
       const progressWrapper = document.getElementById('progressWrapper');
       const progressBar = document.getElementById('progressBar');
       const progressPercent = document.getElementById('progressPercent');
       const progressLabel = document.getElementById('progressLabel');
-      const modeRadios = document.querySelectorAll('input[name="exportMode"]');
-      const pageRadios = document.querySelectorAll('input[name="pageMode"]');
-      const pageRangeInput = document.getElementById('pageRange');
-      const pageSlider = document.getElementById('pageSlider');
-      const ocrBtn = document.getElementById('ocrBtn');
-      const ocrResults = document.getElementById('ocrResults');
-      const ocrStatus = document.getElementById('ocrStatus');
-      const ocrText = document.getElementById('ocrText');
-      const downloadOcrDocx = document.getElementById('downloadOcrDocx');
-      const dismissOcr = document.getElementById('dismissOcr');
+      
+      let currentFile = null;
+      let fileName = null;
 
       // Validate all required elements exist
       if (!dropzone || !fileInput || !statusMessage || !fileInfo || !convertBtn || !clearBtn) {
-        console.error('Required elements not found', {
-          dropzone: !!dropzone,
-          fileInput: !!fileInput,
-          statusMessage: !!statusMessage,
-          fileInfo: !!fileInfo,
-          convertBtn: !!convertBtn,
-          clearBtn: !!clearBtn
-        });
+        console.error('Required elements not found');
         return;
       }
       
-      console.log('All elements found, initializing upload handlers...');
-      
-      // Handle optional ocrStatus element
-      if (!ocrStatus) {
-        console.warn('ocrStatus element not found, OCR status updates will be skipped');
-      }
+      console.log('Initializing server-side PDF to Word converter...');
 
-      const pdfjsLib = window['pdfjs-dist/build/pdf'];
-      if (pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
-      }
-      const DOCX_SOURCES = [
-        'https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js',
-        'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js'
-      ];
-      const loadedScripts = new Map();
-
-      function loadExternalScript(src){
-        if (loadedScripts.has(src)) {
-          return loadedScripts.get(src);
-        }
-        const promise = new Promise((resolve, reject) => {
-          const already = Array.from(document.scripts).find(s => s.src === src);
-          if (already) {
-            if (already.getAttribute('data-loaded') === '1') {
-              resolve();
-              return;
-            }
-            already.addEventListener('load', () => {
-              already.setAttribute('data-loaded', '1');
-              resolve();
-            }, { once: true });
-            already.addEventListener('error', () => reject(new Error(`Failed to load ${src}`)), { once: true });
-            return;
-          }
-          const script = document.createElement('script');
-          script.src = src;
-          script.async = true;
-          script.addEventListener('load', () => {
-            script.setAttribute('data-loaded', '1');
-            resolve();
-          }, { once: true });
-          script.addEventListener('error', () => reject(new Error(`Failed to load ${src}`)), { once: true });
-          document.head.appendChild(script);
-        });
-        loadedScripts.set(src, promise);
-        return promise;
-      }
-
-      async function ensureDocx(){
-        if (window.docx) return window.docx;
-        for (const src of DOCX_SOURCES){
-          try {
-            await loadExternalScript(src);
-          } catch (err) {
-            console.warn(err.message);
-            continue;
-          }
-          if (window.docx) return window.docx;
-        }
-        throw new Error('DOCX library not available');
-      }
-
-      function parsePageRange(input, max){
-        const clean = (input || '').trim();
-        if (!clean) return [];
-        const segments = clean.split(',');
-        const set = new Set();
-        for (const seg of segments){
-          const m = seg.trim().match(/^(\d+)(?:-(\d+))?$/);
-          if (!m) continue;
-          let start = parseInt(m[1], 10);
-          let end = m[2] ? parseInt(m[2], 10) : start;
-          if (isNaN(start) || isNaN(end)) continue;
-          if (start > end) [start, end] = [end, start];
-          start = Math.max(1, start);
-          end = Math.min(max, end);
-          for (let n = start; n <= end; n++) set.add(n);
-        }
-        return Array.from(set).sort((a,b)=>a-b);
-      }
-
-      let pdfDoc = null;
-      let pdfBytes = null;
-      let fileName = null;
-      let manualSelectedPages = new Set();
-
+      // Server-side conversion functions
       function setStatus(text, type){
         statusMessage.textContent = text;
         statusMessage.className = 'status-message' + (type ? ' ' + type : '');
       }
 
       function resetUI(){
-        pdfDoc = null;
-        pdfBytes = null;
+        currentFile = null;
         fileName = null;
         convertBtn.disabled = true;
         clearBtn.disabled = true;
-        ocrBtn.disabled = true;
         dropzone.classList.remove('has-file');
         fileInfo.style.display = 'none';
         fileInfo.innerHTML = '';
-        previewCanvas.height = 0;
-        previewCanvas.width = 0;
-        pageCountBadge.style.display = 'none';
-        modeBadge.style.display = 'none';
-        document.querySelector('input[name="pageMode"][value="all"]').checked = true;
-        pageRangeInput.value = '';
-        pageRangeInput.disabled = true;
-        manualSelectedPages = new Set();
-        pageSlider.innerHTML = '';
-        ocrResults.style.display = 'none';
-        ocrText.value = '';
-        downloadOcrDocx.disabled = true;
-        if (ocrStatus) ocrStatus.textContent = 'Ready';
         setProgress(null);
         setStatus('No file selected. Drop a PDF or browse to begin.');
+        fileInput.value = '';
       }
 
       function setProgress(value, label){
@@ -1029,7 +845,6 @@
           return;
         }
         if (!progressWrapper || !progressBar || !progressPercent) {
-          console.warn('Progress elements not found');
           return;
         }
         progressWrapper.style.display = 'block';
@@ -1050,356 +865,116 @@
         return num.toFixed(idx === 0 ? 0 : 2) + ' ' + units[idx];
       }
 
-      function targetDimensions(){
-        const DPI = 96; // CSS pixel approximation for cm conversion
-        const widthPx = 4.9 * 0.3937007874 * DPI * 2; // double resolution for clarity
-        const heightPx = 6.5 * 0.3937007874 * DPI * 2;
-        return { widthPx: Math.round(widthPx), heightPx: Math.round(heightPx) };
-      }
+             async function convertToWord(){
+               if (!currentFile) {
+                 setStatus('Please select a PDF file first.', 'error');
+                 return;
+               }
 
-      async function renderPreview(){
-        const firstPage = await pdfDoc.getPage(1);
-        const { widthPx, heightPx } = targetDimensions();
-        const viewport = firstPage.getViewport({ scale: 1 });
-        const aspect = viewport.width / viewport.height;
-        let canvasWidth = widthPx;
-        let canvasHeight = Math.round(widthPx / aspect);
-        if (canvasHeight > heightPx){
-          canvasHeight = heightPx;
-          canvasWidth = Math.round(heightPx * aspect);
-        }
-        const ctx = previewCanvas.getContext('2d');
-        previewCanvas.width = canvasWidth;
-        previewCanvas.height = canvasHeight;
-        const scale = canvasWidth / viewport.width;
-        const scaledViewport = firstPage.getViewport({ scale });
-        await firstPage.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
-      }
+               convertBtn.disabled = true;
+               clearBtn.disabled = true;
+               setProgress(10, 'Uploading PDF to server...');
+               setStatus('Uploading and converting...');
 
-      function updateBadges(){
-        pageCountBadge.textContent = `${pdfDoc.numPages} page${pdfDoc.numPages > 1 ? 's' : ''}`;
-        pageCountBadge.style.display = 'inline-flex';
-        const mode = document.querySelector('input[name="exportMode"]:checked').value;
-        const modeText = mode === 'smart' ? 'Smart extraction' : mode === 'text' ? 'Text only' : 'Image pages';
-        modeBadge.textContent = modeText;
-        modeBadge.style.display = 'inline-flex';
-      }
+               try {
+                 // Use Cloud Run backend for PDF to Word conversion
+                 const API_BASE_URL = 'https://pdf-to-word-converter-564572183797.us-central1.run.app';
+                 
+                 // Create FormData with file
+                 const formData = new FormData();
+                 formData.append('file', currentFile);
+                 
+                 const response = await fetch(`${API_BASE_URL}/api/convert/pdf-to-word`, {
+                   method: 'POST',
+                   body: formData
+                 });
 
-      function toggleSelectedPage(pageNumber, checked){
-        if (checked) manualSelectedPages.add(pageNumber);
-        else manualSelectedPages.delete(pageNumber);
-        const selectedRadio = document.querySelector('input[name="pageMode"][value="selected"]');
-        if (selectedRadio){
-          selectedRadio.checked = true;
-          pageRangeInput.disabled = true;
-        }
-        const thumb = pageSlider.querySelector(`[data-page="${pageNumber}"]`);
-        if (thumb){
-          thumb.classList.toggle('selected', checked);
-          const checkbox = thumb.querySelector('input[type="checkbox"]');
-          if (checkbox && checkbox.checked !== checked) checkbox.checked = checked;
-        }
-      }
+          setProgress(50, 'Processing conversion...');
 
-      async function renderPageThumbnail(pageNumber){
-        const page = await pdfDoc.getPage(pageNumber);
-        const viewport = page.getViewport({ scale: 0.28 });
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = Math.ceil(viewport.width);
-        canvas.height = Math.ceil(viewport.height);
-        await page.render({ canvasContext: ctx, viewport }).promise;
-        return canvas;
-      }
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Conversion failed');
+          }
 
-      async function renderThumbnails(){
-        pageSlider.innerHTML = '';
-        manualSelectedPages = new Set();
-        for (let i = 1; i <= pdfDoc.numPages; i++){
-          const thumb = document.createElement('div');
-          thumb.className = 'page-thumb selected';
-          thumb.dataset.page = String(i);
-          const checkbox = document.createElement('input');
-          checkbox.type = 'checkbox';
-          checkbox.checked = true;
-          const label = document.createElement('div');
-          label.textContent = `Page ${i}`;
-          label.style.fontWeight = '600';
-          label.style.fontSize = '0.9rem';
-          label.style.color = 'var(--dark)';
-          const canvas = await renderPageThumbnail(i);
-          thumb.appendChild(checkbox);
-          thumb.appendChild(canvas);
-          thumb.appendChild(label);
-          pageSlider.appendChild(thumb);
-          manualSelectedPages.add(i);
-          const handler = (checked)=>toggleSelectedPage(i, checked);
-          checkbox.addEventListener('click', (e)=>{
-            e.stopPropagation();
-            handler(checkbox.checked);
-          });
-          thumb.addEventListener('click', ()=>{
-            checkbox.checked = !checkbox.checked;
-            handler(checkbox.checked);
-          });
-        }
-      }
+          const result = await response.json();
+          
+          if (result.status !== 'success' || !result.download_url) {
+            throw new Error(result.error || result.message || 'Conversion failed');
+          }
 
-      async function loadPdf(file){
-        console.log('loadPdf called with file:', file.name);
-        try {
-          setProgress(5, 'Loading PDFâ¦');
-          const arrayBuffer = await file.arrayBuffer();
-          pdfBytes = arrayBuffer;
-          console.log('PDF loaded, parsing document...');
-          pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-          setProgress(30, 'Rendering previewâ¦');
-          await renderPreview();
-          await renderThumbnails();
-          updateBadges();
+          setProgress(90, 'Downloading...');
+
+          // Download from signed URL returned by Cloud Run backend
+          const url = result.download_url;
+          const a = document.createElement('a');
+          a.href = url;
+          const safeName = (fileName || 'converted').replace(/\.pdf$/i, '') + '.docx';
+          a.download = result.filename || safeName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+
+          setProgress(100, 'Complete!');
+          const usedMethod = result.used_docai ? 'Document AI (OCR)' : 'LibreOffice';
+          const timeInfo = result.conversion_time_ms ? ` in ${(result.conversion_time_ms / 1000).toFixed(1)}s` : '';
+          setStatus(`Conversion successful! Converted using ${usedMethod}${timeInfo}. Your Word document is downloading.`, 'success');
+          
+          setTimeout(() => {
+            setProgress(null);
+          }, 2000);
+
+        } catch (error) {
+          console.error('Conversion error:', error);
           setProgress(null);
+          let errorMsg = 'Conversion failed. Please try again.';
+          if (error.message) {
+            errorMsg = error.message;
+          } else if (error instanceof TypeError && error.message.includes('fetch')) {
+            errorMsg = 'Network error. Please check your connection and try again.';
+          }
+          setStatus(errorMsg, 'error');
+        } finally {
           convertBtn.disabled = false;
           clearBtn.disabled = false;
-          ocrBtn.disabled = false;
-          dropzone.classList.add('has-file');
-          setStatus('Ready to convert. Choose an export mode and click Convert to DOCX.', 'success');
-          console.log('PDF loaded successfully, pages:', pdfDoc.numPages);
-        } catch (error) {
-          console.error('Error in loadPdf:', error);
-          throw error;
         }
-      }
-
-      function getPagesForOcr(){
-        const allSelected = Array.from(document.querySelectorAll('.page-thumb input[type="checkbox"]')).map(input => ({ page: parseInt(input.closest('.page-thumb').dataset.page, 10), checked: input.checked }));
-        return allSelected.filter(item => item.checked).map(item => item.page);
-      }
-
-      function updateOcrStatus(text, type='info'){
-        if (ocrStatus) {
-          ocrStatus.textContent = text;
-          ocrStatus.style.background = type === 'error' ? 'rgba(239,68,68,0.15)' : 'rgba(67,97,238,0.12)';
-          ocrStatus.style.color = type === 'error' ? '#b91c1c' : '#4338ca';
-        }
-      }
-
-      async function runOcr(){
-        if (!pdfDoc) {
-          setStatus('Upload a PDF first to continue with OCR.', 'error');
-          return;
-        }
-        const selected = getPagesForOcr();
-        if (!selected.length){
-          setStatus('Please tick at least one page before running OCR.', 'error');
-          return;
-        }
-        ocrResults.style.display = 'flex';
-        ocrText.value = '';
-        downloadOcrDocx.disabled = true;
-        updateOcrStatus('Running OCR...', 'info');
-        setProgress(5, 'Preparing OCRâ¦');
-        try {
-          const worker = await Tesseract.createWorker('eng+hin+ara+ben+kan+tel+tam+mal+mar+pan+guj', 1, {
-            logger: m => {
-              if (m.status === 'recognizing text' && m.progress){
-                const pct = Math.round(m.progress * 100);
-                setProgress(Math.min(95, pct), 'OCR Progressâ¦');
-              }
-            }
-          });
-          const parts = [];
-          for (let i = 0; i < selected.length; i++){
-            const pageNumber = selected[i];
-            setProgress((i / selected.length) * 90 + 5, `OCR page ${pageNumber}â¦`);
-            const page = await pdfDoc.getPage(pageNumber);
-            const viewport = page.getViewport({ scale: 2 });
-            const canvas = document.createElement('canvas');
-            canvas.width = Math.ceil(viewport.width);
-            canvas.height = Math.ceil(viewport.height);
-            const ctx = canvas.getContext('2d');
-            await page.render({ canvasContext: ctx, viewport }).promise;
-            const dataUrl = canvas.toDataURL('image/png');
-            const { data: { text } } = await worker.recognize(dataUrl);
-            const cleaned = sanitizeText(text);
-            parts.push(`Page ${pageNumber}\n${cleaned}\n`);
-          }
-          await worker.terminate();
-          ocrText.value = parts.join('\n').trim();
-          downloadOcrDocx.disabled = !ocrText.value;
-          updateOcrStatus('OCR complete', 'success');
-          setProgress(null);
-          setStatus('OCR extraction ready. Review and download.', 'success');
-        } catch (err){
-          console.error('OCR error', err);
-          updateOcrStatus('OCR failed', 'error');
-          setStatus('OCR failed. Please try again.', 'error');
-          setProgress(null);
-        }
-      }
-
-      function buildLineGroups(textContent){
-        const lineMap = new Map();
-        for (const item of textContent.items || []){
-          const transform = item.transform;
-          const x = transform[4];
-          const y = transform[5];
-          const key = Math.round(y * 100) / 100;
-          if (!lineMap.has(key)) lineMap.set(key, []);
-          lineMap.get(key).push({ x, str: item.str });
-        }
-        const keys = Array.from(lineMap.keys()).sort((a,b)=>b-a);
-        const lines = [];
-        for (const key of keys){
-          const parts = lineMap.get(key).sort((a,b)=>a.x-b.x);
-          const text = parts.map(p => p.str).join('').trim();
-          if (text) lines.push(text);
-        }
-        return lines;
-      }
-
-      function sanitizeText(value){
-        if (!value) return '';
-        return value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').trim();
-      }
-
-      function dataUrlToUint8Array(dataUrl){
-        const base64 = dataUrl.split(',')[1] || '';
-        const binary = atob(base64);
-        const length = binary.length;
-        const bytes = new Uint8Array(length);
-        for (let i = 0; i < length; i++) {
-          bytes[i] = binary.charCodeAt(i);
-        }
-        return bytes;
-      }
-
-      async function pageToImageRun(page, scale, docxLib){
-        const viewport = page.getViewport({ scale });
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.ceil(viewport.width);
-        canvas.height = Math.ceil(viewport.height);
-        const ctx = canvas.getContext('2d');
-        await page.render({ canvasContext: ctx, viewport }).promise;
-        const dataUrl = canvas.toDataURL('image/png');
-        const bytes = dataUrlToUint8Array(dataUrl);
-        const widthIn = viewport.width / 96;
-        const heightIn = viewport.height / 96;
-        return new docxLib.ImageRun({
-          data: bytes,
-          transformation: {
-            width: widthIn * 96,
-            height: heightIn * 96
-          }
-        });
-      }
-
-      async function convertPdfToDocx(){
-        if (!pdfDoc) return;
-        const docxLib = await ensureDocx();
-        const mode = document.querySelector('input[name="exportMode"]:checked').value;
-        modeBadge.textContent = mode === 'smart' ? 'Smart extraction' : mode === 'text' ? 'Text only' : 'Image pages';
-        const children = [];
-        const totalPages = pdfDoc.numPages;
-        let selectedPages = [];
-        const pageMode = document.querySelector('input[name="pageMode"]:checked').value;
-        if (pageMode === 'all'){
-          selectedPages = Array.from({ length: totalPages }, (_, idx) => idx + 1);
-        } else if (pageMode === 'range') {
-          const parsed = parsePageRange(pageRangeInput.value, totalPages);
-          if (!parsed.length){
-            throw new Error('Invalid page range');
-          }
-          selectedPages = parsed;
-        } else {
-          selectedPages = Array.from(manualSelectedPages).sort((a,b)=>a-b);
-          if (!selectedPages.length){
-            throw new Error('No selected pages');
-          }
-        }
-        const total = selectedPages.length;
-        if (!total){
-          setProgress(null);
-          setStatus('Please enter a valid page range (e.g. 1-3,5).', 'error');
-          return;
-        }
-        for (let idx = 0; idx < total; idx++){
-          const pageNumber = selectedPages[idx];
-          setProgress((idx / total) * 100, `Processing page ${idx + 1} of ${total}â¦`);
-          const page = await pdfDoc.getPage(pageNumber);
-          const textContent = await page.getTextContent({ includeMarkedContent: true });
-          const lines = buildLineGroups(textContent);
-          const sanitizedLines = lines.map(sanitizeText).filter(Boolean);
-          const shouldUseText = mode !== 'image' && sanitizedLines.length > 0;
-          if (shouldUseText){
-            children.push(new docxLib.Paragraph({ text: `Page ${pageNumber}`, heading: docxLib.HeadingLevel.HEADING_2 }));
-            sanitizedLines.forEach(cleanLine => {
-              children.push(new docxLib.Paragraph({
-                children: [new docxLib.TextRun({ text: cleanLine })]
-              }));
-            });
-          } else if (mode === 'text') {
-            children.push(new docxLib.Paragraph({
-              text: `Page ${pageNumber}: (no selectable text detected)`
-            }));
-          } else {
-            const imageRun = await pageToImageRun(page, 2, docxLib);
-            children.push(new docxLib.Paragraph({ children: [imageRun] }));
-          }
-        }
-        setProgress(95, 'Packaging DOCXâ¦');
-        const doc = new docxLib.Document({
-          creator: 'easyjpgtopdf',
-          description: 'Converted with Unicode-aware extractor',
-          sections: [{ properties: {}, children }]
-        });
-        const blob = await docxLib.Packer.toBlob(doc);
-        const safeName = (fileName || 'converted').replace(/\.pdf$/i, '');
-        saveAs(blob, safeName + '.docx');
-        setProgress(null);
-        setStatus('DOCX ready! Open in Word to edit the content.', 'success');
       }
 
       function handleFile(file){
         if (!file) {
-          console.log('No file provided');
           return;
         }
         
-        console.log('File selected:', file.name, file.type, file.size);
-        // Check file type - accept PDF MIME types or .pdf extension
         const isPdfByType = file.type === 'application/pdf' || /pdf$/i.test(file.type);
         const isPdfByExt = /\.pdf$/i.test(file.name);
         
         if (!isPdfByType && !isPdfByExt) {
           setStatus('Please select a valid PDF file.', 'error');
-          console.error('Invalid file type:', file.type, file.name);
           return;
         }
-        if (file.size > 50 * 1024 * 1024){ setStatus('File too large. Please choose a PDF under 50 MB.', 'error'); return; }
+        
+        if (file.size > 50 * 1024 * 1024) {
+          setStatus('File too large. Please choose a PDF under 50 MB.', 'error');
+          return;
+        }
+        
+        currentFile = file;
         fileName = file.name;
         fileInfo.style.display = 'flex';
         fileInfo.innerHTML = `<span class="badge"><i class="fas fa-file-pdf"></i> ${file.name}</span><span class="badge">${formatBytes(file.size)}</span>`;
-        setStatus('Loading PDFâ¦');
-        loadPdf(file).catch(err => {
-          console.error('PDF load failed', err);
-          setStatus('Unable to read this PDF. It may be encrypted or corrupted.', 'error');
-          resetUI();
-        });
+        convertBtn.disabled = false;
+        clearBtn.disabled = false;
+        dropzone.classList.add('has-file');
+        setStatus('File ready. Click "Convert to DOCX" to start conversion.', 'success');
       }
 
-      // File upload event handlers - fixed
+      // Event handlers
       dropzone.addEventListener('click', (e) => {
-        // Don't trigger if clicking on buttons or links inside dropzone
         const target = e.target;
         if (target.closest('button') || target.closest('a')) {
           return;
         }
-        // Trigger file input click
         if (fileInput) {
-          console.log('Dropzone clicked, triggering file input...');
           fileInput.click();
-        } else {
-          console.error('File input not found!');
         }
       });
 
@@ -1427,17 +1002,12 @@
 
       fileInput.addEventListener('change', (e) => {
         const file = e.target.files?.[0];
-        console.log('File input changed:', file ? file.name : 'no file');
         if (file) {
           handleFile(file);
-        } else {
-          console.warn('No file selected in input change event');
         }
-        // Reset input to allow selecting same file again
         e.target.value = '';
       });
 
-      // Also handle keyboard events for accessibility
       dropzone.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
@@ -1445,67 +1015,8 @@
         }
       });
 
-      pageRadios.forEach(radio => radio.addEventListener('change', () => {
-        const mode = document.querySelector('input[name="pageMode"]:checked').value;
-        if (mode === 'range'){
-          pageRangeInput.disabled = false;
-          pageRangeInput.focus();
-        } else {
-          pageRangeInput.disabled = true;
-        }
-      }));
-
-      convertBtn.addEventListener('click', async () => {
-        if (!pdfDoc) return;
-        convertBtn.disabled = true;
-        clearBtn.disabled = true;
-        setStatus('Convertingâ¦ please wait. Large documents may take a moment.');
-        try {
-          await convertPdfToDocx();
-        } catch (err) {
-          console.error('Conversion failed', err);
-          setProgress(null);
-          let message = 'Conversion failed. Please try Image mode or another file.';
-          if (err && err.message){
-            if (err.message === 'Invalid page range') message = 'Please enter a valid page range, e.g. 1-3,5.';
-            else if (err.message === 'No selected pages') message = 'Please tick at least one page in the slider to convert.';
-            else if (err.message === 'DOCX library not available') message = 'DOCX library failed to load. Please check your internet connection and try again.';
-            else message = `Conversion failed: ${err.message}`;
-          }
-          setStatus(message, 'error');
-        } finally {
-          convertBtn.disabled = false;
-          clearBtn.disabled = false;
-        }
-      });
-
-      ocrBtn.addEventListener('click', runOcr);
-
-      downloadOcrDocx.addEventListener('click', async () => {
-        const docxLib = await ensureDocx();
-        const text = ocrText.value.trim();
-        if (!text){
-          setStatus('Nothing to download. Run OCR first.', 'error');
-          return;
-        }
-        const paragraphs = text.split(/\n+/).map(line => new docxLib.Paragraph(line));
-        const doc = new docxLib.Document({ sections: [{ children: paragraphs }] });
-        const blob = await docxLib.Packer.toBlob(doc);
-        const safeName = (fileName || 'ocr-output').replace(/\.pdf$/i, '');
-        saveAs(blob, `${safeName}-ocr.docx`);
-        setStatus('OCR DOCX downloaded.', 'success');
-      });
-
-      dismissOcr.addEventListener('click', () => {
-        ocrResults.style.display = 'none';
-      });
-
-      clearBtn.addEventListener('click', () => {
-        fileInput.value = '';
-        resetUI();
-      });
-
-      modeRadios.forEach(radio => radio.addEventListener('change', updateBadges));
+      convertBtn.addEventListener('click', convertToWord);
+      clearBtn.addEventListener('click', resetUI);
 
       resetUI();
       } // end init function
