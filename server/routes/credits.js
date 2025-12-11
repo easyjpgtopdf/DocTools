@@ -11,7 +11,36 @@ const { authenticate } = require('../middleware/auth');
 const { getAllPricingPlans, getAllToolCreditCosts } = require('../config/pricingConfig');
 const { apiLimiter } = require('../middleware/rateLimiter');
 
-// All routes require authentication
+// Public routes (no auth required)
+router.get('/pricing-plans', (req, res) => {
+  try {
+    res.json({
+      success: true,
+      plans: getAllPricingPlans()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+router.get('/tool-costs', (req, res) => {
+  try {
+    res.json({
+      success: true,
+      costs: getAllToolCreditCosts()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// All routes below require authentication
 router.use(authenticate);
 
 // Strict rate limiter for payment operations
