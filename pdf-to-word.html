@@ -383,17 +383,26 @@
             gap: 10px;
         }
         
+        /* Mobile Responsive */
         @media (max-width: 768px) {
             .hero h1 {
                 font-size: 1.8rem;
             }
             
             .container {
+                padding: 0 15px;
+            }
+            
+            .tool-page {
                 padding: 20px;
             }
             
             section {
                 padding: 20px;
+            }
+            
+            .upload-area {
+                padding: 30px 20px;
             }
         }
     </style>
@@ -420,27 +429,12 @@
             <p class="subtitle">Drag and drop or click to upload - Convert PDF to Word format (.docx) in seconds</p>
             
             <div class="upload-area" id="uploadArea">
-                <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: #f5576c; margin-bottom: 15px;"></i>
+                <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: var(--primary); margin-bottom: 15px;"></i>
                 <p><strong>Click to upload</strong> or drag and drop</p>
                 <p style="color: #999; font-size: 12px; margin-top: 5px;">PDF files only (max 50MB)</p>
                 <input type="file" id="fileInput" class="file-input" accept=".pdf">
             </div>
-            
-            <div class="features">
-                <div class="feature">
-                    <div class="feature-icon"><i class="fas fa-bolt"></i></div>
-                    <div class="feature-text">Fast Conversion</div>
-                </div>
-                <div class="feature">
-                    <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
-                    <div class="feature-text">Secure & Private</div>
-                </div>
-                <div class="feature">
-                    <div class="feature-icon"><i class="fas fa-globe"></i></div>
-                    <div class="feature-text">Multi-Language</div>
-                </div>
-            </div>
-        </section>
+        </div>
         
         <!-- About Section (400+ words) -->
         <section class="explanatory-content">
