@@ -26,6 +26,7 @@ const authRoutes = require('./routes/auth');
 const subscriptionRoutes = require('./routes/subscription');
 const razorpayRoutes = require('./routes/razorpayRoutes');
 const deviceRoutes = require('./routes/device');
+const creditRoutes = require('./routes/credits');
 // Note: analyticsRoutes will be added when analytics module is ready
 
 // Initialize Express app
@@ -78,6 +79,7 @@ app.use('/api/pdf', pdfRoutes);
 app.use('/api/pdf/pages', pagesRoutes);
 app.use('/api/razorpay', razorpayRoutes);
 app.use('/api/device', deviceRoutes);
+app.use('/api/credits', creditRoutes);
 
 // Background removal proxy endpoint (to avoid CORS issues)
 const CLOUDRUN_API_URL = process.env.CLOUDRUN_API_URL || 'https://bg-remover-api-iwumaktavq-uc.a.run.app';

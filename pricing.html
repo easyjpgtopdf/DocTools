@@ -68,11 +68,10 @@
     }
     
     .plans {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 24px;
-      flex-wrap: wrap;
       margin-top: 32px;
-      justify-content: center;
     }
     
     .plan {
@@ -80,12 +79,12 @@
       color: var(--text-primary);
       padding: 32px 24px;
       border-radius: 16px;
-      flex: 1;
-      min-width: 280px;
-      max-width: 380px;
       border: 2px solid var(--border-color);
       box-shadow: 0 4px 12px rgba(0,0,0,0.05);
       transition: transform 0.3s, box-shadow 0.3s, background 0.3s, color 0.3s;
+      position: relative;
+      display: flex;
+      flex-direction: column;
     }
     
     .plan:hover {
@@ -95,11 +94,9 @@
     
     .plan.featured {
       border-color: #4361ee;
-      position: relative;
     }
     
-    .plan.featured::before {
-      content: "POPULAR";
+    .plan-tag {
       position: absolute;
       top: -12px;
       right: 20px;
@@ -110,6 +107,14 @@
       font-size: 0.75rem;
       font-weight: 700;
       letter-spacing: 0.5px;
+    }
+    
+    .plan-tag.best-value {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+    }
+    
+    .plan-tag.max-savings {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
     }
     
     .plan h3 {
@@ -131,6 +136,13 @@
       font-weight: 400;
     }
     
+    .plan .credits {
+      font-size: 1.2rem;
+      color: var(--text-secondary);
+      margin: 8px 0 16px;
+      font-weight: 600;
+    }
+    
     .plan p {
       margin: 8px 0;
       color: var(--text-secondary);
@@ -141,6 +153,7 @@
       list-style: none;
       padding: 0;
       margin: 20px 0;
+      flex: 1;
     }
     
     .plan ul li {
@@ -158,6 +171,26 @@
       font-size: 1.2rem;
     }
     
+    .savings-badge {
+      display: inline-block;
+      background: rgba(34, 197, 94, 0.1);
+      color: #22c55e;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+    
+    .expiry-info {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-top: 12px;
+      padding: 8px;
+      background: rgba(67, 97, 238, 0.05);
+      border-radius: 6px;
+    }
+    
     .actions {
       margin-top: 24px;
     }
@@ -171,6 +204,9 @@
       transition: all 0.3s;
       text-align: center;
       width: 100%;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
     }
     
     .btn-primary {
@@ -204,33 +240,13 @@
       text-align: center;
     }
     
-    .theme-toggle-btn:hover {
-      background: rgba(67, 97, 238, 0.1);
-      border-color: rgba(67, 97, 238, 0.42);
-    }
-    
-    [data-theme="dark"] .theme-toggle-btn {
-      background: #2b2b2b;
-      border-color: #3a3a3a;
-      color: #e5e5e5;
-    }
-    
-    [data-theme="dark"] .theme-toggle-btn:hover {
-      background: #3a3a3a;
-      border-color: #4a4a4a;
-    }
-    
     @media (max-width: 768px) {
       .pricing-header h1 {
         font-size: 2rem;
       }
       
       .plans {
-        flex-direction: column;
-      }
-      
-      .plan {
-        max-width: 100%;
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -257,8 +273,6 @@
 </head>
 <body>
     <div id="global-header-placeholder"></div>
-  <!-- Header copied from index.html -->
-  
 
         <nav aria-label="Breadcrumb" style="padding: 15px 0; background: #f8f9ff; border-bottom: 1px solid #e2e6ff;">
         <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 24px;">
@@ -276,7 +290,7 @@
   <main>
     <div class="container">
       <div class="pricing-header">
-        <h1>Pricing - Online Free Tool</h1>
+        <h1>Pricing - Credit Points System</h1>
         <p>Choose a plan that fits your needs. Simple, transparent pricing with no hidden fees.</p>
       </div>
 
@@ -284,89 +298,94 @@
         <!-- Free Plan -->
         <div class="plan">
           <h3>Free</h3>
-          <div class="price">$0<span>/month</span></div>
-          <p>Essential tools for basic needs</p>
+          <div class="plan-tag" style="background: linear-gradient(135deg, #22c55e, #16a34a);">FREE FOREVER</div>
+          <div class="price">$0<span>/forever</span></div>
+          <p style="font-weight: 600; color: #22c55e;">No sign-in required. Unlimited access to free tools.</p>
           <ul>
-            <li>Up to 50 MB per file</li>
-            <li>3 operations per day</li>
-            <li>100 MB total storage</li>
-            <li>Access to core PDF tools</li>
+            <li>Unlimited free tools access</li>
+            <li>No credit limit for free features</li>
+            <li>No payment required</li>
+            <li>Access to all basic PDF tools</li>
             <li>Standard processing speed</li>
             <li>Community support</li>
-            <li>Web-based interface</li>
-            <li><strong>Desktop application</strong> (full access)</li>
-            <li><strong>Mobile application</strong> (full access)</li>
-            <li><strong>API access</strong> (100 calls/month)</li>
-            <li><strong>Image Background Remover:</strong> 40 images/month, max 1 MB per image, 10 MB monthly upload, 10 MB monthly download (auto-compressed to 150 KB)</li>
           </ul>
           <div class="actions">
             <a href="signup.html" class="btn btn-outline">Get Started Free</a>
           </div>
         </div>
 
-        <!-- Premium Plan -->
+        <!-- Pro Plan -->
         <div class="plan featured">
-          <h3>Premium</h3>
-          <div class="price">$10<span>/month</span></div>
-          <p>Complete access to all tools and features</p>
+          <div class="plan-tag">PRO</div>
+          <h3>Pro</h3>
+          <div class="price">$40<span> one-time</span></div>
+          <div class="credits">900 Credit Points</div>
+          <span class="savings-badge">Save 10%</span>
           <ul>
-            <li>Unlimited document processing</li>
-            <li>Up to 200 MB per file</li>
-            <li>Access to all PDF tools</li>
-            <li>Digital signature capabilities</li>
-            <li>Automated workflows</li>
-            <li>Ad-free experience</li>
-            <li><strong>Desktop application</strong> (full access with premium features)</li>
-            <li><strong>Mobile application</strong> (full access with premium features)</li>
-            <li><strong>API access</strong> (unlimited calls - Google Vision API powered)</li>
-            <li>Cloud storage integration</li>
-            <li>Batch processing support</li>
-            <li>Priority customer support</li>
-            <li>Email invoicing</li>
-            <li>Advanced OCR technology</li>
-            <li><strong>Image Background Remover:</strong> Unlimited images, max 50 MB per image, 500 MB monthly upload/download, original quality</li>
+            <li>900 credit points</li>
+            <li>Access to premium tools</li>
+            <li>HD background removal</li>
+            <li>Advanced PDF processing</li>
+            <li>Priority support</li>
           </ul>
-          <div class="actions">
-            <button class="btn btn-primary" data-plan="premium" data-billing="monthly">Get Started — $10/month</button>
+          <div class="expiry-info">
+            <i class="fas fa-clock"></i> Credits expire after 90 days of inactivity
           </div>
-          <p style="text-align:center; margin-top:12px; font-size:0.9rem; color:#56607a;">
-            or <button class="btn btn-outline" data-plan="premium" data-billing="yearly" style="display:inline-block; width:auto; padding:8px 20px; margin-top:8px;">Annual — $100/year</button> <span style="color:#28a745;">Save $20</span>
-          </p>
+          <div class="actions">
+            <button class="btn btn-primary" data-plan="pro" data-credits="900" data-price="40">Buy Now - $40</button>
+          </div>
         </div>
 
-        <!-- Business Plan -->
-        <div class="plan">
-          <h3>Business</h3>
-          <div class="price">Custom<span> pricing</span></div>
-          <p>Enterprise solutions for teams</p>
+        <!-- Pro+ Plan -->
+        <div class="plan featured">
+          <div class="plan-tag best-value">BEST VALUE</div>
+          <h3>Pro+</h3>
+          <div class="price">$200<span> one-time</span></div>
+          <div class="credits">5000 Credit Points</div>
+          <span class="savings-badge">Best value</span>
           <ul>
-            <li>Everything in Premium</li>
-            <li>No file size restrictions</li>
-            <li>Dedicated account manager</li>
-            <li>Single Sign-On (SSO) integration</li>
-            <li>Regional file processing</li>
-            <li><strong>API access</strong> (unlimited - Google Vision API powered)</li>
-            <li><strong>Desktop application</strong> (enterprise features & custom branding)</li>
-            <li><strong>Mobile application</strong> (enterprise features & custom branding)</li>
-            <li>Custom integrations</li>
-            <li>Team management tools</li>
-            <li>Usage analytics dashboard</li>
-            <li>Enhanced security features</li>
-            <li>Priority technical support</li>
-            <li>Custom SLA agreements</li>
-            <li><strong>Image Background Remover:</strong> Unlimited images, no size limit</li>
+            <li>5000 credit points</li>
+            <li>Access to premium tools</li>
+            <li>HD background removal</li>
+            <li>Advanced PDF processing</li>
+            <li>Priority support</li>
+            <li>Batch processing</li>
           </ul>
-          <div class="actions">
-            <button class="btn btn-primary" data-plan="business" data-billing="monthly" onclick="window.location.href='#contact'">Contact Sales</button>
+          <div class="expiry-info">
+            <i class="fas fa-clock"></i> Credits expire after 90 days of inactivity
           </div>
-          <p style="text-align:center; margin-top:12px; font-size:0.9rem; color:#56607a;">
-            Custom pricing based on your needs
-          </p>
+          <div class="actions">
+            <button class="btn btn-primary" data-plan="pro-plus" data-credits="5000" data-price="200">Buy Now - $200</button>
+          </div>
+        </div>
+
+        <!-- Super Premium Plan -->
+        <div class="plan featured">
+          <div class="plan-tag max-savings">SUPER PREMIUM</div>
+          <h3>Super Premium</h3>
+          <div class="price">$400<span> one-time</span></div>
+          <div class="credits">11000 Credit Points</div>
+          <span class="savings-badge">Maximum savings</span>
+          <ul>
+            <li>11000 credit points</li>
+            <li>Access to premium tools</li>
+            <li>HD background removal</li>
+            <li>Advanced PDF processing</li>
+            <li>Priority support</li>
+            <li>Batch processing</li>
+            <li>API access</li>
+          </ul>
+          <div class="expiry-info">
+            <i class="fas fa-clock"></i> Credits expire after 90 days of inactivity
+          </div>
+          <div class="actions">
+            <button class="btn btn-primary" data-plan="super-premium" data-credits="11000" data-price="400">Buy Now - $400</button>
+          </div>
         </div>
       </div>
 
       <div class="note">
-        <p><strong>Note:</strong> All plans include access to all tools. Payments and billing are managed through your account dashboard.</p>
+        <p><strong>Note:</strong> Credits expire 90 days after purchase if not used. Once you start using credits, they won't expire until 90 days of inactivity. All payments are processed securely through Razorpay.</p>
         <div style="margin-top:20px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
           <a class="btn btn-outline" href="login.html" style="width:auto; padding:10px 24px;">Sign In</a>
           <a class="btn btn-primary" href="signup.html" style="width:auto; padding:10px 24px;">Create Account</a>
@@ -390,82 +409,7 @@
                     <div style="color: #56607a; font-size: 0.9rem;">Files Auto-Deleted</div>
                 </div>
             </div>
-            
         </div>
-      
-      <!-- Credit Packs Section -->
-      <div style="margin-top: 60px; padding: 40px; background: linear-gradient(135deg, #f8f9ff, #ffffff); border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-        <div style="text-align: center; margin-bottom: 40px;">
-          <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 12px;">
-            <i class="fas fa-coins" style="margin-right: 10px;"></i>
-            Credit Packs
-          </h2>
-          <p style="font-size: 1.1rem; color: #56607a; max-width: 600px; margin: 0 auto;">
-            Purchase credits for Premium HD Background Removal and other premium features. Credits never expire!
-          </p>
-        </div>
-        
-        <div class="plans" id="creditPacks" style="margin-top: 30px;">
-          <!-- Credit Pack 1: 50 Credits -->
-          <div class="plan featured" style="position: relative;">
-            <div style="position: absolute; top: 10px; right: 10px; background: #4361ee; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">POPULAR</div>
-            <h3>50 Credits</h3>
-            <div class="price">
-              <span id="price-50-usd" style="display: none;">$4</span>
-              <span id="price-50-inr">₹448</span>
-              <span>one-time</span>
-            </div>
-            <p style="font-size: 0.85rem; color: #999; margin-top: -8px;">
-              <span id="gst-50" style="display: none;">Base: ₹380 + GST (18%): ₹68</span>
-            </p>
-            <p>Perfect for regular users</p>
-            <ul>
-              <li>50 Premium HD Background Removals</li>
-              <li>1 credit = 1 HD image</li>
-              <li>Credits never expire</li>
-              <li>Minimum purchase required</li>
-            </ul>
-            <button class="btn-primary" data-credit-pack="pack-50" style="width: 100%; margin-top: 20px;">
-              Buy 50 Credits
-            </button>
-          </div>
-          
-          <!-- Credit Pack 2: 200 Credits -->
-          <div class="plan" style="position: relative;">
-            <div style="position: absolute; top: 10px; right: 10px; background: #22c55e; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">BEST VALUE</div>
-            <h3>200 Credits</h3>
-            <div class="price">
-              <span id="price-200-usd" style="display: none;">$15</span>
-              <span id="price-200-inr">₹1,682</span>
-              <span>one-time</span>
-            </div>
-            <p style="font-size: 0.85rem; color: #999; margin-top: -8px;">
-              <span id="gst-200" style="display: none;">Base: ₹1,425 + GST (18%): ₹257</span>
-            </p>
-            <p>Best value for power users</p>
-            <ul>
-              <li>200 Premium HD Background Removals</li>
-              <li>1 credit = 1 HD image</li>
-              <li>Credits never expire</li>
-              <li>Maximum savings</li>
-            </ul>
-            <button class="btn-primary" data-credit-pack="pack-200" style="width: 100%; margin-top: 20px;">
-              Buy 200 Credits
-            </button>
-          </div>
-        </div>
-        
-        <div style="margin-top: 30px; padding: 20px; background: white; border-radius: 12px; text-align: center;">
-          <p style="color: #56607a; margin: 0 0 12px 0;">
-            <i class="fas fa-info-circle" style="color: #4361ee; margin-right: 8px;"></i>
-            <strong>Note:</strong> 1 Credit = 1 Premium HD Background Removal (2000-4000px). Free Preview (512px) requires no credits and has no watermark.
-          </p>
-          <p style="color: #56607a; margin: 0; font-size: 0.9rem;">
-            <i class="fas fa-rupee-sign" style="color: #4361ee; margin-right: 8px;"></i>
-            <strong>Pricing:</strong> All prices include 18% GST for Indian users. Currency conversion: $1 = ₹95.
-          </p>
-        </div>
-      </div>
     </div>
 </main>
 
@@ -483,9 +427,8 @@
     }
   </script>
 
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script type="module">
-      import { initiateSubscriptionPurchase } from './js/subscription.js';
-      import { setPendingAction } from './js/auth.js';
       import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 
@@ -500,14 +443,12 @@
             const app = initializeApp(firebaseConfig);
             auth = getAuth(app);
             
-            // Wait for auth to be ready
             await new Promise((resolve) => {
               const unsubscribe = onAuthStateChanged(auth, (user) => {
                 authReady = true;
                 unsubscribe();
                 resolve();
               });
-              // Timeout after 2 seconds if auth doesn't initialize
               setTimeout(() => {
                 authReady = true;
                 unsubscribe();
@@ -526,7 +467,6 @@
       // Helper function to get current user ID
       async function getCurrentUserId() {
         if (!auth || !authReady) {
-          // Wait a bit more for auth to be ready
           await new Promise(resolve => setTimeout(resolve, 500));
         }
         
@@ -534,7 +474,6 @@
           const user = auth.currentUser;
           if (user) return user.uid;
           
-          // Wait for auth state change
           return new Promise((resolve) => {
             const unsubscribe = onAuthStateChanged(auth, (user) => {
               unsubscribe();
@@ -550,294 +489,205 @@
         return null;
       }
 
-      // When user clicks buy: check if logged in, redirect to login if not
-      document.querySelectorAll('button[data-plan]').forEach(b => {
-        b.addEventListener('click', async () => {
-          const plan = b.getAttribute('data-plan');
-          const billing = b.getAttribute('data-billing');
-          
-          // Handle Business plan (contact sales)
-          if (plan === 'business') {
-            // Scroll to contact section or show contact form
-            const contactSection = document.getElementById('contact') || document.querySelector('#contact');
-            if (contactSection) {
-              contactSection.scrollIntoView({ behavior: 'smooth' });
-            } else {
-              // Show contact modal or redirect
-              alert('Please contact our sales team for Business plan pricing. Email: easyjpgtopdf@gmail.com');
-            }
-            return;
-          }
-          
-          // Get user ID with proper waiting
-          const userId = await getCurrentUserId();
-
-          if (!userId) {
-            // Store pending subscription using pendingAction mechanism
-            const returnUrl = window.location.href;
-            setPendingAction({
-              type: 'subscription',
-              plan: plan,
-              billing: billing,
-              redirectTo: returnUrl
-            });
-            
-            // Also store in sessionStorage for backward compatibility
-            sessionStorage.setItem('pendingSubscription', JSON.stringify({ plan, billing }));
-            
-            // Redirect to login
-            window.location.href = `login.html?returnTo=${encodeURIComponent(returnUrl)}`;
-            return;
-          }
-
-          // User is logged in: proceed to payment
-          try {
-            await initiateSubscriptionPurchase(plan, billing, userId);
-          } catch (error) {
-            console.error('Error initiating subscription:', error);
-            alert('Failed to start payment. Please try again.');
-          }
-        });
-      });
-
-      // Credit purchase handlers
-      document.querySelectorAll('button[data-credit-pack]').forEach(btn => {
+      // Credit purchase handler
+      document.querySelectorAll('button[data-plan]').forEach(btn => {
         btn.addEventListener('click', async () => {
-          const creditPackId = btn.getAttribute('data-credit-pack');
+          const plan = btn.getAttribute('data-plan');
+          const credits = parseInt(btn.getAttribute('data-credits'));
+          const price = parseFloat(btn.getAttribute('data-price'));
+          
+          // Check if user is logged in
           const userId = await getCurrentUserId();
           
           if (!userId) {
-            // Store pending credit purchase
+            // Store pending purchase and redirect to login
             sessionStorage.setItem('pendingCreditPurchase', JSON.stringify({
-              creditPack: creditPackId,
+              plan,
+              credits,
+              price,
               timestamp: Date.now()
             }));
             window.location.href = `login.html?returnTo=${encodeURIComponent(window.location.href)}`;
             return;
           }
-          
+
+          // User is logged in - proceed with payment
           try {
-            // Import credit manager
-            const { purchaseCredits } = await import('./js/credit-manager.js');
-            await purchaseCredits({ id: creditPackId }, userId);
+            await initiateCreditPurchase(userId, plan, credits, price);
           } catch (error) {
-            console.error('Error purchasing credits:', error);
-            alert('Failed to initiate credit purchase. Please try again.');
+            console.error('Error initiating purchase:', error);
+            alert('Failed to start payment. Please try again.');
           }
         });
       });
-      
-      // Listen for auth-action-resume event (dispatched by auth.js after login)
-      let authResumeProcessed = false;
-      // Only listen for auth-action-resume on pricing page
-      if (window.location.pathname.includes('pricing.html')) {
-        document.addEventListener('auth-action-resume', async (event) => {
-          const { action, user } = event.detail;
-          if (action && action.type === 'subscription' && user && !authResumeProcessed) {
-            authResumeProcessed = true;
-            try {
-              // Check if action is stale
-              if (action.timestamp && (Date.now() - action.timestamp > 5 * 60 * 1000)) {
-                console.log('Auth action is stale, ignoring');
-                authResumeProcessed = false;
-                return;
-              }
-              
-              // Small delay to let page finish loading and Razorpay script load
-              setTimeout(async () => {
-                try {
-                  await initiateSubscriptionPurchase(action.plan, action.billing, user.uid);
-                  // Clear pending action after successful initiation
-                  try {
-                    const authModule = await import('./js/auth.js');
-                    if (authModule && authModule.clearPendingAction) {
-                      authModule.clearPendingAction();
-                    }
-                  } catch (e) {
-                    // Ignore
-                  }
-                } catch (error) {
-                  console.error('Error auto-starting subscription:', error);
-                  // Don't show alert, just log - user can click button again
-                  console.log('Subscription auto-start failed. User can click buy button to retry.');
-                  authResumeProcessed = false; // Allow retry
-                }
-              }, 2000);
-            } catch (e) {
-              console.error('Error handling auth-action-resume:', e);
-              authResumeProcessed = false; // Allow retry
-            }
+
+      // Initiate credit purchase with Razorpay
+      async function initiateCreditPurchase(userId, plan, credits, price) {
+        try {
+          // Get user token
+          const user = auth.currentUser;
+          if (!user) throw new Error('User not authenticated');
+          
+          const token = await user.getIdToken();
+          
+          // Create order via backend
+          const API_BASE_URL = window.location.origin.includes('localhost') 
+            ? 'http://localhost:3000' 
+            : (window.location.origin.includes('easyjpgtopdf.com') 
+                ? 'https://pdf-to-word-converter-iwumaktavq-uc.a.run.app'
+                : window.location.origin);
+          
+          const response = await fetch(`${API_BASE_URL}/api/credits/create-order`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              plan,
+              credits,
+              amount: price,
+              currency: 'USD'
+            })
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to create order');
           }
-        });
+
+          const orderData = await response.json();
+          
+          if (!orderData.success || !orderData.order) {
+            throw new Error('Invalid order response');
+          }
+
+          // Open Razorpay checkout
+          const options = {
+            key: orderData.key_id || process.env.RAZORPAY_KEY_ID,
+            amount: orderData.order.amount,
+            currency: orderData.order.currency,
+            name: 'easyjpgtopdf',
+            description: `${plan} - ${credits} Credit Points`,
+            order_id: orderData.order.id,
+            prefill: {
+              email: user.email || '',
+              name: user.displayName || ''
+            },
+            theme: {
+              color: '#4361ee'
+            },
+            handler: async function(paymentResponse) {
+              // Payment successful - verify and add credits
+              await verifyAndAddCredits(userId, paymentResponse, orderData.order.id, plan, credits, price);
+            },
+            modal: {
+              ondismiss: function() {
+                console.log('Payment cancelled');
+              }
+            }
+          };
+
+          const razorpay = new Razorpay(options);
+          razorpay.open();
+          
+        } catch (error) {
+          console.error('Purchase error:', error);
+          alert(error.message || 'Failed to initiate payment. Please try again.');
+        }
       }
 
-      // If user returned from login and there is a pending subscription, auto-start it
-      // Only run once per page load and only on pricing page
-      let pendingSubscriptionProcessed = false;
-      (async function(){
+      // Verify payment and add credits
+      async function verifyAndAddCredits(userId, paymentResponse, orderId, plan, credits, price) {
         try {
-          // Only process on pricing page
-          if (!window.location.pathname.includes('pricing.html')) {
-            // Clear any stale pending subscriptions if not on pricing page
-            sessionStorage.removeItem('pendingSubscription');
-            try {
-              const authModule = await import('./js/auth.js');
-              if (authModule && authModule.clearPendingAction) {
-                authModule.clearPendingAction();
-              }
-            } catch (e) {
-              // Ignore
-            }
-            return;
+          const user = auth.currentUser;
+          if (!user) throw new Error('User not authenticated');
+          
+          const token = await user.getIdToken();
+          
+          const API_BASE_URL = window.location.origin.includes('localhost') 
+            ? 'http://localhost:3000' 
+            : (window.location.origin.includes('easyjpgtopdf.com') 
+                ? 'https://pdf-to-word-converter-iwumaktavq-uc.a.run.app'
+                : window.location.origin);
+          
+          const response = await fetch(`${API_BASE_URL}/api/credits/verify-payment`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              razorpay_payment_id: paymentResponse.razorpay_payment_id,
+              razorpay_order_id: paymentResponse.razorpay_order_id,
+              razorpay_signature: paymentResponse.razorpay_signature,
+              orderId,
+              plan,
+              credits,
+              amount: price
+            })
+          });
+
+          const result = await response.json();
+          
+          if (result.success) {
+            // Show success message
+            alert('Payment successful! Credits have been added to your account.');
+            // Redirect to dashboard
+            window.location.href = 'dashboard.html#dashboard-overview';
+          } else {
+            throw new Error(result.message || 'Payment verification failed');
           }
-          
-          // Wait for auth to be ready
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          
-          // Check if already processed
-          if (pendingSubscriptionProcessed) {
-            // Clear any stale data
-            sessionStorage.removeItem('pendingSubscription');
-            try {
-              const authModule = await import('./js/auth.js');
-              if (authModule && authModule.clearPendingAction) {
-                authModule.clearPendingAction();
-              }
-            } catch (e) {
-              // Ignore
-            }
-            return;
-          }
-          
-          // Check both sessionStorage and auth.js pending action
-          let pending = null;
-          const pendingRaw = sessionStorage.getItem('pendingSubscription');
-          
+        } catch (error) {
+          console.error('Verification error:', error);
+          alert('Payment verification failed. Please contact support if credits were deducted.');
+        }
+      }
+
+      // Check for pending purchase after login
+      window.addEventListener('load', async () => {
+        const pending = sessionStorage.getItem('pendingCreditPurchase');
+        if (pending) {
           try {
-            const authModule = await import('./js/auth.js');
-            if (authModule && authModule.getCurrentPendingAction) {
-              const authPending = authModule.getCurrentPendingAction();
-              if (authPending && authPending.type === 'subscription') {
-                pending = {
-                  plan: authPending.plan,
-                  billing: authPending.billing,
-                  timestamp: authPending.timestamp
-                };
+            const data = JSON.parse(pending);
+            // Check if it's not stale (less than 5 minutes)
+            if (Date.now() - data.timestamp < 5 * 60 * 1000) {
+              const userId = await getCurrentUserId();
+              if (userId) {
+                // Clear pending
+                sessionStorage.removeItem('pendingCreditPurchase');
+                // Auto-start purchase
+                setTimeout(() => {
+                  initiateCreditPurchase(userId, data.plan, data.credits, data.price);
+                }, 1000);
               }
+            } else {
+              sessionStorage.removeItem('pendingCreditPurchase');
             }
           } catch (e) {
-            // Ignore
-          }
-          
-          if (!pending && pendingRaw) {
-            try {
-              pending = JSON.parse(pendingRaw);
-            } catch (e) {
-              console.warn('Error parsing pending subscription:', e);
-              sessionStorage.removeItem('pendingSubscription');
-              return;
-            }
-          }
-          
-          if (!pending) return;
-          
-          // Check if pending subscription is stale (older than 5 minutes)
-          if (pending.timestamp && (Date.now() - pending.timestamp > 5 * 60 * 1000)) {
-            console.log('Pending subscription is stale, clearing it');
-            sessionStorage.removeItem('pendingSubscription');
-            try {
-              const authModule = await import('./js/auth.js');
-              if (authModule && authModule.clearPendingAction) {
-                authModule.clearPendingAction();
-              }
-            } catch (e) {
-              // Ignore
-            }
-            return;
-          }
-          
-          const userId = await getCurrentUserId();
-          
-          if (userId) {
-            pendingSubscriptionProcessed = true;
-            
-            // Clear immediately to prevent re-processing
-            sessionStorage.removeItem('pendingSubscription');
-            try {
-              const authModule = await import('./js/auth.js');
-              if (authModule && authModule.clearPendingAction) {
-                authModule.clearPendingAction();
-              }
-            } catch (e) {
-              // Ignore
-            }
-            
-            // Small delay to let page finish loading and Razorpay script load
-            setTimeout(async () => {
-              try {
-                await initiateSubscriptionPurchase(pending.plan, pending.billing, userId);
-              } catch (error) {
-                console.error('Error auto-starting subscription:', error);
-                // Don't show alert, just log - user can click button again
-                console.log('Subscription auto-start failed. User can click buy button to retry.');
-                // Reset flag to allow manual retry
-                pendingSubscriptionProcessed = false;
-              }
-            }, 2500);
-          }
-        } catch (e) {
-          console.error('Error processing pending subscription:', e);
-          // Clear on error to prevent loops
-          sessionStorage.removeItem('pendingSubscription');
-          try {
-            const authModule = await import('./js/auth.js');
-            if (authModule && authModule.clearPendingAction) {
-              authModule.clearPendingAction();
-            }
-          } catch (err) {
-            // Ignore
+            console.error('Error processing pending purchase:', e);
+            sessionStorage.removeItem('pendingCreditPurchase');
           }
         }
-      })();
+      });
     </script>
     
     <!-- Theme Toggle Script -->
     <script>
-      // Theme Toggle Functionality
       function initTheme() {
         const savedTheme = localStorage.getItem('site-theme') || 'light';
         document.documentElement.setAttribute('data-theme', savedTheme);
-        updateThemeUI(savedTheme);
-      }
-      
-      function updateThemeUI(theme) {
-        const themeIcon = document.getElementById('theme-icon');
-        const themeText = document.getElementById('theme-text');
-        
-        if (themeIcon && themeText) {
-          if (theme === 'light') {
-            themeIcon.className = 'fas fa-sun';
-            themeText.textContent = 'Light';
-          } else {
-            themeIcon.className = 'fas fa-moon';
-            themeText.textContent = 'Dark';
-          }
-        }
       }
       
       function toggleTheme() {
         const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        
         document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('site-theme', newTheme);
-        updateThemeUI(newTheme);
       }
       
-      // Initialize theme on page load
       initTheme();
       
-      // Theme toggle button event listener
       const themeToggleBtn = document.getElementById('theme-toggle-btn');
       if (themeToggleBtn) {
         themeToggleBtn.addEventListener('click', toggleTheme);
@@ -862,41 +712,10 @@
                         <p class="footer-credits">
                 Thanks to every open-source contributor powering this site. <a href="attributions.html">See full acknowledgements</a>.
             </p>
-            <div class="footer-social-search" style="display: flex; align-items: center; justify-content: space-between; margin-top: 20px; padding-top: 20px; border-top: 1px solid #444; flex-wrap: wrap; gap: 15px;">
-                <div class="footer-social-links" style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-                                        <a href="https://x.com/easyjpgtopdf" target="_blank" rel="noopener noreferrer" title="Follow us on X (Twitter)" style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; color: #aaa; text-decoration: none; transition: all 0.3s; border-radius: 50%;" onmouseover="this.style.color='#fff'; this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.color='#aaa'; this.style.background='transparent'">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                        </svg>
-                    </a>
-                                        <a href="https://www.youtube.com/@EasyJpgtoPdf" target="_blank" rel="noopener noreferrer" title="Subscribe to our YouTube channel" style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; color: #aaa; text-decoration: none; transition: all 0.3s; border-radius: 50%;" onmouseover="this.style.color='#fff'; this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.color='#aaa'; this.style.background='transparent'">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                        </svg>
-                    </a>
-                    <div style="display: inline-flex; align-items: center; gap: 8px; color: #aaa; cursor: default;" title="Mobile App Coming Soon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.95-3.24-1.44-2.24-1.01-4.33-1.95-5.99-3.22C2.79 14.25.99 12.12.99 9.12c0-2.23 1.21-4.15 3.29-5.19.4-.2.81-.38 1.24-.52.7-.23 1.23-.52 1.62-.82.49-.38.85-.88 1.06-1.46.19-.57.24-1.17.14-1.8-.09-.63-.29-1.24-.58-1.81L7.76.36c.16-.24.35-.45.57-.62.22-.17.46-.3.72-.4.26-.1.54-.15.82-.15.28 0 .56.05.82.15.26.1.5.23.72.4.22.17.41.38.57.62l1.39 2.06c.29.57.49 1.18.58 1.81.1.63.05 1.23-.14 1.8-.21.58-.57 1.08-1.06 1.46-.39.3-.92.59-1.62.82-.43.14-.84.32-1.24.52-2.08 1.04-3.29 2.96-3.29 5.19 0 3 1.8 5.13 4.5 6.5 1.66 1.27 3.75 2.21 5.99 3.22 1.16.49 2.15.94 3.24 1.44 1.03.48 2.1.55 3.08-.4 1.01-.98 1.01-2.4.01-3.38z"/>
-                        </svg>
-                        <span style="font-size: 0.9rem;">App Coming Soon</span>
-                    </div>
-                </div>
-                <div class="footer-search" style="flex: 1; min-width: 200px; max-width: 300px;">
-                                        <form action="search.html" method="get" style="display: flex; gap: 5px;">
-                        <input type="text" name="q" placeholder="Search our site..." style="flex: 1; padding: 8px 12px; border: 1px solid #555; border-radius: 4px; background: #2a2a2a; color: #fff; font-size: 0.9rem; outline: none;" onfocus="this.style.borderColor='#4361ee'" onblur="this.style.borderColor='#555'">
-                        <button type="submit" style="padding: 8px 15px; background: #4361ee; border: none; border-radius: 4px; color: #fff; cursor: pointer; transition: background 0.3s;" onmouseover="this.style.background='#3a0ca3'" onmouseout="this.style.background='#4361ee'">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-                            </svg>
-                        </button>
-                    </form>
-                </div>
-            </div>
         </div>
     </footer>
     <script src="js/global-components.js"></script>
     <script>
-    // Ensure header loads - multiple attempts to guarantee it works
     (function() {
         function tryLoadHeader() {
             if (typeof loadGlobalHeader === 'function') {
@@ -910,12 +729,10 @@
             return false;
         }
         
-        // Try immediately if script already loaded
         if (document.readyState === 'complete' || document.readyState === 'interactive') {
             if (!tryLoadHeader()) {
-                // Script not loaded yet, wait for it
                 var attempts = 0;
-                var maxAttempts = 60; // 3 seconds total
+                var maxAttempts = 60;
                 var checkHeader = setInterval(function() {
                     attempts++;
                     if (tryLoadHeader() || attempts >= maxAttempts) {
@@ -924,7 +741,6 @@
                 }, 50);
             }
         } else {
-            // Wait for DOM to be ready
             document.addEventListener('DOMContentLoaded', function() {
                 if (!tryLoadHeader()) {
                     var attempts = 0;
@@ -939,7 +755,6 @@
             });
         }
         
-        // Final backup attempt on window load
         window.addEventListener('load', function() {
             setTimeout(function() {
                 if (!document.querySelector('header') && typeof loadGlobalHeader === 'function') {
@@ -951,4 +766,3 @@
     </script>
 </body>
 </html>
-

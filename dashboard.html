@@ -917,6 +917,10 @@
 <i aria-hidden="true" class="fas fa-clipboard-list"></i>
                                 Orders &amp; Subscriptions
                             </button>
+<button class="dashboard-nav-btn" data-dashboard-target="dashboard-credits" type="button">
+<i aria-hidden="true" class="fas fa-coins"></i>
+                                Credit Points
+                            </button>
 <h4>Support</h4>
 <button class="dashboard-nav-btn" data-dashboard-target="dashboard-support" type="button">
 <i aria-hidden="true" class="fas fa-life-ring"></i>
@@ -1028,10 +1032,38 @@
 </div>
 </div>
 <div class="dashboard-panel" id="dashboard-credits">
+<div class="dashboard-card" id="credit-balance-card" style="background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%); color: white; border: none;">
+<h3 style="color: white; margin-bottom: 16px;">
+<i class="fas fa-coins"></i> Credit Points Balance
+</h3>
+<div style="display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px;">
+<span id="credit-balance-display-main" style="font-size: 2.5rem; font-weight: 700;">0</span>
+<span style="font-size: 1.2rem; opacity: 0.9;">credits</span>
+</div>
+<div style="margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+<div>
+<p style="margin: 0; opacity: 0.9; font-size: 0.9rem;">Expires At</p>
+<p style="margin: 4px 0 0; font-size: 1.1rem; font-weight: 600;" id="credit-expires-at">Never</p>
+</div>
+<div>
+<p style="margin: 0; opacity: 0.9; font-size: 0.9rem;">Last Used</p>
+<p style="margin: 4px 0 0; font-size: 1.1rem; font-weight: 600;" id="credit-last-used">Never</p>
+</div>
+</div>
+<a href="pricing.html" class="btn" style="background: white; color: #4361ee; margin-top: 20px; display: inline-block; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+<i class="fas fa-shopping-cart"></i> Buy More Credits
+</a>
+</div>
 <div class="dashboard-card" id="credit-history-card">
 <h3>Credit Transaction History</h3>
 <div id="credit-transactions-list" style="margin-top: 20px;">
 <p style="color: #999; text-align: center; padding: 20px;">Loading credit history...</p>
+</div>
+</div>
+<div class="dashboard-card" id="page-visit-card">
+<h3>Page Visit & Tool Usage History</h3>
+<div id="page-visits-list" style="margin-top: 20px;">
+<p style="color: #999; text-align: center; padding: 20px;">Loading visit history...</p>
 </div>
 </div>
 </div>
@@ -1258,6 +1290,9 @@ Monthly download: <span id="image-remover-download-used">0</span> MB / <span id=
                 // Load credit transactions
                 await loadCreditTransactions(user, firestore);
                 
+                // Load page visits
+                await loadPageVisits(user);
+                
                 // Load receipts
                 await loadReceipts(user, firestore);
                 
@@ -1293,9 +1328,14 @@ Monthly download: <span id="image-remover-download-used">0</span> MB / <span id=
         // Load credit balance from API (backend)
         async function loadCreditBalance(user, firestore) {
             try {
-                // Try new API endpoint first
                 const token = await user.getIdToken();
-                const response = await fetch('https://pdf-to-word-converter-iwumaktavq-uc.a.run.app/api/user/credits', {
+                const API_BASE_URL = window.location.origin.includes('localhost') 
+                    ? 'http://localhost:3000' 
+                    : (window.location.origin.includes('easyjpgtopdf.com') 
+                        ? 'https://pdf-to-word-converter-iwumaktavq-uc.a.run.app'
+                        : window.location.origin);
+                
+                const response = await fetch(`${API_BASE_URL}/api/credits/balance`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -1303,18 +1343,52 @@ Monthly download: <span id="image-remover-download-used">0</span> MB / <span id=
                 
                 if (response.ok) {
                     const data = await response.json();
-                    const credits = data.credits || 0;
-                    
-                    // Update credit display elements
-                    document.querySelectorAll('.user-credits').forEach(el => {
-                        el.textContent = credits.toFixed(1);
-                    });
-                    
-                    const creditBalanceDisplay = document.getElementById('credit-balance-display');
-                    if (creditBalanceDisplay) {
-                        creditBalanceDisplay.textContent = credits.toFixed(1);
+                    if (data.success) {
+                        const credits = data.credits || 0;
+                        
+                        // Update credit display elements
+                        document.querySelectorAll('.user-credits').forEach(el => {
+                            el.textContent = credits.toFixed(0);
+                        });
+                        
+                        const creditBalanceDisplay = document.getElementById('credit-balance-display');
+                        if (creditBalanceDisplay) {
+                            creditBalanceDisplay.textContent = credits.toFixed(0);
+                        }
+                        
+                        const creditBalanceDisplayMain = document.getElementById('credit-balance-display-main');
+                        if (creditBalanceDisplayMain) {
+                            creditBalanceDisplayMain.textContent = credits.toFixed(0);
+                        }
+                        
+                        // Update expiry date
+                        const expiresAtEl = document.getElementById('credit-expires-at');
+                        if (expiresAtEl && data.expiresAt) {
+                            const expiryDate = new Date(data.expiresAt);
+                            expiresAtEl.textContent = expiryDate.toLocaleDateString('en-US', { 
+                                year: 'numeric', 
+                                month: 'short', 
+                                day: 'numeric' 
+                            });
+                        } else if (expiresAtEl) {
+                            expiresAtEl.textContent = 'Never';
+                        }
+                        
+                        // Update last used
+                        const lastUsedEl = document.getElementById('credit-last-used');
+                        if (lastUsedEl && data.lastUsedAt) {
+                            const lastUsedDate = new Date(data.lastUsedAt);
+                            lastUsedEl.textContent = lastUsedDate.toLocaleDateString('en-US', { 
+                                year: 'numeric', 
+                                month: 'short', 
+                                day: 'numeric' 
+                            });
+                        } else if (lastUsedEl) {
+                            lastUsedEl.textContent = 'Never';
+                        }
                     }
                 } else {
+                    console.warn('Failed to load credits from API, using fallback');
                     // Fallback to Firestore
                     const userDocRef = doc(firestore, 'users', user.uid);
                     const userDoc = await getDoc(userDocRef);
@@ -1324,30 +1398,17 @@ Monthly download: <span id="image-remover-download-used">0</span> MB / <span id=
                         const credits = userData.credits || 0;
                         
                         document.querySelectorAll('.user-credits').forEach(el => {
-                            el.textContent = credits.toFixed(1);
+                            el.textContent = credits.toFixed(0);
                         });
                         
                         const creditBalanceDisplay = document.getElementById('credit-balance-display');
                         if (creditBalanceDisplay) {
-                            creditBalanceDisplay.textContent = credits.toFixed(1);
+                            creditBalanceDisplay.textContent = credits.toFixed(0);
                         }
                     }
                 }
             } catch (error) {
                 console.error('Failed to load credit balance:', error);
-                // Try Firestore fallback
-                try {
-                    const userDocRef = doc(firestore, 'users', user.uid);
-                    const userDoc = await getDoc(userDocRef);
-                    if (userDoc.exists()) {
-                        const credits = userDoc.data().credits || 0;
-                        document.querySelectorAll('.user-credits').forEach(el => {
-                            el.textContent = credits.toFixed(1);
-                        });
-                    }
-                } catch (e) {
-                    console.error('Firestore fallback also failed:', e);
-                }
             }
         }
         
@@ -1357,9 +1418,14 @@ Monthly download: <span id="image-remover-download-used">0</span> MB / <span id=
             if (!transactionsList) return;
             
             try {
-                // Try new API endpoint first
                 const token = await user.getIdToken();
-                const response = await fetch('https://pdf-to-word-converter-iwumaktavq-uc.a.run.app/api/user/history?limit=50', {
+                const API_BASE_URL = window.location.origin.includes('localhost') 
+                    ? 'http://localhost:3000' 
+                    : (window.location.origin.includes('easyjpgtopdf.com') 
+                        ? 'https://pdf-to-word-converter-iwumaktavq-uc.a.run.app'
+                        : window.location.origin);
+                
+                const response = await fetch(`${API_BASE_URL}/api/credits/history?limit=50`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -1367,106 +1433,129 @@ Monthly download: <span id="image-remover-download-used">0</span> MB / <span id=
                 
                 if (response.ok) {
                     const data = await response.json();
-                    const transactions = data.transactions || [];
-                    
-                    if (transactions.length === 0) {
-                        transactionsList.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;"><i class="fas fa-info-circle"></i> No credit transactions found yet.</p>';
+                    if (data.success) {
+                        const transactions = data.transactions || [];
+                        
+                        if (transactions.length === 0) {
+                            transactionsList.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;"><i class="fas fa-info-circle"></i> No credit transactions found yet.</p>';
+                            return;
+                        }
+                        
+                        let html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+                        transactions.forEach((txn) => {
+                            const date = new Date(txn.createdAt);
+                            const dateStr = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                            const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                            
+                            const isAddition = txn.type === 'purchase';
+                            const amount = Math.abs(txn.credits_change);
+                            const metadata = txn.metadata || {};
+                            const reason = isAddition 
+                                ? `Purchased ${metadata.plan || 'credits'}` 
+                                : metadata.tool_used || 'Tool usage';
+                            
+                            html += `
+                                <div style="background: ${isAddition ? '#f0f9ff' : '#fff5f5'}; border-left: 4px solid ${isAddition ? '#10b981' : '#ef4444'}; padding: 16px; border-radius: 8px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                                        <div style="flex: 1;">
+                                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                                <i class="fas fa-${isAddition ? 'plus-circle' : 'minus-circle'}" style="color: ${isAddition ? '#10b981' : '#ef4444'};"></i>
+                                                <strong style="color: #333; font-size: 1.1rem;">${isAddition ? '+' : '-'}${amount} credits</strong>
+                                            </div>
+                                            <p style="margin: 4px 0; color: #666; font-size: 0.9rem;">${reason}</p>
+                                            ${metadata.file_name ? `<p style="margin: 4px 0; color: #999; font-size: 0.85rem;"><i class="fas fa-file"></i> ${metadata.file_name}</p>` : ''}
+                                            ${metadata.page_count ? `<p style="margin: 4px 0; color: #999; font-size: 0.85rem;"><i class="fas fa-file-alt"></i> ${metadata.page_count} pages</p>` : ''}
+                                            ${metadata.processor ? `<p style="margin: 4px 0; color: #999; font-size: 0.85rem;"><i class="fas fa-cog"></i> ${metadata.processor === 'docai' ? 'OCR' : 'Direct'}</p>` : ''}
+                                            <p style="margin: 4px 0; color: #999; font-size: 0.85rem;">
+                                                <i class="fas fa-clock"></i> ${dateStr} at ${timeStr}
+                                            </p>
+                                            <p style="margin: 4px 0; color: #999; font-size: 0.85rem;">
+                                                Balance: ${txn.balance_after} credits
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                        transactionsList.innerHTML = html;
                         return;
                     }
-                    
-                    let html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
-                    transactions.forEach((txn) => {
-                        const date = new Date(txn.date);
-                        const dateStr = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-                        const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                        
-                        const isAddition = txn.type === 'add';
-                        const amount = txn.credits || 0;
-                        const reason = txn.description || 'Credit transaction';
-                        
-                        html += `
-                            <div style="background: ${isAddition ? '#f0f9ff' : '#fff5f5'}; border-left: 4px solid ${isAddition ? '#10b981' : '#ef4444'}; padding: 16px; border-radius: 8px;">
-                                <div style="display: flex; justify-content: space-between; align-items: start;">
-                                    <div style="flex: 1;">
-                                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                            <i class="fas fa-${isAddition ? 'plus-circle' : 'minus-circle'}" style="color: ${isAddition ? '#10b981' : '#ef4444'};"></i>
-                                            <strong style="color: #333; font-size: 1.1rem;">${isAddition ? '+' : '-'}${amount} credits</strong>
-                                        </div>
-                                        <p style="margin: 4px 0; color: #666; font-size: 0.9rem;">${reason}</p>
-                                        ${txn.file_name ? `<p style="margin: 4px 0; color: #999; font-size: 0.85rem;"><i class="fas fa-file"></i> ${txn.file_name}</p>` : ''}
-                                        ${txn.page_count ? `<p style="margin: 4px 0; color: #999; font-size: 0.85rem;"><i class="fas fa-file-alt"></i> ${txn.page_count} pages</p>` : ''}
-                                        ${txn.processor ? `<p style="margin: 4px 0; color: #999; font-size: 0.85rem;"><i class="fas fa-cog"></i> ${txn.processor === 'docai' ? 'OCR' : 'Direct'}</p>` : ''}
-                                        <p style="margin: 4px 0; color: #999; font-size: 0.85rem;">
-                                            <i class="fas fa-clock"></i> ${dateStr} at ${timeStr}
-                                        </p>
-                                        ${txn.creditsBefore !== undefined ? `
-                                        <p style="margin: 4px 0; color: #999; font-size: 0.85rem;">
-                                            Balance: ${txn.creditsBefore} → ${txn.creditsAfter} credits
-                                        </p>
-                                        ` : ''}
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    html += '</div>';
-                    transactionsList.innerHTML = html;
-                    return;
                 }
             } catch (apiError) {
-                console.warn('API credit history failed, trying Firestore fallback:', apiError);
+                console.error('API credit history failed:', apiError);
             }
             
-            // Fallback to Firestore
+            // Show error message
+            transactionsList.innerHTML = '<p style="color: #dc3545; padding: 20px;"><i class="fas fa-exclamation-triangle"></i> Failed to load credit transactions.</p>';
+        }
+        
+        // Load page visit history
+        async function loadPageVisits(user) {
+            const visitsList = document.getElementById('page-visits-list');
+            if (!visitsList) return;
+            
             try {
-                const transactionsRef = collection(firestore, 'users', user.uid, 'creditTransactions');
-                const q = query(transactionsRef, orderBy('timestamp', 'desc'));
-                const querySnapshot = await getDocs(q);
+                const token = await user.getIdToken();
+                const API_BASE_URL = window.location.origin.includes('localhost') 
+                    ? 'http://localhost:3000' 
+                    : (window.location.origin.includes('easyjpgtopdf.com') 
+                        ? 'https://pdf-to-word-converter-iwumaktavq-uc.a.run.app'
+                        : window.location.origin);
                 
-                if (querySnapshot.empty) {
-                    transactionsList.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;"><i class="fas fa-info-circle"></i> No credit transactions found yet.</p>';
-                    return;
-                }
-                
-                let html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
-                querySnapshot.forEach((docSnap) => {
-                    const data = docSnap.data();
-                    const timestamp = data.timestamp?.toDate?.() || new Date();
-                    const dateStr = timestamp.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-                    const timeStr = timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                    
-                    const isAddition = data.type === 'addition';
-                    const amount = data.amount || 0;
-                    const reason = data.reason || 'Credit transaction';
-                    
-                    html += `
-                        <div style="background: ${isAddition ? '#f0f9ff' : '#fff5f5'}; border-left: 4px solid ${isAddition ? '#10b981' : '#ef4444'}; padding: 16px; border-radius: 8px;">
-                            <div style="display: flex; justify-content: space-between; align-items: start;">
-                                <div>
-                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                        <i class="fas fa-${isAddition ? 'plus-circle' : 'minus-circle'}" style="color: ${isAddition ? '#10b981' : '#ef4444'};"></i>
-                                        <strong style="color: #333; font-size: 1.1rem;">${isAddition ? '+' : '-'}${amount} credits</strong>
-                                    </div>
-                                    <p style="margin: 4px 0; color: #666; font-size: 0.9rem;">${reason}</p>
-                                    <p style="margin: 4px 0; color: #999; font-size: 0.85rem;">
-                                        <i class="fas fa-clock"></i> ${dateStr} at ${timeStr}
-                                    </p>
-                                    ${data.creditsBefore !== undefined ? `
-                                    <p style="margin: 4px 0; color: #999; font-size: 0.85rem;">
-                                        Balance: ${data.creditsBefore} → ${data.creditsAfter} credits
-                                    </p>
-                                    ` : ''}
-                                </div>
-                            </div>
-                        </div>
-                    `;
+                const response = await fetch(`${API_BASE_URL}/api/credits/visit-history?limit=50`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
                 });
-                html += '</div>';
-                transactionsList.innerHTML = html;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        const visits = data.visits || [];
+                        
+                        if (visits.length === 0) {
+                            visitsList.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;"><i class="fas fa-info-circle"></i> No page visits recorded yet.</p>';
+                            return;
+                        }
+                        
+                        let html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+                        visits.forEach((visit) => {
+                            const date = new Date(visit.last_visited);
+                            const dateStr = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                            const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                            
+                            html += `
+                                <div style="background: #f8f9fa; border-left: 4px solid #4361ee; padding: 16px; border-radius: 8px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                                        <div style="flex: 1;">
+                                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                                <i class="fas fa-file-alt" style="color: #4361ee;"></i>
+                                                <strong style="color: #333; font-size: 1.1rem;">${visit.page}</strong>
+                                            </div>
+                                            ${visit.tool_used ? `<p style="margin: 4px 0; color: #666; font-size: 0.9rem;"><i class="fas fa-tools"></i> Tool: ${visit.tool_used}</p>` : ''}
+                                            ${visit.credits_spent > 0 ? `<p style="margin: 4px 0; color: #999; font-size: 0.85rem;"><i class="fas fa-coins"></i> Credits spent: ${visit.credits_spent}</p>` : ''}
+                                            <p style="margin: 4px 0; color: #999; font-size: 0.85rem;">
+                                                <i class="fas fa-eye"></i> Visited ${visit.visit_count} time${visit.visit_count !== 1 ? 's' : ''}
+                                            </p>
+                                            <p style="margin: 4px 0; color: #999; font-size: 0.85rem;">
+                                                <i class="fas fa-clock"></i> Last visited: ${dateStr} at ${timeStr}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                        visitsList.innerHTML = html;
+                        return;
+                    }
+                }
             } catch (error) {
-                console.error('Failed to load credit transactions:', error);
-                transactionsList.innerHTML = '<p style="color: #dc3545; padding: 20px;"><i class="fas fa-exclamation-triangle"></i> Failed to load credit transactions.</p>';
+                console.error('Failed to load page visits:', error);
             }
+            
+            visitsList.innerHTML = '<p style="color: #dc3545; padding: 20px;"><i class="fas fa-exclamation-triangle"></i> Failed to load page visits.</p>';
         }
         
         // Load receipts
