@@ -14,8 +14,9 @@ from dataclasses import dataclass
 from pdfminer.high_level import extract_text as pdf_extract_text
 from pdfminer.layout import LAParams
 from docx import Document
-from docx.shared import Pt
+from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
 
 from app.docai_client import process_pdf_to_layout, ParsedDocument, get_docai_confidence
 
@@ -230,18 +231,103 @@ def convert_pdf_to_docx_with_docai(
             for block in page_blocks:
                 if block.is_heading:
                     # Determine heading level based on font size
+                    heading_level = 3
                     if block.font_size and block.font_size >= 18:
-                        doc.add_heading(block.text, level=1)
+                        heading_level = 1
                     elif block.font_size and block.font_size >= 14:
-                        doc.add_heading(block.text, level=2)
-                    else:
-                        doc.add_heading(block.text, level=3)
+                        heading_level = 2
+                    
+                    heading = doc.add_heading(block.text, level=heading_level)
+                    
+                    # Apply font to heading if available
+                    if block.font_name:
+                        try:
+                            for run in heading.runs:
+                                # Map Hindi fonts to Unicode-compatible fonts
+                                hindi_font_map = {
+                                    'krutidev': 'Noto Sans Devanagari',
+                                    'krutidev010': 'Noto Sans Devanagari',
+                                    'chanakya': 'Noto Sans Devanagari',
+                                    'mangal': 'Noto Sans Devanagari',
+                                }
+                                font_lower = block.font_name.lower()
+                                if any(hindi_font in font_lower for hindi_font in hindi_font_map.keys()):
+                                    run.font.name = hindi_font_map.get(font_lower.split('-')[0], 'Noto Sans Devanagari')
+                                    run._element.rPr.rFonts.set(qn('w:eastAsia'), run.font.name)
+                                else:
+                                    run.font.name = block.font_name
+                        except Exception as e:
+                            logger.warning(f"Could not set heading font: {e}")
+                    
+                    # Auto-detect Hindi in headings
+                    if not block.font_name and any(ord(char) >= 0x0900 and ord(char) <= 0x097F for char in block.text):
+                        try:
+                            for run in heading.runs:
+                                run.font.name = 'Noto Sans Devanagari'
+                                run._element.rPr.rFonts.set(qn('w:eastAsia'), 'Noto Sans Devanagari')
+                        except Exception:
+                            pass
                 else:
-                    # Regular paragraph
-                    p = doc.add_paragraph(block.text)
+                    # Regular paragraph with Unicode and font preservation
+                    p = doc.add_paragraph()
+                    run = p.add_run(block.text)
+                    
+                    # Set font size if available
                     if block.font_size:
-                        for run in p.runs:
-                            run.font.size = Pt(block.font_size)
+                        run.font.size = Pt(block.font_size)
+                    
+                    # Preserve font name if available (for Hindi fonts like Krutidev, Chanakya)
+                    if block.font_name:
+                        try:
+                            # Map common font names to supported fonts
+                            font_name = block.font_name
+                            
+                            # Hindi font mappings
+                            hindi_font_map = {
+                                'krutidev': 'Noto Sans Devanagari',
+                                'krutidev010': 'Noto Sans Devanagari',
+                                'chanakya': 'Noto Sans Devanagari',
+                                'mangal': 'Noto Sans Devanagari',
+                                'aaparajita': 'Noto Sans Devanagari',
+                            }
+                            
+                            # Convert to lowercase for matching
+                            font_lower = font_name.lower()
+                            
+                            # Check if it's a Hindi font
+                            if any(hindi_font in font_lower for hindi_font in hindi_font_map.keys()):
+                                # Use Unicode-compatible Hindi font
+                                run.font.name = hindi_font_map.get(font_lower.split('-')[0], 'Noto Sans Devanagari')
+                                # Set font for complex scripts (Hindi, Devanagari)
+                                run._element.rPr.rFonts.set(qn('w:eastAsia'), run.font.name)
+                            else:
+                                # Try to use original font name
+                                run.font.name = font_name
+                        except Exception as e:
+                            logger.warning(f"Could not set font '{block.font_name}': {e}. Using default.")
+                            # Default to Noto Sans Devanagari for Hindi/Devanagari text
+                            if any(ord(char) >= 0x0900 and ord(char) <= 0x097F for char in block.text):
+                                run.font.name = 'Noto Sans Devanagari'
+                                run._element.rPr.rFonts.set(qn('w:eastAsia'), 'Noto Sans Devanagari')
+                    
+                    # Auto-detect Hindi/Devanagari Unicode range and set appropriate font
+                    if not block.font_name:
+                        # Check if text contains Devanagari characters (Unicode range 0x0900-0x097F)
+                        if any(ord(char) >= 0x0900 and ord(char) <= 0x097F for char in block.text):
+                            try:
+                                run.font.name = 'Noto Sans Devanagari'
+                                run._element.rPr.rFonts.set(qn('w:eastAsia'), 'Noto Sans Devanagari')
+                                logger.debug(f"Auto-detected Hindi/Devanagari text, using Noto Sans Devanagari font")
+                            except Exception as e:
+                                logger.warning(f"Could not set Hindi font: {e}")
+                    
+                    # Ensure Unicode encoding is preserved
+                    # python-docx handles Unicode automatically, but we ensure proper encoding
+                    try:
+                        # Verify text is properly encoded
+                        block.text.encode('utf-8')
+                    except UnicodeEncodeError:
+                        logger.warning(f"Unicode encoding issue with text: {block.text[:50]}...")
         
         # Add tables if present
         for table_data in parsed_doc.tables:

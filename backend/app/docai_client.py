@@ -39,6 +39,7 @@ class TextBlock:
     text: str
     bounding_box: Optional[Dict] = None
     font_size: Optional[float] = None
+    font_name: Optional[str] = None  # Added for font name preservation
     is_heading: bool = False
     page_number: int = 1
 
@@ -164,11 +165,13 @@ class DocumentAIClient:
                 for block in page.paragraphs:
                     text = self._extract_text_from_layout(block.layout, document.text)
                     font_size = self._get_font_size(block.layout)
+                    font_name = self._get_font_name(block.layout)  # Extract font name
                     is_heading = self._is_heading(block.layout, font_size)
                     
                     page_blocks.append(TextBlock(
                         text=text,
                         font_size=font_size,
+                        font_name=font_name,
                         is_heading=is_heading,
                         page_number=page_num
                     ))
@@ -274,6 +277,44 @@ def get_docai_client(settings: Settings) -> DocumentAIClient:
         settings.docai_location,
         settings.docai_processor_id
     )
+
+
+def get_docai_confidence(parsed_doc: ParsedDocument) -> Optional[float]:
+    """
+    Calculate average confidence across all pages from Document AI response.
+    
+    Args:
+        parsed_doc: ParsedDocument from Document AI
+        
+    Returns:
+        Average confidence (0.0-1.0) or None if not available
+    """
+    try:
+        if not parsed_doc.pages:
+            return None
+        
+        confidences = []
+        for page in parsed_doc.pages:
+            # Try to get confidence from page layout if available
+            if hasattr(page, 'layout') and hasattr(page.layout, 'confidence'):
+                conf = page.layout.confidence
+                if conf is not None:
+                    confidences.append(conf)
+            # Also check blocks for confidence
+            if hasattr(page, 'blocks'):
+                for block in page.blocks:
+                    if hasattr(block, 'layout') and hasattr(block.layout, 'confidence'):
+                        conf = block.layout.confidence
+                        if conf is not None:
+                            confidences.append(conf)
+        
+        if not confidences:
+            return None
+        
+        return sum(confidences) / len(confidences)
+    except Exception as e:
+        logger.debug(f"Could not calculate confidence: {e}")
+        return None
 
 
 def process_pdf_to_layout(

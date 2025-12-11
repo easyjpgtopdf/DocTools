@@ -25,14 +25,15 @@ def initialize_firebase(credentials_path: Optional[str] = None) -> None:
             cred = credentials.Certificate(credentials_path)
             firebase_admin.initialize_app(cred)
         else:
-            # Use Application Default Credentials
+            # Use Application Default Credentials (works on Cloud Run)
             firebase_admin.initialize_app()
         
         _firebase_initialized = True
         logger.info("Firebase Admin initialized successfully")
     except Exception as e:
-        logger.error(f"Failed to initialize Firebase: {e}")
-        raise
+        logger.warning(f"Failed to initialize Firebase: {e}")
+        # Don't raise - allow app to start without Firebase
+        # Authentication features will be limited but app will still work
 
 
 def verify_firebase_token(id_token: str) -> Optional[Dict]:

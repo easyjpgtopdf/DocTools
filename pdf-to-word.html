@@ -270,6 +270,223 @@
       .workspace { grid-template-columns: 1fr; }
 
     }
+
+    /* Dark Mode Toggle Button */
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px 18px;
+      border-radius: 25px;
+      border: 2px solid var(--primary);
+      background: white;
+      color: var(--primary);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s;
+      z-index: 10000;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .theme-toggle:hover {
+      background: var(--primary);
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+    }
+
+    /* Dark Mode Styles */
+    body[data-theme="dark"] {
+      background: linear-gradient(180deg, #0f172a, #1e293b 40%);
+      color: #e5e7eb;
+    }
+
+    body[data-theme="dark"] .theme-toggle {
+      border-color: #818cf8;
+      color: #818cf8;
+      background: #1e293b;
+    }
+
+    body[data-theme="dark"] .theme-toggle:hover {
+      background: #818cf8;
+      color: white;
+    }
+
+    body[data-theme="dark"] .card {
+      background: #1e293b;
+      border-color: #334155;
+      color: #e5e7eb;
+    }
+
+    body[data-theme="dark"] .hero {
+      background: linear-gradient(140deg, rgba(129, 140, 248, 0.1), rgba(67, 97, 238, 0.02));
+    }
+
+    body[data-theme="dark"] .hero h1 {
+      color: #e5e7eb;
+    }
+
+    body[data-theme="dark"] .hero p {
+      color: #9ca3af;
+    }
+
+    body[data-theme="dark"] .upload-area {
+      background: #1e293b;
+      border-color: #334155;
+      color: #e5e7eb;
+    }
+
+    body[data-theme="dark"] .upload-area:hover {
+      background: #334155;
+      border-color: #818cf8;
+    }
+
+    body[data-theme="dark"] .info-card {
+      background: #1e293b;
+      border-color: #334155;
+      color: #e5e7eb;
+    }
+
+    body[data-theme="dark"] .info-card h3 {
+      color: #e5e7eb;
+    }
+
+    body[data-theme="dark"] .info-card ul {
+      color: #9ca3af;
+    }
+
+    body[data-theme="dark"] .explanatory-content {
+      background: #1e293b !important;
+      color: #e5e7eb;
+    }
+
+    body[data-theme="dark"] .explanatory-content h2 {
+      color: #e5e7eb;
+    }
+
+    @media (max-width: 768px) {
+      .theme-toggle {
+        top: 10px;
+        right: 10px;
+        padding: 8px 14px;
+        font-size: 12px;
+      }
+    }
+  </style>
+  <style>
+    /* Dark Mode Toggle Button */
+    .theme-toggle {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      padding: 10px 18px;
+      border-radius: 25px;
+      border: 2px solid var(--primary);
+      background: white;
+      color: var(--primary);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s;
+      z-index: 10000;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .theme-toggle:hover {
+      background: var(--primary);
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+    }
+
+    /* Dark Mode Styles */
+    body[data-theme="dark"] {
+      background: linear-gradient(180deg, #0f172a, #1e293b 40%);
+      color: #e5e7eb;
+    }
+
+    body[data-theme="dark"] .theme-toggle {
+      border-color: #818cf8;
+      color: #818cf8;
+      background: #1e293b;
+    }
+
+    body[data-theme="dark"] .theme-toggle:hover {
+      background: #818cf8;
+      color: white;
+    }
+
+    body[data-theme="dark"] .card {
+      background: #1e293b;
+      border-color: #334155;
+      color: #e5e7eb;
+    }
+
+    body[data-theme="dark"] .hero {
+      background: linear-gradient(140deg, rgba(129, 140, 248, 0.1), rgba(67, 97, 238, 0.02));
+    }
+
+    body[data-theme="dark"] .hero h1 {
+      color: #e5e7eb;
+    }
+
+    body[data-theme="dark"] .hero p {
+      color: #9ca3af;
+    }
+
+    body[data-theme="dark"] .upload-area {
+      background: #1e293b;
+      border-color: #334155;
+      color: #e5e7eb;
+    }
+
+    body[data-theme="dark"] .upload-area:hover {
+      background: #334155;
+      border-color: #818cf8;
+    }
+
+    body[data-theme="dark"] .info-card {
+      background: #1e293b;
+      border-color: #334155;
+      color: #e5e7eb;
+    }
+
+    body[data-theme="dark"] .info-card h3 {
+      color: #e5e7eb;
+    }
+
+    body[data-theme="dark"] .info-card ul {
+      color: #9ca3af;
+    }
+
+    body[data-theme="dark"] .explanatory-content,
+    body[data-theme="dark"] .related-tools,
+    body[data-theme="dark"] .faq-section {
+      background: #1e293b !important;
+      color: #e5e7eb;
+    }
+
+    body[data-theme="dark"] .explanatory-content h2,
+    body[data-theme="dark"] .related-tools h2,
+    body[data-theme="dark"] .faq-section h2 {
+      color: #e5e7eb;
+    }
+
+    @media (max-width: 768px) {
+      .theme-toggle {
+        top: 70px;
+        right: 10px;
+        padding: 8px 14px;
+        font-size: 12px;
+      }
+    }
   </style>
 <link href="css/header.css" rel="stylesheet"/>
 <link href="css/theme-modern.css" rel="stylesheet"/>
@@ -878,7 +1095,7 @@
 
                try {
                  // Use Cloud Run backend for PDF to Word conversion
-                 const API_BASE_URL = 'https://pdf-to-word-converter-564572183797.us-central1.run.app';
+                 const API_BASE_URL = 'https://pdf-to-word-converter-iwumaktavq-uc.a.run.app';
                  
                  // Create FormData with file
                  const formData = new FormData();

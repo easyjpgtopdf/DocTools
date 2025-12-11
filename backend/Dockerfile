@@ -4,17 +4,34 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including Hindi and international fonts
 RUN apt-get update && apt-get install -y \
     libreoffice \
     libreoffice-writer \
     fonts-dejavu \
     fonts-dejavu-core \
     fonts-dejavu-extra \
+    fonts-indic \
+    fonts-noto \
+    fonts-noto-core \
+    fonts-noto-color-emoji \
+    fonts-noto-cjk \
+    fonts-noto-cjk-extra \
+    fonts-liberation \
+    fonts-liberation2 \
     poppler-utils \
     libjpeg-dev \
     zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# Download and install Krutidev and Chanakya fonts (if available)
+# Note: These fonts may need to be manually added or downloaded from official sources
+RUN mkdir -p /usr/share/fonts/truetype/hindi-fonts || true
+
+# Note: For Krutidev/Chanakya fonts, you may need to:
+# 1. Download fonts from official sources
+# 2. COPY font files to Docker image
+# 3. Run fc-cache to refresh font cache
 
 # Copy requirements first for better caching
 COPY requirements.txt .

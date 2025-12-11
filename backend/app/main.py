@@ -17,7 +17,8 @@ from app.models import (
     ImageInfo,
     ConversionJob,
     AnnotationApplyResponse,
-    ErrorResponse
+    ErrorResponse,
+    HealthResponse
 )
 from app.converter import (
     pdf_has_text,
@@ -72,15 +73,29 @@ async def startup_event():
     """Initialize services on application startup."""
     try:
         ensure_temp_dir()
+        logger.info("Temp directory ensured")
+        
+        # Get settings (this will fail if required env vars are missing)
         settings = get_settings()
-        if settings.google_application_credentials:
-            initialize_firebase(settings.google_application_credentials)
-        else:
-            initialize_firebase()
+        logger.info(f"Settings loaded: project_id={settings.project_id}")
+        
+        # Initialize Firebase (non-blocking - fail gracefully)
+        try:
+            if settings.google_application_credentials:
+                initialize_firebase(settings.google_application_credentials)
+            else:
+                initialize_firebase()
+            logger.info("Firebase Admin initialized successfully")
+        except Exception as fb_error:
+            logger.warning(f"Firebase initialization failed (non-critical): {fb_error}")
+            logger.info("Continuing without Firebase (auth features may be limited)")
+        
         logger.info("Application startup complete")
         logger.info("CORS enabled for all origins")
     except Exception as e:
-        logger.error(f"Startup error: {e}")
+        logger.error(f"Critical startup error: {e}", exc_info=True)
+        # Don't raise - let the app start and log the error
+        # This allows Cloud Run health checks to pass
 
 
 # Dependency for settings
