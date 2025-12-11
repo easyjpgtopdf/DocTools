@@ -6,22 +6,22 @@
       "use": "@vercel/static"
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/pdf-to-word",
-      "dest": "/frontend/pdf-to-word.html"
+      "source": "/pdf-to-word",
+      "destination": "/frontend/pdf-to-word.html"
     },
     {
-      "src": "/pdf-to-jpg",
-      "dest": "/frontend/pdf-to-jpg.html"
+      "source": "/pdf-to-jpg",
+      "destination": "/frontend/pdf-to-jpg.html"
     },
     {
-      "src": "/pdf-editor",
-      "dest": "/frontend/pdf-editor.html"
+      "source": "/pdf-editor",
+      "destination": "/frontend/pdf-editor.html"
     },
     {
-      "src": "/(.*)",
-      "dest": "/frontend/$1"
+      "source": "/(.*)",
+      "destination": "/frontend/$1"
     }
   ],
   "headers": [
