@@ -795,7 +795,9 @@
                 }, 2000);
                 
             } catch (error) {
-                showStatus(error.message || 'Conversion failed. Please try again.', 'error');
+                const errorMsg = error.message || 'Conversion failed. Please try again.';
+                showStatus(`Server error: ${errorMsg} (check logs)`, 'error');
+                console.error('Conversion error:', error);
                 progressBar.style.display = 'none';
                 progressFill.style.width = '0%';
                 resultsSection.style.display = 'none';

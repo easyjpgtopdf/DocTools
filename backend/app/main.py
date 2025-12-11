@@ -60,9 +60,13 @@ app = FastAPI(
 # CORS middleware - Allow all origins for production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins (including easyjpgtopdf.com)
+    allow_origins=[
+        "https://easyjpgtopdf.com",
+        "https://www.easyjpgtopdf.com",
+        "*"
+    ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
 )
@@ -208,6 +212,7 @@ async def convert_pdf_to_word(
         
         file_size = os.path.getsize(temp_pdf_path)
         logger.info(f"[Job {job.id}] File saved: {temp_pdf_path}, size: {file_size} bytes")
+        print(f"DEBUG: PDF saved: {temp_pdf_path}")
         
         # Perform smart conversion (generates both primary and alternative)
         logger.info(f"[Job {job.id}] Starting smart conversion with alternative generation")
@@ -227,6 +232,7 @@ async def convert_pdf_to_word(
         primary_docx_path = conversion_result.main_docx_path
         alt_docx_path = conversion_result.alt_docx_path
         engine = conversion_result.main_method.value  # "libreoffice" or "docai"
+        print(f"DEBUG: Using engine: {engine}")
         
         # Try to extract DocAI confidence if Document AI was used
         if conversion_result.used_docai:
@@ -245,18 +251,24 @@ async def convert_pdf_to_word(
         primary_blob_name = f"converted/{job.id}/primary.docx"
         
         logger.info(f"[Job {job.id}] Uploading primary DOCX to GCS: {primary_blob_name}")
-        storage_client.upload_file_to_gcs(
-            primary_docx_path,
-            settings.gcs_output_bucket,
-            primary_blob_name,
-            content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        )
+        try:
+            storage_client.upload_file_to_gcs(
+                primary_docx_path,
+                settings.gcs_output_bucket,
+                primary_blob_name,
+                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            )
+        except Exception as gcs_error:
+            error_msg = f"GCS upload failed: {str(gcs_error)}. Bucket: {settings.gcs_output_bucket}, File: {primary_docx_path}"
+            logger.error(f"[Job {job.id}] {error_msg}", exc_info=True)
+            raise Exception(error_msg)
         
         primary_signed_url = storage_client.generate_signed_url(
             settings.gcs_output_bucket,
             primary_blob_name,
             expiration_seconds=settings.signed_url_expiration
         )
+        print(f"DEBUG: Upload path: {primary_signed_url}")
         
         # Upload alternative file if available
         alt_signed_url = None
@@ -328,7 +340,12 @@ async def convert_pdf_to_word(
     except Exception as e:
         job_status = "failed"
         error_msg = str(e)
-        logger.error(f"[Job {job.id if job else 'N/A'}] Conversion error: {error_msg}", exc_info=True)
+        import traceback
+        error_traceback = traceback.format_exc()
+        logger.error(f"[Job {job.id if job else 'N/A'}] Conversion error: {error_msg}")
+        logger.error(f"[Job {job.id if job else 'N/A'}] Full traceback:\n{error_traceback}")
+        print(f"DEBUG: Conversion error: {error_msg}")
+        print(f"DEBUG: Full traceback:\n{error_traceback}")
         if job:
             update_job_failure(job.id, error_msg)
             update_job_status(job.id, "error", error_message=error_msg)

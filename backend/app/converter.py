@@ -127,12 +127,47 @@ def convert_pdf_to_docx_with_libreoffice(pdf_path: str, output_dir: str) -> str:
         # Ensure output directory exists
         os.makedirs(output_dir, exist_ok=True)
         
+        # Check for LibreOffice binary in common locations
+        soffice_paths = [
+            "/usr/bin/libreoffice",
+            "/usr/bin/soffice",
+            "soffice",  # Try PATH as fallback
+        ]
+        
+        soffice_binary = None
+        for path in soffice_paths:
+            if os.path.exists(path) or path == "soffice":
+                # Check if it's executable (for absolute paths) or in PATH
+                if path != "soffice":
+                    if os.access(path, os.X_OK):
+                        soffice_binary = path
+                        break
+                else:
+                    # Check if soffice is in PATH
+                    try:
+                        result = subprocess.run(
+                            ["which", "soffice"],
+                            capture_output=True,
+                            timeout=2
+                        )
+                        if result.returncode == 0:
+                            soffice_binary = "soffice"
+                            break
+                    except:
+                        pass
+        
+        if not soffice_binary:
+            logger.error("LibreOffice (soffice) not found in /usr/bin/libreoffice, /usr/bin/soffice, or PATH")
+            raise Exception("LibreOffice not available in Cloud Run. Please check installation.")
+        
+        logger.info(f"Using LibreOffice binary: {soffice_binary}")
+        
         # Build LibreOffice command
         # --headless: Run without GUI
         # --convert-to docx: Convert to DOCX format
         # --outdir: Output directory
         cmd = [
-            "soffice",              # LibreOffice executable
+            soffice_binary,
             "--headless",           # No GUI mode
             "--convert-to", "docx", # Target format
             "--outdir", output_dir, # Output directory
@@ -140,6 +175,7 @@ def convert_pdf_to_docx_with_libreoffice(pdf_path: str, output_dir: str) -> str:
         ]
         
         logger.debug(f"Executing command: {' '.join(cmd)}")
+        print(f"DEBUG: LibreOffice command: {' '.join(cmd)}")
         
         # Run LibreOffice with timeout protection
         result = subprocess.run(
@@ -149,9 +185,17 @@ def convert_pdf_to_docx_with_libreoffice(pdf_path: str, output_dir: str) -> str:
             timeout=300  # 5 minute timeout for large files
         )
         
+        logger.debug(f"LibreOffice return code: {result.returncode}")
+        logger.debug(f"LibreOffice stdout: {result.stdout}")
+        logger.debug(f"LibreOffice stderr: {result.stderr}")
+        print(f"DEBUG: LibreOffice return code: {result.returncode}")
+        print(f"DEBUG: LibreOffice stdout: {result.stdout}")
+        print(f"DEBUG: LibreOffice stderr: {result.stderr}")
+        
         # Check if command succeeded
         if result.returncode != 0:
             error_msg = result.stderr or result.stdout or "Unknown error"
+            logger.error(f"LibreOffice conversion failed: {error_msg}")
             raise Exception(f"LibreOffice conversion failed: {error_msg}")
         
         # LibreOffice creates output with same base name as input
@@ -159,21 +203,49 @@ def convert_pdf_to_docx_with_libreoffice(pdf_path: str, output_dir: str) -> str:
         pdf_name = Path(pdf_path).stem
         output_path = os.path.join(output_dir, f"{pdf_name}.docx")
         
-        # Verify output file was created
-        if not os.path.exists(output_path):
-            raise Exception(f"Output DOCX not found at: {output_path}")
+        # Also check for alternative output paths (LibreOffice might use different naming)
+        alt_output_paths = [
+            output_path,
+            os.path.join(output_dir, Path(pdf_path).name.replace('.pdf', '.docx')),
+            os.path.join(output_dir, f"{Path(pdf_path).name}.docx"),
+        ]
         
-        logger.info(f"Conversion successful: {output_path}")
-        return output_path
+        # List all files in output directory to debug
+        output_files = os.listdir(output_dir) if os.path.exists(output_dir) else []
+        logger.info(f"Files in output directory: {output_files}")
+        print(f"DEBUG: Files in output directory: {output_files}")
+        
+        # Find the actual output file
+        actual_output_path = None
+        for path in alt_output_paths:
+            if os.path.exists(path):
+                actual_output_path = path
+                break
+        
+        # If still not found, look for any .docx file in output directory
+        if not actual_output_path:
+            for file in output_files:
+                if file.endswith('.docx'):
+                    actual_output_path = os.path.join(output_dir, file)
+                    logger.info(f"Found DOCX file with different name: {actual_output_path}")
+                    break
+        
+        # Verify output file was created
+        if not actual_output_path or not os.path.exists(actual_output_path):
+            raise Exception(f"Output DOCX not found. Expected at: {output_path}. Files in directory: {output_files}")
+        
+        logger.info(f"Conversion successful: {actual_output_path}")
+        print(f"DEBUG: LibreOffice output: {actual_output_path}")
+        return actual_output_path
         
     except subprocess.TimeoutExpired:
-        logger.error("LibreOffice conversion timed out after 5 minutes")
+        logger.error("LibreOffice conversion timed out after 5 minutes", exc_info=True)
         raise Exception("Conversion timed out. File may be too large or complex.")
-    except FileNotFoundError:
-        logger.error("LibreOffice (soffice) not found in PATH")
-        raise Exception("LibreOffice is not installed or not in PATH")
+    except FileNotFoundError as e:
+        logger.error(f"LibreOffice (soffice) not found in PATH: {e}", exc_info=True)
+        raise Exception("LibreOffice not available in Cloud Run. Please check installation.")
     except Exception as e:
-        logger.error(f"LibreOffice conversion error: {e}")
+        logger.error(f"LibreOffice conversion error: {e}", exc_info=True)
         raise
 
 
@@ -470,24 +542,41 @@ def smart_convert_pdf_to_word(
         used_docai = False
     else:
         # DocAI conversion
-        with open(pdf_path, "rb") as f:
-            pdf_bytes = f.read()
-        
-        parsed_doc = process_pdf_to_layout(
-            settings.project_id,
-            settings.docai_location,
-            settings.docai_processor_id,
-            pdf_bytes
-        )
-        
-        # Extract DocAI confidence
-        docai_confidence = get_docai_confidence(parsed_doc)
-        if docai_confidence is not None:
-            logger.info(f"DocAI confidence extracted: {docai_confidence:.3f}")
-        
-        primary_docx = os.path.join(output_dir, f"primary-{Path(pdf_path).stem}.docx")
-        convert_pdf_to_docx_with_docai(pdf_path, primary_docx, parsed_doc)
-        used_docai = True
+        try:
+            # Validate Document AI settings
+            if not settings.project_id:
+                raise Exception("Document AI: PROJECT_ID is required")
+            if not settings.docai_processor_id:
+                raise Exception("Document AI: DOCAI_PROCESSOR_ID is required")
+            if not settings.docai_location:
+                settings.docai_location = "us"  # Default location
+            
+            logger.info(f"Using Document AI: project_id={settings.project_id}, processor_id={settings.docai_processor_id}, location={settings.docai_location}")
+            
+            with open(pdf_path, "rb") as f:
+                pdf_bytes = f.read()
+            
+            parsed_doc = process_pdf_to_layout(
+                settings.project_id,
+                settings.docai_location,
+                settings.docai_processor_id,
+                pdf_bytes
+            )
+            
+            # Extract DocAI confidence
+            docai_confidence = get_docai_confidence(parsed_doc)
+            if docai_confidence is not None:
+                logger.info(f"DocAI confidence extracted: {docai_confidence:.3f}")
+            
+            primary_docx = os.path.join(output_dir, f"primary-{Path(pdf_path).stem}.docx")
+            convert_pdf_to_docx_with_docai(pdf_path, primary_docx, parsed_doc)
+            used_docai = True
+        except Exception as docai_error:
+            logger.error(f"Document AI conversion failed: {docai_error}", exc_info=True)
+            # Fallback to basic text extraction if DocAI fails
+            logger.warning("Falling back to basic text extraction due to Document AI failure")
+            # For now, re-raise the error - in future we can implement basic fallback
+            raise Exception(f"Document AI failed: {str(docai_error)}. Please check DOCAI_PROCESSOR_ID, project_id, and credentials.")
     
     primary_time = time.time() - primary_start
     
@@ -498,25 +587,29 @@ def smart_convert_pdf_to_word(
             # Alternative: Use DocAI
             alt_method = ConversionMethod.DOCAI
             logger.info("Generating alternative using Document AI")
-            
-            with open(pdf_path, "rb") as f:
-                pdf_bytes = f.read()
-            
-            parsed_doc_alt = process_pdf_to_layout(
-                settings.project_id,
-                settings.docai_location,
-                settings.docai_processor_id,
-                pdf_bytes
-            )
-            
-            # Use parsed doc for confidence if primary didn't use DocAI
-            if docai_confidence is None:
-                docai_confidence = get_docai_confidence(parsed_doc_alt)
-                if docai_confidence is not None:
-                    logger.info(f"DocAI confidence extracted from alternative: {docai_confidence:.3f}")
-            
-            alt_docx = os.path.join(output_dir, f"alt-{Path(pdf_path).stem}.docx")
-            convert_pdf_to_docx_with_docai(pdf_path, alt_docx, parsed_doc_alt)
+            try:
+                with open(pdf_path, "rb") as f:
+                    pdf_bytes = f.read()
+                
+                parsed_doc_alt = process_pdf_to_layout(
+                    settings.project_id,
+                    settings.docai_location,
+                    settings.docai_processor_id,
+                    pdf_bytes
+                )
+                
+                # Use parsed doc for confidence if primary didn't use DocAI
+                if docai_confidence is None:
+                    docai_confidence = get_docai_confidence(parsed_doc_alt)
+                    if docai_confidence is not None:
+                        logger.info(f"DocAI confidence extracted from alternative: {docai_confidence:.3f}")
+                
+                alt_docx = os.path.join(output_dir, f"alt-{Path(pdf_path).stem}.docx")
+                convert_pdf_to_docx_with_docai(pdf_path, alt_docx, parsed_doc_alt)
+            except Exception as alt_error:
+                logger.warning(f"Alternative DocAI conversion failed: {alt_error}. Skipping alternative.")
+                alt_docx = None
+                alt_method = None
         else:
             # Alternative: Use LibreOffice
             alt_method = ConversionMethod.LIBREOFFICE
