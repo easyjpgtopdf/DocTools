@@ -32,6 +32,10 @@ const globalAccountSectionHTML = `
                 <img src="/images/user-logo-o.svg" alt="User Account" class="user-logo-o" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
                 <span class="user-logo-fallback" style="display: none; width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem;">O</span>
                 <span class="user-id" id="user-id-display"></span>
+                <span id="credit-balance-nav" style="display: none; margin-left: 8px; padding: 2px 8px; background: rgba(67,97,238,0.1); border-radius: 12px; font-size: 0.85rem; color: #4361ee; font-weight: 600;">
+                    <i class="fas fa-coins" style="margin-right: 4px;"></i>
+                    <span id="credit-balance-value">0</span>
+                </span>
                 <i class="fas fa-chevron-down" aria-hidden="true"></i>
             </button>
             <div class="user-dropdown" id="user-dropdown" hidden>
@@ -39,6 +43,7 @@ const globalAccountSectionHTML = `
                 <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
                 <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
                 <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders & Subscriptions</a>
+                <a href="dashboard.html#dashboard-credits" data-user-nav="dashboard-credits"><i class="fas fa-coins"></i> Credit History</a>
                 <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
                 <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
             </div>

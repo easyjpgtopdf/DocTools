@@ -716,11 +716,33 @@
                 const formData = new FormData();
                 formData.append('file', currentFile);
                 
+                // Try to get auth token for credit checking
+                let authToken = null;
+                try {
+                    // Import auth if available
+                    const authModule = await import('/js/auth.js').catch(() => null);
+                    if (authModule && authModule.default) {
+                        const auth = authModule.default;
+                        if (auth && auth.currentUser) {
+                            authToken = await auth.currentUser.getIdToken();
+                        }
+                    }
+                } catch (e) {
+                    // No auth token available - conversion will still work for anonymous users
+                    console.log('Auth not available, proceeding as anonymous');
+                }
+                
+                const headers = {};
+                if (authToken) {
+                    headers['Authorization'] = `Bearer ${authToken}`;
+                }
+                
                 const response = await fetch(`${API_BASE_URL}/api/convert/pdf-to-word`, {
                     method: 'POST',
                     body: formData,
                     mode: 'cors',
-                    credentials: 'omit'
+                    credentials: 'omit',
+                    headers: headers
                 });
                 
                 progressFill.style.width = '40%';

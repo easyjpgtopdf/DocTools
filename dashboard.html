@@ -1290,40 +1290,138 @@ Monthly download: <span id="image-remover-download-used">0</span> MB / <span id=
             // Update user plan will be handled by dashboard-subscription.js
         }
         
-        // Load credit balance from Firestore
+        // Load credit balance from API (backend)
         async function loadCreditBalance(user, firestore) {
             try {
-                const userDocRef = doc(firestore, 'users', user.uid);
-                const userDoc = await getDoc(userDocRef);
+                // Try new API endpoint first
+                const token = await user.getIdToken();
+                const response = await fetch('https://pdf-to-word-converter-iwumaktavq-uc.a.run.app/api/user/credits', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
                 
-                if (userDoc.exists()) {
-                    const userData = userDoc.data();
-                    const credits = userData.credits || 0;
+                if (response.ok) {
+                    const data = await response.json();
+                    const credits = data.credits || 0;
                     
                     // Update credit display elements
                     document.querySelectorAll('.user-credits').forEach(el => {
-                        el.textContent = credits;
+                        el.textContent = credits.toFixed(1);
                     });
                     
                     const creditBalanceDisplay = document.getElementById('credit-balance-display');
                     if (creditBalanceDisplay) {
-                        creditBalanceDisplay.textContent = credits;
+                        creditBalanceDisplay.textContent = credits.toFixed(1);
+                    }
+                } else {
+                    // Fallback to Firestore
+                    const userDocRef = doc(firestore, 'users', user.uid);
+                    const userDoc = await getDoc(userDocRef);
+                    
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        const credits = userData.credits || 0;
+                        
+                        document.querySelectorAll('.user-credits').forEach(el => {
+                            el.textContent = credits.toFixed(1);
+                        });
+                        
+                        const creditBalanceDisplay = document.getElementById('credit-balance-display');
+                        if (creditBalanceDisplay) {
+                            creditBalanceDisplay.textContent = credits.toFixed(1);
+                        }
                     }
                 }
             } catch (error) {
                 console.error('Failed to load credit balance:', error);
+                // Try Firestore fallback
+                try {
+                    const userDocRef = doc(firestore, 'users', user.uid);
+                    const userDoc = await getDoc(userDocRef);
+                    if (userDoc.exists()) {
+                        const credits = userDoc.data().credits || 0;
+                        document.querySelectorAll('.user-credits').forEach(el => {
+                            el.textContent = credits.toFixed(1);
+                        });
+                    }
+                } catch (e) {
+                    console.error('Firestore fallback also failed:', e);
+                }
             }
         }
         
-        // Load credit transaction history
+        // Load credit transaction history from API (backend)
         async function loadCreditTransactions(user, firestore) {
+            const transactionsList = document.getElementById('credit-transactions-list');
+            if (!transactionsList) return;
+            
+            try {
+                // Try new API endpoint first
+                const token = await user.getIdToken();
+                const response = await fetch('https://pdf-to-word-converter-iwumaktavq-uc.a.run.app/api/user/history?limit=50', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const transactions = data.transactions || [];
+                    
+                    if (transactions.length === 0) {
+                        transactionsList.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;"><i class="fas fa-info-circle"></i> No credit transactions found yet.</p>';
+                        return;
+                    }
+                    
+                    let html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+                    transactions.forEach((txn) => {
+                        const date = new Date(txn.date);
+                        const dateStr = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                        const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                        
+                        const isAddition = txn.type === 'add';
+                        const amount = txn.credits || 0;
+                        const reason = txn.description || 'Credit transaction';
+                        
+                        html += `
+                            <div style="background: ${isAddition ? '#f0f9ff' : '#fff5f5'}; border-left: 4px solid ${isAddition ? '#10b981' : '#ef4444'}; padding: 16px; border-radius: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: start;">
+                                    <div style="flex: 1;">
+                                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                            <i class="fas fa-${isAddition ? 'plus-circle' : 'minus-circle'}" style="color: ${isAddition ? '#10b981' : '#ef4444'};"></i>
+                                            <strong style="color: #333; font-size: 1.1rem;">${isAddition ? '+' : '-'}${amount} credits</strong>
+                                        </div>
+                                        <p style="margin: 4px 0; color: #666; font-size: 0.9rem;">${reason}</p>
+                                        ${txn.file_name ? `<p style="margin: 4px 0; color: #999; font-size: 0.85rem;"><i class="fas fa-file"></i> ${txn.file_name}</p>` : ''}
+                                        ${txn.page_count ? `<p style="margin: 4px 0; color: #999; font-size: 0.85rem;"><i class="fas fa-file-alt"></i> ${txn.page_count} pages</p>` : ''}
+                                        ${txn.processor ? `<p style="margin: 4px 0; color: #999; font-size: 0.85rem;"><i class="fas fa-cog"></i> ${txn.processor === 'docai' ? 'OCR' : 'Direct'}</p>` : ''}
+                                        <p style="margin: 4px 0; color: #999; font-size: 0.85rem;">
+                                            <i class="fas fa-clock"></i> ${dateStr} at ${timeStr}
+                                        </p>
+                                        ${txn.creditsBefore !== undefined ? `
+                                        <p style="margin: 4px 0; color: #999; font-size: 0.85rem;">
+                                            Balance: ${txn.creditsBefore} → ${txn.creditsAfter} credits
+                                        </p>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    transactionsList.innerHTML = html;
+                    return;
+                }
+            } catch (apiError) {
+                console.warn('API credit history failed, trying Firestore fallback:', apiError);
+            }
+            
+            // Fallback to Firestore
             try {
                 const transactionsRef = collection(firestore, 'users', user.uid, 'creditTransactions');
                 const q = query(transactionsRef, orderBy('timestamp', 'desc'));
                 const querySnapshot = await getDocs(q);
-                
-                const transactionsList = document.getElementById('credit-transactions-list');
-                if (!transactionsList) return;
                 
                 if (querySnapshot.empty) {
                     transactionsList.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;"><i class="fas fa-info-circle"></i> No credit transactions found yet.</p>';
@@ -1367,10 +1465,7 @@ Monthly download: <span id="image-remover-download-used">0</span> MB / <span id=
                 transactionsList.innerHTML = html;
             } catch (error) {
                 console.error('Failed to load credit transactions:', error);
-                const transactionsList = document.getElementById('credit-transactions-list');
-                if (transactionsList) {
-                    transactionsList.innerHTML = '<p style="color: #dc3545; padding: 20px;"><i class="fas fa-exclamation-triangle"></i> Failed to load credit transactions.</p>';
-                }
+                transactionsList.innerHTML = '<p style="color: #dc3545; padding: 20px;"><i class="fas fa-exclamation-triangle"></i> Failed to load credit transactions.</p>';
             }
         }
         

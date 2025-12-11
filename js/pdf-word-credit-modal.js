@@ -166,27 +166,28 @@ export async function showCreditModal(file, pages, estimatedCreditsText, estimat
 
 /**
  * Get current user ID from Firebase Auth
+ * Uses the auth instance from auth.js module
  */
 async function getCurrentUserId() {
     try {
-        // Import auth from firebase-init
-        const { app } = await import('./firebase-init.js');
-        const { getAuth } = await import('https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js');
-        const auth = getAuth(app);
-        
-        if (auth && auth.currentUser) {
-            return auth.currentUser.uid;
-        }
-        
-        // Wait for auth state
-        return new Promise((resolve) => {
-            const { onAuthStateChanged } = require('https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js');
-            const unsubscribe = onAuthStateChanged(auth, (user) => {
-                unsubscribe();
-                resolve(user ? user.uid : null);
+        // Try importing auth.js module which exports { auth }
+        const authModule = await import('./auth.js');
+        if (authModule && authModule.auth) {
+            const authInstance = authModule.auth;
+            if (authInstance && authInstance.currentUser) {
+                return authInstance.currentUser.uid;
+            }
+            // Wait for auth state
+            const { onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js');
+            return new Promise((resolve) => {
+                const unsubscribe = onAuthStateChanged(authInstance, (user) => {
+                    unsubscribe();
+                    resolve(user ? user.uid : null);
+                });
+                setTimeout(() => resolve(null), 2000);
             });
-            setTimeout(() => resolve(null), 2000);
-        });
+        }
+        return null;
     } catch (e) {
         console.warn('Error getting user ID:', e);
         return null;
@@ -198,12 +199,13 @@ async function getCurrentUserId() {
  */
 async function getAuthToken() {
     try {
-        const { app } = await import('./firebase-init.js');
-        const { getAuth } = await import('https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js');
-        const auth = getAuth(app);
-        
-        if (auth && auth.currentUser) {
-            return await auth.currentUser.getIdToken();
+        // Import auth from auth.js module
+        const authModule = await import('./auth.js');
+        if (authModule && authModule.auth) {
+            const authInstance = authModule.auth;
+            if (authInstance && authInstance.currentUser) {
+                return await authInstance.currentUser.getIdToken();
+            }
         }
         return null;
     } catch (e) {

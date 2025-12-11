@@ -1060,6 +1060,45 @@ function updateUserMenuBadge(user) {
     const shortId = user.uid.substring(0, 8);
     userIdDisplay.textContent = shortId;
   }
+  
+  // Update credit balance in navbar
+  updateNavbarCreditBalance(user);
+}
+
+/**
+ * Update credit balance display in navbar
+ */
+async function updateNavbarCreditBalance(user) {
+  if (!user || !user.uid) return;
+  
+  const creditBalanceNav = document.getElementById('credit-balance-nav');
+  const creditBalanceValue = document.getElementById('credit-balance-value');
+  
+  if (!creditBalanceNav || !creditBalanceValue) return;
+  
+  try {
+    // Get auth token
+    const token = await user.getIdToken();
+    
+    // Fetch credit balance
+    const response = await fetch('https://pdf-to-word-converter-iwumaktavq-uc.a.run.app/api/user/credits', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      const credits = data.credits || 0;
+      creditBalanceValue.textContent = credits.toFixed(1);
+      creditBalanceNav.style.display = 'inline-flex';
+    } else {
+      creditBalanceNav.style.display = 'none';
+    }
+  } catch (e) {
+    console.warn('Failed to load credit balance:', e);
+    creditBalanceNav.style.display = 'none';
+  }
 }
 
 function updateSidebarAvatar(user) {

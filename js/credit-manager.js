@@ -415,21 +415,42 @@ export async function purchaseCredits(creditPack, userId) {
  */
 async function handleCreditPurchaseSuccess(paymentResponse, userId, pack, orderId) {
   try {
-    // Verify payment
-    const verifyResponse = await fetch(`${API_BASE_URL}/api/payment/verify`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${await getAuthToken()}`
-      },
-      body: JSON.stringify({
-        orderId: orderId,
-        paymentId: paymentResponse.razorpay_payment_id,
-        signature: paymentResponse.razorpay_signature,
-        userId: userId,
-        credits: pack.credits
-      })
-    });
+    // Verify payment - try Vercel API first
+    const vercelApiUrl = window.location.origin;
+    let verifyResponse;
+    
+    try {
+      verifyResponse = await fetch(`${vercelApiUrl}/api/payment/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await getAuthToken()}`
+        },
+        body: JSON.stringify({
+          orderId: orderId,
+          paymentId: paymentResponse.razorpay_payment_id,
+          signature: paymentResponse.razorpay_signature,
+          userId: userId,
+          credits: pack.credits
+        })
+      });
+    } catch (e) {
+      // Fallback to backend
+      verifyResponse = await fetch(`${API_BASE_URL}/api/payment/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await getAuthToken()}`
+        },
+        body: JSON.stringify({
+          orderId: orderId,
+          paymentId: paymentResponse.razorpay_payment_id,
+          signature: paymentResponse.razorpay_signature,
+          userId: userId,
+          credits: pack.credits
+        })
+      });
+    }
     
     if (!verifyResponse.ok) {
       throw new Error('Payment verification failed');
@@ -438,12 +459,40 @@ async function handleCreditPurchaseSuccess(paymentResponse, userId, pack, orderI
     const result = await verifyResponse.json();
     
     if (result.success) {
-      // Add credits to user account
-      await addCredits(userId, pack.credits, 'Credit purchase', {
-        orderId: orderId,
-        paymentId: paymentResponse.razorpay_payment_id,
-        packId: pack.id
-      });
+      // Add credits via backend API (which also updates Firestore)
+      try {
+        const token = await getAuthToken();
+        const addCreditsResponse = await fetch(`${API_BASE_URL}/api/user/add-credits`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            amount: pack.credits,
+            reason: `Credit purchase - ${pack.name}`,
+            metadata: {
+              orderId: orderId,
+              paymentId: paymentResponse.razorpay_payment_id,
+              packId: creditPack.id || pack.id,
+              credits: pack.credits
+            }
+          })
+        });
+        
+        if (addCreditsResponse.ok) {
+          const addResult = await addCreditsResponse.json();
+          console.log('Credits added via API:', addResult);
+        }
+      } catch (apiError) {
+        console.warn('Backend API add credits failed, using Firestore fallback:', apiError);
+        // Fallback to Firestore direct
+        await addCredits(userId, pack.credits, 'Credit purchase', {
+          orderId: orderId,
+          paymentId: paymentResponse.razorpay_payment_id,
+          packId: pack.id
+        });
+      }
       
       alert(`Success! ${pack.credits} credits added to your account.`);
       
@@ -451,7 +500,7 @@ async function handleCreditPurchaseSuccess(paymentResponse, userId, pack, orderI
       if (window.location.pathname.includes('dashboard')) {
         window.location.reload();
       } else {
-        window.location.href = 'dashboard.html#credits';
+        window.location.href = 'dashboard.html#dashboard-credits';
       }
     } else {
       throw new Error('Payment verification failed');

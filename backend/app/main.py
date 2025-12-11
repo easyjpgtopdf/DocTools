@@ -247,13 +247,56 @@ async def convert_pdf_to_word(
         
         # Get page count for credit calculation
         pages_count = get_page_count(temp_pdf_path)
+        file_size_mb = file_size / (1024 * 1024)
+        
+        # Check credits and free tier limits if user is authenticated
+        user_id = user.get('user_id')
+        is_authenticated = user_id and user_id != 'anonymous'
+        
+        # Free tier limits enforcement
+        FREE_TIER_MAX_PAGES = 10
+        FREE_TIER_MAX_SIZE_MB = 20
+        
+        if not is_authenticated:
+            # Free tier limits for anonymous users
+            if pages_count > FREE_TIER_MAX_PAGES:
+                error_msg = f"Free tier limit: Maximum {FREE_TIER_MAX_PAGES} pages allowed. Your file has {pages_count} pages. Please sign in for higher limits."
+                logger.warning(f"[Job {job.id}] {error_msg}")
+                if job:
+                    update_job_status(job.id, "error", error_message=error_msg)
+                raise HTTPException(
+                    status_code=403,
+                    detail={
+                        "error": "FREE_TIER_LIMIT_EXCEEDED",
+                        "limit": FREE_TIER_MAX_PAGES,
+                        "actual": pages_count,
+                        "message": error_msg
+                    }
+                )
+            
+            if file_size_mb > FREE_TIER_MAX_SIZE_MB:
+                error_msg = f"Free tier limit: Maximum {FREE_TIER_MAX_SIZE_MB}MB file size allowed. Your file is {file_size_mb:.2f}MB. Please sign in for higher limits."
+                logger.warning(f"[Job {job.id}] {error_msg}")
+                if job:
+                    update_job_status(job.id, "error", error_message=error_msg)
+                raise HTTPException(
+                    status_code=403,
+                    detail={
+                        "error": "FREE_TIER_SIZE_LIMIT_EXCEEDED",
+                        "limit": FREE_TIER_MAX_SIZE_MB,
+                        "actual": file_size_mb,
+                        "message": error_msg
+                    }
+                )
         
         # Check credits if user is authenticated
-        user_id = user.get('user_id')
-        if user_id and user_id != 'anonymous':
+        if is_authenticated:
             # Detect if PDF is text-based or scanned (will use OCR)
             has_text = pdf_has_text(temp_pdf_path)
             will_use_docai = not has_text  # OCR if no text
+            
+            # Free tier: No OCR for anonymous users (enforced here for authenticated but can add plan check)
+            # For now, authenticated users can use OCR if they have credits
             
             # Calculate required credits
             required_credits = calculate_required_credits(pages_count, will_use_docai)
