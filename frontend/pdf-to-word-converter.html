@@ -35,9 +35,9 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     
     <!-- Header and Footer CSS -->
-    <link rel="stylesheet" href="/css/header.css?v=20250111">
-    <link rel="stylesheet" href="/css/footer.css?v=20250111">
-    <link rel="stylesheet" href="/css/theme-modern.css?v=20250111">
+    <link rel="stylesheet" href="/css/header.css">
+    <link rel="stylesheet" href="/css/footer.css">
+    <link rel="stylesheet" href="/css/theme-modern.css">
     
     <!-- Fonts -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -470,6 +470,35 @@
                         <li><i class="fas fa-check-circle" style="color:var(--primary);"></i> Scanned PDFs use advanced OCR technology.</li>
                         <li><i class="fas fa-check-circle" style="color:var(--primary);"></i> Supports Hindi, Unicode, and international fonts.</li>
                     </ul>
+                    
+                    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+                        <h4 style="font-size:0.95rem;font-weight:600;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+                            <i class="fas fa-info-circle" style="color:var(--primary);"></i> Quota Limits
+                        </h4>
+                        <div style="display:grid;gap:10px;font-size:0.88rem;">
+                            <div style="background:linear-gradient(135deg,#f0f7ff,#e8f4fd);padding:10px;border-radius:6px;border-left:3px solid #4CAF50;">
+                                <div style="font-weight:600;color:#2c5f2d;margin-bottom:4px;">
+                                    <i class="fas fa-user" style="margin-right:6px;"></i>Free Tier (No Login Required)
+                                </div>
+                                <div style="color:#555;line-height:1.6;">
+                                    • Maximum <strong>10 pages</strong> per file<br>
+                                    • Maximum <strong>20MB</strong> file size<br>
+                                    • Text-based PDFs only (no OCR)
+                                </div>
+                            </div>
+                            <div style="background:linear-gradient(135deg,#fff8e1,#fff3c4);padding:10px;border-radius:6px;border-left:3px solid #FF9800;">
+                                <div style="font-weight:600;color:#e65100;margin-bottom:4px;">
+                                    <i class="fas fa-crown" style="margin-right:6px;"></i>Premium Users (With Credits)
+                                </div>
+                                <div style="color:#555;line-height:1.6;">
+                                    • <strong>Unlimited pages</strong> (based on credits)<br>
+                                    • <strong>Unlimited file size</strong> (subject to credits)<br>
+                                    • OCR support for scanned PDFs<br>
+                                    • Cost: <strong>0.5 credits/page</strong> (text) or <strong>1 credit/page</strong> (OCR)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -657,13 +686,13 @@
                 return;
             }
             
-            // Check credits before conversion
+            // Check free tier limits and credits before conversion
             try {
-                // Get PDF metadata for credit calculation
+                // Get PDF metadata for free tier limit check
                 const formData = new FormData();
                 formData.append('file', currentFile);
                 
-                // Try to get auth token for metadata check (optional - for logged-in users)
+                // Try to get auth token (only for logged-in users)
                 let authToken = null;
                 try {
                     const authModule = await import('/js/auth.js').catch(() => null);
@@ -671,7 +700,7 @@
                         authToken = await authModule.auth.currentUser.getIdToken();
                     }
                 } catch (e) {
-                    console.log('Auth token not available for metadata check, proceeding without auth header');
+                    console.log('Auth token not available - proceeding as anonymous user (free tier)');
                 }
                 
                 const metadataHeaders = {};
@@ -690,9 +719,38 @@
                 if (metadataResponse.ok) {
                     const metadata = await metadataResponse.json();
                     
-                    // Show credit modal if function is available and user is logged in
-                    // For anonymous users within free tier, skip modal and proceed
-                    if (typeof showCreditModal === 'function' && authToken) {
+                    // Free tier limits for anonymous users
+                    const FREE_TIER_MAX_PAGES = 10;
+                    const FREE_TIER_MAX_SIZE_MB = 20;
+                    const fileSizeMB = (currentFile.size / (1024 * 1024)).toFixed(2);
+                    
+                    // Check if user is anonymous and within free tier
+                    const isAnonymous = !authToken;
+                    const withinFreeTier = isAnonymous && 
+                                           metadata.pages <= FREE_TIER_MAX_PAGES && 
+                                           parseFloat(fileSizeMB) <= FREE_TIER_MAX_SIZE_MB;
+                    
+                    if (withinFreeTier) {
+                        // Anonymous user within free tier - proceed directly without credit modal
+                        console.log(`Free tier: ${metadata.pages} pages, ${fileSizeMB}MB - Proceeding with conversion`);
+                        await convertToWord();
+                    } else if (isAnonymous && (metadata.pages > FREE_TIER_MAX_PAGES || parseFloat(fileSizeMB) > FREE_TIER_MAX_SIZE_MB)) {
+                        // Anonymous user exceeded free tier - show message and prompt login
+                        const limitMsg = metadata.pages > FREE_TIER_MAX_PAGES 
+                            ? `Free tier limit: Maximum ${FREE_TIER_MAX_PAGES} pages. Your file has ${metadata.pages} pages.`
+                            : `Free tier limit: Maximum ${FREE_TIER_MAX_SIZE_MB}MB file size. Your file is ${fileSizeMB}MB.`;
+                        
+                        showStatus(limitMsg + ' Please sign in for higher limits.', 'error');
+                        showToast(limitMsg + ' Please sign in to continue.', true);
+                        
+                        setTimeout(() => {
+                            if (confirm('You have reached the free tier limit. Would you like to sign in to continue?')) {
+                                window.location.href = `/accounts.html#login?returnTo=${encodeURIComponent(window.location.href)}`;
+                            }
+                        }, 2000);
+                        return; // Stop conversion
+                    } else if (authToken && typeof showCreditModal === 'function') {
+                        // Logged-in user - show credit modal
                         try {
                             await showCreditModal(
                                 currentFile,
@@ -712,23 +770,17 @@
                             await convertToWord();
                         }
                     } else {
-                        // Modal not available or user not logged in, proceed with conversion (backend will enforce free tier)
-                        // Show info message for anonymous users
-                        if (!authToken && metadata.pages > 10) {
-                            const confirmMsg = `Free tier: Max 10 pages, 20MB. Your file has ${metadata.pages} pages. Continue anyway? (Backend will enforce limits)`;
-                            if (!confirm(confirmMsg)) {
-                                return;
-                            }
-                        }
+                        // No credit modal available or user not logged in (but within free tier already handled above)
+                        // Proceed with conversion - backend will enforce limits
                         await convertToWord();
                     }
                 } else {
-                    // Metadata fetch failed - check for free tier limits
+                    // Metadata fetch failed - check for free tier limit errors
                     let errorData;
                     try {
                         errorData = await metadataResponse.json();
                     } catch {
-                        errorData = { detail: `Server error: ${metadataResponse.status} ${metadataResponse.statusText}` };
+                        errorData = { detail: `Server error: ${metadataResponse.status}` };
                     }
                     
                     if (metadataResponse.status === 403 && (errorData.error === 'FREE_TIER_LIMIT_EXCEEDED' || errorData.error === 'FREE_TIER_SIZE_LIMIT_EXCEEDED')) {
@@ -736,20 +788,20 @@
                         showStatus(errorMsg, 'error');
                         showToast(errorMsg, true);
                         setTimeout(() => {
-                            if (confirm('You have reached the free tier limit. Please sign in to continue or purchase credits.')) {
+                            if (confirm('You have reached the free tier limit. Would you like to sign in to continue?')) {
                                 window.location.href = `/accounts.html#login?returnTo=${encodeURIComponent(window.location.href)}`;
                             }
                         }, 2000);
                         return; // Stop conversion
                     }
                     
-                    // For other metadata errors, proceed with conversion (backend will handle)
+                    // For other errors, proceed anyway (backend will handle)
                     console.warn('Metadata fetch failed, proceeding with conversion:', errorData);
                     await convertToWord();
                 }
             } catch (e) {
                 console.warn('Credit check error:', e);
-                // Continue with conversion even if credit check fails
+                // Continue with conversion even if credit check fails - backend will enforce limits
                 await convertToWord();
             }
         });
@@ -815,10 +867,8 @@
                     }
                     
                     // Handle insufficient credits error (logged-in users)
-                    const detailObj = typeof errorData.detail === 'object' ? errorData.detail : {};
-                    if (response.status === 402 && (errorData.error === 'NOT_ENOUGH_CREDITS' || detailObj.error === 'NOT_ENOUGH_CREDITS')) {
-                        const errorDetail = detailObj.error ? detailObj : errorData;
-                        const errorMsg = errorDetail.message || `Insufficient credits. Required: ${errorDetail.required || 'N/A'}, Available: ${errorDetail.available || 0}. Please buy credits to continue.`;
+                    if (response.status === 402 && errorData.error === 'NOT_ENOUGH_CREDITS') {
+                        const errorMsg = `Insufficient credits. Required: ${errorData.required || 'N/A'}, Available: ${errorData.available || 0}. Please buy credits to continue.`;
                         showStatus(errorMsg, 'error');
                         showToast(errorMsg, true);
                         // Optionally redirect to pricing page
@@ -834,11 +884,11 @@
                     if (response.status === 403 && (
                         errorData.error === 'FREE_TIER_LIMIT_EXCEEDED' ||
                         errorData.error === 'FREE_TIER_SIZE_LIMIT_EXCEEDED' ||
-                        detailObj.error === 'FREE_TIER_LIMIT_EXCEEDED' ||
-                        detailObj.error === 'FREE_TIER_SIZE_LIMIT_EXCEEDED'
+                        errorData.detail?.error === 'FREE_TIER_LIMIT_EXCEEDED' ||
+                        errorData.detail?.error === 'FREE_TIER_SIZE_LIMIT_EXCEEDED'
                     )) {
-                        const errorDetail = detailObj.error ? detailObj : errorData;
-                        const errorMsg = errorDetail.message || errorData.message || 
+                        const errorDetail = errorData.detail || errorData;
+                        const errorMsg = errorDetail.message || errorData.message || errorDetail.error || 
                             `Free tier limit exceeded. Maximum ${errorDetail.limit || 10} pages, ${errorDetail.size_limit || 20}MB. Please sign in for higher limits.`;
                         showStatus(errorMsg, 'error');
                         showToast(errorMsg, true);
@@ -852,20 +902,7 @@
                         throw new Error(errorMsg);
                     }
                     
-                    // Extract error message from various possible formats
-                    let errorMsg = 'Conversion failed. Please try again.';
-                    if (detailObj && typeof detailObj === 'object') {
-                        errorMsg = detailObj.message || detailObj.error || detailObj.detail || JSON.stringify(detailObj);
-                    } else if (errorData && typeof errorData === 'object') {
-                        errorMsg = errorData.message || errorData.error || errorData.detail || JSON.stringify(errorData);
-                    } else if (typeof errorData === 'string') {
-                        errorMsg = errorData;
-                    } else {
-                        errorMsg = `Server error: ${response.status} ${response.statusText}. Check file and try again.`;
-                    }
-                    
-                    showStatus(`Error: ${errorMsg}`, 'error');
-                    showToast(`Conversion failed: ${errorMsg}. Check file and try again.`, true);
+                    const errorMsg = errorData.detail?.message || errorData.error || errorData.detail?.error || errorData.detail || errorData.message || `Server error: ${response.status} (check logs)`;
                     throw new Error(errorMsg);
                 }
                 
@@ -935,9 +972,9 @@
         }
     </script>
     
-    <script src="/js/global-components.js?v=20250111"></script>
-    <script type="module" src="/js/auth.js?v=20250111"></script>
-    <script type="module" src="/js/pdf-word-credit-modal.js?v=20250111"></script>
+    <script src="/js/global-components.js"></script>
+    <script type="module" src="/js/auth.js"></script>
+    <script type="module" src="/js/pdf-word-credit-modal.js"></script>
     <script>
     // Ensure header loads - multiple attempts to guarantee it works
     (function() {
@@ -980,38 +1017,9 @@
             });
         }
         
-        function tryLoadFooter() {
-            if (typeof loadGlobalFooter === 'function') {
-                try {
-                    loadGlobalFooter();
-                    return true;
-                } catch (e) {
-                    console.error('Error calling loadGlobalFooter:', e);
-                }
-            }
-            return false;
-        }
-        
         window.addEventListener('load', function() {
             tryLoadHeader();
-            tryLoadFooter();
         });
-        
-        // Also try on DOMContentLoaded
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function() {
-                setTimeout(() => {
-                    tryLoadHeader();
-                    tryLoadFooter();
-                }, 100);
-            });
-        } else {
-            // Already loaded, try immediately
-            setTimeout(() => {
-                tryLoadHeader();
-                tryLoadFooter();
-            }, 100);
-        }
     })();
     </script>
 </body>
