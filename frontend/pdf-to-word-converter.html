@@ -758,20 +758,25 @@
                 const formData = new FormData();
                 formData.append('file', currentFile);
                 
-                // Try to get auth token for credit checking
+                // Try to get auth token for credit checking (optional)
                 let authToken = null;
                 try {
                     // Import auth if available
                     const authModule = await import('/js/auth.js').catch(() => null);
-                    if (authModule && authModule.default) {
+                    if (authModule && authModule.auth) {
+                        const auth = authModule.auth;
+                        if (auth && auth.currentUser) {
+                            authToken = await auth.currentUser.getIdToken();
+                        }
+                    } else if (authModule && authModule.default) {
                         const auth = authModule.default;
                         if (auth && auth.currentUser) {
                             authToken = await auth.currentUser.getIdToken();
                         }
                     }
                 } catch (e) {
-                    // No auth token available - conversion will still work for anonymous users
-                    console.log('Auth not available, proceeding as anonymous');
+                    // No auth token available - conversion will still work
+                    console.log('Auth token not available, proceeding without auth header');
                 }
                 
                 const headers = {};
