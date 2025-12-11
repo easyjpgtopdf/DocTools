@@ -89,61 +89,71 @@ async function initializeFirebase() {
   }
 }
 
-// Verify and deduct credits
-async function verifyAndDeductCredits(userId, creditsRequired = 1) {
+// Verify and deduct credits using new MongoDB credit system
+async function verifyAndDeductCredits(userId, token, creditsRequired = 1) {
   try {
-    const adminInstance = await initializeFirebase();
-    if (!adminInstance) {
-      return { hasCredits: false, error: 'Firebase not initialized' };
-    }
-
-    const db = adminInstance.firestore();
+    // Use new credit API endpoint (MongoDB-based)
+    const API_BASE_URL = process.env.BACKEND_URL || 'https://pdf-to-word-converter-iwumaktavq-uc.a.run.app';
     
-    // Check subscription for unlimited credits
-    const subscriptionRef = db.collection('subscriptions').doc(userId);
-    const subscriptionDoc = await subscriptionRef.get();
-    
-    if (subscriptionDoc.exists) {
-      const subData = subscriptionDoc.data();
-      if (subData.plan === 'premium' || subData.plan === 'business') {
-        if (subData.features?.unlimitedBackgroundRemoval) {
-          return { hasCredits: true, unlimited: true };
-        }
-      }
-    }
-
-    // Use transaction to check and deduct credits atomically
-    let result = { hasCredits: false, creditsAvailable: 0 };
-    
-    await db.runTransaction(async (transaction) => {
-      const userRef = db.collection('users').doc(userId);
-      const userDoc = await transaction.get(userRef);
-
-      if (!userDoc.exists) {
-        result = { hasCredits: false, creditsAvailable: 0, error: 'User not found' };
-        return;
-      }
-
-      const userData = userDoc.data();
-      const currentCredits = userData.credits || 0;
-
-      if (currentCredits >= creditsRequired) {
-        // Deduct credits
-        transaction.update(userRef, {
-          credits: currentCredits - creditsRequired,
-          totalCreditsUsed: (userData.totalCreditsUsed || 0) + creditsRequired,
-          lastCreditUpdate: adminInstance.firestore.FieldValue.serverTimestamp()
-        });
-        result = { hasCredits: true, creditsAvailable: currentCredits - creditsRequired };
-      } else {
-        result = { hasCredits: false, creditsAvailable: currentCredits };
+    // First check balance
+    const balanceResponse = await fetch(`${API_BASE_URL}/api/credits/balance`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
     });
 
-    return result;
+    if (!balanceResponse.ok) {
+      console.error('Failed to check credit balance:', balanceResponse.status);
+      return { hasCredits: false, creditsAvailable: 0, error: 'Failed to check credits' };
+    }
+
+    const balanceData = await balanceResponse.json();
+    if (!balanceData.success) {
+      return { hasCredits: false, creditsAvailable: 0, error: balanceData.error || 'Failed to check credits' };
+    }
+
+    const currentCredits = balanceData.credits || 0;
+
+    if (currentCredits < creditsRequired) {
+      return { hasCredits: false, creditsAvailable: currentCredits };
+    }
+
+    // Deduct credits via API
+    const deductResponse = await fetch(`${API_BASE_URL}/api/credits/deduct`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        amount: creditsRequired,
+        tool_used: 'background-remover-premium',
+        page: '/background-workspace.html',
+        processor: 'premium-hd'
+      })
+    });
+
+    if (!deductResponse.ok) {
+      const errorData = await deductResponse.json().catch(() => ({}));
+      console.error('Failed to deduct credits:', errorData);
+      return { hasCredits: false, creditsAvailable: currentCredits, error: errorData.error || 'Failed to deduct credits' };
+    }
+
+    const deductData = await deductResponse.json();
+    if (!deductData.success) {
+      return { hasCredits: false, creditsAvailable: currentCredits, error: deductData.error || 'Failed to deduct credits' };
+    }
+
+    return { 
+      hasCredits: true, 
+      creditsAvailable: deductData.credits || (currentCredits - creditsRequired),
+      unlimited: false
+    };
   } catch (error) {
     console.error('Credit verification error:', error);
-    return { hasCredits: false, error: error.message };
+    return { hasCredits: false, creditsAvailable: 0, error: error.message };
   }
 }
 
@@ -178,25 +188,40 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // Verify credits if userId provided
-    if (userId) {
-      const creditCheck = await verifyAndDeductCredits(userId, 1);
-      
-      if (!creditCheck.hasCredits && !creditCheck.unlimited) {
-        return res.status(402).json({
-          success: false,
-          error: 'Insufficient credits',
-          message: `You need 1 credit for Premium HD. You have ${creditCheck.creditsAvailable || 0} credit(s).`,
-          requiresAuth: !userId,
-          requiresCredits: true
-        });
-      }
-    } else {
+    // SECURITY: Get token from Authorization header (not from request body)
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         success: false,
         error: 'Authentication required',
         message: 'Please sign in to use Premium HD processing',
         requiresAuth: true
+      });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+
+    // Verify userId is provided
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required',
+        message: 'Please sign in to use Premium HD processing',
+        requiresAuth: true
+      });
+    }
+
+    // Verify and deduct credits using new MongoDB credit system
+    const creditCheck = await verifyAndDeductCredits(userId, token, 1);
+    
+    if (!creditCheck.hasCredits && !creditCheck.unlimited) {
+      return res.status(402).json({
+        success: false,
+        error: 'Insufficient credits',
+        message: `You need 1 credit for Premium HD. You have ${creditCheck.creditsAvailable || 0} credit(s). Please purchase credits.`,
+        requiresAuth: false,
+        requiresCredits: true,
+        creditsAvailable: creditCheck.creditsAvailable || 0
       });
     }
 

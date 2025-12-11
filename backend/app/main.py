@@ -268,64 +268,50 @@ async def convert_pdf_to_word(
         pages_count = get_page_count(temp_pdf_path)
         file_size_mb = file_size / (1024 * 1024)
         
-        # Check credits and free tier limits if user is authenticated
-        user_id = user.get('user_id')
+        # Check credits and free tier limits
+        user_id = user.get('user_id', 'anonymous')
         is_authenticated = user_id and user_id != 'anonymous'
         
-        # Free tier limits enforcement
-        FREE_TIER_MAX_PAGES = 10
-        FREE_TIER_MAX_SIZE_MB = 20
+        # Detect if PDF is text-based or scanned (will use OCR)
+        has_text = pdf_has_text(temp_pdf_path)
+        will_use_docai = not has_text  # OCR if no text
         
-        if not is_authenticated:
-            # Free tier limits for anonymous users
-            if pages_count > FREE_TIER_MAX_PAGES:
-                error_msg = f"Free tier limit: Maximum {FREE_TIER_MAX_PAGES} pages allowed. Your file has {pages_count} pages. Please sign in for higher limits."
+        # Check daily free tier limits FIRST (for ALL users - logged in or not)
+        from app.daily_usage import can_use_free_tier, record_daily_usage, FREE_TIER_DAILY_PAGES_TEXT, FREE_TIER_DAILY_PAGES_OCR
+        db = get_firestore_client()
+        free_tier_check = can_use_free_tier(user_id, pages_count, will_use_docai, db)
+        
+        if free_tier_check['allowed']:
+            # User can use free tier - proceed without credits
+            logger.info(f"[Job {job.id}] Free tier usage: {user_id}, {pages_count} pages, OCR: {will_use_docai}")
+            # Usage will be recorded after successful conversion
+        else:
+            # Free tier limit exceeded - check if user is authenticated and has credits
+            if not is_authenticated:
+                # Anonymous user exceeded free tier
+                error_msg = free_tier_check['reason']
                 logger.warning(f"[Job {job.id}] {error_msg}")
                 if job:
                     update_job_status(job.id, "error", error_message=error_msg)
                 raise HTTPException(
                     status_code=403,
                     detail={
-                        "error": "FREE_TIER_LIMIT_EXCEEDED",
-                        "limit": FREE_TIER_MAX_PAGES,
-                        "actual": pages_count,
-                        "message": error_msg
+                        "error": "FREE_TIER_DAILY_LIMIT_EXCEEDED",
+                        "message": error_msg,
+                        "remaining_text": free_tier_check['remaining_text'],
+                        "remaining_ocr": free_tier_check['remaining_ocr'],
+                        "daily_limit_text": FREE_TIER_DAILY_PAGES_TEXT,
+                        "daily_limit_ocr": FREE_TIER_DAILY_PAGES_OCR
                     }
                 )
             
-            if file_size_mb > FREE_TIER_MAX_SIZE_MB:
-                error_msg = f"Free tier limit: Maximum {FREE_TIER_MAX_SIZE_MB}MB file size allowed. Your file is {file_size_mb:.2f}MB. Please sign in for higher limits."
-                logger.warning(f"[Job {job.id}] {error_msg}")
-                if job:
-                    update_job_status(job.id, "error", error_message=error_msg)
-                raise HTTPException(
-                    status_code=403,
-                    detail={
-                        "error": "FREE_TIER_SIZE_LIMIT_EXCEEDED",
-                        "limit": FREE_TIER_MAX_SIZE_MB,
-                        "actual": file_size_mb,
-                        "message": error_msg
-                    }
-                )
-        
-        # Check credits if user is authenticated
-        if is_authenticated:
-            # Detect if PDF is text-based or scanned (will use OCR)
-            has_text = pdf_has_text(temp_pdf_path)
-            will_use_docai = not has_text  # OCR if no text
-            
-            # Free tier: No OCR for anonymous users (enforced here for authenticated but can add plan check)
-            # For now, authenticated users can use OCR if they have credits
-            
-            # Calculate required credits
+            # Authenticated user - check credits
+            from app.credit_manager import calculate_required_credits, has_sufficient_credits
             required_credits = calculate_required_credits(pages_count, will_use_docai)
-            
-            # Check if user has sufficient credits
-            db = get_firestore_client()
             credit_check = has_sufficient_credits(user_id, required_credits, db)
             
             if not credit_check['hasCredits']:
-                error_msg = f"Insufficient credits. Required: {required_credits}, Available: {credit_check['creditsAvailable']}"
+                error_msg = f"Insufficient credits. Required: {required_credits}, Available: {credit_check['creditsAvailable']}. Free tier: {free_tier_check['reason']}"
                 logger.warning(f"[Job {job.id}] {error_msg}")
                 if job:
                     update_job_status(job.id, "error", error_message=error_msg)
@@ -416,33 +402,40 @@ async def convert_pdf_to_word(
                 expiration_seconds=settings.signed_url_expiration
             )
         
-        # Deduct credits after successful conversion
-        if user_id and user_id != 'anonymous':
+        # Record daily usage if free tier was used
+        if free_tier_check['allowed']:
             try:
-                db = get_firestore_client()
-                required_credits = calculate_required_credits(conversion_result.pages, conversion_result.used_docai)
-                
-                deduct_result = deduct_credits(
-                    user_id=user_id,
-                    amount=required_credits,
-                    reason='Converted PDF to Word',
-                    metadata={
-                        'file_name': file.filename,
-                        'page_count': conversion_result.pages,
-                        'processor': conversion_result.main_method.value,
-                        'job_id': job.id
-                    },
-                    db=db
-                )
-                
-                if deduct_result.get('success'):
-                    logger.info(f"[Job {job.id}] Credits deducted: {required_credits}. Remaining: {deduct_result['creditsRemaining']}")
-                else:
-                    logger.error(f"[Job {job.id}] Failed to deduct credits: {deduct_result.get('error')}")
-                    # Don't fail the conversion if credit deduction fails - log it
-            except Exception as credit_error:
-                logger.error(f"[Job {job.id}] Error deducting credits: {credit_error}", exc_info=True)
-                # Don't fail the conversion - log the error
+                record_daily_usage(user_id, conversion_result.pages, conversion_result.used_docai, db)
+                logger.info(f"[Job {job.id}] Recorded free tier usage: {user_id}, {conversion_result.pages} pages, OCR: {conversion_result.used_docai}")
+            except Exception as usage_error:
+                logger.error(f"[Job {job.id}] Error recording daily usage: {usage_error}", exc_info=True)
+        else:
+            # Free tier exceeded - deduct credits for authenticated users only
+            if user_id and user_id != 'anonymous':
+                try:
+                    required_credits = calculate_required_credits(conversion_result.pages, conversion_result.used_docai)
+                    
+                    deduct_result = deduct_credits(
+                        user_id=user_id,
+                        amount=required_credits,
+                        reason='Converted PDF to Word',
+                        metadata={
+                            'file_name': file.filename,
+                            'page_count': conversion_result.pages,
+                            'processor': conversion_result.main_method.value,
+                            'job_id': job.id
+                        },
+                        db=db
+                    )
+                    
+                    if deduct_result.get('success'):
+                        logger.info(f"[Job {job.id}] Credits deducted: {required_credits}. Remaining: {deduct_result['creditsRemaining']}")
+                    else:
+                        logger.error(f"[Job {job.id}] Failed to deduct credits: {deduct_result.get('error')}")
+                        # Don't fail the conversion if credit deduction fails - log it
+                except Exception as credit_error:
+                    logger.error(f"[Job {job.id}] Error deducting credits: {credit_error}", exc_info=True)
+                    # Don't fail the conversion - log the error
         
         # Update job status to completed
         job_status = "completed"

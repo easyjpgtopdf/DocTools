@@ -719,60 +719,63 @@
                 if (metadataResponse.ok) {
                     const metadata = await metadataResponse.json();
                     
-                    // Free tier limits for anonymous users
-                    const FREE_TIER_MAX_PAGES = 10;
-                    const FREE_TIER_MAX_SIZE_MB = 20;
-                    const fileSizeMB = (currentFile.size / (1024 * 1024)).toFixed(2);
+                    // Check daily free tier limits (10 pages text, 5 pages OCR per day)
+                    const isOCR = !metadata.has_text;
+                    const canUseFreeTier = metadata.can_use_free_tier !== false; // Default to true if not provided
                     
-                    // Check if user is anonymous and within free tier
-                    const isAnonymous = !authToken;
-                    const withinFreeTier = isAnonymous && 
-                                           metadata.pages <= FREE_TIER_MAX_PAGES && 
-                                           parseFloat(fileSizeMB) <= FREE_TIER_MAX_SIZE_MB;
+                    // Display usage info
+                    if (canUseFreeTier) {
+                        const remainingText = (metadata.daily_limit_text || 10) - (metadata.daily_usage_text || 0);
+                        const remainingOCR = (metadata.daily_limit_ocr || 5) - (metadata.daily_usage_ocr || 0);
+                        console.log(`Free tier available: ${remainingText} text pages, ${remainingOCR} OCR pages remaining today`);
+                    }
                     
-                    if (withinFreeTier) {
-                        // Anonymous user within free tier - proceed directly without credit modal
-                        console.log(`Free tier: ${metadata.pages} pages, ${fileSizeMB}MB - Proceeding with conversion`);
+                    // If free tier can be used, proceed directly
+                    if (canUseFreeTier) {
+                        console.log(`Free tier: ${metadata.pages} pages, ${isOCR ? 'OCR' : 'Text'} - Proceeding with conversion`);
                         await convertToWord();
-                    } else if (isAnonymous && (metadata.pages > FREE_TIER_MAX_PAGES || parseFloat(fileSizeMB) > FREE_TIER_MAX_SIZE_MB)) {
-                        // Anonymous user exceeded free tier - show message and prompt login
-                        const limitMsg = metadata.pages > FREE_TIER_MAX_PAGES 
-                            ? `Free tier limit: Maximum ${FREE_TIER_MAX_PAGES} pages. Your file has ${metadata.pages} pages.`
-                            : `Free tier limit: Maximum ${FREE_TIER_MAX_SIZE_MB}MB file size. Your file is ${fileSizeMB}MB.`;
+                    } else {
+                        // Free tier exceeded - show appropriate message
+                        const isAnonymous = !authToken;
+                        const limitType = isOCR ? 'OCR' : 'text';
+                        const usedToday = isOCR ? (metadata.daily_usage_ocr || 0) : (metadata.daily_usage_text || 0);
+                        const dailyLimit = isOCR ? (metadata.daily_limit_ocr || 5) : (metadata.daily_limit_text || 10);
+                        const limitMsg = `Free ${limitType} limit reached. You've used ${usedToday}/${dailyLimit} ${limitType} pages today.`;
                         
-                        showStatus(limitMsg + ' Please sign in for higher limits.', 'error');
-                        showToast(limitMsg + ' Please sign in to continue.', true);
-                        
-                        setTimeout(() => {
-                            if (confirm('You have reached the free tier limit. Would you like to sign in to continue?')) {
-                                window.location.href = `/accounts.html#login?returnTo=${encodeURIComponent(window.location.href)}`;
+                        if (isAnonymous) {
+                            // Anonymous user exceeded daily free tier
+                            showStatus(limitMsg + ' Please sign in to buy credits for more conversions.', 'error');
+                            showToast(limitMsg, true);
+                            setTimeout(() => {
+                                if (confirm('Free daily limit reached. Would you like to sign in to buy credits?')) {
+                                    window.location.href = `/accounts.html#login?returnTo=${encodeURIComponent(window.location.href)}`;
+                                }
+                            }, 2000);
+                            return; // Stop conversion
+                        } else if (authToken && typeof showCreditModal === 'function') {
+                            // Logged-in user exceeded free tier - show credit modal
+                            try {
+                                await showCreditModal(
+                                    currentFile,
+                                    metadata.pages,
+                                    metadata.estimated_credits_text,
+                                    metadata.estimated_credits_ocr
+                                );
+                                // User clicked continue, proceed with conversion
+                                await convertToWord();
+                            } catch (e) {
+                                if (e.message && (e.message.includes('cancelled') || e.message.includes('Redirecting'))) {
+                                    // User cancelled or wants to buy credits
+                                    return;
+                                }
+                                // Error showing modal, proceed anyway
+                                console.warn('Credit modal error:', e);
+                                await convertToWord();
                             }
-                        }, 2000);
-                        return; // Stop conversion
-                    } else if (authToken && typeof showCreditModal === 'function') {
-                        // Logged-in user - show credit modal
-                        try {
-                            await showCreditModal(
-                                currentFile,
-                                metadata.pages,
-                                metadata.estimated_credits_text,
-                                metadata.estimated_credits_ocr
-                            );
-                            // User clicked continue, proceed with conversion
-                            await convertToWord();
-                        } catch (e) {
-                            if (e.message && (e.message.includes('cancelled') || e.message.includes('Redirecting'))) {
-                                // User cancelled or wants to buy credits
-                                return;
-                            }
-                            // Error showing modal, proceed anyway
-                            console.warn('Credit modal error:', e);
+                        } else {
+                            // No credit modal available - proceed and let backend handle
                             await convertToWord();
                         }
-                    } else {
-                        // No credit modal available or user not logged in (but within free tier already handled above)
-                        // Proceed with conversion - backend will enforce limits
-                        await convertToWord();
                     }
                 } else {
                     // Metadata fetch failed - check for free tier limit errors

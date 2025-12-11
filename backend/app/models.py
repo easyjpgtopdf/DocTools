@@ -123,4 +123,9 @@ class PdfMetadataResponse(BaseModel):
     file_size_bytes: int
     estimated_credits_text: float
     estimated_credits_ocr: float
+    daily_usage_text: Optional[int] = 0  # Pages used today (text)
+    daily_usage_ocr: Optional[int] = 0  # Pages used today (OCR)
+    daily_limit_text: Optional[int] = 10  # Daily limit for text pages
+    daily_limit_ocr: Optional[int] = 5  # Daily limit for OCR pages
+    can_use_free_tier: Optional[bool] = True  # Whether user can use free tier for this file
 
