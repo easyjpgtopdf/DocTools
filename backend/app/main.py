@@ -109,6 +109,25 @@ async def startup_event():
             logger.warning(f"Firebase initialization failed (non-critical): {fb_error}")
             logger.info("Continuing without Firebase (auth features may be limited)")
         
+        # Validate Document AI credentials (non-blocking)
+        try:
+            from app.docai_client import DocumentAIClient
+            if settings.project_id and settings.docai_processor_id and settings.docai_location:
+                docai_client = DocumentAIClient(
+                    project_id=settings.project_id,
+                    location=settings.docai_location,
+                    processor_id=settings.docai_processor_id
+                )
+                if docai_client.validate_credentials():
+                    logger.info("Document AI credentials validated successfully")
+                else:
+                    logger.warning("Document AI credentials validation failed - will use LibreOffice-only fallback")
+            else:
+                logger.info("Document AI not configured - will use LibreOffice-only mode")
+        except Exception as docai_error:
+            logger.warning(f"Document AI credential validation failed (non-critical): {docai_error}")
+            logger.info("Will use LibreOffice-only fallback mode")
+        
         logger.info("Application startup complete")
         logger.info("CORS enabled for all origins")
     except Exception as e:
