@@ -104,34 +104,15 @@
             color: #666;
         }
         
-        .continue-btn {
+        .loading {
             margin-top: 20px;
-            padding: 15px 40px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 8px;
+            color: #667eea;
             font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
             display: none;
         }
         
-        .continue-btn:hover {
-            background: #764ba2;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-        
-        .continue-btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .continue-btn.show {
-            display: inline-block;
+        .loading.show {
+            display: block;
         }
         
         .features {
@@ -193,9 +174,9 @@
             <div class="file-size" id="fileSize"></div>
         </div>
         
-        <button class="continue-btn" id="continueBtn" onclick="continueToConverter()">
-            Continue to Converter <i class="fas fa-arrow-right"></i>
-        </button>
+        <div class="loading" id="loading">
+            <i class="fas fa-spinner fa-spin"></i> Redirecting to converter...
+        </div>
         
         <div class="features">
             <div class="feature">
@@ -219,7 +200,7 @@
         const fileInfo = document.getElementById('fileInfo');
         const fileName = document.getElementById('fileName');
         const fileSize = document.getElementById('fileSize');
-        const continueBtn = document.getElementById('continueBtn');
+        const loading = document.getElementById('loading');
         
         let selectedFile = null;
         
@@ -267,16 +248,11 @@
             fileName.textContent = file.name;
             fileSize.textContent = `Size: ${(file.size / 1024).toFixed(2)} KB`;
             fileInfo.classList.add('show');
-            continueBtn.classList.add('show');
-        }
-        
-        function continueToConverter() {
-            if (!selectedFile) {
-                alert('Please select a PDF file first');
-                return;
-            }
             
-            // Store file in sessionStorage for next page
+            // Automatically redirect after file selection
+            loading.classList.add('show');
+            
+            // Store file in sessionStorage and redirect immediately
             const reader = new FileReader();
             reader.onload = function(e) {
                 sessionStorage.setItem('pdfFile', JSON.stringify({
@@ -284,7 +260,7 @@
                     size: selectedFile.size,
                     data: e.target.result.split(',')[1] // Base64 data
                 }));
-                // Redirect to converter page
+                // Auto-redirect to converter page
                 window.location.href = '/pdf-to-word-converter';
             };
             reader.readAsDataURL(selectedFile);

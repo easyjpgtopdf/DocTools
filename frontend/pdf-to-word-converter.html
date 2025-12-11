@@ -838,7 +838,7 @@
         let totalPages = 0;
         
         // Check if file was passed from previous page
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('DOMContentLoaded', async () => {
             const storedFile = sessionStorage.getItem('pdfFile');
             if (storedFile) {
                 try {
@@ -852,10 +852,15 @@
                     const byteArray = new Uint8Array(byteNumbers);
                     const blob = new Blob([byteArray], { type: 'application/pdf' });
                     const file = new File([blob], fileData.name, { type: 'application/pdf' });
-                    handleFile(file);
+                    
+                    // Hide upload area and show file info
+                    uploadArea.style.display = 'none';
+                    await handleFile(file);
                     sessionStorage.removeItem('pdfFile');
                 } catch (e) {
                     console.error('Error loading stored file:', e);
+                    showStatus('Error loading file. Please upload again.', 'error');
+                    uploadArea.style.display = 'block';
                 }
             }
         });
@@ -906,7 +911,9 @@
             fileInfo.classList.add('show');
             convertBtn.disabled = false;
             resultsSection.style.display = 'none';
-            previewSection.classList.remove('show');
+            
+            // Hide upload area if file is loaded
+            uploadArea.style.display = 'none';
             
             // Load PDF for preview
             try {
@@ -914,12 +921,13 @@
                 pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
                 totalPages = pdfDoc.numPages;
                 currentPageNum = 1;
-                renderPage(1);
+                await renderPage(1);
                 previewSection.classList.add('show');
                 updatePageInfo();
             } catch (error) {
                 console.error('Error loading PDF:', error);
                 showStatus('Error loading PDF preview', 'error');
+                previewSection.classList.remove('show');
             }
         }
         
