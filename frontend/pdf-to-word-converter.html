@@ -35,9 +35,9 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     
     <!-- Header and Footer CSS -->
-    <link rel="stylesheet" href="/css/header.css">
-    <link rel="stylesheet" href="/css/footer.css">
-    <link rel="stylesheet" href="/css/theme-modern.css">
+    <link rel="stylesheet" href="/css/header.css?v=20250111">
+    <link rel="stylesheet" href="/css/footer.css?v=20250111">
+    <link rel="stylesheet" href="/css/theme-modern.css?v=20250111">
     
     <!-- Fonts -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -663,16 +663,36 @@
                 const formData = new FormData();
                 formData.append('file', currentFile);
                 
+                // Try to get auth token for metadata check (optional - for logged-in users)
+                let authToken = null;
+                try {
+                    const authModule = await import('/js/auth.js').catch(() => null);
+                    if (authModule && authModule.auth && authModule.auth.currentUser) {
+                        authToken = await authModule.auth.currentUser.getIdToken();
+                    }
+                } catch (e) {
+                    console.log('Auth token not available for metadata check, proceeding without auth header');
+                }
+                
+                const metadataHeaders = {};
+                if (authToken) {
+                    metadataHeaders['Authorization'] = `Bearer ${authToken}`;
+                }
+                
                 const metadataResponse = await fetch(`${API_BASE_URL}/api/convert/pdf-metadata`, {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    mode: 'cors',
+                    credentials: 'omit',
+                    headers: metadataHeaders
                 });
                 
                 if (metadataResponse.ok) {
                     const metadata = await metadataResponse.json();
                     
-                    // Show credit modal if function is available
-                    if (typeof showCreditModal === 'function') {
+                    // Show credit modal if function is available and user is logged in
+                    // For anonymous users within free tier, skip modal and proceed
+                    if (typeof showCreditModal === 'function' && authToken) {
                         try {
                             await showCreditModal(
                                 currentFile,
@@ -683,7 +703,7 @@
                             // User clicked continue, proceed with conversion
                             await convertToWord();
                         } catch (e) {
-                            if (e.message.includes('cancelled') || e.message.includes('Redirecting')) {
+                            if (e.message && (e.message.includes('cancelled') || e.message.includes('Redirecting'))) {
                                 // User cancelled or wants to buy credits
                                 return;
                             }
@@ -692,11 +712,39 @@
                             await convertToWord();
                         }
                     } else {
-                        // Modal not available, proceed with conversion
+                        // Modal not available or user not logged in, proceed with conversion (backend will enforce free tier)
+                        // Show info message for anonymous users
+                        if (!authToken && metadata.pages > 10) {
+                            const confirmMsg = `Free tier: Max 10 pages, 20MB. Your file has ${metadata.pages} pages. Continue anyway? (Backend will enforce limits)`;
+                            if (!confirm(confirmMsg)) {
+                                return;
+                            }
+                        }
                         await convertToWord();
                     }
                 } else {
-                    // Metadata fetch failed, proceed anyway
+                    // Metadata fetch failed - check for free tier limits
+                    let errorData;
+                    try {
+                        errorData = await metadataResponse.json();
+                    } catch {
+                        errorData = { detail: `Server error: ${metadataResponse.status} ${metadataResponse.statusText}` };
+                    }
+                    
+                    if (metadataResponse.status === 403 && (errorData.error === 'FREE_TIER_LIMIT_EXCEEDED' || errorData.error === 'FREE_TIER_SIZE_LIMIT_EXCEEDED')) {
+                        const errorMsg = errorData.message || 'Free tier limits exceeded. Please sign in for higher limits.';
+                        showStatus(errorMsg, 'error');
+                        showToast(errorMsg, true);
+                        setTimeout(() => {
+                            if (confirm('You have reached the free tier limit. Please sign in to continue or purchase credits.')) {
+                                window.location.href = `/accounts.html#login?returnTo=${encodeURIComponent(window.location.href)}`;
+                            }
+                        }, 2000);
+                        return; // Stop conversion
+                    }
+                    
+                    // For other metadata errors, proceed with conversion (backend will handle)
+                    console.warn('Metadata fetch failed, proceeding with conversion:', errorData);
                     await convertToWord();
                 }
             } catch (e) {
@@ -767,8 +815,10 @@
                     }
                     
                     // Handle insufficient credits error (logged-in users)
-                    if (response.status === 402 && errorData.error === 'NOT_ENOUGH_CREDITS') {
-                        const errorMsg = `Insufficient credits. Required: ${errorData.required || 'N/A'}, Available: ${errorData.available || 0}. Please buy credits to continue.`;
+                    const detailObj = typeof errorData.detail === 'object' ? errorData.detail : {};
+                    if (response.status === 402 && (errorData.error === 'NOT_ENOUGH_CREDITS' || detailObj.error === 'NOT_ENOUGH_CREDITS')) {
+                        const errorDetail = detailObj.error ? detailObj : errorData;
+                        const errorMsg = errorDetail.message || `Insufficient credits. Required: ${errorDetail.required || 'N/A'}, Available: ${errorDetail.available || 0}. Please buy credits to continue.`;
                         showStatus(errorMsg, 'error');
                         showToast(errorMsg, true);
                         // Optionally redirect to pricing page
@@ -784,11 +834,11 @@
                     if (response.status === 403 && (
                         errorData.error === 'FREE_TIER_LIMIT_EXCEEDED' ||
                         errorData.error === 'FREE_TIER_SIZE_LIMIT_EXCEEDED' ||
-                        errorData.detail?.error === 'FREE_TIER_LIMIT_EXCEEDED' ||
-                        errorData.detail?.error === 'FREE_TIER_SIZE_LIMIT_EXCEEDED'
+                        detailObj.error === 'FREE_TIER_LIMIT_EXCEEDED' ||
+                        detailObj.error === 'FREE_TIER_SIZE_LIMIT_EXCEEDED'
                     )) {
-                        const errorDetail = errorData.detail || errorData;
-                        const errorMsg = errorDetail.message || errorData.message || errorDetail.error || 
+                        const errorDetail = detailObj.error ? detailObj : errorData;
+                        const errorMsg = errorDetail.message || errorData.message || 
                             `Free tier limit exceeded. Maximum ${errorDetail.limit || 10} pages, ${errorDetail.size_limit || 20}MB. Please sign in for higher limits.`;
                         showStatus(errorMsg, 'error');
                         showToast(errorMsg, true);
@@ -802,7 +852,20 @@
                         throw new Error(errorMsg);
                     }
                     
-                    const errorMsg = errorData.detail?.message || errorData.error || errorData.detail?.error || errorData.detail || errorData.message || `Server error: ${response.status} (check logs)`;
+                    // Extract error message from various possible formats
+                    let errorMsg = 'Conversion failed. Please try again.';
+                    if (detailObj && typeof detailObj === 'object') {
+                        errorMsg = detailObj.message || detailObj.error || detailObj.detail || JSON.stringify(detailObj);
+                    } else if (errorData && typeof errorData === 'object') {
+                        errorMsg = errorData.message || errorData.error || errorData.detail || JSON.stringify(errorData);
+                    } else if (typeof errorData === 'string') {
+                        errorMsg = errorData;
+                    } else {
+                        errorMsg = `Server error: ${response.status} ${response.statusText}. Check file and try again.`;
+                    }
+                    
+                    showStatus(`Error: ${errorMsg}`, 'error');
+                    showToast(`Conversion failed: ${errorMsg}. Check file and try again.`, true);
                     throw new Error(errorMsg);
                 }
                 
@@ -872,9 +935,9 @@
         }
     </script>
     
-    <script src="/js/global-components.js"></script>
-    <script type="module" src="/js/auth.js"></script>
-    <script type="module" src="/js/pdf-word-credit-modal.js"></script>
+    <script src="/js/global-components.js?v=20250111"></script>
+    <script type="module" src="/js/auth.js?v=20250111"></script>
+    <script type="module" src="/js/pdf-word-credit-modal.js?v=20250111"></script>
     <script>
     // Ensure header loads - multiple attempts to guarantee it works
     (function() {

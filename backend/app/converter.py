@@ -162,129 +162,103 @@ def convert_pdf_to_docx_with_libreoffice(pdf_path: str, output_dir: str) -> str:
         
         logger.info(f"Using LibreOffice binary: {soffice_binary}")
         
-        # Build LibreOffice command
-        # --headless: Run without GUI
-        # --convert-to docx: Convert to DOCX format
-        # --outdir: Output directory
+        # Log directory contents before conversion
+        logger.info(f"Files in output_dir before conversion: {os.listdir(output_dir) if os.path.exists(output_dir) else 'directory does not exist'}")
+        
+        # Build LibreOffice command with robust options
         cmd = [
             soffice_binary,
-            "--headless",           # No GUI mode
-            "--convert-to", "docx", # Target format
-            "--outdir", output_dir, # Output directory
-            pdf_path                # Input file
+            "--headless",
+            "--nologo",
+            "--nodefault",
+            "--nolockcheck",
+            "--norestore",
+            "--convert-to", "docx:writer6",
+            "--outdir", output_dir,
+            pdf_path
         ]
         
-        logger.debug(f"Executing command: {' '.join(cmd)}")
-        print(f"DEBUG: LibreOffice command: {' '.join(cmd)}")
+        logger.info(f"Executing LibreOffice command: {' '.join(cmd)}")
         
-        # Run LibreOffice with timeout protection
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=300  # 5 minute timeout for large files
-        )
-        
-        logger.debug(f"LibreOffice return code: {result.returncode}")
-        logger.debug(f"LibreOffice stdout: {result.stdout}")
-        logger.debug(f"LibreOffice stderr: {result.stderr}")
-        print(f"DEBUG: LibreOffice return code: {result.returncode}")
-        print(f"DEBUG: LibreOffice stdout: {result.stdout}")
-        print(f"DEBUG: LibreOffice stderr: {result.stderr}")
-        
-        # Check if command succeeded
-        if result.returncode != 0:
-            error_msg = result.stderr or result.stdout or "Unknown error"
-            logger.error(f"LibreOffice conversion failed: {error_msg}")
-            raise Exception(f"LibreOffice conversion failed: {error_msg}")
-        
-        # LibreOffice creates output with same base name as input
-        # e.g., input.pdf -> input.docx
-        # But LibreOffice might keep original filename extension or use different naming
-        pdf_name = Path(pdf_path).stem
-        pdf_basename = Path(pdf_path).name
-        
-        # Wait a moment for LibreOffice to finish writing the file
-        import time
-        time.sleep(0.5)
-        
-        # List all files in output directory
-        output_files = []
-        if os.path.exists(output_dir):
-            try:
-                output_files = os.listdir(output_dir)
-            except Exception as e:
-                logger.warning(f"Error listing output directory: {e}")
-        
-        logger.info(f"Files in output directory after conversion: {output_files}")
-        print(f"DEBUG: Files in output directory: {output_files}")
-        
-        # Check for DOCX file - LibreOffice may use different naming conventions
-        # Try multiple possible output names
-        possible_names = [
-            f"{pdf_name}.docx",  # input -> input.docx
-            pdf_basename.replace('.pdf', '.docx'),  # input.pdf -> input.docx
-            f"{pdf_basename}.docx",  # input.pdf -> input.pdf.docx
-            "output.docx",  # Generic output name
-        ]
-        
-        actual_output_path = None
-        
-        # First, try the expected paths
-        for name in possible_names:
-            test_path = os.path.join(output_dir, name)
-            if os.path.exists(test_path) and os.path.getsize(test_path) > 0:
-                actual_output_path = test_path
-                logger.info(f"Found DOCX at expected path: {actual_output_path}")
-                break
-        
-        # If not found, search for any .docx file in the directory
-        if not actual_output_path:
-            for file in output_files:
-                if file.endswith('.docx') and not file.startswith('~'):  # Exclude temp files
-                    test_path = os.path.join(output_dir, file)
-                    if os.path.exists(test_path) and os.path.getsize(test_path) > 0:
-                        actual_output_path = test_path
-                        logger.info(f"Found DOCX file with different name: {actual_output_path}")
-                        break
-        
-        # If still not found, check if LibreOffice created it in a subdirectory or parent
-        if not actual_output_path:
-            # Check parent directory
-            parent_dir = os.path.dirname(output_dir)
-            if os.path.exists(parent_dir):
-                try:
-                    parent_files = os.listdir(parent_dir)
-                    for file in parent_files:
-                        if file.endswith('.docx'):
-                            test_path = os.path.join(parent_dir, file)
-                            if os.path.exists(test_path):
-                                actual_output_path = test_path
-                                logger.info(f"Found DOCX in parent directory: {actual_output_path}")
-                                break
-                except Exception:
-                    pass
-        
-        # Final verification
-        if not actual_output_path or not os.path.exists(actual_output_path):
-            error_msg = f"Output DOCX not found. Expected at: {os.path.join(output_dir, f'{pdf_name}.docx')}. Files in directory: {output_files}. LibreOffice may have failed silently."
+        try:
+            # Run LibreOffice with timeout (90 seconds as per requirement)
+            proc = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=90
+            )
+        except subprocess.TimeoutExpired as e:
+            error_msg = f"LibreOffice timed out after 90 seconds: {e}"
             logger.error(error_msg)
-            raise Exception(error_msg)
+            raise RuntimeError(error_msg)
         
-        # Verify file is not empty
-        if os.path.getsize(actual_output_path) == 0:
-            raise Exception(f"Output DOCX file is empty: {actual_output_path}")
+        # Log return code and output (truncate long outputs)
+        stdout_truncated = proc.stdout[:500] if len(proc.stdout) > 500 else proc.stdout
+        stderr_truncated = proc.stderr[:500] if len(proc.stderr) > 500 else proc.stderr
         
-        logger.info(f"Conversion successful: {actual_output_path} (size: {os.path.getsize(actual_output_path)} bytes)")
-        print(f"DEBUG: LibreOffice output: {actual_output_path}")
-        return actual_output_path
+        logger.info(f"LibreOffice return code: {proc.returncode}")
+        logger.info(f"LibreOffice stdout (truncated): {stdout_truncated}")
+        logger.info(f"LibreOffice stderr (truncated): {stderr_truncated}")
         
-    except subprocess.TimeoutExpired:
-        logger.error("LibreOffice conversion timed out after 5 minutes", exc_info=True)
-        raise Exception("Conversion timed out. File may be too large or complex.")
+        if proc.returncode != 0:
+            error_msg = f"LibreOffice conversion failed with return code {proc.returncode}. stdout: {proc.stdout}, stderr: {proc.stderr}"
+            logger.error(error_msg)
+        
+        # Log directory contents after conversion
+        logger.info(f"Files in output_dir after conversion: {os.listdir(output_dir) if os.path.exists(output_dir) else 'directory does not exist'}")
+        
+        # Search for any .docx file in output_dir
+        docx_files = [f for f in os.listdir(output_dir) if f.lower().endswith(".docx")]
+        
+        if docx_files:
+            # Return the first .docx file found
+            docx_path = os.path.join(output_dir, docx_files[0])
+            logger.info(f"Found DOCX output: {docx_path}")
+            return docx_path
+        
+        # Fallback 1: Try unoconv if available
+        try:
+            unoconv_result = subprocess.run(
+                ["unoconv", "-f", "docx", "-o", os.path.join(output_dir, f"{Path(pdf_path).stem}.docx"), pdf_path],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            if unoconv_result.returncode == 0:
+                fallback_docx = os.path.join(output_dir, f"{Path(pdf_path).stem}.docx")
+                if os.path.exists(fallback_docx):
+                    logger.info(f"Fallback unoconv conversion successful: {fallback_docx}")
+                    return fallback_docx
+        except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+            logger.warning(f"Unoconv fallback failed: {e}")
+        
+        # Fallback 2: Create basic DOCX with python-docx containing extracted text
+        try:
+            logger.warning("Creating fallback DOCX with extracted text")
+            extracted_text = pdf_extract_text(pdf_path)
+            doc = Document()
+            doc.add_paragraph(extracted_text[:10000])  # Limit to first 10k chars
+            fallback_docx_path = os.path.join(output_dir, f"{Path(pdf_path).stem}_fallback.docx")
+            doc.save(fallback_docx_path)
+            logger.info(f"Fallback DOCX created: {fallback_docx_path}")
+            return fallback_docx_path
+        except Exception as fallback_error:
+            logger.error(f"Fallback DOCX creation failed: {fallback_error}")
+        
+        # If all methods fail, raise error with details
+        error_msg = f"Conversion output missing. LibreOffice return code: {proc.returncode}, stdout: {stdout_truncated}, stderr: {stderr_truncated}. Files in output_dir: {os.listdir(output_dir) if os.path.exists(output_dir) else 'N/A'}"
+        logger.error(error_msg)
+        raise RuntimeError(error_msg)
+        
+    except subprocess.TimeoutExpired as e:
+        error_msg = f"LibreOffice timed out after 90 seconds: {e}"
+        logger.error(error_msg, exc_info=True)
+        raise RuntimeError(error_msg) from e
     except FileNotFoundError as e:
-        logger.error(f"LibreOffice (soffice) not found in PATH: {e}", exc_info=True)
-        raise Exception("LibreOffice not available in Cloud Run. Please check installation.")
+        error_msg = f"LibreOffice (soffice) not found: {e}"
+        logger.error(error_msg, exc_info=True)
+        raise RuntimeError("LibreOffice not available in Cloud Run. Please check installation.") from e
     except Exception as e:
         logger.error(f"LibreOffice conversion error: {e}", exc_info=True)
         raise

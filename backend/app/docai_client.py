@@ -75,9 +75,34 @@ class DocumentAIClient:
         self.project_id = project_id
         self.location = location
         self.processor_id = processor_id
-        self.client = documentai.DocumentProcessorServiceClient()
-        self.processor_name = f"projects/{project_id}/locations/{location}/processors/{processor_id}"
-        logger.info(f"Document AI client initialized: {self.processor_name}")
+        try:
+            self.client = documentai.DocumentProcessorServiceClient()
+            self.processor_name = f"projects/{project_id}/locations/{location}/processors/{processor_id}"
+            logger.info(f"Document AI client initialized: {self.processor_name}")
+        except Exception as e:
+            logger.warning(f"Document AI client initialization failed (credentials may be missing): {e}")
+            logger.info("Document AI will fallback to LibreOffice-only mode")
+            self.client = None
+            self.processor_name = None
+    
+    def validate_credentials(self) -> bool:
+        """
+        Validate Document AI credentials by attempting to access the processor.
+        
+        Returns:
+            True if credentials are valid, False otherwise
+        """
+        if not self.client or not self.processor_name:
+            return False
+        try:
+            # Try to get processor information as a validation check
+            request = documentai.GetProcessorRequest(name=self.processor_name)
+            self.client.get_processor(request=request)
+            logger.info("Document AI credentials validated successfully")
+            return True
+        except Exception as e:
+            logger.warning(f"Document AI credentials validation failed: {e}")
+            return False
     
     def process_pdf_to_document(self, pdf_bytes: bytes) -> documentai.Document:
         """

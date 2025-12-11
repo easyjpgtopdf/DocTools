@@ -45,6 +45,9 @@ class GCSStorage:
             Blob name in GCS
         """
         try:
+            if not os.path.exists(local_path):
+                raise FileNotFoundError(f"Local file not found: {local_path}")
+            
             bucket = self.client.bucket(bucket_name)
             blob = bucket.blob(blob_name)
             
@@ -52,11 +55,16 @@ class GCSStorage:
                 blob.content_type = content_type
             
             blob.upload_from_filename(local_path)
-            logger.info(f"File uploaded to gs://{bucket_name}/{blob_name}")
+            logger.info(f"File uploaded successfully to gs://{bucket_name}/{blob_name}")
             return blob_name
         except GoogleCloudError as e:
-            logger.error(f"GCS upload error: {e}")
-            raise
+            error_msg = f"GCS upload error for {local_path} to gs://{bucket_name}/{blob_name}: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            raise RuntimeError(error_msg) from e
+        except Exception as e:
+            error_msg = f"Unexpected error uploading {local_path} to GCS: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            raise RuntimeError(error_msg) from e
     
     def generate_signed_url(
         self,
@@ -81,16 +89,25 @@ class GCSStorage:
             bucket = self.client.bucket(bucket_name)
             blob = bucket.blob(blob_name)
             
+            # Verify blob exists
+            if not blob.exists():
+                raise FileNotFoundError(f"Blob does not exist: gs://{bucket_name}/{blob_name}")
+            
             url = blob.generate_signed_url(
                 version="v4",
                 expiration=timedelta(seconds=expiration_seconds),
                 method=method
             )
-            logger.info(f"Generated signed URL for gs://{bucket_name}/{blob_name}")
+            logger.info(f"Generated signed URL for gs://{bucket_name}/{blob_name} (expires in {expiration_seconds}s)")
             return url
         except GoogleCloudError as e:
-            logger.error(f"Error generating signed URL: {e}")
-            raise
+            error_msg = f"Error generating signed URL for gs://{bucket_name}/{blob_name}: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            raise RuntimeError(error_msg) from e
+        except Exception as e:
+            error_msg = f"Unexpected error generating signed URL: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            raise RuntimeError(error_msg) from e
     
     def delete_file(self, bucket_name: str, blob_name: str) -> None:
         """

@@ -119,6 +119,7 @@ class CreditAddResponse(BaseModel):
 class PdfMetadataResponse(BaseModel):
     """PDF metadata response for credit calculation."""
     pages: int
+    has_text: Optional[bool] = False  # Whether PDF has extractable text
     file_size_bytes: int
     estimated_credits_text: float
     estimated_credits_ocr: float

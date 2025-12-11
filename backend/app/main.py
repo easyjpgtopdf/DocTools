@@ -428,6 +428,10 @@ async def convert_pdf_to_word(
         # Update job status to completed
         job_status = "completed"
         
+        # Log successful conversion details
+        conversion_time_ms = int((time.time() - start_time) * 1000)
+        logger.info(f"[Job {job.id}] Conversion successful - Engine: {engine}, Pages: {conversion_result.pages}, Time: {conversion_time_ms}ms, DocAI Confidence: {docai_confidence}")
+        
         # Update job with success details
         update_job_success(
             job_id=job.id,
@@ -472,20 +476,24 @@ async def convert_pdf_to_word(
             error_msg = str(e.detail) if hasattr(e, 'detail') else str(e)
             update_job_failure(job.id, error_msg)
             update_job_status(job.id, "error", error_message=error_msg)
+        logger.exception(f"[Job {job.id if job else 'N/A'}] HTTP Exception: {error_msg if job else str(e.detail)}")
         raise
     except Exception as e:
         job_status = "failed"
         error_msg = str(e)
-        import traceback
-        error_traceback = traceback.format_exc()
-        logger.error(f"[Job {job.id if job else 'N/A'}] Conversion error: {error_msg}")
-        logger.error(f"[Job {job.id if job else 'N/A'}] Full traceback:\n{error_traceback}")
-        print(f"DEBUG: Conversion error: {error_msg}")
-        print(f"DEBUG: Full traceback:\n{error_traceback}")
+        logger.exception(f"[Job {job.id if job else 'N/A'}] Conversion error: {error_msg}")
         if job:
             update_job_failure(job.id, error_msg)
             update_job_status(job.id, "error", error_message=error_msg)
-        raise HTTPException(status_code=500, detail=f"Conversion failed: {error_msg}")
+        # Return JSON with error details for better frontend handling
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": True,
+                "message": f"Conversion failed: {error_msg}",
+                "error_type": type(e).__name__
+            }
+        )
     
     finally:
         # Cleanup temporary files
@@ -878,14 +886,19 @@ async def add_user_credits(
         raise HTTPException(status_code=500, detail="Failed to add credits")
 
 
-@app.post("/api/convert/pdf-metadata")
+@app.post("/api/convert/pdf-metadata", response_model=PdfMetadataResponse)
 async def get_pdf_metadata_for_credits(
     file: UploadFile = File(...),
     settings: Settings = Depends(get_app_settings)
 ):
-    """Get PDF metadata (pages, size) to calculate required credits."""
+    """
+    Get PDF metadata (pages, size, has_text) to calculate required credits.
+    Accepts POST with multipart/form-data file upload.
+    """
     temp_pdf_path = None
     try:
+        logger.info(f"PDF metadata request - File: {file.filename if file else 'N/A'}, Size: {file.size if file else 0} bytes")
+        
         # Save file temporarily
         temp_dir = ensure_temp_dir()
         temp_pdf_path = os.path.join(temp_dir, generate_temp_filename(".pdf"))
@@ -898,18 +911,26 @@ async def get_pdf_metadata_for_credits(
         pages = get_page_count(temp_pdf_path)
         file_size_bytes = os.path.getsize(temp_pdf_path)
         
+        # Detect if PDF has text (to estimate OCR vs text conversion)
+        has_text = pdf_has_text(temp_pdf_path)
+        
         # Calculate estimated credits
         estimated_credits_text = calculate_required_credits(pages, False)
         estimated_credits_ocr = calculate_required_credits(pages, True)
         
+        logger.info(f"PDF metadata calculated: pages={pages}, has_text={has_text}, size={file_size_bytes} bytes, credits_text={estimated_credits_text}, credits_ocr={estimated_credits_ocr}")
+        
         return PdfMetadataResponse(
             pages=pages,
+            has_text=has_text,
             file_size_bytes=file_size_bytes,
             estimated_credits_text=estimated_credits_text,
             estimated_credits_ocr=estimated_credits_ocr
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error getting PDF metadata: {e}", exc_info=True)
+        logger.exception(f"Error getting PDF metadata: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get PDF metadata: {str(e)}")
     finally:
         if temp_pdf_path and os.path.exists(temp_pdf_path):
