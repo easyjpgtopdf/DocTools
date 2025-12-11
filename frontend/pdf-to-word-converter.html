@@ -38,6 +38,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- PDF.js for preview -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    
     <style>
         * {
             margin: 0;
@@ -149,6 +152,7 @@
             cursor: pointer;
             transition: all 0.3s;
             background: var(--bg-light);
+            margin-bottom: 20px;
         }
         
         .upload-area:hover {
@@ -165,6 +169,18 @@
             font-size: 64px;
             color: var(--primary-color);
             margin-bottom: 20px;
+        }
+        
+        .file-info {
+            margin: 15px 0;
+            padding: 15px;
+            background: var(--bg-light);
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .file-info.show {
+            display: block;
         }
         
         .btn {
@@ -233,14 +249,89 @@
             border: 1px solid #bee5eb;
         }
         
-        .file-info {
-            margin: 15px 0;
-            padding: 15px;
-            background: var(--bg-light);
-            border-radius: 8px;
+        /* Preview Section */
+        .preview-section {
+            margin-top: 30px;
             display: none;
         }
         
+        .preview-section.show {
+            display: block;
+        }
+        
+        .preview-container {
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            background: var(--bg-light);
+            margin-bottom: 20px;
+        }
+        
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .preview-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        
+        .pdf-viewer {
+            width: 100%;
+            min-height: 600px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: white;
+            overflow: auto;
+        }
+        
+        .pdf-page {
+            margin: 10px auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .pdf-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+        }
+        
+        .pdf-controls button {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .pdf-controls button:hover:not(:disabled) {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .pdf-controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .page-info {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+        
+        /* Results Section */
         .results-section {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -260,6 +351,25 @@
             background: #f0fff4;
         }
         
+        .method-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .method-badge.libreoffice {
+            background: #007bff;
+        }
+        
+        .method-badge.docai {
+            background: #6f42c1;
+        }
+        
         .download-link {
             display: inline-block;
             margin-top: 15px;
@@ -271,6 +381,11 @@
             font-weight: 600;
             width: 100%;
             text-align: center;
+            transition: background 0.3s;
+        }
+        
+        .download-link:hover {
+            background: #218838;
         }
         
         /* Content Sections */
@@ -392,6 +507,10 @@
             .converter-section {
                 padding: 25px;
             }
+            
+            .pdf-viewer {
+                min-height: 400px;
+            }
         }
     </style>
 </head>
@@ -442,6 +561,22 @@
                 <i class="fas fa-sync-alt"></i> Convert to Word
             </button>
             
+            <!-- PDF Preview Section -->
+            <div class="preview-section" id="previewSection">
+                <div class="preview-container">
+                    <div class="preview-header">
+                        <div class="preview-title"><i class="fas fa-eye"></i> PDF Preview</div>
+                        <div class="page-info" id="pageInfo">Page 1 of 1</div>
+                    </div>
+                    <div class="pdf-viewer" id="pdfViewer"></div>
+                    <div class="pdf-controls">
+                        <button id="prevPage" onclick="changePage(-1)"><i class="fas fa-chevron-left"></i> Previous</button>
+                        <button id="nextPage" onclick="changePage(1)">Next <i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Download Results Section -->
             <div class="results-section" id="resultsSection" style="display: none;">
                 <div class="download-card recommended" id="primaryCard">
                     <h3><i class="fas fa-star"></i> Recommended Version</h3>
@@ -469,6 +604,7 @@
             <h3>Step-by-Step Guide</h3>
             <ol>
                 <li><strong>Upload Your PDF:</strong> Click the upload area above or drag and drop your PDF file. Maximum file size is 50MB.</li>
+                <li><strong>Preview Your PDF:</strong> After uploading, preview your PDF file to ensure it's the correct document.</li>
                 <li><strong>Start Conversion:</strong> Click the "Convert to Word" button. Our system automatically detects the best conversion method for your PDF.</li>
                 <li><strong>Download Your File:</strong> Once conversion is complete, your Word document will automatically download. You'll see both a recommended version and an alternative version (if available).</li>
                 <li><strong>Edit Your Document:</strong> Open the downloaded Word file in Microsoft Word, Google Docs, or any compatible word processor to edit and format as needed.</li>
@@ -671,6 +807,9 @@
     </footer>
 
     <script>
+        // Set PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        
         const API_BASE_URL = 'https://pdf-to-word-converter-iwumaktavq-uc.a.run.app';
         
         const uploadArea = document.getElementById('uploadArea');
@@ -681,6 +820,11 @@
         const progressFill = document.getElementById('progressFill');
         const status = document.getElementById('status');
         const resultsSection = document.getElementById('resultsSection');
+        const previewSection = document.getElementById('previewSection');
+        const pdfViewer = document.getElementById('pdfViewer');
+        const pageInfo = document.getElementById('pageInfo');
+        const prevPageBtn = document.getElementById('prevPage');
+        const nextPageBtn = document.getElementById('nextPage');
         const primaryCard = document.getElementById('primaryCard');
         const altCard = document.getElementById('altCard');
         const primaryDownload = document.getElementById('primaryDownload');
@@ -689,6 +833,9 @@
         const altMethod = document.getElementById('altMethod');
         
         let currentFile = null;
+        let pdfDoc = null;
+        let currentPageNum = 1;
+        let totalPages = 0;
         
         // Check if file was passed from previous page
         window.addEventListener('DOMContentLoaded', () => {
@@ -740,7 +887,7 @@
             }
         });
         
-        function handleFile(file) {
+        async function handleFile(file) {
             if (!file.type.includes('pdf')) {
                 showStatus('Please select a PDF file', 'error');
                 return;
@@ -756,9 +903,70 @@
                 <strong>${file.name}</strong><br>
                 <span style="color: #666;">Size: ${(file.size / 1024).toFixed(2)} KB</span>
             `;
-            fileInfo.style.display = 'block';
+            fileInfo.classList.add('show');
             convertBtn.disabled = false;
             resultsSection.style.display = 'none';
+            previewSection.classList.remove('show');
+            
+            // Load PDF for preview
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                totalPages = pdfDoc.numPages;
+                currentPageNum = 1;
+                renderPage(1);
+                previewSection.classList.add('show');
+                updatePageInfo();
+            } catch (error) {
+                console.error('Error loading PDF:', error);
+                showStatus('Error loading PDF preview', 'error');
+            }
+        }
+        
+        async function renderPage(pageNum) {
+            try {
+                const page = await pdfDoc.getPage(pageNum);
+                const viewport = page.getViewport({ scale: 1.5 });
+                
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                
+                const renderContext = {
+                    canvasContext: context,
+                    viewport: viewport
+                };
+                
+                await page.render(renderContext).promise;
+                
+                pdfViewer.innerHTML = '';
+                canvas.className = 'pdf-page';
+                pdfViewer.appendChild(canvas);
+                
+                updatePageControls();
+            } catch (error) {
+                console.error('Error rendering page:', error);
+                showStatus('Error rendering PDF page', 'error');
+            }
+        }
+        
+        function changePage(delta) {
+            const newPage = currentPageNum + delta;
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPageNum = newPage;
+                renderPage(currentPageNum);
+                updatePageInfo();
+            }
+        }
+        
+        function updatePageInfo() {
+            pageInfo.textContent = `Page ${currentPageNum} of ${totalPages}`;
+        }
+        
+        function updatePageControls() {
+            prevPageBtn.disabled = currentPageNum <= 1;
+            nextPageBtn.disabled = currentPageNum >= totalPages;
         }
         
         convertBtn.addEventListener('click', convertToWord);
@@ -813,6 +1021,7 @@
                 primaryDownload.download = currentFile.name.replace('.pdf', '-primary.docx');
                 const primaryMethodLabel = result.primary_method === 'docai' ? 'AI-Powered OCR' : 'Direct Conversion';
                 primaryMethod.textContent = primaryMethodLabel;
+                primaryMethod.className = `method-badge ${result.primary_method || 'libreoffice'}`;
                 
                 if (result.alt_download_url) {
                     altCard.style.display = 'block';
@@ -820,6 +1029,7 @@
                     altDownload.download = currentFile.name.replace('.pdf', '-alternative.docx');
                     const altMethodLabel = result.alt_method === 'docai' ? 'AI-Powered OCR' : 'Direct Conversion';
                     altMethod.textContent = altMethodLabel;
+                    altMethod.className = `method-badge ${result.alt_method || 'libreoffice'}`;
                 } else {
                     altCard.style.display = 'none';
                 }
@@ -852,4 +1062,3 @@
     </script>
 </body>
 </html>
-
