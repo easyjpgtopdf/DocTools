@@ -3,15 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <title>PDF to Word Converter - Free Online Tool | EasyJPGToPDF</title>
-    <meta name="description" content="Convert PDF to Word online for free. Fast, secure, and accurate PDF to DOCX conversion with support for Hindi and Unicode fonts.">
-    <meta name="keywords" content="pdf to word, pdf to docx, convert pdf to word, pdf converter, free pdf to word">
+    <title>PDF to Word Converter</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/header.css">
     <link rel="stylesheet" href="/css/footer.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -21,156 +16,119 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             min-height: 100vh;
             padding: 20px;
             display: flex;
-            justify-content: center;
-            align-items: center;
+            flex-direction: column;
         }
         
         .container {
+            max-width: 1200px;
+            margin: 20px auto;
             background: white;
             border-radius: 16px;
             padding: 40px;
-            max-width: 600px;
-            width: 100%;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            text-align: center;
+            flex: 1;
         }
         
         h1 {
             color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
             margin-bottom: 30px;
-            font-size: 32px;
         }
         
         .upload-area {
-            border: 3px dashed #667eea;
+            border: 2px dashed #ddd;
             border-radius: 12px;
-            padding: 60px 20px;
-            background: #f8f9fa;
+            padding: 40px;
+            text-align: center;
             cursor: pointer;
             transition: all 0.3s;
             margin-bottom: 20px;
         }
         
         .upload-area:hover {
-            background: #e9ecef;
-            border-color: #764ba2;
+            border-color: #f5576c;
+            background: #fff5f6;
         }
         
         .upload-area.dragover {
-            background: #e3f2fd;
-            border-color: #2196f3;
+            border-color: #f5576c;
+            background: #ffeef0;
         }
         
-        .upload-icon {
-            font-size: 64px;
-            color: #667eea;
-            margin-bottom: 20px;
-        }
-        
-        .upload-text {
-            font-size: 18px;
-            color: #555;
-            margin-bottom: 10px;
-        }
-        
-        .upload-subtext {
-            font-size: 14px;
-            color: #888;
-        }
-        
-        #fileInput {
+        .file-input {
             display: none;
         }
         
-        .file-info {
-            margin-top: 20px;
-            padding: 15px;
-            background: #e3f2fd;
+        .btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            padding: 14px 32px;
             border-radius: 8px;
-            display: none;
-        }
-        
-        .file-info.show {
-            display: block;
-        }
-        
-        .file-name {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 5px;
-        }
-        
-        .file-size {
-            font-size: 14px;
-            color: #666;
-        }
-        
-        .loading {
-            margin-top: 20px;
-            color: #667eea;
             font-size: 16px;
-            display: none;
-        }
-        
-        .loading.show {
-            display: block;
-        }
-        
-        .error-message {
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
             margin-top: 15px;
-            padding: 12px;
-            background: #fee;
-            color: #c33;
-            border-radius: 8px;
+        }
+        
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(245, 87, 108, 0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
             display: none;
-            font-size: 14px;
         }
         
-        .error-message.show {
-            display: block;
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f093fb, #f5576c);
+            width: 0%;
+            transition: width 0.3s;
         }
         
-        .features {
-            margin-top: 30px;
-            padding-top: 30px;
-            border-top: 2px solid #e0e0e0;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
         }
         
-        .feature {
-            text-align: center;
+        .status.success {
+            background: #d4edda;
+            color: #155724;
         }
         
-        .feature-icon {
-            font-size: 32px;
-            color: #667eea;
-            margin-bottom: 10px;
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
         }
         
-        .feature-text {
-            font-size: 14px;
-            color: #666;
-        }
-        
-        @media (max-width: 768px) {
-            .container {
-                padding: 30px 20px;
-            }
-            
-            h1 {
-                font-size: 24px;
-            }
-            
-            .features {
-                grid-template-columns: 1fr;
-                gap: 15px;
-            }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
         }
     </style>
 </head>
@@ -183,64 +141,129 @@
     
     <div class="container">
         <h1><i class="fas fa-file-word"></i> PDF to Word Converter</h1>
+        <p class="subtitle">Convert PDF files to editable Word documents</p>
         
         <div class="upload-area" id="uploadArea">
-            <div class="upload-icon">
-                <i class="fas fa-cloud-upload-alt"></i>
-            </div>
-            <div class="upload-text">Drag & drop or click to choose</div>
-            <div class="upload-subtext">Supports PDF files up to 50 MB</div>
+            <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: #f5576c; margin-bottom: 15px;"></i>
+            <p><strong>Click to upload</strong> or drag and drop</p>
+            <p style="color: #999; font-size: 12px; margin-top: 5px;">PDF files only (max 50MB)</p>
+            <input type="file" id="fileInput" class="file-input" accept=".pdf">
         </div>
         
-        <input type="file" id="fileInput" accept=".pdf">
+        <div class="status" id="status"></div>
         
-        <div class="file-info" id="fileInfo">
-            <div class="file-name" id="fileName"></div>
-            <div class="file-size" id="fileSize"></div>
-        </div>
-        
-        <div class="loading" id="loading">
-            <i class="fas fa-spinner fa-spin"></i> Redirecting to converter...
-        </div>
-        
-        <div class="error-message" id="errorMessage"></div>
-        
-        <div class="features">
-            <div class="feature">
-                <div class="feature-icon"><i class="fas fa-bolt"></i></div>
-                <div class="feature-text">Fast Conversion</div>
-            </div>
-            <div class="feature">
-                <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
-                <div class="feature-text">Secure & Private</div>
-            </div>
-            <div class="feature">
-                <div class="feature-icon"><i class="fas fa-globe"></i></div>
-                <div class="feature-text">Multi-Language</div>
-            </div>
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
         </div>
     </div>
 
+    <!-- Global Footer Placeholder -->
+    <div id="global-footer-placeholder"></div>
+
+    <script src="/js/global-components.js"></script>
+    <script type="module" src="/js/auth.js"></script>
+    
+    <!-- Ensure header and footer load - multiple attempts to guarantee it works -->
+    <script>
+    (function() {
+        function tryLoadHeader() {
+            if (typeof loadGlobalHeader === 'function') {
+                try {
+                    loadGlobalHeader();
+                    return true;
+                } catch (e) {
+                    console.error('Error calling loadGlobalHeader:', e);
+                }
+            }
+            return false;
+        }
+        
+        function tryLoadFooter() {
+            if (typeof loadGlobalFooter === 'function') {
+                try {
+                    loadGlobalFooter();
+                    return true;
+                } catch (e) {
+                    console.error('Error calling loadGlobalFooter:', e);
+                }
+            }
+            return false;
+        }
+        
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            if (!tryLoadHeader()) {
+                var attempts = 0;
+                var maxAttempts = 60;
+                var checkHeader = setInterval(function() {
+                    attempts++;
+                    if (tryLoadHeader() || attempts >= maxAttempts) {
+                        clearInterval(checkHeader);
+                    }
+                }, 50);
+            }
+            if (!tryLoadFooter()) {
+                var attempts = 0;
+                var maxAttempts = 60;
+                var checkFooter = setInterval(function() {
+                    attempts++;
+                    if (tryLoadFooter() || attempts >= maxAttempts) {
+                        clearInterval(checkFooter);
+                    }
+                }, 50);
+            }
+        } else {
+            document.addEventListener('DOMContentLoaded', function() {
+                if (!tryLoadHeader()) {
+                    var attempts = 0;
+                    var maxAttempts = 40;
+                    var checkHeader = setInterval(function() {
+                        attempts++;
+                        if (tryLoadHeader() || attempts >= maxAttempts) {
+                            clearInterval(checkHeader);
+                        }
+                    }, 50);
+                }
+                if (!tryLoadFooter()) {
+                    var attempts = 0;
+                    var maxAttempts = 40;
+                    var checkFooter = setInterval(function() {
+                        attempts++;
+                        if (tryLoadFooter() || attempts >= maxAttempts) {
+                            clearInterval(checkFooter);
+                        }
+                    }, 50);
+                }
+            });
+        }
+        
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (!document.querySelector('header') && typeof loadGlobalHeader === 'function') {
+                    loadGlobalHeader();
+                }
+                if (!document.querySelector('footer') && typeof loadGlobalFooter === 'function') {
+                    loadGlobalFooter();
+                }
+            }, 100);
+        });
+    })();
+    </script>
     <script>
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
-        const fileInfo = document.getElementById('fileInfo');
-        const fileName = document.getElementById('fileName');
-        const fileSize = document.getElementById('fileSize');
-        const loading = document.getElementById('loading');
-        const errorMessage = document.getElementById('errorMessage');
+        const status = document.getElementById('status');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
         
-        let selectedFile = null;
+        let currentFile = null;
         let isRedirecting = false;
         
-        // Upload area click
         uploadArea.addEventListener('click', () => {
             if (!isRedirecting) {
                 fileInput.click();
             }
         });
         
-        // Drag and drop
         uploadArea.addEventListener('dragover', (e) => {
             if (!isRedirecting) {
                 e.preventDefault();
@@ -270,13 +293,14 @@
             }
         });
         
-        function showError(msg) {
-            errorMessage.textContent = msg;
-            errorMessage.classList.add('show');
-            loading.classList.remove('show');
-            setTimeout(() => {
-                errorMessage.classList.remove('show');
-            }, 5000);
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+        
+        function hideStatus() {
+            status.style.display = 'none';
         }
         
         function handleFile(file) {
@@ -285,40 +309,38 @@
                 return;
             }
             
-            console.log('File selected:', file.name, file.size, file.type);
-            
             if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
-                showError('Please select a PDF file');
+                showStatus('Please select a PDF file', 'error');
                 return;
             }
             
             if (file.size > 50 * 1024 * 1024) {
-                showError('File is too large. Maximum size is 50MB');
+                showStatus('File is too large. Maximum size is 50MB', 'error');
                 return;
             }
             
-            selectedFile = file;
-            fileName.textContent = file.name;
-            fileSize.textContent = `Size: ${(file.size / 1024).toFixed(2)} KB`;
-            fileInfo.classList.add('show');
-            errorMessage.classList.remove('show');
+            currentFile = file;
+            hideStatus();
             
-            // Automatically redirect after file selection
+            // Show progress
             isRedirecting = true;
-            loading.classList.add('show');
+            progressBar.style.display = 'block';
+            progressFill.style.width = '30%';
+            showStatus('Preparing file...', 'info');
             uploadArea.style.opacity = '0.6';
             uploadArea.style.cursor = 'wait';
             
-            // Store file in sessionStorage and redirect immediately
+            // Store file in sessionStorage and redirect
             const reader = new FileReader();
             
             reader.onerror = function(error) {
                 console.error('FileReader error:', error);
                 isRedirecting = false;
-                loading.classList.remove('show');
+                progressBar.style.display = 'none';
+                progressFill.style.width = '0%';
                 uploadArea.style.opacity = '1';
                 uploadArea.style.cursor = 'pointer';
-                showError('Error reading file. Please try again.');
+                showStatus('Error reading file. Please try again.', 'error');
             };
             
             reader.onload = function(e) {
@@ -333,99 +355,38 @@
                         throw new Error('Failed to extract file data');
                     }
                     
+                    progressFill.style.width = '60%';
+                    showStatus('Redirecting to converter...', 'info');
+                    
                     sessionStorage.setItem('pdfFile', JSON.stringify({
-                        name: selectedFile.name,
-                        size: selectedFile.size,
+                        name: currentFile.name,
+                        size: currentFile.size,
                         data: base64Data
                     }));
                     
-                    console.log('File stored in sessionStorage, redirecting...');
-                    console.log('File size:', selectedFile.size, 'bytes');
-                    console.log('Base64 size:', base64Data.length, 'chars');
+                    progressFill.style.width = '100%';
+                    showStatus('Redirecting...', 'info');
                     
-                    // Auto-redirect to converter page - use absolute URL
-                    const baseUrl = window.location.origin;
-                    const redirectUrl = baseUrl + '/pdf-to-word-converter';
-                    console.log('Redirecting to:', redirectUrl);
+                    // Auto-redirect to converter page
+                    setTimeout(() => {
+                        const baseUrl = window.location.origin;
+                        const redirectUrl = baseUrl + '/pdf-to-word-converter';
+                        window.location.replace(redirectUrl);
+                    }, 300);
                     
-                    // Force redirect
-                    window.location.replace(redirectUrl);
                 } catch (error) {
                     console.error('Error processing file:', error);
                     isRedirecting = false;
-                    loading.classList.remove('show');
+                    progressBar.style.display = 'none';
+                    progressFill.style.width = '0%';
                     uploadArea.style.opacity = '1';
                     uploadArea.style.cursor = 'pointer';
-                    showError('Error processing file: ' + error.message);
+                    showStatus('Error processing file: ' + error.message, 'error');
                 }
             };
             
-            reader.readAsDataURL(selectedFile);
+            reader.readAsDataURL(currentFile);
         }
-    </script>
-    
-    <!-- Footer will be loaded here -->
-    <footer>
-        <div class="container">
-            <div style="text-align: center; padding: 40px 20px; background: #2c3e50; color: white;">
-                <p>&copy; 2025 EasyJPGToPDF. All rights reserved.</p>
-                <nav style="margin-top: 20px;">
-                    <a href="/pdf-to-word" style="color: #bdc3c7; margin: 0 10px; text-decoration: none;">PDF to Word</a> |
-                    <a href="/pdf-to-jpg" style="color: #bdc3c7; margin: 0 10px; text-decoration: none;">PDF to JPG</a> |
-                    <a href="/pdf-editor" style="color: #bdc3c7; margin: 0 10px; text-decoration: none;">PDF Editor</a>
-                </nav>
-            </div>
-        </div>
-    </footer>
-    
-    <script src="/js/global-components.js"></script>
-    <script type="module" src="/js/auth.js"></script>
-    <script>
-    // Ensure header loads - multiple attempts to guarantee it works
-    (function() {
-        function tryLoadHeader() {
-            if (typeof loadGlobalHeader === 'function') {
-                try {
-                    loadGlobalHeader();
-                    return true;
-                } catch (e) {
-                    console.error('Error calling loadGlobalHeader:', e);
-                }
-            }
-            return false;
-        }
-        
-        // Try immediately if script already loaded
-        if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            if (!tryLoadHeader()) {
-                var attempts = 0;
-                var maxAttempts = 60;
-                var checkHeader = setInterval(function() {
-                    attempts++;
-                    if (tryLoadHeader() || attempts >= maxAttempts) {
-                        clearInterval(checkHeader);
-                    }
-                }, 50);
-            }
-        } else {
-            document.addEventListener('DOMContentLoaded', function() {
-                if (!tryLoadHeader()) {
-                    var attempts = 0;
-                    var maxAttempts = 40;
-                    var checkHeader = setInterval(function() {
-                        attempts++;
-                        if (tryLoadHeader() || attempts >= maxAttempts) {
-                            clearInterval(checkHeader);
-                        }
-                    }, 50);
-                }
-            });
-        }
-        
-        window.addEventListener('load', function() {
-            tryLoadHeader();
-        });
-    })();
     </script>
 </body>
 </html>
