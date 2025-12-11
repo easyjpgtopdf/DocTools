@@ -539,48 +539,11 @@
             status.style.display = 'block';
         }
         
-        // Check if file was passed from previous page and verify authentication
+        // Check if file was passed from previous page
         window.addEventListener('DOMContentLoaded', async () => {
-            // Check authentication (require login for paid tools)
-            try {
-                const { auth } = await import('/js/auth.js');
-                const { onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js');
-                
-                const checkAuth = () => {
-                    return new Promise((resolve) => {
-                        if (auth.currentUser) {
-                            resolve(auth.currentUser);
-                            return;
-                        }
-                        
-                        const unsubscribe = onAuthStateChanged(auth, (user) => {
-                            unsubscribe();
-                            resolve(user);
-                        });
-                        
-                        setTimeout(() => {
-                            unsubscribe();
-                            resolve(null);
-                        }, 3000);
-                    });
-                };
-                
-                const user = await checkAuth();
-                if (!user) {
-                    // Not logged in - redirect to login
-                    const returnUrl = encodeURIComponent(window.location.href);
-                    if (confirm('Login required to use PDF to Word converter. Redirect to login?')) {
-                        window.location.href = `/accounts.html#login?returnTo=${returnUrl}`;
-                        return;
-                    } else {
-                        window.location.href = '/pdf-to-word';
-                        return;
-                    }
-                }
-            } catch (authError) {
-                console.warn('Auth check failed, allowing access:', authError);
-                // Continue if auth check fails (allow anonymous for testing)
-            }
+            // Login NOT required - users can use free tier (10 pages, 20MB) without login
+            // Login will only be prompted when free tier limits are exceeded or credits are needed
+            console.log('Page loaded - Free tier available without login (10 pages, 20MB max)');
             
             // Load file from sessionStorage
             const storedFile = sessionStorage.getItem('pdfFile');
