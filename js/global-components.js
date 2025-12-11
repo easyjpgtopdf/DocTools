@@ -29,7 +29,7 @@ const globalAccountSectionHTML = `
     <div class="container">
         <div id="user-menu" class="user-menu" data-open="false">
             <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
-                <img src="images/user-logo-o.svg" alt="User Account" class="user-logo-o" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                <img src="/images/user-logo-o.svg" alt="User Account" class="user-logo-o" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
                 <span class="user-logo-fallback" style="display: none; width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem;">O</span>
                 <span class="user-id" id="user-id-display"></span>
                 <i class="fas fa-chevron-down" aria-hidden="true"></i>
@@ -52,7 +52,7 @@ const globalHeaderHTML = `
 <header>
     <div class="container">
         <nav class="navbar">
-            <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
+            <a href="/" class="logo"><img src="/images/logo.png" alt="Logo" style="height:54px;"></a>
             <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle mobile menu" aria-expanded="false">
                 <span></span>
                 <span></span>
@@ -137,7 +137,7 @@ const globalHeaderHTML = `
     <div class="mobile-menu-overlay" id="mobile-menu-overlay">
         <div class="mobile-menu-content">
             <div class="mobile-menu-header">
-                <a href="index.html" class="mobile-logo"><img src="images/logo.png" alt="Logo" style="height:40px;"></a>
+                <a href="/" class="mobile-logo"><img src="/images/logo.png" alt="Logo" style="height:40px;"></a>
                 <button class="mobile-menu-close" id="mobile-menu-close" aria-label="Close mobile menu">
                     <i class="fas fa-times"></i>
                 </button>
