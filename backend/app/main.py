@@ -932,14 +932,30 @@ async def get_pdf_metadata_for_credits(
         estimated_credits_text = calculate_required_credits(pages, False)
         estimated_credits_ocr = calculate_required_credits(pages, True)
         
-        logger.info(f"PDF metadata calculated: pages={pages}, has_text={has_text}, size={file_size_bytes} bytes, credits_text={estimated_credits_text}, credits_ocr={estimated_credits_ocr}")
+        # Get user ID for daily usage check
+        user = get_user_from_token(authorization) if authorization else {'user_id': 'anonymous'}
+        user_id = user.get('user_id', 'anonymous')
+        will_use_docai = not has_text
+        
+        # Check daily free tier usage
+        from app.daily_usage import get_today_usage, FREE_TIER_DAILY_PAGES_TEXT, FREE_TIER_DAILY_PAGES_OCR, can_use_free_tier
+        db = get_firestore_client()
+        daily_usage = get_today_usage(user_id, db)
+        free_tier_check = can_use_free_tier(user_id, pages, will_use_docai, db)
+        
+        logger.info(f"PDF metadata calculated: pages={pages}, has_text={has_text}, size={file_size_bytes} bytes, credits_text={estimated_credits_text}, credits_ocr={estimated_credits_ocr}, can_use_free_tier={free_tier_check['allowed']}")
         
         return PdfMetadataResponse(
             pages=pages,
             has_text=has_text,
             file_size_bytes=file_size_bytes,
             estimated_credits_text=estimated_credits_text,
-            estimated_credits_ocr=estimated_credits_ocr
+            estimated_credits_ocr=estimated_credits_ocr,
+            daily_usage_text=daily_usage['text_pages'],
+            daily_usage_ocr=daily_usage['ocr_pages'],
+            daily_limit_text=FREE_TIER_DAILY_PAGES_TEXT,
+            daily_limit_ocr=FREE_TIER_DAILY_PAGES_OCR,
+            can_use_free_tier=free_tier_check['allowed']
         )
     except HTTPException:
         raise
