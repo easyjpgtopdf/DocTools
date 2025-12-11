@@ -10,6 +10,7 @@ const CreditTransaction = require('../models/CreditTransaction');
 const PageVisit = require('../models/PageVisit');
 const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
+const { getPricingPlan } = require('../config/pricingConfig');
 
 // Initialize Razorpay (only if keys are available)
 let razorpay = null;
@@ -40,7 +41,15 @@ async function createCreditOrder(req, res) {
     const { plan, credits, amount, currency = 'USD' } = req.body;
     const userId = req.userId;
 
-    if (!plan || !credits || !amount) {
+    // Try to get plan from config (if exists)
+    const planConfig = getPricingPlan(plan);
+    
+    // Use config values if available, otherwise use request body
+    const finalCredits = planConfig ? planConfig.credits : credits;
+    const finalAmount = planConfig ? planConfig.price : amount;
+    const finalCurrency = planConfig ? planConfig.currency : currency;
+
+    if (!plan || (!finalCredits && !credits) || (!finalAmount && !amount)) {
       return res.status(400).json({
         success: false,
         error: 'Missing required fields',
@@ -50,7 +59,7 @@ async function createCreditOrder(req, res) {
 
     // Convert USD to INR (1 USD = 95 INR as per user requirement)
     const USD_TO_INR = 95;
-    const amountInINR = currency === 'USD' ? amount * USD_TO_INR : amount;
+    const amountInINR = finalCurrency === 'USD' ? finalAmount * USD_TO_INR : finalAmount;
     
     // Convert amount to paise (Razorpay expects amount in smallest currency unit)
     const amountInPaise = Math.round(amountInINR * 100);
@@ -63,7 +72,7 @@ async function createCreditOrder(req, res) {
       notes: {
         userId: userId.toString(),
         plan,
-        credits: credits.toString(),
+        credits: finalCredits.toString(),
         type: 'credit_purchase'
       }
     };
@@ -74,13 +83,13 @@ async function createCreditOrder(req, res) {
     await CreditTransaction.create({
       user_id: userId,
       type: 'purchase',
-      credits_change: credits,
+      credits_change: finalCredits,
       balance_after: 0, // Will be updated after payment
       metadata: {
         orderId: order.id,
         plan,
-        amount,
-        currency
+        amount: finalAmount,
+        currency: finalCurrency
       }
     });
 
@@ -88,7 +97,7 @@ async function createCreditOrder(req, res) {
       success: true,
       order,
       key_id: process.env.RAZORPAY_KEY_ID,
-      credits,
+      credits: finalCredits,
       plan
     });
   } catch (error) {

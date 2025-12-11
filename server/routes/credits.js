@@ -8,6 +8,7 @@ const express = require('express');
 const router = express.Router();
 const creditController = require('../controllers/creditController');
 const { authenticate } = require('../middleware/auth');
+const { getAllPricingPlans, getAllToolCreditCosts } = require('../config/pricingConfig');
 const { apiLimiter } = require('../middleware/rateLimiter');
 
 // All routes require authentication

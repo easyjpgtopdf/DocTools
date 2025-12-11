@@ -280,8 +280,9 @@ async def convert_pdf_to_word(
         from app.daily_usage import can_use_free_tier, record_daily_usage, FREE_TIER_DAILY_PAGES_TEXT, FREE_TIER_DAILY_PAGES_OCR
         db = get_firestore_client()
         free_tier_check = can_use_free_tier(user_id, pages_count, will_use_docai, db)
+        free_tier_allowed = free_tier_check['allowed']
         
-        if free_tier_check['allowed']:
+        if free_tier_allowed:
             # User can use free tier - proceed without credits
             logger.info(f"[Job {job.id}] Free tier usage: {user_id}, {pages_count} pages, OCR: {will_use_docai}")
             # Usage will be recorded after successful conversion
