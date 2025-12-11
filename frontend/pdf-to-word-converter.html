@@ -646,7 +646,60 @@
             window.location.href = '/pdf-to-word';
         });
         
-        convertBtn.addEventListener('click', convertToWord);
+        convertBtn.addEventListener('click', async () => {
+            if (!currentFile) {
+                showStatus('Please select a PDF file first', 'error');
+                return;
+            }
+            
+            // Check credits before conversion
+            try {
+                // Get PDF metadata for credit calculation
+                const formData = new FormData();
+                formData.append('file', currentFile);
+                
+                const metadataResponse = await fetch(`${API_BASE_URL}/api/convert/pdf-metadata`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (metadataResponse.ok) {
+                    const metadata = await metadataResponse.json();
+                    
+                    // Show credit modal if function is available
+                    if (typeof showCreditModal === 'function') {
+                        try {
+                            await showCreditModal(
+                                currentFile,
+                                metadata.pages,
+                                metadata.estimated_credits_text,
+                                metadata.estimated_credits_ocr
+                            );
+                            // User clicked continue, proceed with conversion
+                            await convertToWord();
+                        } catch (e) {
+                            if (e.message.includes('cancelled') || e.message.includes('Redirecting')) {
+                                // User cancelled or wants to buy credits
+                                return;
+                            }
+                            // Error showing modal, proceed anyway
+                            console.warn('Credit modal error:', e);
+                            await convertToWord();
+                        }
+                    } else {
+                        // Modal not available, proceed with conversion
+                        await convertToWord();
+                    }
+                } else {
+                    // Metadata fetch failed, proceed anyway
+                    await convertToWord();
+                }
+            } catch (e) {
+                console.warn('Credit check error:', e);
+                // Continue with conversion even if credit check fails
+                await convertToWord();
+            }
+        });
         
         async function convertToWord() {
             if (!currentFile) {
@@ -680,7 +733,22 @@
                     } catch {
                         errorData = { detail: `Server error: ${response.status} ${response.statusText}` };
                     }
-                    const errorMsg = errorData.error || errorData.detail || `Server error: ${response.status} (check logs)`;
+                    
+                    // Handle insufficient credits error
+                    if (response.status === 402 && errorData.error === 'NOT_ENOUGH_CREDITS') {
+                        const errorMsg = `Insufficient credits. Required: ${errorData.required || 'N/A'}, Available: ${errorData.available || 0}. Please buy credits to continue.`;
+                        showStatus(errorMsg, 'error');
+                        showToast(errorMsg, true);
+                        // Optionally redirect to pricing page
+                        setTimeout(() => {
+                            if (confirm('Would you like to purchase credits now?')) {
+                                window.location.href = '/pricing.html#credits';
+                            }
+                        }, 2000);
+                        throw new Error(errorMsg);
+                    }
+                    
+                    const errorMsg = errorData.error || errorData.detail || errorData.message || `Server error: ${response.status} (check logs)`;
                     throw new Error(errorMsg);
                 }
                 
@@ -752,6 +820,7 @@
     
     <script src="/js/global-components.js"></script>
     <script type="module" src="/js/auth.js"></script>
+    <script type="module" src="/js/pdf-word-credit-modal.js"></script>
     <script>
     // Ensure header loads - multiple attempts to guarantee it works
     (function() {

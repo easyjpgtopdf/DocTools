@@ -18,7 +18,13 @@ from app.models import (
     ConversionJob,
     AnnotationApplyResponse,
     ErrorResponse,
-    HealthResponse
+    HealthResponse,
+    CreditBalanceResponse,
+    CreditHistoryResponse,
+    CreditTransaction,
+    CreditAddRequest,
+    CreditAddResponse,
+    PdfMetadataResponse
 )
 from app.converter import (
     pdf_has_text,
@@ -35,6 +41,15 @@ from app.pdf_editor import apply_annotations_to_pdf
 from app.jobs import create_job, update_job_status, get_job, update_job_success, update_job_failure
 from app.storage import GCSStorage
 from app.auth import initialize_firebase, get_user_from_token
+from app.credit_manager import (
+    get_user_credits,
+    get_credit_history,
+    add_credits,
+    deduct_credits,
+    calculate_required_credits,
+    has_sufficient_credits,
+    get_firestore_client
+)
 from app.utils import (
     generate_temp_filename,
     get_temp_path,
@@ -230,6 +245,40 @@ async def convert_pdf_to_word(
         logger.info(f"[Job {job.id}] File saved: {temp_pdf_path}, size: {file_size} bytes")
         print(f"DEBUG: PDF saved: {temp_pdf_path}")
         
+        # Get page count for credit calculation
+        pages_count = get_page_count(temp_pdf_path)
+        
+        # Check credits if user is authenticated
+        user_id = user.get('user_id')
+        if user_id and user_id != 'anonymous':
+            # Detect if PDF is text-based or scanned (will use OCR)
+            has_text = pdf_has_text(temp_pdf_path)
+            will_use_docai = not has_text  # OCR if no text
+            
+            # Calculate required credits
+            required_credits = calculate_required_credits(pages_count, will_use_docai)
+            
+            # Check if user has sufficient credits
+            db = get_firestore_client()
+            credit_check = has_sufficient_credits(user_id, required_credits, db)
+            
+            if not credit_check['hasCredits']:
+                error_msg = f"Insufficient credits. Required: {required_credits}, Available: {credit_check['creditsAvailable']}"
+                logger.warning(f"[Job {job.id}] {error_msg}")
+                if job:
+                    update_job_status(job.id, "error", error_message=error_msg)
+                raise HTTPException(
+                    status_code=402,
+                    detail={
+                        "error": "NOT_ENOUGH_CREDITS",
+                        "required": required_credits,
+                        "available": credit_check['creditsAvailable'],
+                        "message": error_msg
+                    }
+                )
+            
+            logger.info(f"[Job {job.id}] Credits check passed. Required: {required_credits}, Available: {credit_check['creditsAvailable']}")
+        
         # Perform smart conversion (generates both primary and alternative)
         logger.info(f"[Job {job.id}] Starting smart conversion with alternative generation")
         
@@ -304,6 +353,34 @@ async def convert_pdf_to_word(
                 alt_blob_name,
                 expiration_seconds=settings.signed_url_expiration
             )
+        
+        # Deduct credits after successful conversion
+        if user_id and user_id != 'anonymous':
+            try:
+                db = get_firestore_client()
+                required_credits = calculate_required_credits(conversion_result.pages, conversion_result.used_docai)
+                
+                deduct_result = deduct_credits(
+                    user_id=user_id,
+                    amount=required_credits,
+                    reason='Converted PDF to Word',
+                    metadata={
+                        'file_name': file.filename,
+                        'page_count': conversion_result.pages,
+                        'processor': conversion_result.main_method.value,
+                        'job_id': job.id
+                    },
+                    db=db
+                )
+                
+                if deduct_result.get('success'):
+                    logger.info(f"[Job {job.id}] Credits deducted: {required_credits}. Remaining: {deduct_result['creditsRemaining']}")
+                else:
+                    logger.error(f"[Job {job.id}] Failed to deduct credits: {deduct_result.get('error')}")
+                    # Don't fail the conversion if credit deduction fails - log it
+            except Exception as credit_error:
+                logger.error(f"[Job {job.id}] Error deducting credits: {credit_error}", exc_info=True)
+                # Don't fail the conversion - log the error
         
         # Update job status to completed
         job_status = "completed"
@@ -641,6 +718,159 @@ async def get_job_status(job_id: str):
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return job
+
+
+# ==================== CREDIT SYSTEM ENDPOINTS ====================
+
+@app.get("/api/user/credits", response_model=CreditBalanceResponse)
+async def get_user_credit_balance(
+    user: dict = Depends(get_current_user_dep),
+    settings: Settings = Depends(get_app_settings)
+):
+    """Get current credit balance for authenticated user."""
+    user_id = user.get('user_id')
+    if not user_id or user_id == 'anonymous':
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        db = get_firestore_client()
+        credit_info = get_user_credits(user_id, db)
+        
+        if 'error' in credit_info:
+            raise HTTPException(status_code=500, detail=credit_info['error'])
+        
+        return CreditBalanceResponse(
+            credits=credit_info.get('credits', 0),
+            totalCreditsEarned=credit_info.get('totalCreditsEarned', 0),
+            totalCreditsUsed=credit_info.get('totalCreditsUsed', 0)
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting user credits: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to retrieve credit balance")
+
+
+@app.get("/api/user/history", response_model=CreditHistoryResponse)
+async def get_user_credit_history(
+    limit: int = 50,
+    user: dict = Depends(get_current_user_dep),
+    settings: Settings = Depends(get_app_settings)
+):
+    """Get credit transaction history for authenticated user."""
+    user_id = user.get('user_id')
+    if not user_id or user_id == 'anonymous':
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        db = get_firestore_client()
+        history = get_credit_history(user_id, limit, db)
+        
+        transactions = []
+        for txn in history:
+            # Convert Firestore timestamp to ISO string
+            date_value = txn.get('date')
+            if hasattr(date_value, 'isoformat'):
+                date_str = date_value.isoformat()
+            elif isinstance(date_value, datetime):
+                date_str = date_value.isoformat()
+            else:
+                date_str = str(date_value) if date_value else datetime.utcnow().isoformat()
+            
+            transactions.append(CreditTransaction(
+                id=txn.get('id', ''),
+                date=date_str,
+                type=txn.get('type', 'deduct'),
+                credits=float(txn.get('credits', 0)),
+                description=txn.get('description', ''),
+                creditsBefore=float(txn.get('creditsBefore', 0)),
+                creditsAfter=float(txn.get('creditsAfter', 0)),
+                file_name=txn.get('file_name'),
+                page_count=txn.get('page_count'),
+                processor=txn.get('processor')
+            ))
+        
+        return CreditHistoryResponse(transactions=transactions)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting credit history: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to retrieve credit history")
+
+
+@app.post("/api/user/add-credits", response_model=CreditAddResponse)
+async def add_user_credits(
+    request: CreditAddRequest,
+    user: dict = Depends(get_current_user_dep),
+    settings: Settings = Depends(get_app_settings)
+):
+    """Add credits to user account (typically after payment)."""
+    user_id = user.get('user_id')
+    if not user_id or user_id == 'anonymous':
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        db = get_firestore_client()
+        result = add_credits(
+            user_id=user_id,
+            amount=request.amount,
+            reason=request.reason,
+            metadata=request.metadata,
+            db=db
+        )
+        
+        if not result.get('success'):
+            raise HTTPException(status_code=500, detail=result.get('error', 'Failed to add credits'))
+        
+        return CreditAddResponse(
+            success=True,
+            creditsAdded=result['creditsAdded'],
+            creditsRemaining=result['creditsRemaining'],
+            creditsBefore=result['creditsBefore']
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error adding credits: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to add credits")
+
+
+@app.post("/api/convert/pdf-metadata")
+async def get_pdf_metadata_for_credits(
+    file: UploadFile = File(...),
+    settings: Settings = Depends(get_app_settings)
+):
+    """Get PDF metadata (pages, size) to calculate required credits."""
+    temp_pdf_path = None
+    try:
+        # Save file temporarily
+        temp_dir = ensure_temp_dir()
+        temp_pdf_path = os.path.join(temp_dir, generate_temp_filename(".pdf"))
+        
+        contents = await file.read()
+        with open(temp_pdf_path, "wb") as f:
+            f.write(contents)
+        
+        # Get page count
+        pages = get_page_count(temp_pdf_path)
+        file_size_bytes = os.path.getsize(temp_pdf_path)
+        
+        # Calculate estimated credits
+        estimated_credits_text = calculate_required_credits(pages, False)
+        estimated_credits_ocr = calculate_required_credits(pages, True)
+        
+        return PdfMetadataResponse(
+            pages=pages,
+            file_size_bytes=file_size_bytes,
+            estimated_credits_text=estimated_credits_text,
+            estimated_credits_ocr=estimated_credits_ocr
+        )
+    except Exception as e:
+        logger.error(f"Error getting PDF metadata: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to get PDF metadata: {str(e)}")
+    finally:
+        if temp_pdf_path and os.path.exists(temp_pdf_path):
+            cleanup_file(temp_pdf_path)
 
 
 

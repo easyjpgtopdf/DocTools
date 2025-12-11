@@ -2,7 +2,7 @@
 Pydantic models for request/response validation.
 """
 from pydantic import BaseModel, Field
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Dict
 from datetime import datetime
 
 
@@ -73,4 +73,53 @@ class AnnotationApplyResponse(BaseModel):
     download_url: str
     job_id: Optional[str] = None
     pages: Optional[int] = None
+
+
+class CreditBalanceResponse(BaseModel):
+    """User credit balance response."""
+    credits: float
+    totalCreditsEarned: float
+    totalCreditsUsed: float
+
+
+class CreditTransaction(BaseModel):
+    """Credit transaction model."""
+    id: str
+    date: str
+    type: Literal["add", "deduct"]
+    credits: float
+    description: str
+    creditsBefore: float
+    creditsAfter: float
+    file_name: Optional[str] = None
+    page_count: Optional[int] = None
+    processor: Optional[Literal["docai", "libreoffice"]] = None
+
+
+class CreditHistoryResponse(BaseModel):
+    """Credit history response."""
+    transactions: List[CreditTransaction]
+
+
+class CreditAddRequest(BaseModel):
+    """Request to add credits."""
+    amount: float
+    reason: str = "Credit purchase"
+    metadata: Optional[Dict] = None
+
+
+class CreditAddResponse(BaseModel):
+    """Response after adding credits."""
+    success: bool
+    creditsAdded: float
+    creditsRemaining: float
+    creditsBefore: float
+
+
+class PdfMetadataResponse(BaseModel):
+    """PDF metadata response for credit calculation."""
+    pages: int
+    file_size_bytes: int
+    estimated_credits_text: float
+    estimated_credits_ocr: float
 
