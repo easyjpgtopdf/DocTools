@@ -9,6 +9,8 @@
     <title>PDF to Word Converter - Free Online Tool | EasyJPGToPDF</title>
     <meta name="description" content="Convert PDF to Word online for free. Fast, secure, and accurate PDF to DOCX conversion with support for Hindi and Unicode fonts.">
     <meta name="keywords" content="pdf to word, pdf to docx, convert pdf to word, pdf converter, free pdf to word">
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/footer.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
@@ -173,6 +175,12 @@
     </style>
 </head>
 <body>
+    <!-- Account Section (Above Header) -->
+    <div id="account-section" class="account-section" style="display: none;"></div>
+    
+    <!-- Global Header Placeholder -->
+    <div id="global-header-placeholder"></div>
+    
     <div class="container">
         <h1><i class="fas fa-file-word"></i> PDF to Word Converter</h1>
         
@@ -354,6 +362,70 @@
             
             reader.readAsDataURL(selectedFile);
         }
+    </script>
+    
+    <!-- Footer will be loaded here -->
+    <footer>
+        <div class="container">
+            <div style="text-align: center; padding: 40px 20px; background: #2c3e50; color: white;">
+                <p>&copy; 2025 EasyJPGToPDF. All rights reserved.</p>
+                <nav style="margin-top: 20px;">
+                    <a href="/pdf-to-word" style="color: #bdc3c7; margin: 0 10px; text-decoration: none;">PDF to Word</a> |
+                    <a href="/pdf-to-jpg" style="color: #bdc3c7; margin: 0 10px; text-decoration: none;">PDF to JPG</a> |
+                    <a href="/pdf-editor" style="color: #bdc3c7; margin: 0 10px; text-decoration: none;">PDF Editor</a>
+                </nav>
+            </div>
+        </div>
+    </footer>
+    
+    <script src="js/global-components.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+    // Ensure header loads - multiple attempts to guarantee it works
+    (function() {
+        function tryLoadHeader() {
+            if (typeof loadGlobalHeader === 'function') {
+                try {
+                    loadGlobalHeader();
+                    return true;
+                } catch (e) {
+                    console.error('Error calling loadGlobalHeader:', e);
+                }
+            }
+            return false;
+        }
+        
+        // Try immediately if script already loaded
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            if (!tryLoadHeader()) {
+                var attempts = 0;
+                var maxAttempts = 60;
+                var checkHeader = setInterval(function() {
+                    attempts++;
+                    if (tryLoadHeader() || attempts >= maxAttempts) {
+                        clearInterval(checkHeader);
+                    }
+                }, 50);
+            }
+        } else {
+            document.addEventListener('DOMContentLoaded', function() {
+                if (!tryLoadHeader()) {
+                    var attempts = 0;
+                    var maxAttempts = 40;
+                    var checkHeader = setInterval(function() {
+                        attempts++;
+                        if (tryLoadHeader() || attempts >= maxAttempts) {
+                            clearInterval(checkHeader);
+                        }
+                    }, 50);
+                }
+            });
+        }
+        
+        window.addEventListener('load', function() {
+            tryLoadHeader();
+        });
+    })();
     </script>
 </body>
 </html>

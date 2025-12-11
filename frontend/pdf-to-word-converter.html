@@ -34,6 +34,10 @@
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     
+    <!-- Header and Footer CSS -->
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/footer.css">
+    
     <!-- Fonts -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -515,22 +519,11 @@
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header>
-        <div class="header-container">
-            <a href="/" class="logo">
-                <i class="fas fa-file-pdf"></i>
-                <span>EasyJPGToPDF</span>
-            </a>
-            <nav>
-                <ul>
-                    <li><a href="/pdf-to-word">PDF to Word</a></li>
-                    <li><a href="/pdf-to-jpg">PDF to JPG</a></li>
-                    <li><a href="/pdf-editor">PDF Editor</a></li>
-                </ul>
-            </nav>
-        </div>
-    </header>
+    <!-- Account Section (Above Header) -->
+    <div id="account-section" class="account-section" style="display: none;"></div>
+    
+    <!-- Global Header Placeholder -->
+    <div id="global-header-placeholder"></div>
 
     <!-- Main Content -->
     <div class="main-container">
@@ -772,37 +765,17 @@
         </div>
     </div>
 
-    <!-- Footer -->
+    <!-- Footer will be loaded here by global-components.js -->
     <footer>
-        <div class="footer-container">
-            <div class="footer-section">
-                <h4>Tools</h4>
-                <a href="/pdf-to-word">PDF to Word</a>
-                <a href="/pdf-to-jpg">PDF to JPG</a>
-                <a href="/pdf-editor">PDF Editor</a>
+        <div class="container">
+            <div style="text-align: center; padding: 40px 20px; background: #2c3e50; color: white;">
+                <p>&copy; 2025 EasyJPGToPDF. All rights reserved.</p>
+                <nav style="margin-top: 20px;">
+                    <a href="/pdf-to-word" style="color: #bdc3c7; margin: 0 10px; text-decoration: none;">PDF to Word</a> |
+                    <a href="/pdf-to-jpg" style="color: #bdc3c7; margin: 0 10px; text-decoration: none;">PDF to JPG</a> |
+                    <a href="/pdf-editor" style="color: #bdc3c7; margin: 0 10px; text-decoration: none;">PDF Editor</a>
+                </nav>
             </div>
-            <div class="footer-section">
-                <h4>Company</h4>
-                <a href="/about">About Us</a>
-                <a href="/contact">Contact</a>
-                <a href="/privacy">Privacy Policy</a>
-                <a href="/terms">Terms of Service</a>
-            </div>
-            <div class="footer-section">
-                <h4>Resources</h4>
-                <a href="/help">Help Center</a>
-                <a href="/faq">FAQ</a>
-                <a href="/blog">Blog</a>
-            </div>
-            <div class="footer-section">
-                <h4>Legal</h4>
-                <a href="/privacy">Privacy Policy</a>
-                <a href="/terms">Terms of Service</a>
-                <a href="/cookies">Cookie Policy</a>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>&copy; 2025 EasyJPGToPDF. All rights reserved.</p>
         </div>
     </footer>
 
@@ -1083,6 +1056,56 @@
             status.className = `status ${type}`;
             status.style.display = 'block';
         }
+    </script>
+    
+    <script src="js/global-components.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+    // Ensure header loads - multiple attempts to guarantee it works
+    (function() {
+        function tryLoadHeader() {
+            if (typeof loadGlobalHeader === 'function') {
+                try {
+                    loadGlobalHeader();
+                    return true;
+                } catch (e) {
+                    console.error('Error calling loadGlobalHeader:', e);
+                }
+            }
+            return false;
+        }
+        
+        // Try immediately if script already loaded
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            if (!tryLoadHeader()) {
+                var attempts = 0;
+                var maxAttempts = 60;
+                var checkHeader = setInterval(function() {
+                    attempts++;
+                    if (tryLoadHeader() || attempts >= maxAttempts) {
+                        clearInterval(checkHeader);
+                    }
+                }, 50);
+            }
+        } else {
+            document.addEventListener('DOMContentLoaded', function() {
+                if (!tryLoadHeader()) {
+                    var attempts = 0;
+                    var maxAttempts = 40;
+                    var checkHeader = setInterval(function() {
+                        attempts++;
+                        if (tryLoadHeader() || attempts >= maxAttempts) {
+                            clearInterval(checkHeader);
+                        }
+                    }, 50);
+                }
+            });
+        }
+        
+        window.addEventListener('load', function() {
+            tryLoadHeader();
+        });
+    })();
     </script>
 </body>
 </html>
