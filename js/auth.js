@@ -949,43 +949,42 @@ async function handleLogout() {
 
 function updateUI(user) {
   const dashboard = document.getElementById('user-dashboard');
-  let accountSection = document.getElementById('account-section');
   
-  // If account section doesn't exist, try to load it
-  if (!accountSection && typeof loadAccountSection === 'function') {
+  // Load user menu into header if it doesn't exist
+  if (typeof loadAccountSection === 'function') {
     loadAccountSection();
-    accountSection = document.getElementById('account-section');
   }
   
   if (user) {
     if (authButtons) authButtons.style.display = 'none';
     
-    // Ensure account section exists and is visible
-    if (!accountSection) {
-      // Try to load account section if it doesn't exist
+    // Ensure user menu exists and is visible in header
+    let userMenu = document.getElementById('user-menu');
+    if (!userMenu) {
+      // Try to load user menu if it doesn't exist
       if (typeof window.loadAccountSection === 'function') {
         window.loadAccountSection();
-        accountSection = document.getElementById('account-section');
+        userMenu = document.getElementById('user-menu');
       }
     }
     
-    if (accountSection) {
-      // Show account section above header - remove inline hidden styles
-      accountSection.style.display = 'block';
-      accountSection.style.visibility = 'visible';
+    if (userMenu) {
+      // Show user menu in header toolbar
+      userMenu.style.display = 'flex';
+      userMenu.style.visibility = 'visible';
       // Highlight active link in dropdown
       if (typeof window.highlightActiveAccountLink === 'function') {
         window.highlightActiveAccountLink();
       }
     } else {
-      // If still not found, try loading account section again after a delay
+      // If still not found, try loading user menu again after a delay
       setTimeout(() => {
         if (typeof window.loadAccountSection === 'function') {
           window.loadAccountSection();
-          const retryAccountSection = document.getElementById('account-section');
-          if (retryAccountSection) {
-            retryAccountSection.style.display = 'block';
-            retryAccountSection.style.visibility = 'visible';
+          const retryUserMenu = document.getElementById('user-menu');
+          if (retryUserMenu) {
+            retryUserMenu.style.display = 'flex';
+            retryUserMenu.style.visibility = 'visible';
             // Re-initialize auth UI to get the menu elements
             if (typeof window.initializeAuthUI === 'function') {
               window.initializeAuthUI();
@@ -994,7 +993,7 @@ function updateUI(user) {
         }
       }, 500);
     }
-    // Re-fetch user menu elements in case account section was loaded after initial init
+    // Re-fetch user menu elements in case user menu was loaded after initial init
     if (!userMenu || !userMenuToggle || !userDropdown) {
       userMenu = document.getElementById('user-menu');
       userMenuToggle = document.getElementById('user-menu-toggle');
@@ -1022,11 +1021,11 @@ function updateUI(user) {
     updateUserMenuBadge(user);
   } else {
     if (authButtons) authButtons.style.display = 'flex';
-    if (accountSection) {
-      // Hide account section when user is not logged in
-      accountSection.style.display = 'none';
+    const userMenu = document.getElementById('user-menu');
+    if (userMenu) {
+      // Hide user menu when user is not logged in
+      userMenu.style.display = 'none';
     }
-    if (userMenu) userMenu.style.display = 'none';
     if (dashboard) {
       dashboard.style.display = 'none';
     }

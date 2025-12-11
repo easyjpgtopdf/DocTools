@@ -1,84 +1,92 @@
-/* Account Section - Above Header */
-.account-section {
-    background-color: #f8f9ff;
-    border-bottom: 1px solid #e2e6ff;
-    padding: 6px 0;
-    position: sticky;
-    top: 0;
-    z-index: 10001; /* Higher than header */
-    pointer-events: auto;
-    display: block;
-}
-
-.account-section[style*="display: none"],
-.account-section[style*="visibility: hidden"] {
-    display: none !important;
-}
-
-.account-section .container {
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
+/* User Menu in Header Toolbar */
+#header-user-menu-container {
     display: flex;
-    justify-content: flex-end;
     align-items: center;
+    margin-left: auto;
 }
 
-.account-section .user-menu {
+header .user-menu {
     position: relative;
+    display: none;
 }
 
-.account-section .user-menu-toggle {
+header .user-menu[style*="display: flex"],
+header .user-menu[style*="display:block"] {
+    display: flex !important;
+}
+
+header .user-menu-toggle {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border-radius: 6px;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 50px;
     border: 1px solid rgba(67, 97, 238, 0.22);
     background: white;
     color: var(--dark, #212529);
     font-weight: 500;
     cursor: pointer;
-    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
     font-size: 0.875rem;
     text-decoration: none;
 }
 
-.account-section .user-menu-toggle:hover,
-.account-section .user-menu[data-open="true"] .user-menu-toggle {
+header .user-menu-toggle:hover,
+header .user-menu[data-open="true"] .user-menu-toggle {
     border-color: rgba(67, 97, 238, 0.42);
     box-shadow: 0 4px 12px rgba(67, 97, 238, 0.15);
+    transform: translateY(-1px);
 }
 
-.account-section .account-label {
-    font-weight: 500;
-    color: var(--dark, #212529);
-    font-size: 0.875rem;
+header .user-logo-o {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(67, 97, 238, 0.2);
+    transition: border-color 0.2s ease;
 }
 
-.account-section .user-id {
+header .user-menu-toggle:hover .user-logo-o {
+    border-color: rgba(67, 97, 238, 0.4);
+}
+
+header .user-logo-fallback {
+    display: inline-flex;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4361ee, #3a0ca3);
+    color: white;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    border: 2px solid rgba(67, 97, 238, 0.2);
+}
+
+header .user-id {
     font-size: 0.7rem;
     color: #6b7280;
     font-weight: 400;
     margin-left: 2px;
 }
 
-.account-section .user-menu-toggle i {
+header .user-menu-toggle i {
     transition: transform 0.2s ease;
     font-size: 0.75rem;
     color: #6b7280;
 }
 
-.account-section .user-menu:hover .user-menu-toggle i,
-.account-section .user-menu[data-open="true"] .user-menu-toggle i {
+header .user-menu:hover .user-menu-toggle i,
+header .user-menu[data-open="true"] .user-menu-toggle i {
     transform: rotate(180deg);
 }
 
-.account-section .user-dropdown {
+header .user-dropdown {
     display: none !important;
     position: absolute;
-    top: calc(100% + 8px);
+    top: calc(100% + 12px);
     right: 0;
     min-width: 240px;
     background: #ffffff;
@@ -89,21 +97,21 @@
     z-index: 1000;
 }
 
-.account-section .user-dropdown[hidden] {
+header .user-dropdown[hidden] {
     display: none !important;
 }
 
 /* Show dropdown on hover - like other dropdowns */
-.account-section .user-menu:hover .user-dropdown:not([hidden]) {
+header .user-menu:hover .user-dropdown:not([hidden]) {
     display: block !important;
 }
 
-.account-section .user-menu[data-open="true"] .user-dropdown:not([hidden]) {
+header .user-menu[data-open="true"] .user-dropdown:not([hidden]) {
     display: block !important;
 }
 
-.account-section .user-dropdown a,
-.account-section .user-dropdown button {
+header .user-dropdown a,
+header .user-dropdown button {
     display: block;
     padding: 10px 20px;
     background: transparent;
@@ -118,22 +126,22 @@
     transition: background 0.2s ease, color 0.2s ease;
 }
 
-.account-section .user-dropdown a:hover,
-.account-section .user-dropdown button:hover {
+header .user-dropdown a:hover,
+header .user-dropdown button:hover {
     background-color: var(--light, #f5f7ff);
     color: #212529;
 }
 
-.account-section .user-dropdown a.active {
+header .user-dropdown a.active {
     background-color: rgba(67, 97, 238, 0.08);
     color: var(--primary, #4361ee);
 }
 
-.account-section .user-dropdown button.dropdown-logout {
+header .user-dropdown button.dropdown-logout {
     color: #dc3545;
 }
 
-.account-section .user-dropdown button.dropdown-logout:hover {
+header .user-dropdown button.dropdown-logout:hover {
     background-color: rgba(220, 53, 69, 0.1);
     color: #dc3545;
 }
@@ -147,10 +155,7 @@ header {
     pointer-events: auto; /* Ensure header is always clickable */
 }
 
-/* When account section is visible, adjust header top position */
-body:has(#account-section[style*="display: block"]) header {
-    top: 0;
-}
+/* Header positioning remains the same */
 
 header .container {
     width: 100%;
@@ -297,11 +302,7 @@ header .auth-btn span {
     white-space: nowrap;
 }
 
-/* Hide user menu from header toolbar - moved to account section above */
-header .user-menu {
-    display: none !important;
-    visibility: hidden !important;
-}
+/* User menu is now in header toolbar - shown when user is logged in */
 
 /* Hide dropdown by default */
 header .user-dropdown[hidden] {
@@ -730,28 +731,32 @@ header .nav-links-summary {
         display: none !important;
     }
     
-    /* User menu adjustments for mobile - hide on mobile, use mobile menu instead */
+    /* User menu adjustments for mobile - can be shown if user is logged in */
     header .user-menu {
         display: none !important;
-        visibility: hidden !important;
     }
     
-    /* Account section adjustments for mobile */
-    .account-section {
-        padding: 6px 0;
+    /* Show user menu on mobile when user is logged in */
+    header .user-menu[style*="display: flex"] {
+        display: flex !important;
+        order: 998;
+        margin-left: auto;
+        margin-right: 12px;
     }
     
-    .account-section .container {
-        padding: 0 16px;
-    }
-    
-    .account-section .user-menu-toggle {
-        padding: 6px 12px;
+    header .user-menu-toggle {
+        padding: 6px 10px;
         font-size: 0.875rem;
     }
     
-    .account-section .user-id {
-        font-size: 0.7rem;
+    header .user-logo-o,
+    header .user-logo-fallback {
+        width: 32px;
+        height: 32px;
+    }
+    
+    header .user-id {
+        display: none; /* Hide user ID on mobile to save space */
     }
     
     /* Hide all dropdowns on mobile */

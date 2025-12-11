@@ -23,25 +23,22 @@ if (typeof window.currentPage === 'undefined') {
 }
 currentPage = window.currentPage;
 
-// Global Account Section HTML (Above Header)
-const globalAccountSectionHTML = `
-<div id="account-section" class="account-section" style="display: none; visibility: hidden;">
-    <div class="container">
-        <div id="user-menu" class="user-menu" data-open="false">
-            <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
-                <span class="account-label">Account</span>
-                <span class="user-id" id="user-id-display"></span>
-                <i class="fas fa-chevron-down" aria-hidden="true"></i>
-            </button>
-            <div class="user-dropdown" id="user-dropdown" hidden>
-                <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
-                <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
-                <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
-                <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders & Subscriptions</a>
-                <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
-                <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
-            </div>
-        </div>
+// User Menu HTML (Now inside header toolbar)
+const globalUserMenuHTML = `
+<div id="user-menu" class="user-menu" data-open="false" style="display: none;">
+    <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
+        <img src="images/user-logo-o.svg" alt="User Account" class="user-logo-o" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+        <span class="user-logo-fallback" style="display: none; width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem;">O</span>
+        <span class="user-id" id="user-id-display"></span>
+        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+    </button>
+    <div class="user-dropdown" id="user-dropdown" hidden>
+        <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+        <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+        <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+        <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders & Subscriptions</a>
+        <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
+        <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
     </div>
 </div>
 `;
@@ -130,6 +127,7 @@ const globalHeaderHTML = `
                     </div>
                 </div>
             </div>
+            <div id="header-user-menu-container"></div>
         </nav>
     </div>
     <!-- Mobile Menu Overlay -->
@@ -290,54 +288,45 @@ const globalFooterHTML = `
 </footer>
 `;
 
-// Function to load account section
+// Function to load user menu into header toolbar
 function loadAccountSection() {
-    // Check if account section already exists
-    const existingAccountSection = document.getElementById('account-section');
-    if (existingAccountSection) {
+    // Check if user menu already exists in header
+    const existingUserMenu = document.getElementById('user-menu');
+    if (existingUserMenu) {
         return;
     }
     
-    // Try to insert account section before header
-    const header = document.querySelector('header');
-    if (header) {
+    // Try to insert user menu into header navbar
+    const headerUserMenuContainer = document.getElementById('header-user-menu-container');
+    if (headerUserMenuContainer) {
         try {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = globalAccountSectionHTML.trim();
-            const accountElement = tempDiv.firstElementChild;
-            if (accountElement) {
-                header.parentNode.insertBefore(accountElement, header);
-                // Re-initialize auth UI after account section is loaded
-                if (typeof window.initializeAuthUI === 'function') {
-                    setTimeout(() => {
-                        window.initializeAuthUI();
-                    }, 100);
-                }
+            headerUserMenuContainer.innerHTML = globalUserMenuHTML.trim();
+            // Re-initialize auth UI after user menu is loaded
+            if (typeof window.initializeAuthUI === 'function') {
+                setTimeout(() => {
+                    window.initializeAuthUI();
+                }, 100);
             }
         } catch (error) {
-            console.error('Error adding account section:', error);
+            console.error('Error adding user menu to header:', error);
         }
     } else {
-        // If no header yet, try to insert at body start
-        const body = document.body;
-        if (body) {
-            try {
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = globalAccountSectionHTML.trim();
-                const accountElement = tempDiv.firstElementChild;
-                if (accountElement) {
-                    body.insertBefore(accountElement, body.firstChild);
-                    // Re-initialize auth UI after account section is loaded
+        // If container doesn't exist yet, wait for header to load
+        setTimeout(() => {
+            const retryContainer = document.getElementById('header-user-menu-container');
+            if (retryContainer) {
+                try {
+                    retryContainer.innerHTML = globalUserMenuHTML.trim();
                     if (typeof window.initializeAuthUI === 'function') {
                         setTimeout(() => {
                             window.initializeAuthUI();
                         }, 100);
                     }
+                } catch (error) {
+                    console.error('Error adding user menu to header (retry):', error);
                 }
-            } catch (error) {
-                console.error('Error adding account section to body:', error);
             }
-        }
+        }, 200);
     }
 }
 
@@ -358,9 +347,6 @@ function loadGlobalHeader() {
     }
     
     console.log('loadGlobalHeader called - attempting to load header...');
-    
-    // Load account section first
-    loadAccountSection();
     
     // Try to find placeholder
     let headerPlaceholder = document.getElementById('global-header-placeholder');
@@ -611,7 +597,7 @@ if (!window.globalComponentsInitialized) {
         if (!document.querySelector('header')) {
             forceLoadHeader();
         }
-        // Ensure account section is loaded
+        // Ensure user menu is loaded in header
         loadAccountSection();
     });
 }
