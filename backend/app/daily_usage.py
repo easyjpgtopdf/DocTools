@@ -10,9 +10,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Free tier daily limits
+# Free tier daily limits (ONLY for anonymous/unauthenticated users)
 FREE_TIER_DAILY_PAGES_TEXT = 10  # 10 pages per day for text-based conversion
-FREE_TIER_DAILY_PAGES_OCR = 5    # 5 pages per day for OCR conversion
+FREE_TIER_DAILY_PAGES_OCR = 3    # 3 pages per day for OCR conversion
+FREE_TIER_MAX_FILE_SIZE_MB = 10  # Maximum 10MB file size for anonymous users
 
 def get_firestore_client():
     """Get Firestore client."""

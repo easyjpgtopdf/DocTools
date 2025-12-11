@@ -253,42 +253,96 @@ async def convert_pdf_to_word(
         with open(temp_pdf_path, "wb") as f:
             f.write(contents)
         
-        # Validate PDF
+        file_size = os.path.getsize(temp_pdf_path)
+        file_size_mb = file_size / (1024 * 1024)
+        logger.info(f"[Job {job.id}] File saved: {temp_pdf_path}, size: {file_size} bytes ({file_size_mb:.2f}MB)")
+        print(f"DEBUG: PDF saved: {temp_pdf_path}, size: {file_size_mb:.2f}MB")
+        
+        # Check user authentication status
+        user_id = user.get('user_id', 'anonymous')
+        is_authenticated = user_id and user_id != 'anonymous'
+        
+        # Apply file size limits based on authentication
+        from app.daily_usage import FREE_TIER_MAX_FILE_SIZE_MB
+        from app.credit_manager import PREMIUM_MAX_FILE_SIZE_MB
+        
+        if is_authenticated:
+            # Logged-in users: 50MB max
+            max_size_mb = PREMIUM_MAX_FILE_SIZE_MB
+            if file_size_mb > max_size_mb:
+                error_msg = f"File too large. Maximum size for logged-in users: {max_size_mb}MB. Your file is {file_size_mb:.2f}MB."
+                logger.warning(f"[Job {job.id}] {error_msg}")
+                if job:
+                    update_job_status(job.id, "error", error_message=error_msg)
+                raise HTTPException(status_code=413, detail=error_msg)
+        else:
+            # Anonymous users: 10MB max
+            max_size_mb = FREE_TIER_MAX_FILE_SIZE_MB
+            if file_size_mb > max_size_mb:
+                error_msg = f"Free tier limit: Maximum file size is {max_size_mb}MB. Your file is {file_size_mb:.2f}MB. Please sign in for higher limits (50MB max)."
+                logger.warning(f"[Job {job.id}] {error_msg}")
+                if job:
+                    update_job_status(job.id, "error", error_message=error_msg)
+                raise HTTPException(
+                    status_code=403,
+                    detail={
+                        "error": "FREE_TIER_SIZE_LIMIT_EXCEEDED",
+                        "limit": max_size_mb,
+                        "actual": file_size_mb,
+                        "message": error_msg
+                    }
+                )
+        
+        # Validate PDF (basic validation)
         is_valid, error_msg = validate_pdf_file(temp_pdf_path, settings.max_file_size_mb)
         if not is_valid:
             if job:
                 update_job_status(job.id, "error", error_message=error_msg)
             raise HTTPException(status_code=400, detail=error_msg)
         
-        file_size = os.path.getsize(temp_pdf_path)
-        logger.info(f"[Job {job.id}] File saved: {temp_pdf_path}, size: {file_size} bytes")
-        print(f"DEBUG: PDF saved: {temp_pdf_path}")
-        
-        # Get page count for credit calculation
+        # Get page count
         pages_count = get_page_count(temp_pdf_path)
-        file_size_mb = file_size / (1024 * 1024)
-        
-        # Check credits and free tier limits
-        user_id = user.get('user_id', 'anonymous')
-        is_authenticated = user_id and user_id != 'anonymous'
         
         # Detect if PDF is text-based or scanned (will use OCR)
         has_text = pdf_has_text(temp_pdf_path)
         will_use_docai = not has_text  # OCR if no text
         
-        # Check daily free tier limits FIRST (for ALL users - logged in or not)
-        from app.daily_usage import can_use_free_tier, record_daily_usage, FREE_TIER_DAILY_PAGES_TEXT, FREE_TIER_DAILY_PAGES_OCR
+        # Check limits based on authentication
         db = get_firestore_client()
-        free_tier_check = can_use_free_tier(user_id, pages_count, will_use_docai, db)
-        free_tier_allowed = free_tier_check['allowed']
         
-        if free_tier_allowed:
-            # User can use free tier - proceed without credits
-            logger.info(f"[Job {job.id}] Free tier usage: {user_id}, {pages_count} pages, OCR: {will_use_docai}")
-            # Usage will be recorded after successful conversion
+        if is_authenticated:
+            # LOGGED-IN USERS: Must use credits (NO free quota)
+            from app.credit_manager import calculate_required_credits, has_sufficient_credits
+            required_credits = calculate_required_credits(pages_count, will_use_docai)
+            credit_check = has_sufficient_credits(user_id, required_credits, db)
+            
+            if not credit_check['hasCredits']:
+                error_msg = f"Insufficient credits. Required: {required_credits}, Available: {credit_check['creditsAvailable']}. Note: Logged-in users must use credits (no free quota). Sign out to use free tier."
+                logger.warning(f"[Job {job.id}] {error_msg}")
+                if job:
+                    update_job_status(job.id, "error", error_message=error_msg)
+                raise HTTPException(
+                    status_code=402,
+                    detail={
+                        "error": "NOT_ENOUGH_CREDITS",
+                        "required": required_credits,
+                        "available": credit_check['creditsAvailable'],
+                        "message": error_msg
+                    }
+                )
+            
+            logger.info(f"[Job {job.id}] Logged-in user: {user_id}, {pages_count} pages, OCR: {will_use_docai}, Credits required: {required_credits}")
+            free_tier_allowed = False  # Logged-in users don't get free tier
         else:
-            # Free tier limit exceeded - check if user is authenticated and has credits
-            if not is_authenticated:
+            # ANONYMOUS USERS: Can use free tier (10 pages text, 3 pages OCR per day)
+            from app.daily_usage import can_use_free_tier, record_daily_usage, FREE_TIER_DAILY_PAGES_TEXT, FREE_TIER_DAILY_PAGES_OCR
+            free_tier_check = can_use_free_tier(user_id, pages_count, will_use_docai, db)
+            free_tier_allowed = free_tier_check['allowed']
+            
+            if free_tier_allowed:
+                # Anonymous user can use free tier
+                logger.info(f"[Job {job.id}] Free tier usage: {user_id}, {pages_count} pages, OCR: {will_use_docai}")
+            else:
                 # Anonymous user exceeded free tier
                 error_msg = free_tier_check['reason']
                 logger.warning(f"[Job {job.id}] {error_msg}")
@@ -305,15 +359,6 @@ async def convert_pdf_to_word(
                         "daily_limit_ocr": FREE_TIER_DAILY_PAGES_OCR
                     }
                 )
-            
-            # Authenticated user - check credits
-            from app.credit_manager import calculate_required_credits, has_sufficient_credits
-            required_credits = calculate_required_credits(pages_count, will_use_docai)
-            credit_check = has_sufficient_credits(user_id, required_credits, db)
-            
-            if not credit_check['hasCredits']:
-                error_msg = f"Insufficient credits. Required: {required_credits}, Available: {credit_check['creditsAvailable']}. Free tier: {free_tier_check['reason']}"
-                logger.warning(f"[Job {job.id}] {error_msg}")
                 if job:
                     update_job_status(job.id, "error", error_message=error_msg)
                 raise HTTPException(

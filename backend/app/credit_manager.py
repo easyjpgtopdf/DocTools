@@ -23,11 +23,11 @@ def get_firestore_client():
             return None
     return _db_client
 
-# Credit pricing constants
-CREDITS_PER_PAGE_TEXT = 0.5  # Text-based PDF conversion
-CREDITS_PER_PAGE_OCR = 1.0   # Scanned PDF with OCR
-FREE_TIER_MAX_PAGES = 10
-FREE_TIER_MAX_SIZE_MB = 20
+# Credit pricing constants (for logged-in/premium users)
+CREDITS_PER_PAGE_TEXT = 1.0   # 1 credit per text page
+CREDITS_PER_PAGE_OCR = 1.5    # 1.5 credits per OCR page
+# Premium user file size limit
+PREMIUM_MAX_FILE_SIZE_MB = 50  # Maximum 50MB file size for logged-in users
 
 
 def calculate_required_credits(pages: int, used_docai: bool) -> float:
