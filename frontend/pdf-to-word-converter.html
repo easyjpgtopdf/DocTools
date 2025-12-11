@@ -980,9 +980,38 @@
             });
         }
         
+        function tryLoadFooter() {
+            if (typeof loadGlobalFooter === 'function') {
+                try {
+                    loadGlobalFooter();
+                    return true;
+                } catch (e) {
+                    console.error('Error calling loadGlobalFooter:', e);
+                }
+            }
+            return false;
+        }
+        
         window.addEventListener('load', function() {
             tryLoadHeader();
+            tryLoadFooter();
         });
+        
+        // Also try on DOMContentLoaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                setTimeout(() => {
+                    tryLoadHeader();
+                    tryLoadFooter();
+                }, 100);
+            });
+        } else {
+            // Already loaded, try immediately
+            setTimeout(() => {
+                tryLoadHeader();
+                tryLoadFooter();
+            }, 100);
+        }
     })();
     </script>
 </body>
