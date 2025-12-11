@@ -1023,24 +1023,40 @@
                 }
                 
                 progressFill.style.width = '90%';
-                showStatus('Downloading Word file...', 'info');
+                showStatus('Preparing download...', 'info');
                 
-                primaryDownload.href = result.primary_download_url || result.download_url;
-                primaryDownload.download = currentFile.name.replace('.pdf', '-primary.docx');
-                const primaryMethodLabel = result.primary_method === 'docai' ? 'AI-Powered OCR' : 'Direct Conversion';
+                // Handle download URL - check for both old and new response formats
+                const downloadUrl = result.primary_download_url || result.download_url;
+                if (!downloadUrl) {
+                    throw new Error('No download URL received from server');
+                }
+                
+                primaryDownload.href = downloadUrl;
+                primaryDownload.download = (currentFile.name || 'converted').replace(/\.pdf$/i, '-primary.docx');
+                
+                // Determine method label
+                const primaryMethodName = result.primary_method || result.engine || (result.used_docai ? 'docai' : 'libreoffice');
+                const primaryMethodLabel = primaryMethodName === 'docai' ? 'AI-Powered OCR' : 'Direct Conversion';
                 primaryMethod.textContent = primaryMethodLabel;
-                primaryMethod.className = `method-badge ${result.primary_method || 'libreoffice'}`;
+                primaryMethod.className = `method-badge ${primaryMethodName}`;
                 
+                // Handle alternative download if available
                 if (result.alt_download_url) {
                     altCard.style.display = 'block';
                     altDownload.href = result.alt_download_url;
-                    altDownload.download = currentFile.name.replace('.pdf', '-alternative.docx');
-                    const altMethodLabel = result.alt_method === 'docai' ? 'AI-Powered OCR' : 'Direct Conversion';
+                    altDownload.download = (currentFile.name || 'converted').replace(/\.pdf$/i, '-alternative.docx');
+                    const altMethodName = result.alt_method || 'libreoffice';
+                    const altMethodLabel = altMethodName === 'docai' ? 'AI-Powered OCR' : 'Direct Conversion';
                     altMethod.textContent = altMethodLabel;
-                    altMethod.className = `method-badge ${result.alt_method || 'libreoffice'}`;
+                    altMethod.className = `method-badge ${altMethodName}`;
                 } else {
                     altCard.style.display = 'none';
                 }
+                
+                // Auto-trigger download of primary file
+                setTimeout(() => {
+                    primaryDownload.click();
+                }, 500);
                 
                 progressFill.style.width = '100%';
                 showStatus('Conversion successful! Your file is ready for download.', 'success');

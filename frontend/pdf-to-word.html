@@ -234,6 +234,8 @@
         });
         
         function handleFile(file) {
+            console.log('File selected:', file.name, file.size);
+            
             if (!file.type.includes('pdf')) {
                 alert('Please select a PDF file');
                 return;
@@ -254,15 +256,34 @@
             
             // Store file in sessionStorage and redirect immediately
             const reader = new FileReader();
-            reader.onload = function(e) {
-                sessionStorage.setItem('pdfFile', JSON.stringify({
-                    name: selectedFile.name,
-                    size: selectedFile.size,
-                    data: e.target.result.split(',')[1] // Base64 data
-                }));
-                // Auto-redirect to converter page
-                window.location.href = '/pdf-to-word-converter';
+            
+            reader.onerror = function(error) {
+                console.error('FileReader error:', error);
+                loading.classList.remove('show');
+                alert('Error reading file. Please try again.');
             };
+            
+            reader.onload = function(e) {
+                try {
+                    const base64Data = e.target.result.split(',')[1];
+                    sessionStorage.setItem('pdfFile', JSON.stringify({
+                        name: selectedFile.name,
+                        size: selectedFile.size,
+                        data: base64Data
+                    }));
+                    console.log('File stored in sessionStorage, redirecting...');
+                    
+                    // Auto-redirect to converter page with absolute path
+                    const redirectUrl = window.location.origin + '/pdf-to-word-converter';
+                    console.log('Redirecting to:', redirectUrl);
+                    window.location.href = redirectUrl;
+                } catch (error) {
+                    console.error('Error storing file:', error);
+                    loading.classList.remove('show');
+                    alert('Error processing file. Please try again.');
+                }
+            };
+            
             reader.readAsDataURL(selectedFile);
         }
     </script>
