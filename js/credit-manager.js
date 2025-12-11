@@ -348,8 +348,33 @@ export async function purchaseCredits(creditPack, userId) {
     const amount = userCurrency === 'INR' ? pack.priceINR : pack.priceUSD;
     
     try {
-        // Create Razorpay order
-        const response = await fetch(`${API_BASE_URL}/api/payment/purchase`, {
+        // Try Vercel API endpoint first (for payment)
+        const vercelApiUrl = window.location.origin;
+        let response;
+        
+        try {
+            // Try Vercel function endpoint
+            response = await fetch(`${vercelApiUrl}/api/payment/purchase`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${await getAuthToken()}`
+                },
+                body: JSON.stringify({
+                    userId: userId,
+                    creditPack: creditPack.id || creditPack,
+                    credits: pack.credits,
+                    amount: amount,
+                    amountUSD: pack.priceUSD,
+                    amountINR: pack.priceINR,
+                    currency: userCurrency,
+                    gstIncluded: userCurrency === 'INR' ? true : false,
+                    gstRate: userCurrency === 'INR' ? GST_RATE : 0
+                })
+            });
+        } catch (e) {
+            // Fallback to backend API (if Vercel API doesn't exist)
+            response = await fetch(`${API_BASE_URL}/api/payment/purchase`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
