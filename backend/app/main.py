@@ -141,6 +141,22 @@ async def options_handler(full_path: str):
     )
 
 
+@app.get("/")
+async def root():
+    """Root endpoint - API information."""
+    return {
+        "service": "PDF to Word Converter API",
+        "version": "1.0.0",
+        "status": "running",
+        "endpoints": {
+            "health": "/api/health",
+            "convert": "/api/convert/pdf-to-word",
+            "convert_jpg": "/api/convert/pdf-to-jpg",
+            "apply_annotations": "/api/pdf/apply-annotations"
+        }
+    }
+
+
 @app.get("/api/health", response_model=HealthResponse)
 @app.post("/api/health", response_model=HealthResponse)
 async def health_check():
