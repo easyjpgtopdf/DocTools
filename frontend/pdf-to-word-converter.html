@@ -766,7 +766,7 @@
                         errorData = { detail: `Server error: ${response.status} ${response.statusText}` };
                     }
                     
-                    // Handle insufficient credits error
+                    // Handle insufficient credits error (logged-in users)
                     if (response.status === 402 && errorData.error === 'NOT_ENOUGH_CREDITS') {
                         const errorMsg = `Insufficient credits. Required: ${errorData.required || 'N/A'}, Available: ${errorData.available || 0}. Please buy credits to continue.`;
                         showStatus(errorMsg, 'error');
@@ -780,7 +780,29 @@
                         throw new Error(errorMsg);
                     }
                     
-                    const errorMsg = errorData.error || errorData.detail || errorData.message || `Server error: ${response.status} (check logs)`;
+                    // Handle free tier limit exceeded error (anonymous users)
+                    if (response.status === 403 && (
+                        errorData.error === 'FREE_TIER_LIMIT_EXCEEDED' ||
+                        errorData.error === 'FREE_TIER_SIZE_LIMIT_EXCEEDED' ||
+                        errorData.detail?.error === 'FREE_TIER_LIMIT_EXCEEDED' ||
+                        errorData.detail?.error === 'FREE_TIER_SIZE_LIMIT_EXCEEDED'
+                    )) {
+                        const errorDetail = errorData.detail || errorData;
+                        const errorMsg = errorDetail.message || errorData.message || errorDetail.error || 
+                            `Free tier limit exceeded. Maximum ${errorDetail.limit || 10} pages, ${errorDetail.size_limit || 20}MB. Please sign in for higher limits.`;
+                        showStatus(errorMsg, 'error');
+                        showToast(errorMsg, true);
+                        // Prompt user to login
+                        setTimeout(() => {
+                            if (confirm('Free tier limit reached. Would you like to login and buy credits to continue?')) {
+                                const returnUrl = encodeURIComponent(window.location.href);
+                                window.location.href = `/accounts.html#login?returnTo=${returnUrl}`;
+                            }
+                        }, 2000);
+                        throw new Error(errorMsg);
+                    }
+                    
+                    const errorMsg = errorData.detail?.message || errorData.error || errorData.detail?.error || errorData.detail || errorData.message || `Server error: ${response.status} (check logs)`;
                     throw new Error(errorMsg);
                 }
                 
