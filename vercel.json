@@ -2,14 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "frontend/**/*.html",
+      "src": "**/*.html",
       "use": "@vercel/static"
     }
   ],
   "rewrites": [
     {
       "source": "/pdf-to-word",
-      "destination": "/frontend/pdf-to-word.html"
+      "destination": "/pdf-to-word.html"
     },
     {
       "source": "/pdf-to-word-converter",
@@ -17,19 +17,19 @@
     },
     {
       "source": "/pdf-to-jpg",
-      "destination": "/frontend/pdf-to-jpg.html"
+      "destination": "/pdf-to-jpg.html"
     },
     {
       "source": "/pdf-editor",
       "destination": "/frontend/pdf-editor.html"
     },
     {
-      "source": "/sitemap.xml",
-      "destination": "/frontend/sitemap.xml"
+      "source": "/",
+      "destination": "/index.html"
     },
     {
-      "source": "/(.*)",
-      "destination": "/frontend/$1"
+      "source": "/index",
+      "destination": "/index.html"
     }
   ],
   "headers": [
