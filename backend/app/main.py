@@ -902,6 +902,7 @@ async def add_user_credits(
 @app.post("/api/convert/pdf-metadata", response_model=PdfMetadataResponse)
 async def get_pdf_metadata_for_credits(
     file: UploadFile = File(...),
+    authorization: Optional[str] = Header(None),
     settings: Settings = Depends(get_app_settings)
 ):
     """
