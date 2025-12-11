@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>PDF to Word Converter - Free Online Tool | EasyJPGToPDF</title>
     <meta name="description" content="Convert PDF to Word online for free. Fast, secure, and accurate PDF to DOCX conversion with support for Hindi and Unicode fonts.">
     <meta name="keywords" content="pdf to word, pdf to docx, convert pdf to word, pdf converter, free pdf to word">
@@ -115,6 +118,20 @@
             display: block;
         }
         
+        .error-message {
+            margin-top: 15px;
+            padding: 12px;
+            background: #fee;
+            color: #c33;
+            border-radius: 8px;
+            display: none;
+            font-size: 14px;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+        
         .features {
             margin-top: 30px;
             padding-top: 30px;
@@ -178,6 +195,8 @@
             <i class="fas fa-spinner fa-spin"></i> Redirecting to converter...
         </div>
         
+        <div class="error-message" id="errorMessage"></div>
+        
         <div class="features">
             <div class="feature">
                 <div class="feature-icon"><i class="fas fa-bolt"></i></div>
@@ -201,16 +220,24 @@
         const fileName = document.getElementById('fileName');
         const fileSize = document.getElementById('fileSize');
         const loading = document.getElementById('loading');
+        const errorMessage = document.getElementById('errorMessage');
         
         let selectedFile = null;
+        let isRedirecting = false;
         
         // Upload area click
-        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('click', () => {
+            if (!isRedirecting) {
+                fileInput.click();
+            }
+        });
         
         // Drag and drop
         uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
+            if (!isRedirecting) {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            }
         });
         
         uploadArea.addEventListener('dragleave', () => {
@@ -218,6 +245,7 @@
         });
         
         uploadArea.addEventListener('drop', (e) => {
+            if (isRedirecting) return;
             e.preventDefault();
             uploadArea.classList.remove('dragover');
             const file = e.dataTransfer.files[0];
@@ -227,22 +255,37 @@
         });
         
         fileInput.addEventListener('change', (e) => {
+            if (isRedirecting) return;
             const file = e.target.files[0];
             if (file) {
                 handleFile(file);
             }
         });
         
+        function showError(msg) {
+            errorMessage.textContent = msg;
+            errorMessage.classList.add('show');
+            loading.classList.remove('show');
+            setTimeout(() => {
+                errorMessage.classList.remove('show');
+            }, 5000);
+        }
+        
         function handleFile(file) {
-            console.log('File selected:', file.name, file.size);
+            if (isRedirecting) {
+                console.log('Already redirecting, ignoring file selection');
+                return;
+            }
             
-            if (!file.type.includes('pdf')) {
-                alert('Please select a PDF file');
+            console.log('File selected:', file.name, file.size, file.type);
+            
+            if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
+                showError('Please select a PDF file');
                 return;
             }
             
             if (file.size > 50 * 1024 * 1024) {
-                alert('File is too large. Maximum size is 50MB');
+                showError('File is too large. Maximum size is 50MB');
                 return;
             }
             
@@ -250,37 +293,62 @@
             fileName.textContent = file.name;
             fileSize.textContent = `Size: ${(file.size / 1024).toFixed(2)} KB`;
             fileInfo.classList.add('show');
+            errorMessage.classList.remove('show');
             
             // Automatically redirect after file selection
+            isRedirecting = true;
             loading.classList.add('show');
+            uploadArea.style.opacity = '0.6';
+            uploadArea.style.cursor = 'wait';
             
             // Store file in sessionStorage and redirect immediately
             const reader = new FileReader();
             
             reader.onerror = function(error) {
                 console.error('FileReader error:', error);
+                isRedirecting = false;
                 loading.classList.remove('show');
-                alert('Error reading file. Please try again.');
+                uploadArea.style.opacity = '1';
+                uploadArea.style.cursor = 'pointer';
+                showError('Error reading file. Please try again.');
             };
             
             reader.onload = function(e) {
                 try {
-                    const base64Data = e.target.result.split(',')[1];
+                    const result = e.target.result;
+                    if (!result || !result.includes(',')) {
+                        throw new Error('Invalid file data');
+                    }
+                    
+                    const base64Data = result.split(',')[1];
+                    if (!base64Data) {
+                        throw new Error('Failed to extract file data');
+                    }
+                    
                     sessionStorage.setItem('pdfFile', JSON.stringify({
                         name: selectedFile.name,
                         size: selectedFile.size,
                         data: base64Data
                     }));
-                    console.log('File stored in sessionStorage, redirecting...');
                     
-                    // Auto-redirect to converter page with absolute path
-                    const redirectUrl = window.location.origin + '/pdf-to-word-converter';
+                    console.log('File stored in sessionStorage, redirecting...');
+                    console.log('File size:', selectedFile.size, 'bytes');
+                    console.log('Base64 size:', base64Data.length, 'chars');
+                    
+                    // Auto-redirect to converter page - use absolute URL
+                    const baseUrl = window.location.origin;
+                    const redirectUrl = baseUrl + '/pdf-to-word-converter';
                     console.log('Redirecting to:', redirectUrl);
-                    window.location.href = redirectUrl;
+                    
+                    // Force redirect
+                    window.location.replace(redirectUrl);
                 } catch (error) {
-                    console.error('Error storing file:', error);
+                    console.error('Error processing file:', error);
+                    isRedirecting = false;
                     loading.classList.remove('show');
-                    alert('Error processing file. Please try again.');
+                    uploadArea.style.opacity = '1';
+                    uploadArea.style.cursor = 'pointer';
+                    showError('Error processing file: ' + error.message);
                 }
             };
             
