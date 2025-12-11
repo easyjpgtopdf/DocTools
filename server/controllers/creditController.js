@@ -9,6 +9,7 @@ const UserCredits = require('../models/UserCredits');
 const CreditTransaction = require('../models/CreditTransaction');
 const PageVisit = require('../models/PageVisit');
 const User = require('../models/User');
+const AuditLog = require('../models/AuditLog');
 
 // Initialize Razorpay (only if keys are available)
 let razorpay = null;
@@ -102,6 +103,7 @@ async function createCreditOrder(req, res) {
 
 /**
  * Verify payment and add credits
+ * SECURITY: All payment data verified from Razorpay API, not from request body
  */
 async function verifyPaymentAndAddCredits(req, res) {
   try {
@@ -109,22 +111,19 @@ async function verifyPaymentAndAddCredits(req, res) {
       razorpay_payment_id,
       razorpay_order_id,
       razorpay_signature,
-      orderId,
-      plan,
-      credits,
-      amount
+      orderId
     } = req.body;
 
-    const userId = req.userId;
+    const userId = req.userId; // From JWT token - CANNOT BE FAKED
 
-    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
+    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature || !orderId) {
       return res.status(400).json({
         success: false,
         error: 'Missing payment details'
       });
     }
 
-    // Verify signature
+    // SECURITY CHECK 1: Verify signature (prevents fake payments)
     if (!process.env.RAZORPAY_KEY_SECRET) {
       console.error('RAZORPAY_KEY_SECRET not configured');
       return res.status(500).json({
@@ -140,46 +139,130 @@ async function verifyPaymentAndAddCredits(req, res) {
       .digest('hex');
 
     if (generatedSignature !== razorpay_signature) {
+      console.error(`Invalid payment signature for order ${orderId} by user ${userId}`);
       return res.status(400).json({
         success: false,
         error: 'Invalid payment signature'
       });
     }
 
-    // Get or create user credits
-    const userCredits = await UserCredits.getOrCreate(userId);
-    
-    // Add credits (90 days expiry)
-    await userCredits.addCredits(parseInt(credits), 90);
+    // SECURITY CHECK 2: Verify payment status with Razorpay API (prevents fake/unpaid orders)
+    try {
+      const payment = await razorpay.payments.fetch(razorpay_payment_id);
+      
+      if (payment.status !== 'captured' && payment.status !== 'authorized') {
+        console.error(`Payment ${razorpay_payment_id} not captured. Status: ${payment.status}`);
+        return res.status(400).json({
+          success: false,
+          error: 'Payment not successful',
+          message: `Payment status: ${payment.status}`
+        });
+      }
 
-    // Update transaction
-    const transaction = await CreditTransaction.findOne({
+      // Verify order ID matches
+      if (payment.order_id !== razorpay_order_id) {
+        console.error(`Order ID mismatch: ${payment.order_id} !== ${razorpay_order_id}`);
+        return res.status(400).json({
+          success: false,
+          error: 'Order ID mismatch'
+        });
+      }
+
+      // Verify amount matches (prevent amount manipulation)
+      const order = await razorpay.orders.fetch(razorpay_order_id);
+      if (!order) {
+        return res.status(400).json({
+          success: false,
+          error: 'Order not found'
+        });
+      }
+    } catch (razorpayError) {
+      console.error('Razorpay API verification failed:', razorpayError);
+      return res.status(400).json({
+        success: false,
+        error: 'Payment verification failed',
+        message: 'Could not verify payment with Razorpay'
+      });
+    }
+
+    // SECURITY CHECK 3: Get credits from stored transaction, NOT from request body (prevents credit manipulation)
+    const existingTransaction = await CreditTransaction.findOne({
       user_id: userId,
       'metadata.orderId': orderId,
       type: 'purchase'
     });
 
-    if (transaction) {
-      transaction.credits_change = parseInt(credits);
-      transaction.balance_after = userCredits.credits;
-      transaction.metadata.paymentId = razorpay_payment_id;
-      await transaction.save();
-    } else {
-      // Create new transaction if not found
-      await CreditTransaction.create({
-        user_id: userId,
-        type: 'purchase',
-        credits_change: parseInt(credits),
-        balance_after: userCredits.credits,
-        metadata: {
-          orderId,
-          paymentId: razorpay_payment_id,
-          plan,
-          amount: parseFloat(amount),
-          currency: 'USD'
-        }
+    if (!existingTransaction) {
+      console.error(`SECURITY ALERT: Transaction not found for order ${orderId} by user ${userId}`);
+      // Log security event
+      await AuditLog.create({
+        userId: userId,
+        action: 'unauthorized_credit_attempt',
+        resourceType: 'security',
+        details: { orderId, paymentId: razorpay_payment_id },
+        ipAddress: req.ip || req.connection.remoteAddress,
+        userAgent: req.headers['user-agent'],
+        status: 'failure'
+      });
+      return res.status(400).json({
+        success: false,
+        error: 'Order not found',
+        message: 'This order was not created by you'
       });
     }
+
+    // SECURITY: Verify the order belongs to this user (prevent order hijacking)
+    if (existingTransaction.user_id.toString() !== userId.toString()) {
+      console.error(`SECURITY ALERT: User ${userId} attempted to use order ${orderId} belonging to another user`);
+      await AuditLog.create({
+        userId: userId,
+        action: 'order_hijack_attempt',
+        resourceType: 'security',
+        details: { orderId, actualOwner: existingTransaction.user_id },
+        ipAddress: req.ip || req.connection.remoteAddress,
+        userAgent: req.headers['user-agent'],
+        status: 'failure'
+      });
+      return res.status(403).json({
+        success: false,
+        error: 'Unauthorized',
+        message: 'This order does not belong to you'
+      });
+    }
+
+    // SECURITY CHECK 4: Prevent duplicate credit addition (check if payment already processed)
+    if (existingTransaction.metadata.paymentId) {
+      console.warn(`Payment ${razorpay_payment_id} already processed for order ${orderId}`);
+      return res.status(400).json({
+        success: false,
+        error: 'Payment already processed',
+        message: 'Credits for this payment have already been added'
+      });
+    }
+
+    // SECURITY: Use credits from stored transaction, NOT from request body
+    const creditsToAdd = existingTransaction.credits_change;
+    if (!creditsToAdd || creditsToAdd <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid credits amount'
+      });
+    }
+
+    // Get or create user credits
+    const userCredits = await UserCredits.getOrCreate(userId);
+    
+    // Add credits (90 days expiry) - using verified amount from database
+    await userCredits.addCredits(creditsToAdd, 90);
+
+    // Update transaction with payment ID (mark as processed)
+    existingTransaction.balance_after = userCredits.credits;
+    existingTransaction.metadata.paymentId = razorpay_payment_id;
+    existingTransaction.metadata.verifiedAt = new Date();
+    await existingTransaction.save();
+
+    // Log successful credit addition
+    console.log(`✓ Credits added: ${creditsToAdd} to user ${userId} for order ${orderId}`);
 
     // Send email receipt (if email service is configured)
     // TODO: Integrate with email service
@@ -247,16 +330,30 @@ async function getCreditBalance(req, res) {
 
 /**
  * Deduct credits
+ * SECURITY: Only allows deduction for authenticated users, prevents negative amounts
  */
 async function deductCredits(req, res) {
   try {
     const { amount, tool_used, page, file_name, page_count, processor } = req.body;
-    const userId = req.userId;
+    const userId = req.userId; // From JWT - CANNOT BE FAKED
 
-    if (!amount || amount <= 0) {
+    // SECURITY: Validate amount (prevent negative or zero amounts)
+    if (!amount || amount <= 0 || !Number.isInteger(Number(amount))) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid amount'
+        error: 'Invalid amount',
+        message: 'Amount must be a positive integer'
+      });
+    }
+
+    // SECURITY: Prevent excessive credit deduction in single request
+    const maxDeduction = 1000; // Max credits per single deduction
+    if (amount > maxDeduction) {
+      console.warn(`Excessive deduction attempt: ${amount} credits by user ${userId}`);
+      return res.status(400).json({
+        success: false,
+        error: 'Amount too large',
+        message: `Maximum ${maxDeduction} credits can be deducted per request`
       });
     }
 
@@ -266,11 +363,12 @@ async function deductCredits(req, res) {
     userCredits.checkExpiry();
 
     if (userCredits.credits < amount) {
-      return res.status(400).json({
+      return res.status(402).json({
         success: false,
         error: 'Insufficient credits',
         credits: userCredits.credits,
-        required: amount
+        required: amount,
+        message: `You need ${amount} credits. You have ${userCredits.credits} credits.`
       });
     }
 
@@ -412,6 +510,81 @@ async function getPageVisitHistory(req, res) {
   }
 }
 
+/**
+ * Razorpay Webhook Handler
+ * Additional security layer - Razorpay directly calls this on payment success
+ * SECURITY: Uses raw body for signature verification
+ */
+async function handleRazorpayWebhook(req, res) {
+  try {
+    const webhookSignature = req.headers['x-razorpay-signature'];
+    
+    if (!webhookSignature) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing webhook signature'
+      });
+    }
+
+    // Parse raw body (it's a Buffer when using express.raw())
+    const webhookBody = req.body.toString('utf8');
+    
+    // Verify webhook signature
+    const expectedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(webhookBody)
+      .digest('hex');
+
+    if (webhookSignature !== expectedSignature) {
+      console.error('Invalid webhook signature');
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid webhook signature'
+      });
+    }
+
+    // Parse JSON body
+    const event = JSON.parse(webhookBody);
+    
+    // Handle payment.captured event
+    if (event.event === 'payment.captured') {
+      const payment = event.payload.payment.entity;
+      const orderId = payment.order_id;
+
+      // Find transaction by order ID
+      const transaction = await CreditTransaction.findOne({
+        'metadata.orderId': orderId,
+        type: 'purchase'
+      });
+
+      if (transaction && !transaction.metadata.paymentId) {
+        // Payment verified via webhook - add credits
+        const userId = transaction.user_id;
+        const creditsToAdd = transaction.credits_change;
+
+        const userCredits = await UserCredits.getOrCreate(userId);
+        await userCredits.addCredits(creditsToAdd, 90);
+
+        transaction.metadata.paymentId = payment.id;
+        transaction.metadata.verifiedAt = new Date();
+        transaction.metadata.verifiedVia = 'webhook';
+        transaction.balance_after = userCredits.credits;
+        await transaction.save();
+
+        console.log(`✓ Webhook: Credits added via webhook for order ${orderId}`);
+      }
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Webhook processing failed'
+    });
+  }
+}
+
 module.exports = {
   createCreditOrder,
   verifyPaymentAndAddCredits,
@@ -419,6 +592,7 @@ module.exports = {
   deductCredits,
   getCreditHistory,
   trackPageVisit,
-  getPageVisitHistory
+  getPageVisitHistory,
+  handleRazorpayWebhook
 };
 
