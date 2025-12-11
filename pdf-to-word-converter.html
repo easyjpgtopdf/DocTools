@@ -657,22 +657,71 @@
                 return;
             }
             
-            // Check credits before conversion
+            // Check free tier limits and credits before conversion
             try {
-                // Get PDF metadata for credit calculation
+                // Get PDF metadata for free tier limit check
                 const formData = new FormData();
                 formData.append('file', currentFile);
                 
+                // Try to get auth token (only for logged-in users)
+                let authToken = null;
+                try {
+                    const authModule = await import('/js/auth.js').catch(() => null);
+                    if (authModule && authModule.auth && authModule.auth.currentUser) {
+                        authToken = await authModule.auth.currentUser.getIdToken();
+                    }
+                } catch (e) {
+                    console.log('Auth token not available - proceeding as anonymous user (free tier)');
+                }
+                
+                const metadataHeaders = {};
+                if (authToken) {
+                    metadataHeaders['Authorization'] = `Bearer ${authToken}`;
+                }
+                
                 const metadataResponse = await fetch(`${API_BASE_URL}/api/convert/pdf-metadata`, {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    mode: 'cors',
+                    credentials: 'omit',
+                    headers: metadataHeaders
                 });
                 
                 if (metadataResponse.ok) {
                     const metadata = await metadataResponse.json();
                     
-                    // Show credit modal if function is available
-                    if (typeof showCreditModal === 'function') {
+                    // Free tier limits for anonymous users
+                    const FREE_TIER_MAX_PAGES = 10;
+                    const FREE_TIER_MAX_SIZE_MB = 20;
+                    const fileSizeMB = (currentFile.size / (1024 * 1024)).toFixed(2);
+                    
+                    // Check if user is anonymous and within free tier
+                    const isAnonymous = !authToken;
+                    const withinFreeTier = isAnonymous && 
+                                           metadata.pages <= FREE_TIER_MAX_PAGES && 
+                                           parseFloat(fileSizeMB) <= FREE_TIER_MAX_SIZE_MB;
+                    
+                    if (withinFreeTier) {
+                        // Anonymous user within free tier - proceed directly without credit modal
+                        console.log(`Free tier: ${metadata.pages} pages, ${fileSizeMB}MB - Proceeding with conversion`);
+                        await convertToWord();
+                    } else if (isAnonymous && (metadata.pages > FREE_TIER_MAX_PAGES || parseFloat(fileSizeMB) > FREE_TIER_MAX_SIZE_MB)) {
+                        // Anonymous user exceeded free tier - show message and prompt login
+                        const limitMsg = metadata.pages > FREE_TIER_MAX_PAGES 
+                            ? `Free tier limit: Maximum ${FREE_TIER_MAX_PAGES} pages. Your file has ${metadata.pages} pages.`
+                            : `Free tier limit: Maximum ${FREE_TIER_MAX_SIZE_MB}MB file size. Your file is ${fileSizeMB}MB.`;
+                        
+                        showStatus(limitMsg + ' Please sign in for higher limits.', 'error');
+                        showToast(limitMsg + ' Please sign in to continue.', true);
+                        
+                        setTimeout(() => {
+                            if (confirm('You have reached the free tier limit. Would you like to sign in to continue?')) {
+                                window.location.href = `/accounts.html#login?returnTo=${encodeURIComponent(window.location.href)}`;
+                            }
+                        }, 2000);
+                        return; // Stop conversion
+                    } else if (authToken && typeof showCreditModal === 'function') {
+                        // Logged-in user - show credit modal
                         try {
                             await showCreditModal(
                                 currentFile,
@@ -683,7 +732,7 @@
                             // User clicked continue, proceed with conversion
                             await convertToWord();
                         } catch (e) {
-                            if (e.message.includes('cancelled') || e.message.includes('Redirecting')) {
+                            if (e.message && (e.message.includes('cancelled') || e.message.includes('Redirecting'))) {
                                 // User cancelled or wants to buy credits
                                 return;
                             }
@@ -692,16 +741,38 @@
                             await convertToWord();
                         }
                     } else {
-                        // Modal not available, proceed with conversion
+                        // No credit modal available or user not logged in (but within free tier already handled above)
+                        // Proceed with conversion - backend will enforce limits
                         await convertToWord();
                     }
                 } else {
-                    // Metadata fetch failed, proceed anyway
+                    // Metadata fetch failed - check for free tier limit errors
+                    let errorData;
+                    try {
+                        errorData = await metadataResponse.json();
+                    } catch {
+                        errorData = { detail: `Server error: ${metadataResponse.status}` };
+                    }
+                    
+                    if (metadataResponse.status === 403 && (errorData.error === 'FREE_TIER_LIMIT_EXCEEDED' || errorData.error === 'FREE_TIER_SIZE_LIMIT_EXCEEDED')) {
+                        const errorMsg = errorData.message || 'Free tier limits exceeded. Please sign in for higher limits.';
+                        showStatus(errorMsg, 'error');
+                        showToast(errorMsg, true);
+                        setTimeout(() => {
+                            if (confirm('You have reached the free tier limit. Would you like to sign in to continue?')) {
+                                window.location.href = `/accounts.html#login?returnTo=${encodeURIComponent(window.location.href)}`;
+                            }
+                        }, 2000);
+                        return; // Stop conversion
+                    }
+                    
+                    // For other errors, proceed anyway (backend will handle)
+                    console.warn('Metadata fetch failed, proceeding with conversion:', errorData);
                     await convertToWord();
                 }
             } catch (e) {
                 console.warn('Credit check error:', e);
-                // Continue with conversion even if credit check fails
+                // Continue with conversion even if credit check fails - backend will enforce limits
                 await convertToWord();
             }
         });
