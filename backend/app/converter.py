@@ -200,41 +200,82 @@ def convert_pdf_to_docx_with_libreoffice(pdf_path: str, output_dir: str) -> str:
         
         # LibreOffice creates output with same base name as input
         # e.g., input.pdf -> input.docx
+        # But LibreOffice might keep original filename extension or use different naming
         pdf_name = Path(pdf_path).stem
-        output_path = os.path.join(output_dir, f"{pdf_name}.docx")
+        pdf_basename = Path(pdf_path).name
         
-        # Also check for alternative output paths (LibreOffice might use different naming)
-        alt_output_paths = [
-            output_path,
-            os.path.join(output_dir, Path(pdf_path).name.replace('.pdf', '.docx')),
-            os.path.join(output_dir, f"{Path(pdf_path).name}.docx"),
-        ]
+        # Wait a moment for LibreOffice to finish writing the file
+        import time
+        time.sleep(0.5)
         
-        # List all files in output directory to debug
-        output_files = os.listdir(output_dir) if os.path.exists(output_dir) else []
-        logger.info(f"Files in output directory: {output_files}")
+        # List all files in output directory
+        output_files = []
+        if os.path.exists(output_dir):
+            try:
+                output_files = os.listdir(output_dir)
+            except Exception as e:
+                logger.warning(f"Error listing output directory: {e}")
+        
+        logger.info(f"Files in output directory after conversion: {output_files}")
         print(f"DEBUG: Files in output directory: {output_files}")
         
-        # Find the actual output file
+        # Check for DOCX file - LibreOffice may use different naming conventions
+        # Try multiple possible output names
+        possible_names = [
+            f"{pdf_name}.docx",  # input -> input.docx
+            pdf_basename.replace('.pdf', '.docx'),  # input.pdf -> input.docx
+            f"{pdf_basename}.docx",  # input.pdf -> input.pdf.docx
+            "output.docx",  # Generic output name
+        ]
+        
         actual_output_path = None
-        for path in alt_output_paths:
-            if os.path.exists(path):
-                actual_output_path = path
+        
+        # First, try the expected paths
+        for name in possible_names:
+            test_path = os.path.join(output_dir, name)
+            if os.path.exists(test_path) and os.path.getsize(test_path) > 0:
+                actual_output_path = test_path
+                logger.info(f"Found DOCX at expected path: {actual_output_path}")
                 break
         
-        # If still not found, look for any .docx file in output directory
+        # If not found, search for any .docx file in the directory
         if not actual_output_path:
             for file in output_files:
-                if file.endswith('.docx'):
-                    actual_output_path = os.path.join(output_dir, file)
-                    logger.info(f"Found DOCX file with different name: {actual_output_path}")
-                    break
+                if file.endswith('.docx') and not file.startswith('~'):  # Exclude temp files
+                    test_path = os.path.join(output_dir, file)
+                    if os.path.exists(test_path) and os.path.getsize(test_path) > 0:
+                        actual_output_path = test_path
+                        logger.info(f"Found DOCX file with different name: {actual_output_path}")
+                        break
         
-        # Verify output file was created
+        # If still not found, check if LibreOffice created it in a subdirectory or parent
+        if not actual_output_path:
+            # Check parent directory
+            parent_dir = os.path.dirname(output_dir)
+            if os.path.exists(parent_dir):
+                try:
+                    parent_files = os.listdir(parent_dir)
+                    for file in parent_files:
+                        if file.endswith('.docx'):
+                            test_path = os.path.join(parent_dir, file)
+                            if os.path.exists(test_path):
+                                actual_output_path = test_path
+                                logger.info(f"Found DOCX in parent directory: {actual_output_path}")
+                                break
+                except Exception:
+                    pass
+        
+        # Final verification
         if not actual_output_path or not os.path.exists(actual_output_path):
-            raise Exception(f"Output DOCX not found. Expected at: {output_path}. Files in directory: {output_files}")
+            error_msg = f"Output DOCX not found. Expected at: {os.path.join(output_dir, f'{pdf_name}.docx')}. Files in directory: {output_files}. LibreOffice may have failed silently."
+            logger.error(error_msg)
+            raise Exception(error_msg)
         
-        logger.info(f"Conversion successful: {actual_output_path}")
+        # Verify file is not empty
+        if os.path.getsize(actual_output_path) == 0:
+            raise Exception(f"Output DOCX file is empty: {actual_output_path}")
+        
+        logger.info(f"Conversion successful: {actual_output_path} (size: {os.path.getsize(actual_output_path)} bytes)")
         print(f"DEBUG: LibreOffice output: {actual_output_path}")
         return actual_output_path
         
