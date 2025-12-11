@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF to JPG Converter</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/footer.css">
     <style>
         * {
             margin: 0;
@@ -17,15 +19,18 @@
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             min-height: 100vh;
             padding: 20px;
+            display: flex;
+            flex-direction: column;
         }
         
         .container {
             max-width: 1200px;
-            margin: 0 auto;
+            margin: 20px auto;
             background: white;
             border-radius: 16px;
             padding: 40px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            flex: 1;
         }
         
         h1 {
@@ -170,6 +175,12 @@
     </style>
 </head>
 <body>
+    <!-- Account Section (Above Header) -->
+    <div id="account-section" class="account-section" style="display: none;"></div>
+    
+    <!-- Global Header Placeholder -->
+    <div id="global-header-placeholder"></div>
+    
     <div class="container">
         <h1><i class="fas fa-images"></i> PDF to JPG Converter</h1>
         <p class="subtitle">Convert PDF pages to high-quality JPG images</p>
@@ -194,6 +205,97 @@
         <div class="images-grid" id="imagesGrid"></div>
     </div>
 
+    <!-- Global Footer Placeholder -->
+    <div id="global-footer-placeholder"></div>
+
+    <script src="js/global-components.js"></script>
+    <script src="js/auth.js"></script>
+    
+    <!-- Ensure header and footer load - multiple attempts to guarantee it works -->
+    <script>
+    (function() {
+        function tryLoadHeader() {
+            if (typeof loadGlobalHeader === 'function') {
+                try {
+                    loadGlobalHeader();
+                    return true;
+                } catch (e) {
+                    console.error('Error calling loadGlobalHeader:', e);
+                }
+            }
+            return false;
+        }
+        
+        function tryLoadFooter() {
+            if (typeof loadGlobalFooter === 'function') {
+                try {
+                    loadGlobalFooter();
+                    return true;
+                } catch (e) {
+                    console.error('Error calling loadGlobalFooter:', e);
+                }
+            }
+            return false;
+        }
+        
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            if (!tryLoadHeader()) {
+                var attempts = 0;
+                var maxAttempts = 60;
+                var checkHeader = setInterval(function() {
+                    attempts++;
+                    if (tryLoadHeader() || attempts >= maxAttempts) {
+                        clearInterval(checkHeader);
+                    }
+                }, 50);
+            }
+            if (!tryLoadFooter()) {
+                var attempts = 0;
+                var maxAttempts = 60;
+                var checkFooter = setInterval(function() {
+                    attempts++;
+                    if (tryLoadFooter() || attempts >= maxAttempts) {
+                        clearInterval(checkFooter);
+                    }
+                }, 50);
+            }
+        } else {
+            document.addEventListener('DOMContentLoaded', function() {
+                if (!tryLoadHeader()) {
+                    var attempts = 0;
+                    var maxAttempts = 40;
+                    var checkHeader = setInterval(function() {
+                        attempts++;
+                        if (tryLoadHeader() || attempts >= maxAttempts) {
+                            clearInterval(checkHeader);
+                        }
+                    }, 50);
+                }
+                if (!tryLoadFooter()) {
+                    var attempts = 0;
+                    var maxAttempts = 40;
+                    var checkFooter = setInterval(function() {
+                        attempts++;
+                        if (tryLoadFooter() || attempts >= maxAttempts) {
+                            clearInterval(checkFooter);
+                        }
+                    }, 50);
+                }
+            });
+        }
+        
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (!document.querySelector('header') && typeof loadGlobalHeader === 'function') {
+                    loadGlobalHeader();
+                }
+                if (!document.querySelector('footer') && typeof loadGlobalFooter === 'function') {
+                    loadGlobalFooter();
+                }
+            }, 100);
+        });
+    })();
+    </script>
     <script>
         const API_BASE_URL = 'https://pdf-to-word-converter-iwumaktavq-uc.a.run.app';
         
