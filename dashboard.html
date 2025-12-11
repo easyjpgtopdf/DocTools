@@ -926,6 +926,11 @@
 <i aria-hidden="true" class="fas fa-life-ring"></i>
                                 Support &amp; Notifications
                             </button>
+<h4>Account</h4>
+<button class="dashboard-nav-btn" id="dashboard-signout-btn" type="button" style="color: #dc2626;">
+<i aria-hidden="true" class="fas fa-sign-out-alt"></i>
+                                Sign Out
+                            </button>
 </nav>
 </aside>
 <div class="dashboard-content">
@@ -2254,6 +2259,33 @@ Monthly download: <span id="image-remover-download-used">0</span> MB / <span id=
         </div>
     </footer>
     <script src="js/global-components.js"></script>
+    <script>
+    // Signout button handler (using auth.js handleLogout function)
+    document.addEventListener('DOMContentLoaded', () => {
+        const signoutBtn = document.getElementById('dashboard-signout-btn');
+        if (signoutBtn) {
+            signoutBtn.addEventListener('click', async () => {
+                // Import auth module and use handleLogout
+                try {
+                    const authModule = await import('./js/auth.js');
+                    if (authModule && typeof authModule.handleLogout === 'function') {
+                        authModule.handleLogout();
+                    } else {
+                        // Fallback: direct signout
+                        const { auth } = await import('./js/firebase-init.js');
+                        const { signOut } = await import('https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js');
+                        await signOut(auth);
+                        alert('You have been signed out.');
+                        window.location.href = 'index.html';
+                    }
+                } catch (error) {
+                    console.error('Signout error:', error);
+                    alert('Unable to sign out. Please try again.');
+                }
+            });
+        }
+    });
+    </script>
     <script>
     // Ensure header loads - multiple attempts to guarantee it works
     (function() {

@@ -1694,12 +1694,14 @@ async function addPage(req, res) {
 
 /**
  * Export PDF to Word
+ * Credit System: 0.5 credits/page (text), 1 credit/page (OCR)
  */
 async function exportToWord(req, res) {
   try {
-    const { fileId, pdfData } = req.body;
+    const { fileId, pdfData, pages, isOCR } = req.body;
     const fileStorage = require('../utils/fileStorage');
     const { exportToWord } = require('../api/pdf-edit/export-formats');
+    const { deductCreditsFromUser, recordCreditTransaction, recordPageVisit } = require('../utils/creditHelper');
     
     let pdfBuffer;
     if (fileId) {
@@ -1712,13 +1714,49 @@ async function exportToWord(req, res) {
       return res.status(400).json({ success: false, error: 'File ID or PDF data required' });
     }
     
+    // Calculate credit cost (if user is logged in and free tier exceeded)
+    const userId = req.userId;
+    let creditCost = 0;
+    let pageCount = pages || 1;
+    
+    if (userId) {
+      // Check if free tier applies (handled by frontend, but verify here)
+      // Credit cost: 0.5 per page (text) or 1 per page (OCR)
+      creditCost = isOCR ? pageCount * 1 : pageCount * 0.5;
+      
+      // Check and deduct credits
+      const deductionResult = await deductCreditsFromUser(userId, creditCost, 'pdf-to-word');
+      
+      if (!deductionResult.success) {
+        return res.status(402).json({
+          success: false,
+          error: 'Insufficient credits',
+          message: `You need ${creditCost} credits for this conversion. You have ${deductionResult.credits || 0} credits.`,
+          required: creditCost,
+          available: deductionResult.credits || 0
+        });
+      }
+    }
+    
     const docxBuffer = await exportToWord(pdfBuffer);
     const docxBase64 = docxBuffer.toString('base64');
+    
+    // Record transaction and page visit (if credits were deducted)
+    if (userId && creditCost > 0) {
+      await recordCreditTransaction(userId, 'deduct', -creditCost, deductionResult.newBalance, {
+        toolUsed: 'pdf-to-word',
+        page: '/pdf-to-word-converter.html',
+        pages: pageCount,
+        isOCR: isOCR || false
+      });
+      await recordPageVisit(userId, '/pdf-to-word-converter.html', 'pdf-to-word', creditCost);
+    }
     
     res.json({
       success: true,
       fileData: `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${docxBase64}`,
-      filename: 'export.docx'
+      filename: 'export.docx',
+      creditsUsed: creditCost
     });
   } catch (error) {
     console.error('Export to Word error:', error);

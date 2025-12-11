@@ -9,6 +9,8 @@ const pdfController = require('../controllers/pdfController');
 const { uploadPDF, handleUploadError } = require('../middleware/upload');
 const { errorHandler, asyncHandler } = require('../middleware/errorHandler');
 const { apiLimiter, ocrLimiter, uploadLimiter } = require('../middleware/rateLimiter');
+const { deductCredits } = require('../middleware/creditDeduct');
+const { authenticate } = require('../middleware/auth');
 
 /**
  * POST /api/pdf/upload
@@ -145,8 +147,15 @@ router.post('/pages/add', apiLimiter, express.json({ limit: '100mb' }), asyncHan
 /**
  * POST /api/pdf/export/word
  * Export PDF to Word (DOCX)
+ * Credit: 0.5 credits per page (text), 1 credit per page (OCR)
+ * Note: Credit deduction is dynamic based on PDF type and pages
  */
-router.post('/export/word', apiLimiter, express.json({ limit: '100mb' }), asyncHandler(pdfController.exportToWord));
+router.post('/export/word', 
+  apiLimiter, 
+  authenticate,  // User must be logged in for credit deduction
+  express.json({ limit: '100mb' }), 
+  asyncHandler(pdfController.exportToWord)
+);
 
 /**
  * POST /api/pdf/export/excel
