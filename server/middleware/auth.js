@@ -39,8 +39,66 @@ function verifyToken(token) {
 }
 
 /**
+ * Verify Firebase ID token and get/create user in MongoDB
+ */
+async function verifyFirebaseTokenAndGetUser(token) {
+  try {
+    const { getFirebaseAdmin } = require('../config/google-cloud');
+    const firebaseAdmin = getFirebaseAdmin();
+    
+    if (!firebaseAdmin) {
+      return null;
+    }
+    
+    // Verify Firebase ID token
+    const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
+    
+    if (!decodedToken || !decodedToken.uid) {
+      return null;
+    }
+    
+    // Find or create user in MongoDB
+    let user = await User.findOne({ firebaseUid: decodedToken.uid });
+    
+    if (!user) {
+      // Create new user from Firebase token
+      user = await User.create({
+        email: decodedToken.email || `firebase_${decodedToken.uid}@temp.com`,
+        firebaseUid: decodedToken.uid,
+        firstName: decodedToken.name?.split(' ')[0] || decodedToken.email?.split('@')[0] || 'User',
+        lastName: decodedToken.name?.split(' ').slice(1).join(' ') || '',
+        role: 'viewer',
+        subscriptionPlan: 'free',
+        emailVerified: decodedToken.email_verified || false
+      });
+    } else {
+      // Update user info from Firebase if needed
+      if (decodedToken.email && user.email !== decodedToken.email) {
+        user.email = decodedToken.email;
+      }
+      if (decodedToken.name) {
+        const nameParts = decodedToken.name.split(' ');
+        if (nameParts.length > 0) {
+          user.firstName = nameParts[0];
+          user.lastName = nameParts.slice(1).join(' ') || '';
+        }
+      }
+      if (decodedToken.email_verified !== undefined) {
+        user.emailVerified = decodedToken.email_verified;
+      }
+      await user.save();
+    }
+    
+    return user;
+  } catch (error) {
+    console.error('Firebase token verification error:', error.message);
+    return null;
+  }
+}
+
+/**
  * Authentication middleware
- * Validates JWT token and attaches user to request
+ * Validates JWT token or Firebase ID token and attaches user to request
  */
 async function authenticate(req, res, next) {
   try {
@@ -56,9 +114,21 @@ async function authenticate(req, res, next) {
       });
     }
     
-    // Verify token
-    const decoded = verifyToken(token);
-    if (!decoded) {
+    let user = null;
+    
+    // Try Firebase token first (for frontend Firebase Auth users)
+    const firebaseUser = await verifyFirebaseTokenAndGetUser(token);
+    if (firebaseUser) {
+      user = firebaseUser;
+    } else {
+      // Fallback to JWT token verification (for backend-generated tokens)
+      const decoded = verifyToken(token);
+      if (decoded && decoded.userId) {
+        user = await User.findById(decoded.userId).select('+password');
+      }
+    }
+    
+    if (!user) {
       return res.status(401).json({
         success: false,
         error: 'Invalid or expired token',
@@ -66,18 +136,8 @@ async function authenticate(req, res, next) {
       });
     }
     
-    // Get user from database
-    const user = await User.findById(decoded.userId).select('+password');
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        error: 'User not found',
-        code: 'USER_NOT_FOUND'
-      });
-    }
-    
     // Check if user is locked
-    if (user.isLocked()) {
+    if (user.isLocked && user.isLocked()) {
       return res.status(403).json({
         success: false,
         error: 'Account is temporarily locked due to multiple failed login attempts',
@@ -99,7 +159,7 @@ async function authenticate(req, res, next) {
       ipAddress: req.ip || req.connection.remoteAddress,
       userAgent: req.headers['user-agent'],
       status: 'success'
-    });
+    }).catch(console.error);
     
     next();
   } catch (error) {

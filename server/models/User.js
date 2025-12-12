@@ -16,9 +16,18 @@ const userSchema = new mongoose.Schema({
     trim: true,
     index: true
   },
+  firebaseUid: {
+    type: String,
+    unique: true,
+    sparse: true, // Allow null values but ensure uniqueness when present
+    index: true
+  },
   password: {
     type: String,
-    required: true,
+    required: function() {
+      // Password required only if not a Firebase user
+      return !this.firebaseUid;
+    },
     select: false // Don't return password by default
   },
   firstName: {
@@ -119,13 +128,15 @@ const userSchema = new mongoose.Schema({
 
 // Indexes for performance
 userSchema.index({ email: 1 });
+userSchema.index({ firebaseUid: 1 });
 userSchema.index({ teamId: 1, role: 1 });
 userSchema.index({ subscriptionPlan: 1, subscriptionStatus: 1 });
 userSchema.index({ createdAt: -1 });
 
-// Hash password before saving
+// Hash password before saving (only if password is provided and user is not Firebase-only)
 userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
+  // Skip password hashing if no password or if Firebase user without password
+  if (!this.isModified('password') || !this.password) return next();
   
   try {
     const salt = await bcrypt.genSalt(12);
