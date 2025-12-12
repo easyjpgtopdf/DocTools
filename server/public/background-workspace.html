@@ -347,28 +347,93 @@
     // Get user info (from auth or session)
     async function getUserInfo() {
       try {
-        // Check if user is logged in (Firebase Auth)
-        if (typeof getAuth !== 'undefined') {
-          const { getAuth } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
-          const auth = getAuth();
-          if (auth && auth.currentUser) {
+        // Import Firebase app and getAuth
+        const { app } = await import('./js/firebase-init.js').catch(() => ({}));
+        if (!app) {
+          throw new Error('Firebase app not initialized');
+        }
+        
+        const { getAuth } = await import('https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js');
+        const auth = getAuth(app);
+        
+        if (!auth) {
+          throw new Error('Firebase auth not available');
+        }
+        
+        // Check if user is already authenticated
+        if (auth.currentUser) {
+          try {
+            const token = await auth.currentUser.getIdToken();
+            console.log('✅ User authenticated:', auth.currentUser.uid);
             return {
               userId: auth.currentUser.uid,
-              userType: 'premium', // Assume premium if logged in, verify with subscription
-              authToken: await auth.currentUser.getIdToken()
+              userType: 'premium',
+              authToken: token
             };
+          } catch (tokenError) {
+            console.warn('Failed to get token:', tokenError);
           }
         }
+        
+        // Wait for auth state to be ready (async check)
+        // Use a promise that resolves when auth state is known
+        return new Promise((resolve) => {
+          let resolved = false;
+          const timeout = setTimeout(() => {
+            if (!resolved) {
+              resolved = true;
+              unsubscribe();
+              resolve({
+                userId: 'anonymous',
+                userType: 'free',
+                authToken: null
+              });
+            }
+          }, 1000); // 1 second timeout
+          
+          const unsubscribe = auth.onAuthStateChanged(async (user) => {
+            if (resolved) return;
+            
+            clearTimeout(timeout);
+            resolved = true;
+            unsubscribe();
+            
+            if (user) {
+              try {
+                const token = await user.getIdToken();
+                console.log('✅ User authenticated (from onAuthStateChanged):', user.uid);
+                resolve({
+                  userId: user.uid,
+                  userType: 'premium',
+                  authToken: token
+                });
+              } catch (tokenError) {
+                console.warn('Failed to get token:', tokenError);
+                resolve({
+                  userId: 'anonymous',
+                  userType: 'free',
+                  authToken: null
+                });
+              }
+            } else {
+              resolve({
+                userId: 'anonymous',
+                userType: 'free',
+                authToken: null
+              });
+            }
+          });
+        });
+        
       } catch (e) {
         console.warn('Auth check failed:', e);
+        // Fallback to free user
+        return {
+          userId: 'anonymous',
+          userType: 'free',
+          authToken: null
+        };
       }
-      
-      // Fallback to free user
-      return {
-        userId: 'anonymous',
-        userType: 'free',
-        authToken: null
-      };
     }
     
     // Check user's credit balance
