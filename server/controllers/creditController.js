@@ -30,6 +30,14 @@ if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
  */
 async function createCreditOrder(req, res) {
   try {
+    // Handle OPTIONS requests for CORS preflight
+    if (req.method === 'OPTIONS') {
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      return res.status(200).end();
+    }
+    
     if (!razorpay) {
       return res.status(503).json({
         success: false,
@@ -40,6 +48,14 @@ async function createCreditOrder(req, res) {
 
     const { plan, credits, amount, currency = 'USD' } = req.body;
     const userId = req.userId;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'User not authenticated',
+        message: 'Please sign in to purchase credits.'
+      });
+    }
 
     // Try to get plan from config (if exists)
     const planConfig = getPricingPlan(plan);
