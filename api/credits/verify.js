@@ -70,13 +70,41 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // Verify payment signature
+    // SECURITY: Verify authentication token if provided (optional for webhook, required for direct API calls)
+    let verifiedUserId = userId;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.replace('Bearer ', '');
+        if (admin.apps.length) {
+          const decodedToken = await admin.auth().verifyIdToken(token);
+          verifiedUserId = decodedToken.uid;
+          
+          // SECURITY: Verify userId from token matches userId from request body
+          if (userId !== verifiedUserId) {
+            console.warn(`SECURITY ALERT: User ID mismatch in credit verification - token userId (${verifiedUserId}) != request userId (${userId})`);
+            return res.status(403).json({
+              success: false,
+              error: 'User ID mismatch',
+              message: 'Authentication failed: User ID does not match token'
+            });
+          }
+        }
+      } catch (tokenError) {
+        console.error('Token verification failed in credit verification:', tokenError);
+        // Continue without token verification for webhook scenarios
+        // But log the security issue
+      }
+    }
+
+    // SECURITY: Verify payment signature (CRITICAL - prevents fake payments)
     const generatedSignature = crypto
       .createHmac('sha256', razorpayKeySecret)
       .update(orderId + '|' + paymentId)
       .digest('hex');
 
     if (generatedSignature !== signature) {
+      console.error(`SECURITY ALERT: Invalid payment signature for order ${orderId}, payment ${paymentId}`);
       return res.status(400).json({ 
         success: false,
         error: 'Invalid payment signature',
@@ -84,15 +112,40 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // Verify with Razorpay API
+    // SECURITY: Verify with Razorpay API (CRITICAL - ensures payment is real)
     const payment = await razorpay.payments.fetch(paymentId);
 
     if (payment.status !== 'captured') {
+      console.error(`SECURITY ALERT: Payment ${paymentId} not captured, status: ${payment.status}`);
       return res.status(400).json({ 
         success: false,
         error: 'Payment not captured',
         message: `Payment status: ${payment.status}`
       });
+    }
+    
+    // SECURITY: Verify order exists and belongs to user
+    if (admin.apps.length) {
+      try {
+        const db = admin.firestore();
+        const orderDoc = await db.collection('creditOrders').doc(orderId).get();
+        
+        if (orderDoc.exists) {
+          const orderData = orderDoc.data();
+          // Verify order belongs to the correct user
+          if (orderData.userId && orderData.userId !== verifiedUserId) {
+            console.error(`SECURITY ALERT: Order ${orderId} belongs to user ${orderData.userId} but verification attempted by ${verifiedUserId}`);
+            return res.status(403).json({
+              success: false,
+              error: 'Order ownership mismatch',
+              message: 'This order does not belong to the authenticated user'
+            });
+          }
+        }
+      } catch (orderCheckError) {
+        console.error('Error checking order ownership:', orderCheckError);
+        // Continue - order check is not critical if order doesn't exist yet
+      }
     }
 
     // Get credits from order if not provided
@@ -167,7 +220,7 @@ module.exports = async function handler(req, res) {
       const orderData = orderDoc.data();
       
       // Record transaction
-      await db.collection('users').doc(userId).collection('creditTransactions').add({
+      await db.collection('users').doc(finalUserId).collection('creditTransactions').add({
         type: 'addition',
         amount: creditsToAdd,
         reason: 'Credit purchase',
@@ -189,7 +242,7 @@ module.exports = async function handler(req, res) {
       const receiptData = {
         orderId: orderId,
         paymentId: paymentId,
-        userId: userId,
+        userId: finalUserId,
         credits: creditsToAdd,
         amount: orderData?.amount || 0,
         amountUSD: orderData?.amountUSD || 0,
@@ -210,9 +263,9 @@ module.exports = async function handler(req, res) {
       await db.collection('receipts').doc(orderId).set(receiptData);
       
       // Also save to user's receipts subcollection
-      await db.collection('users').doc(userId).collection('receipts').doc(orderId).set(receiptData);
+      await db.collection('users').doc(finalUserId).collection('receipts').doc(orderId).set(receiptData);
       
-      console.log(`Credits added: ${creditsToAdd} to user ${userId}`);
+      console.log(`Credits added: ${creditsToAdd} to user ${finalUserId} (verified purchase)`);
     }
 
     res.setHeader('Access-Control-Allow-Origin', '*');

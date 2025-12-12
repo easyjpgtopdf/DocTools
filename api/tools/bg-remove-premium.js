@@ -201,8 +201,30 @@ module.exports = async function handler(req, res) {
 
     const token = authHeader.replace('Bearer ', '');
 
-    // Verify userId is provided
-    if (!userId) {
+    // SECURITY: Verify token and get userId from token (not from request body)
+    let verifiedUserId = null;
+    try {
+      const adminModule = await initializeFirebase();
+      if (adminModule && adminModule.apps.length) {
+        const decodedToken = await adminModule.auth().verifyIdToken(token);
+        verifiedUserId = decodedToken.uid;
+      } else {
+        // Fallback: use userId from body if Firebase not initialized
+        console.warn('Firebase not initialized, using userId from request body');
+        verifiedUserId = userId;
+      }
+    } catch (tokenError) {
+      console.error('Token verification failed:', tokenError);
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid authentication token',
+        message: 'Please sign in again to use Premium HD processing',
+        requiresAuth: true
+      });
+    }
+
+    // Verify userId is provided and matches token
+    if (!verifiedUserId) {
       return res.status(401).json({
         success: false,
         error: 'Authentication required',
@@ -211,8 +233,22 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // Verify and deduct credits using new MongoDB credit system
-    const creditCheck = await verifyAndDeductCredits(userId, token, 1);
+    // SECURITY: Verify userId from token matches userId from request body
+    if (userId && userId !== verifiedUserId) {
+      console.warn(`User ID mismatch: token userId (${verifiedUserId}) != request userId (${userId})`);
+      return res.status(403).json({
+        success: false,
+        error: 'User ID mismatch',
+        message: 'Authentication failed: User ID does not match token',
+        requiresAuth: true
+      });
+    }
+
+    // Use verified userId from token for credit operations
+    const finalUserId = verifiedUserId;
+
+    // Verify and deduct credits using verified userId from token
+    const creditCheck = await verifyAndDeductCredits(finalUserId, token, 1);
     
     if (!creditCheck.hasCredits && !creditCheck.unlimited) {
       return res.status(402).json({

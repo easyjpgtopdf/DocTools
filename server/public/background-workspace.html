@@ -187,8 +187,11 @@
 <button class="btn btn-outline" disabled="" id="backgroundChange">
 <i class="fas fa-palette"></i> Change Background
         </button>
-<button class="btn btn-primary" disabled="" id="downloadPng">
-<i class="fas fa-download"></i> Download PNG
+<button class="btn btn-outline" disabled="" id="downloadPng">
+<i class="fas fa-download"></i> Download Free (512px)
+        </button>
+<button class="btn btn-primary" disabled="" id="downloadPremium">
+<i class="fas fa-crown"></i> Download Premium HD
         </button>
 <button class="btn btn-primary" id="newUploadBtn" style="margin-left: 8px;">
 <i class="fas fa-plus"></i> New Upload
@@ -227,6 +230,7 @@
     const previewPlaceholder = document.getElementById('previewPlaceholder');
     const backgroundChangeBtn = document.getElementById('backgroundChange');
     const downloadBtn = document.getElementById('downloadPng');
+    const downloadPremiumBtn = document.getElementById('downloadPremium');
     const statusMessage = document.getElementById('statusMessage');
 
     let resultCanvas = null;
@@ -365,6 +369,43 @@
         userType: 'free',
         authToken: null
       };
+    }
+    
+    // Check user's credit balance
+    async function checkCreditBalance(userInfo) {
+      try {
+        if (!userInfo.userId || userInfo.userId === 'anonymous' || !userInfo.authToken) {
+          return { success: false, credits: 0, unlimited: false };
+        }
+        
+        const API_BASE_URL = window.location.origin;
+        const response = await fetch(`${API_BASE_URL}/api/credits/balance?userId=${userInfo.userId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${userInfo.authToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          console.warn('Failed to check credit balance:', response.status);
+          return { success: false, credits: 0, unlimited: false };
+        }
+        
+        const data = await response.json();
+        if (data.success) {
+          return {
+            success: true,
+            credits: data.credits || 0,
+            unlimited: data.unlimited || false
+          };
+        }
+        
+        return { success: false, credits: 0, unlimited: false };
+      } catch (error) {
+        console.error('Error checking credit balance:', error);
+        return { success: false, credits: 0, unlimited: false };
+      }
     }
     
     // API Configuration - Using BiRefNet GPU backend
@@ -701,6 +742,7 @@
         requestAnimationFrame(() => previewStage.classList.add('revealed'));
         backgroundChangeBtn.disabled = false;
         downloadBtn.disabled = false;
+        downloadPremiumBtn.disabled = false;
         
         // Success message
         const sizeInMB = (fileSize / (1024 * 1024)).toFixed(1);
@@ -769,6 +811,7 @@
         showError('No image found. Please upload a file first.');
         backgroundChangeBtn.disabled = true;
         downloadBtn.disabled = true;
+        downloadPremiumBtn.disabled = true;
       } else {
         // First, show the image preview
         try {
@@ -819,7 +862,7 @@
       if (!resultDataURL) return;
       
       try {
-        // Download
+        // Download free version (512px)
         const link = document.createElement('a');
         const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-removed.png';
         link.href = resultDataURL;
@@ -827,10 +870,241 @@
         link.click();
         
         // Show success message
-        showStatus('Downloaded successfully.');
+        showStatus('Downloaded successfully (Free 512px).');
       } catch (error) {
         console.error('Download error:', error);
         showError('Download failed. Please try again.');
+      }
+    });
+
+    // Premium Download Handler with Auth Check and Credit Deduction
+    downloadPremiumBtn.addEventListener('click', async () => {
+      if (!resultDataURL) return;
+      
+      try {
+        // Check if user is logged in
+        const userInfo = await getUserInfo();
+        
+        if (!userInfo.userId || userInfo.userId === 'anonymous' || !userInfo.authToken) {
+          // User not logged in - redirect to sign-in
+          try {
+            // Import setPendingAction from auth.js
+            const authModule = await import('./js/auth.js');
+            if (authModule && authModule.setPendingAction) {
+              const currentUrl = window.location.href;
+              authModule.setPendingAction({
+                type: 'premium-download',
+                redirectTo: currentUrl,
+                payload: {
+                  action: 'premium-download'
+                }
+              });
+              
+              // Redirect to login page
+              window.location.href = 'login.html?redirect=' + encodeURIComponent(currentUrl);
+              return;
+            }
+          } catch (importError) {
+            console.error('Failed to import auth module:', importError);
+          }
+          
+          // Fallback: direct redirect to login
+          const currentUrl = window.location.href;
+          window.location.href = 'login.html?redirect=' + encodeURIComponent(currentUrl);
+          return;
+        }
+        
+        // User is logged in - proceed with premium download
+        await downloadPremiumHD(userInfo);
+        
+      } catch (error) {
+        console.error('Premium download error:', error);
+        showError('Premium download failed. Please try again.');
+      }
+    });
+    
+    // Premium HD Download Function with Credit Deduction
+    async function downloadPremiumHD(userInfo) {
+      try {
+        downloadPremiumBtn.disabled = true;
+        
+        // First check credit balance
+        const creditCheck = await checkCreditBalance(userInfo);
+        const CREDITS_REQUIRED = 1;
+        
+        if (!creditCheck.unlimited && creditCheck.credits < CREDITS_REQUIRED) {
+          downloadPremiumBtn.disabled = false;
+          const creditMessage = creditCheck.credits === 0 
+            ? 'You need 1 credit for Premium HD download. Please purchase credits.'
+            : `You have ${creditCheck.credits} credit${creditCheck.credits !== 1 ? 's' : ''}. You need ${CREDITS_REQUIRED} credit${CREDITS_REQUIRED !== 1 ? 's' : ''} for Premium HD download.`;
+          
+          showError(creditMessage);
+          setTimeout(() => {
+            if (confirm('Would you like to purchase credits?')) {
+              window.location.href = 'pricing.html';
+            }
+          }, 2000);
+          return;
+        }
+        
+        // Show processing message with credit info
+        const creditInfo = creditCheck.unlimited 
+          ? 'Unlimited credits'
+          : `${creditCheck.credits} credit${creditCheck.credits !== 1 ? 's' : ''} available`;
+        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(251,146,60,0.12);color:#7c2d12;font-weight:600;">🎨 Processing Premium HD download... (${creditInfo}, ${CREDITS_REQUIRED} credit will be deducted)</div>`;
+        
+        // Get original image from sessionStorage
+        const originalImageData = sessionStorage.getItem(STORAGE_KEYS.original);
+        if (!originalImageData) {
+          throw new Error('Original image not found');
+        }
+        
+        // Call premium API endpoint (backend will deduct credits)
+        const response = await fetch('/api/tools/bg-remove-premium', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${userInfo.authToken}`
+          },
+          body: JSON.stringify({
+            imageData: originalImageData,
+            userId: userInfo.userId
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          
+          // Handle authentication required
+          if (response.status === 401) {
+            showError('Please sign in to use Premium HD download.');
+            const currentUrl = window.location.href;
+            window.location.href = 'login.html?redirect=' + encodeURIComponent(currentUrl);
+            return;
+          }
+          
+          // Handle insufficient credits
+          if (response.status === 402) {
+            showError(errorData.message || 'Insufficient credits. Please purchase credits to use Premium HD.');
+            // Optionally redirect to pricing page
+            setTimeout(() => {
+              if (confirm('Would you like to purchase credits?')) {
+                window.location.href = 'pricing.html';
+              }
+            }, 2000);
+            downloadPremiumBtn.disabled = false;
+            return;
+          }
+          
+          throw new Error(errorData.error || errorData.message || `Server error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success && result.resultImage) {
+          // Download premium HD version
+          const link = document.createElement('a');
+          const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-removed-hd.png';
+          link.href = result.resultImage;
+          link.download = filename.endsWith('.png') 
+            ? filename.replace('.png', '-hd.png') 
+            : `${filename.replace(/\.[^/.]+$/, '') || 'background-removed'}-hd.png`;
+          link.click();
+          
+          // Show success message with credit deduction info
+          const creditsUsed = result.creditsUsed || CREDITS_REQUIRED;
+          
+          // Check updated credit balance
+          const updatedCreditCheck = await checkCreditBalance(userInfo);
+          const remainingCredits = updatedCreditCheck.unlimited ? 'Unlimited' : updatedCreditCheck.credits;
+          
+          const successMessage = updatedCreditCheck.unlimited
+            ? `✅ Premium HD downloaded! (${creditsUsed} credit${creditsUsed > 1 ? 's' : ''} used - Unlimited account)`
+            : `✅ Premium HD downloaded! (${creditsUsed} credit${creditsUsed > 1 ? 's' : ''} deducted, ${remainingCredits} remaining)`;
+          
+          statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">${successMessage}</div>`;
+          setTimeout(() => clearStatus(), 6000);
+          
+          console.log('✅ Premium HD download successful. Credits deducted:', creditsUsed);
+        } else {
+          throw new Error(result.error || 'Premium processing failed');
+        }
+        
+      } catch (error) {
+        console.error('Premium HD download error:', error);
+        
+        // Handle specific errors
+        if (error.message.includes('sign in') || error.message.includes('Authentication')) {
+          showError('Please sign in to use Premium HD download.');
+          const currentUrl = window.location.href;
+          window.location.href = 'login.html?redirect=' + encodeURIComponent(currentUrl);
+        } else if (error.message.includes('credit')) {
+          showError('Insufficient credits. Please purchase credits to use Premium HD.');
+        } else {
+          showError(`Premium download failed: ${error.message || 'Please try again.'}`);
+        }
+        downloadPremiumBtn.disabled = false;
+      } finally {
+        downloadPremiumBtn.disabled = false;
+      }
+    }
+    
+    // Handle pending action after sign-in redirect
+    async function handlePendingPremiumDownload() {
+      try {
+        // Check for pending premium download action
+        const pendingActionRaw = sessionStorage.getItem('easyjpgtopdf.pendingAction');
+        if (pendingActionRaw) {
+          const pendingAction = JSON.parse(pendingActionRaw);
+          if (pendingAction.type === 'premium-download' && !pendingAction.dispatched) {
+            // Check if user is now logged in
+            const userInfo = await getUserInfo();
+            if (userInfo.userId && userInfo.userId !== 'anonymous' && userInfo.authToken) {
+              // Wait for page to fully load and processing to complete
+              let attempts = 0;
+              const maxAttempts = 60; // Wait up to 30 seconds (60 * 500ms)
+              
+              const checkAndDownload = setInterval(async () => {
+                attempts++;
+                // Check if result is available
+                if (resultDataURL) {
+                  clearInterval(checkAndDownload);
+                  // Auto-trigger premium download
+                  await downloadPremiumHD(userInfo);
+                  // Clear pending action
+                  sessionStorage.removeItem('easyjpgtopdf.pendingAction');
+                  showStatus('Processing premium download after sign-in...');
+                } else if (attempts >= maxAttempts) {
+                  clearInterval(checkAndDownload);
+                  showError('Image processing not completed. Please try downloading again.');
+                  sessionStorage.removeItem('easyjpgtopdf.pendingAction');
+                }
+              }, 500);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Error handling pending action:', error);
+      }
+    }
+    
+    // Check for pending action after page loads
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(handlePendingPremiumDownload, 1500);
+      });
+    } else {
+      setTimeout(handlePendingPremiumDownload, 1500);
+    }
+    
+    // Listen for auth-action-resume event (when user returns after sign-in)
+    document.addEventListener('auth-action-resume', async (event) => {
+      const { action, user } = event.detail;
+      if (action && action.type === 'premium-download' && user) {
+        setTimeout(() => {
+          handlePendingPremiumDownload();
+        }, 1000);
       }
     });
 
