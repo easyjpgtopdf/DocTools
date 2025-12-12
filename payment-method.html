@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Payment Method - easyjpgtopdf</title>
+  <meta name="description" content="Select your payment method to purchase credits">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="css/footer.css">
+  <link rel="stylesheet" href="css/header.css">
+  <link rel="stylesheet" href="css/theme-modern.css">
+  <link rel="stylesheet" href="css/voice-assistant.css">
+  <script src="js/voice-assistant.js" defer></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg-primary: #f5f7ff;
+      --bg-secondary: #ffffff;
+      --text-primary: #0b1630;
+      --text-secondary: #56607a;
+      --border-color: #e2e6ff;
+    }
+    
+    [data-theme="dark"] {
+      --bg-primary: #1a1a1a;
+      --bg-secondary: #2b2b2b;
+      --text-primary: #e5e5e5;
+      --text-secondary: #9ca3af;
+      --border-color: #3a3a3a;
+    }
+    
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      transition: background 0.3s, color 0.3s;
+    }
+    
+    main {
+      flex: 1;
+      padding: 40px 24px;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .payment-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    .payment-header h1 {
+      font-size: 2.5rem;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+    
+    .payment-header p {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+    }
+    
+    .plan-summary {
+      background: var(--bg-secondary);
+      padding: 24px;
+      border-radius: 12px;
+      border: 2px solid var(--border-color);
+      margin-bottom: 32px;
+      text-align: center;
+    }
+    
+    .plan-summary h2 {
+      font-size: 1.5rem;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+    }
+    
+    .plan-summary .price {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #4361ee;
+      margin: 8px 0;
+    }
+    
+    .plan-summary .credits {
+      font-size: 1.2rem;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
+    
+    .payment-methods {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-top: 32px;
+    }
+    
+    .payment-method-card {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      padding: 32px 24px;
+      border-radius: 16px;
+      border: 2px solid var(--border-color);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+      cursor: pointer;
+      text-align: center;
+      position: relative;
+    }
+    
+    .payment-method-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(67, 97, 238, 0.15);
+      border-color: #4361ee;
+    }
+    
+    .payment-method-card.active {
+      border-color: #4361ee;
+      background: rgba(67, 97, 238, 0.05);
+    }
+    
+    .payment-method-card.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    
+    .payment-method-card .method-icon {
+      font-size: 3rem;
+      color: #4361ee;
+      margin-bottom: 16px;
+    }
+    
+    .payment-method-card.disabled .method-icon {
+      color: var(--text-secondary);
+    }
+    
+    .payment-method-card h3 {
+      font-size: 1.5rem;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+    
+    .payment-method-card p {
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+    
+    .payment-method-card .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+    
+    .status-badge.active {
+      background: #22c55e;
+      color: white;
+    }
+    
+    .status-badge.inactive {
+      background: #9ca3af;
+      color: white;
+    }
+    
+    .btn {
+      display: inline-block;
+      padding: 12px 32px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s;
+      text-align: center;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #4361ee, #3a0ca3);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+      width: 100%;
+      margin-top: 16px;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+    }
+    
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .back-link {
+      display: inline-block;
+      margin-bottom: 24px;
+      color: #4361ee;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.3s;
+    }
+    
+    .back-link:hover {
+      color: #3a0ca3;
+    }
+    
+    .error-message {
+      background: #fee;
+      color: #c33;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    
+    @media (max-width: 768px) {
+      .payment-methods {
+        grid-template-columns: 1fr;
+      }
+      
+      .payment-header h1 {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="global-header-placeholder"></div>
+
+  <nav aria-label="Breadcrumb" style="padding: 15px 0; background: #f8f9ff; border-bottom: 1px solid #e2e6ff;">
+    <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 24px;">
+      <ol style="list-style: none; display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; align-items: center;">
+        <li><a href="index.html" style="color: #4361ee; text-decoration: none; font-weight: 500;">Home</a></li>
+        <li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
+        <li><a href="pricing.html" style="color: #56607a; font-weight: 500; text-decoration: none;">Pricing</a></li>
+        <li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
+        <li><span style="color: #56607a;">Payment Method</span></li>
+      </ol>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+      <a href="pricing.html" class="back-link">
+        <i class="fas fa-arrow-left"></i> Back to Pricing
+      </a>
+      
+      <div class="payment-header">
+        <h1>Select Payment Method</h1>
+        <p>Choose your preferred payment gateway to complete your purchase</p>
+      </div>
+
+      <div id="error-container"></div>
+
+      <div id="plan-summary" class="plan-summary" style="display: none;">
+        <h2 id="plan-name">Plan Name</h2>
+        <div class="price" id="plan-price">$0</div>
+        <div class="credits" id="plan-credits">0 Credits</div>
+      </div>
+
+      <div class="payment-methods">
+        <!-- Razorpay Payment Method -->
+        <div class="payment-method-card active" id="razorpay-card" data-method="razorpay">
+          <div class="method-icon">
+            <i class="fas fa-credit-card"></i>
+          </div>
+          <h3>Razorpay</h3>
+          <p>Secure payment gateway supporting multiple payment options</p>
+          <span class="status-badge active">Active</span>
+          <button class="btn btn-primary" id="razorpay-btn" disabled>
+            Pay with Razorpay
+          </button>
+        </div>
+
+        <!-- Stripe Payment Method -->
+        <div class="payment-method-card disabled" id="stripe-card" data-method="stripe">
+          <div class="method-icon">
+            <i class="fab fa-stripe"></i>
+          </div>
+          <h3>Stripe</h3>
+          <p>International payment gateway (Coming Soon)</p>
+          <span class="status-badge inactive">Inactive</span>
+          <button class="btn btn-primary" disabled>
+            Pay with Stripe
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="global-footer-placeholder"></div>
+
+  <script type="module">
+    // Auth script
+    const isLocalFileProtocol = window.location.protocol === 'file:';
+    if (!isLocalFileProtocol) {
+      import('./js/auth.js').catch(err => {
+        console.error('❌ Failed to load auth.js:', err);
+      });
+    }
+  </script>
+
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script type="module">
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+
+    // Initialize Firebase auth
+    let auth;
+    let authReady = false;
+    
+    (async function() {
+      try {
+        const firebaseConfig = JSON.parse(sessionStorage.getItem('firebaseConfig') || '{}');
+        if (firebaseConfig.apiKey) {
+          const app = initializeApp(firebaseConfig);
+          auth = getAuth(app);
+          
+          await new Promise((resolve) => {
+            const unsubscribe = onAuthStateChanged(auth, (user) => {
+              authReady = true;
+              unsubscribe();
+              resolve();
+            });
+            setTimeout(() => {
+              authReady = true;
+              unsubscribe();
+              resolve();
+            }, 2000);
+          });
+        } else {
+          authReady = true;
+        }
+      } catch (e) {
+        console.warn('Firebase not initialized:', e);
+        authReady = true;
+      }
+    })();
+
+    // Get URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const plan = urlParams.get('plan');
+    const credits = urlParams.get('credits');
+    const price = urlParams.get('price');
+
+    // Validate required parameters
+    if (!plan || !credits || !price) {
+      const errorContainer = document.getElementById('error-container');
+      errorContainer.innerHTML = `
+        <div class="error-message">
+          <strong>Error:</strong> Missing plan information. Please select a plan from the pricing page.
+          <br><a href="pricing.html" style="color: #4361ee; text-decoration: underline;">Go to Pricing</a>
+        </div>
+      `;
+    } else {
+      // Display plan summary
+      const planSummary = document.getElementById('plan-summary');
+      const planName = document.getElementById('plan-name');
+      const planPrice = document.getElementById('plan-price');
+      const planCredits = document.getElementById('plan-credits');
+      
+      const planNames = {
+        'pro': 'PRO Plan',
+        'pro-plus': 'PRO+ Plan',
+        'super-premium': 'Super Premium Plan'
+      };
+      
+      planName.textContent = planNames[plan] || plan.toUpperCase();
+      planPrice.textContent = `$${parseFloat(price).toFixed(2)}`;
+      planCredits.textContent = `${parseInt(credits).toLocaleString()} Credit Points`;
+      planSummary.style.display = 'block';
+      
+      // Enable Razorpay button
+      const razorpayBtn = document.getElementById('razorpay-btn');
+      razorpayBtn.disabled = false;
+    }
+
+    // Helper function to get current user ID
+    async function getCurrentUserId() {
+      if (!auth || !authReady) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      if (auth) {
+        const user = auth.currentUser;
+        if (user) return user.uid;
+        
+        return new Promise((resolve) => {
+          const unsubscribe = onAuthStateChanged(auth, (user) => {
+            unsubscribe();
+            resolve(user ? user.uid : null);
+          });
+          setTimeout(() => {
+            unsubscribe();
+            resolve(null);
+          }, 2000);
+        });
+      }
+      
+      return null;
+    }
+
+    // Razorpay payment handler
+    document.getElementById('razorpay-btn').addEventListener('click', async function() {
+      if (!plan || !credits || !price) {
+        alert('Missing plan information. Please go back and select a plan.');
+        return;
+      }
+
+      const btn = this;
+      btn.disabled = true;
+      btn.textContent = 'Processing...';
+
+      try {
+        // Wait for auth to be ready
+        if (!authReady) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
+        // Check if user is logged in
+        let userId = await getCurrentUserId();
+        
+        // Double check with direct auth access
+        if (!userId && auth && auth.currentUser) {
+          userId = auth.currentUser.uid;
+        }
+        
+        if (!userId) {
+          // Store pending purchase and redirect to login
+          sessionStorage.setItem('pendingCreditPurchase', JSON.stringify({
+            plan,
+            credits: parseInt(credits),
+            price: parseFloat(price),
+            timestamp: Date.now(),
+            returnTo: window.location.href
+          }));
+          window.location.href = `login.html?returnTo=${encodeURIComponent(window.location.href)}`;
+          return;
+        }
+
+        // User is logged in - proceed with payment
+        await initiateRazorpayPayment(userId, plan, parseInt(credits), parseFloat(price));
+      } catch (error) {
+        console.error('Error initiating payment:', error);
+        alert('Failed to start payment. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Pay with Razorpay';
+      }
+    });
+
+    // Initiate Razorpay payment
+    async function initiateRazorpayPayment(userId, plan, credits, price) {
+      try {
+        // Wait for auth to be ready
+        if (!auth || !authReady) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
+        // Get user token
+        let user = auth?.currentUser;
+        if (!user && auth) {
+          await new Promise((resolve) => {
+            const unsubscribe = onAuthStateChanged(auth, (u) => {
+              unsubscribe();
+              user = u;
+              resolve();
+            });
+            setTimeout(() => {
+              unsubscribe();
+              resolve();
+            }, 2000);
+          });
+        }
+        
+        if (!user) {
+          throw new Error('User not authenticated. Please sign in again.');
+        }
+        
+        const token = await user.getIdToken();
+        
+        // Create order via backend
+        const API_BASE_URL = window.location.origin.includes('localhost') 
+          ? 'http://localhost:3000' 
+          : (window.location.origin.includes('easyjpgtopdf.com') 
+              ? 'https://pdf-to-word-converter-iwumaktavq-uc.a.run.app'
+              : window.location.origin);
+        
+        console.log('Creating order with:', { plan, credits, price, userId });
+        
+        const response = await fetch(`${API_BASE_URL}/api/credits/create-order`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            plan,
+            credits,
+            amount: price,
+            currency: 'USD'
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          let error;
+          try {
+            error = JSON.parse(errorText);
+          } catch (e) {
+            error = { message: errorText || 'Failed to create order' };
+          }
+          throw new Error(error.error || error.message || 'Failed to create order');
+        }
+
+        const orderData = await response.json();
+        
+        if (!orderData.success || !orderData.order) {
+          throw new Error('Invalid order response from server');
+        }
+
+        console.log('Order created:', orderData);
+
+        // Get Razorpay key
+        const razorpayKey = orderData.key_id || orderData.key || '';
+        
+        if (!razorpayKey) {
+          throw new Error('Razorpay key not found. Please contact support.');
+        }
+
+        if (!window.Razorpay) {
+          throw new Error('Razorpay SDK not loaded. Please refresh the page.');
+        }
+
+        // Open Razorpay checkout
+        const options = {
+          key: razorpayKey,
+          amount: orderData.order.amount,
+          currency: orderData.order.currency || 'INR',
+          name: 'easyjpgtopdf',
+          description: `${plan.toUpperCase()} - ${credits} Credit Points`,
+          order_id: orderData.order.id,
+          prefill: {
+            email: user.email || '',
+            name: user.displayName || user.email || ''
+          },
+          theme: {
+            color: '#4361ee'
+          },
+          handler: async function(paymentResponse) {
+            console.log('Payment successful:', paymentResponse);
+            // Payment successful - verify and add credits
+            await verifyAndAddCredits(userId, paymentResponse, orderData.order.id, plan, credits, price);
+          },
+          modal: {
+            ondismiss: function() {
+              console.log('Payment cancelled by user');
+              const btn = document.getElementById('razorpay-btn');
+              btn.disabled = false;
+              btn.textContent = 'Pay with Razorpay';
+            }
+          }
+        };
+
+        const razorpay = new Razorpay(options);
+        razorpay.open();
+        
+      } catch (error) {
+        console.error('Payment error:', error);
+        alert(error.message || 'Failed to initiate payment. Please try again.');
+        const btn = document.getElementById('razorpay-btn');
+        btn.disabled = false;
+        btn.textContent = 'Pay with Razorpay';
+      }
+    }
+
+    // Verify payment and add credits
+    async function verifyAndAddCredits(userId, paymentResponse, orderId, plan, credits, price) {
+      try {
+        // Wait for auth
+        if (!auth || !authReady) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
+        let user = auth?.currentUser;
+        if (!user && auth) {
+          await new Promise((resolve) => {
+            const unsubscribe = onAuthStateChanged(auth, (u) => {
+              unsubscribe();
+              user = u;
+              resolve();
+            });
+            setTimeout(() => {
+              unsubscribe();
+              resolve();
+            }, 2000);
+          });
+        }
+        
+        if (!user) {
+          throw new Error('User not authenticated');
+        }
+        
+        const token = await user.getIdToken();
+        
+        const API_BASE_URL = window.location.origin.includes('localhost') 
+          ? 'http://localhost:3000' 
+          : (window.location.origin.includes('easyjpgtopdf.com') 
+              ? 'https://pdf-to-word-converter-iwumaktavq-uc.a.run.app'
+              : window.location.origin);
+        
+        console.log('Verifying payment:', { orderId, paymentId: paymentResponse.razorpay_payment_id });
+        
+        const response = await fetch(`${API_BASE_URL}/api/credits/verify-payment`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            razorpay_payment_id: paymentResponse.razorpay_payment_id,
+            razorpay_order_id: paymentResponse.razorpay_order_id,
+            razorpay_signature: paymentResponse.razorpay_signature,
+            orderId,
+            plan,
+            credits,
+            amount: price
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          let error;
+          try {
+            error = JSON.parse(errorText);
+          } catch (e) {
+            error = { message: errorText || 'Payment verification failed' };
+          }
+          throw new Error(error.error || error.message || 'Payment verification failed');
+        }
+
+        const result = await response.json();
+        
+        if (result.success) {
+          // Show success message
+          alert(`Payment successful! ${credits} credits have been added to your account.`);
+          // Redirect to dashboard
+          window.location.href = 'dashboard.html#dashboard-credits';
+        } else {
+          throw new Error(result.error || result.message || 'Payment verification failed');
+        }
+      } catch (error) {
+        console.error('Verification error:', error);
+        alert(`Payment verification failed: ${error.message}. Please contact support if credits were deducted.`);
+      }
+    }
+
+    // Check for pending purchase after login
+    window.addEventListener('load', async () => {
+      if (!authReady) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+      const pending = sessionStorage.getItem('pendingCreditPurchase');
+      if (pending) {
+        try {
+          const data = JSON.parse(pending);
+          if (Date.now() - data.timestamp < 5 * 60 * 1000) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            let userId = await getCurrentUserId();
+            
+            if (!userId && auth && auth.currentUser) {
+              userId = auth.currentUser.uid;
+            }
+            
+            if (userId) {
+              sessionStorage.removeItem('pendingCreditPurchase');
+              // Reload page with plan parameters
+              if (data.plan && data.credits && data.price) {
+                window.location.href = `payment-method.html?plan=${data.plan}&credits=${data.credits}&price=${data.price}`;
+              }
+            }
+          } else {
+            sessionStorage.removeItem('pendingCreditPurchase');
+          }
+        } catch (e) {
+          console.error('Error processing pending purchase:', e);
+          sessionStorage.removeItem('pendingCreditPurchase');
+        }
+      }
+    });
+  </script>
+  
+  <script src="/js/global-components.js"></script>
+  <script type="module" src="/js/auth.js"></script>
+</body>
+</html>
+
