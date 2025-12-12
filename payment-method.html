@@ -555,19 +555,62 @@
 
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script type="module">
-    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
-    // Initialize Firebase auth
+    // Use existing auth instance from auth.js module instead of creating new one
     let auth;
     let authReady = false;
     
     (async function() {
       try {
+        // Method 1: Try to import auth from auth.js (preferred - uses existing instance)
+        try {
+          const authModule = await import('./js/auth.js');
+          if (authModule && authModule.auth) {
+            auth = authModule.auth;
+            console.log('✅ Using auth instance from auth.js module');
+            
+            // Wait for auth state to be ready
+            await new Promise((resolve) => {
+              const unsubscribe = onAuthStateChanged(auth, (user) => {
+                authReady = true;
+                unsubscribe();
+                console.log('Auth state ready, user:', user ? user.uid : 'null');
+                resolve();
+              });
+              setTimeout(() => {
+                authReady = true;
+                unsubscribe();
+                resolve();
+              }, 2000);
+            });
+            return; // Successfully initialized
+          }
+        } catch (e) {
+          console.warn('Could not import auth.js, trying fallback:', e);
+        }
+        
+        // Method 2: Try firebase-init.js
+        try {
+          const firebaseInit = await import('./js/firebase-init.js');
+          if (firebaseInit && firebaseInit.auth) {
+            auth = firebaseInit.auth;
+            console.log('✅ Using auth instance from firebase-init.js');
+            authReady = true;
+            return; // Successfully initialized
+          }
+        } catch (e) {
+          console.warn('Could not import firebase-init.js, trying sessionStorage:', e);
+        }
+        
+        // Method 3: Fallback to sessionStorage (last resort)
         const firebaseConfig = JSON.parse(sessionStorage.getItem('firebaseConfig') || '{}');
         if (firebaseConfig.apiKey) {
+          const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
+          const { getAuth } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
           const app = initializeApp(firebaseConfig);
           auth = getAuth(app);
+          console.log('⚠️ Using new auth instance from sessionStorage (fallback)');
           
           await new Promise((resolve) => {
             const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -582,10 +625,11 @@
             }, 2000);
           });
         } else {
+          console.warn('No Firebase config found, auth features will be limited');
           authReady = true;
         }
       } catch (e) {
-        console.warn('Firebase not initialized:', e);
+        console.error('Firebase initialization error:', e);
         authReady = true;
       }
     })();
