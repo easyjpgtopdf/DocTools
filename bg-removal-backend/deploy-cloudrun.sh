@@ -36,7 +36,7 @@ gcloud run deploy ${SERVICE_NAME} \
   --memory 16Gi \
   --cpu 4 \
   --timeout 300 \
-  --min-instances 0 \
+  --min-instances 1 \
   --max-instances 3 \
   --gpu=1 \
   --gpu-type=nvidia-l4 \

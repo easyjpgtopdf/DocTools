@@ -892,6 +892,20 @@ def root():
         }
     }), 200
 
+# Pre-load model on startup to reduce cold start time
+def preload_models():
+    """Pre-load commonly used models on startup for faster first request"""
+    try:
+        logger.info("Pre-loading AI models on startup...")
+        # Pre-load the most commonly used model (512px preview)
+        get_session_512()
+        logger.info("✅ Models pre-loaded successfully")
+    except Exception as e:
+        logger.warning(f"Model pre-loading failed (will load on first request): {e}")
+
+# Pre-load models when module is imported (before Flask app starts)
+preload_models()
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port, debug=False)
