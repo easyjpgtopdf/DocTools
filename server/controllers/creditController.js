@@ -627,6 +627,113 @@ async function handleRazorpayWebhook(req, res) {
   }
 }
 
+/**
+ * Send payment receipt email
+ */
+async function sendPaymentReceiptEmail(receiptData, user) {
+  try {
+    // Check if email service is available (Resend or similar)
+    const RESEND_API_KEY = process.env.RESEND_API_KEY;
+    
+    if (!RESEND_API_KEY || !user?.email) {
+      console.log('Email service not configured or user email not available');
+      return;
+    }
+
+    const Resend = require('resend');
+    const resend = new Resend(RESEND_API_KEY);
+
+    const receiptHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #4361ee; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+          .receipt-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+          .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+          .detail-row:last-child { border-bottom: none; }
+          .label { font-weight: bold; color: #666; }
+          .value { color: #333; }
+          .highlight { color: #4361ee; font-weight: bold; font-size: 1.2em; }
+          .footer { text-align: center; margin-top: 20px; color: #999; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Payment Receipt</h1>
+            <p>Thank you for your purchase!</p>
+          </div>
+          <div class="content">
+            <p>Dear ${receiptData.userName},</p>
+            <p>Your payment has been successfully processed. Here are your receipt details:</p>
+            
+            <div class="receipt-details">
+              <div class="detail-row">
+                <span class="label">Payment ID:</span>
+                <span class="value">${receiptData.paymentId}</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Order ID:</span>
+                <span class="value">${receiptData.orderId}</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Plan:</span>
+                <span class="value">${receiptData.plan.toUpperCase()}</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Amount Paid:</span>
+                <span class="value highlight">${receiptData.currency} ${receiptData.amount.toFixed(2)}</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Credits Added:</span>
+                <span class="value highlight">${receiptData.credits.toLocaleString()} Credits</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Current Balance:</span>
+                <span class="value highlight">${receiptData.creditsBalance.toLocaleString()} Credits</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Credits Expire:</span>
+                <span class="value">${new Date(receiptData.expiresAt).toLocaleDateString()}</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Payment Date:</span>
+                <span class="value">${new Date(receiptData.paymentDate).toLocaleString()}</span>
+              </div>
+            </div>
+            
+            <p>Your credits have been added to your account and are ready to use!</p>
+            <p>Visit your <a href="https://easyjpgtopdf.com/dashboard.html#dashboard-credits" style="color: #4361ee;">dashboard</a> to view your credit balance and transaction history.</p>
+            
+            <div class="footer">
+              <p>This is an automated receipt. Please keep this email for your records.</p>
+              <p>&copy; ${new Date().getFullYear()} easyjpgtopdf.com - All rights reserved</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    await resend.emails.send({
+      from: 'easyjpgtopdf <noreply@easyjpgtopdf.com>',
+      to: user.email,
+      subject: `Payment Receipt - ${receiptData.credits} Credits Added`,
+      html: receiptHTML
+    });
+
+    console.log(`✓ Receipt email sent to ${user.email}`);
+  } catch (error) {
+    console.error('Error sending receipt email:', error);
+    // Don't throw - email failure shouldn't break payment
+  }
+}
+
 module.exports = {
   createCreditOrder,
   verifyPaymentAndAddCredits,
