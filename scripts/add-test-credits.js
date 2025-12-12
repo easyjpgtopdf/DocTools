@@ -1,11 +1,15 @@
-// Script to add 100 test credits to easyjpgtopdf@gmail.com
-// Run with: node scripts/add-test-credits.js
+// Script to add credits to a user account
+// Usage: node scripts/add-test-credits.js <email> [credits]
+// Or: ADMIN_EMAIL=<email> ADMIN_CREDITS=<credits> node scripts/add-test-credits.js
 
 const https = require('https');
 const http = require('http');
 
-const email = 'easyjpgtopdf@gmail.com';
-const credits = 100;
+// Email should be provided as command line argument or environment variable
+// Usage: node scripts/add-test-credits.js <email> [credits]
+// Or: ADMIN_EMAIL=<email> ADMIN_CREDITS=<credits> node scripts/add-test-credits.js
+const email = process.argv[2] || process.env.ADMIN_EMAIL;
+const credits = parseInt(process.argv[3] || process.env.ADMIN_CREDITS || '100');
 
 // Get API URL
 const isDevelopment = process.env.NODE_ENV === 'development' || process.argv.includes('--local');
@@ -32,7 +36,14 @@ const options = {
 
 const client = url.protocol === 'https:' ? https : http;
 
-console.log(`Adding ${credits} test credits to ${email}...`);
+if (!email) {
+  console.error('❌ ERROR: Email is required');
+  console.log('Usage: node scripts/add-test-credits.js <email> [credits]');
+  console.log('   Or: ADMIN_EMAIL=<email> ADMIN_CREDITS=<credits> node scripts/add-test-credits.js');
+  process.exit(1);
+}
+
+console.log(`Adding ${credits} credits to ${email}...`);
 console.log(`API URL: ${API_URL}`);
 
 const req = client.request(options, (res) => {

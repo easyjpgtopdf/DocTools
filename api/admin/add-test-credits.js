@@ -124,27 +124,30 @@ module.exports = async function handler(req, res) {
       lastCreditUpdate: admin.firestore.FieldValue.serverTimestamp()
     });
 
-    // Record transaction
+    // Record transaction (same format as real purchase)
     const transactionRef = db.collection('users').doc(userId)
       .collection('creditTransactions').doc();
     await transactionRef.set({
       type: 'addition',
       amount: credits,
-      reason: 'Test credits - Admin add',
+      reason: 'Credit purchase',
       creditsBefore: currentCredits,
       creditsAfter: newCredits,
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
       metadata: {
-        addedBy: 'admin',
-        purpose: 'testing'
+        orderId: `admin-${Date.now()}`,
+        packId: 'admin-credit-pack',
+        amount: 0,
+        currency: 'INR',
+        receipt: `admin_${Date.now()}`
       }
     });
 
-    console.log(`✅ Added ${credits} test credits to user ${email} (${userId}). Old: ${currentCredits}, New: ${newCredits}`);
+    console.log(`✅ Added ${credits} credits to user ${email} (${userId}). Old: ${currentCredits}, New: ${newCredits}`);
 
     return res.status(200).json({
       success: true,
-      message: `Added ${credits} test credits successfully`,
+      message: `Added ${credits} credits successfully`,
       user: {
         email: email,
         userId: userId
