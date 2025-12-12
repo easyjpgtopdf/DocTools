@@ -630,24 +630,72 @@
 
     // Helper function to get current user ID
     async function getCurrentUserId() {
-      if (!auth || !authReady) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait for auth to be ready
+      if (!authReady) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
+      // Try multiple methods to get user ID
       if (auth) {
+        // Method 1: Direct access
         const user = auth.currentUser;
-        if (user) return user.uid;
+        if (user && user.uid) {
+          return user.uid;
+        }
         
+        // Method 2: Wait for auth state
         return new Promise((resolve) => {
           const unsubscribe = onAuthStateChanged(auth, (user) => {
             unsubscribe();
-            resolve(user ? user.uid : null);
+            if (user && user.uid) {
+              resolve(user.uid);
+            } else {
+              resolve(null);
+            }
           });
           setTimeout(() => {
             unsubscribe();
-            resolve(null);
-          }, 2000);
+            // Final check
+            if (auth && auth.currentUser && auth.currentUser.uid) {
+              resolve(auth.currentUser.uid);
+            } else {
+              resolve(null);
+            }
+          }, 3000);
         });
+      }
+      
+      // Try importing auth module as fallback
+      try {
+        const authModule = await import('./js/auth.js');
+        if (authModule && authModule.auth && authModule.auth.currentUser) {
+          return authModule.auth.currentUser.uid;
+        }
+      } catch (e) {
+        console.warn('Could not import auth module:', e);
+      }
+      
+      return null;
+    }
+    
+    // Helper to get auth token
+    async function getAuthToken() {
+      if (!auth || !authReady) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+      if (auth && auth.currentUser) {
+        return await auth.currentUser.getIdToken();
+      }
+      
+      // Try auth module
+      try {
+        const authModule = await import('./js/auth.js');
+        if (authModule && authModule.auth && authModule.auth.currentUser) {
+          return await authModule.auth.currentUser.getIdToken();
+        }
+      } catch (e) {
+        console.warn('Could not get token from auth module:', e);
       }
       
       return null;
@@ -665,17 +713,42 @@
       btn.textContent = 'Processing...';
 
       try {
-        // Wait for auth to be ready
+        // Wait longer for auth to be ready
         if (!authReady) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 1500));
         }
         
-        // Check if user is logged in
+        // Additional wait to ensure auth is fully initialized
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Check if user is logged in - try multiple methods
         let userId = await getCurrentUserId();
         
         // Double check with direct auth access
-        if (!userId && auth && auth.currentUser) {
-          userId = auth.currentUser.uid;
+        if (!userId) {
+          if (auth && auth.currentUser && auth.currentUser.uid) {
+            userId = auth.currentUser.uid;
+          } else {
+            // Try auth module
+            try {
+              const authModule = await import('./js/auth.js');
+              if (authModule && authModule.auth && authModule.auth.currentUser) {
+                userId = authModule.auth.currentUser.uid;
+              }
+            } catch (e) {
+              console.warn('Auth module check failed:', e);
+            }
+          }
+        }
+        
+        // If still no userId, wait a bit more and check again
+        if (!userId) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          userId = await getCurrentUserId();
+          
+          if (!userId && auth && auth.currentUser) {
+            userId = auth.currentUser.uid;
+          }
         }
         
         if (!userId) {
@@ -706,11 +779,23 @@
       try {
         // Wait for auth to be ready
         if (!auth || !authReady) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 1500));
         }
         
-        // Get user token
+        // Get user token - try multiple methods
         let user = auth?.currentUser;
+        let token = null;
+        
+        // Method 1: Direct auth access
+        if (user) {
+          try {
+            token = await user.getIdToken();
+          } catch (e) {
+            console.warn('Failed to get token from currentUser:', e);
+          }
+        }
+        
+        // Method 2: Wait for auth state if not available
         if (!user && auth) {
           await new Promise((resolve) => {
             const unsubscribe = onAuthStateChanged(auth, (u) => {
@@ -720,16 +805,38 @@
             });
             setTimeout(() => {
               unsubscribe();
+              if (auth && auth.currentUser) {
+                user = auth.currentUser;
+              }
               resolve();
             }, 2000);
           });
+          
+          if (user) {
+            try {
+              token = await user.getIdToken();
+            } catch (e) {
+              console.warn('Failed to get token after auth state:', e);
+            }
+          }
         }
         
-        if (!user) {
+        // Method 3: Try auth module
+        if (!token) {
+          try {
+            const authModule = await import('./js/auth.js');
+            if (authModule && authModule.auth && authModule.auth.currentUser) {
+              user = authModule.auth.currentUser;
+              token = await user.getIdToken();
+            }
+          } catch (e) {
+            console.warn('Auth module token fetch failed:', e);
+          }
+        }
+        
+        if (!token || !user) {
           throw new Error('User not authenticated. Please sign in again.');
         }
-        
-        const token = await user.getIdToken();
         
         // Create order via backend
         const API_BASE_URL = window.location.origin.includes('localhost') 
@@ -834,26 +941,37 @@
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
         
-        let user = auth?.currentUser;
-        if (!user && auth) {
-          await new Promise((resolve) => {
-            const unsubscribe = onAuthStateChanged(auth, (u) => {
-              unsubscribe();
-              user = u;
-              resolve();
+        // Get token using helper function
+        let token = await getAuthToken();
+        
+        // If token not available, try direct access
+        if (!token) {
+          let user = auth?.currentUser;
+          if (!user && auth) {
+            await new Promise((resolve) => {
+              const unsubscribe = onAuthStateChanged(auth, (u) => {
+                unsubscribe();
+                user = u;
+                resolve();
+              });
+              setTimeout(() => {
+                unsubscribe();
+                if (auth && auth.currentUser) {
+                  user = auth.currentUser;
+                }
+                resolve();
+              }, 2000);
             });
-            setTimeout(() => {
-              unsubscribe();
-              resolve();
-            }, 2000);
-          });
+          }
+          
+          if (user) {
+            token = await user.getIdToken();
+          }
         }
         
-        if (!user) {
+        if (!token) {
           throw new Error('User not authenticated');
         }
-        
-        const token = await user.getIdToken();
         
         const API_BASE_URL = window.location.origin.includes('localhost') 
           ? 'http://localhost:3000' 
