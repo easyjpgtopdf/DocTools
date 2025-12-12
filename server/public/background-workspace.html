@@ -381,19 +381,48 @@
       }
     }
     
-    // Get current user ID
+    // Get current user ID - FIXED: Use Firebase auth directly
     async function getCurrentUserId() {
       if (currentUserId) return currentUserId;
+      
       try {
-        const authModule = await import('./js/auth.js');
-        if (authModule && authModule.getCurrentUser) {
-          const user = await authModule.getCurrentUser();
-          currentUserId = user?.uid || null;
+        // Import Firebase auth directly
+        const firebaseInit = await import('./js/firebase-init.js');
+        if (firebaseInit && firebaseInit.auth) {
+          const auth = firebaseInit.auth;
+          
+          // Check current user first
+          if (auth.currentUser) {
+            currentUserId = auth.currentUser.uid;
+            return currentUserId;
+          }
+          
+          // Wait for auth state with timeout
+          const { onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js');
+          
+          return new Promise((resolve) => {
+            const unsubscribe = onAuthStateChanged(auth, (user) => {
+              unsubscribe();
+              if (user) {
+                currentUserId = user.uid;
+                resolve(user.uid);
+              } else {
+                resolve(null);
+              }
+            });
+            
+            // Timeout after 3 seconds
+            setTimeout(() => {
+              unsubscribe();
+              resolve(null);
+            }, 3000);
+          });
         }
       } catch (error) {
         console.warn('Failed to get user ID:', error);
       }
-      return currentUserId;
+      
+      return currentUserId || null;
     }
     
     // Process with Free Preview API (512px BiRefNet GPU)
@@ -832,12 +861,45 @@
       }
     }
     
-    // Get auth token helper
+    // Get auth token helper - FIXED: Use Firebase auth directly
     async function getAuthToken() {
       try {
-        const authModule = await import('./js/auth.js');
-        if (authModule && authModule.getAuthToken) {
-          return await authModule.getAuthToken();
+        // Import Firebase auth directly
+        const firebaseInit = await import('./js/firebase-init.js');
+        if (firebaseInit && firebaseInit.auth) {
+          const auth = firebaseInit.auth;
+          const user = auth.currentUser;
+          
+          if (user) {
+            // Force token refresh to ensure it's valid
+            return await user.getIdToken(true);
+          }
+          
+          // Wait for auth state if not immediately available
+          const { onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js');
+          
+          return new Promise((resolve) => {
+            const unsubscribe = onAuthStateChanged(auth, async (user) => {
+              unsubscribe();
+              if (user) {
+                try {
+                  const token = await user.getIdToken(true);
+                  resolve(token);
+                } catch (tokenError) {
+                  console.warn('Failed to get token:', tokenError);
+                  resolve(null);
+                }
+              } else {
+                resolve(null);
+              }
+            });
+            
+            // Timeout after 3 seconds
+            setTimeout(() => {
+              unsubscribe();
+              resolve(null);
+            }, 3000);
+          });
         }
       } catch (error) {
         console.warn('Failed to get auth token:', error);
