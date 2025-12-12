@@ -125,8 +125,36 @@ module.exports = async function handler(req, res) {
     });
 
     // Record transaction (same format as real purchase)
+    // For $40 plan: 900 credits = $40 USD = ₹4,484 INR (with 18% GST)
     const transactionRef = db.collection('users').doc(userId)
       .collection('creditTransactions').doc();
+    
+    // Auto-detect plan based on credits
+    let packId = 'admin-credit-pack';
+    let amountUSD = 0;
+    let amountINR = 0;
+    let currency = 'USD';
+    let packName = 'Admin Credit Pack';
+    
+    if (credits === 900 || newCredits === 900) {
+      // $40 Pro Plan: 900 credits
+      packId = 'pack-pro';
+      amountUSD = 40;
+      amountINR = Math.round(40 * 95 * 1.18); // ₹4,484 (with 18% GST)
+      currency = 'USD';
+      packName = 'Pro Plan - 900 Credits';
+    } else if (credits === 50 || newCredits === 50) {
+      packId = 'pack-50';
+      amountUSD = 4;
+      amountINR = Math.round(4 * 95 * 1.18);
+      packName = '50 Credits Pack';
+    } else if (credits === 200 || newCredits === 200) {
+      packId = 'pack-200';
+      amountUSD = 15;
+      amountINR = Math.round(15 * 95 * 1.18);
+      packName = '200 Credits Pack';
+    }
+    
     await transactionRef.set({
       type: 'addition',
       amount: credits,
@@ -135,11 +163,15 @@ module.exports = async function handler(req, res) {
       creditsAfter: newCredits,
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
       metadata: {
-        orderId: `admin-${Date.now()}`,
-        packId: 'admin-credit-pack',
-        amount: 0,
-        currency: 'INR',
-        receipt: `admin_${Date.now()}`
+        orderId: `order_${Date.now()}`,
+        packId: packId,
+        packName: packName,
+        amount: amountUSD,
+        amountUSD: amountUSD,
+        amountINR: amountINR,
+        currency: currency,
+        receipt: `receipt_${Date.now()}`,
+        paymentMethod: 'admin'
       }
     });
 
