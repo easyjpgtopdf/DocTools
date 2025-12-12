@@ -392,10 +392,16 @@
         document.addEventListener('DOMContentLoaded', function() {
             // URL ?????????? ?? ???? ???????
             const urlParams = new URLSearchParams(window.location.search);
-            const txnId = urlParams.get('txn_id');
+            const txnId = urlParams.get('txn_id') || urlParams.get('payment_id');
             const amount = urlParams.get('amount');
-            const method = urlParams.get('method');
+            const method = urlParams.get('method') || 'razorpay';
             const orderId = urlParams.get('order_id');
+            const credits = urlParams.get('credits');
+            const plan = urlParams.get('plan');
+            const balance = urlParams.get('balance');
+            const expiresAt = urlParams.get('expires_at');
+            const type = urlParams.get('type'); // 'credit_purchase' or other
+            const currency = urlParams.get('currency') || 'INR';
 
             // ??????? ????? ?? ??? ??? ????
             const now = new Date();
@@ -418,18 +424,41 @@
             }
             
             if (amount) {
-                document.getElementById('amount').textContent = '?' + parseFloat(amount).toFixed(2);
+                const currencySymbol = currency === 'INR' ? '₹' : currency === 'USD' ? '$' : currency;
+                document.getElementById('amount').textContent = currencySymbol + parseFloat(amount).toFixed(2);
             }
 
-            // ?????? ???? ??? ????
+            // Credit purchase specific fields
+            if (type === 'credit_purchase' || credits) {
+                document.getElementById('credit-fields').style.display = 'block';
+                if (plan) {
+                    document.getElementById('plan').textContent = plan.toUpperCase();
+                }
+                if (credits) {
+                    document.getElementById('credits').textContent = parseInt(credits).toLocaleString() + ' Credits';
+                }
+                if (balance) {
+                    document.getElementById('balance').textContent = parseInt(balance).toLocaleString() + ' Credits';
+                }
+                if (expiresAt) {
+                    const expiryDate = new Date(expiresAt);
+                    document.getElementById('expires-at').textContent = expiryDate.toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    });
+                }
+            }
+
+            // Payment method display
             if (method) {
                 const methodMap = {
                     'razorpay': 'Razorpay',
                     'payu': 'PayU Money',
-                    'card': '???????/????? ?????',
-                    'netbanking': '??? ???????',
+                    'card': 'Credit/Debit Card',
+                    'netbanking': 'Net Banking',
                     'upi': 'UPI',
-                    'wallet': '?????? ?????'
+                    'wallet': 'Digital Wallet'
                 };
                 document.getElementById('payment-method').textContent = methodMap[method] || method;
             }
