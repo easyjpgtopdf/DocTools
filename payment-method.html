@@ -1139,9 +1139,30 @@
         
         if (result.success) {
           // Show success message
-          alert(`Payment successful! ${credits} credits have been added to your account.`);
-          // Redirect to dashboard
-          window.location.href = 'dashboard.html#dashboard-credits';
+          const successMsg = `Payment successful! ${result.credits || credits} credits have been added to your account.`;
+          
+          // Redirect to receipt page with payment details
+          if (result.receipt) {
+            const receiptParams = new URLSearchParams({
+              payment_id: result.receipt.paymentId,
+              order_id: result.receipt.orderId,
+              amount: result.receipt.amount,
+              currency: result.receipt.currency,
+              credits: result.receipt.credits,
+              plan: result.receipt.plan,
+              balance: result.receipt.creditsBalance,
+              expires_at: result.receipt.expiresAt ? new Date(result.receipt.expiresAt).toISOString() : '',
+              type: 'credit_purchase'
+            });
+            
+            // Show success message briefly, then redirect to receipt
+            alert(successMsg + '\n\nRedirecting to receipt...');
+            window.location.href = `payment-receipt.html?${receiptParams.toString()}`;
+          } else {
+            // Fallback to dashboard if receipt data not available
+            alert(successMsg);
+            window.location.href = 'dashboard.html#dashboard-credits';
+          }
         } else {
           throw new Error(result.error || result.message || 'Payment verification failed');
         }

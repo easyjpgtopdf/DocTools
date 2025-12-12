@@ -264,23 +264,56 @@ async function verifyPaymentAndAddCredits(req, res) {
     // Add credits (90 days expiry) - using verified amount from database
     await userCredits.addCredits(creditsToAdd, 90);
 
+    // Get payment and order details for receipt
+    const payment = await razorpay.payments.fetch(razorpay_payment_id);
+    const order = await razorpay.orders.fetch(razorpay_order_id);
+    
     // Update transaction with payment ID (mark as processed)
     existingTransaction.balance_after = userCredits.credits;
     existingTransaction.metadata.paymentId = razorpay_payment_id;
     existingTransaction.metadata.verifiedAt = new Date();
+    existingTransaction.metadata.amount = order.amount / 100; // Convert paise to INR
+    existingTransaction.metadata.currency = order.currency;
+    existingTransaction.metadata.paymentDate = new Date();
     await existingTransaction.save();
 
     // Log successful credit addition
     console.log(`✓ Credits added: ${creditsToAdd} to user ${userId} for order ${orderId}`);
 
+    // Get user details for receipt
+    const user = await User.findById(userId);
+    
+    // Prepare receipt data
+    const receiptData = {
+      paymentId: razorpay_payment_id,
+      orderId: razorpay_order_id,
+      amount: order.amount / 100, // Convert paise to INR
+      currency: order.currency,
+      credits: creditsToAdd,
+      plan: existingTransaction.metadata.plan || plan,
+      paymentDate: new Date(),
+      userEmail: user?.email || '',
+      userName: user?.firstName && user?.lastName 
+        ? `${user.firstName} ${user.lastName}` 
+        : user?.email?.split('@')[0] || 'User',
+      creditsBalance: userCredits.credits,
+      expiresAt: userCredits.expiresAt
+    };
+
     // Send email receipt (if email service is configured)
-    // TODO: Integrate with email service
+    try {
+      await sendPaymentReceiptEmail(receiptData, user);
+    } catch (emailError) {
+      console.warn('Failed to send receipt email:', emailError.message);
+      // Don't fail the payment if email fails
+    }
 
     res.json({
       success: true,
       message: 'Credits added successfully',
       credits: userCredits.credits,
-      expiresAt: userCredits.expiresAt
+      expiresAt: userCredits.expiresAt,
+      receipt: receiptData
     });
   } catch (error) {
     console.error('Error verifying payment:', error);
