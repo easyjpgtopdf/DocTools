@@ -674,8 +674,27 @@
 
     // Helper function to get current user ID
     async function getCurrentUserId() {
+      console.log('🔍 getCurrentUserId() called');
+      console.log('Auth ready:', authReady);
+      console.log('Auth instance:', auth);
+      
+      // Ensure we have the correct auth instance
+      if (!auth) {
+        console.log('⚠️ No auth instance, trying to get from modules...');
+        try {
+          const authModule = await import('./js/auth.js');
+          if (authModule && authModule.auth) {
+            auth = authModule.auth;
+            console.log('✅ Got auth from auth.js module');
+          }
+        } catch (e) {
+          console.warn('Could not get auth from auth.js:', e);
+        }
+      }
+      
       // Wait for auth to be ready
       if (!authReady) {
+        console.log('⏳ Waiting for auth to be ready...');
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
@@ -684,16 +703,20 @@
         // Method 1: Direct access
         const user = auth.currentUser;
         if (user && user.uid) {
+          console.log('✅ User found via direct access:', user.uid);
           return user.uid;
         }
         
+        console.log('⏳ No direct user, waiting for auth state...');
         // Method 2: Wait for auth state
         return new Promise((resolve) => {
           const unsubscribe = onAuthStateChanged(auth, (user) => {
             unsubscribe();
             if (user && user.uid) {
+              console.log('✅ User found via auth state:', user.uid);
               resolve(user.uid);
             } else {
+              console.log('❌ No user in auth state');
               resolve(null);
             }
           });
@@ -701,8 +724,10 @@
             unsubscribe();
             // Final check
             if (auth && auth.currentUser && auth.currentUser.uid) {
+              console.log('✅ User found in final check:', auth.currentUser.uid);
               resolve(auth.currentUser.uid);
             } else {
+              console.log('❌ No user found after timeout');
               resolve(null);
             }
           }, 3000);
@@ -711,10 +736,12 @@
       
       // Try importing auth module as fallback
       try {
+        console.log('⚠️ Trying auth module as fallback...');
         const authModule = await import('./js/auth.js');
         if (authModule && authModule.auth) {
           const authInstance = authModule.auth;
           if (authInstance.currentUser && authInstance.currentUser.uid) {
+            console.log('✅ User found in auth module:', authInstance.currentUser.uid);
             return authInstance.currentUser.uid;
           }
           
@@ -724,16 +751,20 @@
             const unsubscribe = onAuthStateChanged(authInstance, (user) => {
               unsubscribe();
               if (user && user.uid) {
+                console.log('✅ User found via auth module state:', user.uid);
                 resolve(user.uid);
               } else {
+                console.log('❌ No user in auth module state');
                 resolve(null);
               }
             });
             setTimeout(() => {
               unsubscribe();
               if (authInstance.currentUser && authInstance.currentUser.uid) {
+                console.log('✅ User found in auth module final check:', authInstance.currentUser.uid);
                 resolve(authInstance.currentUser.uid);
               } else {
+                console.log('❌ No user found in auth module after timeout');
                 resolve(null);
               }
             }, 2000);
@@ -743,6 +774,7 @@
         console.warn('Could not import auth module:', e);
       }
       
+      console.log('❌ No user found, returning null');
       return null;
     }
     
@@ -781,8 +813,27 @@
       btn.textContent = 'Processing...';
 
       try {
+        console.log('🚀 Starting payment process...');
+        console.log('Auth ready:', authReady);
+        console.log('Auth instance:', auth);
+        
+        // Ensure we have the correct auth instance
+        if (!auth) {
+          console.log('⚠️ No auth instance, trying to get from modules...');
+          try {
+            const authModule = await import('./js/auth.js');
+            if (authModule && authModule.auth) {
+              auth = authModule.auth;
+              console.log('✅ Got auth from auth.js module');
+            }
+          } catch (e) {
+            console.warn('Could not get auth from auth.js:', e);
+          }
+        }
+        
         // Wait longer for auth to be ready
         if (!authReady) {
+          console.log('⏳ Waiting for auth to be ready...');
           await new Promise(resolve => setTimeout(resolve, 1500));
         }
         
@@ -791,17 +842,20 @@
         
         // Check if user is logged in - try multiple methods
         let userId = await getCurrentUserId();
+        console.log('User ID from getCurrentUserId:', userId);
         
         // Double check with direct auth access
-        if (!userId) {
-          if (auth && auth.currentUser && auth.currentUser.uid) {
+        if (!userId && auth) {
+          if (auth.currentUser && auth.currentUser.uid) {
             userId = auth.currentUser.uid;
+            console.log('✅ User ID from direct auth access:', userId);
           } else {
-            // Try auth module
+            // Try auth module again
             try {
               const authModule = await import('./js/auth.js');
               if (authModule && authModule.auth && authModule.auth.currentUser) {
                 userId = authModule.auth.currentUser.uid;
+                console.log('✅ User ID from auth module:', userId);
               }
             } catch (e) {
               console.warn('Auth module check failed:', e);
@@ -811,15 +865,18 @@
         
         // If still no userId, wait a bit more and check again
         if (!userId) {
+          console.log('⏳ Still no userId, waiting and checking again...');
           await new Promise(resolve => setTimeout(resolve, 1000));
           userId = await getCurrentUserId();
           
           if (!userId && auth && auth.currentUser) {
             userId = auth.currentUser.uid;
+            console.log('✅ User ID after retry:', userId);
           }
         }
         
         if (!userId) {
+          console.log('❌ No user found, redirecting to login');
           // Store pending purchase and redirect to login
           sessionStorage.setItem('pendingCreditPurchase', JSON.stringify({
             plan,
@@ -832,6 +889,7 @@
           return;
         }
 
+        console.log('✅ User authenticated, proceeding with payment:', userId);
         // User is logged in - proceed with payment
         await initiateRazorpayPayment(userId, plan, parseInt(credits), parseFloat(price));
       } catch (error) {
