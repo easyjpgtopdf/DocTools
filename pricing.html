@@ -69,22 +69,25 @@
     
     .plans {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 24px;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
       margin-top: 32px;
+      justify-items: center;
     }
     
     .plan {
       background: var(--bg-secondary);
       color: var(--text-primary);
-      padding: 32px 24px;
-      border-radius: 16px;
+      padding: 20px 18px;
+      border-radius: 12px;
       border: 2px solid var(--border-color);
       box-shadow: 0 4px 12px rgba(0,0,0,0.05);
       transition: transform 0.3s, box-shadow 0.3s, background 0.3s, color 0.3s;
       position: relative;
       display: flex;
       flex-direction: column;
+      max-width: 280px;
+      margin: 0 auto;
     }
     
     .plan:hover {
@@ -118,16 +121,16 @@
     }
     
     .plan h3 {
-      margin: 0 0 12px 0;
-      font-size: 1.8rem;
+      margin: 0 0 8px 0;
+      font-size: 1.4rem;
       color: var(--text-primary);
     }
     
     .plan .price {
-      font-size: 2.5rem;
+      font-size: 1.8rem;
       font-weight: 700;
       color: #4361ee;
-      margin: 16px 0;
+      margin: 12px 0;
     }
     
     .plan .price span {
@@ -152,8 +155,9 @@
     .plan ul {
       list-style: none;
       padding: 0;
-      margin: 20px 0;
+      margin: 16px 0;
       flex: 1;
+      font-size: 0.9rem;
     }
     
     .plan ul li {
@@ -209,10 +213,12 @@
       font-size: 1rem;
     }
     
-    .btn-primary {
+      .btn-primary {
       background: linear-gradient(135deg, #4361ee, #3a0ca3);
       color: #fff;
       box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+      padding: 10px 20px;
+      font-size: 0.9rem;
     }
     
     .btn-primary:hover {
@@ -496,27 +502,43 @@
           const credits = parseInt(btn.getAttribute('data-credits'));
           const price = parseFloat(btn.getAttribute('data-price'));
           
-          // Check if user is logged in
-          const userId = await getCurrentUserId();
+          // Disable button to prevent double clicks
+          btn.disabled = true;
+          btn.textContent = 'Processing...';
           
-          if (!userId) {
-            // Store pending purchase and redirect to login
-            sessionStorage.setItem('pendingCreditPurchase', JSON.stringify({
-              plan,
-              credits,
-              price,
-              timestamp: Date.now()
-            }));
-            window.location.href = `login.html?returnTo=${encodeURIComponent(window.location.href)}`;
-            return;
-          }
-
-          // User is logged in - proceed with payment
           try {
+            // Wait for auth to be ready
+            if (!authReady) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            
+            // Check if user is logged in
+            let userId = await getCurrentUserId();
+            
+            // Double check with direct auth access
+            if (!userId && auth && auth.currentUser) {
+              userId = auth.currentUser.uid;
+            }
+            
+            if (!userId) {
+              // Store pending purchase and redirect to login
+              sessionStorage.setItem('pendingCreditPurchase', JSON.stringify({
+                plan,
+                credits,
+                price,
+                timestamp: Date.now()
+              }));
+              window.location.href = `login.html?returnTo=${encodeURIComponent(window.location.href)}`;
+              return;
+            }
+
+            // User is logged in - proceed with payment
             await initiateCreditPurchase(userId, plan, credits, price);
           } catch (error) {
             console.error('Error initiating purchase:', error);
             alert('Failed to start payment. Please try again.');
+            btn.disabled = false;
+            btn.textContent = btn.getAttribute('data-original-text') || 'Buy Now';
           }
         });
       });
@@ -524,9 +546,31 @@
       // Initiate credit purchase with Razorpay
       async function initiateCreditPurchase(userId, plan, credits, price) {
         try {
-          // Get user token
-          const user = auth.currentUser;
-          if (!user) throw new Error('User not authenticated');
+          // Wait for auth to be ready
+          if (!auth || !authReady) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+          
+          // Get user token - try multiple methods
+          let user = auth?.currentUser;
+          if (!user && auth) {
+            // Wait for auth state
+            await new Promise((resolve) => {
+              const unsubscribe = onAuthStateChanged(auth, (u) => {
+                unsubscribe();
+                user = u;
+                resolve();
+              });
+              setTimeout(() => {
+                unsubscribe();
+                resolve();
+              }, 2000);
+            });
+          }
+          
+          if (!user) {
+            throw new Error('User not authenticated. Please sign in again.');
+          }
           
           const token = await user.getIdToken();
           
@@ -536,6 +580,8 @@
             : (window.location.origin.includes('easyjpgtopdf.com') 
                 ? 'https://pdf-to-word-converter-iwumaktavq-uc.a.run.app'
                 : window.location.origin);
+          
+          console.log('Creating order with:', { plan, credits, price, userId });
           
           const response = await fetch(`${API_BASE_URL}/api/credits/create-order`, {
             method: 'POST',
@@ -552,41 +598,66 @@
           });
 
           if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Failed to create order');
+            const errorText = await response.text();
+            let error;
+            try {
+              error = JSON.parse(errorText);
+            } catch (e) {
+              error = { message: errorText || 'Failed to create order' };
+            }
+            throw new Error(error.error || error.message || 'Failed to create order');
           }
 
           const orderData = await response.json();
           
           if (!orderData.success || !orderData.order) {
-            throw new Error('Invalid order response');
+            throw new Error('Invalid order response from server');
+          }
+
+          console.log('Order created:', orderData);
+
+          // Get Razorpay key from order data or environment
+          const razorpayKey = orderData.key_id || orderData.key || '';
+          
+          if (!razorpayKey) {
+            throw new Error('Razorpay key not found. Please contact support.');
           }
 
           // Open Razorpay checkout
           const options = {
-            key: orderData.key_id || process.env.RAZORPAY_KEY_ID,
+            key: razorpayKey,
             amount: orderData.order.amount,
-            currency: orderData.order.currency,
+            currency: orderData.order.currency || 'USD',
             name: 'easyjpgtopdf',
-            description: `${plan} - ${credits} Credit Points`,
+            description: `${plan.toUpperCase()} - ${credits} Credit Points`,
             order_id: orderData.order.id,
             prefill: {
               email: user.email || '',
-              name: user.displayName || ''
+              name: user.displayName || user.email || ''
             },
             theme: {
               color: '#4361ee'
             },
             handler: async function(paymentResponse) {
+              console.log('Payment successful:', paymentResponse);
               // Payment successful - verify and add credits
               await verifyAndAddCredits(userId, paymentResponse, orderData.order.id, plan, credits, price);
             },
             modal: {
               ondismiss: function() {
-                console.log('Payment cancelled');
+                console.log('Payment cancelled by user');
+                // Re-enable button
+                document.querySelectorAll('button[data-plan]').forEach(btn => {
+                  btn.disabled = false;
+                  btn.textContent = btn.getAttribute('data-original-text') || 'Buy Now';
+                });
               }
             }
           };
+
+          if (!window.Razorpay) {
+            throw new Error('Razorpay SDK not loaded. Please refresh the page.');
+          }
 
           const razorpay = new Razorpay(options);
           razorpay.open();
@@ -594,14 +665,40 @@
         } catch (error) {
           console.error('Purchase error:', error);
           alert(error.message || 'Failed to initiate payment. Please try again.');
+          // Re-enable button
+          document.querySelectorAll('button[data-plan]').forEach(btn => {
+            btn.disabled = false;
+            btn.textContent = btn.getAttribute('data-original-text') || 'Buy Now';
+          });
         }
       }
 
       // Verify payment and add credits
       async function verifyAndAddCredits(userId, paymentResponse, orderId, plan, credits, price) {
         try {
-          const user = auth.currentUser;
-          if (!user) throw new Error('User not authenticated');
+          // Wait for auth
+          if (!auth || !authReady) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+          
+          let user = auth?.currentUser;
+          if (!user && auth) {
+            await new Promise((resolve) => {
+              const unsubscribe = onAuthStateChanged(auth, (u) => {
+                unsubscribe();
+                user = u;
+                resolve();
+              });
+              setTimeout(() => {
+                unsubscribe();
+                resolve();
+              }, 2000);
+            });
+          }
+          
+          if (!user) {
+            throw new Error('User not authenticated');
+          }
           
           const token = await user.getIdToken();
           
@@ -610,6 +707,8 @@
             : (window.location.origin.includes('easyjpgtopdf.com') 
                 ? 'https://pdf-to-word-converter-iwumaktavq-uc.a.run.app'
                 : window.location.origin);
+          
+          console.log('Verifying payment:', { orderId, paymentId: paymentResponse.razorpay_payment_id });
           
           const response = await fetch(`${API_BASE_URL}/api/credits/verify-payment`, {
             method: 'POST',
@@ -628,31 +727,61 @@
             })
           });
 
+          if (!response.ok) {
+            const errorText = await response.text();
+            let error;
+            try {
+              error = JSON.parse(errorText);
+            } catch (e) {
+              error = { message: errorText || 'Payment verification failed' };
+            }
+            throw new Error(error.error || error.message || 'Payment verification failed');
+          }
+
           const result = await response.json();
           
           if (result.success) {
             // Show success message
-            alert('Payment successful! Credits have been added to your account.');
+            alert(`Payment successful! ${credits} credits have been added to your account.`);
             // Redirect to dashboard
-            window.location.href = 'dashboard.html#dashboard-overview';
+            window.location.href = 'dashboard.html#dashboard-credits';
           } else {
-            throw new Error(result.message || 'Payment verification failed');
+            throw new Error(result.error || result.message || 'Payment verification failed');
           }
         } catch (error) {
           console.error('Verification error:', error);
-          alert('Payment verification failed. Please contact support if credits were deducted.');
+          alert(`Payment verification failed: ${error.message}. Please contact support if credits were deducted.`);
         }
       }
 
+      // Store original button text
+      document.querySelectorAll('button[data-plan]').forEach(btn => {
+        btn.setAttribute('data-original-text', btn.textContent);
+      });
+      
       // Check for pending purchase after login
       window.addEventListener('load', async () => {
+        // Wait for auth to be ready
+        if (!authReady) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
         const pending = sessionStorage.getItem('pendingCreditPurchase');
         if (pending) {
           try {
             const data = JSON.parse(pending);
             // Check if it's not stale (less than 5 minutes)
             if (Date.now() - data.timestamp < 5 * 60 * 1000) {
-              const userId = await getCurrentUserId();
+              // Wait a bit more for auth
+              await new Promise(resolve => setTimeout(resolve, 500));
+              
+              let userId = await getCurrentUserId();
+              
+              // Double check with direct auth access
+              if (!userId && auth && auth.currentUser) {
+                userId = auth.currentUser.uid;
+              }
+              
               if (userId) {
                 // Clear pending
                 sessionStorage.removeItem('pendingCreditPurchase');
@@ -660,6 +789,9 @@
                 setTimeout(() => {
                   initiateCreditPurchase(userId, data.plan, data.credits, data.price);
                 }, 1000);
+              } else {
+                // Still not logged in, keep pending for retry
+                console.log('User not logged in yet, keeping pending purchase');
               }
             } else {
               sessionStorage.removeItem('pendingCreditPurchase');
