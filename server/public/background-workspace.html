@@ -379,10 +379,12 @@
         // Use a promise that resolves when auth state is known
         return new Promise((resolve) => {
           let resolved = false;
+          let unsubscribeFn = null;
+          
           const timeout = setTimeout(() => {
             if (!resolved) {
               resolved = true;
-              unsubscribe();
+              if (unsubscribeFn) unsubscribeFn();
               resolve({
                 userId: 'anonymous',
                 userType: 'free',
@@ -391,12 +393,12 @@
             }
           }, 1000); // 1 second timeout
           
-          const unsubscribe = auth.onAuthStateChanged(async (user) => {
+          unsubscribeFn = auth.onAuthStateChanged(async (user) => {
             if (resolved) return;
             
             clearTimeout(timeout);
             resolved = true;
-            unsubscribe();
+            if (unsubscribeFn) unsubscribeFn();
             
             if (user) {
               try {
