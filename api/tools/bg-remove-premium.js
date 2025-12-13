@@ -92,15 +92,40 @@ async function initializeFirebase() {
 // Check credit balance (without deducting)
 async function checkCreditBalance(userId, token) {
   try {
-    const API_BASE_URL = process.env.BACKEND_URL || 'https://pdf-to-word-converter-iwumaktavq-uc.a.run.app';
+    // Use direct Firestore query instead of API call (faster and more reliable)
+    const adminModule = await initializeFirebase();
+    if (!adminModule || !adminModule.apps.length) {
+      console.error('Firebase not initialized for credit check');
+      return { hasCredits: false, creditsAvailable: 0, unlimited: false, error: 'Database not available' };
+    }
     
-    const balanceResponse = await fetch(`${API_BASE_URL}/api/credits/balance`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+    const db = adminModule.firestore();
+    const userRef = db.collection('users').doc(userId);
+    const userDoc = await userRef.get();
+    
+    if (!userDoc.exists) {
+      return { hasCredits: false, creditsAvailable: 0, unlimited: false, error: 'User not found' };
+    }
+    
+    const userData = userDoc.data();
+    const currentCredits = userData.credits || 0;
+    
+    // Check subscription for unlimited credits
+    const subscriptionRef = db.collection('subscriptions').doc(userId);
+    const subscriptionDoc = await subscriptionRef.get();
+    let unlimited = false;
+    if (subscriptionDoc.exists) {
+      const subData = subscriptionDoc.data();
+      if (subData.plan === 'premium' || subData.plan === 'business') {
+        unlimited = subData.features?.unlimitedBackgroundRemoval || false;
       }
-    });
+    }
+    
+    return { 
+      hasCredits: true, 
+      creditsAvailable: currentCredits,
+      unlimited: unlimited
+    };
 
     if (!balanceResponse.ok) {
       console.error('Failed to check credit balance:', balanceResponse.status);
@@ -126,41 +151,73 @@ async function checkCreditBalance(userId, token) {
   }
 }
 
-// Deduct credits using new MongoDB credit system
+// Deduct credits using Firestore directly (more reliable)
 async function deductCredits(userId, token, creditsRequired = 1) {
   try {
-    const API_BASE_URL = process.env.BACKEND_URL || 'https://pdf-to-word-converter-iwumaktavq-uc.a.run.app';
+    const adminModule = await initializeFirebase();
+    if (!adminModule || !adminModule.apps.length) {
+      console.error('Firebase not initialized for credit deduction');
+      return { success: false, error: 'Database not available' };
+    }
     
-    // Deduct credits via API
-    const deductResponse = await fetch(`${API_BASE_URL}/api/credits/deduct`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
+    const db = adminModule.firestore();
+    const userRef = db.collection('users').doc(userId);
+    
+    // Use transaction to ensure atomic credit deduction
+    return await db.runTransaction(async (transaction) => {
+      const userDoc = await transaction.get(userRef);
+      
+      if (!userDoc.exists) {
+        throw new Error('User not found');
+      }
+      
+      const userData = userDoc.data();
+      const currentCredits = userData.credits || 0;
+      
+      // Check if user has sufficient credits
+      if (currentCredits < creditsRequired) {
+        return {
+          success: false,
+          error: 'Insufficient credits',
+          creditsAvailable: currentCredits,
+          required: creditsRequired
+        };
+      }
+      
+      const newCredits = currentCredits - creditsRequired;
+      
+      // Update credits
+      transaction.update(userRef, {
+        credits: adminModule.firestore.FieldValue.increment(-creditsRequired),
+        totalCreditsUsed: adminModule.firestore.FieldValue.increment(creditsRequired),
+        lastCreditUpdate: adminModule.firestore.FieldValue.serverTimestamp()
+      });
+      
+      // Record transaction
+      const transactionRef = db.collection('users').doc(userId)
+        .collection('creditTransactions').doc();
+      transaction.set(transactionRef, {
+        type: 'deduction',
         amount: creditsRequired,
-        tool_used: 'background-remover-premium',
-        page: '/background-workspace.html',
-        processor: 'premium-hd'
-      })
+        reason: 'Background removal - Premium HD',
+        creditsBefore: currentCredits,
+        creditsAfter: newCredits,
+        timestamp: adminModule.firestore.FieldValue.serverTimestamp(),
+        metadata: {
+          tool_used: 'background-remover-premium',
+          page: '/background-workspace.html',
+          processor: 'premium-hd'
+        }
+      });
+      
+      console.log(`✅ Deducted ${creditsRequired} credits from user ${userId}. Before: ${currentCredits}, After: ${newCredits}`);
+      
+      return {
+        success: true,
+        creditsAvailable: newCredits,
+        creditsDeducted: creditsRequired
+      };
     });
-
-    if (!deductResponse.ok) {
-      const errorData = await deductResponse.json().catch(() => ({}));
-      console.error('Failed to deduct credits:', errorData);
-      return { success: false, error: errorData.error || 'Failed to deduct credits' };
-    }
-
-    const deductData = await deductResponse.json();
-    if (!deductData.success) {
-      return { success: false, error: deductData.error || 'Failed to deduct credits' };
-    }
-
-    return { 
-      success: true,
-      creditsAvailable: deductData.credits || 0
-    };
   } catch (error) {
     console.error('Credit deduction error:', error);
     return { success: false, error: error.message };
