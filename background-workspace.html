@@ -732,11 +732,11 @@
           controller.abort();
         }, 300000); // 5 minutes
         
-        // Parse target size BEFORE fetch call
+        // Parse target size BEFORE fetch call - FIXED: Use targetSize parameter instead of selectedPremiumSize
         let targetWidth = null;
         let targetHeight = null;
-        if (selectedPremiumSize && selectedPremiumSize !== 'original') {
-          const [width, height] = selectedPremiumSize.split('x');
+        if (targetSize && targetSize !== 'original') {
+          const [width, height] = targetSize.split('x');
           targetWidth = parseInt(width);
           targetHeight = parseInt(height);
         }
@@ -751,7 +751,7 @@
           body: JSON.stringify({ 
             imageData: dataURL,
             userId: userId,
-            targetSize: selectedPremiumSize || 'original',
+            targetSize: targetSize || 'original',
             targetWidth: targetWidth,
             targetHeight: targetHeight
           }),
@@ -1905,6 +1905,11 @@
             if (premiumResult.success) {
               finalDownloadUrl = premiumResult.dataUrl;
               
+              // Validate premium result has valid image data
+              if (!finalDownloadUrl || !finalDownloadUrl.startsWith('data:image/')) {
+                throw new Error('Premium processing returned invalid image data');
+              }
+              
               // Show credit deduction info
               const creditsUsed = premiumResult.creditsUsed || 2;
               const creditsRemaining = premiumResult.creditsRemaining;
@@ -1915,26 +1920,34 @@
               // Update stored foreground
               sessionStorage.setItem(STORAGE_KEYS.foreground, premiumResult.dataUrl);
               
-              // Update preview
+              // Update preview (async, don't wait)
               previewResult.src = premiumResult.dataUrl;
               const foregroundImage = new Image();
               foregroundImage.crossOrigin = 'anonymous';
               foregroundImage.src = premiumResult.dataUrl;
-              await foregroundImage.decode();
-              
-              ensureCanvas(foregroundImage.width, foregroundImage.height);
-              resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
-              resultContext.drawImage(foregroundImage, 0, 0, resultCanvas.width, resultCanvas.height);
-              resultDataURL = resultCanvas.toDataURL('image/png');
+              foregroundImage.onload = () => {
+                try {
+                  ensureCanvas(foregroundImage.width, foregroundImage.height);
+                  resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+                  resultContext.drawImage(foregroundImage, 0, 0, resultCanvas.width, resultCanvas.height);
+                  resultDataURL = resultCanvas.toDataURL('image/png');
+                } catch (err) {
+                  console.error('Error updating preview:', err);
+                }
+              };
               
               // Remove processing overlay
               if (processingOverlay && processingOverlay.parentNode) {
                 processingOverlay.parentNode.removeChild(processingOverlay);
               }
               
-              showStatus(`✅ Premium HD processed successfully!${creditInfo}`);
+              console.log('✅ Premium HD processed successfully, proceeding to download...', {
+                hasDataUrl: !!finalDownloadUrl,
+                dataUrlLength: finalDownloadUrl ? finalDownloadUrl.length : 0,
+                selectedSize: selectedPremiumSize
+              });
               
-              // Continue to download after processing
+              // Continue to download after processing - DO NOT return here
             } else {
               // Remove processing overlay
               if (processingOverlay && processingOverlay.parentNode) {
