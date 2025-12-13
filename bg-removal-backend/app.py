@@ -134,6 +134,242 @@ def get_session_maxmatting():
                 logger.info("MaxMatting fallback: BiRefNet initialized")
     return session_maxmatting
 
+def generate_trimap(mask, expand_radius=8):
+    """
+    Generate trimap from BiRefNet mask for fine alpha matting
+    - Foreground: mask > 240
+    - Background: mask < 15
+    - Unknown region: 15-240 (expanded by radius pixels)
+    
+    Returns: trimap (128 = unknown, 0 = background, 255 = foreground)
+    """
+    try:
+        if isinstance(mask, Image.Image):
+            mask_array = np.array(mask.convert('L'))
+        else:
+            mask_array = mask.astype(np.uint8) if mask.dtype != np.uint8 else mask
+        
+        # Create trimap
+        trimap = np.zeros_like(mask_array, dtype=np.uint8)
+        
+        # Foreground: mask > 240
+        trimap[mask_array > 240] = 255
+        
+        # Background: mask < 15
+        trimap[mask_array < 15] = 0
+        
+        # Unknown region: 15-240
+        unknown_mask = (mask_array >= 15) & (mask_array <= 240)
+        trimap[unknown_mask] = 128
+        
+        # Expand unknown region by dilating the boundary
+        if CV2_AVAILABLE and expand_radius > 0:
+            # Create kernel for expansion
+            kernel_size = expand_radius * 2 + 1
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
+            
+            # Expand unknown region
+            fg_boundary = (trimap == 255).astype(np.uint8)
+            bg_boundary = (trimap == 0).astype(np.uint8)
+            
+            # Dilate both boundaries to expand unknown region
+            fg_dilated = cv2.dilate(fg_boundary, kernel, iterations=1)
+            bg_dilated = cv2.dilate(bg_boundary, kernel, iterations=1)
+            
+            # Set unknown region where boundaries overlap or near edges
+            edge_region = (fg_dilated > 0) | (bg_dilated > 0)
+            edge_region = edge_region & (trimap != 128)  # Don't overwrite existing unknown
+            trimap[edge_region] = 128
+        
+        return Image.fromarray(trimap, mode='L')
+    except Exception as e:
+        logger.warning(f"Trimap generation failed: {e}, using original mask")
+        return mask if isinstance(mask, Image.Image) else Image.fromarray(mask, mode='L')
+
+def adaptive_feather_alpha(alpha_channel, image_width, image_height, is_document=False):
+    """
+    Adaptive feathering based on image size (MP)
+    Apply feather ONLY on alpha channel with radius based on megapixels
+    """
+    if not SCIPY_AVAILABLE:
+        return alpha_channel
+    
+    try:
+        megapixels = (image_width * image_height) / 1_000_000
+        
+        # Determine feather radius based on MP
+        if is_document:
+            # Document preset: max 2-3 px feather
+            feather_radius = min(3, max(2, int(megapixels * 0.5)))
+        elif megapixels <= 2:
+            feather_radius = 2
+        elif megapixels <= 5:
+            feather_radius = 3 if megapixels <= 3 else 4
+        elif megapixels <= 10:
+            feather_radius = 5 if megapixels <= 7 else 6
+        elif megapixels <= 18:
+            feather_radius = 7 if megapixels <= 14 else 9
+        else:  # 18-25 MP
+            feather_radius = 10 if megapixels <= 21 else 12
+        
+        logger.info(f"Adaptive feather: {megapixels:.2f} MP → radius {feather_radius} px")
+        
+        if isinstance(alpha_channel, Image.Image):
+            alpha_array = np.array(alpha_channel.convert('L')).astype(np.float32) / 255.0
+        else:
+            alpha_array = alpha_channel.astype(np.float32) / 255.0 if alpha_channel.max() > 1.0 else alpha_channel.astype(np.float32)
+        
+        # Edge-aware gaussian feather
+        if CV2_AVAILABLE:
+            # Use Gaussian blur with edge preservation
+            alpha_uint8 = (alpha_array * 255).astype(np.uint8)
+            
+            # Apply bilateral filter for edge-aware smoothing
+            feathered = cv2.bilateralFilter(
+                alpha_uint8,
+                d=feather_radius * 2 + 1,
+                sigmaColor=75,
+                sigmaSpace=75
+            )
+            
+            # Blend with original to preserve strong alpha values
+            alpha_blended = alpha_array * 0.7 + (feathered.astype(np.float32) / 255.0) * 0.3
+            
+            # Convert back to 0-255 range
+            alpha_final = (np.clip(alpha_blended, 0, 1) * 255).astype(np.uint8)
+        else:
+            # Fallback: simple gaussian blur
+            from scipy.ndimage import gaussian_filter
+            feathered = gaussian_filter(alpha_array, sigma=feather_radius / 2)
+            alpha_final = (np.clip(feathered, 0, 1) * 255).astype(np.uint8)
+        
+        return Image.fromarray(alpha_final, mode='L')
+    except Exception as e:
+        logger.warning(f"Adaptive feather failed: {e}, using original alpha")
+        return alpha_channel if isinstance(alpha_channel, Image.Image) else Image.fromarray(alpha_channel, mode='L')
+
+def strong_halo_removal_alpha(alpha_channel, original_image, is_document=False):
+    """
+    Strong halo removal on alpha edges only (alpha between 0.7 and 0.98)
+    Suppress white/blue/light background spill
+    """
+    try:
+        if isinstance(alpha_channel, Image.Image):
+            alpha_array = np.array(alpha_channel.convert('L')).astype(np.float32) / 255.0
+        else:
+            alpha_array = alpha_channel.astype(np.float32) / 255.0 if alpha_channel.max() > 1.0 else alpha_channel.astype(np.float32)
+        
+        if isinstance(original_image, Image.Image):
+            img_array = np.array(original_image.convert('RGB'))
+        else:
+            img_array = original_image
+        
+        # Detect edge region (alpha between 0.7 and 0.98)
+        edge_mask = (alpha_array >= 0.7) & (alpha_array <= 0.98)
+        
+        if not np.any(edge_mask):
+            return alpha_channel
+        
+        # Calculate background color (regions with very low alpha)
+        bg_mask = alpha_array < 0.1
+        if np.any(bg_mask):
+            bg_color = np.mean(img_array[bg_mask], axis=0)
+        else:
+            # Fallback: sample from corners
+            h, w = img_array.shape[:2]
+            corners = np.concatenate([
+                img_array[0:max(1, h//10), 0:max(1, w//10)].reshape(-1, 3),
+                img_array[h-max(1, h//10):, 0:max(1, w//10)].reshape(-1, 3),
+                img_array[0:max(1, h//10), w-max(1, w//10):].reshape(-1, 3),
+                img_array[h-max(1, h//10):, w-max(1, w//10):].reshape(-1, 3)
+            ])
+            bg_color = np.mean(corners, axis=0)
+        
+        # Detect white/blue/light colors (potential halo)
+        img_float = img_array.astype(np.float32)
+        brightness = np.mean(img_float, axis=2) / 255.0
+        is_light = brightness > 0.85  # Very bright areas
+        
+        # Check if edge pixels are similar to background color
+        color_diff = np.abs(img_float - bg_color.reshape(1, 1, 3))
+        color_similarity = np.mean(color_diff, axis=2) < 30  # Similar to background
+        
+        # Halo: light color + similar to background + in edge region
+        halo_mask = edge_mask & is_light & color_similarity
+        
+        # Suppress halo (reduce alpha)
+        cleaned_alpha = alpha_array.copy()
+        if not is_document:
+            # Strong suppression for regular images
+            cleaned_alpha[halo_mask] = np.clip(cleaned_alpha[halo_mask] * 0.3, 0, 0.98)
+        else:
+            # Gentle suppression for documents
+            cleaned_alpha[halo_mask] = np.clip(cleaned_alpha[halo_mask] * 0.7, 0, 0.98)
+        
+        # Convert back to 0-255
+        cleaned_alpha_uint8 = (cleaned_alpha * 255).astype(np.uint8)
+        
+        return Image.fromarray(cleaned_alpha_uint8, mode='L')
+    except Exception as e:
+        logger.warning(f"Strong halo removal failed: {e}, using original alpha")
+        return alpha_channel if isinstance(alpha_channel, Image.Image) else Image.fromarray(alpha_channel, mode='L')
+
+def color_decontamination(rgba_image, original_image, strength=0.6):
+    """
+    Color decontamination - Remove background color spill from foreground edges
+    Sample background color and remove spill on edge pixels (alpha < 0.95)
+    """
+    try:
+        if isinstance(rgba_image, Image.Image):
+            rgba_array = np.array(rgba_image.convert('RGBA'))
+        else:
+            rgba_array = rgba_image
+        
+        if isinstance(original_image, Image.Image):
+            orig_array = np.array(original_image.convert('RGB'))
+        else:
+            orig_array = original_image
+        
+        alpha_channel = rgba_array[:, :, 3].astype(np.float32) / 255.0
+        rgb_channels = rgba_array[:, :, :3].astype(np.float32)
+        
+        # Sample background color (alpha < 0.1)
+        bg_mask = alpha_channel < 0.1
+        if np.any(bg_mask):
+            bg_color = np.mean(orig_array[bg_mask], axis=0)
+        else:
+            # Fallback: corners
+            h, w = orig_array.shape[:2]
+            corners = np.concatenate([
+                orig_array[0:max(1, h//10), 0:max(1, w//10)].reshape(-1, 3),
+                orig_array[h-max(1, h//10):, 0:max(1, w//10)].reshape(-1, 3),
+                orig_array[0:max(1, h//10), w-max(1, w//10):].reshape(-1, 3),
+                orig_array[h-max(1, h//10):, w-max(1, w//10):].reshape(-1, 3)
+            ])
+            bg_color = np.mean(corners, axis=0)
+        
+        # Edge pixels: alpha < 0.95
+        edge_mask = alpha_channel < 0.95
+        
+        # Remove background color spill
+        decontaminated = rgb_channels.copy()
+        for c in range(3):
+            spill = rgb_channels[:, :, c] - bg_color[c]
+            # Only remove spill on edge pixels
+            decontaminated[:, :, c][edge_mask] = np.clip(
+                rgb_channels[:, :, c][edge_mask] - spill[edge_mask] * strength * (1 - alpha_channel[edge_mask]),
+                0, 255
+            )
+        
+        # Reconstruct RGBA
+        result = rgba_array.copy()
+        result[:, :, :3] = decontaminated.astype(np.uint8)
+        
+        return Image.fromarray(result, mode='RGBA')
+    except Exception as e:
+        logger.warning(f"Color decontamination failed: {e}, using original image")
+        return rgba_image if isinstance(rgba_image, Image.Image) else Image.fromarray(rgba_image, mode='RGBA')
+
 def guided_filter(image, mask, radius=5, eps=0.01):
     """
     Guided Filter for smooth borders
@@ -455,6 +691,174 @@ def clean_matte_edges(mask, original_image, clean_strength=0.4):
     except Exception as e:
         logger.warning(f"Matte edge cleaning failed, using original mask: {str(e)}")
         return mask if isinstance(mask, Image.Image) else Image.fromarray(mask, mode='L')
+
+def process_premium_hd_pipeline(input_image, birefnet_session, maxmatting_session, is_document=False):
+    """
+    Premium HD Background Removal Pipeline (remove.bg style)
+    ONLY for premium users - Do NOT use for free preview
+    
+    Pipeline:
+    1. BiRefNet semantic mask (adaptive input 1024-1536)
+    2. Trimap generation
+    3. MaxMatting fine alpha matting
+    4. Composite RGB+Alpha FIRST
+    5. Adaptive feather (alpha only, based on MP)
+    6. Strong halo removal (alpha edge only)
+    7. Color decontamination
+    8. Document preset (if detected)
+    """
+    start_time = time.time()
+    debug_stats = {}
+    
+    original_width, original_height = input_image.size
+    original_megapixels = (original_width * original_height) / 1_000_000
+    
+    logger.info(f"🚀 Premium HD Pipeline: {original_width}x{original_height} = {original_megapixels:.2f} MP")
+    
+    # Step 1: BiRefNet Semantic Mask (adaptive input resolution)
+    logger.info("Step 1: Generating BiRefNet semantic mask...")
+    max_dimension = max(original_width, original_height)
+    
+    # Adaptive input: min 1024, max 1536 on longest side
+    target_size = min(1536, max(1024, max_dimension))
+    scale = target_size / max_dimension
+    
+    # Resize for BiRefNet processing if needed
+    if scale < 1.0:
+        process_width = int(original_width * scale)
+        process_height = int(original_height * scale)
+        process_image = input_image.resize((process_width, process_height), Image.Resampling.LANCZOS)
+        logger.info(f"Resized to {process_width}x{process_height} for BiRefNet processing")
+    else:
+        process_image = input_image
+    
+    # Get BiRefNet mask
+    input_buffer = io.BytesIO()
+    process_image.save(input_buffer, format='PNG')
+    input_bytes = input_buffer.getvalue()
+    output_bytes = remove(input_bytes, session=birefnet_session)
+    output_image = Image.open(io.BytesIO(output_bytes))
+    
+    # Extract mask
+    if output_image.mode == 'RGBA':
+        mask = output_image.split()[3]
+    else:
+        mask = output_image.convert('L')
+    
+    # Resize mask back to original size if needed
+    if mask.size != input_image.size:
+        mask = mask.resize(input_image.size, Image.Resampling.LANCZOS)
+    
+    debug_stats.update({
+        "birefnet_mask_shape": mask.size,
+        "birefnet_processing_size": process_image.size
+    })
+    
+    # Step 2: Trimap Generation
+    logger.info("Step 2: Generating trimap for fine matting...")
+    expand_radius = 6 if original_megapixels <= 10 else (8 if original_megapixels <= 18 else 12)
+    trimap = generate_trimap(mask, expand_radius=expand_radius)
+    debug_stats["trimap_expand_radius"] = expand_radius
+    
+    # Step 3: Fine Alpha Matting (MaxMatting) - PREMIUM ONLY
+    logger.info("Step 3: Fine alpha matting with MaxMatting...")
+    
+    # Prepare input for MaxMatting: RGB image + trimap
+    # MaxMatting expects RGBA where alpha is trimap
+    trimap_rgba = Image.new('RGBA', input_image.size)
+    trimap_rgba.paste(input_image.convert('RGB'), (0, 0))
+    trimap_rgba.putalpha(trimap)
+    
+    # Process with MaxMatting
+    matting_buffer = io.BytesIO()
+    trimap_rgba.save(matting_buffer, format='PNG')
+    matting_bytes = matting_buffer.getvalue()
+    matting_output_bytes = remove(matting_bytes, session=maxmatting_session)
+    matting_output = Image.open(io.BytesIO(matting_output_bytes))
+    
+    # Extract refined alpha from MaxMatting output
+    if matting_output.mode == 'RGBA':
+        refined_alpha = matting_output.split()[3]
+    else:
+        refined_alpha = matting_output.convert('L')
+    
+    debug_stats.update({
+        "maxmatting_alpha_shape": refined_alpha.size,
+        "maxmatting_applied": True
+    })
+    
+    # Safety check: alpha should have content
+    alpha_array = np.array(refined_alpha.convert('L'))
+    alpha_nonzero = np.count_nonzero(alpha_array)
+    alpha_percent = (alpha_nonzero / alpha_array.size) * 100.0
+    
+    if alpha_percent < 1.0:
+        logger.warning(f"⚠️ MaxMatting alpha too low ({alpha_percent:.2f}%), falling back to BiRefNet mask")
+        refined_alpha = mask
+        debug_stats["maxmatting_fallback"] = True
+    
+    # Step 4: Composite RGB + Alpha FIRST (CRITICAL ORDER)
+    logger.info("Step 4: Compositing RGB + refined alpha...")
+    
+    # Ensure RGB
+    rgb_image = input_image.convert('RGB') if input_image.mode != 'RGB' else input_image
+    
+    # Create RGBA with refined alpha
+    rgba_composite = Image.new('RGBA', rgb_image.size, (0, 0, 0, 0))
+    rgba_composite.paste(rgb_image, (0, 0))
+    rgba_composite.putalpha(refined_alpha)
+    
+    debug_stats["composite_completed"] = True
+    
+    # Step 5: Adaptive Feather (Alpha only, based on MP)
+    logger.info("Step 5: Applying adaptive feather to alpha channel...")
+    composite_alpha = rgba_composite.split()[3]
+    feathered_alpha = adaptive_feather_alpha(
+        composite_alpha, 
+        original_width, 
+        original_height, 
+        is_document=is_document
+    )
+    rgba_composite.putalpha(feathered_alpha)
+    debug_stats["adaptive_feather_applied"] = True
+    
+    # Step 6: Strong Halo Removal (Alpha edge only)
+    logger.info("Step 6: Applying strong halo removal...")
+    current_alpha = rgba_composite.split()[3]
+    cleaned_alpha = strong_halo_removal_alpha(
+        current_alpha, 
+        rgb_image, 
+        is_document=is_document
+    )
+    rgba_composite.putalpha(cleaned_alpha)
+    debug_stats["halo_removal_applied"] = True
+    
+    # Step 7: Color Decontamination
+    logger.info("Step 7: Applying color decontamination...")
+    final_image = color_decontamination(
+        rgba_composite, 
+        rgb_image, 
+        strength=0.6 if not is_document else 0.4
+    )
+    debug_stats["color_decontamination_applied"] = True
+    
+    # Final alpha check
+    final_alpha = np.array(final_image.getchannel('A'))
+    final_alpha_nonzero = np.count_nonzero(final_alpha)
+    final_alpha_percent = (final_alpha_nonzero / final_alpha.size) * 100.0
+    debug_stats.update({
+        "final_alpha_percent": float(final_alpha_percent),
+        "final_alpha_nonzero": int(final_alpha_nonzero)
+    })
+    
+    logger.info(f"✅ Premium HD pipeline completed in {time.time() - start_time:.2f}s, final alpha: {final_alpha_percent:.2f}%")
+    
+    # Convert to bytes
+    output_buffer = io.BytesIO()
+    final_image.save(output_buffer, format='PNG', optimize=True)
+    output_bytes = output_buffer.getvalue()
+    
+    return output_bytes, debug_stats
 
 def process_with_optimizations(input_image, session, is_premium=False, is_document=False):
     """
@@ -914,19 +1318,25 @@ def premium_bg():
             final_megapixels = (final_size[0] * final_size[1]) / 1_000_000
             logger.info(f"Final processing size: {final_size[0]}x{final_size[1]} = {final_megapixels:.2f} MP")
             
-            # Detect if image is a document (A4, letter, etc.)
+            # Detect if image is a document/ID photo (A4, letter, passport, etc.)
             is_document = is_document_image(input_image)
             
-            # Select best model for premium: MaxMatting for regular images, RobustMatting for documents
-            if is_document:
-                logger.info("Premium: Document detected - using RobustMatting for A4 optimization")
-                session = get_session_robust()
-            else:
-                logger.info("Premium: Using MaxMatting for highest quality")
-                session = get_session_maxmatting()
+            # PREMIUM HD PIPELINE: Use new premium pipeline (remove.bg style)
+            # This pipeline is ONLY for premium users, NOT for free preview
+            logger.info("Premium: Using Premium HD Pipeline (remove.bg style) - BiRefNet + MaxMatting")
+            birefnet_session = get_session_512()  # BiRefNet for semantic mask
+            maxmatting_session = get_session_maxmatting()  # MaxMatting for fine alpha matting
             
-            # Process with full premium optimizations
-            output_bytes, debug_stats = process_with_optimizations(input_image, session, is_premium=True, is_document=is_document)
+            # Process with Premium HD Pipeline (remove.bg style)
+            output_bytes, debug_stats = process_premium_hd_pipeline(
+                input_image, 
+                birefnet_session, 
+                maxmatting_session, 
+                is_document=is_document
+            )
+            
+            # Calculate final megapixels for credit deduction (after processing)
+            # Note: final_size already set above, final_megapixels calculated below
             
             # Convert to base64
             output_b64 = base64.b64encode(output_bytes).decode()
@@ -935,7 +1345,21 @@ def premium_bg():
             processing_time = time.time() - start_time
             output_size = len(output_bytes)
             
-            logger.info(f"Premium HD processed in {processing_time:.2f}s, output size: {output_size / 1024:.2f} KB, user: {user_id}")
+            # Calculate credits required based on final output size (MP)
+            # Variable credit deduction (internal only, not shown in UI)
+            # User account se internally deduct hoga based on output MP
+            if final_megapixels <= 4:
+                credits_required = 2
+            elif final_megapixels <= 12:
+                credits_required = 4
+            elif final_megapixels <= 16:
+                credits_required = 6
+            elif final_megapixels <= 20:
+                credits_required = 6.5
+            else:  # <= 25 MP
+                credits_required = 7
+            
+            logger.info(f"Premium HD processed in {processing_time:.2f}s, output size: {output_size / 1024:.2f} KB, MP: {final_megapixels:.2f}, credits: {credits_required}, user: {user_id}")
             
             response_payload = {
                 'success': True,
@@ -944,17 +1368,18 @@ def premium_bg():
                 'outputSizeMB': round(output_size / (1024 * 1024), 2),
                 'processedWith': 'Premium HD – up to 25 Megapixels (GPU-accelerated High-Resolution)',
                 'processingTime': round(processing_time, 2),
-                'creditsUsed': 2,  # UPDATED: 2 credits per premium image
+                'creditsUsed': credits_required,  # Variable credits based on MP (internal deduction)
+                'creditsUsedDisplay': 2,  # Always show 2 in UI (generic display - user doesn't see variable)
                 'megapixels': round(final_megapixels, 2),
                 'optimizations': {
-                    'model': 'MaxMatting' if not is_document else 'RobustMatting',
-                    'tensorrt_turbo': 'FP16 ONNX Runtime GPU',
-                    'hair_detail_enhancement': True,
-                    'matte_clean_edges': True,
-                    'guided_filter': CV2_AVAILABLE,
-                    'feathering': SCIPY_AVAILABLE,
-                    'halo_removal': True,
-                    'a4_document_optimization': is_document,
+                    'pipeline': 'Premium HD (remove.bg style)',
+                    'birefnet_semantic_mask': True,
+                    'trimap_generation': True,
+                    'maxmatting_fine_matting': True,
+                    'adaptive_feathering': True,
+                    'strong_halo_removal': True,
+                    'color_decontamination': True,
+                    'document_preset': is_document,
                     'composite': 'Pro-level PNG'
                 }
             }

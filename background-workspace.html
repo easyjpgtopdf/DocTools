@@ -1772,7 +1772,7 @@
         const creditCheck = await creditMod.hasSufficientCredits(userId, 1);
         
         if (!creditCheck.hasCredits && !creditCheck.unlimited) {
-          if (confirm(`You need 2 credits for Premium HD. You have ${creditCheck.creditsAvailable || 0} credit(s). Would you like to purchase credits?`)) {
+          if (confirm(`Insufficient credits for Premium HD. You have ${creditCheck.creditsAvailable || 0} credit(s). Would you like to purchase credits?`)) {
             window.location.href = 'pricing.html#credits';
           }
           return;
@@ -1804,7 +1804,7 @@
           } else {
             const [width, height] = selectedPremiumSize.split('x');
             const mp = ((parseInt(width) * parseInt(height)) / 1_000_000).toFixed(2);
-            sizeInfo.textContent = `${width}×${height} pixels (${mp} MP) • 2 credits`;
+            sizeInfo.textContent = `${width}×${height} pixels (${mp} MP)`;
           }
         }
       });
@@ -1910,12 +1910,7 @@
                 throw new Error('Premium processing returned invalid image data');
               }
               
-              // Show credit deduction info
-              const creditsUsed = premiumResult.creditsUsed || 2;
-              const creditsRemaining = premiumResult.creditsRemaining;
-              const creditInfo = creditsRemaining !== undefined 
-                ? ` (${creditsUsed} credit used, ${creditsRemaining} remaining)`
-                : ` (${creditsUsed} credit used)`;
+              // Credit deduction happens internally - no display needed
               
               // FIXED: Don't store premium HD images in sessionStorage (causes quota exceeded)
               // Use Blob and URL.createObjectURL instead for premium images
@@ -2097,7 +2092,7 @@
         }
         
         // Show success message
-        const qualityLabel = selectedDownloadQuality === 'premium' ? 'Premium HD – up to 25 Megapixels (2 Credit per image)' : 'Free Preview (512px)';
+        const qualityLabel = selectedDownloadQuality === 'premium' ? 'Premium HD – up to 25 Megapixels' : 'Free Preview (512px)';
         const wasPremium = selectedDownloadQuality === 'premium';
         showStatus(`✅ ${qualityLabel} downloaded successfully!`);
         
@@ -2308,7 +2303,7 @@
                     What is the difference between Free Preview and Premium HD?
                 </h3>
                 <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    Free Preview provides 512px output using GPU-accelerated processing and requires no credits. Premium HD delivers up to 25 Megapixels resolution using GPU-accelerated High-Resolution processing and requires 2 credits per image. Both use the same advanced AI technology, but Premium HD provides higher resolution suitable for professional printing and large-format use.
+                    Free Preview provides 512px output using GPU-accelerated processing. Premium HD delivers up to 25 Megapixels resolution using GPU-accelerated High-Resolution processing. Both use the same advanced AI technology, but Premium HD provides higher resolution suitable for professional printing and large-format use. See pricing page for credit details.
                 </div>
             </div>
             <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
@@ -2650,10 +2645,10 @@
           <div class="download-option" id="premiumDownloadOption" data-quality="premium">
             <div class="download-option-header">
               <div class="download-option-title">Premium HD – up to 25 Megapixels</div>
-              <span class="download-option-badge premium">Premium (2 Credit)</span>
+              <span class="download-option-badge premium">Premium HD</span>
             </div>
             <div class="download-option-details">
-              <strong>Up to 25 Megapixels</strong> • 2 credits per image • High-resolution quality
+              <strong>Up to 25 Megapixels</strong> • High-resolution quality
             </div>
             <div class="size-selection" id="premiumSizeSelection">
               <label for="premiumSizeSelect"><i class="fas fa-expand-arrows-alt"></i> Select Resolution:</label>

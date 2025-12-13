@@ -302,9 +302,9 @@ module.exports = async function handler(req, res) {
 
     // Use verified userId from token for credit operations
     const finalUserId = verifiedUserId;
-    const CREDITS_REQUIRED = 2; // UPDATED: 2 credits per premium HD image (25 MP max)
-
-    // STEP 1: Check credit balance (without deducting yet)
+    
+    // STEP 1: Check credit balance (use minimum 2 credits for initial check, actual deduction will be variable)
+    const MIN_CREDITS_REQUIRED = 2; // Minimum for initial check (actual will be 2-7 based on MP)
     const creditCheck = await checkCreditBalance(finalUserId, token);
     
     // CRITICAL: Ensure creditsAvailable is a number for proper comparison
@@ -312,13 +312,13 @@ module.exports = async function handler(req, res) {
       ? creditCheck.creditsAvailable 
       : (typeof creditCheck.creditsAvailable === 'string' ? parseFloat(creditCheck.creditsAvailable) || 0 : 0);
     
-    console.log(`[Premium HD] Credit check - Available: ${availableCredits} (type: ${typeof creditCheck.creditsAvailable}), Required: ${CREDITS_REQUIRED}`);
+    console.log(`[Premium HD] Credit check - Available: ${availableCredits} (type: ${typeof creditCheck.creditsAvailable}), Min Required: ${MIN_CREDITS_REQUIRED}`);
     
-    if (!creditCheck.hasCredits || (!creditCheck.unlimited && availableCredits < CREDITS_REQUIRED)) {
+    if (!creditCheck.hasCredits || (!creditCheck.unlimited && availableCredits < MIN_CREDITS_REQUIRED)) {
       return res.status(402).json({
         success: false,
         error: 'Insufficient credits',
-        message: `You need ${CREDITS_REQUIRED} credit(s) for Premium HD. You have ${availableCredits} credit(s). Please purchase credits.`,
+        message: `You need at least ${MIN_CREDITS_REQUIRED} credit(s) for Premium HD. You have ${availableCredits} credit(s). Please purchase credits.`,
         requiresAuth: false,
         requiresCredits: true,
         creditsAvailable: availableCredits
@@ -380,8 +380,13 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // STEP 3: Processing successful - NOW deduct credits
-    const deductResult = await deductCredits(finalUserId, token, CREDITS_REQUIRED);
+    // STEP 3: Processing successful - NOW deduct credits (variable based on output MP)
+    // Credits required is calculated by backend based on final output megapixels
+    const creditsRequired = result.creditsUsed || 2; // Backend returns actual credits needed (2-7)
+    
+    console.log(`[Premium HD] Deducting ${creditsRequired} credits for ${result.megapixels || 0} MP output`);
+    
+    const deductResult = await deductCredits(finalUserId, token, creditsRequired);
     
     if (!deductResult.success) {
       // Processing succeeded but deduction failed - log error but still return result
@@ -394,7 +399,8 @@ module.exports = async function handler(req, res) {
         processedWith: 'Premium HD – up to 25 Megapixels (GPU-accelerated High-Resolution)',
         outputSize: result.outputSize,
         outputSizeMB: result.outputSizeMB,
-        creditsUsed: CREDITS_REQUIRED,
+        creditsUsed: result.creditsUsedDisplay || 2, // Show generic 2 in UI
+        creditsUsedActual: creditsRequired, // Internal actual credits
         warning: 'Image processed but credit deduction may have failed - please check your account'
       });
     }
@@ -403,11 +409,13 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({
       success: true,
       resultImage: result.resultImage,
-      processedWith: 'Premium HD (2000-4000px GPU-accelerated High-Resolution)',
+      processedWith: 'Premium HD – up to 25 Megapixels (GPU-accelerated High-Resolution)',
       outputSize: result.outputSize,
       outputSizeMB: result.outputSizeMB,
-      creditsUsed: CREDITS_REQUIRED,
-      creditsRemaining: deductResult.creditsAvailable
+      creditsUsed: result.creditsUsedDisplay || 2, // Always show 2 in UI (generic)
+      creditsUsedActual: creditsRequired, // Internal actual credits (2-7)
+      creditsRemaining: deductResult.creditsAvailable,
+      megapixels: result.megapixels
     });
 
   } catch (error) {
