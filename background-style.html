@@ -57,6 +57,17 @@
     .stage { flex: 1; width: 100%; max-width: 1200px; margin: 36px auto; padding: 0 24px 60px; display: grid; grid-template-columns: minmax(320px, 1fr) minmax(360px, 420px); gap: 28px; align-items: start; }
     .panel { background: var(--surface); border-radius: 24px; padding: 28px; box-shadow: 0 22px 45px rgba(16, 30, 70, 0.08); border: 1px solid var(--border); }
     .panel h2 { font-size: 1.25rem; margin-bottom: 18px; color: #121a4c; display: flex; align-items: center; gap: 10px; }
+    .preview-stage { position: relative; width: 8.5cm; height: 6cm; max-width: 100%; max-height: 100%; margin: 0 auto; border-radius: 18px; background: repeating-conic-gradient(#e5e9ff 0deg 25deg, #f8f9ff 25deg 50deg); overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    .preview-original, .preview-result { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transition: opacity 0.6s ease; border: none; outline: none; box-shadow: none; }
+    .preview-result { opacity: 0; }
+    .preview-stage.revealed .preview-result { opacity: 1; }
+    .preview-stage.revealed .preview-original { opacity: 0; }
+    .preview-overlay { position: absolute; inset: 0; background: rgba(17, 24, 39, 0.55); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #fff; font-weight: 600; letter-spacing: 0.03em; transition: opacity 0.4s ease; }
+    .preview-stage.revealed .preview-overlay { opacity: 0; pointer-events: none; }
+    .preview-stage.empty .preview-overlay { display: none; }
+    .preview-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; color: var(--muted); font-weight: 600; letter-spacing: 0.03em; }
+    .preview-placeholder.hidden { display: none; }
+    .preview-spinner { width: 34px; height: 34px; border: 3px solid rgba(255, 255, 255, 0.4); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; }
     .preview-frame { border-radius: 20px; width: 8.6cm; height: 8.6cm; max-width: 100%; max-height: 100%; overflow: hidden; position: relative; background: #f1f1ff; margin: 0 auto; display: flex; align-items: center; justify-content: center; }
     .preview-frame canvas { 
       width: 100%; 
@@ -200,7 +211,21 @@
 <main class="stage">
 <section class="panel">
 <h2>Upload File</h2>
-<div class="preview-frame">
+<!-- Preview Stage (like workspace) -->
+<div class="preview-stage" id="previewStage">
+<img alt="Original" class="preview-original" hidden id="previewOriginal"/>
+<img alt="Result" class="preview-result" hidden id="previewResult"/>
+<div class="preview-overlay" id="previewOverlay">
+<div class="preview-spinner"></div>
+<span>Loading...</span>
+</div>
+<div class="preview-placeholder hidden" id="previewPlaceholder">
+<i class="fas fa-image" style="font-size:3rem;opacity:0.3;"></i>
+<span>No image loaded</span>
+</div>
+</div>
+<!-- Canvas for background styling (hidden, used for processing) -->
+<div style="display: none;">
 <canvas id="previewCanvas"></canvas>
 </div>
 <!-- Multiple Images Grid Preview -->
@@ -1331,6 +1356,47 @@
       }
       
       applyOverlay();
+      
+      // Update preview stage images (like workspace)
+      const previewStage = document.getElementById('previewStage');
+      const previewOriginal = document.getElementById('previewOriginal');
+      const previewResult = document.getElementById('previewResult');
+      const previewOverlay = document.getElementById('previewOverlay');
+      const previewPlaceholder = document.getElementById('previewPlaceholder');
+      
+      if (previewCanvas && previewOriginal && previewResult && previewStage) {
+        // Get styled result from canvas
+        const styledDataURL = previewCanvas.toDataURL('image/png');
+        
+        // Update preview images
+        if (previewOriginal) {
+          const originalUrl = sessionStorage.getItem(STORAGE_KEYS.original) || foregroundDataUrl;
+          if (originalUrl && !previewOriginal.src) {
+            previewOriginal.src = originalUrl;
+            previewOriginal.hidden = false;
+          }
+        }
+        
+        if (previewResult && styledDataURL) {
+          previewResult.src = styledDataURL;
+          previewResult.hidden = false;
+        }
+        
+        // Show result (hide original)
+        if (previewStage) {
+          previewStage.classList.add('revealed');
+          previewStage.classList.remove('empty');
+        }
+        
+        if (previewOverlay) {
+          previewOverlay.style.opacity = '0';
+        }
+        
+        if (previewPlaceholder) {
+          previewPlaceholder.classList.add('hidden');
+        }
+      }
+      
       if (downloadBtn) downloadBtn.disabled = false;
       if (resetBtn) resetBtn.disabled = false;
       
@@ -1403,9 +1469,43 @@
               }
             }
             
+            // Initialize preview stage (like workspace)
+            const previewStage = document.getElementById('previewStage');
+            const previewOriginal = document.getElementById('previewOriginal');
+            const previewResult = document.getElementById('previewResult');
+            const previewOverlay = document.getElementById('previewOverlay');
+            const previewPlaceholder = document.getElementById('previewPlaceholder');
+            
+            if (previewOriginal) {
+              const originalUrl = sessionStorage.getItem(STORAGE_KEYS.original);
+              if (originalUrl) {
+                previewOriginal.src = originalUrl;
+                previewOriginal.hidden = false;
+              }
+            }
+            
             // Force canvas update
             await drawComposite('transparent');
             console.log('Preview drawn to canvas');
+            
+            // Update preview stage after drawing
+            if (previewCanvas && previewResult && previewStage) {
+              const styledDataURL = previewCanvas.toDataURL('image/png');
+              if (styledDataURL && previewResult) {
+                previewResult.src = styledDataURL;
+                previewResult.hidden = false;
+              }
+              if (previewStage) {
+                previewStage.classList.add('revealed');
+                previewStage.classList.remove('empty');
+              }
+              if (previewOverlay) {
+                previewOverlay.style.opacity = '0';
+              }
+              if (previewPlaceholder) {
+                previewPlaceholder.classList.add('hidden');
+              }
+            }
             
             // Force a repaint to ensure visibility
             if (previewCanvas) {
