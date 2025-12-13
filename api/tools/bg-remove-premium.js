@@ -108,7 +108,11 @@ async function checkCreditBalance(userId, token) {
     }
     
     const userData = userDoc.data();
-    const currentCredits = userData.credits || 0;
+    // CRITICAL: Ensure credits is a number, not a string
+    // Firestore may store credits as strings, so we need to parse them
+    const currentCredits = typeof userData.credits === 'number' 
+      ? userData.credits 
+      : (typeof userData.credits === 'string' ? parseFloat(userData.credits) || 0 : 0);
     
     // Check subscription for unlimited credits
     const subscriptionRef = db.collection('subscriptions').doc(userId);
@@ -153,7 +157,11 @@ async function deductCredits(userId, token, creditsRequired = 1) {
       }
       
       const userData = userDoc.data();
-      const currentCredits = userData.credits || 0;
+      // CRITICAL: Ensure credits is a number, not a string
+      // Firestore may store credits as strings, so we need to parse them
+      const currentCredits = typeof userData.credits === 'number' 
+        ? userData.credits 
+        : (typeof userData.credits === 'string' ? parseFloat(userData.credits) || 0 : 0);
       
       // Check if user has sufficient credits
       if (currentCredits < creditsRequired) {
@@ -299,14 +307,21 @@ module.exports = async function handler(req, res) {
     // STEP 1: Check credit balance (without deducting yet)
     const creditCheck = await checkCreditBalance(finalUserId, token);
     
-    if (!creditCheck.hasCredits || (!creditCheck.unlimited && creditCheck.creditsAvailable < CREDITS_REQUIRED)) {
+    // CRITICAL: Ensure creditsAvailable is a number for proper comparison
+    const availableCredits = typeof creditCheck.creditsAvailable === 'number' 
+      ? creditCheck.creditsAvailable 
+      : (typeof creditCheck.creditsAvailable === 'string' ? parseFloat(creditCheck.creditsAvailable) || 0 : 0);
+    
+    console.log(`[Premium HD] Credit check - Available: ${availableCredits} (type: ${typeof creditCheck.creditsAvailable}), Required: ${CREDITS_REQUIRED}`);
+    
+    if (!creditCheck.hasCredits || (!creditCheck.unlimited && availableCredits < CREDITS_REQUIRED)) {
       return res.status(402).json({
         success: false,
         error: 'Insufficient credits',
-        message: `You need ${CREDITS_REQUIRED} credit for Premium HD. You have ${creditCheck.creditsAvailable || 0} credit(s). Please purchase credits.`,
+        message: `You need ${CREDITS_REQUIRED} credit(s) for Premium HD. You have ${availableCredits} credit(s). Please purchase credits.`,
         requiresAuth: false,
         requiresCredits: true,
-        creditsAvailable: creditCheck.creditsAvailable || 0
+        creditsAvailable: availableCredits
       });
     }
 

@@ -87,6 +87,12 @@ module.exports = async function handler(req, res) {
 
     const userData = userDoc.data();
     
+    // CRITICAL: Ensure credits is a number, not a string
+    // Firestore may store credits as strings, so we need to parse them
+    const credits = typeof userData.credits === 'number' 
+      ? userData.credits 
+      : (typeof userData.credits === 'string' ? parseFloat(userData.credits) || 0 : 0);
+    
     // Check subscription for unlimited credits
     const subscriptionRef = db.collection('subscriptions').doc(userId);
     const subscriptionDoc = await subscriptionRef.get();
@@ -102,7 +108,7 @@ module.exports = async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     return res.status(200).json({
       success: true,
-      credits: userData.credits || 0,
+      credits: credits,
       totalCreditsEarned: userData.totalCreditsEarned || 0,
       totalCreditsUsed: userData.totalCreditsUsed || 0,
       unlimited: unlimited
