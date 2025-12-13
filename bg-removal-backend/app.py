@@ -573,26 +573,8 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
     else:
         debug_stats.update(mask_stats("mask_after_clean_edges_skipped", mask))
     
-    # Step 5: Apply Feathering (Premium only - skip for free to avoid transparency)
-    if is_premium and SCIPY_AVAILABLE:
-        logger.info("Step 5: Applying feathering for natural smooth edges...")
-        feather_radius = 3
-        mask = apply_feathering(mask, feather_radius=feather_radius)
-        debug_stats.update(mask_stats("mask_after_feather", mask))
-    else:
-        logger.info("Step 5: Skipping feathering for free preview to avoid transparency issues.")
-        debug_stats.update(mask_stats("mask_after_feather_skipped", mask))
-    
-    # Step 6: Remove halos (Premium only - skip for free to avoid transparency)
-    if is_premium:
-        logger.info("Step 6: Removing halos and background leakage...")
-        mask = remove_halo(mask, input_image, threshold=0.15)
-        debug_stats.update(mask_stats("mask_after_halo", mask))
-    else:
-        logger.info("Step 6: Skipping halo removal for free preview to avoid transparency issues.")
-        debug_stats.update(mask_stats("mask_after_halo_skipped", mask))
-    
-    # Step 7: Apply Matte Strength for documents (Premium: enhanced, Free: basic)
+    # Step 5: Apply Matte Strength for documents (Premium: enhanced, Free: basic)
+    # NOTE: Feathering and halo removal moved to Step 8.1/8.2 (after composing RGB+mask)
     if is_document:
         if is_premium:
             logger.info("Step 7: Applying enhanced matte strength (0.3) for premium document optimization...")
