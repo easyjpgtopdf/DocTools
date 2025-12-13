@@ -75,7 +75,17 @@
     .download-option-badge.premium { background: rgba(67, 97, 238, 0.15); color: var(--primary); }
     .download-option-details { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
     .download-option-details strong { color: #1a214d; }
+    .size-selection { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); display: none; }
+    .size-selection.active { display: block; }
+    .size-selection label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 8px; font-weight: 600; }
+    .size-select { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 12px; font-size: 0.95rem; color: #1a214d; background: #fff; cursor: pointer; transition: border-color 0.2s; }
+    .size-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1); }
+    .size-info { margin-top: 8px; font-size: 0.8rem; color: var(--muted); }
     .download-modal-actions { display: flex; gap: 12px; justify-content: flex-end; }
+    @media (max-width: 640px) {
+      .download-modal-content { padding: 24px; max-width: 95%; }
+      .size-select { font-size: 0.9rem; padding: 8px 12px; }
+    }
     .download-modal-actions button { padding: 10px 20px; border-radius: 999px; border: none; cursor: pointer; font-weight: 600; font-size: 0.95rem; transition: transform 0.2s; }
     .download-modal-actions button:hover { transform: translateY(-1px); }
     .download-modal-actions .btn-cancel { background: #f5f5f5; color: #666; }
@@ -95,7 +105,7 @@
       "@context": "https://schema.org",
       "@type": "WebPage",
       "name": "Background Removal Workspace - AI Background Remover | Remove Background Online Free",
-      "description": "Remove background from images online with AI. Free preview (512px) and premium HD quality (2000-4000px) background removal. Professional GPU-accelerated AI processing.",
+      "description": "Remove background from images online with AI. Free preview (512px) and premium HD quality (up to 25 Megapixels) background removal. Professional GPU-accelerated AI processing.",
       "url": "https://easyjpgtopdf.com/background-workspace.html",
       "inLanguage": "en-US",
       "isPartOf": {
@@ -676,8 +686,8 @@
       }
     }
     
-    // Process with Premium HD API (2000-4000px BiRefNet GPU High-Resolution)
-    async function processWithPremiumHD(dataURL) {
+    // Process with Premium HD API (up to 25 MP BiRefNet GPU High-Resolution)
+    async function processWithPremiumHD(dataURL, targetSize = 'original') {
       try {
         // Validate image data before sending
         const validation = validateImageDataURL(dataURL);
@@ -701,7 +711,7 @@
         }
         
         // Verify credits (this should be done on backend, but we check here for UX)
-        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⚡ Processing with Premium HD (GPU-accelerated High-Resolution)... This may take 30-90 seconds.</div>`;
+        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⚡ Processing with Premium HD – up to 25 Megapixels (GPU-accelerated High-Resolution)... This may take 30-90 seconds.</div>`;
         
         const startTime = Date.now();
         
@@ -729,9 +739,21 @@
             'Accept': 'application/json',
             'Authorization': `Bearer ${await getAuthToken()}`
           },
+          // Parse target size
+          let targetWidth = null;
+          let targetHeight = null;
+          if (selectedPremiumSize && selectedPremiumSize !== 'original') {
+            const [width, height] = selectedPremiumSize.split('x');
+            targetWidth = parseInt(width);
+            targetHeight = parseInt(height);
+          }
+          
           body: JSON.stringify({ 
             imageData: dataURL,
-            userId: userId
+            userId: userId,
+            targetSize: selectedPremiumSize || 'original',
+            targetWidth: targetWidth,
+            targetHeight: targetHeight
           }),
           signal: controller.signal
         });
@@ -1623,6 +1645,7 @@
     const premiumCreditText = document.getElementById('premiumCreditText');
     
     let selectedDownloadQuality = null;
+    let selectedPremiumSize = 'original'; // Default: preserve original size
     
     // Show download modal when download button is clicked
     downloadBtn.addEventListener('click', async () => {
@@ -1709,7 +1732,7 @@
         const creditCheck = await creditMod.hasSufficientCredits(userId, 1);
         
         if (!creditCheck.hasCredits && !creditCheck.unlimited) {
-          if (confirm(`You need 1 credit for Premium HD. You have ${creditCheck.creditsAvailable || 0} credit(s). Would you like to purchase credits?`)) {
+          if (confirm(`You need 2 credits for Premium HD. You have ${creditCheck.creditsAvailable || 0} credit(s). Would you like to purchase credits?`)) {
             window.location.href = 'pricing.html#credits';
           }
           return;
@@ -1719,7 +1742,40 @@
       selectedDownloadQuality = 'premium';
       premiumDownloadOption.classList.add('selected');
       freeDownloadOption.classList.remove('selected');
+      
+      // Show size selection
+      const sizeSelection = document.getElementById('premiumSizeSelection');
+      if (sizeSelection) {
+        sizeSelection.classList.add('active');
+      }
+      
       confirmDownloadBtn.disabled = false;
+    });
+    
+    // Handle size selection change
+    const premiumSizeSelect = document.getElementById('premiumSizeSelect');
+    if (premiumSizeSelect) {
+      premiumSizeSelect.addEventListener('change', (e) => {
+        selectedPremiumSize = e.target.value;
+        const sizeInfo = document.getElementById('premiumSizeInfo');
+        if (sizeInfo) {
+          if (selectedPremiumSize === 'original') {
+            sizeInfo.textContent = 'Original resolution will be preserved if within 25 MP limit';
+          } else {
+            const [width, height] = selectedPremiumSize.split('x');
+            const mp = ((parseInt(width) * parseInt(height)) / 1_000_000).toFixed(2);
+            sizeInfo.textContent = `${width}×${height} pixels (${mp} MP) • 2 credits`;
+          }
+        }
+      });
+    }
+    
+    // Hide size selection when free option is selected
+    freeDownloadOption.addEventListener('click', () => {
+      const sizeSelection = document.getElementById('premiumSizeSelection');
+      if (sizeSelection) {
+        sizeSelection.classList.remove('active');
+      }
     });
     
     // Cancel download modal
@@ -1769,51 +1825,112 @@
             return;
           }
           
-          // Process with premium HD
-          statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⚡ Processing Premium HD for download...</div>`;
+          // Process with premium HD - FIXED: Add processing indicator and ensure download happens
+          const processingOverlay = document.createElement('div');
+          processingOverlay.id = 'premiumProcessingOverlay';
+          processingOverlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;';
+          processingOverlay.innerHTML = `
+            <div style="background:white;padding:32px;border-radius:20px;max-width:400px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,0.3);">
+              <div style="font-size:48px;margin-bottom:16px;">⏳</div>
+              <h3 style="color:#1a214d;margin:0 0 12px 0;font-size:1.3rem;">Processing Premium HD...</h3>
+              <p style="color:#6f7694;margin:0 0 20px 0;line-height:1.6;">This may take 30-90 seconds. Please wait while we process your image with high-quality AI.</p>
+              <div style="width:100%;height:4px;background:#f0f0f0;border-radius:2px;overflow:hidden;">
+                <div id="processingProgressBar" style="height:100%;background:linear-gradient(90deg,#4361ee,#3a0ca3);width:0%;transition:width 0.3s;animation:pulse 1.5s infinite;"></div>
+              </div>
+            </div>
+          `;
+          document.body.appendChild(processingOverlay);
+          
+          // Animate progress bar
+          let progress = 0;
+          const progressBar = document.getElementById('processingProgressBar');
+          const progressInterval = setInterval(() => {
+            progress += Math.random() * 15;
+            if (progress > 90) progress = 90;
+            if (progressBar) progressBar.style.width = progress + '%';
+          }, 500);
+          
           downloadModal.classList.remove('active');
           
           console.log('Starting premium HD processing...', { userId, hasOriginalData: !!originalDataUrl });
           
-          const premiumResult = await processWithPremiumHD(originalDataUrl);
-          
-          console.log('Premium HD processing result:', { success: premiumResult.success, error: premiumResult.error, requiresAuth: premiumResult.requiresAuth, requiresCredits: premiumResult.requiresCredits });
-          
-          if (premiumResult.success) {
-            finalDownloadUrl = premiumResult.dataUrl;
-            // Update stored foreground
-            sessionStorage.setItem(STORAGE_KEYS.foreground, premiumResult.dataUrl);
+          try {
+            const premiumResult = await processWithPremiumHD(originalDataUrl, selectedPremiumSize);
             
-            // Update preview
-            previewResult.src = premiumResult.dataUrl;
-            const foregroundImage = new Image();
-            foregroundImage.crossOrigin = 'anonymous';
-            foregroundImage.src = premiumResult.dataUrl;
-            await foregroundImage.decode();
+            clearInterval(progressInterval);
+            if (progressBar) progressBar.style.width = '100%';
             
-            ensureCanvas(foregroundImage.width, foregroundImage.height);
-            resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
-            resultContext.drawImage(foregroundImage, 0, 0, resultCanvas.width, resultCanvas.height);
-            resultDataURL = resultCanvas.toDataURL('image/png');
+            console.log('Premium HD processing result:', { success: premiumResult.success, error: premiumResult.error, requiresAuth: premiumResult.requiresAuth, requiresCredits: premiumResult.requiresCredits });
             
-            showStatus('✅ Premium HD processed successfully!');
-          } else {
-            if (premiumResult.requiresAuth) {
-              if (confirm('Please sign in to use Premium HD. Would you like to sign in now?')) {
-                window.location.href = 'login.html?returnTo=' + encodeURIComponent(window.location.href);
+            if (premiumResult.success) {
+              finalDownloadUrl = premiumResult.dataUrl;
+              
+              // Show credit deduction info
+              const creditsUsed = premiumResult.creditsUsed || 2;
+              const creditsRemaining = premiumResult.creditsRemaining;
+              const creditInfo = creditsRemaining !== undefined 
+                ? ` (${creditsUsed} credit used, ${creditsRemaining} remaining)`
+                : ` (${creditsUsed} credit used)`;
+              
+              // Update stored foreground
+              sessionStorage.setItem(STORAGE_KEYS.foreground, premiumResult.dataUrl);
+              
+              // Update preview
+              previewResult.src = premiumResult.dataUrl;
+              const foregroundImage = new Image();
+              foregroundImage.crossOrigin = 'anonymous';
+              foregroundImage.src = premiumResult.dataUrl;
+              await foregroundImage.decode();
+              
+              ensureCanvas(foregroundImage.width, foregroundImage.height);
+              resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+              resultContext.drawImage(foregroundImage, 0, 0, resultCanvas.width, resultCanvas.height);
+              resultDataURL = resultCanvas.toDataURL('image/png');
+              
+              // Remove processing overlay
+              if (processingOverlay && processingOverlay.parentNode) {
+                processingOverlay.parentNode.removeChild(processingOverlay);
               }
-            } else if (premiumResult.requiresCredits) {
-              if (confirm('Insufficient credits for Premium HD. Would you like to purchase credits?')) {
-                window.location.href = 'pricing.html#credits';
-              }
+              
+              showStatus(`✅ Premium HD processed successfully!${creditInfo}`);
+              
+              // Continue to download after processing
             } else {
-              showError(premiumResult.error || 'Premium HD processing failed');
+              // Remove processing overlay
+              if (processingOverlay && processingOverlay.parentNode) {
+                processingOverlay.parentNode.removeChild(processingOverlay);
+              }
+              
+              if (premiumResult.requiresAuth) {
+                if (confirm('Please sign in to use Premium HD. Would you like to sign in now?')) {
+                  window.location.href = 'login.html?returnTo=' + encodeURIComponent(window.location.href);
+                }
+              } else if (premiumResult.requiresCredits) {
+                if (confirm('Insufficient credits for Premium HD. Would you like to purchase credits?')) {
+                  window.location.href = 'pricing.html#credits';
+                }
+              } else {
+                showError(premiumResult.error || 'Premium HD processing failed');
+              }
+              return;
             }
+          } catch (error) {
+            clearInterval(progressInterval);
+            if (processingOverlay && processingOverlay.parentNode) {
+              processingOverlay.parentNode.removeChild(processingOverlay);
+            }
+            console.error('Premium HD processing error:', error);
+            showError('Premium HD processing failed: ' + (error.message || 'Unknown error'));
             return;
           }
         }
         
-        // Prepare download URL
+        // Prepare download URL - FIXED: Ensure download happens
+        if (!finalDownloadUrl) {
+          showError('No image available for download');
+          return;
+        }
+        
         if (finalDownloadUrl.startsWith('data:image/png')) {
           // Already PNG, use directly
         } else {
@@ -1837,20 +1954,29 @@
           finalDownloadUrl = canvas.toDataURL('image/png');
         }
         
-        // Download the image
-        const link = document.createElement('a');
-        const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-removed.png';
-        const baseName = filename.replace(/\.[^/.]+$/, '') || 'background-removed';
-        const qualitySuffix = selectedDownloadQuality === 'premium' ? '-premium-hd' : '-free-preview';
-        link.href = finalDownloadUrl;
-        link.download = `${baseName}${qualitySuffix}.png`;
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // Download the image - FIXED: Ensure download triggers
+        try {
+          const link = document.createElement('a');
+          const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-removed.png';
+          const baseName = filename.replace(/\.[^/.]+$/, '') || 'background-removed';
+          const qualitySuffix = selectedDownloadQuality === 'premium' ? '-premium-hd' : '-free-preview';
+          link.href = finalDownloadUrl;
+          link.download = `${baseName}${qualitySuffix}.png`;
+          
+          document.body.appendChild(link);
+          link.click();
+          setTimeout(() => {
+            document.body.removeChild(link);
+          }, 100);
+          
+          console.log('Download triggered successfully');
+        } catch (downloadError) {
+          console.error('Download error:', downloadError);
+          showError('Failed to trigger download. Please try right-clicking on the preview image and selecting "Save image as..."');
+        }
         
         // Show success message
-        const qualityLabel = selectedDownloadQuality === 'premium' ? 'Premium HD (2000-4000px)' : 'Free Preview (512px)';
+        const qualityLabel = selectedDownloadQuality === 'premium' ? 'Premium HD – up to 25 Megapixels (2 Credit per image)' : 'Free Preview (512px)';
         const wasPremium = selectedDownloadQuality === 'premium';
         showStatus(`✅ ${qualityLabel} downloaded successfully!`);
         
@@ -1945,7 +2071,7 @@
                 About Background Removal Workspace
             </h2>
             <div class="content-text" style="font-size: 1.1rem; color: #56607a; line-height: 1.8; text-align: center; margin-bottom: 30px;">
-                <p>Our Background Removal Workspace is a powerful AI-powered tool that removes backgrounds from images with professional precision. Using advanced GPU-accelerated AI technology, we offer two processing modes: Free Preview (512px output) for quick previews and Premium HD (2000-4000px output) for high-resolution professional results. The tool uses state-of-the-art deep learning models to accurately detect and remove backgrounds while preserving fine details, edges, and transparency. Whether you're creating product photos, social media content, or professional graphics, our background remover delivers studio-quality results. The free preview mode allows you to test the quality before committing credits, while premium HD mode provides print-ready transparent PNG files suitable for professional use. All processing is done securely in the cloud using GPU-accelerated servers, ensuring fast processing times and high-quality results. Your images are automatically deleted after processing to protect your privacy.</p>
+                <p>Our Background Removal Workspace is a powerful AI-powered tool that removes backgrounds from images with professional precision. Using advanced GPU-accelerated AI technology, we offer two processing modes: Free Preview (512px output) for quick previews and Premium HD (up to 25 Megapixels output) for high-resolution professional results. The tool uses state-of-the-art deep learning models to accurately detect and remove backgrounds while preserving fine details, edges, and transparency. Whether you're creating product photos, social media content, or professional graphics, our background remover delivers studio-quality results. The free preview mode allows you to test the quality before committing credits, while premium HD mode provides print-ready transparent PNG files suitable for professional use. All processing is done securely in the cloud using GPU-accelerated servers, ensuring fast processing times and high-quality results. Your images are automatically deleted after processing to protect your privacy.</p>
             </div>
             
             <div class="features-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 30px;">
@@ -1958,7 +2084,7 @@
                 <div class="feature-item" style="padding: 20px; background: white; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
                     <i class="fas fa-image" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
                     <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px;">HD Quality Output</h3>
-                    <p style="color: #56607a; font-size: 0.95rem;">Premium mode delivers 2000-4000px resolution for professional use</p>
+                    <p style="color: #56607a; font-size: 0.95rem;">Premium mode delivers up to 25 Megapixels resolution for professional use</p>
                 </div>
                 
                 <div class="feature-item" style="padding: 20px; background: white; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
@@ -1992,7 +2118,7 @@
                         2
                     </span>
                     <p style="font-size: 1.1rem; color: #0b1630; line-height: 1.6; margin: 0;">
-                        Choose your processing quality: Free Preview (512px) for quick preview or Premium HD (2000-4000px) for professional results
+                        Choose your processing quality: Free Preview (512px) for quick preview or Premium HD (up to 25 Megapixels) for professional results
                     </p>
                 </li>
 
@@ -2061,7 +2187,7 @@
                     What is the difference between Free Preview and Premium HD?
                 </h3>
                 <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    Free Preview provides 512px output using GPU-accelerated processing and requires no credits. Premium HD delivers 2000-4000px resolution using GPU-accelerated High-Resolution processing and requires credits. Both use the same advanced AI technology, but Premium HD provides higher resolution suitable for professional printing and large-format use.
+                    Free Preview provides 512px output using GPU-accelerated processing and requires no credits. Premium HD delivers up to 25 Megapixels resolution using GPU-accelerated High-Resolution processing and requires 2 credits per image. Both use the same advanced AI technology, but Premium HD provides higher resolution suitable for professional printing and large-format use.
                 </div>
             </div>
             <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
@@ -2402,11 +2528,26 @@
           </div>
           <div class="download-option" id="premiumDownloadOption" data-quality="premium">
             <div class="download-option-header">
-              <div class="download-option-title">Premium HD</div>
-              <span class="download-option-badge premium">Premium</span>
+              <div class="download-option-title">Premium HD – up to 25 Megapixels</div>
+              <span class="download-option-badge premium">Premium (2 Credit)</span>
             </div>
             <div class="download-option-details">
-              <strong>2000-4000px</strong> • 1 credit per image • High-resolution quality
+              <strong>Up to 25 Megapixels</strong> • 2 credits per image • High-resolution quality
+            </div>
+            <div class="size-selection" id="premiumSizeSelection">
+              <label for="premiumSizeSelect"><i class="fas fa-expand-arrows-alt"></i> Select Resolution:</label>
+              <select id="premiumSizeSelect" class="size-select">
+                <option value="original">Original Size (Preserved if ≤ 25 MP)</option>
+                <option value="1920x1080">1920×1080 (2.07 MP) - Full HD</option>
+                <option value="2048x2048">2048×2048 (4.19 MP) - Square HD</option>
+                <option value="3000x2000">3000×2000 (6 MP) - 3:2 Ratio</option>
+                <option value="3000x3000">3000×3000 (9 MP) - Square</option>
+                <option value="4000x3000">4000×3000 (12 MP) - 4:3 Ratio</option>
+                <option value="4000x4000">4000×4000 (16 MP) - Square</option>
+                <option value="5000x3000">5000×3000 (15 MP) - 5:3 Ratio</option>
+                <option value="5000x5000">5000×5000 (25 MP) - Maximum</option>
+              </select>
+              <div class="size-info" id="premiumSizeInfo">Original resolution will be preserved if within 25 MP limit</div>
             </div>
             <div id="premiumCreditInfo" style="margin-top: 8px; padding: 8px; background: rgba(67, 97, 238, 0.08); border-radius: 8px; font-size: 0.85rem; color: #56607a; display: none;">
               <span id="premiumCreditText">Checking credits...</span>

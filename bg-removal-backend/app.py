@@ -759,7 +759,7 @@ def free_preview_bg():
 
 @app.route('/api/premium-bg', methods=['POST'])
 def premium_bg():
-    """Premium HD: 2000-4000px output with full optimizations"""
+    """Premium HD: Up to 25 Megapixels (max width × height) with full optimizations"""
     start_time = time.time()
     
     try:
@@ -771,8 +771,11 @@ def premium_bg():
             }), 400
         
         image_data = data.get('imageData')
-        min_size = data.get('minSize', 2000)
-        max_size = data.get('maxSize', 4000)
+        max_megapixels = data.get('maxMegapixels', 25)  # Default: 25 MP max
+        preserve_original = data.get('preserveOriginal', True)  # Preserve original if ≤ 25 MP
+        target_size = data.get('targetSize', 'original')  # Target size: 'original' or 'WxH'
+        target_width = data.get('targetWidth')  # Specific target width
+        target_height = data.get('targetHeight')  # Specific target height
         user_id = data.get('userId')
         
         # Decode base64 image
@@ -791,20 +794,64 @@ def premium_bg():
             elif input_image.mode != 'RGB':
                 input_image = input_image.convert('RGB')
             
-            # Calculate target size (2000-4000px max dimension)
+            # Calculate megapixels and check limit
             original_size = input_image.size
-            max_dimension = max(original_size)
+            original_width, original_height = original_size
+            original_megapixels = (original_width * original_height) / 1_000_000
             
-            if max_dimension > max_size:
-                scale = max_size / max_dimension
-                new_size = (int(original_size[0] * scale), int(original_size[1] * scale))
-                input_image = input_image.resize(new_size, Image.Resampling.LANCZOS)
-                logger.info(f"Resized image from {original_size} to {new_size} for HD processing")
-            elif max_dimension < min_size:
-                scale = min_size / max_dimension
-                new_size = (int(original_size[0] * scale), int(original_size[1] * scale))
-                input_image = input_image.resize(new_size, Image.Resampling.LANCZOS)
-                logger.info(f"Upscaled image from {original_size} to {new_size} for HD processing")
+            logger.info(f"Original image: {original_width}x{original_height} = {original_megapixels:.2f} MP")
+            
+            # Handle target size selection
+            if target_size and target_size != 'original' and target_width and target_height:
+                # User selected specific size
+                target_mp = (target_width * target_height) / 1_000_000
+                if target_mp > max_megapixels:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Selected size exceeds maximum of {max_megapixels} Megapixels',
+                        'message': f'Selected size {target_width}x{target_height} = {target_mp:.2f} MP exceeds maximum {max_megapixels} MP.',
+                        'selectedMegapixels': round(target_mp, 2),
+                        'maxMegapixels': max_megapixels
+                    }), 400
+                
+                # Resize to target size while maintaining aspect ratio
+                original_aspect = original_width / original_height
+                target_aspect = target_width / target_height
+                
+                if abs(original_aspect - target_aspect) < 0.01:
+                    # Same aspect ratio, resize directly
+                    input_image = input_image.resize((target_width, target_height), Image.Resampling.LANCZOS)
+                    logger.info(f"Resized to target size: {target_width}x{target_height} = {target_mp:.2f} MP")
+                else:
+                    # Different aspect ratio - resize to fit within target while maintaining aspect
+                    scale_w = target_width / original_width
+                    scale_h = target_height / original_height
+                    scale = min(scale_w, scale_h)  # Use smaller scale to fit within bounds
+                    new_width = int(original_width * scale)
+                    new_height = int(original_height * scale)
+                    input_image = input_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                    logger.info(f"Resized to fit target (maintaining aspect): {new_width}x{new_height} = {(new_width * new_height) / 1_000_000:.2f} MP (target: {target_width}x{target_height})")
+            elif original_megapixels > max_megapixels:
+                if preserve_original:
+                    # Auto downscale to 25 MP max
+                    scale = (max_megapixels / original_megapixels) ** 0.5
+                    new_width = int(original_width * scale)
+                    new_height = int(original_height * scale)
+                    input_image = input_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                    logger.info(f"Image exceeds {max_megapixels} MP limit. Downscaled to {new_width}x{new_height} = {(new_width * new_height) / 1_000_000:.2f} MP")
+                else:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Image exceeds maximum size of {max_megapixels} Megapixels',
+                        'message': f'Your image is {original_megapixels:.2f} MP. Maximum allowed is {max_megapixels} MP.',
+                        'originalMegapixels': round(original_megapixels, 2),
+                        'maxMegapixels': max_megapixels
+                    }), 400
+            
+            # Image is now within 25 MP limit (either original or auto-downscaled)
+            final_size = input_image.size
+            final_megapixels = (final_size[0] * final_size[1]) / 1_000_000
+            logger.info(f"Final processing size: {final_size[0]}x{final_size[1]} = {final_megapixels:.2f} MP")
             
             # Detect if image is a document (A4, letter, etc.)
             is_document = is_document_image(input_image)
@@ -834,9 +881,10 @@ def premium_bg():
                 'resultImage': result_image,
                 'outputSize': output_size,
                 'outputSizeMB': round(output_size / (1024 * 1024), 2),
-                'processedWith': 'Premium HD (2000-4000px GPU-accelerated, Full Optimizations)',
+                'processedWith': 'Premium HD – up to 25 Megapixels (GPU-accelerated High-Resolution)',
                 'processingTime': round(processing_time, 2),
-                'creditsUsed': 1,
+                'creditsUsed': 2,  # UPDATED: 2 credits per premium image
+                'megapixels': round(final_megapixels, 2),
                 'optimizations': {
                     'model': 'MaxMatting' if not is_document else 'RobustMatting',
                     'tensorrt_turbo': 'FP16 ONNX Runtime GPU',

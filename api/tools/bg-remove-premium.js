@@ -180,7 +180,7 @@ async function deductCredits(userId, token, creditsRequired = 1) {
       transaction.set(transactionRef, {
         type: 'deduction',
         amount: creditsRequired,
-        reason: 'Background removal - Premium HD',
+        reason: 'Background removal - Premium HD (up to 25 MP)',
         creditsBefore: currentCredits,
         creditsAfter: newCredits,
         timestamp: adminModule.firestore.FieldValue.serverTimestamp(),
@@ -225,7 +225,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { imageData, userId } = req.body;
+    const { imageData, userId, targetSize, targetWidth, targetHeight } = req.body;
 
     const normalized = normalizeImageData(imageData);
     if (!normalized.ok) {
@@ -294,7 +294,7 @@ module.exports = async function handler(req, res) {
 
     // Use verified userId from token for credit operations
     const finalUserId = verifiedUserId;
-    const CREDITS_REQUIRED = 1;
+    const CREDITS_REQUIRED = 2; // UPDATED: 2 credits per premium HD image (25 MP max)
 
     // STEP 1: Check credit balance (without deducting yet)
     const creditCheck = await checkCreditBalance(finalUserId, token);
@@ -324,7 +324,11 @@ module.exports = async function handler(req, res) {
       body: JSON.stringify({
         imageData: normalized.dataUrl,
         quality: 'hd',
-        maxSize: 4000
+        maxMegapixels: 25, // Max 25 Megapixels (width × height)
+        preserveOriginal: targetSize === 'original' || !targetSize, // Preserve original resolution if ≤ 25 MP
+        targetSize: targetSize || 'original',
+        targetWidth: targetWidth || null,
+        targetHeight: targetHeight || null
       }),
       signal: AbortSignal.timeout(300000)
     });
@@ -372,7 +376,7 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({
         success: true,
         resultImage: result.resultImage,
-        processedWith: 'Premium HD (2000-4000px GPU-accelerated High-Resolution)',
+        processedWith: 'Premium HD – up to 25 Megapixels (GPU-accelerated High-Resolution)',
         outputSize: result.outputSize,
         outputSizeMB: result.outputSizeMB,
         creditsUsed: CREDITS_REQUIRED,

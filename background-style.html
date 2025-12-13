@@ -121,7 +121,17 @@
     .download-option-badge.premium { background: rgba(67, 97, 238, 0.15); color: var(--primary); }
     .download-option-details { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
     .download-option-details strong { color: #1a214d; }
+    .size-selection { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); display: none; }
+    .size-selection.active { display: block; }
+    .size-selection label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 8px; font-weight: 600; }
+    .size-select { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 12px; font-size: 0.95rem; color: #1a214d; background: #fff; cursor: pointer; transition: border-color 0.2s; }
+    .size-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1); }
+    .size-info { margin-top: 8px; font-size: 0.8rem; color: var(--muted); }
     .download-modal-actions { display: flex; gap: 12px; justify-content: flex-end; }
+    @media (max-width: 640px) {
+      .download-modal-content { padding: 24px; max-width: 95%; }
+      .size-select { font-size: 0.9rem; padding: 8px 12px; }
+    }
     .download-modal-actions button { padding: 10px 20px; border-radius: 999px; border: none; cursor: pointer; font-weight: 600; font-size: 0.95rem; transition: transform 0.2s; }
     .download-modal-actions button:hover { transform: translateY(-1px); }
     .download-modal-actions .btn-cancel { background: #f5f5f5; color: #666; }
@@ -656,11 +666,26 @@
       </div>
       <div class="download-option" id="premiumDownloadOption" data-quality="premium">
         <div class="download-option-header">
-          <div class="download-option-title">Premium HD</div>
+          <div class="download-option-title">Premium HD – up to 25 Megapixels</div>
           <span class="download-option-badge premium">Premium</span>
         </div>
         <div class="download-option-details">
-          <strong>2000-4000px</strong> • 1 credit per image • High-resolution quality
+          <strong>Up to 25 Megapixels</strong> • 2 credits per image • High-resolution quality
+        </div>
+        <div class="size-selection" id="premiumSizeSelection">
+          <label for="premiumSizeSelect"><i class="fas fa-expand-arrows-alt"></i> Select Resolution:</label>
+          <select id="premiumSizeSelect" class="size-select">
+            <option value="original">Original Size (Preserved if ≤ 25 MP)</option>
+            <option value="1920x1080">1920×1080 (2.07 MP) - Full HD</option>
+            <option value="2048x2048">2048×2048 (4.19 MP) - Square HD</option>
+            <option value="3000x2000">3000×2000 (6 MP) - 3:2 Ratio</option>
+            <option value="3000x3000">3000×3000 (9 MP) - Square</option>
+            <option value="4000x3000">4000×3000 (12 MP) - 4:3 Ratio</option>
+            <option value="4000x4000">4000×4000 (16 MP) - Square</option>
+            <option value="5000x3000">5000×3000 (15 MP) - 5:3 Ratio</option>
+            <option value="5000x5000">5000×5000 (25 MP) - Maximum</option>
+          </select>
+          <div class="size-info" id="premiumSizeInfo">Original resolution will be preserved if within 25 MP limit</div>
         </div>
         <div id="premiumCreditInfo" style="margin-top: 8px; padding: 8px; background: rgba(67, 97, 238, 0.08); border-radius: 8px; font-size: 0.85rem; color: #56607a; display: none;">
           <span id="premiumCreditText">Checking credits...</span>
@@ -1631,7 +1656,7 @@
     }
     
     // Process with Premium HD API (2000-4000px BiRefNet GPU High-Resolution) - UPDATED to match background-workspace.html
-    async function processWithPremiumHD(dataURL) {
+    async function processWithPremiumHD(dataURL, targetSize = 'original') {
       try {
         // Validate image data before sending
         const validation = validateImageDataURL(dataURL);
@@ -1692,9 +1717,21 @@
             'Accept': 'application/json',
             'Authorization': `Bearer ${await getAuthToken()}`
           },
+          // Parse target size
+          let targetWidth = null;
+          let targetHeight = null;
+          if (targetSize && targetSize !== 'original') {
+            const [width, height] = targetSize.split('x');
+            targetWidth = parseInt(width);
+            targetHeight = parseInt(height);
+          }
+          
           body: JSON.stringify({ 
             imageData: dataURL,
-            userId: userId
+            userId: userId,
+            targetSize: targetSize || 'original',
+            targetWidth: targetWidth,
+            targetHeight: targetHeight
           }),
           signal: controller.signal
         });
@@ -2402,6 +2439,7 @@
     const premiumCreditText = document.getElementById('premiumCreditText');
     
     let selectedDownloadQuality = null;
+    let selectedPremiumSize = 'original'; // Default: preserve original size
     
     // Update premium credit info
     async function updatePremiumCreditInfo() {
@@ -2447,6 +2485,10 @@
         selectedDownloadQuality = 'free';
         freeDownloadOption.classList.add('selected');
         if (premiumDownloadOption) premiumDownloadOption.classList.remove('selected');
+        const sizeSelection = document.getElementById('premiumSizeSelection');
+        if (sizeSelection) {
+          sizeSelection.classList.remove('active');
+        }
         if (confirmDownloadBtn) confirmDownloadBtn.disabled = false;
       });
     }
@@ -2467,7 +2509,7 @@
           const creditCheck = await creditMod.hasSufficientCredits(userId, 1);
           
           if (!creditCheck.hasCredits && !creditCheck.unlimited) {
-            if (confirm(`You need 1 credit for Premium HD. You have ${creditCheck.creditsAvailable || 0} credit(s). Would you like to purchase credits?`)) {
+            if (confirm(`You need 2 credits for Premium HD. You have ${creditCheck.creditsAvailable || 0} credit(s). Would you like to purchase credits?`)) {
               window.location.href = 'pricing.html#credits';
             }
             return;
@@ -2477,8 +2519,33 @@
         selectedDownloadQuality = 'premium';
         premiumDownloadOption.classList.add('selected');
         if (freeDownloadOption) freeDownloadOption.classList.remove('selected');
+        
+        // Show size selection
+        const sizeSelection = document.getElementById('premiumSizeSelection');
+        if (sizeSelection) {
+          sizeSelection.classList.add('active');
+        }
+        
         if (confirmDownloadBtn) confirmDownloadBtn.disabled = false;
       });
+      
+      // Handle size selection change
+      const premiumSizeSelect = document.getElementById('premiumSizeSelect');
+      if (premiumSizeSelect) {
+        premiumSizeSelect.addEventListener('change', (e) => {
+          selectedPremiumSize = e.target.value;
+          const sizeInfo = document.getElementById('premiumSizeInfo');
+          if (sizeInfo) {
+            if (selectedPremiumSize === 'original') {
+              sizeInfo.textContent = 'Original resolution will be preserved if within 25 MP limit';
+            } else {
+              const [width, height] = selectedPremiumSize.split('x');
+              const mp = ((parseInt(width) * parseInt(height)) / 1_000_000).toFixed(2);
+              sizeInfo.textContent = `${width}×${height} pixels (${mp} MP) • 2 credits`;
+            }
+          }
+        });
+      }
     }
     
     // Cancel download modal
@@ -2522,26 +2589,97 @@
               return;
             }
             
-            // Process with premium HD
-            setStatus('⚡ Processing Premium HD for download...');
+            // Process with premium HD - FIXED: Add processing indicator
+            const processingOverlay = document.createElement('div');
+            processingOverlay.id = 'premiumProcessingOverlay';
+            processingOverlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;';
+            processingOverlay.innerHTML = `
+              <div style="background:white;padding:32px;border-radius:20px;max-width:400px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,0.3);">
+                <div style="font-size:48px;margin-bottom:16px;">⏳</div>
+                <h3 style="color:#1a214d;margin:0 0 12px 0;font-size:1.3rem;">Processing Premium HD...</h3>
+                <p style="color:#6f7694;margin:0 0 20px 0;line-height:1.6;">This may take 30-90 seconds. Please wait while we process your image with high-quality AI.</p>
+                <div style="width:100%;height:4px;background:#f0f0f0;border-radius:2px;overflow:hidden;">
+                  <div id="processingProgressBar" style="height:100%;background:linear-gradient(90deg,#4361ee,#3a0ca3);width:0%;transition:width 0.3s;animation:pulse 1.5s infinite;"></div>
+                </div>
+              </div>
+            `;
+            document.body.appendChild(processingOverlay);
+            
+            // Animate progress bar
+            let progress = 0;
+            const progressBar = document.getElementById('processingProgressBar');
+            const progressInterval = setInterval(() => {
+              progress += Math.random() * 15;
+              if (progress > 90) progress = 90;
+              if (progressBar) progressBar.style.width = progress + '%';
+            }, 500);
+            
             closeDownloadModal();
             
             console.log('Starting premium HD processing...', { userId, hasOriginalData: !!originalDataUrl });
             
-            const premiumResult = await processWithPremiumHD(originalDataUrl);
+            try {
+              const premiumResult = await processWithPremiumHD(originalDataUrl, selectedPremiumSize);
+              
+              clearInterval(progressInterval);
+              if (progressBar) progressBar.style.width = '100%';
+              
+              console.log('Premium HD processing result:', { success: premiumResult.success, error: premiumResult.error, requiresAuth: premiumResult.requiresAuth, requiresCredits: premiumResult.requiresCredits });
+              
+              if (premiumResult.success) {
+                // Show credit deduction info
+                const creditsUsed = premiumResult.creditsUsed || 2;
+                const creditsRemaining = premiumResult.creditsRemaining;
+                const creditInfo = creditsRemaining !== undefined 
+                  ? ` (${creditsUsed} credit used, ${creditsRemaining} remaining)`
+                  : ` (${creditsUsed} credit used)`;
+                
+                // Remove processing overlay
+                if (processingOverlay && processingOverlay.parentNode) {
+                  processingOverlay.parentNode.removeChild(processingOverlay);
+                }
+                
+                setStatus(`✅ Premium HD processed successfully!${creditInfo}`);
+                
+                // Continue with background style application
+              } else {
+                // Remove processing overlay
+                if (processingOverlay && processingOverlay.parentNode) {
+                  processingOverlay.parentNode.removeChild(processingOverlay);
+                }
+                
+                if (premiumResult.requiresAuth) {
+                  if (confirm('Please sign in to use Premium HD. Would you like to sign in now?')) {
+                    window.location.href = 'login.html?returnTo=' + encodeURIComponent(window.location.href);
+                  }
+                } else if (premiumResult.requiresCredits) {
+                  if (confirm('Insufficient credits for Premium HD. Would you like to purchase credits?')) {
+                    window.location.href = 'pricing.html#credits';
+                  }
+                } else {
+                  setStatus(premiumResult.error || 'Premium HD processing failed');
+                }
+                return;
+              }
+            } catch (error) {
+              clearInterval(progressInterval);
+              if (processingOverlay && processingOverlay.parentNode) {
+                processingOverlay.parentNode.removeChild(processingOverlay);
+              }
+              console.error('Premium HD processing error:', error);
+              setStatus('Premium HD processing failed: ' + (error.message || 'Unknown error'));
+              return;
+            }
             
-            console.log('Premium HD processing result:', { success: premiumResult.success, error: premiumResult.error, requiresAuth: premiumResult.requiresAuth, requiresCredits: premiumResult.requiresCredits });
-            
-            if (premiumResult.success) {
-              // Apply background style to premium HD result
+              // Apply background style to premium HD result - FIXED: Use currentBackgroundRef
               const premiumImg = new Image();
               premiumImg.crossOrigin = 'anonymous';
               premiumImg.src = premiumResult.dataUrl;
               await premiumImg.decode();
               
-              // Get current background style
-              const currentBg = backgroundImage.src || 'transparent';
-              const isTransparent = currentBg === 'transparent' || !currentBg || currentBg === 'data:image/png;base64,';
+              // Get current background style - FIXED: Use currentBackgroundRef instead of backgroundImage.src
+              const currentBg = currentBackgroundRef || backgroundImage.src || 'transparent';
+              const isTransparent = currentBg === 'transparent' || !currentBg || currentBg === 'data:image/png;base64,' || currentBg === '';
               
               // Create canvas with premium HD dimensions
               const premiumCanvas = document.createElement('canvas');
@@ -2549,13 +2687,27 @@
               premiumCanvas.height = premiumImg.height;
               const premiumCtx = premiumCanvas.getContext('2d');
               
-              // Draw background
-              if (!isTransparent && currentBg !== 'transparent') {
-                const bgImg = new Image();
-                bgImg.crossOrigin = 'anonymous';
-                bgImg.src = currentBg;
-                await bgImg.decode();
-                premiumCtx.drawImage(bgImg, 0, 0, premiumCanvas.width, premiumCanvas.height);
+              // Draw background - FIXED: Properly handle transparent and colored backgrounds
+              if (!isTransparent && currentBg && currentBg !== 'transparent' && currentBg !== '') {
+                try {
+                  const bgImg = new Image();
+                  bgImg.crossOrigin = 'anonymous';
+                  bgImg.src = currentBg;
+                  await new Promise((resolve, reject) => {
+                    bgImg.onload = resolve;
+                    bgImg.onerror = () => {
+                      console.warn('Background image failed to load, using transparent');
+                      resolve(); // Continue with transparent background
+                    };
+                    setTimeout(() => resolve(), 5000); // Timeout after 5s
+                  });
+                  if (bgImg.complete && bgImg.naturalWidth > 0) {
+                    premiumCtx.drawImage(bgImg, 0, 0, premiumCanvas.width, premiumCanvas.height);
+                  }
+                } catch (bgError) {
+                  console.warn('Error loading background image:', bgError);
+                  // Continue with transparent background
+                }
               }
               
               // Draw foreground
@@ -2588,22 +2740,6 @@
               }
               
               finalDownloadUrl = premiumCanvas.toDataURL('image/png');
-              
-              setStatus('✅ Premium HD processed successfully!');
-            } else {
-              if (premiumResult.requiresAuth) {
-                if (confirm('Please sign in to use Premium HD. Would you like to sign in now?')) {
-                  window.location.href = 'login.html?returnTo=' + encodeURIComponent(window.location.href);
-                }
-              } else if (premiumResult.requiresCredits) {
-                if (confirm('Insufficient credits for Premium HD. Would you like to purchase credits?')) {
-                  window.location.href = 'pricing.html#credits';
-                }
-              } else {
-                setStatus(premiumResult.error || 'Premium HD processing failed');
-              }
-              return;
-            }
           } else {
             // Free Preview: Download current canvas at 512px
             const img = new Image();
@@ -2642,7 +2778,7 @@
           document.body.removeChild(link);
           
           // Show success message
-          const qualityLabel = selectedDownloadQuality === 'premium' ? 'Premium HD (2000-4000px)' : 'Free Preview (512px)';
+          const qualityLabel = selectedDownloadQuality === 'premium' ? 'Premium HD – up to 25 Megapixels (2 Credit per image)' : 'Free Preview (512px)';
           const wasPremium = selectedDownloadQuality === 'premium';
           setStatus(`✅ ${qualityLabel} downloaded successfully!`);
           
