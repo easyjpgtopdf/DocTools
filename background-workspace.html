@@ -1999,7 +1999,7 @@
           try {
             downloadBlob = await fetch(finalDownloadUrl).then(r => r.blob());
             downloadBlobUrl = URL.createObjectURL(downloadBlob);
-            logger.info('✅ Premium image converted to Blob, using blob URL for download');
+            console.log('✅ Premium image converted to Blob, using blob URL for download');
           } catch (blobError) {
             console.warn('Failed to convert to Blob, using dataUrl:', blobError);
             // Fallback to dataUrl if Blob conversion fails
