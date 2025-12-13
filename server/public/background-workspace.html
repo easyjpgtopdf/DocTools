@@ -732,6 +732,15 @@
           controller.abort();
         }, 300000); // 5 minutes
         
+        // Parse target size BEFORE fetch call
+        let targetWidth = null;
+        let targetHeight = null;
+        if (selectedPremiumSize && selectedPremiumSize !== 'original') {
+          const [width, height] = selectedPremiumSize.split('x');
+          targetWidth = parseInt(width);
+          targetHeight = parseInt(height);
+        }
+        
         const response = await fetch(`${API_BASE_URL}/api/tools/bg-remove-premium`, {
           method: 'POST',
           headers: {
@@ -739,15 +748,6 @@
             'Accept': 'application/json',
             'Authorization': `Bearer ${await getAuthToken()}`
           },
-          // Parse target size
-          let targetWidth = null;
-          let targetHeight = null;
-          if (selectedPremiumSize && selectedPremiumSize !== 'original') {
-            const [width, height] = selectedPremiumSize.split('x');
-            targetWidth = parseInt(width);
-            targetHeight = parseInt(height);
-          }
-          
           body: JSON.stringify({ 
             imageData: dataURL,
             userId: userId,
@@ -1068,6 +1068,34 @@
       previewPlaceholder.classList.add('hidden');
       previewStage.classList.remove('revealed');
       previewStage.classList.remove('empty');
+      
+      // FIXED: Ensure original image is visible before showing overlay
+      previewOriginal.hidden = false;
+      if (!previewOriginal.src || previewOriginal.src !== dataURL) {
+        // Clear any existing onload handlers to avoid conflicts
+        previewOriginal.onload = null;
+        previewOriginal.onerror = null;
+        
+        previewOriginal.src = dataURL;
+        // Wait a moment for image to display before showing overlay
+        await new Promise(resolve => {
+          if (previewOriginal.complete && previewOriginal.naturalWidth > 0) {
+            // Image already loaded
+            resolve();
+          } else {
+            // Set temporary handlers (will be cleared after resolve)
+            const cleanup = () => {
+              previewOriginal.onload = null;
+              previewOriginal.onerror = null;
+            };
+            previewOriginal.onload = () => { cleanup(); resolve(); };
+            previewOriginal.onerror = () => { cleanup(); resolve(); }; // Continue even on error
+            setTimeout(() => { cleanup(); resolve(); }, 100); // Fallback timeout
+          }
+        });
+      }
+      
+      // Now show overlay after image is displayed
       previewOverlay.style.opacity = 1;
 
       try {
@@ -1080,9 +1108,6 @@
           previewPlaceholder.classList.remove('hidden');
           return;
         }
-        
-        previewOriginal.hidden = false;
-        previewOriginal.src = dataURL;
         
         const fileSize = Number(sessionStorage.getItem('bgRemover:originalSize') || 0);
         
@@ -1589,7 +1614,7 @@
       showStatus(`✅ ${multipleImages.length} image(s) uploaded successfully!`);
     }
 
-    // Initialize page
+    // Initialize page - FIXED: Wait for image to load before processing
     const storedOriginal = sessionStorage.getItem(STORAGE_KEYS.original);
     if (!storedOriginal) {
       previewStage.classList.add('empty');
@@ -1600,21 +1625,36 @@
       const processBtn = document.getElementById('processBtn');
       if (processBtn) processBtn.disabled = true;
     } else {
-      // Load and display the image
+      // Load and display the image - WAIT FOR IT TO LOAD FIRST
       previewStage.classList.remove('empty');
       previewPlaceholder.classList.add('hidden');
       previewOriginal.hidden = false;
+      previewOverlay.style.opacity = 0; // Ensure overlay is hidden initially
+      
+      // Wait for image to load before processing
+      previewOriginal.onload = () => {
+        console.log('✅ Original image loaded, starting processing...');
+        const processBtn = document.getElementById('processBtn');
+        if (processBtn) processBtn.disabled = false;
+        backgroundChangeBtn.disabled = false;
+        downloadBtn.disabled = false;
+        
+        // Auto-process with free preview after image is fully loaded
+        setTimeout(() => {
+          processImage(storedOriginal);
+        }, 200);
+      };
+      
+      previewOriginal.onerror = () => {
+        console.error('❌ Failed to load original image');
+        showError('Failed to load image. Please upload again.');
+        previewStage.classList.add('empty');
+        previewPlaceholder.classList.remove('hidden');
+        previewOriginal.hidden = true;
+      };
+      
+      // Set src AFTER onload handlers are attached
       previewOriginal.src = storedOriginal;
-      
-      const processBtn = document.getElementById('processBtn');
-      if (processBtn) processBtn.disabled = false;
-      backgroundChangeBtn.disabled = false;
-      downloadBtn.disabled = false;
-      
-      // Auto-process with free preview on load
-      setTimeout(() => {
-        processImage(storedOriginal);
-      }, 300);
     }
     
     // Process button handler - always uses free preview
