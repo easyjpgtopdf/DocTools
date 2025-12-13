@@ -126,25 +126,6 @@ async function checkCreditBalance(userId, token) {
       creditsAvailable: currentCredits,
       unlimited: unlimited
     };
-
-    if (!balanceResponse.ok) {
-      console.error('Failed to check credit balance:', balanceResponse.status);
-      return { hasCredits: false, creditsAvailable: 0, unlimited: false, error: 'Failed to check credits' };
-    }
-
-    const balanceData = await balanceResponse.json();
-    if (!balanceData.success) {
-      return { hasCredits: false, creditsAvailable: 0, unlimited: false, error: balanceData.error || 'Failed to check credits' };
-    }
-
-    const currentCredits = balanceData.credits || 0;
-    const unlimited = balanceData.unlimited || false;
-
-    return { 
-      hasCredits: true, 
-      creditsAvailable: currentCredits,
-      unlimited: unlimited
-    };
   } catch (error) {
     console.error('Credit balance check error:', error);
     return { hasCredits: false, creditsAvailable: 0, unlimited: false, error: error.message };

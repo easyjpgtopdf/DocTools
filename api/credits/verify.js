@@ -178,65 +178,93 @@ module.exports = async function handler(req, res) {
       const orderRef = db.collection('creditOrders').doc(orderId);
       const orderDoc = await orderRef.get();
       
-      if (orderDoc.exists && orderDoc.data().status === 'completed') {
-        // Order already processed
-        return res.status(200).json({
-          success: true,
-          creditsAdded: creditsToAdd,
-          message: 'Credits already added (duplicate verification)'
+      // SECURITY: Use verified userId (from token if available, otherwise from body)
+      const finalUserId = verifiedUserId || userId;
+      
+      // Use atomic transaction to prevent duplicate credit addition and race conditions
+      await db.runTransaction(async (transaction) => {
+        const orderDoc = await transaction.get(orderRef);
+        
+        if (orderDoc.exists && orderDoc.data().status === 'completed') {
+          // Order already processed - throw to prevent duplicate credits
+          throw new Error('DUPLICATE_ORDER');
+        }
+        
+        const userRef = db.collection('users').doc(finalUserId);
+        const userDoc = await transaction.get(userRef);
+        
+        let currentCredits = 0;
+        if (userDoc.exists) {
+          currentCredits = userDoc.data().credits || 0;
+          transaction.update(userRef, {
+            credits: admin.firestore.FieldValue.increment(creditsToAdd),
+            totalCreditsEarned: admin.firestore.FieldValue.increment(creditsToAdd),
+            lastCreditUpdate: admin.firestore.FieldValue.serverTimestamp()
+          });
+        } else {
+          // Initialize user
+          transaction.set(userRef, {
+            credits: creditsToAdd,
+            totalCreditsEarned: creditsToAdd,
+            totalCreditsUsed: 0,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            lastCreditUpdate: admin.firestore.FieldValue.serverTimestamp()
+          });
+        }
+        
+        // Update order status atomically
+        transaction.update(orderRef, {
+          status: 'completed',
+          paymentId: paymentId,
+          completedAt: admin.firestore.FieldValue.serverTimestamp()
         });
-      }
-      
-      await orderRef.update({
-        status: 'completed',
-        paymentId: paymentId,
-        completedAt: admin.firestore.FieldValue.serverTimestamp()
+        
+        // Get order data for transaction record
+        const orderData = orderDoc.data();
+        
+        // Record transaction atomically
+        const transactionRef = db.collection('users').doc(finalUserId)
+          .collection('creditTransactions').doc();
+        transaction.set(transactionRef, {
+          type: 'addition',
+          amount: creditsToAdd,
+          reason: 'Credit purchase',
+          creditsBefore: currentCredits,
+          creditsAfter: currentCredits + creditsToAdd,
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          metadata: {
+            orderId: orderId,
+            paymentId: paymentId,
+            packId: orderData?.creditPack,
+            amount: orderData?.amount,
+            currency: orderData?.currency,
+            gstAmount: orderData?.gstAmount,
+            receipt: orderData?.receipt
+          }
+        });
+      }).catch(async (error) => {
+        if (error.message === 'DUPLICATE_ORDER') {
+          // Order already processed - return success without adding credits again
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          return res.status(200).json({
+            success: true,
+            creditsAdded: creditsToAdd,
+            message: 'Credits already added (duplicate verification prevented)'
+          });
+        }
+        throw error;
       });
-
-      // Add credits to user account
-      const userRef = db.collection('users').doc(userId);
-      const userDoc = await userRef.get();
       
-      if (!userDoc.exists) {
-        // Initialize user
-        await userRef.set({
-          credits: 0,
-          totalCreditsEarned: 0,
-          totalCreditsUsed: 0,
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          lastCreditUpdate: admin.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-      }
-      
-      const currentCredits = userDoc.data()?.credits || 0;
-      
-      await userRef.update({
-        credits: admin.firestore.FieldValue.increment(creditsToAdd),
-        totalCreditsEarned: admin.firestore.FieldValue.increment(creditsToAdd),
-        lastCreditUpdate: admin.firestore.FieldValue.serverTimestamp()
-      });
-
-      // Get order details for receipt
+      // Get order data for receipt (after transaction)
+      const orderDoc = await orderRef.get();
       const orderData = orderDoc.data();
       
-      // Record transaction
-      await db.collection('users').doc(finalUserId).collection('creditTransactions').add({
-        type: 'addition',
-        amount: creditsToAdd,
-        reason: 'Credit purchase',
-        creditsBefore: currentCredits,
-        creditsAfter: currentCredits + creditsToAdd,
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-        metadata: {
-          orderId: orderId,
-          paymentId: paymentId,
-          packId: orderData?.creditPack,
-          amount: orderData?.amount,
-          currency: orderData?.currency,
-          gstAmount: orderData?.gstAmount,
-          receipt: orderData?.receipt
-        }
-      });
+      // Get current credits after transaction
+      const userRef = db.collection('users').doc(finalUserId);
+      const userDoc = await userRef.get();
+      const currentCredits = userDoc.data()?.credits || 0;
+
+      // Transaction already recorded in atomic transaction above
       
       // Generate and save receipt
       const receiptData = {
