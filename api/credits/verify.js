@@ -178,14 +178,26 @@ module.exports = async function handler(req, res) {
       const orderRef = db.collection('creditOrders').doc(orderId);
       const orderDoc = await orderRef.get();
       
+      // Check for duplicate order BEFORE transaction
+      if (orderDoc.exists && orderDoc.data().status === 'completed') {
+        // Order already processed - prevent duplicate credits
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        return res.status(200).json({
+          success: true,
+          creditsAdded: creditsToAdd,
+          message: 'Credits already added (duplicate verification prevented)'
+        });
+      }
+      
       // SECURITY: Use verified userId (from token if available, otherwise from body)
       const finalUserId = verifiedUserId || userId;
       
       // Use atomic transaction to prevent duplicate credit addition and race conditions
       await db.runTransaction(async (transaction) => {
-        const orderDoc = await transaction.get(orderRef);
+        const orderDocInTransaction = await transaction.get(orderRef);
         
-        if (orderDoc.exists && orderDoc.data().status === 'completed') {
+        // Double-check in transaction (race condition protection)
+        if (orderDocInTransaction.exists && orderDocInTransaction.data().status === 'completed') {
           // Order already processed - throw to prevent duplicate credits
           throw new Error('DUPLICATE_ORDER');
         }
@@ -220,7 +232,7 @@ module.exports = async function handler(req, res) {
         });
         
         // Get order data for transaction record
-        const orderData = orderDoc.data();
+        const orderData = orderDocInTransaction.data();
         
         // Record transaction atomically
         const transactionRef = db.collection('users').doc(finalUserId)
@@ -242,9 +254,9 @@ module.exports = async function handler(req, res) {
             receipt: orderData?.receipt
           }
         });
-      }).catch(async (error) => {
+      }).catch((error) => {
         if (error.message === 'DUPLICATE_ORDER') {
-          // Order already processed - return success without adding credits again
+          // Order was completed between check and transaction - return success
           res.setHeader('Access-Control-Allow-Origin', '*');
           return res.status(200).json({
             success: true,
@@ -252,6 +264,7 @@ module.exports = async function handler(req, res) {
             message: 'Credits already added (duplicate verification prevented)'
           });
         }
+        // Re-throw other errors
         throw error;
       });
       
