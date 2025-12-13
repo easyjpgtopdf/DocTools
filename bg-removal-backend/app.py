@@ -604,9 +604,88 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
     else:
         debug_stats.update(mask_stats("mask_after_matte_skipped", mask))
     
-    # Step 8: Composite pro-level PNG
-    logger.info("Step 8: Creating pro-level PNG composite...")
-    final_image = composite_pro_png(input_image, mask)
+    # Step 7.5: Safety check - if alpha is too low (< 1%), fallback to raw output
+    try:
+        mask_array = np.array(mask.convert('L'))
+        alpha_nonzero = np.count_nonzero(mask_array)
+        total_pixels = mask_array.size
+        alpha_percent = (alpha_nonzero / total_pixels) * 100.0
+        
+        logger.info(f"Alpha check: {alpha_nonzero}/{total_pixels} pixels ({alpha_percent:.2f}%) have non-zero alpha")
+        debug_stats.update({
+            "alpha_nonzero_count": int(alpha_nonzero),
+            "alpha_percent": float(alpha_percent),
+            "total_pixels": int(total_pixels)
+        })
+        
+        if alpha_percent < 1.0:
+            logger.warning(f"⚠️ Alpha too low ({alpha_percent:.2f}%) - falling back to raw BiRefNet output (no feather/halo)")
+            debug_stats["fallback_to_raw"] = True
+            # Return raw rembg output without post-processing
+            final_buffer = io.BytesIO()
+            output_image.save(final_buffer, format='PNG', optimize=True)
+            return final_buffer.getvalue(), debug_stats
+    except Exception as e:
+        logger.warning(f"Failed alpha check, proceeding anyway: {e}")
+    
+    # Step 8: Apply alpha mask to RGB FIRST (before feather/halo), then composite
+    logger.info("Step 8: Applying alpha mask to RGB first, then creating pro-level PNG composite...")
+    
+    # FIXED: Apply mask to RGB first, then apply post-processing to the composite
+    # This prevents alpha from becoming zero after feathering/halo removal
+    try:
+        # Ensure original is RGB
+        if isinstance(input_image, Image.Image):
+            if input_image.mode == 'RGBA':
+                rgb_image = Image.new('RGB', input_image.size, (255, 255, 255))
+                rgb_image.paste(input_image, mask=input_image.split()[3])
+                input_image = rgb_image
+            elif input_image.mode != 'RGB':
+                input_image = input_image.convert('RGB')
+        else:
+            input_image = Image.fromarray(input_image).convert('RGB')
+        
+        # Ensure mask matches image size BEFORE applying
+        if isinstance(mask, Image.Image):
+            mask = mask.convert('L')
+        else:
+            mask = Image.fromarray(mask, mode='L')
+        
+        # CRITICAL: Keep same scale - resize mask to match image if needed
+        if mask.size != input_image.size:
+            logger.warning(f"Mask size {mask.size} != image size {input_image.size}, resizing mask to match")
+            mask = mask.resize(input_image.size, Image.Resampling.LANCZOS)
+        
+        # Create RGBA with mask applied to RGB
+        rgba_temp = Image.new('RGBA', input_image.size, (0, 0, 0, 0))
+        rgba_temp.paste(input_image, (0, 0))
+        rgba_temp.putalpha(mask)
+        
+        # Now apply feathering and halo removal to the composite RGBA image
+        # Extract alpha channel from composite for post-processing
+        composite_alpha = rgba_temp.split()[3]
+        
+        # Apply feathering to alpha channel only (if premium)
+        if is_premium and SCIPY_AVAILABLE:
+            logger.info("Step 8.1: Applying feathering to alpha channel of composite...")
+            composite_alpha = apply_feathering(composite_alpha, feather_radius=3)
+            debug_stats.update(mask_stats("mask_after_feather_composite", composite_alpha))
+        
+        # Apply halo removal to alpha channel only (if premium)
+        if is_premium:
+            logger.info("Step 8.2: Applying halo removal to alpha channel of composite...")
+            composite_alpha = remove_halo(composite_alpha, input_image, threshold=0.15)
+            debug_stats.update(mask_stats("mask_after_halo_composite", composite_alpha))
+        
+        # Re-composite with processed alpha
+        final_image = Image.new('RGBA', input_image.size, (0, 0, 0, 0))
+        final_image.paste(input_image, (0, 0))
+        final_image.putalpha(composite_alpha)
+        
+    except Exception as e:
+        logger.error(f"Composite with fixed pipeline failed: {e}, falling back to original composite")
+        final_image = composite_pro_png(input_image, mask)
+    
     debug_stats.update(mask_stats("mask_final_used", mask))
     
     opt_time = time.time() - start_opt

@@ -1917,11 +1917,17 @@
                 ? ` (${creditsUsed} credit used, ${creditsRemaining} remaining)`
                 : ` (${creditsUsed} credit used)`;
               
-              // Update stored foreground
-              sessionStorage.setItem(STORAGE_KEYS.foreground, premiumResult.dataUrl);
+              // FIXED: Don't store premium HD images in sessionStorage (causes quota exceeded)
+              // Use Blob and URL.createObjectURL instead for premium images
+              // Only store small free preview in sessionStorage
               
-              // Update preview (async, don't wait)
-              previewResult.src = premiumResult.dataUrl;
+              // Convert base64 to Blob for premium images
+              const base64Data = premiumResult.dataUrl.split(',')[1];
+              const blob = await fetch(premiumResult.dataUrl).then(r => r.blob());
+              const blobUrl = URL.createObjectURL(blob);
+              
+              // Update preview using blob URL
+              previewResult.src = blobUrl;
               const foregroundImage = new Image();
               foregroundImage.crossOrigin = 'anonymous';
               foregroundImage.src = premiumResult.dataUrl;
@@ -1979,13 +1985,31 @@
         }
         
         // Prepare download URL - FIXED: Ensure download happens
+        // For premium HD, use Blob URL if available, otherwise use dataUrl
+        let downloadBlob = null;
+        let downloadBlobUrl = null;
+        
         if (!finalDownloadUrl) {
           showError('No image available for download');
           return;
         }
         
+        // For premium images, convert to Blob to avoid localStorage quota issues
+        if (selectedDownloadQuality === 'premium' && finalDownloadUrl.startsWith('data:image/')) {
+          try {
+            downloadBlob = await fetch(finalDownloadUrl).then(r => r.blob());
+            downloadBlobUrl = URL.createObjectURL(downloadBlob);
+            logger.info('✅ Premium image converted to Blob, using blob URL for download');
+          } catch (blobError) {
+            console.warn('Failed to convert to Blob, using dataUrl:', blobError);
+            // Fallback to dataUrl if Blob conversion fails
+          }
+        }
+        
+        const downloadUrl = downloadBlobUrl || finalDownloadUrl;
+        
         if (finalDownloadUrl.startsWith('data:image/png')) {
-          // Already PNG, use directly
+          // Already PNG, use directly (or blob URL if premium)
         } else {
           // Convert to PNG
           const img = new Image();
@@ -2024,7 +2048,7 @@
             qualitySuffix += `-${selectedPremiumSize}`;
           }
           
-          link.href = finalDownloadUrl;
+          link.href = downloadUrl;
           link.download = `${baseName}${qualitySuffix}.png`;
           link.style.display = 'none';
           
@@ -2037,8 +2061,10 @@
               if (link.parentNode) {
                 document.body.removeChild(link);
               }
-              // Revoke blob URL if it's a blob
-              if (link.href.startsWith('blob:')) {
+              // Revoke blob URL after download
+              if (downloadBlobUrl) {
+                URL.revokeObjectURL(downloadBlobUrl);
+              } else if (link.href.startsWith('blob:')) {
                 URL.revokeObjectURL(link.href);
               }
             }, 100);
