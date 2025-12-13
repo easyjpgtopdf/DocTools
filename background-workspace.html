@@ -2007,25 +2007,67 @@
           finalDownloadUrl = canvas.toDataURL('image/png');
         }
         
-        // Download the image - FIXED: Ensure download triggers
+        // Download the image - FIXED: Ensure download triggers immediately after processing
         try {
+          // Validate download URL before attempting download
+          if (!finalDownloadUrl || !finalDownloadUrl.startsWith('data:image/')) {
+            throw new Error('Invalid image data for download');
+          }
+          
           const link = document.createElement('a');
           const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-removed.png';
           const baseName = filename.replace(/\.[^/.]+$/, '') || 'background-removed';
-          const qualitySuffix = selectedDownloadQuality === 'premium' ? '-premium-hd' : '-free-preview';
+          
+          // Add size info to filename for premium downloads
+          let qualitySuffix = selectedDownloadQuality === 'premium' ? '-premium-hd' : '-free-preview';
+          if (selectedDownloadQuality === 'premium' && selectedPremiumSize && selectedPremiumSize !== 'original') {
+            qualitySuffix += `-${selectedPremiumSize}`;
+          }
+          
           link.href = finalDownloadUrl;
           link.download = `${baseName}${qualitySuffix}.png`;
+          link.style.display = 'none';
           
           document.body.appendChild(link);
-          link.click();
-          setTimeout(() => {
-            document.body.removeChild(link);
-          }, 100);
           
-          console.log('Download triggered successfully');
+          // Trigger download immediately - use both click() and requestAnimationFrame for better browser compatibility
+          requestAnimationFrame(() => {
+            link.click();
+            setTimeout(() => {
+              if (link.parentNode) {
+                document.body.removeChild(link);
+              }
+              // Revoke blob URL if it's a blob
+              if (link.href.startsWith('blob:')) {
+                URL.revokeObjectURL(link.href);
+              }
+            }, 100);
+          });
+          
+          console.log('✅ Download triggered successfully', {
+            filename: link.download,
+            quality: selectedDownloadQuality,
+            size: selectedPremiumSize,
+            dataUrlLength: finalDownloadUrl.length
+          });
         } catch (downloadError) {
-          console.error('Download error:', downloadError);
-          showError('Failed to trigger download. Please try right-clicking on the preview image and selecting "Save image as..."');
+          console.error('❌ Download error:', downloadError);
+          showError('Failed to trigger download. Please try right-clicking on the preview image and selecting "Save image as..." Error: ' + (downloadError.message || 'Unknown error'));
+          
+          // Fallback: Create download link in status message
+          try {
+            const fallbackLink = document.createElement('a');
+            fallbackLink.href = finalDownloadUrl;
+            fallbackLink.download = 'background-removed-premium-hd.png';
+            fallbackLink.textContent = 'Click here to download';
+            fallbackLink.style.display = 'inline-block';
+            fallbackLink.style.marginLeft = '10px';
+            fallbackLink.style.color = '#4361ee';
+            fallbackLink.style.textDecoration = 'underline';
+            statusMessage.appendChild(fallbackLink);
+          } catch (fallbackError) {
+            console.error('Fallback download link creation failed:', fallbackError);
+          }
         }
         
         // Show success message
