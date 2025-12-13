@@ -1773,7 +1773,11 @@
           statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⚡ Processing Premium HD for download...</div>`;
           downloadModal.classList.remove('active');
           
+          console.log('Starting premium HD processing...', { userId, hasOriginalData: !!originalDataUrl });
+          
           const premiumResult = await processWithPremiumHD(originalDataUrl);
+          
+          console.log('Premium HD processing result:', { success: premiumResult.success, error: premiumResult.error, requiresAuth: premiumResult.requiresAuth, requiresCredits: premiumResult.requiresCredits });
           
           if (premiumResult.success) {
             finalDownloadUrl = premiumResult.dataUrl;

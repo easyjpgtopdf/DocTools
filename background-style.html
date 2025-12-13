@@ -1538,50 +1538,218 @@
       }
     }
     
+    // Get current user ID - FIXED: Use Firebase auth directly (same as background-workspace.html)
     async function getCurrentUserId() {
       if (currentUserId) return currentUserId;
-      if (!auth || !currentUser) {
-        try {
-          const authModule = await import('./js/auth.js');
-          if (authModule && authModule.getCurrentUser) {
-            const user = await authModule.getCurrentUser();
-            currentUserId = user?.uid || null;
-            currentUser = user;
+      
+      try {
+        // Import Firebase auth directly
+        const firebaseInit = await import('./js/firebase-init.js');
+        if (firebaseInit && firebaseInit.auth) {
+          const auth = firebaseInit.auth;
+          
+          // Check current user first
+          if (auth.currentUser) {
+            currentUserId = auth.currentUser.uid;
+            currentUser = auth.currentUser;
+            return currentUserId;
           }
-        } catch (error) {
-          console.warn('Failed to get user ID:', error);
+          
+          // Wait for auth state with timeout
+          const { onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js');
+          
+          return new Promise((resolve) => {
+            const unsubscribe = onAuthStateChanged(auth, (user) => {
+              unsubscribe();
+              if (user) {
+                currentUserId = user.uid;
+                currentUser = user;
+                resolve(user.uid);
+              } else {
+                resolve(null);
+              }
+            });
+            
+            // Timeout after 3 seconds
+            setTimeout(() => {
+              unsubscribe();
+              resolve(null);
+            }, 3000);
+          });
         }
-        return currentUserId;
+      } catch (error) {
+        console.warn('Failed to get user ID:', error);
       }
-      currentUserId = currentUser.uid;
-      return currentUserId;
+      
+      return currentUserId || null;
     }
     
+    // Get auth token helper - FIXED: Use Firebase auth directly (same as background-workspace.html)
+    async function getAuthToken() {
+      try {
+        // Import Firebase auth directly
+        const firebaseInit = await import('./js/firebase-init.js');
+        if (firebaseInit && firebaseInit.auth) {
+          const auth = firebaseInit.auth;
+          const user = auth.currentUser;
+          
+          if (user) {
+            // Force token refresh to ensure it's valid
+            return await user.getIdToken(true);
+          }
+          
+          // Wait for auth state if not immediately available
+          const { onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js');
+          
+          return new Promise((resolve) => {
+            const unsubscribe = onAuthStateChanged(auth, async (user) => {
+              unsubscribe();
+              if (user) {
+                try {
+                  const token = await user.getIdToken(true);
+                  resolve(token);
+                } catch (error) {
+                  console.warn('Failed to get token:', error);
+                  resolve(null);
+                }
+              } else {
+                resolve(null);
+              }
+            });
+            
+            // Timeout after 3 seconds
+            setTimeout(() => {
+              unsubscribe();
+              resolve(null);
+            }, 3000);
+          });
+        }
+      } catch (error) {
+        console.warn('Failed to get auth token:', error);
+      }
+      return null;
+    }
+    
+    // Process with Premium HD API (2000-4000px BiRefNet GPU High-Resolution) - UPDATED to match background-workspace.html
     async function processWithPremiumHD(dataURL) {
       try {
-        const API_BASE_URL = window.API_BASE_URL || 'https://www.easyjpgtopdf.com';
-        const apiUrl = `${API_BASE_URL}/api/tools/bg-remove-premium`;
+        // Validate image data before sending
+        const validation = validateImageDataURL(dataURL);
+        if (!validation.valid) {
+          return {
+            success: false,
+            error: validation.error || 'Invalid image file. Please ensure you are uploading a valid image (JPG, PNG, etc.).'
+          };
+        }
         
-        setStatus('⚡ Processing Premium HD (2000-4000px)...');
+        // Check credits first
+        const subModule = await loadSubscriptionModule();
+        const userId = await getCurrentUserId();
         
-        const response = await fetch(apiUrl, {
+        if (!userId) {
+          return {
+            success: false,
+            error: 'Please sign in to use Premium HD processing',
+            requiresAuth: true
+          };
+        }
+        
+        // Get API base URL
+        function getApiBaseUrl() {
+          if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            return 'http://localhost:3000';
+          }
+          return window.location.origin;
+        }
+        const API_BASE_URL = getApiBaseUrl();
+        
+        // Verify credits (this should be done on backend, but we check here for UX)
+        setStatus('⚡ Processing with Premium HD (GPU-accelerated High-Resolution)... This may take 30-90 seconds.');
+        
+        const startTime = Date.now();
+        
+        // Progress indicator - update every 10 seconds for premium
+        let progressInterval = setInterval(() => {
+          const elapsed = Math.floor((Date.now() - startTime) / 1000);
+          if (elapsed < 60) {
+            setStatus(`⚡ Premium HD processing... (${elapsed}s) - Please wait, high-quality processing takes 30-90 seconds.`);
+          } else if (elapsed < 180) {
+            setStatus(`⏳ Premium HD processing... (${elapsed}s) - High-quality processing takes longer. Almost done...`);
+          }
+        }, 10000);
+        
+        // Add timeout for premium processing (5 minutes)
+        const controller = new AbortController();
+        const timeout = setTimeout(() => {
+          clearInterval(progressInterval);
+          controller.abort();
+        }, 300000); // 5 minutes
+        
+        const response = await fetch(`${API_BASE_URL}/api/tools/bg-remove-premium`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${await getAuthToken()}`
           },
-          body: JSON.stringify({ imageData: dataURL })
+          body: JSON.stringify({ 
+            imageData: dataURL,
+            userId: userId
+          }),
+          signal: controller.signal
         });
         
+        clearTimeout(timeout);
+        clearInterval(progressInterval);
+        
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
+          let errorData = {};
+          let errorText = '';
+          
+          try {
+            errorText = await response.text();
+            console.error('Premium API Error Response Text:', errorText);
+            
+            if (errorText) {
+              try {
+                errorData = JSON.parse(errorText);
+              } catch (e) {
+                errorData = { error: errorText };
+              }
+            }
+          } catch (e) {
+            console.error('Error reading premium response:', e);
+            errorData = { error: `Failed to read error response: ${e.message}` };
+          }
+          
+          // Extract error message
+          let errorMsg = errorData.error || errorData.message || errorData.errorMessage || `Server error: ${response.status}`;
+          
           if (response.status === 401) {
-            return { success: false, requiresAuth: true, error: 'Please sign in to use Premium HD' };
+            return {
+              success: false,
+              error: 'Please sign in to use Premium HD processing.',
+              requiresAuth: true
+            };
           }
-          if (response.status === 402 || response.status === 403) {
-            return { success: false, requiresCredits: true, error: 'Insufficient credits for Premium HD' };
+          
+          if (response.status === 402 || errorMsg.includes('credit') || errorMsg.includes('insufficient')) {
+            return {
+              success: false,
+              error: 'Insufficient credits. Please purchase credits to use Premium HD processing.',
+              requiresCredits: true
+            };
           }
-          throw new Error(errorData.error || 'Premium HD processing failed');
+          
+          console.error('Premium API Error Details:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorData: errorData,
+            errorText: errorText,
+            finalError: errorMsg
+          });
+          
+          throw new Error(errorMsg);
         }
         
         const result = await response.json();
@@ -1590,19 +1758,120 @@
           return {
             success: true,
             dataUrl: result.resultImage,
-            processedWith: 'Premium HD (2000-4000px)',
+            processedWith: 'Premium HD (2000-4000px GPU-accelerated High-Resolution)',
+            outputSize: result.outputSize,
+            outputSizeMB: result.outputSizeMB,
             creditsUsed: result.creditsUsed
           };
         } else {
           throw new Error(result.error || 'Processing failed');
         }
       } catch (error) {
+        // Clean up progress interval if still running
+        if (typeof progressInterval !== 'undefined') {
+          clearInterval(progressInterval);
+        }
+        
         console.error('Premium HD processing error:', error);
+        console.error('Error type:', typeof error);
+        console.error('Error details:', {
+          name: error?.name,
+          message: error?.message,
+          stack: error?.stack,
+          error: error
+        });
+        
+        let errorMessage = 'Premium HD processing failed';
+        
+        // Extract error message properly
+        if (error instanceof Error) {
+          errorMessage = error.message || error.toString();
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        } else if (error && typeof error === 'object') {
+          errorMessage = error.error || error.message || error.errorMessage || error.msg || JSON.stringify(error);
+        }
+        
+        // Clean up error message
+        if (errorMessage === '[object Object]' || errorMessage.includes('[object Object]')) {
+          try {
+            const errorObj = error && typeof error === 'object' ? error : {};
+            errorMessage = errorObj.error || errorObj.message || errorObj.errorMessage || 'Premium HD processing failed. Please try again.';
+          } catch (e) {
+            errorMessage = 'Premium HD processing failed. Please try again.';
+          }
+        }
+        
+        // Handle timeout
+        if (error.name === 'AbortError' || errorMessage.includes('timeout') || errorMessage.includes('aborted')) {
+          errorMessage = 'Request timeout. Premium HD processing may take longer. Please try again with a smaller image or wait a moment.';
+        }
+        
+        // Handle network errors
+        if (errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch') || errorMessage.includes('Network request failed')) {
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+        }
+        
+        // Handle 404
+        if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+          errorMessage = 'API endpoint not found (404). Please refresh the page (Ctrl+Shift+R) and try again.';
+        }
+        
         return {
           success: false,
-          error: error.message || 'Premium HD processing failed'
+          error: errorMessage
         };
       }
+    }
+    
+    // Validate image data URL format - COMPREHENSIVE VALIDATION (same as background-workspace.html)
+    function validateImageDataURL(dataURL) {
+      if (!dataURL || typeof dataURL !== 'string') {
+        return { valid: false, error: 'Image data is invalid or missing' };
+      }
+      
+      // Check minimum length
+      if (dataURL.length < 100) {
+        return { valid: false, error: 'Image data is too small or corrupted. Please try uploading again.' };
+      }
+      
+      // Check if it's a data URL
+      if (!dataURL.startsWith('data:image/')) {
+        return { valid: false, error: 'Invalid image format. Please upload a valid image file (JPG, PNG, etc.).' };
+      }
+      
+      // Check if it has base64 data
+      if (!dataURL.includes(',')) {
+        return { valid: false, error: 'Image data is incomplete. Please try uploading the image again.' };
+      }
+      
+      // Extract base64 part
+      const parts = dataURL.split(',');
+      const base64Part = parts[1];
+      
+      if (!base64Part || base64Part.length < 100) {
+        return { valid: false, error: 'Image data is too small or corrupted. Please try a different image.' };
+      }
+      
+      // Check base64 format (should only contain valid base64 characters)
+      const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+      if (!base64Regex.test(base64Part)) {
+        return { valid: false, error: 'Invalid base64 format. Please try uploading the image again.' };
+      }
+      
+      // Try to decode a sample to verify it's valid base64
+      try {
+        const sampleSize = Math.min(1000, base64Part.length);
+        const sample = base64Part.substring(0, sampleSize);
+        const decoded = atob(sample);
+        if (!decoded || decoded.length === 0) {
+          return { valid: false, error: 'Image data is corrupted. Please try uploading again.' };
+        }
+      } catch (e) {
+        return { valid: false, error: 'Invalid image data format. Please upload a valid image file (JPG, PNG, etc.).' };
+      }
+      
+      return { valid: true };
     }
     
     // Handle download with modal showing two options - UPDATED to match background-workspace.html
@@ -2257,7 +2526,11 @@
             setStatus('⚡ Processing Premium HD for download...');
             closeDownloadModal();
             
+            console.log('Starting premium HD processing...', { userId, hasOriginalData: !!originalDataUrl });
+            
             const premiumResult = await processWithPremiumHD(originalDataUrl);
+            
+            console.log('Premium HD processing result:', { success: premiumResult.success, error: premiumResult.error, requiresAuth: premiumResult.requiresAuth, requiresCredits: premiumResult.requiresCredits });
             
             if (premiumResult.success) {
               // Apply background style to premium HD result
@@ -2370,6 +2643,7 @@
           
           // Show success message
           const qualityLabel = selectedDownloadQuality === 'premium' ? 'Premium HD (2000-4000px)' : 'Free Preview (512px)';
+          const wasPremium = selectedDownloadQuality === 'premium';
           setStatus(`✅ ${qualityLabel} downloaded successfully!`);
           
           // Close modal
@@ -2377,7 +2651,7 @@
           selectedDownloadQuality = null;
           
           // Update credit info if premium
-          if (selectedDownloadQuality === 'premium') {
+          if (wasPremium) {
             await updatePremiumCreditInfo();
           }
         } catch (error) {
