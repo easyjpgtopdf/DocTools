@@ -1181,17 +1181,17 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
         debug_stats.update(mask_stats("mask_after_guided_skipped", mask))
     
     # Step 3: Enhance Hair Details
-    # Premium: Full hair enhancement
-    # Free Preview: Hair enhancement for human photos only (not documents)
+    # Premium: Full hair enhancement (strength=0.3)
+    # Free Preview: Light hair protection ONLY (strength=0.15-0.2) for human photos, OFF for documents
     if CV2_AVAILABLE:
         if is_premium:
             logger.info("Step 3: Enhancing hair details and fine edges (premium)...")
             mask = enhance_hair_details(mask, input_image, strength=0.3)
             debug_stats.update(mask_stats("mask_after_hair", mask))
         elif not is_document:
-            # Free preview: Light hair enhancement for human photos
-            logger.info("Step 3: Enhancing hair details (free preview, human photo)...")
-            mask = enhance_hair_details(mask, input_image, strength=0.2)
+            # Free preview: Light hair protection ONLY (0.15-0.2 strength)
+            logger.info("Step 3: Applying light hair protection (free preview, human photo, strength=0.18)...")
+            mask = enhance_hair_details(mask, input_image, strength=0.18)  # 0.15-0.2 range
             debug_stats.update(mask_stats("mask_after_hair", mask))
         else:
             logger.info("Step 3: Skipping hair enhancement for document...")
@@ -1283,58 +1283,76 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
         
         # Apply feathering to alpha channel only
         # Premium: Adaptive feather based on MP
-        # Free Preview: Light feather (1-1.5px for human, 0.5px for document)
-        if SCIPY_AVAILABLE:
-            if is_premium:
-                logger.info("Step 8.1: Applying premium adaptive feathering to alpha channel of composite...")
-                composite_alpha = apply_feathering(composite_alpha, feather_radius=3)
-            else:
-                # Free preview: Light feather based on image type
-                if is_document:
-                    logger.info("Step 8.1: Applying light feather (0.5px) for document...")
-                    composite_alpha = apply_feathering(composite_alpha, feather_radius=0.5)
-                else:
-                    logger.info("Step 8.1: Applying light feather (1.5px) for human photo...")
-                    composite_alpha = apply_feathering(composite_alpha, feather_radius=1.5)
+        # Free Preview: NO FEATHER (disabled for free preview)
+        if is_premium and SCIPY_AVAILABLE:
+            logger.info("Step 8.1: Applying premium adaptive feathering to alpha channel of composite...")
+            composite_alpha = apply_feathering(composite_alpha, feather_radius=3)
             debug_stats.update(mask_stats("mask_after_feather_composite", composite_alpha))
+        else:
+            # Free preview: NO feathering (disabled)
+            logger.info("Step 8.1: Skipping feathering for free preview (disabled)")
+            debug_stats.update(mask_stats("mask_after_feather_skipped", composite_alpha))
         
         # Apply halo removal to alpha channel only
         # Premium: Strong halo removal
-        # Free Preview: Weak halo (0.15) for human, OFF for document
+        # Free Preview: NO HALO REMOVAL (disabled for free preview)
         if is_premium:
             logger.info("Step 8.2: Applying strong halo removal to alpha channel of composite...")
             composite_alpha = remove_halo(composite_alpha, input_image, threshold=0.15)
             debug_stats.update(mask_stats("mask_after_halo_composite", composite_alpha))
         else:
-            # Free preview: Weak halo for human only
-            if not is_document:
-                logger.info("Step 8.2: Applying weak halo removal (0.15) for human photo...")
-                composite_alpha = remove_halo(composite_alpha, input_image, threshold=0.15)
-                debug_stats.update(mask_stats("mask_after_halo_composite", composite_alpha))
-            else:
-                logger.info("Step 8.2: Skipping halo removal for document (preserve text)...")
-                debug_stats.update(mask_stats("mask_after_halo_skipped", composite_alpha))
+            # Free preview: NO halo removal (disabled)
+            logger.info("Step 8.2: Skipping halo removal for free preview (disabled)")
+            debug_stats.update(mask_stats("mask_after_halo_skipped", composite_alpha))
         
         # Re-composite with processed alpha
         final_image = Image.new('RGBA', input_image.size, (0, 0, 0, 0))
         final_image.paste(input_image, (0, 0))
         final_image.putalpha(composite_alpha)
         
-        # Clamp alpha to avoid full transparency (safety check for free preview)
+        # 🔥 FREE PREVIEW: Document Safe Mode - Binary Alpha (if document)
+        if not is_premium and is_document:
+            try:
+                logger.info("Step 9: Applying document safe mode - binary alpha conversion...")
+                alpha_arr = np.array(final_image.getchannel('A')).astype(np.float32) / 255.0
+                # Binary alpha: if alpha > 0.55 → 255, else → 0
+                binary_alpha = np.where(alpha_arr > 0.55, 1.0, 0.0)
+                binary_alpha_uint8 = (binary_alpha * 255).astype(np.uint8)
+                binary_alpha_img = Image.fromarray(binary_alpha_uint8, mode='L')
+                final_image.putalpha(binary_alpha_img)
+                logger.info("✅ Document safe mode: Binary alpha applied (text fully visible)")
+                debug_stats["document_binary_alpha"] = True
+            except Exception as doc_binary_err:
+                logger.warning(f"Document binary alpha conversion failed: {doc_binary_err}")
+        
+        # 🔥 MOST IMPORTANT - ALPHA SAFETY CLAMP (FREE PREVIEW ONLY, MANDATORY)
         if not is_premium:
             try:
+                logger.info("Step 10: Applying MANDATORY alpha safety clamp for free preview...")
                 alpha_arr = np.array(final_image.getchannel('A'))
-                # Ensure at least 1% of pixels have non-zero alpha
-                alpha_nonzero_pct = (np.count_nonzero(alpha_arr) / alpha_arr.size) * 100.0
-                if alpha_nonzero_pct < 1.0:
-                    logger.warning(f"⚠️ Free preview: Alpha too low ({alpha_nonzero_pct:.2f}%), clamping minimum alpha...")
-                    # Clamp minimum alpha to avoid full transparency
-                    alpha_arr = np.clip(alpha_arr, 10, 255)  # Minimum alpha of 10 to preserve edges
-                    alpha_clamped = Image.fromarray(alpha_arr, mode='L')
-                    final_image.putalpha(alpha_clamped)
-                    logger.info(f"✅ Free preview: Alpha clamped to prevent full transparency")
+                
+                # Apply safety clamp: alpha = max(alpha, 12) - ALL pixels
+                # This ensures no pixel has alpha < 12, preventing fully transparent appearance
+                min_alpha = 12
+                alpha_arr = np.maximum(alpha_arr, min_alpha)
+                
+                alpha_clamped = Image.fromarray(alpha_arr, mode='L')
+                final_image.putalpha(alpha_clamped)
+                
+                # Log stats
+                alpha_min = float(np.min(alpha_arr))
+                alpha_max = float(np.max(alpha_arr))
+                alpha_nonzero = int(np.count_nonzero(alpha_arr))
+                logger.info(f"✅ Free preview: Alpha safety clamp applied (min: {alpha_min}, max: {alpha_max}, nonzero: {alpha_nonzero})")
+                debug_stats.update({
+                    "alpha_safety_clamp_applied": True,
+                    "alpha_clamp_min": float(min_alpha),
+                    "alpha_final_min": alpha_min,
+                    "alpha_final_max": alpha_max
+                })
             except Exception as clamp_err:
-                logger.warning(f"Failed to clamp alpha: {clamp_err}")
+                logger.error(f"⚠️ CRITICAL: Alpha safety clamp failed: {clamp_err}")
+                # This is critical for free preview - log as error
         
     except Exception as e:
         logger.error(f"Composite with fixed pipeline failed: {e}, falling back to original composite")
