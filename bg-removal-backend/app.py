@@ -1145,15 +1145,14 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
     except Exception as e:
         logger.warning(f"Failed to compute mask stats: {e}")
 
-    # Safeguard: if mask is empty, fall back to rembg output directly
+    # Safeguard: if mask is empty, flag it but continue to apply alpha clamp
     hist = mask.histogram()
     nonzero = sum(hist[1:])
-    if nonzero == 0:
-        logger.warning("Mask appears empty; returning rembg output directly")
+    mask_empty = (nonzero == 0)
+    if mask_empty:
+        logger.warning("Mask appears empty; will use raw rembg output with alpha clamp")
         debug_stats["mask_empty"] = True
-        final_buffer = io.BytesIO()
-        output_image.save(final_buffer, format='PNG', optimize=True)
-        return final_buffer.getvalue(), debug_stats
+        # Don't return early - let it go through alpha clamp at the end
     
     # Track mask stats helper
     def mask_stats(tag, mask_img):
@@ -1221,6 +1220,8 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
         debug_stats.update(mask_stats("mask_after_matte_skipped", mask))
     
     # Step 7.5: Safety check - if alpha is too low (< 1%), fallback to raw output
+    alpha_too_low = False
+    alpha_percent = 100.0  # Default value
     try:
         mask_array = np.array(mask.convert('L'))
         alpha_nonzero = np.count_nonzero(mask_array)
@@ -1234,134 +1235,188 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
             "total_pixels": int(total_pixels)
         })
         
-        if alpha_percent < 1.0:
+        alpha_too_low = (alpha_percent < 1.0)
+        if alpha_too_low:
             logger.warning(f"⚠️ Alpha too low ({alpha_percent:.2f}%) - falling back to raw BiRefNet output (no feather/halo)")
             debug_stats["fallback_to_raw"] = True
-            # Return raw rembg output without post-processing
-            final_buffer = io.BytesIO()
-            output_image.save(final_buffer, format='PNG', optimize=True)
-            return final_buffer.getvalue(), debug_stats
+            # Use raw rembg output as final image (will apply alpha clamp at the end for free preview)
+            final_image = output_image
+            # Skip all post-processing steps, go directly to final alpha clamp
+    except Exception as e:
+        logger.warning(f"Failed alpha check, proceeding anyway: {e}")
     except Exception as e:
         logger.warning(f"Failed alpha check, proceeding anyway: {e}")
     
     # Step 8: Apply alpha mask to RGB FIRST (before feather/halo), then composite
-    logger.info("Step 8: Applying alpha mask to RGB first, then creating pro-level PNG composite...")
-    
-    # FIXED: Apply mask to RGB first, then apply post-processing to the composite
-    # This prevents alpha from becoming zero after feathering/halo removal
-    try:
-        # Ensure original is RGB
-        if isinstance(input_image, Image.Image):
-            if input_image.mode == 'RGBA':
-                rgb_image = Image.new('RGB', input_image.size, (255, 255, 255))
-                rgb_image.paste(input_image, mask=input_image.split()[3])
-                input_image = rgb_image
-            elif input_image.mode != 'RGB':
-                input_image = input_image.convert('RGB')
+    # SKIP this step if we already set final_image (early return paths)
+    if not mask_empty and not alpha_too_low:
+        logger.info("Step 8: Applying alpha mask to RGB first, then creating pro-level PNG composite...")
+        
+        # FIXED: Apply mask to RGB first, then apply post-processing to the composite
+        # This prevents alpha from becoming zero after feathering/halo removal
+        try:
+            # Ensure original is RGB
+            if isinstance(input_image, Image.Image):
+                if input_image.mode == 'RGBA':
+                    rgb_image = Image.new('RGB', input_image.size, (255, 255, 255))
+                    rgb_image.paste(input_image, mask=input_image.split()[3])
+                    input_image = rgb_image
+                elif input_image.mode != 'RGB':
+                    input_image = input_image.convert('RGB')
+            else:
+                input_image = Image.fromarray(input_image).convert('RGB')
+            
+            # Ensure mask matches image size BEFORE applying
+            if isinstance(mask, Image.Image):
+                mask = mask.convert('L')
+            else:
+                mask = Image.fromarray(mask, mode='L')
+            
+            # CRITICAL: Keep same scale - resize mask to match image if needed
+            if mask.size != input_image.size:
+                logger.warning(f"Mask size {mask.size} != image size {input_image.size}, resizing mask to match")
+                mask = mask.resize(input_image.size, Image.Resampling.LANCZOS)
+            
+            # Create RGBA with mask applied to RGB
+            rgba_temp = Image.new('RGBA', input_image.size, (0, 0, 0, 0))
+            rgba_temp.paste(input_image, (0, 0))
+            rgba_temp.putalpha(mask)
+            
+            # Now apply feathering and halo removal to the composite RGBA image
+            # Extract alpha channel from composite for post-processing
+            composite_alpha = rgba_temp.split()[3]
+            
+            # Apply feathering to alpha channel only
+            # Premium: Adaptive feather based on MP
+            # Free Preview: NO FEATHER (disabled for free preview)
+            if is_premium and SCIPY_AVAILABLE:
+                logger.info("Step 8.1: Applying premium adaptive feathering to alpha channel of composite...")
+                composite_alpha = apply_feathering(composite_alpha, feather_radius=3)
+                debug_stats.update(mask_stats("mask_after_feather_composite", composite_alpha))
+            else:
+                # Free preview: NO feathering (disabled)
+                logger.info("Step 8.1: Skipping feathering for free preview (disabled)")
+                debug_stats.update(mask_stats("mask_after_feather_skipped", composite_alpha))
+            
+            # Apply halo removal to alpha channel only
+            # Premium: Strong halo removal
+            # Free Preview: NO HALO REMOVAL (disabled for free preview)
+            if is_premium:
+                logger.info("Step 8.2: Applying strong halo removal to alpha channel of composite...")
+                composite_alpha = remove_halo(composite_alpha, input_image, threshold=0.15)
+                debug_stats.update(mask_stats("mask_after_halo_composite", composite_alpha))
+            else:
+                # Free preview: NO halo removal (disabled)
+                logger.info("Step 8.2: Skipping halo removal for free preview (disabled)")
+                debug_stats.update(mask_stats("mask_after_halo_skipped", composite_alpha))
+            
+            # Re-composite with processed alpha
+            final_image = Image.new('RGBA', input_image.size, (0, 0, 0, 0))
+            final_image.paste(input_image, (0, 0))
+            final_image.putalpha(composite_alpha)
+            
+            # 🔥 FREE PREVIEW: Document Safe Mode - Binary Alpha (if document)
+            if not is_premium and is_document:
+                try:
+                    logger.info("Step 9: Applying document safe mode - binary alpha conversion...")
+                    alpha_arr = np.array(final_image.getchannel('A')).astype(np.float32) / 255.0
+                    # Binary alpha: if alpha > 0.55 → 255, else → 0
+                    binary_alpha = np.where(alpha_arr > 0.55, 1.0, 0.0)
+                    binary_alpha_uint8 = (binary_alpha * 255).astype(np.uint8)
+                    binary_alpha_img = Image.fromarray(binary_alpha_uint8, mode='L')
+                    final_image.putalpha(binary_alpha_img)
+                    logger.info("✅ Document safe mode: Binary alpha applied (text fully visible)")
+                    debug_stats["document_binary_alpha"] = True
+                except Exception as doc_binary_err:
+                    logger.warning(f"Document binary alpha conversion failed: {doc_binary_err}")
+            
+            # 🔥 MOST IMPORTANT - ALPHA SAFETY CLAMP (FREE PREVIEW ONLY, MANDATORY)
+            if not is_premium:
+                try:
+                    logger.info("Step 10: Applying MANDATORY alpha safety clamp for free preview...")
+                    alpha_arr = np.array(final_image.getchannel('A'))
+                    
+                    # Apply safety clamp: alpha = max(alpha, 12) - ALL pixels
+                    # This ensures no pixel has alpha < 12, preventing fully transparent appearance
+                    min_alpha = 12
+                    alpha_arr = np.maximum(alpha_arr, min_alpha)
+                    
+                    alpha_clamped = Image.fromarray(alpha_arr, mode='L')
+                    final_image.putalpha(alpha_clamped)
+                    
+                    # Log stats
+                    alpha_min = float(np.min(alpha_arr))
+                    alpha_max = float(np.max(alpha_arr))
+                    alpha_nonzero = int(np.count_nonzero(alpha_arr))
+                    logger.info(f"✅ Free preview: Alpha safety clamp applied (min: {alpha_min}, max: {alpha_max}, nonzero: {alpha_nonzero})")
+                    debug_stats.update({
+                        "alpha_safety_clamp_applied": True,
+                        "alpha_clamp_min": float(min_alpha),
+                        "alpha_final_min": alpha_min,
+                        "alpha_final_max": alpha_max
+                    })
+                except Exception as clamp_err:
+                    logger.error(f"⚠️ CRITICAL: Alpha safety clamp failed: {clamp_err}")
+                    # This is critical for free preview - log as error
+            
+        except Exception as e:
+            logger.error(f"Composite with fixed pipeline failed: {e}, falling back to original composite")
+            final_image = composite_pro_png(input_image, mask)
+    else:
+        # Handle early return cases (empty mask or low alpha fallback)
+        if mask_empty or alpha_too_low:
+            logger.info("Using raw rembg output due to empty mask or low alpha")
+            final_image = output_image
+            # Ensure it has alpha channel
+            if final_image.mode != 'RGBA':
+                final_image = final_image.convert('RGBA')
         else:
-            input_image = Image.fromarray(input_image).convert('RGB')
-        
-        # Ensure mask matches image size BEFORE applying
-        if isinstance(mask, Image.Image):
-            mask = mask.convert('L')
-        else:
-            mask = Image.fromarray(mask, mode='L')
-        
-        # CRITICAL: Keep same scale - resize mask to match image if needed
-        if mask.size != input_image.size:
-            logger.warning(f"Mask size {mask.size} != image size {input_image.size}, resizing mask to match")
-            mask = mask.resize(input_image.size, Image.Resampling.LANCZOS)
-        
-        # Create RGBA with mask applied to RGB
-        rgba_temp = Image.new('RGBA', input_image.size, (0, 0, 0, 0))
-        rgba_temp.paste(input_image, (0, 0))
-        rgba_temp.putalpha(mask)
-        
-        # Now apply feathering and halo removal to the composite RGBA image
-        # Extract alpha channel from composite for post-processing
-        composite_alpha = rgba_temp.split()[3]
-        
-        # Apply feathering to alpha channel only
-        # Premium: Adaptive feather based on MP
-        # Free Preview: NO FEATHER (disabled for free preview)
-        if is_premium and SCIPY_AVAILABLE:
-            logger.info("Step 8.1: Applying premium adaptive feathering to alpha channel of composite...")
-            composite_alpha = apply_feathering(composite_alpha, feather_radius=3)
-            debug_stats.update(mask_stats("mask_after_feather_composite", composite_alpha))
-        else:
-            # Free preview: NO feathering (disabled)
-            logger.info("Step 8.1: Skipping feathering for free preview (disabled)")
-            debug_stats.update(mask_stats("mask_after_feather_skipped", composite_alpha))
-        
-        # Apply halo removal to alpha channel only
-        # Premium: Strong halo removal
-        # Free Preview: NO HALO REMOVAL (disabled for free preview)
-        if is_premium:
-            logger.info("Step 8.2: Applying strong halo removal to alpha channel of composite...")
-            composite_alpha = remove_halo(composite_alpha, input_image, threshold=0.15)
-            debug_stats.update(mask_stats("mask_after_halo_composite", composite_alpha))
-        else:
-            # Free preview: NO halo removal (disabled)
-            logger.info("Step 8.2: Skipping halo removal for free preview (disabled)")
-            debug_stats.update(mask_stats("mask_after_halo_skipped", composite_alpha))
-        
-        # Re-composite with processed alpha
-        final_image = Image.new('RGBA', input_image.size, (0, 0, 0, 0))
-        final_image.paste(input_image, (0, 0))
-        final_image.putalpha(composite_alpha)
-        
-        # 🔥 FREE PREVIEW: Document Safe Mode - Binary Alpha (if document)
-        if not is_premium and is_document:
-            try:
-                logger.info("Step 9: Applying document safe mode - binary alpha conversion...")
-                alpha_arr = np.array(final_image.getchannel('A')).astype(np.float32) / 255.0
-                # Binary alpha: if alpha > 0.55 → 255, else → 0
-                binary_alpha = np.where(alpha_arr > 0.55, 1.0, 0.0)
-                binary_alpha_uint8 = (binary_alpha * 255).astype(np.uint8)
-                binary_alpha_img = Image.fromarray(binary_alpha_uint8, mode='L')
-                final_image.putalpha(binary_alpha_img)
-                logger.info("✅ Document safe mode: Binary alpha applied (text fully visible)")
-                debug_stats["document_binary_alpha"] = True
-            except Exception as doc_binary_err:
-                logger.warning(f"Document binary alpha conversion failed: {doc_binary_err}")
-        
-        # 🔥 MOST IMPORTANT - ALPHA SAFETY CLAMP (FREE PREVIEW ONLY, MANDATORY)
-        if not is_premium:
-            try:
-                logger.info("Step 10: Applying MANDATORY alpha safety clamp for free preview...")
-                alpha_arr = np.array(final_image.getchannel('A'))
-                
-                # Apply safety clamp: alpha = max(alpha, 12) - ALL pixels
-                # This ensures no pixel has alpha < 12, preventing fully transparent appearance
-                min_alpha = 12
-                alpha_arr = np.maximum(alpha_arr, min_alpha)
-                
-                alpha_clamped = Image.fromarray(alpha_arr, mode='L')
-                final_image.putalpha(alpha_clamped)
-                
-                # Log stats
-                alpha_min = float(np.min(alpha_arr))
-                alpha_max = float(np.max(alpha_arr))
-                alpha_nonzero = int(np.count_nonzero(alpha_arr))
-                logger.info(f"✅ Free preview: Alpha safety clamp applied (min: {alpha_min}, max: {alpha_max}, nonzero: {alpha_nonzero})")
-                debug_stats.update({
-                    "alpha_safety_clamp_applied": True,
-                    "alpha_clamp_min": float(min_alpha),
-                    "alpha_final_min": alpha_min,
-                    "alpha_final_max": alpha_max
-                })
-            except Exception as clamp_err:
-                logger.error(f"⚠️ CRITICAL: Alpha safety clamp failed: {clamp_err}")
-                # This is critical for free preview - log as error
-        
-    except Exception as e:
-        logger.error(f"Composite with fixed pipeline failed: {e}, falling back to original composite")
-        final_image = composite_pro_png(input_image, mask)
+            # This shouldn't happen, but ensure we have final_image
+            final_image = composite_pro_png(input_image, mask)
     
     debug_stats.update(mask_stats("mask_final_used", mask))
     
     opt_time = time.time() - start_opt
     logger.info(f"Optimization pipeline completed in {opt_time:.2f}s")
+    
+    # 🔥 MOST IMPORTANT - FINAL ALPHA SAFETY CLAMP (FREE PREVIEW ONLY, MANDATORY)
+    # This MUST run at the very end, after ALL processing, including fallbacks
+    if not is_premium:
+        try:
+            logger.info("Step FINAL: Applying MANDATORY final alpha safety clamp for free preview...")
+            # Ensure image has alpha channel
+            if final_image.mode != 'RGBA':
+                # If no alpha, create opaque alpha
+                alpha_channel = Image.new('L', final_image.size, 255)
+                final_image = final_image.convert('RGB')
+                final_image.putalpha(alpha_channel)
+            
+            alpha_arr = np.array(final_image.getchannel('A'))
+            
+            # Apply safety clamp: alpha = max(alpha, 12) - ALL pixels
+            # This ensures no pixel has alpha < 12, preventing fully transparent appearance
+            min_alpha = 12
+            alpha_arr = np.maximum(alpha_arr, min_alpha)
+            
+            alpha_clamped = Image.fromarray(alpha_arr, mode='L')
+            final_image.putalpha(alpha_clamped)
+            
+            # Log final stats
+            alpha_min = float(np.min(alpha_arr))
+            alpha_max = float(np.max(alpha_arr))
+            alpha_nonzero = int(np.count_nonzero(alpha_arr))
+            logger.info(f"✅ Free preview: FINAL alpha safety clamp applied (min: {alpha_min}, max: {alpha_max}, nonzero: {alpha_nonzero})")
+            debug_stats.update({
+                "alpha_safety_clamp_applied": True,
+                "alpha_clamp_min": float(min_alpha),
+                "alpha_final_min": alpha_min,
+                "alpha_final_max": alpha_max,
+                "alpha_final_nonzero": alpha_nonzero
+            })
+        except Exception as clamp_err:
+            logger.error(f"⚠️ CRITICAL: Final alpha safety clamp failed: {clamp_err}")
+            # Try to save anyway, but log the error
+            debug_stats["alpha_clamp_error"] = str(clamp_err)
     
     # Convert to bytes
     output_buffer = io.BytesIO()
