@@ -343,7 +343,8 @@ module.exports = async function handler(req, res) {
         preserveOriginal: targetSize === 'original' || !targetSize, // Preserve original resolution if ≤ 25 MP
         targetSize: targetSize || 'original',
         targetWidth: targetWidth || null,
-        targetHeight: targetHeight || null
+        targetHeight: targetHeight || null,
+        imageType: req.body.imageType || null // Forward imageType: "human" | "document" | "id_card" | "a4"
       }),
       signal: AbortSignal.timeout(300000)
     });

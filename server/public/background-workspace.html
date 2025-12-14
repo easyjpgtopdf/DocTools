@@ -240,6 +240,9 @@
     const previewStage = document.getElementById('previewStage');
     const previewOriginal = document.getElementById('previewOriginal');
     const previewResult = document.getElementById('previewResult');
+    
+    // Processing lock to prevent multiple API calls
+    let isProcessing = false;
     const previewOverlay = document.getElementById('previewOverlay');
     const previewPlaceholder = document.getElementById('previewPlaceholder');
     const backgroundChangeBtn = document.getElementById('backgroundChange');
@@ -687,11 +690,23 @@
     }
     
     // Process with Premium HD API (up to 25 MP BiRefNet GPU High-Resolution)
-    async function processWithPremiumHD(dataURL, targetSize = 'original') {
+    async function processWithPremiumHD(dataURL, targetSize = 'original', imageType = null) {
+      // Processing lock - prevent multiple simultaneous calls
+      if (isProcessing) {
+        console.warn('⚠️ Premium processing already in progress, ignoring duplicate call');
+        return {
+          success: false,
+          error: 'Processing already in progress. Please wait for the current operation to complete.'
+        };
+      }
+      
+      isProcessing = true;
+      
       try {
         // Validate image data before sending
         const validation = validateImageDataURL(dataURL);
         if (!validation.valid) {
+          isProcessing = false;
           return {
             success: false,
             error: validation.error || 'Invalid image file. Please ensure you are uploading a valid image (JPG, PNG, etc.).'
@@ -703,6 +718,7 @@
         const userId = await getCurrentUserId();
         
         if (!userId) {
+          isProcessing = false;
           return {
             success: false,
             error: 'Please sign in to use Premium HD processing',
@@ -729,6 +745,7 @@
         const controller = new AbortController();
         const timeout = setTimeout(() => {
           clearInterval(progressInterval);
+          isProcessing = false; // Reset lock on timeout
           controller.abort();
         }, 300000); // 5 minutes
         
@@ -740,6 +757,33 @@
           targetWidth = parseInt(width);
           targetHeight = parseInt(height);
         }
+        
+        // Detect image type if not provided
+        let detectedImageType = imageType;
+        if (!detectedImageType) {
+          // Simple detection based on aspect ratio (basic heuristic)
+          const img = new Image();
+          await new Promise((resolve) => {
+            img.onload = resolve;
+            img.src = dataURL;
+          });
+          const aspectRatio = img.width / img.height;
+          
+          // Document detection: A4 (0.707), Letter (0.773), ID card (0.6-0.7 or 1.5-1.7)
+          if ((aspectRatio >= 0.6 && aspectRatio <= 0.85) || (aspectRatio >= 1.2 && aspectRatio <= 1.7)) {
+            if (aspectRatio >= 1.5 && aspectRatio <= 1.7) {
+              detectedImageType = 'id_card';
+            } else if (Math.abs(aspectRatio - 0.707) < 0.1 || Math.abs(aspectRatio - 1.414) < 0.1) {
+              detectedImageType = 'a4';
+            } else {
+              detectedImageType = 'document';
+            }
+          } else {
+            detectedImageType = 'human';
+          }
+        }
+        
+        console.log(`📷 Detected image type: ${detectedImageType} for premium processing`);
         
         const response = await fetch(`${API_BASE_URL}/api/tools/bg-remove-premium`, {
           method: 'POST',
@@ -753,7 +797,8 @@
             userId: userId,
             targetSize: selectedPremiumSize || 'original',
             targetWidth: targetWidth,
-            targetHeight: targetHeight
+            targetHeight: targetHeight,
+            imageType: detectedImageType // Send image type to backend
           }),
           signal: controller.signal
         });
@@ -813,19 +858,50 @@
         
         const result = await response.json();
         
+        // Validate result before returning
         if (result.success && result.resultImage) {
+          // Validate resultImage length (must be substantial base64 data)
+          const resultImageLength = result.resultImage.length;
+          if (resultImageLength < 1000) {
+            console.error('❌ Premium result image is too small:', resultImageLength, 'chars');
+            isProcessing = false;
+            return {
+              success: false,
+              error: 'Processing failed: Output image is invalid or corrupted. Please try again.'
+            };
+          }
+          
+          // Check if alpha channel is fully zero (validate by checking data URL)
+          // This is a basic check - full validation happens in backend
+          const hasAlphaData = result.resultImage.includes('data:image/png') && resultImageLength > 1000;
+          
+          if (!hasAlphaData) {
+            console.error('❌ Premium result missing valid PNG data');
+            isProcessing = false;
+            return {
+              success: false,
+              error: 'Processing failed: Output image format is invalid. Please try again.'
+            };
+          }
+          
+          isProcessing = false;
           return {
             success: true,
             dataUrl: result.resultImage,
             processedWith: 'Premium HD (2000-4000px GPU-accelerated High-Resolution)',
             outputSize: result.outputSize,
             outputSizeMB: result.outputSizeMB,
-            creditsUsed: result.creditsUsed
+            creditsUsed: result.creditsUsed,
+            imageType: result.imageType || detectedImageType
           };
         } else {
+          isProcessing = false;
           throw new Error(result.error || 'Processing failed');
         }
       } catch (error) {
+        // Reset processing lock on error
+        isProcessing = false;
+        
         // Clean up progress interval if still running
         if (typeof progressInterval !== 'undefined') {
           clearInterval(progressInterval);
@@ -1903,6 +1979,11 @@
             console.log('Premium HD processing result:', { success: premiumResult.success, error: premiumResult.error, requiresAuth: premiumResult.requiresAuth, requiresCredits: premiumResult.requiresCredits });
             
             if (premiumResult.success) {
+              // Validate result before updating preview
+              if (!premiumResult.dataUrl || premiumResult.dataUrl.length < 1000) {
+                throw new Error('Premium result image is invalid or too small');
+              }
+              
               finalDownloadUrl = premiumResult.dataUrl;
               
               // Show credit deduction info
@@ -1915,17 +1996,52 @@
               // Update stored foreground
               sessionStorage.setItem(STORAGE_KEYS.foreground, premiumResult.dataUrl);
               
-              // Update preview
-              previewResult.src = premiumResult.dataUrl;
-              const foregroundImage = new Image();
-              foregroundImage.crossOrigin = 'anonymous';
-              foregroundImage.src = premiumResult.dataUrl;
-              await foregroundImage.decode();
-              
-              ensureCanvas(foregroundImage.width, foregroundImage.height);
-              resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
-              resultContext.drawImage(foregroundImage, 0, 0, resultCanvas.width, resultCanvas.height);
-              resultDataURL = resultCanvas.toDataURL('image/png');
+              // Update preview ONLY with validated premium result (don't overwrite with empty/old)
+              // Validate resultImage length > 1000 before rendering
+              if (premiumResult.dataUrl && premiumResult.dataUrl.length > 1000) {
+                // Check alpha channel by loading image
+                const testImg = new Image();
+                await new Promise((resolve, reject) => {
+                  testImg.onload = resolve;
+                  testImg.onerror = reject;
+                  testImg.src = premiumResult.dataUrl;
+                });
+                
+                // Draw to canvas to check alpha
+                const testCanvas = document.createElement('canvas');
+                testCanvas.width = testImg.width;
+                testCanvas.height = testImg.height;
+                const testCtx = testCanvas.getContext('2d', { alpha: true });
+                testCtx.clearRect(0, 0, testCanvas.width, testCanvas.height);
+                testCtx.drawImage(testImg, 0, 0);
+                
+                // Sample alpha channel
+                const imageData = testCtx.getImageData(0, 0, Math.min(100, testCanvas.width), Math.min(100, testCanvas.height));
+                const alphaData = imageData.data.filter((_, i) => i % 4 === 3); // Get alpha values
+                const nonZeroAlpha = alphaData.filter(a => a > 0).length;
+                const alphaPercent = (nonZeroAlpha / alphaData.length) * 100;
+                
+                if (alphaPercent < 1) {
+                  // Alpha is fully zero - show error instead of replacing preview
+                  throw new Error('Processing failed: Output image has no valid content (alpha channel is empty). Please try again with a different image.');
+                }
+                
+                // Alpha is valid - update preview
+                previewResult.src = premiumResult.dataUrl;
+                previewResult.hidden = false;
+                
+                const foregroundImage = new Image();
+                foregroundImage.crossOrigin = 'anonymous';
+                foregroundImage.src = premiumResult.dataUrl;
+                await foregroundImage.decode();
+                
+                ensureCanvas(foregroundImage.width, foregroundImage.height);
+                resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+                resultContext.drawImage(foregroundImage, 0, 0, resultCanvas.width, resultCanvas.height);
+                resultDataURL = resultCanvas.toDataURL('image/png');
+              } else {
+                throw new Error('Premium result image is invalid or corrupted');
+              }
               
               // Remove processing overlay
               if (processingOverlay && processingOverlay.parentNode) {

@@ -968,27 +968,57 @@ def process_premium_hd_pipeline(input_image, birefnet_session, maxmatting_sessio
     debug_stats["composite_completed"] = True
     
     # Step 5: Adaptive Feather (Alpha only, based on MP)
-    logger.info("Step 5: Applying adaptive feather to alpha channel...")
-    composite_alpha = rgba_composite.split()[3]
-    feathered_alpha = adaptive_feather_alpha(
-        composite_alpha, 
-        original_width, 
-        original_height, 
-        is_document=is_document
-    )
-    rgba_composite.putalpha(feathered_alpha)
-    debug_stats["adaptive_feather_applied"] = True
-    
-    # Step 6: Strong Halo Removal (Alpha edge only)
-    logger.info("Step 6: Applying strong halo removal...")
-    current_alpha = rgba_composite.split()[3]
-    cleaned_alpha = strong_halo_removal_alpha(
-        current_alpha, 
-        rgb_image, 
-        is_document=is_document
-    )
-    rgba_composite.putalpha(cleaned_alpha)
-    debug_stats["halo_removal_applied"] = True
+    # Document preset: max 2-3px feather, no aggressive halo
+    # Human preset: Full adaptive feather based on MP
+    if is_document:
+        logger.info("Step 5: Applying document preset (max 2-3px feather, reduced halo)")
+        composite_alpha = rgba_composite.split()[3]
+        # Document: very light feather (max 2-3px)
+        feathered_alpha = adaptive_feather_alpha(
+            composite_alpha, 
+            original_width, 
+            original_height, 
+            is_document=True  # Forces max 2-3px feather
+        )
+        rgba_composite.putalpha(feathered_alpha)
+        debug_stats["adaptive_feather_applied"] = True
+        debug_stats["document_preset"] = True
+        
+        # Step 6: Reduced Halo Removal for documents
+        logger.info("Step 6: Applying reduced halo removal (document preset)...")
+        current_alpha = rgba_composite.split()[3]
+        cleaned_alpha = strong_halo_removal_alpha(
+            current_alpha, 
+            rgb_image, 
+            is_document=True  # Gentle suppression for documents
+        )
+        rgba_composite.putalpha(cleaned_alpha)
+        debug_stats["halo_removal_applied"] = True
+        debug_stats["halo_strength"] = "reduced_document"
+    else:
+        # Human photo: Full feather + strong halo
+        logger.info("Step 5: Applying adaptive feather to alpha channel (photo mode)...")
+        composite_alpha = rgba_composite.split()[3]
+        feathered_alpha = adaptive_feather_alpha(
+            composite_alpha, 
+            original_width, 
+            original_height, 
+            is_document=False
+        )
+        rgba_composite.putalpha(feathered_alpha)
+        debug_stats["adaptive_feather_applied"] = True
+        
+        # Step 6: Strong Halo Removal (Alpha edge only) - for photos
+        logger.info("Step 6: Applying strong halo removal (photo mode)...")
+        current_alpha = rgba_composite.split()[3]
+        cleaned_alpha = strong_halo_removal_alpha(
+            current_alpha, 
+            rgb_image, 
+            is_document=False  # Strong suppression for photos
+        )
+        rgba_composite.putalpha(cleaned_alpha)
+        debug_stats["halo_removal_applied"] = True
+        debug_stats["halo_strength"] = "strong_photo"
     
     # Step 7: Color Decontamination
     logger.info("Step 7: Applying color decontamination...")
@@ -1567,8 +1597,21 @@ def premium_bg():
             final_megapixels = (final_size[0] * final_size[1]) / 1_000_000
             logger.info(f"Final processing size: {final_size[0]}x{final_size[1]} = {final_megapixels:.2f} MP")
             
-            # Automatic Image Type Detection: PHOTO vs DOCUMENT
-            is_document = is_document_image(input_image)
+            # Image Type Detection: Use provided imageType or auto-detect
+            image_type = data.get('imageType')  # "human" | "document" | "id_card" | "a4"
+            
+            if image_type:
+                # Use provided imageType
+                if image_type in ['document', 'id_card', 'a4']:
+                    is_document = True
+                    logger.info(f"📄 Using provided imageType: {image_type} → Document mode")
+                else:
+                    is_document = False
+                    logger.info(f"📷 Using provided imageType: {image_type} → Photo mode")
+            else:
+                # Auto-detect if not provided
+                is_document = is_document_image(input_image)
+                image_type = 'document' if is_document else 'human'
             
             # Select pipeline based on image type
             birefnet_session = get_session_512()  # BiRefNet for semantic mask
@@ -1693,7 +1736,7 @@ def premium_bg():
                 'creditsUsed': credits_required,  # Actual credits deducted (backend only, not shown in UI)
                 'creditsUsedDisplay': 1,  # Generic display for UI (user sees "1 credit used" or "X credits used")
                 'megapixels': round(final_megapixels, 2),
-                'imageType': 'document' if is_document else 'photo',
+                'imageType': image_type,  # Return the imageType used
                 'pipelineType': pipeline_type,
                 'optimizations': optimizations
             }
