@@ -1327,13 +1327,73 @@ def free_preview_bg():
         image_data = data.get('imageData')
         max_size = data.get('maxSize', 512)
         
+        # Validate image_data is present
+        if not image_data:
+            logger.error("Missing imageData in request")
+            return jsonify({
+                'success': False,
+                'error': 'Missing imageData',
+                'message': 'No image data provided in request'
+            }), 400
+        
         # Decode base64 image
         try:
+            # Extract base64 part if data URL
+            base64_part = image_data
             if ',' in image_data:
-                image_data = image_data.split(',')[1]
+                parts = image_data.split(',', 1)  # Split only once
+                if len(parts) == 2:
+                    base64_part = parts[1]
+                else:
+                    logger.error(f"Invalid data URL format: {image_data[:100]}...")
+                    return jsonify({
+                        'success': False,
+                        'error': 'Invalid image data format',
+                        'message': 'Image data URL format is invalid. Expected: data:image/...;base64,...'
+                    }), 400
             
-            image_bytes = base64.b64decode(image_data)
-            input_image = Image.open(io.BytesIO(image_bytes))
+            # Validate base64 string
+            if not base64_part or len(base64_part) < 100:
+                logger.error(f"Base64 data too short: {len(base64_part) if base64_part else 0} chars")
+                return jsonify({
+                    'success': False,
+                    'error': 'Invalid image data',
+                    'message': 'Image data is too small or corrupted. Please try uploading again.'
+                }), 400
+            
+            # Decode base64
+            try:
+                image_bytes = base64.b64decode(base64_part, validate=True)
+            except Exception as decode_err:
+                logger.error(f"Base64 decode error: {str(decode_err)}")
+                return jsonify({
+                    'success': False,
+                    'error': 'Invalid image data',
+                    'message': f'Failed to decode image data: {str(decode_err)}. Please ensure you are uploading a valid image file (JPG, PNG, etc.).'
+                }), 400
+            
+            if not image_bytes or len(image_bytes) == 0:
+                logger.error("Decoded image bytes are empty")
+                return jsonify({
+                    'success': False,
+                    'error': 'Invalid image data',
+                    'message': 'Decoded image is empty. Please try uploading a different image.'
+                }), 400
+            
+            # Open image with PIL
+            try:
+                input_image = Image.open(io.BytesIO(image_bytes))
+                # Verify it's a valid image
+                input_image.verify()
+                # Re-open because verify() closes the image
+                input_image = Image.open(io.BytesIO(image_bytes))
+            except Exception as img_err:
+                logger.error(f"Image open/verify error: {str(img_err)}")
+                return jsonify({
+                    'success': False,
+                    'error': 'Invalid image file',
+                    'message': f'Invalid image file: {str(img_err)}. Please ensure you are uploading a valid image file (JPG, PNG, etc.). The image may be corrupted or in an unsupported format.'
+                }), 400
             
             # Convert RGBA to RGB if needed
             if input_image.mode == 'RGBA':
