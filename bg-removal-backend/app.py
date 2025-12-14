@@ -1170,6 +1170,138 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
 
     debug_stats.update(mask_stats("mask_raw", mask))
 
+    # 🔥 FREE PREVIEW ONLY: Mask Strength Check and Recovery (Levels 1-3)
+    used_fallback_level = 0
+    if not is_premium:
+        try:
+            mask_np = np.array(mask.convert('L'))
+            total_pixels = mask_np.size
+            nonzero_pixels = np.count_nonzero(mask_np)
+            mask_nonzero_ratio = nonzero_pixels / total_pixels if total_pixels > 0 else 0.0
+            mask_mean = float(np.mean(mask_np))
+            
+            logger.info(f"📊 Free Preview Mask Stats: nonzero_ratio={mask_nonzero_ratio:.4f}, mean={mask_mean:.2f}")
+            debug_stats.update({
+                "mask_nonzero_ratio": float(mask_nonzero_ratio),
+                "mask_mean": mask_mean,
+                "mask_nonzero_pixels": int(nonzero_pixels),
+                "mask_total_pixels": int(total_pixels)
+            })
+            
+            # Level 1: Check if mask is weak
+            weak_mask = (mask_nonzero_ratio < 0.01) or (mask_mean < 25)
+            
+            if weak_mask:
+                logger.warning(f"⚠️ Weak mask detected (ratio={mask_nonzero_ratio:.4f}, mean={mask_mean:.2f}). Applying Level 2 recovery...")
+                used_fallback_level = 1
+                
+                # Level 2: Mask Recovery (aggressive for preview)
+                try:
+                    if CV2_AVAILABLE:
+                        # Convert to numpy array
+                        mask_array = mask_np.astype(np.float32)
+                        
+                        # Apply gaussian blur (radius=3)
+                        mask_blurred = cv2.GaussianBlur(mask_array, (7, 7), 3.0)  # kernel size 7 = radius 3
+                        
+                        # Dilate (iterations=2)
+                        kernel = np.ones((5, 5), np.uint8)
+                        mask_dilated = cv2.dilate(mask_blurred.astype(np.uint8), kernel, iterations=2)
+                        
+                        # Normalize to 0-255
+                        mask_normalized = cv2.normalize(mask_dilated.astype(np.float32), None, 0, 255, cv2.NORM_MINMAX)
+                        
+                        # Lower threshold: alpha = mask > 80 ? 255 : 0
+                        mask_recovered = np.where(mask_normalized > 80, 255, 0).astype(np.uint8)
+                        
+                        mask = Image.fromarray(mask_recovered, mode='L')
+                        
+                        # Check if recovery helped
+                        mask_recovered_np = np.array(mask)
+                        recovered_nonzero = np.count_nonzero(mask_recovered_np)
+                        recovered_ratio = recovered_nonzero / total_pixels if total_pixels > 0 else 0.0
+                        recovered_mean = float(np.mean(mask_recovered_np))
+                        
+                        logger.info(f"✅ Level 2 recovery applied: new_ratio={recovered_ratio:.4f}, new_mean={recovered_mean:.2f}")
+                        debug_stats.update({
+                            "recovery_level_2_applied": True,
+                            "recovery_nonzero_ratio": float(recovered_ratio),
+                            "recovery_mean": recovered_mean
+                        })
+                        
+                        # Check if still weak after recovery
+                        if recovered_ratio < 0.01 or recovered_mean < 25:
+                            # Level 3: Emergency Preview Cut (center region)
+                            logger.warning("⚠️ Mask still weak after Level 2. Applying Level 3 emergency cut...")
+                            used_fallback_level = 2
+                            
+                            width, height = mask.size
+                            margin_percent = 0.15  # 15% margin
+                            left = int(width * margin_percent)
+                            top = int(height * margin_percent)
+                            right = int(width * (1 - margin_percent))
+                            bottom = int(height * (1 - margin_percent))
+                            
+                            # Create center region mask
+                            emergency_mask = np.zeros((height, width), dtype=np.uint8)
+                            emergency_mask[top:bottom, left:right] = 255
+                            
+                            mask = Image.fromarray(emergency_mask, mode='L')
+                            logger.info(f"✅ Level 3 emergency cut applied: center region {left},{top} to {right},{bottom}")
+                            debug_stats.update({
+                                "recovery_level_3_applied": True,
+                                "emergency_center_box": f"{left},{top},{right},{bottom}",
+                                "preview_mode": "fallback"
+                            })
+                    else:
+                        # If CV2 not available, skip to Level 3
+                        logger.warning("CV2 not available, skipping Level 2, applying Level 3 emergency cut...")
+                        used_fallback_level = 2
+                        
+                        width, height = mask.size
+                        margin_percent = 0.15
+                        left = int(width * margin_percent)
+                        top = int(height * margin_percent)
+                        right = int(width * (1 - margin_percent))
+                        bottom = int(height * (1 - margin_percent))
+                        
+                        emergency_mask = np.zeros((height, width), dtype=np.uint8)
+                        emergency_mask[top:bottom, left:right] = 255
+                        mask = Image.fromarray(emergency_mask, mode='L')
+                        debug_stats.update({
+                            "recovery_level_3_applied": True,
+                            "preview_mode": "fallback"
+                        })
+                        
+                except Exception as recovery_err:
+                    logger.error(f"Mask recovery failed: {recovery_err}, applying Level 3 emergency cut...")
+                    used_fallback_level = 2
+                    
+                    # Fallback to Level 3
+                    width, height = mask.size
+                    margin_percent = 0.15
+                    left = int(width * margin_percent)
+                    top = int(height * margin_percent)
+                    right = int(width * (1 - margin_percent))
+                    bottom = int(height * (1 - margin_percent))
+                    
+                    emergency_mask = np.zeros((height, width), dtype=np.uint8)
+                    emergency_mask[top:bottom, left:right] = 255
+                    mask = Image.fromarray(emergency_mask, mode='L')
+                    debug_stats.update({
+                        "recovery_level_3_applied": True,
+                        "recovery_error": str(recovery_err),
+                        "preview_mode": "fallback"
+                    })
+            else:
+                logger.info("✅ Mask strength OK, no recovery needed")
+            
+            debug_stats["used_fallback_level"] = used_fallback_level
+            
+        except Exception as check_err:
+            logger.error(f"Mask strength check failed: {check_err}, continuing with original mask")
+            debug_stats["mask_strength_check_error"] = str(check_err)
+
     # Step 2: Apply Guided Filter for smooth borders (Premium only)
     if is_premium and CV2_AVAILABLE:
         logger.info("Step 2: Applying guided filter for smooth borders...")
@@ -1692,6 +1824,13 @@ def free_preview_bg():
             
             logger.info(f"Free preview processed in {processing_time:.2f}s, output size: {output_size / 1024:.2f} KB")
             
+            # Check if fallback was used (from debug_stats)
+            preview_mode = "normal"
+            if debug_stats.get("preview_mode") == "fallback":
+                preview_mode = "fallback"
+            elif debug_stats.get("used_fallback_level", 0) > 0:
+                preview_mode = "recovered"  # Mask recovery was applied
+            
             response_payload = {
                 'success': True,
                 'resultImage': result_image,
@@ -1699,6 +1838,7 @@ def free_preview_bg():
                 'outputSizeMB': round(output_size / (1024 * 1024), 2),
                 'processedWith': 'Free Preview (512px GPU-accelerated, Optimized)',
                 'processingTime': round(processing_time, 2),
+                'previewMode': preview_mode,  # "normal" | "recovered" | "fallback"
                 'optimizations': {
                     'model_tuning': 'BiRefNet' if not is_document else 'RobustMatting',
                     'feathering': False,
