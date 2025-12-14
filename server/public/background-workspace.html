@@ -587,11 +587,13 @@
           signal: controller.signal
         });
         
-        // Clear timeout and interval on successful response
+        // Clear timeout and interval on response (success or error)
         if (timeout) clearTimeout(timeout);
         clearInterval(progressInterval);
         
         if (!response.ok) {
+          freePreviewInProgress = false; // Reset lock on error response
+          
           let errorData = {};
           let errorText = '';
           
@@ -1266,22 +1268,16 @@
           }, 10000);
         });
 
-        previewResult.hidden = false;
+        // Set preview DIRECTLY from backend PNG - NO canvas rendering
         previewResult.src = resultUrl;
-
-        // Create canvas with proper settings for transparency preservation
-        ensureCanvas(foregroundImage.width, foregroundImage.height);
+        previewResult.hidden = false;
         
-        // Clear canvas to ensure transparency
-        resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+        // Store dimensions from loaded image (for download operations later)
+        // Canvas will be created ONLY when needed for download/resize
+        sessionStorage.setItem(STORAGE_KEYS.dimensions, JSON.stringify({ width: foregroundImage.width, height: foregroundImage.height }));
         
-        // Draw the transparent PNG image (preserves alpha channel)
-        resultContext.drawImage(foregroundImage, 0, 0, resultCanvas.width, resultCanvas.height);
-        
-        // Convert to PNG with full quality (preserves transparency)
-        resultDataURL = resultCanvas.toDataURL('image/png');
-
-        sessionStorage.setItem(STORAGE_KEYS.dimensions, JSON.stringify({ width: resultCanvas.width, height: resultCanvas.height }));
+        // Store resultDataURL for download operations (canvas will be used only for download)
+        resultDataURL = resultUrl;
         previewOverlay.style.opacity = 0; // Stop spinner - no auto refresh
         requestAnimationFrame(() => previewStage.classList.add('revealed'));
         backgroundChangeBtn.disabled = false;
@@ -2056,46 +2052,44 @@
               // Update preview ONLY with validated premium result (don't overwrite with empty/old)
               // Validate resultImage length > 1000 before rendering
               if (premiumResult.dataUrl && premiumResult.dataUrl.length > 1000) {
-                // Check alpha channel by loading image
-                const testImg = new Image();
-                await new Promise((resolve, reject) => {
-                  testImg.onload = resolve;
-                  testImg.onerror = reject;
-                  testImg.src = premiumResult.dataUrl;
-                });
-                
-                // Draw to canvas to check alpha
-                const testCanvas = document.createElement('canvas');
-                testCanvas.width = testImg.width;
-                testCanvas.height = testImg.height;
-                const testCtx = testCanvas.getContext('2d', { alpha: true });
-                testCtx.clearRect(0, 0, testCanvas.width, testCanvas.height);
-                testCtx.drawImage(testImg, 0, 0);
-                
-                // Sample alpha channel
-                const imageData = testCtx.getImageData(0, 0, Math.min(100, testCanvas.width), Math.min(100, testCanvas.height));
-                const alphaData = imageData.data.filter((_, i) => i % 4 === 3); // Get alpha values
-                const nonZeroAlpha = alphaData.filter(a => a > 0).length;
-                const alphaPercent = (nonZeroAlpha / alphaData.length) * 100;
-                
-                if (alphaPercent < 1) {
-                  // Alpha is fully zero - show error instead of replacing preview
-                  throw new Error('Processing failed: Output image has no valid content (alpha channel is empty). Please try again with a different image.');
+                // Basic validation: check that it's a valid PNG data URL
+                if (!premiumResult.dataUrl.startsWith('data:image/png')) {
+                  throw new Error('Processing failed: Output image format is invalid. Please try again.');
                 }
                 
-                // Alpha is valid - update preview
+                // Set preview DIRECTLY from backend PNG - NO canvas rendering
                 previewResult.src = premiumResult.dataUrl;
                 previewResult.hidden = false;
                 
+                // Load image to get dimensions (for download operations later)
+                // Canvas will be created ONLY when needed for download/resize
                 const foregroundImage = new Image();
                 foregroundImage.crossOrigin = 'anonymous';
                 foregroundImage.src = premiumResult.dataUrl;
-                await foregroundImage.decode();
                 
-                ensureCanvas(foregroundImage.width, foregroundImage.height);
-                resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
-                resultContext.drawImage(foregroundImage, 0, 0, resultCanvas.width, resultCanvas.height);
-                resultDataURL = resultCanvas.toDataURL('image/png');
+                await new Promise((resolve, reject) => {
+                  const timeoutId = setTimeout(() => {
+                    reject(new Error('Image loading timeout'));
+                  }, 10000);
+                  
+                  foregroundImage.onload = () => {
+                    clearTimeout(timeoutId);
+                    resolve();
+                  };
+                  foregroundImage.onerror = (e) => {
+                    clearTimeout(timeoutId);
+                    reject(new Error(`Failed to load preview image: ${e.message || 'unknown error'}`));
+                  };
+                  
+                  if (foregroundImage.complete && foregroundImage.naturalWidth > 0) {
+                    clearTimeout(timeoutId);
+                    resolve();
+                  }
+                });
+                
+                // Store dimensions and data URL for download operations (canvas will be used only for download)
+                sessionStorage.setItem(STORAGE_KEYS.dimensions, JSON.stringify({ width: foregroundImage.width, height: foregroundImage.height }));
+                resultDataURL = premiumResult.dataUrl;
               } else {
                 throw new Error('Premium result image is invalid or corrupted');
               }
