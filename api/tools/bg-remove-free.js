@@ -9,25 +9,56 @@ function normalizeImageData(imageData) {
   }
 
   const trimmed = imageData.trim();
-  const isDataUrl = trimmed.startsWith('data:');
-
-  let mime = 'image/png';
-  let base64Part = trimmed;
-
-  if (isDataUrl) {
+  
+  // Check if it's already a data URL
+  if (trimmed.startsWith('data:')) {
+    // It's already a valid data URL, check format
     const match = trimmed.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
     if (!match) {
       return { ok: false, message: 'imageData must be a base64 data URL (data:image/...;base64,...)' };
     }
-    mime = match[1];
-    base64Part = match[2];
-  }
+    
+    const mime = match[1];
+    let base64Part = match[2];
+    
+    // Clean and pad base64
+    base64Part = base64Part.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
+    if (base64Part.length < 100) {
+      return { ok: false, message: 'Image data is too small or corrupted' };
+    }
+    
+    // Pad if needed
+    const remainder = base64Part.length % 4;
+    if (remainder) {
+      base64Part = base64Part.padEnd(base64Part.length + (4 - remainder), '=');
+    }
 
-  // Clean and pad base64
-  base64Part = base64Part.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
+    // Validate base64
+    let buffer;
+    try {
+      buffer = Buffer.from(base64Part, 'base64');
+      if (!buffer || buffer.length === 0) {
+        return { ok: false, message: 'Decoded image is empty' };
+      }
+    } catch (err) {
+      return { ok: false, message: `Invalid base64 encoding: ${err.message}` };
+    }
+
+    // Return the original data URL (don't re-encode, just validate)
+    return {
+      ok: true,
+      mime,
+      bytes: buffer.length,
+      dataUrl: trimmed // Return original, already validated
+    };
+  }
+  
+  // If not a data URL, treat as raw base64
+  let base64Part = trimmed.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
   if (base64Part.length < 100) {
     return { ok: false, message: 'Image data is too small or corrupted' };
   }
+  
   const remainder = base64Part.length % 4;
   if (remainder) {
     base64Part = base64Part.padEnd(base64Part.length + (4 - remainder), '=');
@@ -36,19 +67,18 @@ function normalizeImageData(imageData) {
   let buffer;
   try {
     buffer = Buffer.from(base64Part, 'base64');
+    if (!buffer || buffer.length === 0) {
+      return { ok: false, message: 'Decoded image is empty' };
+    }
   } catch (err) {
     return { ok: false, message: `Invalid base64 encoding: ${err.message}` };
   }
 
-  if (!buffer?.length) {
-    return { ok: false, message: 'Decoded image is empty' };
-  }
-
   return {
     ok: true,
-    mime,
+    mime: 'image/png',
     bytes: buffer.length,
-    dataUrl: `data:${mime};base64,${buffer.toString('base64')}`
+    dataUrl: `data:image/png;base64,${base64Part}`
   };
 }
 
