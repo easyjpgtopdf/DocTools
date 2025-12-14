@@ -580,7 +580,10 @@
             'Content-Type': 'application/json',
             'Accept': 'application/json'
           },
-          body: JSON.stringify({ imageData: dataURL }),
+          body: JSON.stringify({ 
+            imageData: dataURL,
+            imageType: detectedImageType // Send image type for proper routing
+          }),
           signal: controller.signal
         });
         

@@ -375,23 +375,24 @@ export async function purchaseCredits(creditPack, userId) {
         } catch (e) {
             // Fallback to backend API (if Vercel API doesn't exist)
             response = await fetch(`${API_BASE_URL}/api/payment/purchase`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${await getAuthToken()}`
-            },
-            body: JSON.stringify({
-                userId: userId,
-                creditPack: creditPack.id,
-                credits: pack.credits,
-                amount: amount,
-                amountUSD: pack.priceUSD,
-                amountINR: pack.priceINR,
-                currency: userCurrency,
-                gstIncluded: userCurrency === 'INR' ? true : false,
-                gstRate: userCurrency === 'INR' ? GST_RATE : 0
-            })
-        });
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${await getAuthToken()}`
+                },
+                body: JSON.stringify({
+                    userId: userId,
+                    creditPack: creditPack.id,
+                    credits: pack.credits,
+                    amount: amount,
+                    amountUSD: pack.priceUSD,
+                    amountINR: pack.priceINR,
+                    currency: userCurrency,
+                    gstIncluded: userCurrency === 'INR' ? true : false,
+                    gstRate: userCurrency === 'INR' ? GST_RATE : 0
+                })
+            });
+        }
     
     if (!response.ok) {
       throw new Error('Failed to create order');

@@ -44,12 +44,12 @@ function normalizeImageData(imageData) {
       return { ok: false, message: `Invalid base64 encoding: ${err.message}` };
     }
 
-    // Return the original data URL (don't re-encode, just validate)
+    // Return properly padded data URL to ensure backend can decode it
     return {
       ok: true,
       mime,
       bytes: buffer.length,
-      dataUrl: trimmed // Return original, already validated
+      dataUrl: `data:${mime};base64,${base64Part}` // Return properly padded version
     };
   }
   

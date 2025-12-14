@@ -1431,6 +1431,10 @@ def free_preview_bg():
                         'message': 'Image data URL format is invalid. Expected: data:image/...;base64,...'
                     }), 400
             
+            # Clean base64 string: remove whitespace and fix URL-safe variants
+            base64_part = base64_part.replace('\n', '').replace('\r', '').replace(' ', '')
+            base64_part = base64_part.replace('-', '+').replace('_', '/')  # URL-safe to standard base64
+            
             # Validate base64 string
             if not base64_part or len(base64_part) < 100:
                 logger.error(f"Base64 data too short: {len(base64_part) if base64_part else 0} chars")
@@ -1439,6 +1443,11 @@ def free_preview_bg():
                     'error': 'Invalid image data',
                     'message': 'Image data is too small or corrupted. Please try uploading again.'
                 }), 400
+            
+            # Pad base64 if needed (must be multiple of 4)
+            remainder = len(base64_part) % 4
+            if remainder:
+                base64_part = base64_part + ('=' * (4 - remainder))
             
             # Decode base64
             try:
