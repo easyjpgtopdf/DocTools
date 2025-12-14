@@ -1470,23 +1470,52 @@ def free_preview_bg():
             
             # Open image with PIL (without strict verify to handle more formats)
             try:
-                input_image = Image.open(io.BytesIO(image_bytes))
-                # Only verify format, don't use strict verify() as it can reject valid images
-                # Check if image was opened successfully instead
-                if not input_image or input_image.size[0] == 0 or input_image.size[1] == 0:
-                    raise ValueError("Image dimensions are invalid")
-                # Load image to ensure it's fully decoded
-                input_image.load()
+                # Create BytesIO from decoded bytes
+                image_buffer = io.BytesIO(image_bytes)
+                input_image = Image.open(image_buffer)
+                
+                # Verify image was opened and has valid dimensions
+                if not input_image:
+                    raise ValueError("Failed to open image - image object is None")
+                
+                # Check dimensions
+                if not hasattr(input_image, 'size') or not input_image.size:
+                    raise ValueError("Image has no size attribute")
+                
+                width, height = input_image.size
+                if width == 0 or height == 0:
+                    raise ValueError(f"Image dimensions are invalid: {width}x{height}")
+                
+                # Load image to ensure it's fully decoded (this will fail if image is corrupted)
+                try:
+                    input_image.load()
+                except Exception as load_err:
+                    logger.error(f"Image load error (image opened but couldn't load): {str(load_err)}")
+                    raise ValueError(f"Image data is corrupted or incomplete: {str(load_err)}")
+                    
+                logger.info(f"Successfully opened image: {width}x{height}, mode: {input_image.mode}")
+                
             except Exception as img_err:
-                logger.error(f"Image open error: {str(img_err)}")
-                # Try to provide more helpful error message
+                error_type = type(img_err).__name__
                 error_msg = str(img_err)
+                logger.error(f"Image open/load error [{error_type}]: {error_msg}")
+                logger.error(f"Image bytes length: {len(image_bytes)}, first 100 bytes: {image_bytes[:100]}")
+                
+                # Provide more helpful error messages
                 if 'cannot identify' in error_msg.lower() or 'cannot open' in error_msg.lower():
-                    error_msg = "The file is not a valid image format. Please upload JPG, PNG, WEBP, or other supported image formats."
+                    user_msg = "The file is not a valid image format. Please upload JPG, PNG, WEBP, or other supported image formats."
+                elif 'corrupted' in error_msg.lower() or 'incomplete' in error_msg.lower():
+                    user_msg = "The image file appears to be corrupted or incomplete. Please try uploading the image again or use a different image."
+                elif 'dimensions' in error_msg.lower():
+                    user_msg = "The image has invalid dimensions. Please upload a valid image file."
+                else:
+                    user_msg = f"Failed to process image: {error_msg}. Please ensure you are uploading a valid image file (JPG, PNG, etc.)."
+                
                 return jsonify({
                     'success': False,
                     'error': 'Invalid image data',
-                    'message': f'Invalid image file: {error_msg}. Please ensure you are uploading a valid image file (JPG, PNG, etc.). The image may be corrupted or in an unsupported format.'
+                    'message': user_msg,
+                    'error_details': error_msg if os.environ.get('DEBUG_ERRORS', '0') == '1' else None
                 }), 400
             
             # Convert RGBA to RGB if needed
