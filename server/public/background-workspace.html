@@ -1249,8 +1249,22 @@
 
         const foregroundImage = new Image();
         foregroundImage.crossOrigin = 'anonymous';
-        foregroundImage.src = resultUrl;
-        await foregroundImage.decode();
+        
+        // Wait for image to load with proper error handling
+        await new Promise((resolve, reject) => {
+          foregroundImage.onload = () => resolve();
+          foregroundImage.onerror = () => {
+            console.error('Failed to load processed image from resultUrl');
+            reject(new Error('Failed to load processed image'));
+          };
+          foregroundImage.src = resultUrl;
+          // Timeout after 10 seconds
+          setTimeout(() => {
+            if (!foregroundImage.complete) {
+              reject(new Error('Image loading timeout'));
+            }
+          }, 10000);
+        });
 
         previewResult.hidden = false;
         previewResult.src = resultUrl;
