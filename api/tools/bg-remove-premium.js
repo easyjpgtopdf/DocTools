@@ -44,11 +44,13 @@ function normalizeImageData(imageData) {
     return { ok: false, message: 'Decoded image is empty' };
   }
 
+  // Use cleaned and padded base64Part directly (don't re-encode from buffer)
+  // Re-encoding from buffer could cause issues with special characters
   return {
     ok: true,
     mime,
     bytes: buffer.length,
-    dataUrl: `data:${mime};base64,${buffer.toString('base64')}`
+    dataUrl: `data:${mime};base64,${base64Part}` // Use cleaned and padded base64 directly
   };
 }
 
