@@ -1468,19 +1468,25 @@ def free_preview_bg():
                     'message': 'Decoded image is empty. Please try uploading a different image.'
                 }), 400
             
-            # Open image with PIL
+            # Open image with PIL (without strict verify to handle more formats)
             try:
                 input_image = Image.open(io.BytesIO(image_bytes))
-                # Verify it's a valid image
-                input_image.verify()
-                # Re-open because verify() closes the image
-                input_image = Image.open(io.BytesIO(image_bytes))
+                # Only verify format, don't use strict verify() as it can reject valid images
+                # Check if image was opened successfully instead
+                if not input_image or input_image.size[0] == 0 or input_image.size[1] == 0:
+                    raise ValueError("Image dimensions are invalid")
+                # Load image to ensure it's fully decoded
+                input_image.load()
             except Exception as img_err:
-                logger.error(f"Image open/verify error: {str(img_err)}")
+                logger.error(f"Image open error: {str(img_err)}")
+                # Try to provide more helpful error message
+                error_msg = str(img_err)
+                if 'cannot identify' in error_msg.lower() or 'cannot open' in error_msg.lower():
+                    error_msg = "The file is not a valid image format. Please upload JPG, PNG, WEBP, or other supported image formats."
                 return jsonify({
                     'success': False,
-                    'error': 'Invalid image file',
-                    'message': f'Invalid image file: {str(img_err)}. Please ensure you are uploading a valid image file (JPG, PNG, etc.). The image may be corrupted or in an unsupported format.'
+                    'error': 'Invalid image data',
+                    'message': f'Invalid image file: {error_msg}. Please ensure you are uploading a valid image file (JPG, PNG, etc.). The image may be corrupted or in an unsupported format.'
                 }), 400
             
             # Convert RGBA to RGB if needed
@@ -1592,11 +1598,23 @@ def premium_bg():
         
         # Decode base64 image
         try:
+            # Extract base64 part if data URL
+            base64_part = image_data
             if ',' in image_data:
-                image_data = image_data.split(',')[1]
+                parts = image_data.split(',', 1)
+                if len(parts) == 2:
+                    base64_part = parts[1]
             
-            image_bytes = base64.b64decode(image_data)
+            # Clean and pad base64
+            base64_part = base64_part.replace('\n', '').replace('\r', '').replace(' ', '')
+            base64_part = base64_part.replace('-', '+').replace('_', '/')
+            remainder = len(base64_part) % 4
+            if remainder:
+                base64_part = base64_part + ('=' * (4 - remainder))
+            
+            image_bytes = base64.b64decode(base64_part, validate=True)
             input_image = Image.open(io.BytesIO(image_bytes))
+            input_image.load()  # Load image to ensure it's fully decoded
             
             # Convert RGBA to RGB if needed
             if input_image.mode == 'RGBA':
