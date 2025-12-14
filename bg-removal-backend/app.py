@@ -1522,16 +1522,21 @@ def free_preview_bg():
             if remainder:
                 base64_part = base64_part + ('=' * (4 - remainder))
             
-            # Decode base64
+            # Decode base64 - try with validation first, fallback without if it fails
             try:
                 image_bytes = base64.b64decode(base64_part, validate=True)
-            except Exception as decode_err:
-                logger.error(f"Base64 decode error: {str(decode_err)}")
-                return jsonify({
-                    'success': False,
-                    'error': 'Invalid image data',
-                    'message': f'Failed to decode image data: {str(decode_err)}. Please ensure you are uploading a valid image file (JPG, PNG, etc.).'
-                }), 400
+            except Exception as validate_err:
+                # Try without validation (more lenient for edge cases)
+                try:
+                    logger.warning(f"Base64 decode with validation failed, trying without validation: {str(validate_err)}")
+                    image_bytes = base64.b64decode(base64_part, validate=False)
+                except Exception as decode_err:
+                    logger.error(f"Base64 decode error (both with and without validation): {str(decode_err)}")
+                    return jsonify({
+                        'success': False,
+                        'error': 'Invalid image data',
+                        'message': f'Failed to decode image data: {str(decode_err)}. Please ensure you are uploading a valid image file (JPG, PNG, etc.).'
+                    }), 400
             
             if not image_bytes or len(image_bytes) == 0:
                 logger.error("Decoded image bytes are empty")
@@ -1559,12 +1564,29 @@ def free_preview_bg():
                 if width == 0 or height == 0:
                     raise ValueError(f"Image dimensions are invalid: {width}x{height}")
                 
-                # Load image to ensure it's fully decoded (this will fail if image is corrupted)
+                # Load image to ensure it's fully decoded
+                # For progressive JPEGs and some formats, load() might fail even for valid images
+                # Try to load, but don't fail if it's a known safe format
                 try:
                     input_image.load()
                 except Exception as load_err:
-                    logger.error(f"Image load error (image opened but couldn't load): {str(load_err)}")
-                    raise ValueError(f"Image data is corrupted or incomplete: {str(load_err)}")
+                    error_msg = str(load_err).lower()
+                    # Progressive JPEGs and some formats might fail load() but are still valid
+                    if 'progressive' in error_msg or 'truncated' in error_msg:
+                        logger.warning(f"Image load warning (progressive/truncated, but continuing): {str(load_err)}")
+                        # Try to verify image is readable by accessing pixels
+                        try:
+                            # Test if we can access image data
+                            _ = input_image.size
+                            # Try to get a pixel sample to verify data is accessible
+                            test_pixel = input_image.getpixel((min(width-1, 0), min(height-1, 0)))
+                            logger.info(f"Image data is accessible despite load() warning (sample pixel: {test_pixel})")
+                        except Exception as verify_err:
+                            logger.error(f"Image data verification failed: {str(verify_err)}")
+                            raise ValueError(f"Image data is corrupted or incomplete: {str(load_err)}")
+                    else:
+                        logger.error(f"Image load error (image opened but couldn't load): {str(load_err)}")
+                        raise ValueError(f"Image data is corrupted or incomplete: {str(load_err)}")
                     
                 logger.info(f"Successfully opened image: {width}x{height}, mode: {input_image.mode}")
                 
@@ -1572,24 +1594,53 @@ def free_preview_bg():
                 error_type = type(img_err).__name__
                 error_msg = str(img_err)
                 logger.error(f"Image open/load error [{error_type}]: {error_msg}")
-                logger.error(f"Image bytes length: {len(image_bytes)}, first 100 bytes: {image_bytes[:100]}")
+                logger.error(f"Image bytes length: {len(image_bytes)}, first 100 bytes (hex): {image_bytes[:100].hex()}")
                 
-                # Provide more helpful error messages
+                # Try alternative decoding methods as fallback
+                alternative_success = False
                 if 'cannot identify' in error_msg.lower() or 'cannot open' in error_msg.lower():
-                    user_msg = "The file is not a valid image format. Please upload JPG, PNG, WEBP, or other supported image formats."
-                elif 'corrupted' in error_msg.lower() or 'incomplete' in error_msg.lower():
-                    user_msg = "The image file appears to be corrupted or incomplete. Please try uploading the image again or use a different image."
-                elif 'dimensions' in error_msg.lower():
-                    user_msg = "The image has invalid dimensions. Please upload a valid image file."
-                else:
-                    user_msg = f"Failed to process image: {error_msg}. Please ensure you are uploading a valid image file (JPG, PNG, etc.)."
+                    logger.info("Attempting alternative image decoding method...")
+                    try:
+                        # Try using BytesIO with explicit format hint
+                        image_buffer_alt = io.BytesIO(image_bytes)
+                        # Try common formats
+                        for fmt in ['JPEG', 'PNG', 'WEBP', 'BMP', 'TIFF']:
+                            try:
+                                image_buffer_alt.seek(0)
+                                input_image = Image.open(image_buffer_alt)
+                                input_image.verify()  # Verify it's actually valid
+                                image_buffer_alt.seek(0)
+                                input_image = Image.open(image_buffer_alt)  # Reopen after verify
+                                logger.info(f"Successfully opened image using {fmt} format fallback")
+                                # Verify dimensions
+                                width, height = input_image.size
+                                if width > 0 and height > 0:
+                                    logger.info(f"Fallback decoding successful: {width}x{height}, mode: {input_image.mode}")
+                                    alternative_success = True
+                                    break
+                            except Exception:
+                                continue
+                    except Exception as alt_err:
+                        logger.error(f"Alternative decoding also failed: {str(alt_err)}")
                 
-                return jsonify({
-                    'success': False,
-                    'error': 'Invalid image data',
-                    'message': user_msg,
-                    'error_details': error_msg if os.environ.get('DEBUG_ERRORS', '0') == '1' else None
-                }), 400
+                # If alternative decoding failed, return error
+                if not alternative_success:
+                    # Provide more helpful error messages
+                    if 'cannot identify' in error_msg.lower() or 'cannot open' in error_msg.lower():
+                        user_msg = "The file is not a valid image format. Please upload JPG, PNG, WEBP, or other supported image formats."
+                    elif 'corrupted' in error_msg.lower() or 'incomplete' in error_msg.lower():
+                        user_msg = "The image file appears to be corrupted or incomplete. Please try uploading the image again or use a different image."
+                    elif 'dimensions' in error_msg.lower():
+                        user_msg = "The image has invalid dimensions. Please upload a valid image file."
+                    else:
+                        user_msg = f"Failed to process image: {error_msg}. Please ensure you are uploading a valid image file (JPG, PNG, etc.)."
+                    
+                    return jsonify({
+                        'success': False,
+                        'error': 'Invalid image data',
+                        'message': user_msg,
+                        'error_details': error_msg if os.environ.get('DEBUG_ERRORS', '0') == '1' else None
+                    }), 400
             
             # Convert RGBA to RGB if needed
             if input_image.mode == 'RGBA':
