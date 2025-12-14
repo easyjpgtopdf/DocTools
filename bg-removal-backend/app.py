@@ -1172,6 +1172,7 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
 
     # 🔥 FREE PREVIEW ONLY: Mask Strength Check and Recovery (Levels 1-3)
     used_fallback_level = 0
+    emergency_mask_applied = False  # Track if emergency recovery was used (must be accessible in all scopes)
     if not is_premium:
         try:
             mask_np = np.array(mask.convert('L'))
@@ -1247,6 +1248,7 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                             emergency_mask[top:bottom, left:right] = 255
                             
                             mask = Image.fromarray(emergency_mask, mode='L')
+                            emergency_mask_applied = True  # Mark that emergency mask is active
                             logger.info(f"✅ Level 3 emergency cut applied: center region {left},{top} to {right},{bottom}")
                             debug_stats.update({
                                 "recovery_level_3_applied": True,
@@ -1268,6 +1270,7 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                         emergency_mask = np.zeros((height, width), dtype=np.uint8)
                         emergency_mask[top:bottom, left:right] = 255
                         mask = Image.fromarray(emergency_mask, mode='L')
+                        emergency_mask_applied = True  # Mark that emergency mask is active
                         debug_stats.update({
                             "recovery_level_3_applied": True,
                             "preview_mode": "fallback"
@@ -1288,6 +1291,7 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                     emergency_mask = np.zeros((height, width), dtype=np.uint8)
                     emergency_mask[top:bottom, left:right] = 255
                     mask = Image.fromarray(emergency_mask, mode='L')
+                    emergency_mask_applied = True  # Mark that emergency mask is active
                     debug_stats.update({
                         "recovery_level_3_applied": True,
                         "recovery_error": str(recovery_err),
@@ -1368,14 +1372,20 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
         })
         
         alpha_too_low = (alpha_percent < 1.0)
+        
+        # 🔥 CRITICAL FIX: If emergency mask was applied, FORCE composite (don't skip)
+        # Emergency mask always has >1% coverage (center region), so we should always composite
+        if emergency_mask_applied and not is_premium:
+            logger.info("✅ Emergency mask applied - forcing composite (never skip)")
+            alpha_too_low = False  # Force composite even if original mask was weak
+            mask_empty = False  # Emergency mask is never empty
+        
         if alpha_too_low:
             logger.warning(f"⚠️ Alpha too low ({alpha_percent:.2f}%) - falling back to raw BiRefNet output (no feather/halo)")
             debug_stats["fallback_to_raw"] = True
             # Use raw rembg output as final image (will apply alpha clamp at the end for free preview)
             final_image = output_image
             # Skip all post-processing steps, go directly to final alpha clamp
-    except Exception as e:
-        logger.warning(f"Failed alpha check, proceeding anyway: {e}")
     except Exception as e:
         logger.warning(f"Failed alpha check, proceeding anyway: {e}")
     
@@ -1496,7 +1506,11 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
             final_image = composite_pro_png(input_image, mask)
     else:
         # Handle early return cases (empty mask or low alpha fallback)
-        if mask_empty or alpha_too_low:
+        # 🔥 CRITICAL: If emergency mask was applied, ALWAYS composite (never use raw output)
+        if emergency_mask_applied and not is_premium:
+            logger.info("✅ Emergency mask active - forcing composite with recovered mask")
+            final_image = composite_pro_png(input_image, mask)
+        elif mask_empty or alpha_too_low:
             logger.info("Using raw rembg output due to empty mask or low alpha")
             final_image = output_image
             # Ensure it has alpha channel
