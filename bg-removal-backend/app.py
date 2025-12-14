@@ -50,30 +50,73 @@ session_maxmatting = None
 
 def is_document_image(image):
     """
-    Detect if image is a document (A4, letter, etc.) by aspect ratio
-    A4: 1.414 (width/height) or 0.707 (height/width)
-    Letter: 1.294 or 0.773
-    Documents typically have aspect ratio between 0.6-0.8 or 1.2-1.7
+    Automatic Image Type Detection: PHOTO vs DOCUMENT
+    
+    Detects documents by:
+    - Aspect ratio (A4, Letter, ID card formats)
+    - Flat background (high uniformity)
+    - Text regions (high contrast edges)
+    - White-heavy images (scanned pages)
+    
+    Returns True if DOCUMENT, False if PHOTO
     """
     if isinstance(image, Image.Image):
         width, height = image.size
+        img_array = np.array(image.convert('RGB'))
     else:
         height, width = image.shape[:2]
+        img_array = image if len(image.shape) == 3 else np.stack([image] * 3, axis=2)
     
     aspect_ratio = width / height if height > 0 else 1.0
-    inverse_aspect = height / width if width > 0 else 1.0
     
-    # Check if aspect ratio matches document formats (A4, Letter, etc.)
+    # 1. Aspect Ratio Check (A4, Letter, ID card formats)
     # A4: 210x297mm = 0.707 or 1.414
     # Letter: 8.5x11in = 0.773 or 1.294
-    # Documents typically: 0.6-0.85 (portrait) or 1.2-1.7 (landscape)
+    # ID Card: ~1.5-1.7 (landscape) or 0.6-0.7 (portrait)
     is_portrait_doc = 0.6 <= aspect_ratio <= 0.85
     is_landscape_doc = 1.2 <= aspect_ratio <= 1.7
     
-    is_doc = is_portrait_doc or is_landscape_doc
+    aspect_match = is_portrait_doc or is_landscape_doc
+    
+    # 2. Flat Background Detection (high uniformity = document)
+    if CV2_AVAILABLE:
+        gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY) if len(img_array.shape) == 3 else img_array
+        # Calculate standard deviation (low std = flat background)
+        std_dev = np.std(gray)
+        is_flat = std_dev < 40  # Low variance = flat background
+    else:
+        gray = np.mean(img_array, axis=2) if len(img_array.shape) == 3 else img_array
+        std_dev = np.std(gray)
+        is_flat = std_dev < 40
+    
+    # 3. White-Heavy Detection (scanned pages are mostly white)
+    brightness = np.mean(img_array.astype(np.float32)) / 255.0
+    is_white_heavy = brightness > 0.75  # Mostly white/light
+    
+    # 4. Text Region Detection (high contrast edges = text)
+    if CV2_AVAILABLE:
+        edges = cv2.Canny(gray.astype(np.uint8), 50, 150)
+        edge_density = np.sum(edges > 0) / edges.size
+        has_text_regions = edge_density > 0.15  # High edge density = text
+    else:
+        # Fallback: simple gradient-based edge detection
+        from scipy import ndimage
+        grad_x = ndimage.sobel(gray, axis=1)
+        grad_y = ndimage.sobel(gray, axis=0)
+        gradient_magnitude = np.sqrt(grad_x**2 + grad_y**2)
+        edge_density = np.sum(gradient_magnitude > 30) / gradient_magnitude.size
+        has_text_regions = edge_density > 0.15
+    
+    # Decision: Document if 2+ indicators match
+    indicators = [aspect_match, is_flat, is_white_heavy, has_text_regions]
+    doc_score = sum(indicators)
+    
+    is_doc = doc_score >= 2  # At least 2 indicators
     
     if is_doc:
-        logger.info(f"Document detected: aspect_ratio={aspect_ratio:.3f}, size={width}x{height}")
+        logger.info(f"📄 DOCUMENT detected: aspect={aspect_ratio:.3f}, flat={is_flat}, white={is_white_heavy:.2f}, text={has_text_regions:.2f}, score={doc_score}/4")
+    else:
+        logger.info(f"📷 PHOTO detected: aspect={aspect_ratio:.3f}, flat={is_flat}, white={is_white_heavy:.2f}, text={has_text_regions:.2f}, score={doc_score}/4")
     
     return is_doc
 
@@ -692,20 +735,134 @@ def clean_matte_edges(mask, original_image, clean_strength=0.4):
         logger.warning(f"Matte edge cleaning failed, using original mask: {str(e)}")
         return mask if isinstance(mask, Image.Image) else Image.fromarray(mask, mode='L')
 
+def process_premium_document_pipeline(input_image, birefnet_session):
+    """
+    PREMIUM DOCUMENT / ID CARD PIPELINE (GPU safe mode)
+    
+    For detected DOCUMENT images:
+    - Use BiRefNet ONLY (no MaxMatting)
+    - Disable Feather
+    - Disable Halo removal
+    - Convert mask to high-threshold binary alpha (no semi-transparency)
+    - Composite directly to preserve text and page visibility
+    
+    Goal: Text must remain fully visible, no half-transparent pages, no disappearing content.
+    """
+    start_time = time.time()
+    debug_stats = {}
+    
+    original_width, original_height = input_image.size
+    original_megapixels = (original_width * original_height) / 1_000_000
+    
+    logger.info(f"📄 Premium Document Pipeline: {original_width}x{original_height} = {original_megapixels:.2f} MP")
+    
+    # Step 1: BiRefNet Semantic Mask ONLY
+    logger.info("Step 1: Generating BiRefNet semantic mask (document mode)...")
+    max_dimension = max(original_width, original_height)
+    
+    # Adaptive input: min 1024, max 1536 on longest side
+    target_size = min(1536, max(1024, max_dimension))
+    scale = target_size / max_dimension
+    
+    # Resize for BiRefNet processing if needed
+    if scale < 1.0:
+        process_width = int(original_width * scale)
+        process_height = int(original_height * scale)
+        process_image = input_image.resize((process_width, process_height), Image.Resampling.LANCZOS)
+        logger.info(f"Resized to {process_width}x{process_height} for BiRefNet processing")
+    else:
+        process_image = input_image
+    
+    # Get BiRefNet mask
+    input_buffer = io.BytesIO()
+    process_image.save(input_buffer, format='PNG')
+    input_bytes = input_buffer.getvalue()
+    output_bytes = remove(input_bytes, session=birefnet_session)
+    output_image = Image.open(io.BytesIO(output_bytes))
+    
+    # Extract mask
+    if output_image.mode == 'RGBA':
+        mask = output_image.split()[3]
+    else:
+        mask = output_image.convert('L')
+    
+    # Resize mask back to original size if needed
+    if mask.size != input_image.size:
+        mask = mask.resize(input_image.size, Image.Resampling.LANCZOS)
+    
+    debug_stats.update({
+        "birefnet_mask_shape": mask.size,
+        "birefnet_processing_size": process_image.size
+    })
+    
+    # Step 2: High-Threshold Binary Alpha (no semi-transparency)
+    logger.info("Step 2: Converting to high-threshold binary alpha...")
+    mask_array = np.array(mask.convert('L')).astype(np.float32) / 255.0
+    
+    # High threshold: values > 0.5 become 1.0, else 0.0 (binary)
+    binary_alpha = np.where(mask_array > 0.5, 1.0, 0.0)
+    
+    # Convert back to 0-255 uint8
+    binary_alpha_uint8 = (binary_alpha * 255).astype(np.uint8)
+    binary_mask = Image.fromarray(binary_alpha_uint8, mode='L')
+    
+    debug_stats["binary_alpha_threshold"] = 0.5
+    debug_stats["maxmatting_disabled"] = True
+    debug_stats["feather_disabled"] = True
+    debug_stats["halo_removal_disabled"] = True
+    
+    # Step 3: Composite Directly (no post-processing)
+    logger.info("Step 3: Compositing RGB + binary alpha (direct, no post-processing)...")
+    
+    # Ensure RGB
+    rgb_image = input_image.convert('RGB') if input_image.mode != 'RGB' else input_image
+    
+    # Create RGBA with binary alpha
+    rgba_composite = Image.new('RGBA', rgb_image.size, (0, 0, 0, 0))
+    rgba_composite.paste(rgb_image, (0, 0))
+    rgba_composite.putalpha(binary_mask)
+    
+    debug_stats["composite_completed"] = True
+    debug_stats["pipeline_type"] = "document_safe"
+    
+    # Final alpha check
+    final_alpha = np.array(rgba_composite.getchannel('A'))
+    final_alpha_nonzero = np.count_nonzero(final_alpha)
+    final_alpha_percent = (final_alpha_nonzero / final_alpha.size) * 100.0
+    debug_stats.update({
+        "final_alpha_percent": float(final_alpha_percent),
+        "final_alpha_nonzero": int(final_alpha_nonzero)
+    })
+    
+    logger.info(f"✅ Premium Document pipeline completed in {time.time() - start_time:.2f}s, final alpha: {final_alpha_percent:.2f}%")
+    
+    # Convert to bytes
+    output_buffer = io.BytesIO()
+    rgba_composite.save(output_buffer, format='PNG', optimize=True)
+    output_bytes = output_buffer.getvalue()
+    
+    return output_bytes, debug_stats
+
 def process_premium_hd_pipeline(input_image, birefnet_session, maxmatting_session, is_document=False):
     """
-    Premium HD Background Removal Pipeline (remove.bg style)
-    ONLY for premium users - Do NOT use for free preview
+    PREMIUM PHOTO PIPELINE (GPU)
     
-    Pipeline:
-    1. BiRefNet semantic mask (adaptive input 1024-1536)
-    2. Trimap generation
-    3. MaxMatting fine alpha matting
-    4. Composite RGB+Alpha FIRST
-    5. Adaptive feather (alpha only, based on MP)
-    6. Strong halo removal (alpha edge only)
-    7. Color decontamination
-    8. Document preset (if detected)
+    Use BiRefNet + MaxMatting together for photos.
+    
+    Pipeline order MUST be exactly:
+    1. BiRefNet primary mask
+    2. MaxMatting refinement
+    3. Composite RGB + Alpha
+    4. Adaptive Feather on ALPHA only
+    5. Strong Halo Removal on ALPHA only
+    6. Optional mild edge sharpening
+    7. Final PNG output
+    
+    Important:
+    - NEVER feather or blur the raw mask before composite.
+    - Feather and halo must apply AFTER RGB+Alpha composite.
+    - Preserve hair, dupatta, cloth edges.
+    - Avoid white/black border artifacts.
     """
     start_time = time.time()
     debug_stats = {}
@@ -838,11 +995,38 @@ def process_premium_hd_pipeline(input_image, birefnet_session, maxmatting_sessio
     final_image = color_decontamination(
         rgba_composite, 
         rgb_image, 
-        strength=0.6 if not is_document else 0.4
+        strength=0.6
     )
     debug_stats["color_decontamination_applied"] = True
     
-    # Final alpha check
+    # Step 8: Optional Mild Edge Sharpening (for photos only)
+    if CV2_AVAILABLE:
+        logger.info("Step 8: Applying mild edge sharpening...")
+        try:
+            rgba_array = np.array(final_image.convert('RGBA'))
+            rgb_channels = rgba_array[:, :, :3].astype(np.float32)
+            alpha_channel = rgba_array[:, :, 3].astype(np.float32) / 255.0
+            
+            # Apply unsharp mask (mild sharpening)
+            blurred = cv2.GaussianBlur(rgb_channels, (0, 0), 1.0)
+            sharpened = rgb_channels + 0.3 * (rgb_channels - blurred)  # Mild sharpening
+            
+            # Clip to valid range
+            sharpened = np.clip(sharpened, 0, 255).astype(np.uint8)
+            
+            # Reconstruct RGBA
+            final_rgba = rgba_array.copy()
+            final_rgba[:, :, :3] = sharpened
+            
+            final_image = Image.fromarray(final_rgba, mode='RGBA')
+            debug_stats["edge_sharpening_applied"] = True
+        except Exception as e:
+            logger.warning(f"Edge sharpening failed: {e}, using image without sharpening")
+            debug_stats["edge_sharpening_applied"] = False
+    else:
+        debug_stats["edge_sharpening_applied"] = False
+    
+    # Final alpha check (CRITICAL: validate before returning)
     final_alpha = np.array(final_image.getchannel('A'))
     final_alpha_nonzero = np.count_nonzero(final_alpha)
     final_alpha_percent = (final_alpha_nonzero / final_alpha.size) * 100.0
@@ -851,7 +1035,12 @@ def process_premium_hd_pipeline(input_image, birefnet_session, maxmatting_sessio
         "final_alpha_nonzero": int(final_alpha_nonzero)
     })
     
-    logger.info(f"✅ Premium HD pipeline completed in {time.time() - start_time:.2f}s, final alpha: {final_alpha_percent:.2f}%")
+    # Safety check: if alpha is empty, raise error (no credit deduction)
+    if final_alpha_nonzero == 0:
+        logger.error(f"❌ CRITICAL: Final alpha is empty (0% nonzero) - processing failed")
+        raise ValueError("Processing failed: output alpha channel is empty")
+    
+    logger.info(f"✅ Premium Photo pipeline completed in {time.time() - start_time:.2f}s, final alpha: {final_alpha_percent:.2f}%")
     
     # Convert to bytes
     output_buffer = io.BytesIO()
@@ -1318,25 +1507,85 @@ def premium_bg():
             final_megapixels = (final_size[0] * final_size[1]) / 1_000_000
             logger.info(f"Final processing size: {final_size[0]}x{final_size[1]} = {final_megapixels:.2f} MP")
             
-            # Detect if image is a document/ID photo (A4, letter, passport, etc.)
+            # Automatic Image Type Detection: PHOTO vs DOCUMENT
             is_document = is_document_image(input_image)
             
-            # PREMIUM HD PIPELINE: Use new premium pipeline (remove.bg style)
-            # This pipeline is ONLY for premium users, NOT for free preview
-            logger.info("Premium: Using Premium HD Pipeline (remove.bg style) - BiRefNet + MaxMatting")
+            # Select pipeline based on image type
             birefnet_session = get_session_512()  # BiRefNet for semantic mask
-            maxmatting_session = get_session_maxmatting()  # MaxMatting for fine alpha matting
             
-            # Process with Premium HD Pipeline (remove.bg style)
-            output_bytes, debug_stats = process_premium_hd_pipeline(
-                input_image, 
-                birefnet_session, 
-                maxmatting_session, 
-                is_document=is_document
-            )
+            if is_document:
+                # PREMIUM DOCUMENT PIPELINE: BiRefNet only, no MaxMatting, no feather, no halo
+                logger.info("📄 Premium: Using Document Pipeline (BiRefNet only, safe mode)")
+                try:
+                    output_bytes, debug_stats = process_premium_document_pipeline(
+                        input_image, 
+                        birefnet_session
+                    )
+                    pipeline_type = "document_safe"
+                except Exception as doc_error:
+                    logger.error(f"Document pipeline failed: {doc_error}, falling back to photo pipeline")
+                    # Fallback to photo pipeline if document pipeline fails
+                    maxmatting_session = get_session_maxmatting()
+                    output_bytes, debug_stats = process_premium_hd_pipeline(
+                        input_image, 
+                        birefnet_session, 
+                        maxmatting_session, 
+                        is_document=False
+                    )
+                    pipeline_type = "photo_fallback"
+            else:
+                # PREMIUM PHOTO PIPELINE: BiRefNet + MaxMatting
+                logger.info("📷 Premium: Using Photo Pipeline (BiRefNet + MaxMatting)")
+                maxmatting_session = get_session_maxmatting()  # MaxMatting for fine alpha matting
+                output_bytes, debug_stats = process_premium_hd_pipeline(
+                    input_image, 
+                    birefnet_session, 
+                    maxmatting_session, 
+                    is_document=False
+                )
+                pipeline_type = "photo_hd"
             
-            # Calculate final megapixels for credit deduction (after processing)
-            # Note: final_size already set above, final_megapixels calculated below
+            # CRITICAL: Validate output before credit deduction
+            # Check if alpha channel has content (safety check)
+            try:
+                output_image_check = Image.open(io.BytesIO(output_bytes))
+                if output_image_check.mode == 'RGBA':
+                    alpha_check = np.array(output_image_check.getchannel('A'))
+                    alpha_nonzero_check = np.count_nonzero(alpha_check)
+                    if alpha_nonzero_check == 0:
+                        logger.error("❌ CRITICAL: Output alpha is empty - NO credit deduction")
+                        return jsonify({
+                            'success': False,
+                            'error': 'Processing failed: output alpha channel is empty',
+                            'message': 'The processed image has no valid content. Please try again or contact support.',
+                            'creditsUsed': 0  # No credits deducted
+                        }), 500
+            except Exception as alpha_check_error:
+                logger.error(f"Alpha validation failed: {alpha_check_error}")
+                return jsonify({
+                    'success': False,
+                    'error': 'Output validation failed',
+                    'message': 'Unable to validate processed image. Please try again.',
+                    'creditsUsed': 0  # No credits deducted
+                }), 500
+            
+            # Calculate final megapixels for credit deduction (after successful processing)
+            # Resolution-Based Credit Deduction (Backend Only)
+            # New credit tiers based on final output MP
+            if final_megapixels <= 2:
+                credits_required = 2
+            elif final_megapixels <= 6:
+                credits_required = 4
+            elif final_megapixels <= 9:
+                credits_required = 6
+            elif final_megapixels <= 12:
+                credits_required = 9
+            elif final_megapixels <= 16:
+                credits_required = 10
+            elif final_megapixels <= 20:
+                credits_required = 12
+            else:  # <= 25 MP
+                credits_required = 15
             
             # Convert to base64
             output_b64 = base64.b64encode(output_bytes).decode()
@@ -1345,43 +1594,48 @@ def premium_bg():
             processing_time = time.time() - start_time
             output_size = len(output_bytes)
             
-            # Calculate credits required based on final output size (MP)
-            # Variable credit deduction (internal only, not shown in UI)
-            # User account se internally deduct hoga based on output MP
-            if final_megapixels <= 4:
-                credits_required = 2
-            elif final_megapixels <= 12:
-                credits_required = 4
-            elif final_megapixels <= 16:
-                credits_required = 6
-            elif final_megapixels <= 20:
-                credits_required = 6.5
-            else:  # <= 25 MP
-                credits_required = 7
+            logger.info(f"✅ Premium processed in {processing_time:.2f}s, output size: {output_size / 1024:.2f} KB, MP: {final_megapixels:.2f}, credits: {credits_required}, pipeline: {pipeline_type}, user: {user_id}")
             
-            logger.info(f"Premium HD processed in {processing_time:.2f}s, output size: {output_size / 1024:.2f} KB, MP: {final_megapixels:.2f}, credits: {credits_required}, user: {user_id}")
-            
-            response_payload = {
-                'success': True,
-                'resultImage': result_image,
-                'outputSize': output_size,
-                'outputSizeMB': round(output_size / (1024 * 1024), 2),
-                'processedWith': 'Premium HD – up to 25 Megapixels (GPU-accelerated High-Resolution)',
-                'processingTime': round(processing_time, 2),
-                'creditsUsed': credits_required,  # Variable credits based on MP (internal deduction)
-                'creditsUsedDisplay': 2,  # Always show 2 in UI (generic display - user doesn't see variable)
-                'megapixels': round(final_megapixels, 2),
-                'optimizations': {
-                    'pipeline': 'Premium HD (remove.bg style)',
+            # Build optimizations info based on pipeline type
+            if pipeline_type == "document_safe":
+                optimizations = {
+                    'pipeline': 'Premium Document (BiRefNet only, safe mode)',
+                    'birefnet_semantic_mask': True,
+                    'maxmatting_fine_matting': False,
+                    'adaptive_feathering': False,
+                    'strong_halo_removal': False,
+                    'color_decontamination': False,
+                    'binary_alpha': True,
+                    'composite': 'Direct composite (text preservation)'
+                }
+                processed_with = 'Premium Document – Safe Mode (Text Preservation)'
+            else:
+                optimizations = {
+                    'pipeline': 'Premium Photo HD (remove.bg style)',
                     'birefnet_semantic_mask': True,
                     'trimap_generation': True,
                     'maxmatting_fine_matting': True,
                     'adaptive_feathering': True,
                     'strong_halo_removal': True,
                     'color_decontamination': True,
-                    'document_preset': is_document,
+                    'edge_sharpening': debug_stats.get('edge_sharpening_applied', False),
                     'composite': 'Pro-level PNG'
                 }
+                processed_with = 'Premium HD – up to 25 Megapixels (GPU-accelerated High-Resolution)'
+            
+            response_payload = {
+                'success': True,
+                'resultImage': result_image,
+                'outputSize': output_size,
+                'outputSizeMB': round(output_size / (1024 * 1024), 2),
+                'processedWith': processed_with,
+                'processingTime': round(processing_time, 2),
+                'creditsUsed': credits_required,  # Actual credits deducted (backend only, not shown in UI)
+                'creditsUsedDisplay': 1,  # Generic display for UI (user sees "1 credit used" or "X credits used")
+                'megapixels': round(final_megapixels, 2),
+                'imageType': 'document' if is_document else 'photo',
+                'pipelineType': pipeline_type,
+                'optimizations': optimizations
             }
             if os.environ.get('DEBUG_RETURN_STATS', '0') == '1':
                 response_payload['debugMask'] = debug_stats
