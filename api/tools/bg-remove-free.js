@@ -160,11 +160,21 @@ module.exports = async function handler(req, res) {
         errorData = { error: errorText || `Server error: ${response.status}` };
       }
       
-      console.error('Cloud Run error:', {
+      console.error('❌ Cloud Run Backend Error:', {
         status: response.status,
         statusText: response.statusText,
-        error: errorData,
-        errorText: errorText
+        error: errorData.error,
+        message: errorData.message,
+        fullError: errorData,
+        errorText: errorText.substring(0, 500) // Limit log size
+      });
+      
+      // Log request details for debugging
+      console.error('Request details:', {
+        url: `${CLOUDRUN_API_URL}/api/free-preview-bg`,
+        payloadSize: JSON.stringify(requestPayload).length,
+        imageDataLength: normalized.dataUrl.length,
+        imageType: imageType
       });
       
       // Provide more specific error messages
