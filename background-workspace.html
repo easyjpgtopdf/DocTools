@@ -240,6 +240,10 @@
     const previewStage = document.getElementById('previewStage');
     const previewOriginal = document.getElementById('previewOriginal');
     const previewResult = document.getElementById('previewResult');
+    
+    // Processing locks to prevent multiple API calls
+    let isProcessing = false; // Premium HD processing lock
+    let freePreviewInProgress = false; // Free preview processing lock
     const previewOverlay = document.getElementById('previewOverlay');
     const previewPlaceholder = document.getElementById('previewPlaceholder');
     const backgroundChangeBtn = document.getElementById('backgroundChange');
@@ -487,6 +491,17 @@
     }
     
     async function processWithFreePreview(dataURL) {
+      // Free preview processing lock - prevent loops and multiple calls
+      if (freePreviewInProgress) {
+        console.warn('⚠️ Free preview already in progress, ignoring duplicate call');
+        return {
+          success: false,
+          error: 'Processing already in progress. Please wait...'
+        };
+      }
+      
+      freePreviewInProgress = true;
+      
       // Declare variables in function scope for proper cleanup
       let progressInterval = null;
       let timeout = null;
@@ -496,10 +511,32 @@
         // Validate image data before sending
         const validation = validateImageDataURL(dataURL);
         if (!validation.valid) {
+          freePreviewInProgress = false; // Reset lock on validation error
           return {
             success: false,
             error: validation.error || 'Invalid image file. Please ensure you are uploading a valid image (JPG, PNG, etc.).'
           };
+        }
+        
+        // Detect image type for routing (basic detection - aspect ratio based)
+        let detectedImageType = 'human'; // Default to human
+        try {
+          const img = new Image();
+          await new Promise((resolve, reject) => {
+            img.onload = () => {
+              const aspectRatio = img.width / img.height;
+              // Document/A4/ID detection: near square or portrait with specific ratios
+              if ((aspectRatio >= 0.6 && aspectRatio <= 1.4) || aspectRatio > 1.8) {
+                detectedImageType = 'document';
+              }
+              resolve();
+            };
+            img.onerror = reject;
+            img.src = dataURL;
+            setTimeout(() => resolve(), 100); // Fallback timeout
+          });
+        } catch (e) {
+          console.warn('Image type detection failed, defaulting to human:', e);
         }
         
         statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(67,97,238,0.08);color:#1f2559;font-weight:600;">⚡ Processing with Free Preview (512px GPU-accelerated)... This usually takes 10-30 seconds. Please wait...</div>`;
@@ -531,6 +568,7 @@
         // Add timeout for free preview (120 seconds - increased for reliability)
         timeout = setTimeout(() => {
           if (!controller.signal.aborted) {
+            freePreviewInProgress = false; // Reset lock on timeout
             if (progressInterval) clearInterval(progressInterval);
             controller.abort();
           }
@@ -542,7 +580,10 @@
             'Content-Type': 'application/json',
             'Accept': 'application/json'
           },
-          body: JSON.stringify({ imageData: dataURL }),
+          body: JSON.stringify({ 
+            imageData: dataURL,
+            imageType: detectedImageType // Send image type for proper routing
+          }),
           signal: controller.signal
         });
         
@@ -606,6 +647,7 @@
         const result = await response.json();
         
         if (result.success && result.resultImage) {
+          freePreviewInProgress = false; // Reset lock on success
           return {
             success: true,
             dataUrl: result.resultImage,
@@ -614,6 +656,7 @@
             outputSizeMB: result.outputSizeMB
           };
         } else {
+          freePreviewInProgress = false; // Reset lock on error
           const errorMsg = result.error || result.message || 'Processing failed';
           console.error('Processing failed:', result);
           throw new Error(errorMsg);
@@ -636,11 +679,14 @@
           error: error
         });
         
+        // Reset lock on error
+        freePreviewInProgress = false;
+        
         // Handle AbortError FIRST - this happens when timeout occurs
         if (error.name === 'AbortError' || error.message?.includes('aborted') || error.message?.includes('signal is aborted')) {
           return {
             success: false,
-            error: 'Request timeout. Free preview processing took longer than 90 seconds. The server may be busy or the image may be too complex. Please try again with a smaller image or wait a moment and retry.'
+            error: 'Request timeout. Free preview processing took longer than 120 seconds. The server may be busy or the image may be too complex. Please try again with a smaller image or wait a moment and retry.'
           };
         }
         
@@ -687,11 +733,23 @@
     }
     
     // Process with Premium HD API (up to 25 MP BiRefNet GPU High-Resolution)
-    async function processWithPremiumHD(dataURL, targetSize = 'original') {
+    async function processWithPremiumHD(dataURL, targetSize = 'original', imageType = null) {
+      // Processing lock - prevent multiple simultaneous calls
+      if (isProcessing) {
+        console.warn('⚠️ Premium processing already in progress, ignoring duplicate call');
+        return {
+          success: false,
+          error: 'Processing already in progress. Please wait for the current operation to complete.'
+        };
+      }
+      
+      isProcessing = true;
+      
       try {
         // Validate image data before sending
         const validation = validateImageDataURL(dataURL);
         if (!validation.valid) {
+          isProcessing = false;
           return {
             success: false,
             error: validation.error || 'Invalid image file. Please ensure you are uploading a valid image (JPG, PNG, etc.).'
@@ -703,6 +761,7 @@
         const userId = await getCurrentUserId();
         
         if (!userId) {
+          isProcessing = false;
           return {
             success: false,
             error: 'Please sign in to use Premium HD processing',
@@ -729,10 +788,11 @@
         const controller = new AbortController();
         const timeout = setTimeout(() => {
           clearInterval(progressInterval);
+          isProcessing = false; // Reset lock on timeout
           controller.abort();
         }, 300000); // 5 minutes
         
-        // Parse target size BEFORE fetch call - FIXED: Use targetSize parameter instead of selectedPremiumSize
+        // Parse target size BEFORE fetch call (use parameter, not global variable)
         let targetWidth = null;
         let targetHeight = null;
         if (targetSize && targetSize !== 'original') {
@@ -740,6 +800,33 @@
           targetWidth = parseInt(width);
           targetHeight = parseInt(height);
         }
+        
+        // Detect image type if not provided
+        let detectedImageType = imageType;
+        if (!detectedImageType) {
+          // Simple detection based on aspect ratio (basic heuristic)
+          const img = new Image();
+          await new Promise((resolve) => {
+            img.onload = resolve;
+            img.src = dataURL;
+          });
+          const aspectRatio = img.width / img.height;
+          
+          // Document detection: A4 (0.707), Letter (0.773), ID card (0.6-0.7 or 1.5-1.7)
+          if ((aspectRatio >= 0.6 && aspectRatio <= 0.85) || (aspectRatio >= 1.2 && aspectRatio <= 1.7)) {
+            if (aspectRatio >= 1.5 && aspectRatio <= 1.7) {
+              detectedImageType = 'id_card';
+            } else if (Math.abs(aspectRatio - 0.707) < 0.1 || Math.abs(aspectRatio - 1.414) < 0.1) {
+              detectedImageType = 'a4';
+            } else {
+              detectedImageType = 'document';
+            }
+          } else {
+            detectedImageType = 'human';
+          }
+        }
+        
+        console.log(`📷 Detected image type: ${detectedImageType} for premium processing`);
         
         const response = await fetch(`${API_BASE_URL}/api/tools/bg-remove-premium`, {
           method: 'POST',
@@ -753,7 +840,8 @@
             userId: userId,
             targetSize: targetSize || 'original',
             targetWidth: targetWidth,
-            targetHeight: targetHeight
+            targetHeight: targetHeight,
+            imageType: detectedImageType // Send image type to backend
           }),
           signal: controller.signal
         });
@@ -813,19 +901,50 @@
         
         const result = await response.json();
         
+        // Validate result before returning
         if (result.success && result.resultImage) {
+          // Validate resultImage length (must be substantial base64 data)
+          const resultImageLength = result.resultImage.length;
+          if (resultImageLength < 1000) {
+            console.error('❌ Premium result image is too small:', resultImageLength, 'chars');
+            isProcessing = false;
+            return {
+              success: false,
+              error: 'Processing failed: Output image is invalid or corrupted. Please try again.'
+            };
+          }
+          
+          // Check if alpha channel is fully zero (validate by checking data URL)
+          // This is a basic check - full validation happens in backend
+          const hasAlphaData = result.resultImage.includes('data:image/png') && resultImageLength > 1000;
+          
+          if (!hasAlphaData) {
+            console.error('❌ Premium result missing valid PNG data');
+            isProcessing = false;
+            return {
+              success: false,
+              error: 'Processing failed: Output image format is invalid. Please try again.'
+            };
+          }
+          
+          isProcessing = false;
           return {
             success: true,
             dataUrl: result.resultImage,
             processedWith: 'Premium HD (2000-4000px GPU-accelerated High-Resolution)',
             outputSize: result.outputSize,
             outputSizeMB: result.outputSizeMB,
-            creditsUsed: result.creditsUsed
+            creditsUsed: result.creditsUsed,
+            imageType: result.imageType || detectedImageType
           };
         } else {
+          isProcessing = false;
           throw new Error(result.error || 'Processing failed');
         }
       } catch (error) {
+        // Reset processing lock on error
+        isProcessing = false;
+        
         // Clean up progress interval if still running
         if (typeof progressInterval !== 'undefined') {
           clearInterval(progressInterval);
@@ -1130,8 +1249,22 @@
 
         const foregroundImage = new Image();
         foregroundImage.crossOrigin = 'anonymous';
-        foregroundImage.src = resultUrl;
-        await foregroundImage.decode();
+        
+        // Wait for image to load with proper error handling
+        await new Promise((resolve, reject) => {
+          foregroundImage.onload = () => resolve();
+          foregroundImage.onerror = () => {
+            console.error('Failed to load processed image from resultUrl');
+            reject(new Error('Failed to load processed image'));
+          };
+          foregroundImage.src = resultUrl;
+          // Timeout after 10 seconds
+          setTimeout(() => {
+            if (!foregroundImage.complete) {
+              reject(new Error('Image loading timeout'));
+            }
+          }, 10000);
+        });
 
         previewResult.hidden = false;
         previewResult.src = resultUrl;
@@ -1149,16 +1282,16 @@
         resultDataURL = resultCanvas.toDataURL('image/png');
 
         sessionStorage.setItem(STORAGE_KEYS.dimensions, JSON.stringify({ width: resultCanvas.width, height: resultCanvas.height }));
-        previewOverlay.style.opacity = 0;
+        previewOverlay.style.opacity = 0; // Stop spinner - no auto refresh
         requestAnimationFrame(() => previewStage.classList.add('revealed'));
         backgroundChangeBtn.disabled = false;
         downloadBtn.disabled = false;
         
-        // Success message
+        // Success message with preview quality note (NO auto re-trigger)
         const sizeInMB = (fileSize / (1024 * 1024)).toFixed(1);
-        const methodLabel = processingMethod || config.description;
-        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">? Background removed! (${sizeInMB} MB file processed with ${methodLabel})</div>`;
-        setTimeout(() => clearStatus(), 4000);
+        const methodLabel = processingMethod || 'Free Preview';
+        statusMessage.innerHTML = `<div style="padding:12px 16px;border-radius:12px;background:rgba(34,197,94,0.12);color:#065f46;font-weight:600;">✅ Background removed! (${sizeInMB} MB processed with ${methodLabel})<br><small style="opacity:0.8;font-size:0.85em;">Preview quality – HD available in Premium</small></div>`;
+        setTimeout(() => clearStatus(), 5000);
         
       } catch (error) {
         console.error('Background removal failed', error);
@@ -1772,7 +1905,7 @@
         const creditCheck = await creditMod.hasSufficientCredits(userId, 1);
         
         if (!creditCheck.hasCredits && !creditCheck.unlimited) {
-          if (confirm(`Insufficient credits for Premium HD. You have ${creditCheck.creditsAvailable || 0} credit(s). Would you like to purchase credits?`)) {
+          if (confirm(`You need 2 credits for Premium HD. You have ${creditCheck.creditsAvailable || 0} credit(s). Would you like to purchase credits?`)) {
             window.location.href = 'pricing.html#credits';
           }
           return;
@@ -1804,7 +1937,7 @@
           } else {
             const [width, height] = selectedPremiumSize.split('x');
             const mp = ((parseInt(width) * parseInt(height)) / 1_000_000).toFixed(2);
-            sizeInfo.textContent = `${width}×${height} pixels (${mp} MP)`;
+            sizeInfo.textContent = `${width}×${height} pixels (${mp} MP) • 2 credits`;
           }
         }
       });
@@ -1903,52 +2036,78 @@
             console.log('Premium HD processing result:', { success: premiumResult.success, error: premiumResult.error, requiresAuth: premiumResult.requiresAuth, requiresCredits: premiumResult.requiresCredits });
             
             if (premiumResult.success) {
-              finalDownloadUrl = premiumResult.dataUrl;
-              
-              // Validate premium result has valid image data
-              if (!finalDownloadUrl || !finalDownloadUrl.startsWith('data:image/')) {
-                throw new Error('Premium processing returned invalid image data');
+              // Validate result before updating preview
+              if (!premiumResult.dataUrl || premiumResult.dataUrl.length < 1000) {
+                throw new Error('Premium result image is invalid or too small');
               }
               
-              // Credit deduction happens internally - no display needed
+              finalDownloadUrl = premiumResult.dataUrl;
               
-              // FIXED: Don't store premium HD images in sessionStorage (causes quota exceeded)
-              // Use Blob and URL.createObjectURL instead for premium images
-              // Only store small free preview in sessionStorage
+              // Show credit deduction info
+              const creditsUsed = premiumResult.creditsUsed || 2;
+              const creditsRemaining = premiumResult.creditsRemaining;
+              const creditInfo = creditsRemaining !== undefined 
+                ? ` (${creditsUsed} credit used, ${creditsRemaining} remaining)`
+                : ` (${creditsUsed} credit used)`;
               
-              // Convert base64 to Blob for premium images
-              const base64Data = premiumResult.dataUrl.split(',')[1];
-              const blob = await fetch(premiumResult.dataUrl).then(r => r.blob());
-              const blobUrl = URL.createObjectURL(blob);
+              // Update stored foreground
+              sessionStorage.setItem(STORAGE_KEYS.foreground, premiumResult.dataUrl);
               
-              // Update preview using blob URL
-              previewResult.src = blobUrl;
-              const foregroundImage = new Image();
-              foregroundImage.crossOrigin = 'anonymous';
-              foregroundImage.src = premiumResult.dataUrl;
-              foregroundImage.onload = () => {
-                try {
-                  ensureCanvas(foregroundImage.width, foregroundImage.height);
-                  resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
-                  resultContext.drawImage(foregroundImage, 0, 0, resultCanvas.width, resultCanvas.height);
-                  resultDataURL = resultCanvas.toDataURL('image/png');
-                } catch (err) {
-                  console.error('Error updating preview:', err);
+              // Update preview ONLY with validated premium result (don't overwrite with empty/old)
+              // Validate resultImage length > 1000 before rendering
+              if (premiumResult.dataUrl && premiumResult.dataUrl.length > 1000) {
+                // Check alpha channel by loading image
+                const testImg = new Image();
+                await new Promise((resolve, reject) => {
+                  testImg.onload = resolve;
+                  testImg.onerror = reject;
+                  testImg.src = premiumResult.dataUrl;
+                });
+                
+                // Draw to canvas to check alpha
+                const testCanvas = document.createElement('canvas');
+                testCanvas.width = testImg.width;
+                testCanvas.height = testImg.height;
+                const testCtx = testCanvas.getContext('2d', { alpha: true });
+                testCtx.clearRect(0, 0, testCanvas.width, testCanvas.height);
+                testCtx.drawImage(testImg, 0, 0);
+                
+                // Sample alpha channel
+                const imageData = testCtx.getImageData(0, 0, Math.min(100, testCanvas.width), Math.min(100, testCanvas.height));
+                const alphaData = imageData.data.filter((_, i) => i % 4 === 3); // Get alpha values
+                const nonZeroAlpha = alphaData.filter(a => a > 0).length;
+                const alphaPercent = (nonZeroAlpha / alphaData.length) * 100;
+                
+                if (alphaPercent < 1) {
+                  // Alpha is fully zero - show error instead of replacing preview
+                  throw new Error('Processing failed: Output image has no valid content (alpha channel is empty). Please try again with a different image.');
                 }
-              };
+                
+                // Alpha is valid - update preview
+                previewResult.src = premiumResult.dataUrl;
+                previewResult.hidden = false;
+                
+                const foregroundImage = new Image();
+                foregroundImage.crossOrigin = 'anonymous';
+                foregroundImage.src = premiumResult.dataUrl;
+                await foregroundImage.decode();
+                
+                ensureCanvas(foregroundImage.width, foregroundImage.height);
+                resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+                resultContext.drawImage(foregroundImage, 0, 0, resultCanvas.width, resultCanvas.height);
+                resultDataURL = resultCanvas.toDataURL('image/png');
+              } else {
+                throw new Error('Premium result image is invalid or corrupted');
+              }
               
               // Remove processing overlay
               if (processingOverlay && processingOverlay.parentNode) {
                 processingOverlay.parentNode.removeChild(processingOverlay);
               }
               
-              console.log('✅ Premium HD processed successfully, proceeding to download...', {
-                hasDataUrl: !!finalDownloadUrl,
-                dataUrlLength: finalDownloadUrl ? finalDownloadUrl.length : 0,
-                selectedSize: selectedPremiumSize
-              });
+              showStatus(`✅ Premium HD processed successfully!${creditInfo}`);
               
-              // Continue to download after processing - DO NOT return here
+              // Continue to download after processing
             } else {
               // Remove processing overlay
               if (processingOverlay && processingOverlay.parentNode) {
@@ -1980,31 +2139,13 @@
         }
         
         // Prepare download URL - FIXED: Ensure download happens
-        // For premium HD, use Blob URL if available, otherwise use dataUrl
-        let downloadBlob = null;
-        let downloadBlobUrl = null;
-        
         if (!finalDownloadUrl) {
           showError('No image available for download');
           return;
         }
         
-        // For premium images, convert to Blob to avoid localStorage quota issues
-        if (selectedDownloadQuality === 'premium' && finalDownloadUrl.startsWith('data:image/')) {
-          try {
-            downloadBlob = await fetch(finalDownloadUrl).then(r => r.blob());
-            downloadBlobUrl = URL.createObjectURL(downloadBlob);
-            console.log('✅ Premium image converted to Blob, using blob URL for download');
-          } catch (blobError) {
-            console.warn('Failed to convert to Blob, using dataUrl:', blobError);
-            // Fallback to dataUrl if Blob conversion fails
-          }
-        }
-        
-        const downloadUrl = downloadBlobUrl || finalDownloadUrl;
-        
         if (finalDownloadUrl.startsWith('data:image/png')) {
-          // Already PNG, use directly (or blob URL if premium)
+          // Already PNG, use directly
         } else {
           // Convert to PNG
           const img = new Image();
@@ -2026,73 +2167,29 @@
           finalDownloadUrl = canvas.toDataURL('image/png');
         }
         
-        // Download the image - FIXED: Ensure download triggers immediately after processing
+        // Download the image - FIXED: Ensure download triggers
         try {
-          // Validate download URL before attempting download
-          if (!finalDownloadUrl || !finalDownloadUrl.startsWith('data:image/')) {
-            throw new Error('Invalid image data for download');
-          }
-          
           const link = document.createElement('a');
           const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'background-removed.png';
           const baseName = filename.replace(/\.[^/.]+$/, '') || 'background-removed';
-          
-          // Add size info to filename for premium downloads
-          let qualitySuffix = selectedDownloadQuality === 'premium' ? '-premium-hd' : '-free-preview';
-          if (selectedDownloadQuality === 'premium' && selectedPremiumSize && selectedPremiumSize !== 'original') {
-            qualitySuffix += `-${selectedPremiumSize}`;
-          }
-          
-          link.href = downloadUrl;
+          const qualitySuffix = selectedDownloadQuality === 'premium' ? '-premium-hd' : '-free-preview';
+          link.href = finalDownloadUrl;
           link.download = `${baseName}${qualitySuffix}.png`;
-          link.style.display = 'none';
           
           document.body.appendChild(link);
+          link.click();
+          setTimeout(() => {
+            document.body.removeChild(link);
+          }, 100);
           
-          // Trigger download immediately - use both click() and requestAnimationFrame for better browser compatibility
-          requestAnimationFrame(() => {
-            link.click();
-            setTimeout(() => {
-              if (link.parentNode) {
-                document.body.removeChild(link);
-              }
-              // Revoke blob URL after download
-              if (downloadBlobUrl) {
-                URL.revokeObjectURL(downloadBlobUrl);
-              } else if (link.href.startsWith('blob:')) {
-                URL.revokeObjectURL(link.href);
-              }
-            }, 100);
-          });
-          
-          console.log('✅ Download triggered successfully', {
-            filename: link.download,
-            quality: selectedDownloadQuality,
-            size: selectedPremiumSize,
-            dataUrlLength: finalDownloadUrl.length
-          });
+          console.log('Download triggered successfully');
         } catch (downloadError) {
-          console.error('❌ Download error:', downloadError);
-          showError('Failed to trigger download. Please try right-clicking on the preview image and selecting "Save image as..." Error: ' + (downloadError.message || 'Unknown error'));
-          
-          // Fallback: Create download link in status message
-          try {
-            const fallbackLink = document.createElement('a');
-            fallbackLink.href = finalDownloadUrl;
-            fallbackLink.download = 'background-removed-premium-hd.png';
-            fallbackLink.textContent = 'Click here to download';
-            fallbackLink.style.display = 'inline-block';
-            fallbackLink.style.marginLeft = '10px';
-            fallbackLink.style.color = '#4361ee';
-            fallbackLink.style.textDecoration = 'underline';
-            statusMessage.appendChild(fallbackLink);
-          } catch (fallbackError) {
-            console.error('Fallback download link creation failed:', fallbackError);
-          }
+          console.error('Download error:', downloadError);
+          showError('Failed to trigger download. Please try right-clicking on the preview image and selecting "Save image as..."');
         }
         
         // Show success message
-        const qualityLabel = selectedDownloadQuality === 'premium' ? 'Premium HD – up to 25 Megapixels' : 'Free Preview (512px)';
+        const qualityLabel = selectedDownloadQuality === 'premium' ? 'Premium HD – up to 25 Megapixels (2 Credit per image)' : 'Free Preview (512px)';
         const wasPremium = selectedDownloadQuality === 'premium';
         showStatus(`✅ ${qualityLabel} downloaded successfully!`);
         
@@ -2303,7 +2400,7 @@
                     What is the difference between Free Preview and Premium HD?
                 </h3>
                 <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    Free Preview provides 512px output using GPU-accelerated processing. Premium HD delivers up to 25 Megapixels resolution using GPU-accelerated High-Resolution processing. Both use the same advanced AI technology, but Premium HD provides higher resolution suitable for professional printing and large-format use. See pricing page for credit details.
+                    Free Preview provides 512px output using GPU-accelerated processing and requires no credits. Premium HD delivers up to 25 Megapixels resolution using GPU-accelerated High-Resolution processing and requires 2 credits per image. Both use the same advanced AI technology, but Premium HD provides higher resolution suitable for professional printing and large-format use.
                 </div>
             </div>
             <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
@@ -2645,10 +2742,10 @@
           <div class="download-option" id="premiumDownloadOption" data-quality="premium">
             <div class="download-option-header">
               <div class="download-option-title">Premium HD – up to 25 Megapixels</div>
-              <span class="download-option-badge premium">Premium HD</span>
+              <span class="download-option-badge premium">Premium (2 Credit)</span>
             </div>
             <div class="download-option-details">
-              <strong>Up to 25 Megapixels</strong> • High-resolution quality
+              <strong>Up to 25 Megapixels</strong> • 2 credits per image • High-resolution quality
             </div>
             <div class="size-selection" id="premiumSizeSelection">
               <label for="premiumSizeSelect"><i class="fas fa-expand-arrows-alt"></i> Select Resolution:</label>
