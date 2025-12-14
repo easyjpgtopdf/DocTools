@@ -2107,7 +2107,7 @@ def premium_bg():
                 processed_with = 'Premium Document – Safe Mode (Text Preservation)'
             else:
                 optimizations = {
-                    'pipeline': 'Premium Photo HD (remove.bg style)',
+                    'pipeline': 'Premium Photo HD (Professional Quality)',
                     'birefnet_semantic_mask': True,
                     'trimap_generation': True,
                     'maxmatting_fine_matting': True,
