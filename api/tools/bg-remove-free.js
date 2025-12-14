@@ -102,7 +102,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { imageData } = req.body;
+    const { imageData, imageType } = req.body;
 
     // Validate and normalize image data before proxying
     const normalized = normalizeImageData(imageData);
@@ -135,7 +135,8 @@ module.exports = async function handler(req, res) {
     const requestPayload = {
       imageData: normalized.dataUrl,
       quality: 'preview',
-      maxSize: 512
+      maxSize: 512,
+      imageType: imageType || null // Forward imageType for proper routing
     };
     
     console.log('Request payload size:', JSON.stringify(requestPayload).length, 'chars');

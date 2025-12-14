@@ -1180,11 +1180,22 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
         logger.info("Step 2: Skipping guided filter for free preview.")
         debug_stats.update(mask_stats("mask_after_guided_skipped", mask))
     
-    # Step 3: Enhance Hair Details (Premium only - for fine hair strands and details)
-    if is_premium and CV2_AVAILABLE:
-        logger.info("Step 3: Enhancing hair details and fine edges...")
-        mask = enhance_hair_details(mask, input_image, strength=0.3)
-        debug_stats.update(mask_stats("mask_after_hair", mask))
+    # Step 3: Enhance Hair Details
+    # Premium: Full hair enhancement
+    # Free Preview: Hair enhancement for human photos only (not documents)
+    if CV2_AVAILABLE:
+        if is_premium:
+            logger.info("Step 3: Enhancing hair details and fine edges (premium)...")
+            mask = enhance_hair_details(mask, input_image, strength=0.3)
+            debug_stats.update(mask_stats("mask_after_hair", mask))
+        elif not is_document:
+            # Free preview: Light hair enhancement for human photos
+            logger.info("Step 3: Enhancing hair details (free preview, human photo)...")
+            mask = enhance_hair_details(mask, input_image, strength=0.2)
+            debug_stats.update(mask_stats("mask_after_hair", mask))
+        else:
+            logger.info("Step 3: Skipping hair enhancement for document...")
+            debug_stats.update(mask_stats("mask_after_hair_skipped", mask))
     else:
         debug_stats.update(mask_stats("mask_after_hair_skipped", mask))
     
@@ -1270,22 +1281,60 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
         # Extract alpha channel from composite for post-processing
         composite_alpha = rgba_temp.split()[3]
         
-        # Apply feathering to alpha channel only (if premium)
-        if is_premium and SCIPY_AVAILABLE:
-            logger.info("Step 8.1: Applying feathering to alpha channel of composite...")
-            composite_alpha = apply_feathering(composite_alpha, feather_radius=3)
+        # Apply feathering to alpha channel only
+        # Premium: Adaptive feather based on MP
+        # Free Preview: Light feather (1-1.5px for human, 0.5px for document)
+        if SCIPY_AVAILABLE:
+            if is_premium:
+                logger.info("Step 8.1: Applying premium adaptive feathering to alpha channel of composite...")
+                composite_alpha = apply_feathering(composite_alpha, feather_radius=3)
+            else:
+                # Free preview: Light feather based on image type
+                if is_document:
+                    logger.info("Step 8.1: Applying light feather (0.5px) for document...")
+                    composite_alpha = apply_feathering(composite_alpha, feather_radius=0.5)
+                else:
+                    logger.info("Step 8.1: Applying light feather (1.5px) for human photo...")
+                    composite_alpha = apply_feathering(composite_alpha, feather_radius=1.5)
             debug_stats.update(mask_stats("mask_after_feather_composite", composite_alpha))
         
-        # Apply halo removal to alpha channel only (if premium)
+        # Apply halo removal to alpha channel only
+        # Premium: Strong halo removal
+        # Free Preview: Weak halo (0.15) for human, OFF for document
         if is_premium:
-            logger.info("Step 8.2: Applying halo removal to alpha channel of composite...")
+            logger.info("Step 8.2: Applying strong halo removal to alpha channel of composite...")
             composite_alpha = remove_halo(composite_alpha, input_image, threshold=0.15)
             debug_stats.update(mask_stats("mask_after_halo_composite", composite_alpha))
+        else:
+            # Free preview: Weak halo for human only
+            if not is_document:
+                logger.info("Step 8.2: Applying weak halo removal (0.15) for human photo...")
+                composite_alpha = remove_halo(composite_alpha, input_image, threshold=0.15)
+                debug_stats.update(mask_stats("mask_after_halo_composite", composite_alpha))
+            else:
+                logger.info("Step 8.2: Skipping halo removal for document (preserve text)...")
+                debug_stats.update(mask_stats("mask_after_halo_skipped", composite_alpha))
         
         # Re-composite with processed alpha
         final_image = Image.new('RGBA', input_image.size, (0, 0, 0, 0))
         final_image.paste(input_image, (0, 0))
         final_image.putalpha(composite_alpha)
+        
+        # Clamp alpha to avoid full transparency (safety check for free preview)
+        if not is_premium:
+            try:
+                alpha_arr = np.array(final_image.getchannel('A'))
+                # Ensure at least 1% of pixels have non-zero alpha
+                alpha_nonzero_pct = (np.count_nonzero(alpha_arr) / alpha_arr.size) * 100.0
+                if alpha_nonzero_pct < 1.0:
+                    logger.warning(f"⚠️ Free preview: Alpha too low ({alpha_nonzero_pct:.2f}%), clamping minimum alpha...")
+                    # Clamp minimum alpha to avoid full transparency
+                    alpha_arr = np.clip(alpha_arr, 10, 255)  # Minimum alpha of 10 to preserve edges
+                    alpha_clamped = Image.fromarray(alpha_arr, mode='L')
+                    final_image.putalpha(alpha_clamped)
+                    logger.info(f"✅ Free preview: Alpha clamped to prevent full transparency")
+            except Exception as clamp_err:
+                logger.warning(f"Failed to clamp alpha: {clamp_err}")
         
     except Exception as e:
         logger.error(f"Composite with fixed pipeline failed: {e}, falling back to original composite")
@@ -1433,8 +1482,18 @@ def free_preview_bg():
             elif input_image.mode != 'RGB':
                 input_image = input_image.convert('RGB')
             
-            # Detect if image is a document (A4, letter, etc.)
-            is_document = is_document_image(input_image)
+            # Image type detection: Use provided imageType or auto-detect
+            image_type = data.get('imageType')  # "human" | "document" | "id_card" | "a4"
+            if image_type and image_type.lower() in ['document', 'id_card', 'a4']:
+                is_document = True
+                logger.info(f"📄 Free Preview: Using provided imageType: {image_type} → Document mode")
+            else:
+                # Auto-detect if not provided
+                is_document = is_document_image(input_image)
+                if image_type:
+                    logger.info(f"📷 Free Preview: Using provided imageType: {image_type} → Photo mode (auto-detected: {'document' if is_document else 'photo'})")
+                else:
+                    logger.info(f"🔍 Free Preview: Auto-detected image type: {'document' if is_document else 'photo'}")
             
             # Resize to max 512px for preview
             original_size = input_image.size
