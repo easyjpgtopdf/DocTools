@@ -1,8 +1,18 @@
 // Direct route handler for /api/tools/bg-remove-free
 // Free Preview Background Removal (512px GPU-accelerated)
-// PHASE 3: Backend supports both multipart/form-data AND base64 JSON (backward compatible)
+// IMPLEMENTED: multipart/form-data upload (remove.bg style) + base64 JSON fallback
 
 const CLOUDRUN_API_URL = process.env.CLOUDRUN_API_URL_BG_REMOVAL || 'https://bg-removal-birefnet-564572183797.us-central1.run.app';
+
+// For multipart/form-data parsing (Vercel serverless functions)
+let formidable, FormData;
+try {
+  formidable = require('formidable');
+  FormData = require('form-data');
+} catch (e) {
+  console.warn('Formidable or form-data not available, multipart upload will use fallback');
+}
+const fs = require('fs');
 
 function normalizeImageData(imageData) {
   if (!imageData || typeof imageData !== 'string') {
@@ -114,57 +124,124 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // PHASE 3: Backend supports both multipart AND base64
-    // Current: Base64 JSON (works perfectly, backward compatible)
-    // Future: Can add FormData support - backend accepts multipart/form-data
-    const { imageData, imageType } = req.body;
-
-    // Validate and normalize image data before proxying
-    const normalized = normalizeImageData(imageData);
-    if (!normalized.ok) {
-      console.error('Invalid imageData received:', {
-        hasImageData: !!imageData,
-        type: typeof imageData,
-        length: imageData?.length,
-        reason: normalized.message
+    const contentType = req.headers['content-type'] || '';
+    const isMultipart = contentType.includes('multipart/form-data');
+    
+    let response;
+    
+    if (isMultipart && formidable && FormData) {
+      // MULTIPART/FORM-DATA UPLOAD (remove.bg style - preferred method)
+      console.log('✅ Processing multipart/form-data upload (raw file)');
+      
+      // Parse multipart request using formidable
+      const form = formidable({
+        multiples: false,
+        maxFileSize: 50 * 1024 * 1024, // 50 MB max
+        keepExtensions: true
       });
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid image data',
-        message: normalized.message
+      
+      const [fields, files] = await form.parse(req);
+      
+      const imageFile = files.image ? (Array.isArray(files.image) ? files.image[0] : files.image) : null;
+      const imageType = fields.imageType ? (Array.isArray(fields.imageType) ? fields.imageType[0] : fields.imageType) : null;
+      const maxSize = fields.maxSize ? (Array.isArray(fields.maxSize) ? fields.maxSize[0] : fields.maxSize) : '512';
+      
+      if (!imageFile) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing image file',
+          message: 'No image file provided in multipart request.'
+        });
+      }
+      
+      // Read file buffer
+      const fileBuffer = fs.readFileSync(imageFile.filepath);
+      
+      // Forward as multipart/form-data to backend
+      const backendFormData = new FormData();
+      backendFormData.append('image', fileBuffer, {
+        filename: imageFile.originalFilename || 'image.jpg',
+        contentType: imageFile.mimetype || 'image/jpeg'
+      });
+      backendFormData.append('maxSize', maxSize);
+      if (imageType) {
+        backendFormData.append('imageType', imageType);
+      }
+      
+      console.log('Forwarding multipart to backend:', {
+        fileSize: fileBuffer.length,
+        filename: imageFile.originalFilename,
+        maxSize: maxSize,
+        imageType: imageType
+      });
+      
+      // Clean up temp file
+      try {
+        fs.unlinkSync(imageFile.filepath);
+      } catch (e) {
+        console.warn('Failed to delete temp file:', e);
+      }
+      
+      response = await fetch(`${CLOUDRUN_API_URL}/api/free-preview-bg`, {
+        method: 'POST',
+        headers: backendFormData.getHeaders(),
+        body: backendFormData,
+        signal: AbortSignal.timeout(90000)
+      });
+      
+    } else {
+      // FALLBACK: Base64 JSON (backward compatibility)
+      console.log('⚠️ Processing base64 JSON upload (fallback mode)');
+      
+      const { imageData, imageType } = req.body || {};
+      
+      if (!imageData) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing imageData',
+          message: 'No image data provided in request body'
+        });
+      }
+
+      // Validate and normalize image data before proxying
+      const normalized = normalizeImageData(imageData);
+      if (!normalized.ok) {
+        console.error('Invalid imageData received:', {
+          hasImageData: !!imageData,
+          type: typeof imageData,
+          length: imageData?.length,
+          reason: normalized.message
+        });
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid image data',
+          message: normalized.message
+        });
+      }
+
+      console.log('Free preview request received (base64), proxying to Cloud Run...');
+      console.log('Cloud Run URL:', CLOUDRUN_API_URL);
+      console.log('Image data length:', normalized.dataUrl.length, 'chars');
+      
+      // Proxy to Cloud Run backend for free preview (512px)
+      // Backend accepts both multipart/form-data AND base64 JSON (backward compatible)
+      const requestPayload = {
+        imageData: normalized.dataUrl,
+        quality: 'preview',
+        maxSize: 512,
+        imageType: imageType || null
+      };
+      
+      response = await fetch(`${CLOUDRUN_API_URL}/api/free-preview-bg`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(requestPayload),
+        signal: AbortSignal.timeout(90000)
       });
     }
-
-    console.log('Free preview request received, proxying to Cloud Run...');
-    console.log('Cloud Run URL:', CLOUDRUN_API_URL);
-    console.log('Image data length:', normalized.dataUrl.length, 'chars');
-    console.log('Image data format:', normalized.dataUrl.substring(0, 30) + '...');
-    
-    // Extract base64 part for validation
-    const base64Part = normalized.dataUrl.includes(',') ? normalized.dataUrl.split(',')[1] : normalized.dataUrl;
-    console.log('Base64 part length:', base64Part.length, 'chars');
-    console.log('Decoded bytes:', normalized.bytes);
-
-    // Proxy to Cloud Run backend for free preview (512px)
-    // Backend accepts both multipart/form-data AND base64 JSON (backward compatible)
-    const requestPayload = {
-      imageData: normalized.dataUrl,
-      quality: 'preview',
-      maxSize: 512,
-      imageType: imageType || null // Forward imageType for proper routing
-    };
-    
-    console.log('Request payload size:', JSON.stringify(requestPayload).length, 'chars');
-    
-    const response = await fetch(`${CLOUDRUN_API_URL}/api/free-preview-bg`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(requestPayload),
-      signal: AbortSignal.timeout(90000) // 90 seconds - balanced timeout for free preview
-    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -236,3 +313,4 @@ module.exports = async function handler(req, res) {
     });
   }
 };
+
