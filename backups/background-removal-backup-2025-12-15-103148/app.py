@@ -1501,7 +1501,6 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                     logger.error(f"⚠️ CRITICAL: Alpha safety clamp failed: {clamp_err}")
                     # This is critical for free preview - log as error
             
-            final_image = composite_pro_png(input_image, mask)
         except Exception as e:
             logger.error(f"Composite with fixed pipeline failed: {e}, falling back to original composite")
             final_image = composite_pro_png(input_image, mask)
@@ -1612,153 +1611,194 @@ def health():
 
 @app.route('/api/free-preview-bg', methods=['POST'])
 def free_preview_bg():
-    """Free Preview: 512px output using GPU-accelerated AI with optimizations
-    CRITICAL: ONLY accepts multipart/form-data (remove.bg style) - base64 JSON completely removed for 100% consistency
-    """
+    """Free Preview: 512px output using GPU-accelerated AI with optimizations"""
     start_time = time.time()
     
     try:
-        # CRITICAL: Free preview ONLY accepts multipart/form-data (remove.bg style)
-        # Base64 JSON is completely removed for 100% consistency
-        image_bytes = None
-        max_size = 512
-        image_type = None
-        
-        if 'image' in request.files:
-            # Multipart upload (ONLY method for free preview - matches remove.bg)
-            logger.info("✅ Processing multipart/form-data upload")
-            file = request.files['image']
-            image_bytes = file.read()
-            max_size = int(request.form.get('maxSize', 512))
-            image_type = request.form.get('imageType')
-            
-            if not image_bytes or len(image_bytes) == 0:
-                logger.error("Empty file uploaded")
-                return jsonify({
-                    'success': False,
-                    'error': 'Invalid image file',
-                    'message': 'Uploaded file is empty. Please try uploading again.'
-                }), 400
-            
-            logger.info(f"Received multipart file: {len(image_bytes)} bytes, maxSize={max_size}")
-            
-        else:
-            # REJECT any non-multipart request for free preview (removed base64 JSON for 100% consistency)
-            logger.error("❌ Non-multipart request rejected for free preview - only multipart/form-data accepted")
+        data = request.json
+        if not data or 'imageData' not in data:
             return jsonify({
                 'success': False,
-                'error': 'Invalid request format',
-                'message': 'Free preview only accepts multipart/form-data upload. Please use FormData to upload your image file.'
+                'error': 'Missing imageData in request body'
             }), 400
         
-        # Processing path (multipart only - base64 removed for 100% consistency)
-        # Open image with PIL (without strict verify to handle more formats)
+        image_data = data.get('imageData')
+        max_size = data.get('maxSize', 512)
+        
+        # Validate image_data is present
+        if not image_data:
+            logger.error("Missing imageData in request")
+            return jsonify({
+                'success': False,
+                'error': 'Missing imageData',
+                'message': 'No image data provided in request'
+            }), 400
+        
+        # Decode base64 image
         try:
-            # Create BytesIO from image bytes (works for both multipart and base64)
-            image_buffer = io.BytesIO(image_bytes)
-            input_image = Image.open(image_buffer)
-            
-            # Verify image was opened and has valid dimensions
-            if not input_image:
-                raise ValueError("Failed to open image - image object is None")
-            
-            # Check dimensions
-            if not hasattr(input_image, 'size') or not input_image.size:
-                raise ValueError("Image has no size attribute")
-            
-            width, height = input_image.size
-            if width == 0 or height == 0:
-                raise ValueError(f"Image dimensions are invalid: {width}x{height}")
-            
-            # Load image to ensure it's fully decoded
-            # For progressive JPEGs and some formats, load() might fail even for valid images
-            # REMOVED strict error handling - allow images even if load() fails if dimensions are valid
-            try:
-                input_image.load()
-            except Exception as load_err:
-                error_msg = str(load_err).lower()
-                # Progressive JPEGs and some formats might fail load() but are still valid
-                logger.warning(f"Image load warning (but continuing if dimensions are valid): {str(load_err)}")
-                # Verify we can at least access dimensions - if yes, continue
-                try:
-                    _ = input_image.size
-                    # Try to get a pixel sample if possible
-                    try:
-                        test_pixel = input_image.getpixel((min(width-1, max(0, width//2)), min(height-1, max(0, height//2))))
-                        logger.info(f"Image data is accessible despite load() warning (sample pixel: {test_pixel})")
-                    except:
-                        # Even if getpixel fails, continue if dimensions are valid
-                        logger.info(f"Could not read pixel sample, but dimensions are valid: {width}x{height}, continuing...")
-                except Exception as verify_err:
-                    # Only fail if we can't access dimensions at all
-                    logger.error(f"Image data verification failed - cannot access dimensions: {str(verify_err)}")
-                    raise ValueError(f"Image data is corrupted or incomplete: {str(load_err)}")
-                
-            logger.info(f"Successfully opened image: {width}x{height}, mode: {input_image.mode}")
-            
-        except Exception as img_err:
-            error_type = type(img_err).__name__
-            error_msg = str(img_err)
-            logger.error(f"Image open/load error [{error_type}]: {error_msg}")
-            logger.error(f"Image bytes length: {len(image_bytes)}, first 100 bytes (hex): {image_bytes[:100].hex()}")
-            
-            # Try alternative decoding methods as fallback
-            alternative_success = False
-            if 'cannot identify' in error_msg.lower() or 'cannot open' in error_msg.lower():
-                logger.info("Attempting alternative image decoding method...")
-                try:
-                    # Try using BytesIO with explicit format hint
-                    image_buffer_alt = io.BytesIO(image_bytes)
-                    # Try common formats - REMOVED strict verify() as it's too restrictive
-                    for fmt in ['JPEG', 'PNG', 'WEBP', 'BMP', 'TIFF', 'HEIC']:
-                        try:
-                            image_buffer_alt.seek(0)
-                            # Try to open with format hint
-                            try:
-                                input_image = Image.open(image_buffer_alt, formats=(fmt,))
-                            except:
-                                # If format hint fails, try without it
-                                image_buffer_alt.seek(0)
-                                input_image = Image.open(image_buffer_alt)
-                            
-                            # Load image to ensure it's fully decoded
-                            try:
-                                input_image.load()
-                            except Exception as load_err:
-                                # Progressive JPEGs and some formats might fail load() but are still valid
-                                if 'progressive' in str(load_err).lower() or 'truncated' in str(load_err).lower():
-                                    logger.warning(f"Image load warning (progressive/truncated, but continuing): {str(load_err)}")
-                            
-                            # Verify dimensions
-                            width, height = input_image.size
-                            if width > 0 and height > 0:
-                                logger.info(f"Fallback decoding successful: {width}x{height}, mode: {input_image.mode}, format: {fmt}")
-                                alternative_success = True
-                                break
-                        except Exception as fmt_err:
-                            logger.debug(f"Format {fmt} failed: {str(fmt_err)}")
-                            continue
-                except Exception as alt_err:
-                    logger.error(f"Alternative decoding also failed: {str(alt_err)}")
-            
-            # If alternative decoding failed, return error
-            if not alternative_success:
-                # Provide more helpful error messages
-                if 'cannot identify' in error_msg.lower() or 'cannot open' in error_msg.lower():
-                    user_msg = "The file is not a valid image format. Please upload JPG, JPEG, PNG, WEBP, HEIC, or other supported image formats."
-                elif 'corrupted' in error_msg.lower() or 'incomplete' in error_msg.lower():
-                    user_msg = "The image file appears to be corrupted or incomplete. Please try uploading the image again or use a different image."
-                elif 'dimensions' in error_msg.lower():
-                    user_msg = "The image has invalid dimensions. Please upload a valid image file."
+            # Extract base64 part if data URL
+            base64_part = image_data
+            if ',' in image_data:
+                parts = image_data.split(',', 1)  # Split only once
+                if len(parts) == 2:
+                    base64_part = parts[1]
                 else:
-                    user_msg = f"Failed to process image: {error_msg}. Please ensure you are uploading a valid image file (JPG, PNG, etc.)."
-                
+                    logger.error(f"Invalid data URL format: {image_data[:100]}...")
+                    return jsonify({
+                        'success': False,
+                        'error': 'Invalid image data format',
+                        'message': 'Image data URL format is invalid. Expected: data:image/...;base64,...'
+                    }), 400
+            
+            # Clean base64 string: remove whitespace and fix URL-safe variants
+            base64_part = base64_part.replace('\n', '').replace('\r', '').replace(' ', '')
+            base64_part = base64_part.replace('-', '+').replace('_', '/')  # URL-safe to standard base64
+            
+            # Validate base64 string
+            if not base64_part or len(base64_part) < 100:
+                logger.error(f"Base64 data too short: {len(base64_part) if base64_part else 0} chars")
                 return jsonify({
                     'success': False,
                     'error': 'Invalid image data',
-                    'message': user_msg,
-                    'error_details': error_msg if os.environ.get('DEBUG_ERRORS', '0') == '1' else None
+                    'message': 'Image data is too small or corrupted. Please try uploading again.'
                 }), 400
+            
+            # Pad base64 if needed (must be multiple of 4)
+            remainder = len(base64_part) % 4
+            if remainder:
+                base64_part = base64_part + ('=' * (4 - remainder))
+            
+            # Decode base64 - try with validation first, fallback without if it fails
+            try:
+                image_bytes = base64.b64decode(base64_part, validate=True)
+            except Exception as validate_err:
+                # Try without validation (more lenient for edge cases)
+                try:
+                    logger.warning(f"Base64 decode with validation failed, trying without validation: {str(validate_err)}")
+                    image_bytes = base64.b64decode(base64_part, validate=False)
+                except Exception as decode_err:
+                    logger.error(f"Base64 decode error (both with and without validation): {str(decode_err)}")
+                    return jsonify({
+                        'success': False,
+                        'error': 'Invalid image data',
+                        'message': f'Failed to decode image data: {str(decode_err)}. Please ensure you are uploading a valid image file (JPG, PNG, etc.).'
+                    }), 400
+            
+            if not image_bytes or len(image_bytes) == 0:
+                logger.error("Decoded image bytes are empty")
+                return jsonify({
+                    'success': False,
+                    'error': 'Invalid image data',
+                    'message': 'Decoded image is empty. Please try uploading a different image.'
+                }), 400
+            
+            # Open image with PIL (without strict verify to handle more formats)
+            try:
+                # Create BytesIO from decoded bytes
+                image_buffer = io.BytesIO(image_bytes)
+                input_image = Image.open(image_buffer)
+                
+                # Verify image was opened and has valid dimensions
+                if not input_image:
+                    raise ValueError("Failed to open image - image object is None")
+                
+                # Check dimensions
+                if not hasattr(input_image, 'size') or not input_image.size:
+                    raise ValueError("Image has no size attribute")
+                
+                width, height = input_image.size
+                if width == 0 or height == 0:
+                    raise ValueError(f"Image dimensions are invalid: {width}x{height}")
+                
+                # Load image to ensure it's fully decoded
+                # For progressive JPEGs and some formats, load() might fail even for valid images
+                # REMOVED strict error handling - allow images even if load() fails if dimensions are valid
+                try:
+                    input_image.load()
+                except Exception as load_err:
+                    error_msg = str(load_err).lower()
+                    # Progressive JPEGs and some formats might fail load() but are still valid
+                    logger.warning(f"Image load warning (but continuing if dimensions are valid): {str(load_err)}")
+                    # Verify we can at least access dimensions - if yes, continue
+                    try:
+                        _ = input_image.size
+                        # Try to get a pixel sample if possible
+                        try:
+                            test_pixel = input_image.getpixel((min(width-1, max(0, width//2)), min(height-1, max(0, height//2))))
+                            logger.info(f"Image data is accessible despite load() warning (sample pixel: {test_pixel})")
+                        except:
+                            # Even if getpixel fails, continue if dimensions are valid
+                            logger.info(f"Could not read pixel sample, but dimensions are valid: {width}x{height}, continuing...")
+                    except Exception as verify_err:
+                        # Only fail if we can't access dimensions at all
+                        logger.error(f"Image data verification failed - cannot access dimensions: {str(verify_err)}")
+                        raise ValueError(f"Image data is corrupted or incomplete: {str(load_err)}")
+                    
+                logger.info(f"Successfully opened image: {width}x{height}, mode: {input_image.mode}")
+                
+            except Exception as img_err:
+                error_type = type(img_err).__name__
+                error_msg = str(img_err)
+                logger.error(f"Image open/load error [{error_type}]: {error_msg}")
+                logger.error(f"Image bytes length: {len(image_bytes)}, first 100 bytes (hex): {image_bytes[:100].hex()}")
+                
+                # Try alternative decoding methods as fallback
+                alternative_success = False
+                if 'cannot identify' in error_msg.lower() or 'cannot open' in error_msg.lower():
+                    logger.info("Attempting alternative image decoding method...")
+                    try:
+                        # Try using BytesIO with explicit format hint
+                        image_buffer_alt = io.BytesIO(image_bytes)
+                        # Try common formats - REMOVED strict verify() as it's too restrictive
+                        for fmt in ['JPEG', 'PNG', 'WEBP', 'BMP', 'TIFF', 'HEIC']:
+                            try:
+                                image_buffer_alt.seek(0)
+                                # Try to open with format hint
+                                try:
+                                    input_image = Image.open(image_buffer_alt, formats=(fmt,))
+                                except:
+                                    # If format hint fails, try without it
+                                    image_buffer_alt.seek(0)
+                                    input_image = Image.open(image_buffer_alt)
+                                
+                                # Load image to ensure it's fully decoded
+                                try:
+                                    input_image.load()
+                                except Exception as load_err:
+                                    # Progressive JPEGs and some formats might fail load() but are still valid
+                                    if 'progressive' in str(load_err).lower() or 'truncated' in str(load_err).lower():
+                                        logger.warning(f"Image load warning (progressive/truncated, but continuing): {str(load_err)}")
+                                
+                                # Verify dimensions
+                                width, height = input_image.size
+                                if width > 0 and height > 0:
+                                    logger.info(f"Fallback decoding successful: {width}x{height}, mode: {input_image.mode}, format: {fmt}")
+                                    alternative_success = True
+                                    break
+                            except Exception as fmt_err:
+                                logger.debug(f"Format {fmt} failed: {str(fmt_err)}")
+                                continue
+                    except Exception as alt_err:
+                        logger.error(f"Alternative decoding also failed: {str(alt_err)}")
+                
+                # If alternative decoding failed, return error
+                if not alternative_success:
+                    # Provide more helpful error messages
+                    if 'cannot identify' in error_msg.lower() or 'cannot open' in error_msg.lower():
+                        user_msg = "The file is not a valid image format. Please upload JPG, JPEG, PNG, WEBP, HEIC, or other supported image formats."
+                    elif 'corrupted' in error_msg.lower() or 'incomplete' in error_msg.lower():
+                        user_msg = "The image file appears to be corrupted or incomplete. Please try uploading the image again or use a different image."
+                    elif 'dimensions' in error_msg.lower():
+                        user_msg = "The image has invalid dimensions. Please upload a valid image file."
+                    else:
+                        user_msg = f"Failed to process image: {error_msg}. Please ensure you are uploading a valid image file (JPG, PNG, etc.)."
+                    
+                    return jsonify({
+                        'success': False,
+                        'error': 'Invalid image data',
+                        'message': user_msg,
+                        'error_details': error_msg if os.environ.get('DEBUG_ERRORS', '0') == '1' else None
+                    }), 400
             
             # Convert RGBA to RGB if needed
             if input_image.mode == 'RGBA':
@@ -1768,75 +1808,83 @@ def free_preview_bg():
             elif input_image.mode != 'RGB':
                 input_image = input_image.convert('RGB')
             
-        # Image type detection: Use provided imageType or auto-detect
-        # image_type already set above (from multipart)
-        if image_type and image_type.lower() in ['document', 'id_card', 'a4']:
-            is_document = True
-            logger.info(f"📄 Free Preview: Using provided imageType: {image_type} → Document mode")
-        else:
-            # Auto-detect if not provided
-            is_document = is_document_image(input_image)
-            if image_type:
-                logger.info(f"📷 Free Preview: Using provided imageType: {image_type} → Photo mode (auto-detected: {'document' if is_document else 'photo'})")
+            # Image type detection: Use provided imageType or auto-detect
+            image_type = data.get('imageType')  # "human" | "document" | "id_card" | "a4"
+            if image_type and image_type.lower() in ['document', 'id_card', 'a4']:
+                is_document = True
+                logger.info(f"📄 Free Preview: Using provided imageType: {image_type} → Document mode")
             else:
-                logger.info(f"🔍 Free Preview: Auto-detected image type: {'document' if is_document else 'photo'}")
-        
-        # Resize to max 512px for preview
-        original_size = input_image.size
-        max_dimension = max(original_size)
-        
-        if max_dimension > max_size:
-            scale = max_size / max_dimension
-            new_size = (int(original_size[0] * scale), int(original_size[1] * scale))
-            input_image = input_image.resize(new_size, Image.Resampling.LANCZOS)
-            logger.info(f"Resized image from {original_size} to {new_size} for preview")
-        
-        # Select model based on image type
-        if is_document:
-            logger.info("Document detected - using RobustMatting for better text preservation")
-            session = get_session_robust()
-        else:
-            session = get_session_512()
-        
-        # Process with optimizations (light mode for free preview with new config)
-        output_bytes, debug_stats = process_with_optimizations(input_image, session, is_premium=False, is_document=is_document)
-        
-        # Convert to base64
-        output_b64 = base64.b64encode(output_bytes).decode()
-        result_image = f"data:image/png;base64,{output_b64}"
-        
-        processing_time = time.time() - start_time
-        output_size = len(output_bytes)
-        
-        logger.info(f"Free preview processed in {processing_time:.2f}s, output size: {output_size / 1024:.2f} KB")
-        
-        # Check if fallback was used (from debug_stats)
-        preview_mode = "normal"
-        if debug_stats.get("preview_mode") == "fallback":
-            preview_mode = "fallback"
-        elif debug_stats.get("used_fallback_level", 0) > 0:
-            preview_mode = "recovered"  # Mask recovery was applied
-        
-        response_payload = {
-            'success': True,
-            'resultImage': result_image,
-            'outputSize': output_size,
-            'outputSizeMB': round(output_size / (1024 * 1024), 2),
-            'processedWith': 'Free Preview (512px GPU-accelerated, Optimized)',
-            'processingTime': round(processing_time, 2),
-            'previewMode': preview_mode,  # "normal" | "recovered" | "fallback"
-            'optimizations': {
-                'model_tuning': 'BiRefNet' if not is_document else 'RobustMatting',
-                'feathering': False,
-                'halo_removal': False,
-                'composite': True,
-                'document_mode': is_document
+                # Auto-detect if not provided
+                is_document = is_document_image(input_image)
+                if image_type:
+                    logger.info(f"📷 Free Preview: Using provided imageType: {image_type} → Photo mode (auto-detected: {'document' if is_document else 'photo'})")
+                else:
+                    logger.info(f"🔍 Free Preview: Auto-detected image type: {'document' if is_document else 'photo'}")
+            
+            # Resize to max 512px for preview
+            original_size = input_image.size
+            max_dimension = max(original_size)
+            
+            if max_dimension > max_size:
+                scale = max_size / max_dimension
+                new_size = (int(original_size[0] * scale), int(original_size[1] * scale))
+                input_image = input_image.resize(new_size, Image.Resampling.LANCZOS)
+                logger.info(f"Resized image from {original_size} to {new_size} for preview")
+            
+            # Select model based on image type
+            if is_document:
+                logger.info("Document detected - using RobustMatting for better text preservation")
+                session = get_session_robust()
+            else:
+                session = get_session_512()
+            
+            # Process with optimizations (light mode for free preview with new config)
+            output_bytes, debug_stats = process_with_optimizations(input_image, session, is_premium=False, is_document=is_document)
+            
+            # Convert to base64
+            output_b64 = base64.b64encode(output_bytes).decode()
+            result_image = f"data:image/png;base64,{output_b64}"
+            
+            processing_time = time.time() - start_time
+            output_size = len(output_bytes)
+            
+            logger.info(f"Free preview processed in {processing_time:.2f}s, output size: {output_size / 1024:.2f} KB")
+            
+            # Check if fallback was used (from debug_stats)
+            preview_mode = "normal"
+            if debug_stats.get("preview_mode") == "fallback":
+                preview_mode = "fallback"
+            elif debug_stats.get("used_fallback_level", 0) > 0:
+                preview_mode = "recovered"  # Mask recovery was applied
+            
+            response_payload = {
+                'success': True,
+                'resultImage': result_image,
+                'outputSize': output_size,
+                'outputSizeMB': round(output_size / (1024 * 1024), 2),
+                'processedWith': 'Free Preview (512px GPU-accelerated, Optimized)',
+                'processingTime': round(processing_time, 2),
+                'previewMode': preview_mode,  # "normal" | "recovered" | "fallback"
+                'optimizations': {
+                    'model_tuning': 'BiRefNet' if not is_document else 'RobustMatting',
+                    'feathering': False,
+                    'halo_removal': False,
+                    'composite': True,
+                    'document_mode': is_document
+                }
             }
-        }
-        if os.environ.get('DEBUG_RETURN_STATS', '0') == '1':
-            response_payload['debugMask'] = debug_stats
+            if os.environ.get('DEBUG_RETURN_STATS', '0') == '1':
+                response_payload['debugMask'] = debug_stats
 
-        return jsonify(response_payload), 200
+            return jsonify(response_payload), 200
+            
+        except Exception as decode_error:
+            logger.error(f"Image decode/process error: {str(decode_error)}")
+            return jsonify({
+                'success': False,
+                'error': 'Invalid image data',
+                'message': str(decode_error)
+            }), 400
             
     except Exception as e:
         logger.error(f"Free preview error: {str(e)}", exc_info=True)

@@ -1,6 +1,6 @@
 // Direct route handler for /api/tools/bg-remove-free
 // Free Preview Background Removal (512px GPU-accelerated)
-// IMPLEMENTED: multipart/form-data upload (remove.bg style) + base64 JSON fallback
+// CRITICAL: ONLY accepts multipart/form-data (remove.bg style) - base64 JSON completely removed for 100% consistency
 
 const CLOUDRUN_API_URL = process.env.CLOUDRUN_API_URL_BG_REMOVAL || 'https://bg-removal-birefnet-564572183797.us-central1.run.app';
 
@@ -14,95 +14,7 @@ try {
 }
 const fs = require('fs');
 
-function normalizeImageData(imageData) {
-  if (!imageData || typeof imageData !== 'string') {
-    return { ok: false, message: 'imageData is required and must be a string' };
-  }
-
-  const trimmed = imageData.trim();
-  
-  // Check if it's already a data URL
-  if (trimmed.startsWith('data:')) {
-    // It's already a valid data URL, check format
-    const match = trimmed.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
-    if (!match) {
-      return { ok: false, message: 'imageData must be a base64 data URL (data:image/...;base64,...)' };
-    }
-    
-    const mime = match[1];
-    let base64Part = match[2];
-    
-    // Enhanced base64 cleaning and validation
-    // Remove all whitespace, fix URL-safe variants, remove invalid characters
-    base64Part = base64Part.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
-    
-    // Remove any non-base64 characters that might have crept in
-    base64Part = base64Part.replace(/[^A-Za-z0-9+/=]/g, '');
-    
-    if (base64Part.length < 100) {
-      return { ok: false, message: 'Image data is too small or corrupted. Please upload a valid image file.' };
-    }
-    
-    // Pad if needed (base64 must be multiple of 4)
-    const remainder = base64Part.length % 4;
-    if (remainder) {
-      base64Part = base64Part.padEnd(base64Part.length + (4 - remainder), '=');
-    }
-
-    // Validate base64
-    let buffer;
-    try {
-      buffer = Buffer.from(base64Part, 'base64');
-      if (!buffer || buffer.length === 0) {
-        return { ok: false, message: 'Decoded image is empty' };
-      }
-    } catch (err) {
-      return { ok: false, message: `Invalid base64 encoding: ${err.message}` };
-    }
-
-    // Return properly padded data URL to ensure backend can decode it
-    return {
-      ok: true,
-      mime,
-      bytes: buffer.length,
-      dataUrl: `data:${mime};base64,${base64Part}` // Return properly padded version
-    };
-  }
-  
-  // If not a data URL, treat as raw base64
-  // Enhanced cleaning and validation
-  let base64Part = trimmed.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
-  
-  // Remove any non-base64 characters
-  base64Part = base64Part.replace(/[^A-Za-z0-9+/=]/g, '');
-  
-  if (base64Part.length < 100) {
-    return { ok: false, message: 'Image data is too small or corrupted. Please upload a valid image file.' };
-  }
-  
-  // Pad if needed (base64 must be multiple of 4)
-  const remainder = base64Part.length % 4;
-  if (remainder) {
-    base64Part = base64Part.padEnd(base64Part.length + (4 - remainder), '=');
-  }
-
-  let buffer;
-  try {
-    buffer = Buffer.from(base64Part, 'base64');
-    if (!buffer || buffer.length === 0) {
-      return { ok: false, message: 'Decoded image is empty' };
-    }
-  } catch (err) {
-    return { ok: false, message: `Invalid base64 encoding: ${err.message}` };
-  }
-
-  return {
-    ok: true,
-    mime: 'image/png',
-    bytes: buffer.length,
-    dataUrl: `data:image/png;base64,${base64Part}`
-  };
-}
+// REMOVED: normalizeImageData function - no longer needed as base64 JSON support is removed
 
 module.exports = async function handler(req, res) {
   // Enable CORS
@@ -127,121 +39,85 @@ module.exports = async function handler(req, res) {
     const contentType = req.headers['content-type'] || '';
     const isMultipart = contentType.includes('multipart/form-data');
     
-    let response;
-    
-    if (isMultipart && formidable && FormData) {
-      // MULTIPART/FORM-DATA UPLOAD (remove.bg style - preferred method)
-      console.log('✅ Processing multipart/form-data upload (raw file)');
-      
-      // Parse multipart request using formidable
-      const form = formidable({
-        multiples: false,
-        maxFileSize: 50 * 1024 * 1024, // 50 MB max
-        keepExtensions: true
-      });
-      
-      const [fields, files] = await form.parse(req);
-      
-      const imageFile = files.image ? (Array.isArray(files.image) ? files.image[0] : files.image) : null;
-      const imageType = fields.imageType ? (Array.isArray(fields.imageType) ? fields.imageType[0] : fields.imageType) : null;
-      const maxSize = fields.maxSize ? (Array.isArray(fields.maxSize) ? fields.maxSize[0] : fields.maxSize) : '512';
-      
-      if (!imageFile) {
-        return res.status(400).json({
-          success: false,
-          error: 'Missing image file',
-          message: 'No image file provided in multipart request.'
-        });
-      }
-      
-      // Read file buffer
-      const fileBuffer = fs.readFileSync(imageFile.filepath);
-      
-      // Forward as multipart/form-data to backend
-      const backendFormData = new FormData();
-      backendFormData.append('image', fileBuffer, {
-        filename: imageFile.originalFilename || 'image.jpg',
-        contentType: imageFile.mimetype || 'image/jpeg'
-      });
-      backendFormData.append('maxSize', maxSize);
-      if (imageType) {
-        backendFormData.append('imageType', imageType);
-      }
-      
-      console.log('Forwarding multipart to backend:', {
-        fileSize: fileBuffer.length,
-        filename: imageFile.originalFilename,
-        maxSize: maxSize,
-        imageType: imageType
-      });
-      
-      // Clean up temp file
-      try {
-        fs.unlinkSync(imageFile.filepath);
-      } catch (e) {
-        console.warn('Failed to delete temp file:', e);
-      }
-      
-      response = await fetch(`${CLOUDRUN_API_URL}/api/free-preview-bg`, {
-        method: 'POST',
-        headers: backendFormData.getHeaders(),
-        body: backendFormData,
-        signal: AbortSignal.timeout(90000)
-      });
-      
-    } else {
-      // FALLBACK: Base64 JSON (backward compatibility)
-      console.log('⚠️ Processing base64 JSON upload (fallback mode)');
-      
-      const { imageData, imageType } = req.body || {};
-      
-      if (!imageData) {
-        return res.status(400).json({
-          success: false,
-          error: 'Missing imageData',
-          message: 'No image data provided in request body'
-        });
-      }
-
-      // Validate and normalize image data before proxying
-      const normalized = normalizeImageData(imageData);
-      if (!normalized.ok) {
-        console.error('Invalid imageData received:', {
-          hasImageData: !!imageData,
-          type: typeof imageData,
-          length: imageData?.length,
-          reason: normalized.message
-        });
-        return res.status(400).json({
-          success: false,
-          error: 'Invalid image data',
-          message: normalized.message
-        });
-      }
-
-      console.log('Free preview request received (base64), proxying to Cloud Run...');
-      console.log('Cloud Run URL:', CLOUDRUN_API_URL);
-      console.log('Image data length:', normalized.dataUrl.length, 'chars');
-      
-      // Proxy to Cloud Run backend for free preview (512px)
-      // Backend accepts both multipart/form-data AND base64 JSON (backward compatible)
-      const requestPayload = {
-        imageData: normalized.dataUrl,
-        quality: 'preview',
-        maxSize: 512,
-        imageType: imageType || null
-      };
-      
-      response = await fetch(`${CLOUDRUN_API_URL}/api/free-preview-bg`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(requestPayload),
-        signal: AbortSignal.timeout(90000)
+    // CRITICAL: Free preview ONLY accepts multipart/form-data (remove.bg style)
+    // Base64 JSON is completely removed for 100% consistency
+    if (!isMultipart) {
+      console.error('❌ Free preview requires multipart/form-data upload');
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request format',
+        message: 'Free preview only accepts multipart/form-data upload. Please use FormData to upload your image file.'
       });
     }
+    
+    // Check if formidable and FormData are available
+    if (!formidable || !FormData) {
+      console.error('❌ Formidable library not available');
+      return res.status(500).json({
+        success: false,
+        error: 'Server configuration error',
+        message: 'Multipart file upload is not available. Please contact support.'
+      });
+    }
+    
+    // MULTIPART/FORM-DATA UPLOAD (remove.bg style - ONLY method for free preview)
+    console.log('✅ Processing multipart/form-data upload (raw file)');
+    
+    // Parse multipart request using formidable
+    const form = formidable({
+      multiples: false,
+      maxFileSize: 50 * 1024 * 1024, // 50 MB max
+      keepExtensions: true
+    });
+    
+    const [fields, files] = await form.parse(req);
+    
+    const imageFile = files.image ? (Array.isArray(files.image) ? files.image[0] : files.image) : null;
+    const imageType = fields.imageType ? (Array.isArray(fields.imageType) ? fields.imageType[0] : fields.imageType) : null;
+    const maxSize = fields.maxSize ? (Array.isArray(fields.maxSize) ? fields.maxSize[0] : fields.maxSize) : '512';
+    
+    if (!imageFile) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing image file',
+        message: 'No image file provided in multipart request. Please ensure the file field is named "image".'
+      });
+    }
+    
+    // Read file buffer
+    const fileBuffer = fs.readFileSync(imageFile.filepath);
+    
+    // Forward as multipart/form-data to backend
+    const backendFormData = new FormData();
+    backendFormData.append('image', fileBuffer, {
+      filename: imageFile.originalFilename || 'image.jpg',
+      contentType: imageFile.mimetype || 'image/jpeg'
+    });
+    backendFormData.append('maxSize', maxSize);
+    if (imageType) {
+      backendFormData.append('imageType', imageType);
+    }
+    
+    console.log('Forwarding multipart to backend:', {
+      fileSize: fileBuffer.length,
+      filename: imageFile.originalFilename,
+      maxSize: maxSize,
+      imageType: imageType
+    });
+    
+    // Clean up temp file
+    try {
+      fs.unlinkSync(imageFile.filepath);
+    } catch (e) {
+      console.warn('Failed to delete temp file:', e);
+    }
+    
+    const response = await fetch(`${CLOUDRUN_API_URL}/api/free-preview-bg`, {
+      method: 'POST',
+      headers: backendFormData.getHeaders(),
+      body: backendFormData,
+      signal: AbortSignal.timeout(90000)
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -261,20 +137,11 @@ module.exports = async function handler(req, res) {
         errorText: errorText.substring(0, 500) // Limit log size
       });
       
-      // Log request details for debugging (only if requestPayload exists - base64 path)
-      if (typeof requestPayload !== 'undefined') {
-        console.error('Request details (base64 path):', {
-          url: `${CLOUDRUN_API_URL}/api/free-preview-bg`,
-          payloadSize: JSON.stringify(requestPayload).length,
-          imageDataLength: normalized?.dataUrl?.length || 'N/A',
-          imageType: imageType
-        });
-      } else {
-        console.error('Request details (multipart path):', {
-          url: `${CLOUDRUN_API_URL}/api/free-preview-bg`,
-          method: 'multipart/form-data'
-        });
-      }
+      // Log request details for debugging (multipart path)
+      console.error('Request details (multipart path):', {
+        url: `${CLOUDRUN_API_URL}/api/free-preview-bg`,
+        method: 'multipart/form-data'
+      });
       
       // Provide more specific error messages
       let errorMessage = errorData.error || errorData.message || 'Background removal failed';
