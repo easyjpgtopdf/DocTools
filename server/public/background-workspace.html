@@ -582,7 +582,7 @@
       return new Blob([u8arr], { type: mime });
     }
     
-    async function processWithFreePreview(fileObjectOrDataURL) {
+    async function processWithFreePreview(file) {
       // Free preview processing lock - prevent loops and multiple calls
       if (freePreviewInProgress) {
         console.warn('⚠️ Free preview already in progress, ignoring duplicate call');
@@ -592,53 +592,30 @@
         };
       }
       
-      // CRITICAL: Free preview needs File object for multipart upload
-      // Accept File object directly, or convert dataURL to Blob (for sessionStorage case)
-      let fileObject = null;
-      
-      if (fileObjectOrDataURL instanceof File) {
-        // Direct File object (preferred - from multiple images upload)
-        fileObject = fileObjectOrDataURL;
-        console.log('✅ Using provided File object for multipart upload');
-      } else if (typeof fileObjectOrDataURL === 'string' && fileObjectOrDataURL.startsWith('data:image/')) {
-        // dataURL from sessionStorage - convert to Blob for multipart upload
-        // This is necessary because File objects can't be stored in sessionStorage
-        console.log('📋 Converting dataURL to File object for multipart upload (sessionStorage case)');
-        console.log('   dataURL length:', fileObjectOrDataURL.length);
-        console.log('   dataURL preview:', fileObjectOrDataURL.substring(0, 50) + '...');
-        try {
-          const blob = dataURLtoBlob(fileObjectOrDataURL);
-          console.log('   ✅ Blob created:', blob.size, 'bytes, type:', blob.type);
-          // Create File-like object from Blob for multipart upload
-          const filename = 'image.jpg';
-          const mimeMatch = fileObjectOrDataURL.match(/data:image\/([^;]+)/);
-          const mimeType = mimeMatch ? `image/${mimeMatch[1]}` : 'image/jpeg';
-          fileObject = new File([blob], filename, { type: mimeType });
-          console.log('✅ Converted dataURL to File object for multipart upload (sessionStorage case)');
-          console.log('   File object created:', fileObject.name, fileObject.size, 'bytes', fileObject.type);
-        } catch (blobErr) {
-          console.error('❌ Failed to convert dataURL to File:', blobErr);
-          console.error('   Error details:', blobErr.message, blobErr.stack);
-          return {
-            success: false,
-            error: 'Invalid image data. Please upload the image again.'
-          };
-        }
-      } else {
-        console.error('❌ Invalid input - must be File object or dataURL');
+      // CRITICAL: Free preview STRICTLY accepts ONLY File object (remove.bg style)
+      // NO base64, NO dataURL, NO conversion - FILE ONLY
+      if (!file || !(file instanceof File)) {
+        console.error('❌ Free preview requires File object - base64/dataURL not supported');
         return {
           success: false,
-          error: 'File object or valid image data is required. Please upload the image again.'
+          error: 'File object required. Please upload the image again.'
         };
       }
       
-      if (!fileObject || !(fileObject instanceof File)) {
-        console.error('❌ Failed to create File object');
+      // Validate File object
+      if (!file.size || file.size === 0) {
+        console.error('❌ File object is empty');
         return {
           success: false,
-          error: 'Failed to prepare image for upload. Please try again.'
+          error: 'Invalid file. Please upload the image again.'
         };
       }
+      
+      const fileObject = file;
+      console.log('✅ Free preview: Using File object ONLY (remove.bg style)');
+      console.log('   File name:', fileObject.name);
+      console.log('   File size:', fileObject.size, 'bytes');
+      console.log('   File type:', fileObject.type);
       
       freePreviewInProgress = true;
       
@@ -1971,12 +1948,9 @@
     const processBtn = document.getElementById('processBtn');
     if (processBtn) {
       processBtn.addEventListener('click', () => {
-        const stored = sessionStorage.getItem(STORAGE_KEYS.original);
-        if (stored) {
-          processImage(stored);
-        } else {
-          showError('Please upload an image first.');
-        }
+        // CRITICAL: Free preview requires File object - sessionStorage not supported
+        // User must use "Upload Images" button for free preview
+        showError('Free preview requires a fresh file upload. Please use the "Upload Images" button to upload your image file.');
       });
     }
 
