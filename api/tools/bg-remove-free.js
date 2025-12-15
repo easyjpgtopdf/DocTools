@@ -1,5 +1,6 @@
 // Direct route handler for /api/tools/bg-remove-free
 // Free Preview Background Removal (512px GPU-accelerated)
+// PHASE 3: Backend supports both multipart/form-data AND base64 JSON (backward compatible)
 
 const CLOUDRUN_API_URL = process.env.CLOUDRUN_API_URL_BG_REMOVAL || 'https://bg-removal-birefnet-564572183797.us-central1.run.app';
 
@@ -113,6 +114,9 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    // PHASE 3: Backend supports both multipart AND base64
+    // Current: Base64 JSON (works perfectly, backward compatible)
+    // Future: Can add FormData support - backend accepts multipart/form-data
     const { imageData, imageType } = req.body;
 
     // Validate and normalize image data before proxying
@@ -139,10 +143,10 @@ module.exports = async function handler(req, res) {
     // Extract base64 part for validation
     const base64Part = normalized.dataUrl.includes(',') ? normalized.dataUrl.split(',')[1] : normalized.dataUrl;
     console.log('Base64 part length:', base64Part.length, 'chars');
-    console.log('Base64 part preview:', base64Part.substring(0, 50) + '...');
     console.log('Decoded bytes:', normalized.bytes);
 
     // Proxy to Cloud Run backend for free preview (512px)
+    // Backend accepts both multipart/form-data AND base64 JSON (backward compatible)
     const requestPayload = {
       imageData: normalized.dataUrl,
       quality: 'preview',
@@ -232,4 +236,3 @@ module.exports = async function handler(req, res) {
     });
   }
 };
-
