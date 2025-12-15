@@ -1919,36 +1919,17 @@
       const processBtn = document.getElementById('processBtn');
       if (processBtn) processBtn.disabled = true;
     } else {
-      // Load and display the image - WAIT FOR IT TO LOAD FIRST
-      previewStage.classList.remove('empty');
-      previewPlaceholder.classList.add('hidden');
-      previewOriginal.hidden = false;
-      previewOverlay.style.opacity = 0; // Ensure overlay is hidden initially
-      
-      // Wait for image to load before processing
-      previewOriginal.onload = () => {
-        console.log('✅ Original image loaded, starting processing...');
-        const processBtn = document.getElementById('processBtn');
-        if (processBtn) processBtn.disabled = false;
-        backgroundChangeBtn.disabled = false;
-        downloadBtn.disabled = false;
-        
-        // Auto-process with free preview after image is fully loaded
-        setTimeout(() => {
-          processImage(storedOriginal);
-        }, 200);
-      };
-      
-      previewOriginal.onerror = () => {
-        console.error('❌ Failed to load original image');
-        showError('Failed to load image. Please upload again.');
-        previewStage.classList.add('empty');
-        previewPlaceholder.classList.remove('hidden');
-        previewOriginal.hidden = true;
-      };
-      
-      // Set src AFTER onload handlers are attached
-      previewOriginal.src = storedOriginal;
+      // CRITICAL: Free preview requires File object - sessionStorage dataURL not supported
+      // Show error and require fresh upload
+      previewStage.classList.add('empty');
+      previewPlaceholder.classList.remove('hidden');
+      previewOriginal.hidden = true;
+      previewOverlay.style.opacity = 0;
+      showError('Free preview requires a fresh file upload. Please use the "Upload Images" button to upload your image file again.');
+      backgroundChangeBtn.disabled = true;
+      downloadBtn.disabled = true;
+      const processBtn = document.getElementById('processBtn');
+      if (processBtn) processBtn.disabled = true;
     }
     
     // Process button handler - always uses free preview
