@@ -1,9 +1,12 @@
 <!DOCTYPE html>
-
+<!-- VERSION: 2025-01-16-v2 - STRICT FILE-ONLY FormData - NO JSON/base64 -->
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
 <title>Background Removal Workspace - AI Background Remover | Remove Background Online Free</title>
     <meta name="description" content="Remove background from images online with AI. Free preview (512px) and premium HD quality (2000-4000px) background removal. Professional GPU-accelerated AI processing.">
     <meta name="keywords" content="background removal, remove background, ai background remover, background workspace, free background removal, hd background removal, transparent background, png background remover">
@@ -539,7 +542,51 @@
       return { valid: true };
     }
     
-    async function processWithFreePreview(dataURL) {
+    // Helper function: Convert dataURL to Blob for multipart upload (sessionStorage case)
+    // This is needed because File objects can't be stored in sessionStorage
+    function dataURLtoBlob(dataURL) {
+      // Validate dataURL format
+      if (!dataURL || typeof dataURL !== 'string') {
+        throw new Error('Invalid dataURL: must be a non-empty string');
+      }
+      
+      // Check if dataURL contains comma (required for data URL format)
+      if (!dataURL.includes(',')) {
+        throw new Error('Invalid dataURL format: missing comma separator');
+      }
+      
+      const arr = dataURL.split(',');
+      
+      // Validate that we have both prefix and data parts
+      if (arr.length < 2 || !arr[1]) {
+        throw new Error('Invalid dataURL format: missing base64 data');
+      }
+      
+      // Extract MIME type from prefix
+      const mimeMatch = arr[0].match(/:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      
+      // Decode base64 to binary string
+      let bstr;
+      try {
+        bstr = atob(arr[1]);
+      } catch (e) {
+        throw new Error('Invalid base64 encoding in dataURL: ' + e.message);
+      }
+      
+      // Convert binary string to Uint8Array
+      const n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      for (let i = 0; i < n; i++) {
+        u8arr[i] = bstr.charCodeAt(i);
+      }
+      
+      // Return Blob
+      return new Blob([u8arr], { type: mime });
+    }
+    
+    // VERSION: 2025-01-XX - STRICT FILE-ONLY (remove.bg style) - NO base64/dataURL
+    async function processWithFreePreview(file) {
       // Free preview processing lock - prevent loops and multiple calls
       if (freePreviewInProgress) {
         console.warn('⚠️ Free preview already in progress, ignoring duplicate call');
@@ -549,6 +596,31 @@
         };
       }
       
+      // CRITICAL: Free preview STRICTLY accepts ONLY File object (remove.bg style)
+      // NO base64, NO dataURL, NO conversion - FILE ONLY
+      if (!file || !(file instanceof File)) {
+        console.error('❌ Free preview requires File object - base64/dataURL not supported');
+        return {
+          success: false,
+          error: 'File object required. Please upload the image again.'
+        };
+      }
+      
+      // Validate File object
+      if (!file.size || file.size === 0) {
+        console.error('❌ File object is empty');
+        return {
+          success: false,
+          error: 'Invalid file. Please upload the image again.'
+        };
+      }
+      
+      const fileObject = file;
+      console.log('✅ Free preview: Using File object ONLY (remove.bg style)');
+      console.log('   File name:', fileObject.name);
+      console.log('   File size:', fileObject.size, 'bytes');
+      console.log('   File type:', fileObject.type);
+      
       freePreviewInProgress = true;
       
       // Declare variables in function scope for proper cleanup
@@ -557,19 +629,16 @@
       const controller = new AbortController();
       
       try {
-        // Validate image data before sending
-        const validation = validateImageDataURL(dataURL);
-        if (!validation.valid) {
-          freePreviewInProgress = false; // Reset lock on validation error
-          return {
-            success: false,
-            error: validation.error || 'Invalid image file. Please ensure you are uploading a valid image (JPG, PNG, etc.).'
-          };
-        }
+        // CRITICAL: ALWAYS use original File object for multipart/form-data
+        // NO base64 conversion, NO dataURL, NO canvas.toDataURL
+        console.log('✅ Using original File object for multipart/form-data upload');
+        console.log(`   File name: ${fileObject.name}, size: ${fileObject.size} bytes, type: ${fileObject.type}`);
         
         // Detect image type for routing (basic detection - aspect ratio based)
+        // Use FileReader to create object URL for image type detection
         let detectedImageType = 'human'; // Default to human
         try {
+          const objectUrl = URL.createObjectURL(fileObject);
           const img = new Image();
           await new Promise((resolve, reject) => {
             img.onload = () => {
@@ -578,11 +647,18 @@
               if ((aspectRatio >= 0.6 && aspectRatio <= 1.4) || aspectRatio > 1.8) {
                 detectedImageType = 'document';
               }
+              URL.revokeObjectURL(objectUrl); // Clean up
               resolve();
             };
-            img.onerror = reject;
-            img.src = dataURL;
-            setTimeout(() => resolve(), 100); // Fallback timeout
+            img.onerror = () => {
+              URL.revokeObjectURL(objectUrl); // Clean up on error
+              reject(new Error('Failed to load image for type detection'));
+            };
+            img.src = objectUrl;
+            setTimeout(() => {
+              URL.revokeObjectURL(objectUrl); // Clean up on timeout
+              resolve();
+            }, 100); // Fallback timeout
           });
         } catch (e) {
           console.warn('Image type detection failed, defaulting to human:', e);
@@ -592,15 +668,7 @@
         
         const apiUrl = `${API_BASE_URL}/api/tools/bg-remove-free`;
         console.log('Calling API:', apiUrl);
-        console.log('Image data URL length:', dataURL.length);
-        console.log('Image data URL preview:', dataURL.substring(0, 50) + '...');
-        console.log('Base64 part length:', dataURL.split(',')[1]?.length || 0);
-        
-        // Verify image data is complete before sending
-        const base64Part = dataURL.split(',')[1];
-        if (!base64Part || base64Part.length < 100) {
-          throw new Error('Image data is incomplete. Please try uploading the image again.');
-        }
+        console.log('Upload method: multipart/form-data (ALWAYS)');
         
         const startTime = Date.now();
         
@@ -623,16 +691,59 @@
           }
         }, 120000); // 120 seconds - more time for complex images
         
+        // ALWAYS use multipart/form-data for free preview - ONLY with original File object
+        // Backend expects field name: "image"
+        
+        // CRITICAL: Verify File object is valid before creating FormData
+        if (!fileObject || !(fileObject instanceof File)) {
+          throw new Error('Invalid File object - cannot create FormData');
+        }
+        if (!fileObject.size || fileObject.size === 0) {
+          throw new Error('File object is empty - cannot upload');
+        }
+        
+        // CRITICAL: FREE PREVIEW MUST USE FORMDATA - NO JSON, NO BASE64
+        // This is the ONLY allowed path for free preview
+        const formData = new FormData();
+        formData.append('image', fileObject); // Use original File object - NO base64 conversion
+        formData.append('maxSize', '512');
+        formData.append('imageType', detectedImageType);
+        
+        // STRICT VALIDATION: Ensure we're sending FormData, not JSON
+        if (!formData || !(formData instanceof FormData)) {
+          throw new Error('CRITICAL: FormData creation failed - cannot proceed');
+        }
+        
+        // DEBUG: Verify File object before creating FormData
+        console.log('✅ FREE PREVIEW: Using multipart/form-data upload with original File object');
+        console.log('   File object type:', fileObject instanceof File ? 'File' : typeof fileObject);
+        console.log('   File name:', fileObject.name);
+        console.log('   File size:', fileObject.size, 'bytes');
+        console.log('   File type:', fileObject.type);
+        console.log('   Field name: "image" (as expected by backend)');
+        console.log('   FormData fields: image (File), maxSize (512), imageType (' + detectedImageType + ')');
+        console.log('   ❌ NOT sending JSON - FormData ONLY');
+        console.log('   ❌ NOT sending base64 - File object ONLY');
+        
+        // CRITICAL: DO NOT read FormData.entries() - it consumes the stream!
+        // FormData can only be read once, so reading it here would make body empty for fetch()
+        
+        console.log('   Content-Type: NOT SET (browser will auto-set multipart/form-data boundary)');
+        console.log('   Sending fetch request with FormData (NOT JSON)...');
+        
+        // CRITICAL: FREE PREVIEW API ONLY ACCEPTS MULTIPART/FORM-DATA
+        // DO NOT send JSON.stringify() or base64 - backend will reject with 400
         const response = await fetch(apiUrl, {
           method: 'POST',
+          // CRITICAL: DO NOT set Content-Type header - browser will auto-set multipart boundary
+          // Setting it manually would break multipart encoding
+          // Browser automatically sets: Content-Type: multipart/form-data; boundary=----WebKitFormBoundary...
           headers: {
-            'Content-Type': 'application/json',
             'Accept': 'application/json'
+            // Content-Type is intentionally omitted - browser sets it automatically with boundary
+            // DO NOT add 'Content-Type': 'application/json' - that would break multipart upload
           },
-          body: JSON.stringify({ 
-            imageData: dataURL,
-            imageType: detectedImageType // Send image type for proper routing
-          }),
+          body: formData, // FormData object - NOT JSON.stringify()
           signal: controller.signal
         });
         
@@ -1234,55 +1345,24 @@
     }
 
     async function processImage(dataURL) {
-      clearStatus();
-      previewPlaceholder.classList.add('hidden');
-      previewStage.classList.remove('revealed');
-      previewStage.classList.remove('empty');
+      // CRITICAL: This function is DISABLED for free preview
+      // Free preview requires File object ONLY - dataURL not supported
+      // This function is kept for backward compatibility but does nothing for free preview
+      console.error('❌ processImage() called with dataURL - DISABLED for free preview');
+      console.error('❌ Free preview requires File object. Please use "Upload Images" button.');
+      showError('Free preview requires a fresh file upload. Please use the "Upload Images" button to upload your image file again.');
+      previewStage.classList.add('empty');
+      previewOverlay.style.opacity = 0;
+      previewPlaceholder.classList.remove('hidden');
+      previewOriginal.hidden = true;
+      backgroundChangeBtn.disabled = true;
+      downloadBtn.disabled = true;
+      return;
       
-      // FIXED: Ensure original image is visible before showing overlay
-      previewOriginal.hidden = false;
-      if (!previewOriginal.src || previewOriginal.src !== dataURL) {
-        // Clear any existing onload handlers to avoid conflicts
-        previewOriginal.onload = null;
-        previewOriginal.onerror = null;
-        
-        previewOriginal.src = dataURL;
-        // Wait a moment for image to display before showing overlay
-        await new Promise(resolve => {
-          if (previewOriginal.complete && previewOriginal.naturalWidth > 0) {
-            // Image already loaded
-            resolve();
-          } else {
-            // Set temporary handlers (will be cleared after resolve)
-            const cleanup = () => {
-              previewOriginal.onload = null;
-              previewOriginal.onerror = null;
-            };
-            previewOriginal.onload = () => { cleanup(); resolve(); };
-            previewOriginal.onerror = () => { cleanup(); resolve(); }; // Continue even on error
-            setTimeout(() => { cleanup(); resolve(); }, 100); // Fallback timeout
-          }
-        });
-      }
-      
-      // Now show overlay after image is displayed
-      previewOverlay.style.opacity = 1;
-
+      // REMOVED: Cannot process dataURL with free preview - File object required
       try {
-        // Validate image data before processing
-        const validation = validateImageDataURL(dataURL);
-        if (!validation.valid) {
-          showError(validation.error || 'Invalid image file. Please ensure you are uploading a valid image (JPG, PNG, etc.).');
-          previewStage.classList.add('empty');
-          previewOverlay.style.opacity = 0;
-          previewPlaceholder.classList.remove('hidden');
-          return;
-        }
-        
-        const fileSize = Number(sessionStorage.getItem('bgRemover:originalSize') || 0);
-        
-        // Always use Free Preview for processing (Premium HD available in download modal)
-        const freeResult = await processWithFreePreview(dataURL);
+        // This code path is disabled - free preview requires File object only
+        const freeResult = { success: false, error: 'File object required' };
         
         if (!freeResult.success) {
           throw new Error(freeResult.error || 'Free preview processing failed');
@@ -1572,7 +1652,14 @@
       // Process this image
       try {
         showStatus(`Processing image ${index + 1} of ${multipleImages.length}...`);
-        const result = await processWithFreePreview(img.dataURL);
+        // CRITICAL: Free preview requires File object ONLY - no dataURL fallback
+        const fileObject = img.file;
+        if (!fileObject || !(fileObject instanceof File)) {
+          showError(`Image ${index + 1} is missing File object. Please upload again using the "Upload Images" button.`);
+          return;
+        }
+        
+        const result = await processWithFreePreview(fileObject);
         
         if (result.success) {
           img.processed = true;
@@ -1623,7 +1710,15 @@
         
         try {
           showStatus(`Processing image ${i + 1} of ${multipleImages.length}...`);
-          const result = await processWithFreePreview(multipleImages[i].dataURL);
+          // CRITICAL: Free preview requires File object ONLY - no dataURL fallback
+          const fileObject = multipleImages[i].file;
+          if (!fileObject || !(fileObject instanceof File)) {
+            console.error(`Image ${i + 1} missing File object - cannot process`);
+            failCount++;
+            showError(`Image ${i + 1} is missing File object. Please upload again using the "Upload Images" button.`);
+            continue;
+          }
+          const result = await processWithFreePreview(fileObject);
           
           if (result.success) {
             multipleImages[i].processed = true;
@@ -1760,13 +1855,17 @@
         }
         
         try {
-          const dataURL = await blobToDataURL(file);
+          // CRITICAL: Free preview requires File object ONLY - NO dataURL conversion
+          // Store File object directly - dataURL only for display purposes (preview)
           const imageId = `img_${Date.now()}_${i}`;
+          
+          // Create dataURL ONLY for display/preview (NOT for processing)
+          const dataURL = await blobToDataURL(file);
           
           multipleImages.push({
             id: imageId,
-            file: file,
-            dataURL: dataURL,
+            file: file, // File object - REQUIRED for free preview processing
+            dataURL: dataURL, // Only for display - NOT used for processing
             filename: file.name,
             processed: false,
             resultURL: null
@@ -1803,48 +1902,26 @@
       const processBtn = document.getElementById('processBtn');
       if (processBtn) processBtn.disabled = true;
     } else {
-      // Load and display the image - WAIT FOR IT TO LOAD FIRST
-      previewStage.classList.remove('empty');
-      previewPlaceholder.classList.add('hidden');
-      previewOriginal.hidden = false;
-      previewOverlay.style.opacity = 0; // Ensure overlay is hidden initially
-      
-      // Wait for image to load before processing
-      previewOriginal.onload = () => {
-        console.log('✅ Original image loaded, starting processing...');
-        const processBtn = document.getElementById('processBtn');
-        if (processBtn) processBtn.disabled = false;
-        backgroundChangeBtn.disabled = false;
-        downloadBtn.disabled = false;
-        
-        // Auto-process with free preview after image is fully loaded
-        setTimeout(() => {
-          processImage(storedOriginal);
-        }, 200);
-      };
-      
-      previewOriginal.onerror = () => {
-        console.error('❌ Failed to load original image');
-        showError('Failed to load image. Please upload again.');
-        previewStage.classList.add('empty');
-        previewPlaceholder.classList.remove('hidden');
-        previewOriginal.hidden = true;
-      };
-      
-      // Set src AFTER onload handlers are attached
-      previewOriginal.src = storedOriginal;
+      // CRITICAL: Free preview requires File object - sessionStorage dataURL not supported
+      // Show error and require fresh upload
+      previewStage.classList.add('empty');
+      previewPlaceholder.classList.remove('hidden');
+      previewOriginal.hidden = true;
+      previewOverlay.style.opacity = 0;
+      showError('Free preview requires a fresh file upload. Please use the "Upload Images" button to upload your image file again.');
+      backgroundChangeBtn.disabled = true;
+      downloadBtn.disabled = true;
+      const processBtn = document.getElementById('processBtn');
+      if (processBtn) processBtn.disabled = true;
     }
     
     // Process button handler - always uses free preview
     const processBtn = document.getElementById('processBtn');
     if (processBtn) {
       processBtn.addEventListener('click', () => {
-        const stored = sessionStorage.getItem(STORAGE_KEYS.original);
-        if (stored) {
-          processImage(stored);
-        } else {
-          showError('Please upload an image first.');
-        }
+        // CRITICAL: Free preview requires File object - sessionStorage not supported
+        // User must use "Upload Images" button for free preview
+        showError('Free preview requires a fresh file upload. Please use the "Upload Images" button to upload your image file.');
       });
     }
 
