@@ -1,6 +1,6 @@
 // Direct route handler for /api/tools/bg-remove-free
 // Free Preview Background Removal (512px GPU-accelerated)
-// CRITICAL: ONLY accepts multipart/form-data (remove.bg style) - base64 JSON completely removed for 100% consistency
+// CRITICAL: ONLY accepts multipart/form-data - base64 JSON completely removed for 100% consistency
 
 const CLOUDRUN_API_URL = process.env.CLOUDRUN_API_URL_BG_REMOVAL || 'https://bg-removal-birefnet-564572183797.us-central1.run.app';
 
@@ -39,7 +39,7 @@ module.exports = async function handler(req, res) {
     const contentType = req.headers['content-type'] || '';
     const isMultipart = contentType.includes('multipart/form-data');
     
-    // CRITICAL: Free preview ONLY accepts multipart/form-data (remove.bg style)
+    // CRITICAL: Free preview ONLY accepts multipart/form-data
     // Base64 JSON is completely removed for 100% consistency
     if (!isMultipart) {
       console.error('❌ Free preview requires multipart/form-data upload');
@@ -60,7 +60,7 @@ module.exports = async function handler(req, res) {
       });
     }
     
-    // MULTIPART/FORM-DATA UPLOAD (remove.bg style - ONLY method for free preview)
+      // MULTIPART/FORM-DATA UPLOAD (ONLY method for free preview)
     console.log('✅ Processing multipart/form-data upload (raw file)');
     
     // Parse multipart request using formidable

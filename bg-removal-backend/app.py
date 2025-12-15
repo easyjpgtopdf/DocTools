@@ -1613,19 +1613,19 @@ def health():
 @app.route('/api/free-preview-bg', methods=['POST'])
 def free_preview_bg():
     """Free Preview: 512px output using GPU-accelerated AI with optimizations
-    CRITICAL: ONLY accepts multipart/form-data (remove.bg style) - base64 JSON completely removed for 100% consistency
+    CRITICAL: ONLY accepts multipart/form-data - base64 JSON completely removed for 100% consistency
     """
     start_time = time.time()
     
     try:
-        # CRITICAL: Free preview ONLY accepts multipart/form-data (remove.bg style)
+        # CRITICAL: Free preview ONLY accepts multipart/form-data
         # Base64 JSON is completely removed for 100% consistency
         image_bytes = None
         max_size = 512
         image_type = None
         
         if 'image' in request.files:
-            # Multipart upload (ONLY method for free preview - matches remove.bg)
+            # Multipart upload (ONLY method for free preview)
             logger.info("✅ Processing multipart/form-data upload")
             file = request.files['image']
             image_bytes = file.read()

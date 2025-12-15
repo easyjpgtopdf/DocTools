@@ -599,7 +599,7 @@
       const controller = new AbortController();
       
       try {
-        // CRITICAL FIX: ALWAYS use multipart/form-data for free preview (remove.bg style)
+        // CRITICAL FIX: ALWAYS use multipart/form-data for free preview
         // Convert dataURL to Blob if file object not available
         let imageBlob;
         if (fileObject && fileObject instanceof File) {
@@ -665,7 +665,7 @@
         
         const apiUrl = `${API_BASE_URL}/api/tools/bg-remove-free`;
         console.log('Calling API:', apiUrl);
-        console.log('Upload method: multipart/form-data (ALWAYS - remove.bg style)');
+        console.log('Upload method: multipart/form-data (ALWAYS)');
         
         const startTime = Date.now();
         
@@ -694,7 +694,7 @@
         formData.append('maxSize', '512');
         formData.append('imageType', detectedImageType);
         
-        console.log('✅ Using multipart/form-data upload (consistent - remove.bg style)');
+        console.log('✅ Using multipart/form-data upload');
         const response = await fetch(apiUrl, {
           method: 'POST',
           // DO NOT set Content-Type header - browser will auto-set multipart boundary
