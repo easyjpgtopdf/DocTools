@@ -261,13 +261,20 @@ module.exports = async function handler(req, res) {
         errorText: errorText.substring(0, 500) // Limit log size
       });
       
-      // Log request details for debugging
-      console.error('Request details:', {
-        url: `${CLOUDRUN_API_URL}/api/free-preview-bg`,
-        payloadSize: JSON.stringify(requestPayload).length,
-        imageDataLength: normalized.dataUrl.length,
-        imageType: imageType
-      });
+      // Log request details for debugging (only if requestPayload exists - base64 path)
+      if (typeof requestPayload !== 'undefined') {
+        console.error('Request details (base64 path):', {
+          url: `${CLOUDRUN_API_URL}/api/free-preview-bg`,
+          payloadSize: JSON.stringify(requestPayload).length,
+          imageDataLength: normalized?.dataUrl?.length || 'N/A',
+          imageType: imageType
+        });
+      } else {
+        console.error('Request details (multipart path):', {
+          url: `${CLOUDRUN_API_URL}/api/free-preview-bg`,
+          method: 'multipart/form-data'
+        });
+      }
       
       // Provide more specific error messages
       let errorMessage = errorData.error || errorData.message || 'Background removal failed';

@@ -541,15 +541,43 @@
     
     // Helper function: Convert dataURL to Blob for multipart upload
     function dataURLtoBlob(dataURL) {
+      // Validate dataURL format
+      if (!dataURL || typeof dataURL !== 'string') {
+        throw new Error('Invalid dataURL: must be a non-empty string');
+      }
+      
+      // Check if dataURL contains comma (required for data URL format)
+      if (!dataURL.includes(',')) {
+        throw new Error('Invalid dataURL format: missing comma separator');
+      }
+      
       const arr = dataURL.split(',');
+      
+      // Validate that we have both prefix and data parts
+      if (arr.length < 2 || !arr[1]) {
+        throw new Error('Invalid dataURL format: missing base64 data');
+      }
+      
+      // Extract MIME type from prefix
       const mimeMatch = arr[0].match(/:(.*?);/);
       const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-      const bstr = atob(arr[1]);
+      
+      // Decode base64 to binary string
+      let bstr;
+      try {
+        bstr = atob(arr[1]);
+      } catch (e) {
+        throw new Error('Invalid base64 encoding in dataURL: ' + e.message);
+      }
+      
+      // Convert binary string to Uint8Array
       const n = bstr.length;
       const u8arr = new Uint8Array(n);
       for (let i = 0; i < n; i++) {
         u8arr[i] = bstr.charCodeAt(i);
       }
+      
+      // Return Blob
       return new Blob([u8arr], { type: mime });
     }
     
@@ -578,6 +606,16 @@
           imageBlob = fileObject;
           console.log('✅ Using provided file object for multipart upload');
         } else {
+          // Validate dataURL before conversion
+          if (!dataURL || typeof dataURL !== 'string' || dataURL.length < 100) {
+            freePreviewInProgress = false;
+            console.error('❌ Invalid dataURL provided');
+            return {
+              success: false,
+              error: 'Invalid image data. Please try uploading the image again.'
+            };
+          }
+          
           // Convert dataURL to Blob for multipart upload (ensures consistent behavior)
           try {
             imageBlob = dataURLtoBlob(dataURL);
@@ -587,9 +625,19 @@
             console.error('❌ Failed to convert dataURL to Blob:', blobErr);
             return {
               success: false,
-              error: 'Invalid image data. Please try uploading the image again.'
+              error: blobErr.message || 'Invalid image data. Please try uploading the image again.'
             };
           }
+        }
+        
+        // Validate blob was created successfully
+        if (!imageBlob || imageBlob.size === 0) {
+          freePreviewInProgress = false;
+          console.error('❌ Invalid blob created (empty or null)');
+          return {
+            success: false,
+            error: 'Invalid image data. Please try uploading the image again.'
+          };
         }
         
         // Detect image type for routing (basic detection - aspect ratio based)
