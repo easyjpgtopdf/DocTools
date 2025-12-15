@@ -317,10 +317,45 @@
     }
 
     function blobToDataURL(blob) {
+      // Enhanced FileReader with better error handling
+      // This preserves original image data without canvas manipulation
       return new Promise((resolve, reject) => {
+        // Validate blob before reading
+        if (!blob || !(blob instanceof Blob)) {
+          reject(new Error('Invalid file: Not a valid image blob'));
+          return;
+        }
+        
+        // Check file size (reasonable limit)
+        if (blob.size === 0) {
+          reject(new Error('Invalid file: File is empty'));
+          return;
+        }
+        
+        if (blob.size > 100 * 1024 * 1024) {
+          reject(new Error(`File too large: ${(blob.size / (1024 * 1024)).toFixed(1)} MB. Maximum: 100 MB`));
+          return;
+        }
+        
         const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
+        reader.onload = () => {
+          // Validate result
+          if (!reader.result || typeof reader.result !== 'string') {
+            reject(new Error('Failed to read file: Invalid result from FileReader'));
+            return;
+          }
+          
+          // Check minimum length (basic validation)
+          if (reader.result.length < 100) {
+            reject(new Error('File too small or corrupted: Please upload a valid image file'));
+            return;
+          }
+          
+          resolve(reader.result);
+        };
+        reader.onerror = () => {
+          reject(new Error(`Failed to read file: ${reader.error?.message || 'Unknown error'}`));
+        };
         reader.readAsDataURL(blob);
       });
     }

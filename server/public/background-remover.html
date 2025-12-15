@@ -240,48 +240,31 @@
     }
 
     async function prepareImage(file) {
-      const MAX_EDGE = 1400;
-      const MAX_STORAGE_BYTES = 4.5 * 1024 * 1024; // ~4.5 MB
+      // SAFE FIX: Remove canvas resizing to prevent image corruption
+      // Always use FileReader.readAsDataURL() - preserves original image data
+      // Canvas manipulation can corrupt progressive JPEGs, EXIF, and color profiles
+      // Backend will handle resizing if needed for processing
+      const MAX_STORAGE_BYTES = 9.5 * 1024 * 1024; // Increased to match sessionStorage limit
       try {
-        if (!('createImageBitmap' in window)) {
-          return await readAsDataURL(file);
+        // Direct FileReader - no canvas manipulation
+        // This preserves original image data exactly as uploaded
+        const dataUrl = await readAsDataURL(file);
+        
+        // Check size for sessionStorage limits
+        const approxBytes = Math.ceil(dataUrl.length * 0.75);
+        if (approxBytes > MAX_STORAGE_BYTES) {
+          const sizeMB = (approxBytes / (1024 * 1024)).toFixed(1);
+          throw new Error(`Image is too large (${sizeMB} MB). Maximum: ${(MAX_STORAGE_BYTES / (1024 * 1024)).toFixed(1)} MB. Please reduce image size.`);
         }
-        const bitmap = await createImageBitmap(file);
-        let { width, height } = bitmap;
-        const maxDimension = Math.max(width, height);
-        const scale = maxDimension > MAX_EDGE ? MAX_EDGE / maxDimension : 1;
-        if (scale < 1) {
-          width = Math.round(width * scale);
-          height = Math.round(height * scale);
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(bitmap, 0, 0, width, height);
-          bitmap.close();
-          const hasAlpha = file.type.includes('png');
-          const mime = hasAlpha ? 'image/png' : 'image/jpeg';
-          const quality = hasAlpha ? 1 : 0.82;
-          const dataUrl = canvas.toDataURL(mime, quality);
-          if (Math.ceil(dataUrl.length * 0.75) > MAX_STORAGE_BYTES && !hasAlpha) {
-            const fallback = canvas.toDataURL('image/jpeg', 0.7);
-            return fallback;
-          }
-          return dataUrl;
-        }
-        bitmap.close();
-        const hasAlpha = file.type.includes('png');
-        const mime = hasAlpha ? 'image/png' : 'image/jpeg';
-        return await readAsDataURL(file).then((dataUrl) => {
-          if (Math.ceil(dataUrl.length * 0.75) > MAX_STORAGE_BYTES && !hasAlpha) {
-            return new Promise((resolve) => {
-              readAsDataURL(file).then(resolve);
-            });
-          }
-          return dataUrl;
-        });
+        
+        return dataUrl;
       } catch (err) {
-        console.warn('Image preparation fallback', err);
+        // Enhanced error handling
+        if (err.message && err.message.includes('too large')) {
+          throw err; // Re-throw size errors
+        }
+        console.warn('Image preparation error, using fallback:', err);
+        // Final fallback - try FileReader again
         return await readAsDataURL(file);
       }
     }

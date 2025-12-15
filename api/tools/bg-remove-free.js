@@ -21,13 +21,18 @@ function normalizeImageData(imageData) {
     const mime = match[1];
     let base64Part = match[2];
     
-    // Clean and pad base64
+    // Enhanced base64 cleaning and validation
+    // Remove all whitespace, fix URL-safe variants, remove invalid characters
     base64Part = base64Part.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
+    
+    // Remove any non-base64 characters that might have crept in
+    base64Part = base64Part.replace(/[^A-Za-z0-9+/=]/g, '');
+    
     if (base64Part.length < 100) {
-      return { ok: false, message: 'Image data is too small or corrupted' };
+      return { ok: false, message: 'Image data is too small or corrupted. Please upload a valid image file.' };
     }
     
-    // Pad if needed
+    // Pad if needed (base64 must be multiple of 4)
     const remainder = base64Part.length % 4;
     if (remainder) {
       base64Part = base64Part.padEnd(base64Part.length + (4 - remainder), '=');
@@ -54,11 +59,17 @@ function normalizeImageData(imageData) {
   }
   
   // If not a data URL, treat as raw base64
+  // Enhanced cleaning and validation
   let base64Part = trimmed.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
+  
+  // Remove any non-base64 characters
+  base64Part = base64Part.replace(/[^A-Za-z0-9+/=]/g, '');
+  
   if (base64Part.length < 100) {
-    return { ok: false, message: 'Image data is too small or corrupted' };
+    return { ok: false, message: 'Image data is too small or corrupted. Please upload a valid image file.' };
   }
   
+  // Pad if needed (base64 must be multiple of 4)
   const remainder = base64Part.length % 4;
   if (remainder) {
     base64Part = base64Part.padEnd(base64Part.length + (4 - remainder), '=');
