@@ -1224,10 +1224,12 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                         recovered_mean = float(np.mean(mask_recovered_np))
                         
                         logger.info(f"✅ Level 2 recovery applied: new_ratio={recovered_ratio:.4f}, new_mean={recovered_mean:.2f}")
+                        logger.info(f"🔍 FORENSIC: Mask nonzero ratio AFTER Level 2 recovery: {recovered_ratio:.6f} ({recovered_nonzero}/{total_pixels})")
                         debug_stats.update({
                             "recovery_level_2_applied": True,
                             "recovery_nonzero_ratio": float(recovered_ratio),
-                            "recovery_mean": recovered_mean
+                            "recovery_mean": recovered_mean,
+                            "mask_nonzero_ratio_after_recovery": float(recovered_ratio)  # Explicit tracking for forensic validation
                         })
                         
                         # Check if still weak after recovery
@@ -1250,10 +1252,16 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                             mask = Image.fromarray(emergency_mask, mode='L')
                             emergency_mask_applied = True  # Mark that emergency mask is active
                             logger.info(f"✅ Level 3 emergency cut applied: center region {left},{top} to {right},{bottom}")
+                            # Calculate emergency mask stats
+                            emergency_nonzero = np.count_nonzero(emergency_mask)
+                            emergency_ratio = emergency_nonzero / total_pixels if total_pixels > 0 else 0.0
+                            logger.info(f"🔍 FORENSIC: Emergency mask applied - nonzero ratio: {emergency_ratio:.6f} ({emergency_nonzero}/{total_pixels})")
                             debug_stats.update({
                                 "recovery_level_3_applied": True,
                                 "emergency_center_box": f"{left},{top},{right},{bottom}",
-                                "preview_mode": "fallback"
+                                "preview_mode": "fallback",
+                                "emergency_mask_applied": True,
+                                "mask_nonzero_ratio_after_recovery": float(emergency_ratio)  # Track after emergency mask
                             })
                     else:
                         # If CV2 not available, skip to Level 3
@@ -1301,6 +1309,16 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                 logger.info("✅ Mask strength OK, no recovery needed")
             
             debug_stats["used_fallback_level"] = used_fallback_level
+            # Final mask nonzero ratio after all recovery attempts
+            if used_fallback_level > 0:
+                final_mask_np = np.array(mask.convert('L'))
+                final_nonzero = np.count_nonzero(final_mask_np)
+                final_ratio = final_nonzero / final_mask_np.size if final_mask_np.size > 0 else 0.0
+                logger.info(f"🔍 FORENSIC: Final mask nonzero ratio AFTER all recovery: {final_ratio:.6f} ({final_nonzero}/{final_mask_np.size})")
+                debug_stats["mask_nonzero_ratio_final_after_recovery"] = float(final_ratio)
+            else:
+                # No recovery was needed, use original ratio
+                debug_stats["mask_nonzero_ratio_final_after_recovery"] = float(mask_nonzero_ratio)
             
         except Exception as check_err:
             logger.error(f"Mask strength check failed: {check_err}, continuing with original mask")
@@ -1393,6 +1411,8 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
     # SKIP this step if we already set final_image (early return paths)
     if not mask_empty and not alpha_too_low:
         logger.info("Step 8: Applying alpha mask to RGB first, then creating pro-level PNG composite...")
+        logger.info(f"🔍 FORENSIC: Composite execution path: STANDARD_COMPOSITE (mask_empty={mask_empty}, alpha_too_low={alpha_too_low})")
+        debug_stats["composite_execution_path"] = "STANDARD_COMPOSITE"
         
         # FIXED: Apply mask to RGB first, then apply post-processing to the composite
         # This prevents alpha from becoming zero after feathering/halo removal
@@ -1501,7 +1521,13 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                     logger.error(f"⚠️ CRITICAL: Alpha safety clamp failed: {clamp_err}")
                     # This is critical for free preview - log as error
             
-            final_image = composite_pro_png(input_image, mask)
+            # NOTE: This line is redundant (final_image already set above) but kept for safety
+            # FORENSIC: This should not execute if composite path above worked correctly
+            if 'final_image' not in locals() or final_image is None:
+                logger.warning("🔍 FORENSIC: final_image not set, calling composite_pro_png")
+                final_image = composite_pro_png(input_image, mask)
+            else:
+                logger.info("🔍 FORENSIC: final_image already set from composite path, skipping redundant composite_pro_png")
         except Exception as e:
             logger.error(f"Composite with fixed pipeline failed: {e}, falling back to original composite")
             final_image = composite_pro_png(input_image, mask)
@@ -1510,15 +1536,23 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
         # 🔥 CRITICAL: If emergency mask was applied, ALWAYS composite (never use raw output)
         if emergency_mask_applied and not is_premium:
             logger.info("✅ Emergency mask active - forcing composite with recovered mask")
+            logger.info(f"🔍 FORENSIC: Composite execution path: FORCED_COMPOSITE (emergency_mask_applied=True)")
+            debug_stats["composite_execution_path"] = "FORCED_COMPOSITE"
             final_image = composite_pro_png(input_image, mask)
         elif mask_empty or alpha_too_low:
             logger.info("Using raw rembg output due to empty mask or low alpha")
+            logger.warning(f"🔍 FORENSIC: Composite execution path: RAW_OUTPUT_FALLBACK (mask_empty={mask_empty}, alpha_too_low={alpha_too_low})")
+            logger.warning(f"🔍 FORENSIC: WARNING - Raw output path taken (but will have alpha clamp applied)")
+            debug_stats["composite_execution_path"] = "RAW_OUTPUT_FALLBACK"
+            debug_stats["raw_output_path_taken"] = True
             final_image = output_image
             # Ensure it has alpha channel
             if final_image.mode != 'RGBA':
                 final_image = final_image.convert('RGBA')
         else:
             # This shouldn't happen, but ensure we have final_image
+            logger.info(f"🔍 FORENSIC: Composite execution path: FALLBACK_COMPOSITE")
+            debug_stats["composite_execution_path"] = "FALLBACK_COMPOSITE"
             final_image = composite_pro_png(input_image, mask)
     
     debug_stats.update(mask_stats("mask_final_used", mask))
@@ -1817,6 +1851,10 @@ def free_preview_bg():
         elif debug_stats.get("used_fallback_level", 0) > 0:
             preview_mode = "recovered"  # Mask recovery was applied
         
+        # FORENSIC VALIDATION: Always return debug stats for forensic analysis
+        # This allows forensic validation without changing logic
+        always_return_debug = os.environ.get('FORENSIC_MODE', '0') == '1' or os.environ.get('DEBUG_RETURN_STATS', '0') == '1'
+        
         response_payload = {
             'success': True,
             'resultImage': result_image,
@@ -1833,7 +1871,7 @@ def free_preview_bg():
                 'document_mode': is_document
             }
         }
-        if os.environ.get('DEBUG_RETURN_STATS', '0') == '1':
+        if always_return_debug:
             response_payload['debugMask'] = debug_stats
 
         return jsonify(response_payload), 200
