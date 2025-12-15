@@ -699,31 +699,37 @@
           throw new Error('File object is empty - cannot upload');
         }
         
+        // CRITICAL: FREE PREVIEW MUST USE FORMDATA - NO JSON, NO BASE64
+        // This is the ONLY allowed path for free preview
         const formData = new FormData();
         formData.append('image', fileObject); // Use original File object - NO base64 conversion
         formData.append('maxSize', '512');
         formData.append('imageType', detectedImageType);
         
+        // STRICT VALIDATION: Ensure we're sending FormData, not JSON
+        if (!formData || !(formData instanceof FormData)) {
+          throw new Error('CRITICAL: FormData creation failed - cannot proceed');
+        }
+        
         // DEBUG: Verify File object before creating FormData
-        console.log('✅ Using multipart/form-data upload with original File object');
+        console.log('✅ FREE PREVIEW: Using multipart/form-data upload with original File object');
         console.log('   File object type:', fileObject instanceof File ? 'File' : typeof fileObject);
         console.log('   File name:', fileObject.name);
         console.log('   File size:', fileObject.size, 'bytes');
         console.log('   File type:', fileObject.type);
         console.log('   Field name: "image" (as expected by backend)');
         console.log('   FormData fields: image (File), maxSize (512), imageType (' + detectedImageType + ')');
+        console.log('   ❌ NOT sending JSON - FormData ONLY');
+        console.log('   ❌ NOT sending base64 - File object ONLY');
         
         // CRITICAL: DO NOT read FormData.entries() - it consumes the stream!
         // FormData can only be read once, so reading it here would make body empty for fetch()
         
-        // Verify FormData was created (but don't read entries)
-        if (!formData) {
-          throw new Error('Failed to create FormData object');
-        }
-        
         console.log('   Content-Type: NOT SET (browser will auto-set multipart/form-data boundary)');
-        console.log('   Sending fetch request with FormData...');
+        console.log('   Sending fetch request with FormData (NOT JSON)...');
         
+        // CRITICAL: FREE PREVIEW API ONLY ACCEPTS MULTIPART/FORM-DATA
+        // DO NOT send JSON.stringify() or base64 - backend will reject with 400
         const response = await fetch(apiUrl, {
           method: 'POST',
           // CRITICAL: DO NOT set Content-Type header - browser will auto-set multipart boundary
@@ -732,8 +738,9 @@
           headers: {
             'Accept': 'application/json'
             // Content-Type is intentionally omitted - browser sets it automatically with boundary
+            // DO NOT add 'Content-Type': 'application/json' - that would break multipart upload
           },
-          body: formData,
+          body: formData, // FormData object - NOT JSON.stringify()
           signal: controller.signal
         });
         
