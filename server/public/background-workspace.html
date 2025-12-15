@@ -603,16 +603,22 @@
       } else if (typeof fileObjectOrDataURL === 'string' && fileObjectOrDataURL.startsWith('data:image/')) {
         // dataURL from sessionStorage - convert to Blob for multipart upload
         // This is necessary because File objects can't be stored in sessionStorage
+        console.log('📋 Converting dataURL to File object for multipart upload (sessionStorage case)');
+        console.log('   dataURL length:', fileObjectOrDataURL.length);
+        console.log('   dataURL preview:', fileObjectOrDataURL.substring(0, 50) + '...');
         try {
           const blob = dataURLtoBlob(fileObjectOrDataURL);
+          console.log('   ✅ Blob created:', blob.size, 'bytes, type:', blob.type);
           // Create File-like object from Blob for multipart upload
           const filename = 'image.jpg';
           const mimeMatch = fileObjectOrDataURL.match(/data:image\/([^;]+)/);
           const mimeType = mimeMatch ? `image/${mimeMatch[1]}` : 'image/jpeg';
           fileObject = new File([blob], filename, { type: mimeType });
           console.log('✅ Converted dataURL to File object for multipart upload (sessionStorage case)');
+          console.log('   File object created:', fileObject.name, fileObject.size, 'bytes', fileObject.type);
         } catch (blobErr) {
           console.error('❌ Failed to convert dataURL to File:', blobErr);
+          console.error('   Error details:', blobErr.message, blobErr.stack);
           return {
             success: false,
             error: 'Invalid image data. Please upload the image again.'
@@ -711,9 +717,25 @@
         formData.append('maxSize', '512');
         formData.append('imageType', detectedImageType);
         
+        // DEBUG: Verify File object before creating FormData
         console.log('✅ Using multipart/form-data upload with original File object');
+        console.log('   File object type:', fileObject instanceof File ? 'File' : typeof fileObject);
+        console.log('   File name:', fileObject.name);
+        console.log('   File size:', fileObject.size, 'bytes');
+        console.log('   File type:', fileObject.type);
         console.log('   Field name: "image" (as expected by backend)');
         console.log('   Content-Type: NOT SET (browser will auto-set multipart boundary)');
+        
+        // Verify FormData has the file
+        const formDataEntries = Array.from(formData.entries());
+        console.log('   FormData entries count:', formDataEntries.length);
+        formDataEntries.forEach(([key, value]) => {
+          if (value instanceof File) {
+            console.log(`   FormData["${key}"] = File(${value.name}, ${value.size} bytes, ${value.type})`);
+          } else {
+            console.log(`   FormData["${key}"] = ${value}`);
+          }
+        });
         
         const response = await fetch(apiUrl, {
           method: 'POST',
