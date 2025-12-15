@@ -539,11 +539,9 @@
       return { valid: true };
     }
     
-    // REMOVED: dataURLtoBlob function - free preview no longer uses dataURL/base64 conversion
-    // Free preview now REQUIRES File object only - NO base64 conversion
-    
-    // OLD CODE (removed - base64/dataURL conversion not allowed for free preview):
-    // function dataURLtoBlob(dataURL) {
+    // Helper function: Convert dataURL to Blob for multipart upload (sessionStorage case)
+    // This is needed because File objects can't be stored in sessionStorage
+    function dataURLtoBlob(dataURL) {
       // Validate dataURL format
       if (!dataURL || typeof dataURL !== 'string') {
         throw new Error('Invalid dataURL: must be a non-empty string');
