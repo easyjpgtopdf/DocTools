@@ -1882,11 +1882,24 @@ def free_preview_bg():
             return jsonify(response_payload), 200
             
         except Exception as decode_error:
-            logger.error(f"Image decode/process error: {str(decode_error)}")
+            error_type = type(decode_error).__name__
+            error_msg = str(decode_error)
+            logger.error(f"Image decode/process error [{error_type}]: {error_msg}")
+            
+            # Enhanced error messages for better user experience (FREE PREVIEW ONLY)
+            if 'cannot identify' in error_msg.lower() or 'cannot open' in error_msg.lower():
+                user_message = "The file is not a valid image format. Please upload JPG, JPEG, PNG, WEBP, HEIC, or other supported image formats."
+            elif 'corrupted' in error_msg.lower() or 'incomplete' in error_msg.lower():
+                user_message = "The image file appears to be corrupted or incomplete. Please try uploading the image again or use a different image."
+            elif 'decode' in error_msg.lower() or 'base64' in error_msg.lower():
+                user_message = "Failed to process image data. Please ensure you are uploading a valid image file (JPG, PNG, etc.)."
+            else:
+                user_message = f"Failed to process image: {error_msg}. Please try uploading a different image."
+            
             return jsonify({
                 'success': False,
                 'error': 'Invalid image data',
-                'message': str(decode_error)
+                'message': user_message
             }), 400
             
     except Exception as e:
