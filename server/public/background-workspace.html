@@ -584,7 +584,7 @@
       return new Blob([u8arr], { type: mime });
     }
     
-    async function processWithFreePreview(fileObject) {
+    async function processWithFreePreview(fileObjectOrDataURL) {
       // Free preview processing lock - prevent loops and multiple calls
       if (freePreviewInProgress) {
         console.warn('⚠️ Free preview already in progress, ignoring duplicate call');
@@ -594,12 +594,45 @@
         };
       }
       
-      // CRITICAL: Free preview REQUIRES original File object - no base64/dataURL allowed
-      if (!fileObject || !(fileObject instanceof File)) {
-        console.error('❌ Free preview requires File object - base64/dataURL not supported');
+      // CRITICAL: Free preview needs File object for multipart upload
+      // Accept File object directly, or convert dataURL to Blob (for sessionStorage case)
+      let fileObject = null;
+      
+      if (fileObjectOrDataURL instanceof File) {
+        // Direct File object (preferred - from multiple images upload)
+        fileObject = fileObjectOrDataURL;
+        console.log('✅ Using provided File object for multipart upload');
+      } else if (typeof fileObjectOrDataURL === 'string' && fileObjectOrDataURL.startsWith('data:image/')) {
+        // dataURL from sessionStorage - convert to Blob for multipart upload
+        // This is necessary because File objects can't be stored in sessionStorage
+        try {
+          const blob = dataURLtoBlob(fileObjectOrDataURL);
+          // Create File-like object from Blob for multipart upload
+          const filename = 'image.jpg';
+          const mimeMatch = fileObjectOrDataURL.match(/data:image\/([^;]+)/);
+          const mimeType = mimeMatch ? `image/${mimeMatch[1]}` : 'image/jpeg';
+          fileObject = new File([blob], filename, { type: mimeType });
+          console.log('✅ Converted dataURL to File object for multipart upload (sessionStorage case)');
+        } catch (blobErr) {
+          console.error('❌ Failed to convert dataURL to File:', blobErr);
+          return {
+            success: false,
+            error: 'Invalid image data. Please upload the image again.'
+          };
+        }
+      } else {
+        console.error('❌ Invalid input - must be File object or dataURL');
         return {
           success: false,
-          error: 'File object is required. Please upload the image again.'
+          error: 'File object or valid image data is required. Please upload the image again.'
+        };
+      }
+      
+      if (!fileObject || !(fileObject instanceof File)) {
+        console.error('❌ Failed to create File object');
+        return {
+          success: false,
+          error: 'Failed to prepare image for upload. Please try again.'
         };
       }
       
@@ -1329,15 +1362,20 @@
       previewOverlay.style.opacity = 1;
 
       try {
-        // CRITICAL: Free preview requires File object - base64/dataURL from sessionStorage not supported
-        // validateImageDataURL() removed - free preview no longer uses dataURL/base64
-        // File objects cannot be stored in sessionStorage (not serializable)
-        // User must upload file directly in workspace or use multiple image upload feature
-        showError('Free preview requires a direct file upload. Please use the "Upload Images" button to upload your image file.');
-        previewStage.classList.add('empty');
-        previewOverlay.style.opacity = 0;
-        previewPlaceholder.classList.remove('hidden');
-        return;
+        // Process with Free Preview - dataURL will be converted to File object internally
+        const freeResult = await processWithFreePreview(dataURL);
+        
+        if (!freeResult.success) {
+          throw new Error(freeResult.error || 'Free preview processing failed');
+        }
+        
+        const resultUrl = freeResult.dataUrl;
+        const processingMethod = freeResult.processedWith || 'Free Preview (512px)';
+        console.log('✅ Free preview processing successful');
+        
+        if (!resultUrl) {
+          throw new Error('Image processing failed. Please try again.');
+        }
         
         sessionStorage.setItem(STORAGE_KEYS.foreground, resultUrl);
 
@@ -1621,7 +1659,14 @@
           showError(`Image ${index + 1} is missing file data. Please upload again.`);
           return;
         }
-        const result = await processWithFreePreview(fileObject);
+        // Try to use File object if available, otherwise use dataURL
+        const fileOrDataURL = img.file || img.dataURL;
+        if (!fileOrDataURL) {
+          showError(`Image ${index + 1} is missing file data. Please upload again.`);
+          return;
+        }
+        
+        const result = await processWithFreePreview(fileOrDataURL);
         
         if (result.success) {
           img.processed = true;
@@ -1672,15 +1717,15 @@
         
         try {
           showStatus(`Processing image ${i + 1} of ${multipleImages.length}...`);
-          // CRITICAL: Free preview requires File object - pass file, not dataURL
-          const fileObject = multipleImages[i].file;
-          if (!fileObject || !(fileObject instanceof File)) {
-            console.error(`Image ${i + 1} missing File object - cannot process`);
+          // Try to use File object if available, otherwise use dataURL (for sessionStorage case)
+          const fileOrDataURL = multipleImages[i].file || multipleImages[i].dataURL;
+          if (!fileOrDataURL) {
+            console.error(`Image ${i + 1} missing file data - cannot process`);
             failCount++;
             showError(`Image ${i + 1} is missing file data. Please upload again.`);
             continue;
           }
-          const result = await processWithFreePreview(fileObject);
+          const result = await processWithFreePreview(fileOrDataURL);
           
           if (result.success) {
             multipleImages[i].processed = true;
