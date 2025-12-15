@@ -1650,9 +1650,12 @@ def free_preview_bg():
                         'message': 'Image data URL format is invalid. Expected: data:image/...;base64,...'
                     }), 400
             
-            # Clean base64 string: remove whitespace and fix URL-safe variants
-            base64_part = base64_part.replace('\n', '').replace('\r', '').replace(' ', '')
+            # Enhanced base64 cleaning: remove whitespace, fix URL-safe variants, remove invalid characters
+            base64_part = base64_part.replace('\n', '').replace('\r', '').replace(' ', '').replace('\t', '')
             base64_part = base64_part.replace('-', '+').replace('_', '/')  # URL-safe to standard base64
+            # Remove any non-base64 characters that might have crept in
+            import re
+            base64_part = re.sub(r'[^A-Za-z0-9+/=]', '', base64_part)
             
             # Validate base64 string
             if not base64_part or len(base64_part) < 100:
