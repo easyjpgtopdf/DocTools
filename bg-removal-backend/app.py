@@ -1749,22 +1749,34 @@ def free_preview_bg():
                     try:
                         # Try using BytesIO with explicit format hint
                         image_buffer_alt = io.BytesIO(image_bytes)
-                        # Try common formats
-                        for fmt in ['JPEG', 'PNG', 'WEBP', 'BMP', 'TIFF']:
+                        # Try common formats - REMOVED strict verify() as it's too restrictive
+                        for fmt in ['JPEG', 'PNG', 'WEBP', 'BMP', 'TIFF', 'HEIC']:
                             try:
                                 image_buffer_alt.seek(0)
-                                input_image = Image.open(image_buffer_alt)
-                                input_image.verify()  # Verify it's actually valid
-                                image_buffer_alt.seek(0)
-                                input_image = Image.open(image_buffer_alt)  # Reopen after verify
-                                logger.info(f"Successfully opened image using {fmt} format fallback")
+                                # Try to open with format hint
+                                try:
+                                    input_image = Image.open(image_buffer_alt, formats=(fmt,))
+                                except:
+                                    # If format hint fails, try without it
+                                    image_buffer_alt.seek(0)
+                                    input_image = Image.open(image_buffer_alt)
+                                
+                                # Load image to ensure it's fully decoded
+                                try:
+                                    input_image.load()
+                                except Exception as load_err:
+                                    # Progressive JPEGs and some formats might fail load() but are still valid
+                                    if 'progressive' in str(load_err).lower() or 'truncated' in str(load_err).lower():
+                                        logger.warning(f"Image load warning (progressive/truncated, but continuing): {str(load_err)}")
+                                
                                 # Verify dimensions
                                 width, height = input_image.size
                                 if width > 0 and height > 0:
-                                    logger.info(f"Fallback decoding successful: {width}x{height}, mode: {input_image.mode}")
+                                    logger.info(f"Fallback decoding successful: {width}x{height}, mode: {input_image.mode}, format: {fmt}")
                                     alternative_success = True
                                     break
-                            except Exception:
+                            except Exception as fmt_err:
+                                logger.debug(f"Format {fmt} failed: {str(fmt_err)}")
                                 continue
                     except Exception as alt_err:
                         logger.error(f"Alternative decoding also failed: {str(alt_err)}")
@@ -1773,7 +1785,7 @@ def free_preview_bg():
                 if not alternative_success:
                     # Provide more helpful error messages
                     if 'cannot identify' in error_msg.lower() or 'cannot open' in error_msg.lower():
-                        user_msg = "The file is not a valid image format. Please upload JPG, PNG, WEBP, or other supported image formats."
+                        user_msg = "The file is not a valid image format. Please upload JPG, JPEG, PNG, WEBP, HEIC, or other supported image formats."
                     elif 'corrupted' in error_msg.lower() or 'incomplete' in error_msg.lower():
                         user_msg = "The image file appears to be corrupted or incomplete. Please try uploading the image again or use a different image."
                     elif 'dimensions' in error_msg.lower():

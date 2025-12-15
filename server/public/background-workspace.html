@@ -162,7 +162,7 @@
 </div>
 </div>
 <!-- Hidden file input for multiple uploads -->
-<input type="file" id="multipleImageUpload" accept="image/*" multiple style="display: none;">
+<input type="file" id="multipleImageUpload" accept="image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif,image/*" multiple style="display: none;">
 <!-- Multiple Images Grid Preview -->
 <div id="multipleImagesGrid" style="display: none; margin-top: 24px; padding: 20px; background: #f8f9ff; border-radius: 12px; border: 1px solid #e2e6ff;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
@@ -192,6 +192,9 @@
         </button>
 <button class="btn btn-primary" disabled="" id="downloadPng">
 <i class="fas fa-download"></i> Download
+        </button>
+<button class="btn btn-outline" id="backToRemoverBtn" style="margin-left: 8px;" title="Back to Background Remover">
+<i class="fas fa-arrow-left"></i>
         </button>
 <button class="btn btn-primary" id="newUploadBtn" style="margin-left: 8px;">
 <i class="fas fa-plus"></i>
@@ -2213,6 +2216,14 @@
       }
     });
 
+    // Back button - redirect to background remover page
+    const backToRemoverBtn = document.getElementById('backToRemoverBtn');
+    if (backToRemoverBtn) {
+      backToRemoverBtn.addEventListener('click', () => {
+        window.location.href = 'background-remover.html';
+      });
+    }
+    
     // New Upload button - trigger file input for multiple uploads
     const newUploadBtn = document.getElementById('newUploadBtn');
     if (newUploadBtn && multipleImageUpload) {
