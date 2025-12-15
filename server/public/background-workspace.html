@@ -539,6 +539,20 @@
       return { valid: true };
     }
     
+    // Helper function: Convert dataURL to Blob for multipart upload
+    function dataURLtoBlob(dataURL) {
+      const arr = dataURL.split(',');
+      const mimeMatch = arr[0].match(/:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      const bstr = atob(arr[1]);
+      const n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      for (let i = 0; i < n; i++) {
+        u8arr[i] = bstr.charCodeAt(i);
+      }
+      return new Blob([u8arr], { type: mime });
+    }
+    
     async function processWithFreePreview(dataURL, fileObject = null) {
       // Free preview processing lock - prevent loops and multiple calls
       if (freePreviewInProgress) {
@@ -557,8 +571,26 @@
       const controller = new AbortController();
       
       try {
-        // Use multipart/form-data if file object is available (remove.bg style)
-        const useMultipart = fileObject && fileObject instanceof File;
+        // CRITICAL FIX: ALWAYS use multipart/form-data for free preview (remove.bg style)
+        // Convert dataURL to Blob if file object not available
+        let imageBlob;
+        if (fileObject && fileObject instanceof File) {
+          imageBlob = fileObject;
+          console.log('✅ Using provided file object for multipart upload');
+        } else {
+          // Convert dataURL to Blob for multipart upload (ensures consistent behavior)
+          try {
+            imageBlob = dataURLtoBlob(dataURL);
+            console.log('✅ Converted dataURL to Blob for multipart upload');
+          } catch (blobErr) {
+            freePreviewInProgress = false;
+            console.error('❌ Failed to convert dataURL to Blob:', blobErr);
+            return {
+              success: false,
+              error: 'Invalid image data. Please try uploading the image again.'
+            };
+          }
+        }
         
         // Detect image type for routing (basic detection - aspect ratio based)
         let detectedImageType = 'human'; // Default to human
@@ -585,7 +617,7 @@
         
         const apiUrl = `${API_BASE_URL}/api/tools/bg-remove-free`;
         console.log('Calling API:', apiUrl);
-        console.log('Upload method:', useMultipart ? 'multipart/form-data (raw file)' : 'base64 JSON (fallback)');
+        console.log('Upload method: multipart/form-data (ALWAYS - remove.bg style)');
         
         const startTime = Date.now();
         
@@ -608,51 +640,22 @@
           }
         }, 120000); // 120 seconds - more time for complex images
         
-        let response;
-        if (useMultipart) {
-          // MULTIPART/FORM-DATA UPLOAD (remove.bg style - preferred method)
-          const formData = new FormData();
-          formData.append('image', fileObject);
-          formData.append('maxSize', '512');
-          formData.append('imageType', detectedImageType);
-          
-          console.log('✅ Using multipart/form-data upload (raw file)');
-          response = await fetch(apiUrl, {
-            method: 'POST',
-            // DO NOT set Content-Type header - browser will auto-set multipart boundary
-            headers: {
-              'Accept': 'application/json'
-            },
-            body: formData,
-            signal: controller.signal
-          });
-        } else {
-          // FALLBACK: Base64 JSON (for sessionStorage or when file object not available)
-          const validation = validateImageDataURL(dataURL);
-          if (!validation.valid) {
-            freePreviewInProgress = false;
-            return {
-              success: false,
-              error: validation.error || 'Invalid image file. Please ensure you are uploading a valid image (JPG, PNG, etc.).'
-            };
-          }
-          
-          console.log('⚠️ Using base64 JSON fallback (file object not available)');
-          console.log('Image data URL length:', dataURL.length);
-          
-          response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            body: JSON.stringify({ 
-              imageData: dataURL,
-              imageType: detectedImageType
-            }),
-            signal: controller.signal
-          });
-        }
+        // ALWAYS use multipart/form-data for free preview (CRITICAL FIX)
+        const formData = new FormData();
+        formData.append('image', imageBlob, 'image.jpg'); // Use blob (from file or converted from dataURL)
+        formData.append('maxSize', '512');
+        formData.append('imageType', detectedImageType);
+        
+        console.log('✅ Using multipart/form-data upload (consistent - remove.bg style)');
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          // DO NOT set Content-Type header - browser will auto-set multipart boundary
+          headers: {
+            'Accept': 'application/json'
+          },
+          body: formData,
+          signal: controller.signal
+        });
         
         // Clear timeout and interval on response (success or error)
         if (timeout) clearTimeout(timeout);
