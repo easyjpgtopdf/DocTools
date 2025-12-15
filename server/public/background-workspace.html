@@ -1368,9 +1368,22 @@
       // Now show overlay after image is displayed
       previewOverlay.style.opacity = 1;
 
+      // CRITICAL: Free preview requires File object - dataURL not supported
+      // This function accepts dataURL, but free preview requires File object
+      // User must use "Upload Images" button for free preview
+      console.error('❌ Free preview requires File object. dataURL from processImage() not supported.');
+      showError('Free preview requires a fresh file upload. Please use the "Upload Images" button to upload your image file again.');
+      previewStage.classList.add('empty');
+      previewOverlay.style.opacity = 0;
+      previewPlaceholder.classList.remove('hidden');
+      backgroundChangeBtn.disabled = true;
+      downloadBtn.disabled = true;
+      return;
+      
+      // REMOVED: Cannot process dataURL with free preview - File object required
       try {
-        // Process with Free Preview - dataURL will be converted to File object internally
-        const freeResult = await processWithFreePreview(dataURL);
+        // This code path is disabled - free preview requires File object only
+        const freeResult = { success: false, error: 'File object required' };
         
         if (!freeResult.success) {
           throw new Error(freeResult.error || 'Free preview processing failed');
