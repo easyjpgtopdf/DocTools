@@ -1712,26 +1712,26 @@ def free_preview_bg():
                 
                 # Load image to ensure it's fully decoded
                 # For progressive JPEGs and some formats, load() might fail even for valid images
-                # Try to load, but don't fail if it's a known safe format
+                # REMOVED strict error handling - allow images even if load() fails if dimensions are valid
                 try:
                     input_image.load()
                 except Exception as load_err:
                     error_msg = str(load_err).lower()
                     # Progressive JPEGs and some formats might fail load() but are still valid
-                    if 'progressive' in error_msg or 'truncated' in error_msg:
-                        logger.warning(f"Image load warning (progressive/truncated, but continuing): {str(load_err)}")
-                        # Try to verify image is readable by accessing pixels
+                    logger.warning(f"Image load warning (but continuing if dimensions are valid): {str(load_err)}")
+                    # Verify we can at least access dimensions - if yes, continue
+                    try:
+                        _ = input_image.size
+                        # Try to get a pixel sample if possible
                         try:
-                            # Test if we can access image data
-                            _ = input_image.size
-                            # Try to get a pixel sample to verify data is accessible
-                            test_pixel = input_image.getpixel((min(width-1, 0), min(height-1, 0)))
+                            test_pixel = input_image.getpixel((min(width-1, max(0, width//2)), min(height-1, max(0, height//2))))
                             logger.info(f"Image data is accessible despite load() warning (sample pixel: {test_pixel})")
-                        except Exception as verify_err:
-                            logger.error(f"Image data verification failed: {str(verify_err)}")
-                            raise ValueError(f"Image data is corrupted or incomplete: {str(load_err)}")
-                    else:
-                        logger.error(f"Image load error (image opened but couldn't load): {str(load_err)}")
+                        except:
+                            # Even if getpixel fails, continue if dimensions are valid
+                            logger.info(f"Could not read pixel sample, but dimensions are valid: {width}x{height}, continuing...")
+                    except Exception as verify_err:
+                        # Only fail if we can't access dimensions at all
+                        logger.error(f"Image data verification failed - cannot access dimensions: {str(verify_err)}")
                         raise ValueError(f"Image data is corrupted or incomplete: {str(load_err)}")
                     
                 logger.info(f"Successfully opened image: {width}x{height}, mode: {input_image.mode}")
