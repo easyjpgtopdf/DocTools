@@ -712,6 +712,15 @@
         
         // ALWAYS use multipart/form-data for free preview - ONLY with original File object
         // Backend expects field name: "image"
+        
+        // CRITICAL: Verify File object is valid before creating FormData
+        if (!fileObject || !(fileObject instanceof File)) {
+          throw new Error('Invalid File object - cannot create FormData');
+        }
+        if (!fileObject.size || fileObject.size === 0) {
+          throw new Error('File object is empty - cannot upload');
+        }
+        
         const formData = new FormData();
         formData.append('image', fileObject); // Use original File object - NO base64 conversion
         formData.append('maxSize', '512');
@@ -724,16 +733,24 @@
         console.log('   File size:', fileObject.size, 'bytes');
         console.log('   File type:', fileObject.type);
         console.log('   Field name: "image" (as expected by backend)');
-        console.log('   Content-Type: NOT SET (browser will auto-set multipart boundary)');
         console.log('   FormData fields: image (File), maxSize (512), imageType (' + detectedImageType + ')');
         
         // CRITICAL: DO NOT read FormData.entries() - it consumes the stream!
         // FormData can only be read once, so reading it here would make body empty for fetch()
         
+        // Verify FormData was created (but don't read entries)
+        if (!formData) {
+          throw new Error('Failed to create FormData object');
+        }
+        
+        console.log('   Content-Type: NOT SET (browser will auto-set multipart/form-data boundary)');
+        console.log('   Sending fetch request with FormData...');
+        
         const response = await fetch(apiUrl, {
           method: 'POST',
           // CRITICAL: DO NOT set Content-Type header - browser will auto-set multipart boundary
           // Setting it manually would break multipart encoding
+          // Browser automatically sets: Content-Type: multipart/form-data; boundary=----WebKitFormBoundary...
           headers: {
             'Accept': 'application/json'
             // Content-Type is intentionally omitted - browser sets it automatically with boundary
