@@ -582,6 +582,7 @@
       return new Blob([u8arr], { type: mime });
     }
     
+    // VERSION: 2025-01-XX - STRICT FILE-ONLY (remove.bg style) - NO base64/dataURL
     async function processWithFreePreview(file) {
       // Free preview processing lock - prevent loops and multiple calls
       if (freePreviewInProgress) {
