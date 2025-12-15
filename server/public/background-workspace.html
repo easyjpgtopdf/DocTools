@@ -1673,20 +1673,14 @@
       // Process this image
       try {
         showStatus(`Processing image ${index + 1} of ${multipleImages.length}...`);
-        // CRITICAL: Free preview requires File object only - NO dataURL/base64
+        // CRITICAL: Free preview requires File object ONLY - no dataURL fallback
         const fileObject = img.file;
         if (!fileObject || !(fileObject instanceof File)) {
-          showError(`Image ${index + 1} is missing file data. Please upload again.`);
-          return;
-        }
-        // Try to use File object if available, otherwise use dataURL
-        const fileOrDataURL = img.file || img.dataURL;
-        if (!fileOrDataURL) {
-          showError(`Image ${index + 1} is missing file data. Please upload again.`);
+          showError(`Image ${index + 1} is missing File object. Please upload again using the "Upload Images" button.`);
           return;
         }
         
-        const result = await processWithFreePreview(fileOrDataURL);
+        const result = await processWithFreePreview(fileObject);
         
         if (result.success) {
           img.processed = true;
@@ -1737,15 +1731,15 @@
         
         try {
           showStatus(`Processing image ${i + 1} of ${multipleImages.length}...`);
-          // Try to use File object if available, otherwise use dataURL (for sessionStorage case)
-          const fileOrDataURL = multipleImages[i].file || multipleImages[i].dataURL;
-          if (!fileOrDataURL) {
-            console.error(`Image ${i + 1} missing file data - cannot process`);
+          // CRITICAL: Free preview requires File object ONLY - no dataURL fallback
+          const fileObject = multipleImages[i].file;
+          if (!fileObject || !(fileObject instanceof File)) {
+            console.error(`Image ${i + 1} missing File object - cannot process`);
             failCount++;
-            showError(`Image ${i + 1} is missing file data. Please upload again.`);
+            showError(`Image ${i + 1} is missing File object. Please upload again using the "Upload Images" button.`);
             continue;
           }
-          const result = await processWithFreePreview(fileOrDataURL);
+          const result = await processWithFreePreview(fileObject);
           
           if (result.success) {
             multipleImages[i].processed = true;
