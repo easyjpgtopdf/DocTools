@@ -1334,48 +1334,16 @@
     }
 
     async function processImage(dataURL) {
-      clearStatus();
-      previewPlaceholder.classList.add('hidden');
-      previewStage.classList.remove('revealed');
-      previewStage.classList.remove('empty');
-      
-      // FIXED: Ensure original image is visible before showing overlay
-      previewOriginal.hidden = false;
-      if (!previewOriginal.src || previewOriginal.src !== dataURL) {
-        // Clear any existing onload handlers to avoid conflicts
-        previewOriginal.onload = null;
-        previewOriginal.onerror = null;
-        
-        previewOriginal.src = dataURL;
-        // Wait a moment for image to display before showing overlay
-        await new Promise(resolve => {
-          if (previewOriginal.complete && previewOriginal.naturalWidth > 0) {
-            // Image already loaded
-            resolve();
-          } else {
-            // Set temporary handlers (will be cleared after resolve)
-            const cleanup = () => {
-              previewOriginal.onload = null;
-              previewOriginal.onerror = null;
-            };
-            previewOriginal.onload = () => { cleanup(); resolve(); };
-            previewOriginal.onerror = () => { cleanup(); resolve(); }; // Continue even on error
-            setTimeout(() => { cleanup(); resolve(); }, 100); // Fallback timeout
-          }
-        });
-      }
-      
-      // Now show overlay after image is displayed
-      previewOverlay.style.opacity = 1;
-
-      // CRITICAL: Free preview requires File object - dataURL not supported
-      // This function accepts dataURL, but free preview requires File object
-      // User must use "Upload Images" button for free preview
-      console.error('❌ Free preview requires File object. dataURL from processImage() not supported.');
+      // CRITICAL: This function is DISABLED for free preview
+      // Free preview requires File object ONLY - dataURL not supported
+      // This function is kept for backward compatibility but does nothing for free preview
+      console.error('❌ processImage() called with dataURL - DISABLED for free preview');
+      console.error('❌ Free preview requires File object. Please use "Upload Images" button.');
       showError('Free preview requires a fresh file upload. Please use the "Upload Images" button to upload your image file again.');
       previewStage.classList.add('empty');
       previewOverlay.style.opacity = 0;
       previewPlaceholder.classList.remove('hidden');
+      previewOriginal.hidden = true;
       backgroundChangeBtn.disabled = true;
       downloadBtn.disabled = true;
       return;
@@ -1876,13 +1844,17 @@
         }
         
         try {
-          const dataURL = await blobToDataURL(file);
+          // CRITICAL: Free preview requires File object ONLY - NO dataURL conversion
+          // Store File object directly - dataURL only for display purposes (preview)
           const imageId = `img_${Date.now()}_${i}`;
+          
+          // Create dataURL ONLY for display/preview (NOT for processing)
+          const dataURL = await blobToDataURL(file);
           
           multipleImages.push({
             id: imageId,
-            file: file,
-            dataURL: dataURL,
+            file: file, // File object - REQUIRED for free preview processing
+            dataURL: dataURL, // Only for display - NOT used for processing
             filename: file.name,
             processed: false,
             resultURL: null
