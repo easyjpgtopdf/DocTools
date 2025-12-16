@@ -380,7 +380,11 @@
       }
     });
 
-    document.getElementById('footerYear').textContent = new Date().getFullYear();
+    // Fix: Check if footerYear element exists before setting textContent
+    const footerYear = document.getElementById('footerYear');
+    if (footerYear) {
+      footerYear.textContent = new Date().getFullYear();
+    }
   </script>
 
 
