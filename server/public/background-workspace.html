@@ -2180,13 +2180,17 @@
       }
     }
     
-    // Process button handler - always uses free preview
+    // Process button handler - process first image with free preview
     const processBtn = document.getElementById('processBtn');
     if (processBtn) {
-      processBtn.addEventListener('click', () => {
-        // CRITICAL: Free preview requires File object - sessionStorage not supported
-        // User must use "Upload Images" button for free preview
-        showError('Free preview requires a fresh file upload. Please use the "Upload Images" button to upload your image file.');
+      processBtn.addEventListener('click', async () => {
+        if (multipleImages.length === 0) {
+          showError('No images to process. Please upload an image first using the "Upload Images" button.');
+          return;
+        }
+        
+        // Process first image (index 0) with free preview
+        await processSingleImage(0);
       });
     }
 
