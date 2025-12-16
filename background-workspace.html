@@ -2038,26 +2038,44 @@
         
         backgroundChangeBtn.disabled = false;
         
-        console.log('✅ Preview updated instantly using objectURL - image should be visible now');
-        console.log('   previewOriginal.src set to:', previewOriginal.src);
+        console.log('✅ Preview updated instantly using objectURL - BOTH images set');
+        console.log('   previewOriginal.src:', previewOriginal.src);
+        console.log('   previewResult.src:', previewResult.src);
         console.log('   previewOriginal.hidden:', previewOriginal.hidden);
+        console.log('   previewResult.hidden:', previewResult.hidden);
         console.log('   previewOriginal.style.display:', previewOriginal.style.display);
+        console.log('   previewResult.style.display:', previewResult.style.display);
         console.log('   previewOriginal.style.opacity:', previewOriginal.style.opacity);
+        console.log('   previewResult.style.opacity:', previewResult.style.opacity);
         console.log('   previewStage.classList.contains("empty"):', previewStage.classList.contains('empty'));
         console.log('   previewPlaceholder.style.display:', previewPlaceholder.style.display);
         
         // Wait for image to actually load and verify
         previewOriginal.onload = () => {
-          console.log('✅ Image loaded successfully in preview!');
+          console.log('✅ previewOriginal loaded successfully in preview!');
           // Double-check visibility after load
           if (previewOriginal.complete && previewOriginal.naturalWidth > 0) {
-            console.log('   Image dimensions:', previewOriginal.naturalWidth, 'x', previewOriginal.naturalHeight);
+            console.log('   previewOriginal dimensions:', previewOriginal.naturalWidth, 'x', previewOriginal.naturalHeight);
             previewOriginal.style.display = 'block';
             previewOriginal.style.opacity = '1';
           }
         };
         previewOriginal.onerror = (e) => {
-          console.error('❌ Image failed to load in preview:', e);
+          console.error('❌ previewOriginal failed to load in preview:', e);
+          console.error('   Failed URL:', previewURL);
+        };
+        
+        // Also verify previewResult loads
+        previewResult.onload = () => {
+          console.log('✅ previewResult loaded successfully in preview!');
+          if (previewResult.complete && previewResult.naturalWidth > 0) {
+            console.log('   previewResult dimensions:', previewResult.naturalWidth, 'x', previewResult.naturalHeight);
+            previewResult.style.display = 'block';
+            previewResult.style.opacity = '1';
+          }
+        };
+        previewResult.onerror = (e) => {
+          console.error('❌ previewResult failed to load in preview:', e);
           console.error('   Failed URL:', previewURL);
         };
         
