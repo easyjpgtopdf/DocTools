@@ -7,10 +7,12 @@ const CLOUDRUN_API_URL = process.env.CLOUDRUN_API_URL_BG_REMOVAL || 'https://bg-
 // For multipart/form-data parsing (Vercel serverless functions)
 let formidable, FormData;
 try {
-  formidable = require('formidable');
+  // Formidable v3+ uses default export, handle both CommonJS and ES module syntax
+  const formidableModule = require('formidable');
+  formidable = formidableModule.default || formidableModule.formidable || formidableModule;
   FormData = require('form-data');
 } catch (e) {
-  console.warn('Formidable or form-data not available, multipart upload will use fallback');
+  console.warn('Formidable or form-data not available, multipart upload will use fallback:', e);
 }
 const fs = require('fs');
 
@@ -51,8 +53,11 @@ module.exports = async function handler(req, res) {
     }
     
     // Check if formidable and FormData are available
-    if (!formidable || !FormData) {
-      console.error('❌ Formidable library not available');
+    if (!formidable || typeof formidable !== 'function' && typeof formidable !== 'object') {
+      console.error('❌ Formidable library not available or not a function', {
+        formidable: typeof formidable,
+        FormData: typeof FormData
+      });
       return res.status(500).json({
         success: false,
         error: 'Server configuration error',
@@ -60,17 +65,56 @@ module.exports = async function handler(req, res) {
       });
     }
     
-      // MULTIPART/FORM-DATA UPLOAD (ONLY method for free preview)
+    // MULTIPART/FORM-DATA UPLOAD (ONLY method for free preview)
     console.log('✅ Processing multipart/form-data upload (raw file)');
     
     // Parse multipart request using formidable
-    const form = formidable({
-      multiples: false,
-      maxFileSize: 50 * 1024 * 1024, // 50 MB max
-      keepExtensions: true
-    });
-    
-    const [fields, files] = await form.parse(req);
+    // Handle both v2 and v3 API
+    let fields, files;
+    try {
+      if (typeof formidable === 'function') {
+        // Formidable v2 style
+        const form = formidable({
+          multiples: false,
+          maxFileSize: 50 * 1024 * 1024, // 50 MB max
+          keepExtensions: true
+        });
+        [fields, files] = await form.parse(req);
+      } else {
+        // Formidable v3 style - use default export or IncomingForm
+        const { IncomingForm } = formidable;
+        const form = new (IncomingForm || formidable.IncomingForm || formidable)({
+          multiples: false,
+          maxFileSize: 50 * 1024 * 1024,
+          keepExtensions: true
+        });
+        [fields, files] = await form.parse(req);
+      }
+    } catch (parseError) {
+      console.error('❌ Formidable parse error:', parseError);
+      // Try alternative import method
+      try {
+        const formidableAlt = require('formidable');
+        const Form = formidableAlt.formidable || formidableAlt.default || formidableAlt;
+        const form = typeof Form === 'function' ? new Form({
+          multiples: false,
+          maxFileSize: 50 * 1024 * 1024,
+          keepExtensions: true
+        }) : Form({
+          multiples: false,
+          maxFileSize: 50 * 1024 * 1024,
+          keepExtensions: true
+        });
+        [fields, files] = await form.parse(req);
+      } catch (altError) {
+        console.error('❌ Alternative formidable parse also failed:', altError);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to parse multipart request',
+          message: 'Server configuration error. Please contact support.'
+        });
+      }
+    }
     
     const imageFile = files.image ? (Array.isArray(files.image) ? files.image[0] : files.image) : null;
     const imageType = fields.imageType ? (Array.isArray(fields.imageType) ? fields.imageType[0] : fields.imageType) : null;

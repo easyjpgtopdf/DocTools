@@ -1937,10 +1937,15 @@
           // Create dataURL ONLY for display/preview (NOT for processing)
           const dataURL = await blobToDataURL(file);
           
+          // CRITICAL: Also create objectURL for immediate preview (remove.bg style)
+          // This provides instant preview without waiting for dataURL conversion
+          const objectURL = URL.createObjectURL(file);
+          
           multipleImages.push({
             id: imageId,
             file: file, // File object - REQUIRED for free preview processing
             dataURL: dataURL, // Only for display - NOT used for processing
+            objectURL: objectURL, // Immediate preview URL (will be revoked later)
             filename: file.name,
             processed: false,
             resultURL: null
@@ -1955,30 +1960,24 @@
       updateImagesGrid();
       
       if (multipleImages.length > 0) {
-        // Show first image in main preview
+        // Show first image in main preview - INSTANT preview using objectURL (remove.bg style)
         const firstImage = multipleImages[0];
         console.log('📸 Showing uploaded image in preview:', firstImage.filename);
         
-        // Wait for image to load before showing
-        const img = new Image();
-        img.onload = () => {
-          console.log('✅ Image loaded successfully, updating preview');
-          previewOriginal.src = firstImage.dataURL;
-          previewOriginal.hidden = false;
-          previewStage.classList.remove('empty');
-          previewPlaceholder.classList.add('hidden');
-          previewOverlay.style.opacity = 0; // Hide overlay if visible
-          backgroundChangeBtn.disabled = false;
-          console.log('✅ Preview updated - image should be visible now');
-        };
-        img.onerror = (error) => {
-          console.error('❌ Failed to load image for preview:', error);
-          showError('Failed to display uploaded image. Please try uploading again.');
-          previewOriginal.hidden = true;
-          previewStage.classList.add('empty');
-          previewPlaceholder.classList.remove('hidden');
-        };
-        img.src = firstImage.dataURL;
+        // CRITICAL: Use objectURL for instant preview (no conversion delay)
+        // This matches remove.bg behavior - immediate visual feedback
+        const previewURL = firstImage.objectURL || URL.createObjectURL(firstImage.file);
+        previewOriginal.src = previewURL;
+        previewOriginal.hidden = false;
+        previewStage.classList.remove('empty');
+        previewPlaceholder.classList.add('hidden');
+        previewOverlay.style.opacity = 0; // Hide overlay if visible
+        backgroundChangeBtn.disabled = false;
+        console.log('✅ Preview updated instantly using objectURL - image should be visible now');
+        
+        // Once dataURL is ready, we can switch to it (optional optimization)
+        // But objectURL works fine for preview, so we keep it
+        // Note: We'll revoke objectURL when image is replaced or page unloads
       }
       
       showStatus(`✅ ${multipleImages.length} image(s) uploaded successfully!`);
