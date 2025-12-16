@@ -274,6 +274,7 @@
     // Processing locks to prevent multiple API calls
     let isProcessing = false; // Premium HD processing lock
     let freePreviewInProgress = false; // Free preview processing lock
+    let freePreviewAutoStarted = false; // Flag to prevent duplicate auto-start
     const previewOverlay = document.getElementById('previewOverlay');
     const previewPlaceholder = document.getElementById('previewPlaceholder');
     const backgroundChangeBtn = document.getElementById('backgroundChange');
