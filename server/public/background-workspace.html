@@ -1752,15 +1752,30 @@
           const updatePreview = () => {
             if (originalLoaded && resultLoaded) {
               console.log('✅ Both images loaded, showing preview');
+              // Set images
               previewOriginal.src = img.dataURL;
               previewResult.src = img.resultURL;
+              
+              // Make both visible first
+              previewResult.removeAttribute('hidden');
               previewResult.hidden = false;
+              previewResult.style.display = 'block';
+              previewResult.style.opacity = '1';
+              previewOriginal.removeAttribute('hidden');
               previewOriginal.hidden = false;
+              
+              // Remove empty class and add revealed class to show result
               previewStage.classList.remove('empty');
+              previewStage.classList.add('revealed'); // This hides original and shows result
               previewPlaceholder.classList.add('hidden');
-              previewOverlay.style.opacity = 0; // Hide overlay
+              previewPlaceholder.style.display = 'none';
+              previewOverlay.style.opacity = '0';
+              previewOverlay.style.display = 'none';
+              
               backgroundChangeBtn.disabled = false;
               downloadBtn.disabled = false;
+              
+              console.log('✅ Preview updated - result should be visible now');
             }
           };
           
@@ -1836,6 +1851,24 @@
             multipleImages[i].processed = true;
             multipleImages[i].resultURL = result.dataUrl;
             successCount++;
+            
+            // Update preview with first processed image
+            if (i === 0) {
+              const img = multipleImages[0];
+              previewOriginal.src = img.dataURL;
+              previewResult.src = img.resultURL;
+              previewResult.removeAttribute('hidden');
+              previewResult.hidden = false;
+              previewResult.style.display = 'block';
+              previewResult.style.opacity = '1';
+              previewStage.classList.remove('empty');
+              previewStage.classList.add('revealed');
+              previewPlaceholder.classList.add('hidden');
+              previewOverlay.style.opacity = '0';
+              backgroundChangeBtn.disabled = false;
+              downloadBtn.disabled = false;
+              console.log('✅ Preview updated with first processed image');
+            }
           } else {
             failCount++;
             console.error(`Failed to process image ${i + 1}:`, result.error);

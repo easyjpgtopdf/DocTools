@@ -1851,6 +1851,24 @@
             multipleImages[i].processed = true;
             multipleImages[i].resultURL = result.dataUrl;
             successCount++;
+            
+            // Update preview with first processed image
+            if (i === 0) {
+              const img = multipleImages[0];
+              previewOriginal.src = img.dataURL;
+              previewResult.src = img.resultURL;
+              previewResult.removeAttribute('hidden');
+              previewResult.hidden = false;
+              previewResult.style.display = 'block';
+              previewResult.style.opacity = '1';
+              previewStage.classList.remove('empty');
+              previewStage.classList.add('revealed');
+              previewPlaceholder.classList.add('hidden');
+              previewOverlay.style.opacity = '0';
+              backgroundChangeBtn.disabled = false;
+              downloadBtn.disabled = false;
+              console.log('✅ Preview updated with first processed image');
+            }
           } else {
             failCount++;
             console.error(`Failed to process image ${i + 1}:`, result.error);
