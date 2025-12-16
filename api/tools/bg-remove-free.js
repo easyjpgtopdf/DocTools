@@ -188,15 +188,28 @@ module.exports = async function handler(req, res) {
     }
     
     // CRITICAL FIX: Node.js fetch with form-data package
-    // Convert form-data stream to buffer for reliable transmission
+    // form-data package's FormData is a readable stream - convert to buffer properly
     const contentTypeWithBoundary = formHeaders['content-type'];
     console.log('📋 Content-Type with boundary:', contentTypeWithBoundary);
     
-    // Convert form-data stream to buffer
+    // Convert form-data stream to buffer using proper stream reading
+    // form-data FormData is a readable stream, but not directly async iterable
+    // We need to collect chunks using stream events
     const chunks = [];
-    for await (const chunk of backendFormData) {
-      chunks.push(chunk);
-    }
+    await new Promise((resolve, reject) => {
+      backendFormData.on('data', (chunk) => {
+        chunks.push(chunk);
+      });
+      backendFormData.on('end', () => {
+        resolve();
+      });
+      backendFormData.on('error', (err) => {
+        reject(err);
+      });
+      // Ensure stream starts reading
+      backendFormData.resume();
+    });
+    
     const formDataBuffer = Buffer.concat(chunks);
     
     console.log('📤 FormData converted to buffer:', {
@@ -204,7 +217,7 @@ module.exports = async function handler(req, res) {
       contentType: contentTypeWithBoundary
     });
     
-    // Send as buffer with proper Content-Type header (includes boundary)
+    // Send buffer with proper Content-Type header (includes boundary)
     const response = await fetch(`${CLOUDRUN_API_URL}/api/free-preview-bg`, {
       method: 'POST',
       headers: {
