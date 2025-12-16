@@ -2110,17 +2110,74 @@
       const processBtn = document.getElementById('processBtn');
       if (processBtn) processBtn.disabled = true;
     } else {
-      // CRITICAL: Free preview requires File object - sessionStorage dataURL not supported
-      // Show error and require fresh upload
-      previewStage.classList.add('empty');
-      previewPlaceholder.classList.remove('hidden');
-      previewOriginal.hidden = true;
-      previewOverlay.style.opacity = 0;
-      showError('Free preview requires a fresh file upload. Please use the "Upload Images" button to upload your image file again.');
-      backgroundChangeBtn.disabled = true;
-      downloadBtn.disabled = true;
-      const processBtn = document.getElementById('processBtn');
-      if (processBtn) processBtn.disabled = true;
+      // FIXED: Convert sessionStorage dataURL to File object for free preview processing
+      try {
+        console.log('📥 Found image in sessionStorage, converting to File object...');
+        const filename = sessionStorage.getItem(STORAGE_KEYS.filename) || 'photo.png';
+        const fileType = sessionStorage.getItem('bgRemover:originalType') || 'image/png';
+        
+        // Convert dataURL to Blob, then to File
+        const blob = dataURLtoBlob(storedOriginal);
+        const fileObject = new File([blob], filename, { type: fileType });
+        
+        console.log('✅ Converted sessionStorage dataURL to File object:', filename);
+        
+        // Add to multipleImages array and show preview
+        const imageId = `img_${Date.now()}`;
+        const objectURL = URL.createObjectURL(fileObject);
+        
+        multipleImages.push({
+          id: imageId,
+          file: fileObject, // File object - REQUIRED for free preview processing
+          dataURL: storedOriginal,
+          objectURL: objectURL,
+          filename: filename,
+          processed: false,
+          resultURL: null
+        });
+        
+        saveMultipleImages();
+        updateImagesGrid();
+        
+        // Show preview immediately
+        const firstImage = multipleImages[0];
+        const previewURL = firstImage.objectURL || URL.createObjectURL(firstImage.file);
+        
+        // Set preview images
+        previewResult.src = previewURL;
+        previewOriginal.src = previewURL;
+        
+        // Make visible
+        previewResult.removeAttribute('hidden');
+        previewResult.hidden = false;
+        previewResult.style.display = 'block';
+        previewResult.style.opacity = '1';
+        previewResult.style.setProperty('opacity', '1', 'important');
+        
+        previewOriginal.removeAttribute('hidden');
+        previewOriginal.hidden = false;
+        previewOriginal.style.display = 'block';
+        previewOriginal.style.opacity = '1';
+        
+        previewStage.classList.remove('empty');
+        previewStage.classList.remove('revealed');
+        previewPlaceholder.classList.add('hidden');
+        previewPlaceholder.style.display = 'none';
+        previewOverlay.style.opacity = '0';
+        previewOverlay.style.display = 'none';
+        
+        backgroundChangeBtn.disabled = false;
+        console.log('✅ Preview loaded from sessionStorage - ready for processing!');
+      } catch (error) {
+        console.error('❌ Failed to convert sessionStorage dataURL to File:', error);
+        previewStage.classList.add('empty');
+        previewPlaceholder.classList.remove('hidden');
+        showError('Failed to load image from session. Please upload again.');
+        backgroundChangeBtn.disabled = true;
+        downloadBtn.disabled = true;
+        const processBtn = document.getElementById('processBtn');
+        if (processBtn) processBtn.disabled = true;
+      }
     }
     
     // Process button handler - always uses free preview
