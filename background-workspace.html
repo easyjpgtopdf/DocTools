@@ -2253,6 +2253,35 @@
         
         backgroundChangeBtn.disabled = false;
         console.log('✅ Preview loaded from sessionStorage - ready for processing!');
+        
+        // AUTO-START: Start free preview processing after preview loads (once)
+        if (!freePreviewAutoStarted && multipleImages.length > 0 && multipleImages[0].file) {
+          console.log('🚀 AUTO-START: Starting free preview processing automatically from sessionStorage...');
+          freePreviewAutoStarted = true; // Set flag before async call
+          
+          // Wait for preview image to fully load, then start processing
+          const autoStartPreview = new Image();
+          autoStartPreview.onload = async () => {
+            console.log('✅ Preview image fully loaded, auto-starting free preview processing');
+            console.log('📞 Calling processSingleImage(0) automatically');
+            const firstImage = multipleImages[0];
+            if (firstImage && firstImage.file && firstImage.file instanceof File) {
+              try {
+                await processSingleImage(0);
+              } catch (error) {
+                console.error('❌ Auto-start processing failed:', error);
+              }
+            }
+          };
+          autoStartPreview.onerror = () => {
+            console.warn('⚠️ Preview image load error, starting processing anyway');
+            const firstImage = multipleImages[0];
+            if (firstImage && firstImage.file && firstImage.file instanceof File) {
+              processSingleImage(0).catch(err => console.error('Auto-start error:', err));
+            }
+          };
+          autoStartPreview.src = previewOriginal.src || previewResult.src || multipleImages[0].objectURL;
+        }
       } catch (error) {
         console.error('❌ Failed to convert sessionStorage dataURL to File:', error);
         previewStage.classList.add('empty');
