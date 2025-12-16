@@ -629,12 +629,15 @@
       }
       
       const fileObject = file;
+      console.log('🚀 processWithFreePreview STARTED');
       console.log('✅ Free preview: Using File object ONLY (remove.bg style)');
       console.log('   File name:', fileObject.name);
       console.log('   File size:', fileObject.size, 'bytes');
       console.log('   File type:', fileObject.type);
+      console.log('   File instanceof File:', fileObject instanceof File);
       
       freePreviewInProgress = true;
+      console.log('🔒 Processing lock activated - freePreviewInProgress = true');
       
       // Declare variables in function scope for proper cleanup
       let progressInterval = null;
@@ -1726,15 +1729,36 @@
       
       // Process this image
       try {
+        console.log('🔄 processSingleImage STARTED for index:', index);
+        console.log('📸 Image details:', { 
+          id: img.id, 
+          filename: img.filename, 
+          hasFile: !!img.file, 
+          fileType: typeof img.file,
+          isFile: img.file instanceof File,
+          processed: img.processed 
+        });
+        
         showStatus(`Processing image ${index + 1} of ${multipleImages.length}...`);
+        
         // CRITICAL: Free preview requires File object ONLY - no dataURL fallback
         const fileObject = img.file;
         if (!fileObject || !(fileObject instanceof File)) {
+          console.error('❌ Missing or invalid File object for image:', index);
           showError(`Image ${index + 1} is missing File object. Please upload again using the "Upload Images" button.`);
           return;
         }
         
+        console.log('✅ File object validated, calling processWithFreePreview...');
+        console.log('📄 File details:', { name: fileObject.name, size: fileObject.size, type: fileObject.type });
+        
         const result = await processWithFreePreview(fileObject);
+        
+        console.log('📥 processWithFreePreview COMPLETED:', { 
+          success: result.success, 
+          hasDataUrl: !!result.dataUrl, 
+          error: result.error 
+        });
         
         if (result.success) {
           img.processed = true;
