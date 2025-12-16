@@ -145,6 +145,7 @@ module.exports = async function handler(req, res) {
     const fileBuffer = fs.readFileSync(imageFile.filepath);
     
     // Forward as multipart/form-data to backend
+    // CRITICAL: Use form-data package correctly with Node.js fetch
     const backendFormData = new FormData();
     backendFormData.append('image', fileBuffer, {
       filename: imageFile.originalFilename || 'image.jpg',
@@ -165,7 +166,8 @@ module.exports = async function handler(req, res) {
       maxSize: maxSize,
       imageType: imageType,
       contentType: formHeaders['content-type'] || 'not-set',
-      headers: Object.keys(formHeaders)
+      headers: Object.keys(formHeaders),
+      allHeaders: formHeaders
     });
     
     // Clean up temp file
@@ -185,12 +187,32 @@ module.exports = async function handler(req, res) {
       });
     }
     
-    const response = await fetch(`${CLOUDRUN_API_URL}/api/free-preview-bg`, {
+    // CRITICAL FIX: Node.js fetch requires form-data to be used as a stream
+    // The form-data package's FormData instance IS a readable stream
+    // We must pass the headers from getHeaders() which includes the boundary
+    const contentTypeWithBoundary = formHeaders['content-type'];
+    console.log('📋 Using Content-Type with boundary:', contentTypeWithBoundary);
+    
+    // Create fetch options with proper headers
+    // form-data instance is already a readable stream, so we can pass it directly as body
+    const fetchOptions = {
       method: 'POST',
-      headers: formHeaders,
+      headers: {
+        'Content-Type': contentTypeWithBoundary
+      },
       body: backendFormData,
       signal: AbortSignal.timeout(90000)
+    };
+    
+    console.log('📤 Fetch options prepared:', {
+      method: fetchOptions.method,
+      headers: fetchOptions.headers,
+      hasBody: !!fetchOptions.body,
+      bodyType: typeof fetchOptions.body,
+      bodyConstructor: fetchOptions.body?.constructor?.name
     });
+    
+    const response = await fetch(`${CLOUDRUN_API_URL}/api/free-preview-bg`, fetchOptions);
     
     console.log('📥 Backend response received:', {
       status: response.status,
