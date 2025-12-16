@@ -58,6 +58,8 @@
     .preview-stage.revealed .preview-original { opacity: 0; }
     /* CRITICAL: Ensure preview-original is visible when not hidden */
     .preview-original:not([hidden]) { display: block !important; opacity: 1 !important; visibility: visible !important; }
+    /* CRITICAL: Ensure preview-result is also visible when not hidden */
+    .preview-result:not([hidden]) { display: block !important; opacity: 1 !important; visibility: visible !important; }
     .preview-overlay { position: absolute; inset: 0; background: rgba(17, 24, 39, 0.55); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #fff; font-weight: 600; letter-spacing: 0.03em; transition: opacity 0.4s ease; }
     .preview-stage.revealed .preview-overlay { opacity: 0; pointer-events: none; }
     .preview-stage.empty .preview-overlay { display: none; }
@@ -2022,8 +2024,17 @@
         previewOverlay.style.opacity = '0';
         previewOverlay.style.display = 'none';
         
-        // Set image source
+        // CRITICAL FIX: Set BOTH previewOriginal AND previewResult to ensure preview shows
+        // Some browsers/UI states render previewResult instead of previewOriginal
         previewOriginal.src = previewURL;
+        previewResult.src = previewURL; // Also set previewResult for immediate visibility
+        
+        // Ensure both images are visible
+        previewResult.removeAttribute('hidden');
+        previewResult.hidden = false;
+        previewResult.style.display = 'block';
+        previewResult.style.opacity = '1';
+        previewResult.style.visibility = 'visible';
         
         backgroundChangeBtn.disabled = false;
         
