@@ -2159,20 +2159,30 @@
             
             // Wait for preview to fully load, then auto-start processing
             const autoStartImg = new Image();
-            autoStartImg.onload = async () => {
-              console.log('✅ Preview fully loaded, auto-starting free preview processing');
+            
+            // CRITICAL FIX: Check if image is already loaded (cached images)
+            if (previewOriginal.complete && previewOriginal.naturalWidth > 0) {
+              // Image already loaded, process immediately
+              console.log('✅ Preview image already loaded (cached), starting processing immediately');
               console.log('📞 Calling processSingleImage(0) automatically');
-              try {
-                await processSingleImage(0);
-              } catch (error) {
-                console.error('❌ Auto-start processing failed:', error);
-              }
-            };
-            autoStartImg.onerror = () => {
-              console.warn('⚠️ Preview load check failed, starting processing anyway');
               processSingleImage(0).catch(err => console.error('Auto-start error:', err));
-            };
-            autoStartImg.src = previewURL;
+            } else {
+              // Wait for load
+              autoStartImg.onload = async () => {
+                console.log('✅ Preview fully loaded, auto-starting free preview processing');
+                console.log('📞 Calling processSingleImage(0) automatically');
+                try {
+                  await processSingleImage(0);
+                } catch (error) {
+                  console.error('❌ Auto-start processing failed:', error);
+                }
+              };
+              autoStartImg.onerror = () => {
+                console.warn('⚠️ Preview load check failed, starting processing anyway');
+                processSingleImage(0).catch(err => console.error('Auto-start error:', err));
+              };
+              autoStartImg.src = previewURL;
+            }
           }
         }
         
@@ -2260,27 +2270,40 @@
           freePreviewAutoStarted = true; // Set flag before async call
           
           // Wait for preview image to fully load, then start processing
-          const autoStartPreview = new Image();
-          autoStartPreview.onload = async () => {
-            console.log('✅ Preview image fully loaded, auto-starting free preview processing');
+          // CRITICAL FIX: Check if image is already loaded (cached images)
+          const previewSrc = previewOriginal.src || previewResult.src || multipleImages[0].objectURL;
+          if (previewOriginal.complete && previewOriginal.naturalWidth > 0) {
+            // Image already loaded, process immediately
+            console.log('✅ Preview image already loaded (cached), starting processing immediately');
             console.log('📞 Calling processSingleImage(0) automatically');
-            const firstImage = multipleImages[0];
-            if (firstImage && firstImage.file && firstImage.file instanceof File) {
-              try {
-                await processSingleImage(0);
-              } catch (error) {
-                console.error('❌ Auto-start processing failed:', error);
-              }
-            }
-          };
-          autoStartPreview.onerror = () => {
-            console.warn('⚠️ Preview image load error, starting processing anyway');
             const firstImage = multipleImages[0];
             if (firstImage && firstImage.file && firstImage.file instanceof File) {
               processSingleImage(0).catch(err => console.error('Auto-start error:', err));
             }
-          };
-          autoStartPreview.src = previewOriginal.src || previewResult.src || multipleImages[0].objectURL;
+          } else {
+            // Wait for load
+            const autoStartPreview = new Image();
+            autoStartPreview.onload = async () => {
+              console.log('✅ Preview image fully loaded, auto-starting free preview processing');
+              console.log('📞 Calling processSingleImage(0) automatically');
+              const firstImage = multipleImages[0];
+              if (firstImage && firstImage.file && firstImage.file instanceof File) {
+                try {
+                  await processSingleImage(0);
+                } catch (error) {
+                  console.error('❌ Auto-start processing failed:', error);
+                }
+              }
+            };
+            autoStartPreview.onerror = () => {
+              console.warn('⚠️ Preview image load error, starting processing anyway');
+              const firstImage = multipleImages[0];
+              if (firstImage && firstImage.file && firstImage.file instanceof File) {
+                processSingleImage(0).catch(err => console.error('Auto-start error:', err));
+              }
+            };
+            autoStartPreview.src = previewSrc;
+          }
         }
       } catch (error) {
         console.error('❌ Failed to convert sessionStorage dataURL to File:', error);
