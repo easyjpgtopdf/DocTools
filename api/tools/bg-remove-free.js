@@ -187,32 +187,32 @@ module.exports = async function handler(req, res) {
       });
     }
     
-    // CRITICAL FIX: Node.js fetch requires form-data to be used as a stream
-    // The form-data package's FormData instance IS a readable stream
-    // We must pass the headers from getHeaders() which includes the boundary
+    // CRITICAL FIX: Node.js fetch with form-data package
+    // Convert form-data stream to buffer for reliable transmission
     const contentTypeWithBoundary = formHeaders['content-type'];
-    console.log('📋 Using Content-Type with boundary:', contentTypeWithBoundary);
+    console.log('📋 Content-Type with boundary:', contentTypeWithBoundary);
     
-    // Create fetch options with proper headers
-    // form-data instance is already a readable stream, so we can pass it directly as body
-    const fetchOptions = {
+    // Convert form-data stream to buffer
+    const chunks = [];
+    for await (const chunk of backendFormData) {
+      chunks.push(chunk);
+    }
+    const formDataBuffer = Buffer.concat(chunks);
+    
+    console.log('📤 FormData converted to buffer:', {
+      bufferSize: formDataBuffer.length,
+      contentType: contentTypeWithBoundary
+    });
+    
+    // Send as buffer with proper Content-Type header (includes boundary)
+    const response = await fetch(`${CLOUDRUN_API_URL}/api/free-preview-bg`, {
       method: 'POST',
       headers: {
         'Content-Type': contentTypeWithBoundary
       },
-      body: backendFormData,
+      body: formDataBuffer,
       signal: AbortSignal.timeout(90000)
-    };
-    
-    console.log('📤 Fetch options prepared:', {
-      method: fetchOptions.method,
-      headers: fetchOptions.headers,
-      hasBody: !!fetchOptions.body,
-      bodyType: typeof fetchOptions.body,
-      bodyConstructor: fetchOptions.body?.constructor?.name
     });
-    
-    const response = await fetch(`${CLOUDRUN_API_URL}/api/free-preview-bg`, fetchOptions);
     
     console.log('📥 Backend response received:', {
       status: response.status,
