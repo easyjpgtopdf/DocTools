@@ -56,6 +56,8 @@
       background-color: #ffffff; /* White fallback */
     }
     .preview-stage.revealed .preview-original { opacity: 0; }
+    /* CRITICAL: Ensure preview-original is visible when not hidden */
+    .preview-original:not([hidden]) { display: block !important; opacity: 1 !important; visibility: visible !important; }
     .preview-overlay { position: absolute; inset: 0; background: rgba(17, 24, 39, 0.55); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #fff; font-weight: 600; letter-spacing: 0.03em; transition: opacity 0.4s ease; }
     .preview-stage.revealed .preview-overlay { opacity: 0; pointer-events: none; }
     .preview-stage.empty .preview-overlay { display: none; }
@@ -2004,24 +2006,48 @@
         console.log('   previewURL type:', typeof previewURL);
         console.log('   previewURL starts with blob:?:', previewURL.startsWith('blob:'));
         
-        previewOriginal.src = previewURL;
+        // CRITICAL FIX: Remove hidden attribute AND set display style
+        previewOriginal.removeAttribute('hidden');
         previewOriginal.hidden = false;
+        previewOriginal.style.display = 'block';
+        previewOriginal.style.opacity = '1';
+        previewOriginal.style.visibility = 'visible';
+        
+        // Remove empty class from previewStage
         previewStage.classList.remove('empty');
+        // Hide placeholder
         previewPlaceholder.classList.add('hidden');
-        previewOverlay.style.opacity = 0; // Hide overlay if visible
+        previewPlaceholder.style.display = 'none';
+        // Hide overlay
+        previewOverlay.style.opacity = '0';
+        previewOverlay.style.display = 'none';
+        
+        // Set image source
+        previewOriginal.src = previewURL;
+        
         backgroundChangeBtn.disabled = false;
         
         console.log('✅ Preview updated instantly using objectURL - image should be visible now');
         console.log('   previewOriginal.src set to:', previewOriginal.src);
         console.log('   previewOriginal.hidden:', previewOriginal.hidden);
+        console.log('   previewOriginal.style.display:', previewOriginal.style.display);
+        console.log('   previewOriginal.style.opacity:', previewOriginal.style.opacity);
         console.log('   previewStage.classList.contains("empty"):', previewStage.classList.contains('empty'));
+        console.log('   previewPlaceholder.style.display:', previewPlaceholder.style.display);
         
         // Wait for image to actually load and verify
         previewOriginal.onload = () => {
           console.log('✅ Image loaded successfully in preview!');
+          // Double-check visibility after load
+          if (previewOriginal.complete && previewOriginal.naturalWidth > 0) {
+            console.log('   Image dimensions:', previewOriginal.naturalWidth, 'x', previewOriginal.naturalHeight);
+            previewOriginal.style.display = 'block';
+            previewOriginal.style.opacity = '1';
+          }
         };
         previewOriginal.onerror = (e) => {
           console.error('❌ Image failed to load in preview:', e);
+          console.error('   Failed URL:', previewURL);
         };
         
         // Once dataURL is ready, we can switch to it (optional optimization)
