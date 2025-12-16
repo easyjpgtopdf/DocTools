@@ -45,7 +45,9 @@
     .preview-result { opacity: 0; }
     .preview-stage.revealed .preview-result { opacity: 1; }
     /* CRITICAL FIX: When showing initial upload preview, make previewResult visible */
-    .preview-result:not([hidden]):not(.processing-only) { opacity: 1 !important; }
+    .preview-result:not([hidden]) { opacity: 1 !important; display: block !important; visibility: visible !important; }
+    /* Override for initial preview - show previewResult when it has a src */
+    .preview-result[src]:not([src=""]) { opacity: 1 !important; display: block !important; visibility: visible !important; }
     /* Checkerboard background for transparent PNG preview */
     .preview-stage { 
       background-image: 
