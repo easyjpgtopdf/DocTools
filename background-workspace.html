@@ -1640,12 +1640,49 @@
       
       const img = multipleImages[index];
       if (img.processed) {
-        // Already processed, show in main preview
-        previewOriginal.src = img.dataURL;
-        previewResult.src = img.resultURL;
-        previewResult.hidden = false;
-        previewStage.classList.remove('empty');
-        previewPlaceholder.classList.add('hidden');
+        // Already processed, show in main preview - wait for images to load
+        console.log('📸 Showing already processed image in preview');
+        const originalImg = new Image();
+        const resultImg = new Image();
+        let originalLoaded = false;
+        let resultLoaded = false;
+        
+        const updatePreview = () => {
+          if (originalLoaded && resultLoaded) {
+            console.log('✅ Both images loaded, showing preview');
+            previewOriginal.src = img.dataURL;
+            previewResult.src = img.resultURL;
+            previewResult.hidden = false;
+            previewOriginal.hidden = false;
+            previewStage.classList.remove('empty');
+            previewPlaceholder.classList.add('hidden');
+            previewOverlay.style.opacity = 0;
+            backgroundChangeBtn.disabled = false;
+            downloadBtn.disabled = false;
+          }
+        };
+        
+        originalImg.onload = () => {
+          originalLoaded = true;
+          updatePreview();
+        };
+        originalImg.onerror = () => {
+          console.error('❌ Failed to load original image');
+          originalLoaded = true;
+          updatePreview();
+        };
+        originalImg.src = img.dataURL;
+        
+        resultImg.onload = () => {
+          resultLoaded = true;
+          updatePreview();
+        };
+        resultImg.onerror = () => {
+          console.error('❌ Failed to load result image');
+          resultLoaded = true;
+          updatePreview();
+        };
+        resultImg.src = img.resultURL;
         return;
       }
       
@@ -1668,12 +1705,50 @@
           updateImagesGrid();
           showStatus(`✅ Image ${index + 1} processed successfully!`);
           
-          // Show in main preview
-          previewOriginal.src = img.dataURL;
-          previewResult.src = img.resultURL;
-          previewResult.hidden = false;
-          previewStage.classList.remove('empty');
-          previewPlaceholder.classList.add('hidden');
+          // Show in main preview - wait for images to load
+          console.log('📸 Updating preview with processed image');
+          const originalImg = new Image();
+          const resultImg = new Image();
+          let originalLoaded = false;
+          let resultLoaded = false;
+          
+          const updatePreview = () => {
+            if (originalLoaded && resultLoaded) {
+              console.log('✅ Both images loaded, showing preview');
+              previewOriginal.src = img.dataURL;
+              previewResult.src = img.resultURL;
+              previewResult.hidden = false;
+              previewOriginal.hidden = false;
+              previewStage.classList.remove('empty');
+              previewPlaceholder.classList.add('hidden');
+              previewOverlay.style.opacity = 0; // Hide overlay
+              backgroundChangeBtn.disabled = false;
+              downloadBtn.disabled = false;
+            }
+          };
+          
+          originalImg.onload = () => {
+            originalLoaded = true;
+            updatePreview();
+          };
+          originalImg.onerror = () => {
+            console.error('❌ Failed to load original image');
+            originalLoaded = true; // Continue anyway
+            updatePreview();
+          };
+          originalImg.src = img.dataURL;
+          
+          resultImg.onload = () => {
+            resultLoaded = true;
+            updatePreview();
+          };
+          resultImg.onerror = () => {
+            console.error('❌ Failed to load result image');
+            showError('Processed image failed to load. Please try processing again.');
+            resultLoaded = true; // Continue anyway
+            updatePreview();
+          };
+          resultImg.src = img.resultURL;
         } else {
           showError(`Failed to process image ${index + 1}: ${result.error}`);
         }
@@ -1862,10 +1937,15 @@
           // Create dataURL ONLY for display/preview (NOT for processing)
           const dataURL = await blobToDataURL(file);
           
+          // CRITICAL: Also create objectURL for immediate preview (remove.bg style)
+          // This provides instant preview without waiting for dataURL conversion
+          const objectURL = URL.createObjectURL(file);
+          
           multipleImages.push({
             id: imageId,
             file: file, // File object - REQUIRED for free preview processing
             dataURL: dataURL, // Only for display - NOT used for processing
+            objectURL: objectURL, // Immediate preview URL (will be revoked later)
             filename: file.name,
             processed: false,
             resultURL: null
@@ -1880,12 +1960,24 @@
       updateImagesGrid();
       
       if (multipleImages.length > 0) {
-        // Show first image in main preview
-        previewOriginal.src = multipleImages[0].dataURL;
+        // Show first image in main preview - INSTANT preview using objectURL (remove.bg style)
+        const firstImage = multipleImages[0];
+        console.log('📸 Showing uploaded image in preview:', firstImage.filename);
+        
+        // CRITICAL: Use objectURL for instant preview (no conversion delay)
+        // This matches remove.bg behavior - immediate visual feedback
+        const previewURL = firstImage.objectURL || URL.createObjectURL(firstImage.file);
+        previewOriginal.src = previewURL;
         previewOriginal.hidden = false;
         previewStage.classList.remove('empty');
         previewPlaceholder.classList.add('hidden');
+        previewOverlay.style.opacity = 0; // Hide overlay if visible
         backgroundChangeBtn.disabled = false;
+        console.log('✅ Preview updated instantly using objectURL - image should be visible now');
+        
+        // Once dataURL is ready, we can switch to it (optional optimization)
+        // But objectURL works fine for preview, so we keep it
+        // Note: We'll revoke objectURL when image is replaced or page unloads
       }
       
       showStatus(`✅ ${multipleImages.length} image(s) uploaded successfully!`);
