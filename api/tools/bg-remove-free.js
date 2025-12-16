@@ -72,18 +72,30 @@ module.exports = async function handler(req, res) {
     // Handle both v2 and v3 API
     let fields, files;
     try {
-      if (typeof formidable === 'function') {
-        // Formidable v2 style
+      // Try v3 first (formidable is an object with IncomingForm)
+      if (formidable && formidable.IncomingForm) {
+        const form = formidable.IncomingForm({
+          multiples: false,
+          maxFileSize: 50 * 1024 * 1024,
+          keepExtensions: true
+        });
+        [fields, files] = await form.parse(req);
+      } else if (typeof formidable === 'function') {
+        // Formidable v2 style - direct function call
         const form = formidable({
           multiples: false,
-          maxFileSize: 50 * 1024 * 1024, // 50 MB max
+          maxFileSize: 50 * 1024 * 1024,
           keepExtensions: true
         });
         [fields, files] = await form.parse(req);
       } else {
-        // Formidable v3 style - use default export or IncomingForm
-        const { IncomingForm } = formidable;
-        const form = new (IncomingForm || formidable.IncomingForm || formidable)({
+        // Last resort - try as constructor
+        const Form = formidable.default || formidable;
+        const form = typeof Form === 'function' ? Form({
+          multiples: false,
+          maxFileSize: 50 * 1024 * 1024,
+          keepExtensions: true
+        }) : new Form({
           multiples: false,
           maxFileSize: 50 * 1024 * 1024,
           keepExtensions: true
@@ -92,20 +104,21 @@ module.exports = async function handler(req, res) {
       }
     } catch (parseError) {
       console.error('❌ Formidable parse error:', parseError);
-      // Try alternative import method
+      // Try alternative: re-require and use directly
       try {
         const formidableAlt = require('formidable');
-        const Form = formidableAlt.formidable || formidableAlt.default || formidableAlt;
-        const form = typeof Form === 'function' ? new Form({
-          multiples: false,
-          maxFileSize: 50 * 1024 * 1024,
-          keepExtensions: true
-        }) : Form({
-          multiples: false,
-          maxFileSize: 50 * 1024 * 1024,
-          keepExtensions: true
-        });
-        [fields, files] = await form.parse(req);
+        // Try IncomingForm if available
+        const IncomingForm = formidableAlt.IncomingForm || formidableAlt.default?.IncomingForm;
+        if (IncomingForm) {
+          const form = IncomingForm({
+            multiples: false,
+            maxFileSize: 50 * 1024 * 1024,
+            keepExtensions: true
+          });
+          [fields, files] = await form.parse(req);
+        } else {
+          throw new Error('IncomingForm not found in formidable module');
+        }
       } catch (altError) {
         console.error('❌ Alternative formidable parse also failed:', altError);
         return res.status(500).json({
