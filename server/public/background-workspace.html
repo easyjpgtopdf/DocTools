@@ -1640,12 +1640,49 @@
       
       const img = multipleImages[index];
       if (img.processed) {
-        // Already processed, show in main preview
-        previewOriginal.src = img.dataURL;
-        previewResult.src = img.resultURL;
-        previewResult.hidden = false;
-        previewStage.classList.remove('empty');
-        previewPlaceholder.classList.add('hidden');
+        // Already processed, show in main preview - wait for images to load
+        console.log('📸 Showing already processed image in preview');
+        const originalImg = new Image();
+        const resultImg = new Image();
+        let originalLoaded = false;
+        let resultLoaded = false;
+        
+        const updatePreview = () => {
+          if (originalLoaded && resultLoaded) {
+            console.log('✅ Both images loaded, showing preview');
+            previewOriginal.src = img.dataURL;
+            previewResult.src = img.resultURL;
+            previewResult.hidden = false;
+            previewOriginal.hidden = false;
+            previewStage.classList.remove('empty');
+            previewPlaceholder.classList.add('hidden');
+            previewOverlay.style.opacity = 0;
+            backgroundChangeBtn.disabled = false;
+            downloadBtn.disabled = false;
+          }
+        };
+        
+        originalImg.onload = () => {
+          originalLoaded = true;
+          updatePreview();
+        };
+        originalImg.onerror = () => {
+          console.error('❌ Failed to load original image');
+          originalLoaded = true;
+          updatePreview();
+        };
+        originalImg.src = img.dataURL;
+        
+        resultImg.onload = () => {
+          resultLoaded = true;
+          updatePreview();
+        };
+        resultImg.onerror = () => {
+          console.error('❌ Failed to load result image');
+          resultLoaded = true;
+          updatePreview();
+        };
+        resultImg.src = img.resultURL;
         return;
       }
       
@@ -1668,12 +1705,50 @@
           updateImagesGrid();
           showStatus(`✅ Image ${index + 1} processed successfully!`);
           
-          // Show in main preview
-          previewOriginal.src = img.dataURL;
-          previewResult.src = img.resultURL;
-          previewResult.hidden = false;
-          previewStage.classList.remove('empty');
-          previewPlaceholder.classList.add('hidden');
+          // Show in main preview - wait for images to load
+          console.log('📸 Updating preview with processed image');
+          const originalImg = new Image();
+          const resultImg = new Image();
+          let originalLoaded = false;
+          let resultLoaded = false;
+          
+          const updatePreview = () => {
+            if (originalLoaded && resultLoaded) {
+              console.log('✅ Both images loaded, showing preview');
+              previewOriginal.src = img.dataURL;
+              previewResult.src = img.resultURL;
+              previewResult.hidden = false;
+              previewOriginal.hidden = false;
+              previewStage.classList.remove('empty');
+              previewPlaceholder.classList.add('hidden');
+              previewOverlay.style.opacity = 0; // Hide overlay
+              backgroundChangeBtn.disabled = false;
+              downloadBtn.disabled = false;
+            }
+          };
+          
+          originalImg.onload = () => {
+            originalLoaded = true;
+            updatePreview();
+          };
+          originalImg.onerror = () => {
+            console.error('❌ Failed to load original image');
+            originalLoaded = true; // Continue anyway
+            updatePreview();
+          };
+          originalImg.src = img.dataURL;
+          
+          resultImg.onload = () => {
+            resultLoaded = true;
+            updatePreview();
+          };
+          resultImg.onerror = () => {
+            console.error('❌ Failed to load result image');
+            showError('Processed image failed to load. Please try processing again.');
+            resultLoaded = true; // Continue anyway
+            updatePreview();
+          };
+          resultImg.src = img.resultURL;
         } else {
           showError(`Failed to process image ${index + 1}: ${result.error}`);
         }
@@ -1881,11 +1956,29 @@
       
       if (multipleImages.length > 0) {
         // Show first image in main preview
-        previewOriginal.src = multipleImages[0].dataURL;
-        previewOriginal.hidden = false;
-        previewStage.classList.remove('empty');
-        previewPlaceholder.classList.add('hidden');
-        backgroundChangeBtn.disabled = false;
+        const firstImage = multipleImages[0];
+        console.log('📸 Showing uploaded image in preview:', firstImage.filename);
+        
+        // Wait for image to load before showing
+        const img = new Image();
+        img.onload = () => {
+          console.log('✅ Image loaded successfully, updating preview');
+          previewOriginal.src = firstImage.dataURL;
+          previewOriginal.hidden = false;
+          previewStage.classList.remove('empty');
+          previewPlaceholder.classList.add('hidden');
+          previewOverlay.style.opacity = 0; // Hide overlay if visible
+          backgroundChangeBtn.disabled = false;
+          console.log('✅ Preview updated - image should be visible now');
+        };
+        img.onerror = (error) => {
+          console.error('❌ Failed to load image for preview:', error);
+          showError('Failed to display uploaded image. Please try uploading again.');
+          previewOriginal.hidden = true;
+          previewStage.classList.add('empty');
+          previewPlaceholder.classList.remove('hidden');
+        };
+        img.src = firstImage.dataURL;
       }
       
       showStatus(`✅ ${multipleImages.length} image(s) uploaded successfully!`);
