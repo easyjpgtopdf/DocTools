@@ -245,6 +245,11 @@
 </section>
 </main>
 <script type="module">
+    // VERSION IDENTIFIER: 2025-01-16-v3-FILE-ONLY-FORMDATA
+    // This helps verify which code version is running on live site
+    console.log('🔍 BACKGROUND-WORKSPACE.HTML VERSION: 2025-01-16-v3-FILE-ONLY-FORMDATA');
+    console.log('🔍 This version uses: FormData + File object ONLY (NO base64, NO JSON)');
+    
     const STORAGE_KEYS = {
       original: 'bgRemover:original',
       filename: 'bgRemover:filename',
@@ -704,6 +709,12 @@
         
         // CRITICAL: FREE PREVIEW MUST USE FORMDATA - NO JSON, NO BASE64
         // This is the ONLY allowed path for free preview
+        
+        // VERIFICATION: ChatGPT suggested verification logs
+        console.log('🔍 FREE PREVIEW MODE: FILE ONLY - VERIFICATION START');
+        console.log('   File instanceof File:', fileObject instanceof File);
+        console.log('   File type check:', typeof fileObject);
+        
         const formData = new FormData();
         formData.append('image', fileObject); // Use original File object - NO base64 conversion
         formData.append('maxSize', '512');
@@ -713,6 +724,11 @@
         if (!formData || !(formData instanceof FormData)) {
           throw new Error('CRITICAL: FormData creation failed - cannot proceed');
         }
+        
+        // VERIFICATION: Check FormData has image field (as ChatGPT suggested)
+        const hasImage = formData.has('image');
+        console.log('🔍 Sending FormData - has("image"):', hasImage);
+        console.log('🔍 FormData instanceof FormData:', formData instanceof FormData);
         
         // DEBUG: Verify File object before creating FormData
         console.log('✅ FREE PREVIEW: Using multipart/form-data upload with original File object');
@@ -724,12 +740,21 @@
         console.log('   FormData fields: image (File), maxSize (512), imageType (' + detectedImageType + ')');
         console.log('   ❌ NOT sending JSON - FormData ONLY');
         console.log('   ❌ NOT sending base64 - File object ONLY');
+        console.log('🔍 VERIFICATION: About to send FormData (NOT JSON.stringify)');
         
         // CRITICAL: DO NOT read FormData.entries() - it consumes the stream!
         // FormData can only be read once, so reading it here would make body empty for fetch()
         
         console.log('   Content-Type: NOT SET (browser will auto-set multipart/form-data boundary)');
         console.log('   Sending fetch request with FormData (NOT JSON)...');
+        
+        // FINAL VERIFICATION BEFORE FETCH (ChatGPT suggestion)
+        console.log('🔍 FINAL CHECK BEFORE FETCH:');
+        console.log('   body type:', typeof formData);
+        console.log('   body is FormData:', formData instanceof FormData);
+        console.log('   body is NOT JSON string:', typeof formData !== 'string');
+        console.log('   FormData.has("image"):', formData.has('image'));
+        console.log('   ❌ NOT calling JSON.stringify() - body is FormData object');
         
         // CRITICAL: FREE PREVIEW API ONLY ACCEPTS MULTIPART/FORM-DATA
         // DO NOT send JSON.stringify() or base64 - backend will reject with 400
@@ -743,9 +768,13 @@
             // Content-Type is intentionally omitted - browser sets it automatically with boundary
             // DO NOT add 'Content-Type': 'application/json' - that would break multipart upload
           },
-          body: formData, // FormData object - NOT JSON.stringify()
+          body: formData, // FormData object - NOT JSON.stringify() - CRITICAL: DO NOT CHANGE
           signal: controller.signal
         });
+        
+        // POST-FETCH VERIFICATION
+        console.log('🔍 POST-FETCH: Response status:', response.status);
+        console.log('🔍 POST-FETCH: Response Content-Type:', response.headers.get('Content-Type'));
         
         // Clear timeout and interval on response (success or error)
         if (timeout) clearTimeout(timeout);
@@ -1963,17 +1992,37 @@
         // Show first image in main preview - INSTANT preview using objectURL (remove.bg style)
         const firstImage = multipleImages[0];
         console.log('📸 Showing uploaded image in preview:', firstImage.filename);
+        console.log('🔍 PREVIEW VERIFICATION:');
+        console.log('   firstImage.objectURL exists:', !!firstImage.objectURL);
+        console.log('   firstImage.file exists:', !!firstImage.file);
+        console.log('   firstImage.file instanceof File:', firstImage.file instanceof File);
         
         // CRITICAL: Use objectURL for instant preview (no conversion delay)
         // This matches remove.bg behavior - immediate visual feedback
         const previewURL = firstImage.objectURL || URL.createObjectURL(firstImage.file);
+        console.log('   previewURL created:', previewURL);
+        console.log('   previewURL type:', typeof previewURL);
+        console.log('   previewURL starts with blob:?:', previewURL.startsWith('blob:'));
+        
         previewOriginal.src = previewURL;
         previewOriginal.hidden = false;
         previewStage.classList.remove('empty');
         previewPlaceholder.classList.add('hidden');
         previewOverlay.style.opacity = 0; // Hide overlay if visible
         backgroundChangeBtn.disabled = false;
+        
         console.log('✅ Preview updated instantly using objectURL - image should be visible now');
+        console.log('   previewOriginal.src set to:', previewOriginal.src);
+        console.log('   previewOriginal.hidden:', previewOriginal.hidden);
+        console.log('   previewStage.classList.contains("empty"):', previewStage.classList.contains('empty'));
+        
+        // Wait for image to actually load and verify
+        previewOriginal.onload = () => {
+          console.log('✅ Image loaded successfully in preview!');
+        };
+        previewOriginal.onerror = (e) => {
+          console.error('❌ Image failed to load in preview:', e);
+        };
         
         // Once dataURL is ready, we can switch to it (optional optimization)
         // But objectURL works fine for preview, so we keep it
