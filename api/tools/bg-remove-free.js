@@ -155,11 +155,17 @@ module.exports = async function handler(req, res) {
       backendFormData.append('imageType', imageType);
     }
     
-    console.log('Forwarding multipart to backend:', {
+    // Get headers from form-data (includes Content-Type with boundary)
+    const formHeaders = backendFormData.getHeaders();
+    
+    console.log('📤 Forwarding multipart to backend:', {
+      url: `${CLOUDRUN_API_URL}/api/free-preview-bg`,
       fileSize: fileBuffer.length,
       filename: imageFile.originalFilename,
       maxSize: maxSize,
-      imageType: imageType
+      imageType: imageType,
+      contentType: formHeaders['content-type'] || 'not-set',
+      headers: Object.keys(formHeaders)
     });
     
     // Clean up temp file
@@ -169,11 +175,27 @@ module.exports = async function handler(req, res) {
       console.warn('Failed to delete temp file:', e);
     }
     
+    // Verify headers before sending
+    if (!formHeaders['content-type'] || !formHeaders['content-type'].includes('multipart/form-data')) {
+      console.error('❌ FormData headers missing Content-Type:', formHeaders);
+      return res.status(500).json({
+        success: false,
+        error: 'Server configuration error',
+        message: 'Failed to prepare multipart request headers'
+      });
+    }
+    
     const response = await fetch(`${CLOUDRUN_API_URL}/api/free-preview-bg`, {
       method: 'POST',
-      headers: backendFormData.getHeaders(),
+      headers: formHeaders,
       body: backendFormData,
       signal: AbortSignal.timeout(90000)
+    });
+    
+    console.log('📥 Backend response received:', {
+      status: response.status,
+      statusText: response.statusText,
+      contentType: response.headers.get('content-type')
     });
 
     if (!response.ok) {
