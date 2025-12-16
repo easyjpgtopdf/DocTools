@@ -2077,6 +2077,10 @@
             console.log('   previewResult dimensions:', previewResult.naturalWidth, 'x', previewResult.naturalHeight);
             previewResult.style.display = 'block';
             previewResult.style.opacity = '1';
+            previewResult.style.setProperty('opacity', '1', 'important'); // Force visibility
+            // Ensure it's above previewOriginal in z-index for visibility
+            previewResult.style.zIndex = '2';
+            previewOriginal.style.zIndex = '1';
           }
         };
         previewResult.onerror = (e) => {
