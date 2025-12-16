@@ -2012,12 +2012,26 @@
         console.log('   previewURL type:', typeof previewURL);
         console.log('   previewURL starts with blob:?:', previewURL.startsWith('blob:'));
         
+        // CRITICAL FIX: Set src FIRST (before visibility changes) to trigger onload properly
+        previewResult.src = previewURL; // Set previewResult FIRST - it might be what's rendered
+        previewOriginal.src = previewURL;
+        
         // CRITICAL FIX: Remove hidden attribute AND set display style
         previewOriginal.removeAttribute('hidden');
         previewOriginal.hidden = false;
         previewOriginal.style.display = 'block';
         previewOriginal.style.opacity = '1';
         previewOriginal.style.visibility = 'visible';
+        
+        // Ensure previewResult is visible (CRITICAL: it has default opacity: 0 in CSS)
+        previewResult.removeAttribute('hidden');
+        previewResult.hidden = false;
+        previewResult.style.display = 'block';
+        previewResult.style.opacity = '1'; // CRITICAL: Override CSS default opacity: 0
+        previewResult.style.visibility = 'visible';
+        previewResult.style.setProperty('opacity', '1', 'important'); // Force with !important
+        previewResult.style.setProperty('display', 'block', 'important');
+        previewResult.style.setProperty('visibility', 'visible', 'important');
         
         // Remove empty class from previewStage
         previewStage.classList.remove('empty');
@@ -2029,19 +2043,6 @@
         // Hide overlay
         previewOverlay.style.opacity = '0';
         previewOverlay.style.display = 'none';
-        
-        // CRITICAL FIX: Set BOTH previewOriginal AND previewResult to ensure preview shows
-        // Some browsers/UI states render previewResult instead of previewOriginal
-        previewOriginal.src = previewURL;
-        previewResult.src = previewURL; // Also set previewResult for immediate visibility
-        
-        // Ensure both images are visible
-        previewResult.removeAttribute('hidden');
-        previewResult.hidden = false;
-        previewResult.style.display = 'block';
-        previewResult.style.opacity = '1'; // CRITICAL: Override CSS default opacity: 0
-        previewResult.style.visibility = 'visible';
-        previewResult.style.setProperty('opacity', '1', 'important'); // Force with !important
         
         backgroundChangeBtn.disabled = false;
         
