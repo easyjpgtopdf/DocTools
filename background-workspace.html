@@ -610,15 +610,30 @@
         };
       }
       
-      // CRITICAL: Free preview STRICTLY accepts ONLY File object (remove.bg style)
-      // NO base64, NO dataURL, NO conversion - FILE ONLY
-      if (!file || !(file instanceof File)) {
-        console.error('❌ Free preview requires File object - base64/dataURL not supported');
+      // CRITICAL: Free preview accepts File OR Blob object (both work with FormData)
+      // NO base64, NO dataURL strings - FILE/BLOB ONLY
+      // Note: Accept Blob too since FormData.append() works with both
+      if (!file || (!(file instanceof File) && !(file instanceof Blob))) {
+        console.error('❌ Free preview requires File or Blob object - base64/dataURL not supported');
+        console.error('   File type:', typeof file, file);
+        console.error('   Is File:', file instanceof File);
+        console.error('   Is Blob:', file instanceof Blob);
         return {
           success: false,
-          error: 'File object required. Please upload the image again.'
+          error: 'File or Blob object required. Please upload the image again.'
         };
       }
+      
+      // Log file object details for verification
+      console.log('🔍 File object verification:', {
+        file: !!file,
+        isFile: file instanceof File,
+        isBlob: file instanceof Blob,
+        hasSize: !!file?.size,
+        size: file?.size,
+        type: file?.type,
+        name: file?.name || '(no name)'
+      });
       
       // Validate File object
       if (!file.size || file.size === 0) {
@@ -711,9 +726,11 @@
         // ALWAYS use multipart/form-data for free preview - ONLY with original File object
         // Backend expects field name: "image"
         
-        // CRITICAL: Verify File object is valid before creating FormData
-        if (!fileObject || !(fileObject instanceof File)) {
-          throw new Error('Invalid File object - cannot create FormData');
+        // CRITICAL: Verify File/Blob object is valid before creating FormData
+        // Accept both File and Blob (FormData.append works with both)
+        if (!fileObject || (!(fileObject instanceof File) && !(fileObject instanceof Blob))) {
+          console.error('❌ Invalid file object for FormData:', typeof fileObject, fileObject);
+          throw new Error('Invalid File or Blob object - cannot create FormData');
         }
         if (!fileObject.size || fileObject.size === 0) {
           throw new Error('File object is empty - cannot upload');
@@ -1742,11 +1759,15 @@
         
         showStatus(`Processing image ${index + 1} of ${multipleImages.length}...`);
         
-        // CRITICAL: Free preview requires File object ONLY - no dataURL fallback
+        // CRITICAL: Free preview requires File or Blob object - no dataURL fallback
+        // Accept both File and Blob (FormData.append works with both)
         const fileObject = img.file;
-        if (!fileObject || !(fileObject instanceof File)) {
-          console.error('❌ Missing or invalid File object for image:', index);
-          showError(`Image ${index + 1} is missing File object. Please upload again using the "Upload Images" button.`);
+        if (!fileObject || (!(fileObject instanceof File) && !(fileObject instanceof Blob))) {
+          console.error('❌ Missing or invalid File/Blob object for image:', index);
+          console.error('   File type:', typeof fileObject, fileObject);
+          console.error('   Is File:', fileObject instanceof File);
+          console.error('   Is Blob:', fileObject instanceof Blob);
+          showError(`Image ${index + 1} is missing File or Blob object. Please upload again using the "Upload Images" button.`);
           return;
         }
         
@@ -1863,12 +1884,16 @@
         
         try {
           showStatus(`Processing image ${i + 1} of ${multipleImages.length}...`);
-          // CRITICAL: Free preview requires File object ONLY - no dataURL fallback
+          // CRITICAL: Free preview requires File or Blob object - no dataURL fallback
+          // Accept both File and Blob (FormData.append works with both)
           const fileObject = multipleImages[i].file;
-          if (!fileObject || !(fileObject instanceof File)) {
-            console.error(`Image ${i + 1} missing File object - cannot process`);
+          if (!fileObject || (!(fileObject instanceof File) && !(fileObject instanceof Blob))) {
+            console.error(`Image ${i + 1} missing File/Blob object - cannot process`);
+            console.error('   File type:', typeof fileObject, fileObject);
+            console.error('   Is File:', fileObject instanceof File);
+            console.error('   Is Blob:', fileObject instanceof Blob);
             failCount++;
-            showError(`Image ${i + 1} is missing File object. Please upload again using the "Upload Images" button.`);
+            showError(`Image ${i + 1} is missing File or Blob object. Please upload again using the "Upload Images" button.`);
             continue;
           }
           const result = await processWithFreePreview(fileObject);
@@ -2153,7 +2178,7 @@
         // AUTO-START: Start free preview processing after preview loads (once)
         if (!freePreviewAutoStarted && multipleImages.length > 0) {
           const firstImage = multipleImages[0];
-          if (firstImage && firstImage.file && firstImage.file instanceof File) {
+          if (firstImage && firstImage.file && (firstImage.file instanceof File || firstImage.file instanceof Blob)) {
             console.log('🚀 AUTO-START: Preview loaded, starting free preview processing automatically...');
             freePreviewAutoStarted = true; // Set flag before async call
             
@@ -2277,7 +2302,7 @@
             console.log('✅ Preview image already loaded (cached), starting processing immediately');
             console.log('📞 Calling processSingleImage(0) automatically');
             const firstImage = multipleImages[0];
-            if (firstImage && firstImage.file && firstImage.file instanceof File) {
+            if (firstImage && firstImage.file && (firstImage.file instanceof File || firstImage.file instanceof Blob)) {
               processSingleImage(0).catch(err => console.error('Auto-start error:', err));
             }
           } else {
@@ -2287,7 +2312,7 @@
               console.log('✅ Preview image fully loaded, auto-starting free preview processing');
               console.log('📞 Calling processSingleImage(0) automatically');
               const firstImage = multipleImages[0];
-              if (firstImage && firstImage.file && firstImage.file instanceof File) {
+              if (firstImage && firstImage.file && (firstImage.file instanceof File || firstImage.file instanceof Blob)) {
                 try {
                   await processSingleImage(0);
                 } catch (error) {
@@ -2298,7 +2323,7 @@
             autoStartPreview.onerror = () => {
               console.warn('⚠️ Preview image load error, starting processing anyway');
               const firstImage = multipleImages[0];
-              if (firstImage && firstImage.file && firstImage.file instanceof File) {
+              if (firstImage && firstImage.file && (firstImage.file instanceof File || firstImage.file instanceof Blob)) {
                 processSingleImage(0).catch(err => console.error('Auto-start error:', err));
               }
             };
