@@ -194,13 +194,19 @@
             <img src="images/bg-removal-city-demo.svg" alt="Background Removal Demo" style="max-width: 100%; height: auto; border-radius: 12px;">
           </div>
           <div class="upload-card" id="dropzone" style="width: 8cm; height: 8cm; min-width: 8cm; min-height: 8cm; max-width: 8cm; max-height: 8cm; padding: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden;">
-        <i class="fas fa-cloud-upload-alt"></i>
-        <h2>Drag & drop your JPG/PNG</h2>
-        <p>Max 10MB â¢ Works entirely in your browser</p>
-        <button class="btn btn-primary" type="button" id="browseBtn"><i class="fas fa-upload"></i> Choose Image</button>
-        <input type="file" id="imageInput" accept="image/png,image/jpeg" hidden>
-        <div id="statusMessage" style="margin-top: 16px; min-height: 1.2rem; font-size: 0.92rem; color: var(--muted);"></div>
-          <div id="errorBox" style="display: none; margin-top: 12px; padding: 12px; background: rgba(255,0,0,0.1); color: #cc0000; border-radius: 8px; font-size: 0.9rem;"></div>
+            <div id="imagePreview" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;">
+              <img id="previewImg" style="width: 100%; height: 100%; object-fit: contain;" alt="Preview">
+            </div>
+            <div id="uploadContent" style="position: relative; z-index: 2; text-align: center;">
+              <i class="fas fa-cloud-upload-alt"></i>
+              <h2 style="font-size: 1rem; margin: 8px 0 4px;">Drag & drop</h2>
+              <p style="font-size: 0.85rem; margin: 0 0 12px;">Max 10MB</p>
+              <button class="btn btn-primary" type="button" id="browseBtn" style="padding: 8px 16px; font-size: 0.9rem;"><i class="fas fa-upload"></i> Choose</button>
+              <input type="file" id="imageInput" accept="image/png,image/jpeg" hidden>
+            </div>
+            <div id="statusMessage" style="margin-top: 8px; min-height: 1rem; font-size: 0.8rem; color: var(--muted); position: relative; z-index: 2;"></div>
+            <div id="errorBox" style="display: none; margin-top: 8px; padding: 8px; background: rgba(255,0,0,0.1); color: #cc0000; border-radius: 6px; font-size: 0.8rem; position: relative; z-index: 2;"></div>
+</div>
         </div>
       </div>
       <div id="resultSection" style="display: none;">
