@@ -66,11 +66,18 @@
         });
       }
 
-      // New upload button handler
-      const newUploadBtn = document.getElementById('newUploadBtn');
-      if (newUploadBtn) {
-        newUploadBtn.addEventListener('click', () => {
-          this.resetToUpload();
+      // Undo/Redo buttons
+      const undoBtn = document.getElementById('undoBtn');
+      if (undoBtn) {
+        undoBtn.addEventListener('click', () => {
+          this.undo();
+        });
+      }
+      
+      const redoBtn = document.getElementById('redoBtn');
+      if (redoBtn) {
+        redoBtn.addEventListener('click', () => {
+          this.redo();
         });
       }
 
@@ -137,12 +144,16 @@
       const resultSection = document.getElementById('resultSection');
       const imagePreview = document.getElementById('imagePreview');
       const uploadContent = document.getElementById('uploadContent');
+      const toggle = document.getElementById('beforeAfterToggle');
       
       if (uploadSection) {
         uploadSection.style.display = 'block';
       }
       if (resultSection) {
         resultSection.style.display = 'none';
+      }
+      if (toggle) {
+        toggle.style.display = 'none';
       }
       
       // Hide preview image and restore upload content
@@ -162,10 +173,119 @@
       this.state.file = null;
       this.state.previewURL = null;
       this.state.resultURL = null;
+      this.state.originalURL = null;
       this.state.isProcessing = false;
+      this.state.history = [];
+      this.state.historyIndex = -1;
       
       // Reset UI
       this.resetUI();
+      this.updateUndoRedoButtons();
+    }
+
+    initBeforeAfterToggle() {
+      const toggleContainer = document.getElementById('beforeAfterToggle');
+      const toggleSlider = document.getElementById('toggleSlider');
+      const toggleText = document.getElementById('toggleText');
+      const resultImg = document.getElementById('resultImage');
+      const beforeImg = document.getElementById('beforeImage');
+      
+      if (!toggleContainer || !toggleSlider || !toggleText || !resultImg || !beforeImg) return;
+      
+      // Remove existing listeners by cloning
+      const newToggle = toggleContainer.cloneNode(true);
+      toggleContainer.parentNode.replaceChild(newToggle, toggleContainer);
+      const newSlider = document.getElementById('toggleSlider');
+      const newText = document.getElementById('toggleText');
+      const newResultImg = document.getElementById('resultImage');
+      const newBeforeImg = document.getElementById('beforeImage');
+      
+      let showingAfter = true;
+      
+      // Set initial state - show After
+      newResultImg.style.opacity = '1';
+      newResultImg.style.display = 'block';
+      newBeforeImg.style.opacity = '0';
+      newBeforeImg.style.display = 'none';
+      newSlider.style.transform = 'translateX(0)';
+      newText.textContent = 'After';
+      
+      // Click handler
+      const toggleBtn = newToggle.querySelector('div[style*="cursor: pointer"]');
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+          showingAfter = !showingAfter;
+          
+          if (showingAfter) {
+            // Show After (result)
+            newSlider.style.transform = 'translateX(0)';
+            newText.textContent = 'After';
+            newBeforeImg.style.opacity = '0';
+            setTimeout(() => {
+              newBeforeImg.style.display = 'none';
+              newResultImg.style.display = 'block';
+            }, 150);
+            setTimeout(() => {
+              newResultImg.style.opacity = '1';
+            }, 160);
+          } else {
+            // Show Before (original)
+            newSlider.style.transform = 'translateX(-48px)';
+            newText.textContent = 'Before';
+            newResultImg.style.opacity = '0';
+            setTimeout(() => {
+              newResultImg.style.display = 'none';
+              newBeforeImg.style.display = 'block';
+            }, 150);
+            setTimeout(() => {
+              newBeforeImg.style.opacity = '1';
+            }, 160);
+          }
+        });
+      }
+    }
+
+    updateUndoRedoButtons() {
+      const undoBtn = document.getElementById('undoBtn');
+      const redoBtn = document.getElementById('redoBtn');
+      
+      if (undoBtn) {
+        undoBtn.disabled = this.state.historyIndex <= 0;
+      }
+      if (redoBtn) {
+        redoBtn.disabled = this.state.historyIndex >= this.state.history.length - 1;
+      }
+    }
+
+    undo() {
+      if (this.state.historyIndex > 0) {
+        this.state.historyIndex--;
+        this.applyHistoryState();
+      }
+    }
+
+    redo() {
+      if (this.state.historyIndex < this.state.history.length - 1) {
+        this.state.historyIndex++;
+        this.applyHistoryState();
+      }
+    }
+
+    applyHistoryState() {
+      if (this.state.historyIndex >= 0 && this.state.historyIndex < this.state.history.length) {
+        const state = this.state.history[this.state.historyIndex];
+        const resultImg = document.getElementById('resultImage');
+        const beforeImg = document.getElementById('beforeImage');
+        
+        if (resultImg && state.result) {
+          resultImg.src = state.result;
+        }
+        if (beforeImg && state.original) {
+          beforeImg.src = state.original;
+        }
+        
+        this.updateUndoRedoButtons();
+      }
     }
 
     showError(message) {
@@ -303,10 +423,21 @@
         if (result.success && result.resultImage) {
           this.state.resultURL = result.resultImage;
           
+          // Add to history
+          if (this.state.originalURL && result.resultImage) {
+            this.state.history.push({
+              original: this.state.originalURL,
+              result: result.resultImage
+            });
+            this.state.historyIndex = this.state.history.length - 1;
+            this.updateUndoRedoButtons();
+          }
+          
           // Hide upload section and show result section
           const uploadSection = document.getElementById('uploadSection');
           const resultSection = document.getElementById('resultSection');
           const resultImg = document.getElementById('resultImage');
+          const beforeImg = document.getElementById('beforeImage');
           
           console.log('📸 Setting result image:', {
             resultURL: result.resultImage,
@@ -318,7 +449,12 @@
             // First, ensure result section is visible
             resultSection.style.display = 'block';
             
-            // Set image source and force visibility
+            // Set before image (original)
+            if (beforeImg && this.state.originalURL) {
+              beforeImg.src = this.state.originalURL;
+            }
+            
+            // Set result image source and force visibility
             resultImg.src = result.resultImage;
             resultImg.style.display = 'block';
             resultImg.style.visibility = 'visible';
@@ -327,13 +463,16 @@
             resultImg.style.height = '100%';
             resultImg.style.objectFit = 'contain';
             
-            // Wait for image to load
+            // Show toggle button
+            const toggle = document.getElementById('beforeAfterToggle');
+            if (toggle) {
+              toggle.style.display = 'block';
+            }
+            
+            // Initialize toggle after images load
             resultImg.onload = () => {
               console.log('✅ Result image loaded successfully');
-              // Force a repaint to ensure visibility
-              resultImg.style.display = 'none';
-              resultImg.offsetHeight; // Trigger reflow
-              resultImg.style.display = 'block';
+              this.initBeforeAfterToggle();
             };
             resultImg.onerror = (e) => {
               console.error('❌ Result image failed to load:', e);
