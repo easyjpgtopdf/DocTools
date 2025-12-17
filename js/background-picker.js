@@ -105,23 +105,30 @@ class BackgroundPicker {
     ];
   }
 
-  init(resultImageElement) {
+  init(resultImageElement, originalURL = null) {
     this.resultImage = resultImageElement;
     
-    // Wait for image to load before saving original URL
-    if (this.resultImage) {
+    // Use provided originalURL if available, otherwise get from image
+    if (originalURL) {
+      this.originalResultURL = originalURL;
+      console.log('✅ Original result URL set from parameter:', this.originalResultURL.substring(0, 50) + '...');
+    } else if (this.resultImage) {
+      // Wait for image to load before saving original URL
       if (this.resultImage.complete && this.resultImage.naturalWidth > 0) {
         // Image already loaded
         this.originalResultURL = this.resultImage.src;
-        console.log('✅ Original result URL saved:', this.originalResultURL.substring(0, 50) + '...');
+        console.log('✅ Original result URL saved from image src:', this.originalResultURL.substring(0, 50) + '...');
       } else {
         // Wait for image to load
         this.resultImage.onload = () => {
-          this.originalResultURL = this.resultImage.src;
-          console.log('✅ Original result URL saved (after load):', this.originalResultURL.substring(0, 50) + '...');
+          // Only set if not already set
+          if (!this.originalResultURL) {
+            this.originalResultURL = this.resultImage.src;
+            console.log('✅ Original result URL saved (after load):', this.originalResultURL.substring(0, 50) + '...');
+          }
         };
         // Also set if already has src
-        if (this.resultImage.src) {
+        if (this.resultImage.src && !this.originalResultURL) {
           this.originalResultURL = this.resultImage.src;
         }
       }
@@ -132,7 +139,7 @@ class BackgroundPicker {
     this.bindTabEvents();
     this.bindCloseButton();
     
-    console.log('BackgroundPicker initialized');
+    console.log('BackgroundPicker initialized with originalResultURL:', this.originalResultURL ? 'SET' : 'NOT SET');
   }
 
   toggle() {

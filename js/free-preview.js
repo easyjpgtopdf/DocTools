@@ -566,9 +566,8 @@
               this.initBeforeAfterToggle();
               // Initialize/update background picker with the result image
               if (this.backgroundPicker) {
-                // Ensure originalResultURL is set with the transparent background image
-                this.backgroundPicker.originalResultURL = result.resultImage;
-                this.backgroundPicker.init(resultImg);
+                // Pass the original transparent background URL directly
+                this.backgroundPicker.init(resultImg, result.resultImage);
                 console.log('✅ Background picker initialized with original URL:', result.resultImage.substring(0, 50) + '...');
               }
             };
