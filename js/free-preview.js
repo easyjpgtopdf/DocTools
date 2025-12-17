@@ -29,6 +29,7 @@
         isProcessing: false,
         history: [],
         historyIndex: -1,
+        previewHistory: [], // Array to store processed images (max 6)
       };
       this.bindElements();
       this.bindEvents();
@@ -169,7 +170,7 @@
         this.el.fileInput.value = '';
       }
       
-      // Reset state
+      // Reset state (keep preview history until page refresh)
       this.state.file = null;
       this.state.previewURL = null;
       this.state.resultURL = null;
@@ -177,6 +178,7 @@
       this.state.isProcessing = false;
       this.state.history = [];
       this.state.historyIndex = -1;
+      // Note: previewHistory is kept for recovery
       
       // Reset UI
       this.resetUI();
