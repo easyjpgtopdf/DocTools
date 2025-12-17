@@ -30,9 +30,11 @@
         history: [],
         historyIndex: -1,
       };
+      this.backgroundPicker = null;
       this.bindElements();
       this.bindEvents();
       this.resetUI();
+      this.initBackgroundPicker();
     }
 
     bindElements() {
@@ -87,6 +89,46 @@
         newUploadBtn.addEventListener('click', () => {
           this.resetToUpload();
         });
+      }
+
+      // Background button - toggle background picker panel
+      const backgroundBtn = document.getElementById('backgroundBtn');
+      if (backgroundBtn) {
+        backgroundBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          
+          console.log('🎨 Background button clicked');
+          
+          // Check if result section is visible (user must have processed an image first)
+          const resultSection = document.getElementById('resultSection');
+          if (!resultSection || resultSection.style.display === 'none') {
+            alert('Please upload and process an image first before applying backgrounds.');
+            return false;
+          }
+          
+          if (this.backgroundPicker) {
+            console.log('✅ Background picker found, toggling panel...');
+            this.backgroundPicker.toggle();
+          } else {
+            console.warn('⚠️ Background picker not initialized yet, initializing now...');
+            this.initBackgroundPicker();
+            if (this.backgroundPicker) {
+              const resultImg = document.getElementById('resultImage');
+              if (resultImg && resultImg.src) {
+                this.backgroundPicker.init(resultImg);
+              }
+              setTimeout(() => {
+                this.backgroundPicker.toggle();
+              }, 100);
+            }
+          }
+          
+          return false;
+        });
+      } else {
+        console.warn('⚠️ Background button not found!');
       }
 
       // Wire drag-drop on dropzone
@@ -189,6 +231,40 @@
       // Reset UI
       this.resetUI();
       this.updateUndoRedoButtons();
+      
+      // Close background picker if open
+      if (this.backgroundPicker && this.backgroundPicker.isOpen) {
+        this.backgroundPicker.toggle();
+      }
+    }
+
+    initBackgroundPicker() {
+      // Initialize background picker after DOM is ready
+      // Wait a bit for scripts to load if needed
+      if (typeof window.BackgroundPicker !== 'undefined') {
+        this.backgroundPicker = new window.BackgroundPicker();
+        const resultImg = document.getElementById('resultImage');
+        if (resultImg && resultImg.src) {
+          this.backgroundPicker.init(resultImg);
+        }
+        console.log('✅ Background picker initialized');
+      } else if (typeof BackgroundPicker !== 'undefined') {
+        // Fallback: try without window prefix
+        this.backgroundPicker = new BackgroundPicker();
+        const resultImg = document.getElementById('resultImage');
+        if (resultImg && resultImg.src) {
+          this.backgroundPicker.init(resultImg);
+        }
+        console.log('✅ Background picker initialized (fallback)');
+      } else {
+        console.warn('⚠️ BackgroundPicker class not found. Make sure background-picker.js is loaded.');
+        // Try again after a short delay
+        setTimeout(() => {
+          if (typeof window.BackgroundPicker !== 'undefined') {
+            this.initBackgroundPicker();
+          }
+        }, 500);
+      }
     }
 
     initBeforeAfterToggle() {
@@ -481,6 +557,10 @@
             resultImg.onload = () => {
               console.log('✅ Result image loaded successfully');
               this.initBeforeAfterToggle();
+              // Initialize/update background picker with the result image
+              if (this.backgroundPicker) {
+                this.backgroundPicker.init(resultImg);
+              }
             };
             resultImg.onerror = (e) => {
               console.error('❌ Result image failed to load:', e);

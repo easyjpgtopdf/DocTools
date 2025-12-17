@@ -72,6 +72,21 @@
       .upload-card { padding: 32px 20px; }
       .hero .container > div[style*="grid"] { grid-template-columns: 1fr !important; }
     }
+    /* Background Picker Styles */
+    .bg-tab-button.active { background: linear-gradient(135deg, #4361ee, #3a0ca3) !important; color: #fff !important; box-shadow: 0 16px 30px rgba(67, 97, 238, 0.2); }
+    .bg-tab-button:hover { transform: translateY(-1px); }
+    .bg-thumb { position: relative; width: 60px; height: 60px; border-radius: 10px; overflow: hidden; cursor: pointer; border: 2px solid transparent; box-shadow: 0 10px 20px rgba(18, 30, 60, 0.12); transition: transform 0.2s, border-color 0.2s; }
+    .bg-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .bg-thumb span { position: absolute; bottom: 4px; left: 4px; right: 4px; text-align: center; background: rgba(15, 23, 42, 0.6); color: #fff; padding: 2px 4px; border-radius: 999px; font-size: 0.55rem; font-weight: 600; letter-spacing: 0.03em; line-height: 1.2; }
+    .bg-thumb:hover { transform: translateY(-3px); }
+    .bg-thumb.selected { border-color: var(--primary); }
+    .bg-color-chip { width: 100%; padding-bottom: 100%; border-radius: 16px; position: relative; cursor: pointer; border: 2px solid transparent; box-shadow: 0 12px 25px rgba(16, 32, 70, 0.08); }
+    .bg-color-chip .fill { position: absolute; inset: 0; border-radius: 14px; }
+    .bg-color-chip.selected { border-color: var(--primary); }
+    @media (max-width: 1200px) {
+      #resultSection > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+      #backgroundPickerPanel { width: 100% !important; max-width: 100% !important; position: relative !important; top: 0 !important; margin-top: 24px; }
+    }
   </style>
     
 
@@ -189,7 +204,7 @@
         <p style="font-size: 1rem; color: var(--muted);">Fast, private, and AI powered. Drop a file or use the button below to get started.</p>
       </div>
       <div style="display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; margin-bottom: 24px;">
-        <a href="background-style.html" class="btn btn-primary" style="background: linear-gradient(135deg, #4361ee, #3a0ca3); border: none; padding: 10px 20px; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3); font-size: 0.9rem; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;"><i class="fas fa-image"></i> Background</a>
+        <button id="backgroundBtn" type="button" class="btn btn-primary" style="background: linear-gradient(135deg, #4361ee, #3a0ca3); border: none; padding: 10px 20px; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px;"><i class="fas fa-image"></i> Background</button>
         <button id="undoBtn" class="btn btn-primary" style="background: #6c757d; border: none; padding: 10px 20px; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px;" disabled><i class="fas fa-undo"></i> Undo</button>
         <button id="redoBtn" class="btn btn-primary" style="background: #6c757d; border: none; padding: 10px 20px; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px;" disabled><i class="fas fa-redo"></i> Redo</button>
         <a href="background-workspace.html" class="btn btn-primary" style="background: linear-gradient(135deg, #f093fb, #f5576c); border: none; padding: 10px 20px; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3); font-size: 0.9rem; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;"><i class="fas fa-crown"></i> Premium HD Download</a>
@@ -214,24 +229,56 @@
         </div>
       </div>
       <div id="resultSection" style="display: none;">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; margin-bottom: 32px;">
-          <div style="display: flex; align-items: center; justify-content: center;">
-            <img src="images/bg-removal-city-demo.svg" alt="Background Removal Demo" style="max-width: 100%; height: auto; border-radius: 12px;">
-          </div>
-          <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
-            <div style="position: relative; width: 8cm; height: 8cm; min-width: 8cm; min-height: 8cm; max-width: 8cm; max-height: 8cm; border-radius: 24px; overflow: hidden; box-shadow: 0 24px 60px rgba(16, 35, 96, 0.12); background: #fff;">
-              <img id="resultImage" style="width: 100%; height: 100%; object-fit: contain; display: block; opacity: 1; transition: opacity 0.3s ease;" alt="Result">
-              <img id="beforeImage" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; display: none; opacity: 0; transition: opacity 0.3s ease;" alt="Before">
-              <div id="beforeAfterToggle" style="position: absolute; bottom: 12px; right: 12px; display: none; z-index: 10;">
-                <div style="background: rgba(255, 255, 255, 0.95); border-radius: 24px; padding: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 4px;">
-                  <span id="toggleText" style="padding: 0 12px; font-size: 0.85rem; font-weight: 600; color: #333; min-width: 50px; text-align: center;">After</span>
-                  <div style="position: relative; width: 80px; height: 32px; background: #e0e0e0; border-radius: 16px; cursor: pointer; transition: background 0.3s;">
-                    <div id="toggleSlider" style="position: absolute; top: 2px; right: 2px; width: 28px; height: 28px; background: #4361ee; border-radius: 50%; transition: transform 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transform: translateX(0);"></div>
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: start; margin-bottom: 32px; position: relative;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start;">
+            <div style="display: flex; align-items: center; justify-content: center;">
+              <img src="images/bg-removal-city-demo.svg" alt="Background Removal Demo" style="max-width: 100%; height: auto; border-radius: 12px;">
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+              <div style="position: relative; width: 8cm; height: 8cm; min-width: 8cm; min-height: 8cm; max-width: 8cm; max-height: 8cm; border-radius: 24px; overflow: hidden; box-shadow: 0 24px 60px rgba(16, 35, 96, 0.12); background: #fff;">
+                <img id="resultImage" style="width: 100%; height: 100%; object-fit: contain; display: block; opacity: 1; transition: opacity 0.3s ease;" alt="Result">
+                <img id="beforeImage" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; display: none; opacity: 0; transition: opacity 0.3s ease;" alt="Before">
+                <div id="beforeAfterToggle" style="position: absolute; bottom: 12px; right: 12px; display: none; z-index: 10;">
+                  <div style="background: rgba(255, 255, 255, 0.95); border-radius: 24px; padding: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 4px;">
+                    <span id="toggleText" style="padding: 0 12px; font-size: 0.85rem; font-weight: 600; color: #333; min-width: 50px; text-align: center;">After</span>
+                    <div style="position: relative; width: 80px; height: 32px; background: #e0e0e0; border-radius: 16px; cursor: pointer; transition: background 0.3s;">
+                      <div id="toggleSlider" style="position: absolute; top: 2px; right: 2px; width: 28px; height: 28px; background: #4361ee; border-radius: 50%; transition: transform 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transform: translateX(0);"></div>
+                    </div>
                   </div>
                 </div>
               </div>
+              <button id="newUploadBtn" class="btn btn-primary" style="background: linear-gradient(135deg, #4361ee, #3a0ca3); border: none; padding: 12px 24px; border-radius: 50%; width: 50px; height: 50px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3); font-size: 24px; color: #fff;" title="Upload New Image"><i class="fas fa-plus"></i></button>
             </div>
-            <button id="newUploadBtn" class="btn btn-primary" style="background: linear-gradient(135deg, #4361ee, #3a0ca3); border: none; padding: 12px 24px; border-radius: 50%; width: 50px; height: 50px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3); font-size: 24px; color: #fff;" title="Upload New Image"><i class="fas fa-plus"></i></button>
+          </div>
+          
+          <!-- Background Picker Panel -->
+          <div id="backgroundPickerPanel" style="display: none; position: sticky; top: 20px; width: 350px; max-height: calc(100vh - 40px); background: var(--surface); border-radius: 24px; padding: 24px; box-shadow: 0 24px 60px rgba(16, 35, 96, 0.15); border: 1px solid var(--border); overflow-y: auto; opacity: 0; transform: translateX(100%); transition: opacity 0.3s ease, transform 0.3s ease; z-index: 100;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+              <h2 style="font-size: 1.25rem; margin: 0; color: #121a4c; display: flex; align-items: center; gap: 10px;"><i class="fas fa-magic"></i> Pick a Background</h2>
+              <button id="closeBackgroundPicker" style="background: transparent; border: none; color: var(--muted); cursor: pointer; font-size: 1.2rem; padding: 4px 8px; border-radius: 4px; transition: color 0.2s, background 0.2s;" onmouseover="this.style.background='rgba(0,0,0,0.05)'; this.style.color='var(--dark)'" onmouseout="this.style.background='transparent'; this.style.color='var(--muted)'"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="bg-category-tabs" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">
+              <button class="bg-tab-button active" data-tab="magic" style="border-radius: 999px; padding: 8px 18px; border: 1px solid var(--border); background: rgba(67, 97, 238, 0.08); color: #243163; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, background 0.2s;">Magic Photos</button>
+              <button class="bg-tab-button" data-tab="photos" style="border-radius: 999px; padding: 8px 18px; border: 1px solid var(--border); background: rgba(67, 97, 238, 0.08); color: #243163; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, background 0.2s;">Cityscapes</button>
+              <button class="bg-tab-button" data-tab="tech" style="border-radius: 999px; padding: 8px 18px; border: 1px solid var(--border); background: rgba(67, 97, 238, 0.08); color: #243163; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, background 0.2s;">Tech & Infra</button>
+              <button class="bg-tab-button" data-tab="colors" style="border-radius: 999px; padding: 8px 18px; border: 1px solid var(--border); background: rgba(67, 97, 238, 0.08); color: #243163; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, background 0.2s;">Solid Colours</button>
+              <button class="bg-tab-button" data-tab="transparent" style="border-radius: 999px; padding: 8px 18px; border: 1px solid var(--border); background: rgba(67, 97, 238, 0.08); color: #243163; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, background 0.2s;">Transparent</button>
+            </div>
+            <div class="bg-tab-content" data-tab="magic">
+              <div class="bg-grid" id="magicGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 60px)); gap: 8px; justify-content: center; max-height: 400px; overflow-y: auto; padding-right: 6px;"></div>
+            </div>
+            <div class="bg-tab-content" data-tab="photos" hidden>
+              <div class="bg-grid" id="photoGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 60px)); gap: 8px; justify-content: center; max-height: 400px; overflow-y: auto; padding-right: 6px;"></div>
+            </div>
+            <div class="bg-tab-content" data-tab="tech" hidden>
+              <div class="bg-grid" id="techGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 60px)); gap: 8px; justify-content: center; max-height: 400px; overflow-y: auto; padding-right: 6px;"></div>
+            </div>
+            <div class="bg-tab-content" data-tab="colors" hidden>
+              <div class="bg-color-grid" id="colorGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap: 14px;"></div>
+            </div>
+            <div class="bg-tab-content" data-tab="transparent" hidden>
+              <p style="color: var(--muted); text-align: center; padding: 20px;">Set background to transparent and download instantly.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -271,6 +318,8 @@
 
 
     
+    <!-- Load background-picker.js first (not as module for global access), then free-preview.js -->
+    <script src="js/background-picker.js"></script>
     <script type="module" src="js/free-preview.js"></script>
 
     <footer>
