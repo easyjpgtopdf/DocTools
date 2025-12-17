@@ -183,7 +183,7 @@
         <h1 style="font-size: 2rem; color: var(--dark); margin-bottom: 8px;">Upload your image to remove the background</h1>
         <p style="font-size: 1rem; color: var(--muted);">Fast, private, and AI powered. Drop a file or use the button below to get started.</p>
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; margin-bottom: 32px;">
+      <div id="uploadSection">
         <div class="upload-card" id="dropzone">
         <i class="fas fa-cloud-upload-alt"></i>
         <h2>Drag & drop your JPG/PNG</h2>
@@ -193,21 +193,16 @@
         <div id="statusMessage" style="margin-top: 16px; min-height: 1.2rem; font-size: 0.92rem; color: var(--muted);"></div>
           <div id="errorBox" style="display: none; margin-top: 12px; padding: 12px; background: rgba(255,0,0,0.1); color: #cc0000; border-radius: 8px; font-size: 0.9rem;"></div>
         </div>
-        <div style="display: flex; align-items: center; justify-content: center;">
-          <img src="images/bg-removal-city-demo.svg" alt="Background Removal Demo" style="max-width: 100%; height: auto; border-radius: 12px;">
-        </div>
       </div>
-      <div style="margin-top: 24px; display: none;" id="previewContainer">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
-          <div>
-            <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--dark);">Original</h3>
-            <img id="previewImage" style="max-width: 100%; border-radius: 12px; display: none;" alt="Preview">
+      <div id="resultSection" style="display: none;">
+        <div style="position: relative; border-radius: 24px; overflow: hidden; box-shadow: 0 24px 60px rgba(16, 35, 96, 0.12); background: #fff;">
+          <img id="resultImage" style="max-width: 100%; width: 100%; height: auto; display: block;" alt="Result">
+          <div style="position: absolute; top: 16px; right: 16px; display: flex; gap: 8px;">
+            <button id="downloadBtn" class="btn btn-primary" style="background: rgba(67, 97, 238, 0.95); backdrop-filter: blur(10px); border: none; padding: 10px 20px; border-radius: 999px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" disabled><i class="fas fa-download"></i> Download</button>
           </div>
-          <div>
-            <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--dark);">Result</h3>
-            <img id="resultImage" style="max-width: 100%; border-radius: 12px; display: none;" alt="Result">
-            <button id="downloadBtn" class="btn btn-primary" style="margin-top: 12px; width: 100%;" disabled><i class="fas fa-download"></i> Download PNG</button>
-          </div>
+        </div>
+        <div style="text-align: center; margin-top: 24px;">
+          <button id="newUploadBtn" class="btn btn-primary" style="background: linear-gradient(135deg, #4361ee, #3a0ca3); border: none; padding: 16px 32px; border-radius: 50%; width: 60px; height: 60px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 8px 20px rgba(67, 97, 238, 0.3); font-size: 24px; color: #fff;" title="Upload New Image"><i class="fas fa-plus"></i></button>
         </div>
       </div>
       <div class="quick-help">
