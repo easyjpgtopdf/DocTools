@@ -1416,14 +1416,32 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
             
             # Apply feathering to alpha channel only
             # Premium: Adaptive feather based on MP
-            # Free Preview: NO FEATHER (disabled for free preview)
+            # Free Preview (human): very light feathering (strength=0.08) to soften edges
             if is_premium and SCIPY_AVAILABLE:
                 logger.info("Step 8.1: Applying premium adaptive feathering to alpha channel of composite...")
                 composite_alpha = apply_feathering(composite_alpha, feather_radius=3)
                 debug_stats.update(mask_stats("mask_after_feather_composite", composite_alpha))
+            elif (not is_premium) and (not is_document):
+                # Light feather only for human photos in free preview
+                try:
+                    logger.info("Step 8.1: Applying light feathering (strength=0.08) for free human preview...")
+                    alpha_np = np.array(composite_alpha).astype(np.float32)
+                    if CV2_AVAILABLE:
+                        blurred = cv2.GaussianBlur(alpha_np, (0, 0), 1.0)
+                        alpha_feather = alpha_np * (1.0 - 0.08) + blurred * 0.08
+                        alpha_feather = np.clip(alpha_feather, 0, 255).astype(np.uint8)
+                        composite_alpha = Image.fromarray(alpha_feather, mode='L')
+                    else:
+                        # Fallback using PIL blur radius 1, blend weight 0.08
+                        blurred = composite_alpha.filter(ImageFilter.GaussianBlur(radius=1))
+                        composite_alpha = Image.blend(composite_alpha, blurred, alpha=0.08)
+                    debug_stats.update(mask_stats("mask_after_feather_light_free", composite_alpha))
+                except Exception as feather_err:
+                    logger.warning(f"Light feathering failed (free preview): {feather_err}")
+                    debug_stats["feather_light_free_error"] = str(feather_err)
             else:
-                # Free preview: NO feathering (disabled)
-                logger.info("Step 8.1: Skipping feathering for free preview (disabled)")
+                # Free preview documents or when feather skipped
+                logger.info("Step 8.1: Skipping feathering for this mode")
                 debug_stats.update(mask_stats("mask_after_feather_skipped", composite_alpha))
             
             # Apply halo removal to alpha channel only
