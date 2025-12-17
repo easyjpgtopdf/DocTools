@@ -81,6 +81,14 @@
         });
       }
 
+      // New upload button
+      const newUploadBtn = document.getElementById('newUploadBtn');
+      if (newUploadBtn) {
+        newUploadBtn.addEventListener('click', () => {
+          this.resetToUpload();
+        });
+      }
+
       // Wire drag-drop on dropzone
       const dropzone = document.getElementById('dropzone');
       if (dropzone) {
