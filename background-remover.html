@@ -229,45 +229,14 @@
   <script type="module">
     console.log('FREE FLOW STARTED');
     
-    // Initialize Free Preview App
+    // Initialize Free Preview App - all events are handled in free-preview.js
     document.addEventListener('DOMContentLoaded', () => {
-      const dropzone = document.getElementById('dropzone');
-      const fileInput = document.getElementById('imageInput');
-      const previewContainer = document.getElementById('previewContainer');
-      
-      // Wire drag-drop
-      if (dropzone && fileInput) {
-        dropzone.addEventListener('dragover', (e) => {
-          e.preventDefault();
-          dropzone.classList.add('dragover');
-        });
-        
-        dropzone.addEventListener('dragleave', () => {
-          dropzone.classList.remove('dragover');
-        });
-        
-        dropzone.addEventListener('drop', (e) => {
-          e.preventDefault();
-          dropzone.classList.remove('dragover');
-          const file = e.dataTransfer.files?.[0];
-          if (file && window.freePreviewApp) {
-            window.freePreviewApp.handleFile(file);
-            if (previewContainer) previewContainer.style.display = 'block';
-          }
-        });
-        
-        dropzone.addEventListener('click', (e) => {
-          if (e.target.closest('button')) return;
-          fileInput.click();
-        });
+      // Footer year update
+      const footerYear = document.getElementById('footerYear');
+      if (footerYear) {
+        footerYear.textContent = new Date().getFullYear();
       }
     });
-    
-    // Fix: Check if footerYear element exists before setting textContent
-    const footerYear = document.getElementById('footerYear');
-    if (footerYear) {
-      footerYear.textContent = new Date().getFullYear();
-    }
   </script>
 
 

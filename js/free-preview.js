@@ -55,8 +55,51 @@
       }
 
       if (this.el.uploadButton && this.el.fileInput) {
-        this.el.uploadButton.addEventListener('click', () => {
-          this.el.fileInput.click();
+        this.el.uploadButton.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('🔘 Upload button clicked, triggering file input');
+          if (this.el.fileInput) {
+            this.el.fileInput.click();
+          }
+        });
+      }
+
+      // Wire drag-drop on dropzone
+      const dropzone = document.getElementById('dropzone');
+      if (dropzone) {
+        dropzone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.add('dragover');
+        });
+        
+        dropzone.addEventListener('dragleave', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.remove('dragover');
+        });
+        
+        dropzone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.remove('dragover');
+          const file = e.dataTransfer.files?.[0];
+          if (file) {
+            this.handleFile(file);
+            const previewContainer = document.getElementById('previewContainer');
+            if (previewContainer) previewContainer.style.display = 'block';
+          }
+        });
+        
+        // Click on dropzone to trigger file input (but not if clicking button)
+        dropzone.addEventListener('click', (e) => {
+          if (e.target.closest('button') || e.target.closest('#browseBtn')) {
+            return; // Button handles its own click
+          }
+          if (this.el.fileInput) {
+            this.el.fileInput.click();
+          }
         });
       }
 
