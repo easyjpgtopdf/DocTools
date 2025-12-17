@@ -37,7 +37,6 @@
       this.el = {
         fileInput: get(this.selectors.fileInput),
         uploadButton: get(this.selectors.uploadButton),
-        previewImage: get(this.selectors.previewImage),
         resultImage: get(this.selectors.resultImage),
         status: get(this.selectors.status),
         downloadButton: get(this.selectors.downloadButton),
