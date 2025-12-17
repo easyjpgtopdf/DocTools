@@ -230,22 +230,112 @@
         });
       }
 
-      if (this.el.downloadButton) {
-        this.el.downloadButton.addEventListener('click', () => {
-          // Get current image src (includes any applied background)
+      // Download button with dropdown
+      const downloadBtn = document.getElementById('downloadBtn');
+      const downloadDropdown = document.getElementById('downloadDropdown');
+      const downloadFree512 = document.getElementById('downloadFree512');
+      const downloadPremiumHD = document.getElementById('downloadPremiumHD');
+      
+      if (downloadBtn) {
+        // Toggle dropdown on click
+        downloadBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (downloadDropdown) {
+            const isVisible = downloadDropdown.style.display === 'block';
+            downloadDropdown.style.display = isVisible ? 'none' : 'block';
+            
+            // Close dropdown if clicking outside
+            if (!isVisible) {
+              setTimeout(() => {
+                document.addEventListener('click', function closeDropdown(e) {
+                  if (!downloadBtn.contains(e.target) && !downloadDropdown.contains(e.target)) {
+                    downloadDropdown.style.display = 'none';
+                    document.removeEventListener('click', closeDropdown);
+                  }
+                });
+              }, 10);
+            }
+          }
+        });
+      }
+      
+      // Free 512px download
+      if (downloadFree512) {
+        downloadFree512.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          if (downloadDropdown) {
+            downloadDropdown.style.display = 'none';
+          }
+          
+          // Get current image src (includes any applied background/edits)
           const resultImg = document.getElementById('resultImage');
           const downloadURL = resultImg && resultImg.src ? resultImg.src : this.state.resultURL;
           
           if (downloadURL) {
-            const a = document.createElement('a');
-            a.href = downloadURL;
-            a.download = 'background-removed.png';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            console.log('✅ Download triggered:', downloadURL.substring(0, 50) + '...');
+            try {
+              // Convert to blob if needed
+              const response = await fetch(downloadURL);
+              const blob = await response.blob();
+              const blobURL = URL.createObjectURL(blob);
+              
+              const a = document.createElement('a');
+              a.href = blobURL;
+              a.download = 'background-removed-512px.png';
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              
+              // Clean up blob URL
+              setTimeout(() => URL.revokeObjectURL(blobURL), 100);
+              
+              console.log('✅ Free 512px download triggered');
+            } catch (err) {
+              console.error('❌ Download failed:', err);
+              // Fallback to direct download
+              const a = document.createElement('a');
+              a.href = downloadURL;
+              a.download = 'background-removed-512px.png';
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+            }
           } else {
             console.warn('⚠️ No image to download');
+            alert('No image available to download. Please process an image first.');
+          }
+        });
+      }
+      
+      // Premium HD download - check auth and redirect
+      if (downloadPremiumHD) {
+        downloadPremiumHD.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          if (downloadDropdown) {
+            downloadDropdown.style.display = 'none';
+          }
+          
+          console.log('👑 Premium HD download clicked, checking authentication...');
+          
+          // Check if user is logged in
+          const isLoggedIn = await this.checkUserLoginStatus();
+          
+          if (isLoggedIn) {
+            console.log('✅ User is logged in, redirecting to workspace...');
+            // Save current image state to sessionStorage for workspace
+            if (this.state.resultURL) {
+              sessionStorage.setItem('bgRemovePreviewImage', this.state.resultURL);
+              sessionStorage.setItem('bgRemoveOriginalImage', this.state.originalURL || '');
+            }
+            window.location.href = 'background-workspace.html';
+          } else {
+            console.log('⚠️ User not logged in, redirecting to pricing...');
+            // Save current image state for after login
+            if (this.state.resultURL) {
+              sessionStorage.setItem('bgRemovePreviewImage', this.state.resultURL);
+              sessionStorage.setItem('bgRemoveOriginalImage', this.state.originalURL || '');
+              sessionStorage.setItem('redirectAfterLogin', 'background-workspace.html');
+            }
+            window.location.href = 'pricing.html';
           }
         });
       }
