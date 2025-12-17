@@ -531,6 +531,112 @@
         this.state.isProcessing = false;
       }
     }
+
+    updatePreviewHistory() {
+      const previewHistoryContainer = document.getElementById('previewHistory');
+      if (!previewHistoryContainer) return;
+      
+      // Clear existing preview buttons (except + button)
+      const existingPreviews = previewHistoryContainer.querySelectorAll('.preview-history-item');
+      existingPreviews.forEach(el => el.remove());
+      
+      // Add preview buttons for each item in history
+      this.state.previewHistory.forEach((item, index) => {
+        const previewBtn = document.createElement('button');
+        previewBtn.className = 'preview-history-item';
+        previewBtn.style.cssText = `
+          background: #fff;
+          border: 2px solid #4361ee;
+          border-radius: 8px;
+          width: 1cm;
+          height: 1cm;
+          min-width: 1cm;
+          min-height: 1cm;
+          padding: 2px;
+          cursor: pointer;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          overflow: hidden;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          transition: transform 0.2s, box-shadow 0.2s;
+        `;
+        previewBtn.title = `Recover image ${index + 1}`;
+        
+        // Add preview image
+        const previewImg = document.createElement('img');
+        previewImg.src = item.result;
+        previewImg.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 4px;';
+        previewImg.alt = `Preview ${index + 1}`;
+        previewBtn.appendChild(previewImg);
+        
+        // Click handler to recover image
+        previewBtn.addEventListener('click', () => {
+          this.recoverPreviewImage(item);
+        });
+        
+        // Hover effect
+        previewBtn.addEventListener('mouseenter', () => {
+          previewBtn.style.transform = 'scale(1.1)';
+          previewBtn.style.boxShadow = '0 4px 12px rgba(67, 97, 238, 0.4)';
+        });
+        previewBtn.addEventListener('mouseleave', () => {
+          previewBtn.style.transform = 'scale(1)';
+          previewBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+        });
+        
+        // Insert before + button
+        const newUploadBtn = document.getElementById('newUploadBtn');
+        if (newUploadBtn) {
+          previewHistoryContainer.insertBefore(previewBtn, newUploadBtn);
+        } else {
+          previewHistoryContainer.appendChild(previewBtn);
+        }
+      });
+    }
+
+    recoverPreviewImage(item) {
+      // Update current state
+      this.state.resultURL = item.result;
+      this.state.originalURL = item.original;
+      
+      // Update images
+      const resultImg = document.getElementById('resultImage');
+      const beforeImg = document.getElementById('beforeImage');
+      
+      if (resultImg && item.result) {
+        resultImg.src = item.result;
+      }
+      if (beforeImg && item.original) {
+        beforeImg.src = item.original;
+      }
+      
+      // Ensure result section is visible
+      const resultSection = document.getElementById('resultSection');
+      const uploadSection = document.getElementById('uploadSection');
+      
+      if (resultSection) {
+        resultSection.style.display = 'block';
+      }
+      if (uploadSection) {
+        uploadSection.style.display = 'none';
+      }
+      
+      // Show toggle
+      const toggle = document.getElementById('beforeAfterToggle');
+      if (toggle) {
+        toggle.style.display = 'block';
+      }
+      
+      // Enable download button
+      if (this.el.downloadButton) {
+        this.el.downloadButton.disabled = false;
+        this.el.downloadButton.style.opacity = '1';
+      }
+      
+      this.setStatus('✅ Image recovered successfully!');
+    }
   }
 
   // Auto-init if elements exist
