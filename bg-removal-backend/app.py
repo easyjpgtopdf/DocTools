@@ -1215,7 +1215,8 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
             
             # Level 1: Check if mask is weak
             # Less aggressive thresholds to avoid over-cutting (hands/edges)
-            weak_mask = (mask_nonzero_ratio < 0.005) or (mask_mean < 20)
+            # Further relaxed to preserve borders/hands
+            weak_mask = (mask_nonzero_ratio < 0.002) or (mask_mean < 15)
             
             if weak_mask:
                 logger.warning(f"⚠️ Weak mask detected (ratio={mask_nonzero_ratio:.4f}, mean={mask_mean:.2f}). Applying Level 2 recovery...")
@@ -1227,18 +1228,18 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                         # Convert to numpy array
                         mask_array = mask_np.astype(np.float32)
                         
-                        # Apply gaussian blur (radius=3)
-                        mask_blurred = cv2.GaussianBlur(mask_array, (7, 7), 3.0)  # kernel size 7 = radius 3
+                        # Apply gaussian blur (radius=2) gentler
+                        mask_blurred = cv2.GaussianBlur(mask_array, (5, 5), 2.0)  # kernel size 5 = radius 2
                         
-                        # Dilate (iterations=2)
+                        # Dilate (iterations=1) gentler
                         kernel = np.ones((5, 5), np.uint8)
-                        mask_dilated = cv2.dilate(mask_blurred.astype(np.uint8), kernel, iterations=2)
+                        mask_dilated = cv2.dilate(mask_blurred.astype(np.uint8), kernel, iterations=1)
                         
                         # Normalize to 0-255
                         mask_normalized = cv2.normalize(mask_dilated.astype(np.float32), None, 0, 255, cv2.NORM_MINMAX)
                         
-                        # Lower threshold: alpha = mask > 80 ? 255 : 0
-                        mask_recovered = np.where(mask_normalized > 80, 255, 0).astype(np.uint8)
+                        # Lower threshold: alpha = mask > 60 ? 255 : 0 (keep more edges)
+                        mask_recovered = np.where(mask_normalized > 60, 255, 0).astype(np.uint8)
                         
                         mask = Image.fromarray(mask_recovered, mode='L')
                         
@@ -1258,79 +1259,18 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                         })
                         
                         # Check if still weak after recovery
-                        if recovered_ratio < 0.01 or recovered_mean < 25:
-                            # Level 3: Emergency Preview Cut (center region)
-                            logger.warning("⚠️ Mask still weak after Level 2. Applying Level 3 emergency cut...")
-                            used_fallback_level = 2
-                            
-                            width, height = mask.size
-                            # Smaller margin to avoid cutting hands/edges
-                            margin_percent = 0.08  # 8% margin
-                            left = int(width * margin_percent)
-                            top = int(height * margin_percent)
-                            right = int(width * (1 - margin_percent))
-                            bottom = int(height * (1 - margin_percent))
-                            
-                            # Create center region mask
-                            emergency_mask = np.zeros((height, width), dtype=np.uint8)
-                            emergency_mask[top:bottom, left:right] = 255
-                            
-                            mask = Image.fromarray(emergency_mask, mode='L')
-                            emergency_mask_applied = True  # Mark that emergency mask is active
-                            logger.info(f"✅ Level 3 emergency cut applied: center region {left},{top} to {right},{bottom}")
-                            # Calculate emergency mask stats
-                            emergency_nonzero = np.count_nonzero(emergency_mask)
-                            emergency_ratio = emergency_nonzero / total_pixels if total_pixels > 0 else 0.0
-                            logger.info(f"🔍 FORENSIC: Emergency mask applied - nonzero ratio: {emergency_ratio:.6f} ({emergency_nonzero}/{total_pixels})")
-                            debug_stats.update({
-                                "recovery_level_3_applied": True,
-                                "emergency_center_box": f"{left},{top},{right},{bottom}",
-                                "preview_mode": "fallback",
-                                "emergency_mask_applied": True,
-                                "mask_nonzero_ratio_after_recovery": float(emergency_ratio)  # Track after emergency mask
-                            })
+                        # Instead of emergency cut (which chops hands/edges), stop here
+                        if recovered_ratio < 0.005 or recovered_mean < 20:
+                            logger.warning("⚠️ Mask still weak after Level 2. Skipping emergency cut to preserve edges/hands.")
+                            used_fallback_level = 1  # recovery attempted, but no hard cut
                     else:
-                        # If CV2 not available, skip to Level 3
-                        logger.warning("CV2 not available, skipping Level 2, applying Level 3 emergency cut...")
-                        used_fallback_level = 2
-                        
-                        width, height = mask.size
-                        margin_percent = 0.08
-                        left = int(width * margin_percent)
-                        top = int(height * margin_percent)
-                        right = int(width * (1 - margin_percent))
-                        bottom = int(height * (1 - margin_percent))
-                        
-                        emergency_mask = np.zeros((height, width), dtype=np.uint8)
-                        emergency_mask[top:bottom, left:right] = 255
-                        mask = Image.fromarray(emergency_mask, mode='L')
-                        emergency_mask_applied = True  # Mark that emergency mask is active
-                        debug_stats.update({
-                            "recovery_level_3_applied": True,
-                            "preview_mode": "fallback"
-                        })
+                        # CV2 not available; skip emergency cut to preserve edges
+                        logger.warning("CV2 not available, skipping recovery; no emergency cut to preserve edges/hands.")
+                        used_fallback_level = 0
                         
                 except Exception as recovery_err:
-                    logger.error(f"Mask recovery failed: {recovery_err}, applying Level 3 emergency cut...")
-                    used_fallback_level = 2
-                    
-                    # Fallback to Level 3
-                    width, height = mask.size
-                    margin_percent = 0.08
-                    left = int(width * margin_percent)
-                    top = int(height * margin_percent)
-                    right = int(width * (1 - margin_percent))
-                    bottom = int(height * (1 - margin_percent))
-                    
-                    emergency_mask = np.zeros((height, width), dtype=np.uint8)
-                    emergency_mask[top:bottom, left:right] = 255
-                    mask = Image.fromarray(emergency_mask, mode='L')
-                    emergency_mask_applied = True  # Mark that emergency mask is active
-                    debug_stats.update({
-                        "recovery_level_3_applied": True,
-                        "recovery_error": str(recovery_err),
-                        "preview_mode": "fallback"
-                    })
+                    logger.error(f"Mask recovery failed: {recovery_err}, skipping emergency cut to preserve edges/hands.")
+                    used_fallback_level = 0
             else:
                 logger.info("✅ Mask strength OK, no recovery needed")
             
@@ -1601,13 +1541,13 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
             alpha_arr = np.array(final_image.getchannel('A'))
             
             # Apply safety clamp ONLY on non-zero alpha pixels to avoid background halos
-            # Lower min_alpha to reduce visible borders
-            min_alpha = 4
+            # Lower min_alpha further to reduce visible borders
+            min_alpha = 2
             nonzero_mask = alpha_arr > 0
             alpha_arr[nonzero_mask] = np.maximum(alpha_arr[nonzero_mask], min_alpha)
             # Apply safety clamp ONLY on non-zero alpha pixels to avoid background halos
-            # Lower min_alpha to reduce visible borders
-            min_alpha = 4
+            # Lower min_alpha further to reduce visible borders
+            min_alpha = 2
             nonzero_mask = alpha_arr > 0
             alpha_arr[nonzero_mask] = np.maximum(alpha_arr[nonzero_mask], min_alpha)
             
