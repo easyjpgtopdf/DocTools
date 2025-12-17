@@ -433,6 +433,21 @@
             });
             this.state.historyIndex = this.state.history.length - 1;
             this.updateUndoRedoButtons();
+            
+            // Add to preview history (max 6 images)
+            const previewItem = {
+              id: Date.now(),
+              original: this.state.originalURL,
+              result: result.resultImage
+            };
+            
+            this.state.previewHistory.push(previewItem);
+            if (this.state.previewHistory.length > 6) {
+              this.state.previewHistory.shift(); // Remove oldest
+            }
+            
+            // Update preview history UI
+            this.updatePreviewHistory();
           }
           
           // Hide upload section and show result section
