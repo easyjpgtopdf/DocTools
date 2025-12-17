@@ -8,8 +8,8 @@
  */
 (function () {
   const DEFAULT_SELECTORS = {
-    fileInput: '#imageInput', // background-remover.html uses imageInput
-    uploadButton: '#browseBtn', // background-remover.html uses browseBtn
+    fileInput: '#imageInput',
+    uploadButton: '#browseBtn',
     resultImage: '#resultImage',
     status: '#statusMessage',
     downloadButton: '#downloadBtn',
