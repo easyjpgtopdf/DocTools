@@ -93,6 +93,51 @@
         });
       }
 
+      // Edit Image button - toggle image editor panel
+      const editImageBtn = document.getElementById('editImageBtn');
+      if (editImageBtn) {
+        editImageBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          
+          console.log('✏️ Edit Image button clicked');
+          
+          // Check if result section is visible (user must have processed an image first)
+          const resultSection = document.getElementById('resultSection');
+          if (!resultSection || resultSection.style.display === 'none') {
+            alert('Please upload and process an image first before editing.');
+            return false;
+          }
+          
+          // Close background picker if open
+          if (this.backgroundPicker && this.backgroundPicker.isOpen) {
+            this.backgroundPicker.toggle();
+          }
+          
+          if (this.imageEditor) {
+            console.log('✅ Image editor found, toggling panel...');
+            this.imageEditor.toggle();
+          } else {
+            console.warn('⚠️ Image editor not initialized yet, initializing now...');
+            this.initImageEditor();
+            if (this.imageEditor) {
+              const resultImg = document.getElementById('resultImage');
+              if (resultImg && resultImg.src) {
+                this.imageEditor.init(resultImg, this.state.resultURL || resultImg.src);
+              }
+              setTimeout(() => {
+                this.imageEditor.toggle();
+              }, 100);
+            }
+          }
+          
+          return false;
+        });
+      } else {
+        console.warn('⚠️ Edit Image button not found!');
+      }
+
       // Background button - toggle background picker panel
       const backgroundBtn = document.getElementById('backgroundBtn');
       if (backgroundBtn) {
@@ -110,6 +155,20 @@
             return false;
           }
           
+          // Close image editor if open
+          if (this.imageEditor && this.imageEditor.isOpen) {
+            this.imageEditor.toggle();
+          }
+          
+          // Update background picker's originalResultURL to use current edited image
+          if (this.backgroundPicker && this.imageEditor) {
+            const currentImageURL = this.imageEditor.getCurrentImageURL();
+            if (currentImageURL) {
+              this.backgroundPicker.originalResultURL = currentImageURL;
+              console.log('✅ Background picker updated with edited image URL');
+            }
+          }
+          
           if (this.backgroundPicker) {
             console.log('✅ Background picker found, toggling panel...');
             this.backgroundPicker.toggle();
@@ -119,7 +178,9 @@
             if (this.backgroundPicker) {
               const resultImg = document.getElementById('resultImage');
               if (resultImg && resultImg.src) {
-                this.backgroundPicker.init(resultImg);
+                // Use edited image if available
+                const currentURL = this.imageEditor ? this.imageEditor.getCurrentImageURL() : resultImg.src;
+                this.backgroundPicker.init(resultImg, currentURL);
               }
               setTimeout(() => {
                 this.backgroundPicker.toggle();
