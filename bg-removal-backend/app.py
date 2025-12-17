@@ -1214,7 +1214,8 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
             })
             
             # Level 1: Check if mask is weak
-            weak_mask = (mask_nonzero_ratio < 0.01) or (mask_mean < 25)
+            # Less aggressive thresholds to avoid over-cutting (hands/edges)
+            weak_mask = (mask_nonzero_ratio < 0.005) or (mask_mean < 20)
             
             if weak_mask:
                 logger.warning(f"⚠️ Weak mask detected (ratio={mask_nonzero_ratio:.4f}, mean={mask_mean:.2f}). Applying Level 2 recovery...")
@@ -1263,7 +1264,8 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                             used_fallback_level = 2
                             
                             width, height = mask.size
-                            margin_percent = 0.15  # 15% margin
+                            # Smaller margin to avoid cutting hands/edges
+                            margin_percent = 0.08  # 8% margin
                             left = int(width * margin_percent)
                             top = int(height * margin_percent)
                             right = int(width * (1 - margin_percent))
@@ -1293,7 +1295,7 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                         used_fallback_level = 2
                         
                         width, height = mask.size
-                        margin_percent = 0.15
+                        margin_percent = 0.08
                         left = int(width * margin_percent)
                         top = int(height * margin_percent)
                         right = int(width * (1 - margin_percent))
@@ -1314,7 +1316,7 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                     
                     # Fallback to Level 3
                     width, height = mask.size
-                    margin_percent = 0.15
+                    margin_percent = 0.08
                     left = int(width * margin_percent)
                     top = int(height * margin_percent)
                     right = int(width * (1 - margin_percent))
@@ -1599,11 +1601,13 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
             alpha_arr = np.array(final_image.getchannel('A'))
             
             # Apply safety clamp ONLY on non-zero alpha pixels to avoid background halos
-            min_alpha = 12
+            # Lower min_alpha to reduce visible borders
+            min_alpha = 4
             nonzero_mask = alpha_arr > 0
             alpha_arr[nonzero_mask] = np.maximum(alpha_arr[nonzero_mask], min_alpha)
             # Apply safety clamp ONLY on non-zero alpha pixels to avoid background halos
-            min_alpha = 12
+            # Lower min_alpha to reduce visible borders
+            min_alpha = 4
             nonzero_mask = alpha_arr > 0
             alpha_arr[nonzero_mask] = np.maximum(alpha_arr[nonzero_mask], min_alpha)
             
