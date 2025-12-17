@@ -54,9 +54,8 @@ def convert_numpy_types(obj):
         return int(obj)
     elif isinstance(obj, (np.floating, np.float_, np.float16, np.float32, np.float64)):
         return float(obj)
-    elif isinstance(obj, (np.bool_, np.bool)):
-        return bool(obj)
-    elif isinstance(obj, np.bool_):  # Additional check for bool_ specifically
+    # Note: np.bool was removed in numpy 2.x; use np.bool_ / bool instead
+    elif isinstance(obj, (np.bool_, bool)):
         return bool(obj)
     elif hasattr(obj, 'dtype') and obj.dtype == np.bool_:  # Check numpy scalar bool
         return bool(obj)
@@ -136,7 +135,7 @@ def is_document_image(image):
     
     is_doc_raw = doc_score >= 2  # At least 2 indicators
     # CRITICAL: Convert numpy bool_ to Python bool for JSON serialization
-    is_doc = bool(is_doc_raw) if isinstance(is_doc_raw, (np.bool_, np.bool)) else bool(is_doc_raw)
+    is_doc = bool(is_doc_raw) if isinstance(is_doc_raw, (np.bool_, bool)) else bool(is_doc_raw)
     
     if is_doc:
         logger.info(f"📄 DOCUMENT detected: aspect={aspect_ratio:.3f}, flat={is_flat}, white={is_white_heavy:.2f}, text={has_text_regions:.2f}, score={doc_score}/4")
@@ -1836,7 +1835,7 @@ def free_preview_bg():
             # Auto-detect if not provided
             is_document_raw = is_document_image(input_image)
             # CRITICAL: Convert numpy bool_ to Python bool to avoid JSON serialization errors
-            is_document = bool(is_document_raw) if isinstance(is_document_raw, (np.bool_, np.bool)) else bool(is_document_raw)
+            is_document = bool(is_document_raw) if isinstance(is_document_raw, (np.bool_, bool)) else bool(is_document_raw)
             if image_type:
                 logger.info(f"📷 Free Preview: Using provided imageType: {image_type} → Photo mode (auto-detected: {'document' if is_document else 'photo'})")
             else:
@@ -1883,7 +1882,7 @@ def free_preview_bg():
         always_return_debug = os.environ.get('FORENSIC_MODE', '0') == '1' or os.environ.get('DEBUG_RETURN_STATS', '0') == '1'
         
         # Ensure is_document is Python bool, not numpy bool_
-        is_document_python_bool = bool(is_document) if isinstance(is_document, (np.bool_, np.bool)) else bool(is_document)
+        is_document_python_bool = bool(is_document) if isinstance(is_document, (np.bool_, bool)) else bool(is_document)
         
         response_payload = {
             'success': True,
