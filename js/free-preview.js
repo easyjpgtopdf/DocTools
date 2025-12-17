@@ -204,22 +204,21 @@
     showPreview(file) {
       const url = URL.createObjectURL(file);
       this.state.previewURL = url;
-      if (this.el.previewImage) {
-        this.el.previewImage.src = url;
-        this.el.previewImage.style.display = 'block';
-        this.el.previewImage.style.opacity = '1';
+      this.state.originalURL = url;
+      
+      // Show instant preview in upload bar
+      const imagePreview = document.getElementById('imagePreview');
+      const previewImg = document.getElementById('previewImg');
+      const uploadContent = document.getElementById('uploadContent');
+      
+      if (imagePreview && previewImg) {
+        previewImg.src = url;
+        imagePreview.style.display = 'block';
+        if (uploadContent) {
+          uploadContent.style.opacity = '0.3';
+        }
       }
-      // Also set result image initially to show original
-      if (this.el.resultImage) {
-        this.el.resultImage.src = url;
-        this.el.resultImage.style.display = 'block';
-        this.el.resultImage.style.opacity = '1';
-      }
-      // Show preview container
-      const previewContainer = document.getElementById('previewContainer');
-      if (previewContainer) {
-        previewContainer.style.display = 'block';
-      }
+      
       // Auto-start processing after a small delay to ensure UI is updated
       setTimeout(() => {
         this.process(file).finally(() => {
