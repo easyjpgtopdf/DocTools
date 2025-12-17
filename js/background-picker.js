@@ -410,13 +410,54 @@ class BackgroundPicker {
       ctx.drawImage(foregroundImg, 0, 0);
 
       // Update result image
-      const dataURL = canvas.toDataURL('image/png');
-      this.resultImage.src = dataURL;
+      const finalDataURL = canvas.toDataURL('image/png');
+      this.resultImage.src = finalDataURL;
       this.currentBackground = color;
       
-      // Update download state in free-preview.js if available
+      // Save to history
       if (window.freePreviewApp && window.freePreviewApp.state) {
-        window.freePreviewApp.state.resultURL = dataURL;
+        const app = window.freePreviewApp;
+        // Update current history entry with background
+        if (app.state.history.length > 0 && app.state.historyIndex >= 0) {
+          app.state.history[app.state.historyIndex].background = {
+            type: 'color',
+            value: color,
+            label: label
+          };
+          app.state.history[app.state.historyIndex].result = finalDataURL;
+          app.state.resultURL = finalDataURL;
+        } else {
+          // Create new history entry
+          if (app.state.originalURL) {
+            if (app.state.historyIndex < app.state.history.length - 1) {
+              app.state.history = app.state.history.slice(0, app.state.historyIndex + 1);
+            }
+            
+            app.state.history.push({
+              original: app.state.originalURL,
+              result: finalDataURL,
+              edits: app.imageEditor ? {
+                imageSrc: foregroundSrc,
+                effects: { ...app.imageEditor.currentEffects },
+                filter: app.imageEditor.resultImage ? app.imageEditor.resultImage.style.filter || 'none' : 'none'
+              } : null,
+              background: {
+                type: 'color',
+                value: color,
+                label: label
+              }
+            });
+            
+            const maxHistorySteps = 4;
+            if (app.state.history.length > maxHistorySteps) {
+              app.state.history.shift();
+            } else {
+              app.state.historyIndex = app.state.history.length - 1;
+            }
+          }
+        }
+        
+        app.updateUndoRedoButtons();
       }
 
       console.log(`✅ Background color applied successfully: ${label}`);
