@@ -489,6 +489,67 @@
       }
     }
 
+    async checkUserLoginStatus() {
+      // Check Firebase auth if available
+      try {
+        // Method 1: Check Firebase Auth (Firebase v9+ modular SDK)
+        if (typeof window !== 'undefined') {
+          // Try to access auth from firebase-init.js or auth.js
+          const firebaseInit = await import('./firebase-init.js').catch(() => null);
+          if (firebaseInit && firebaseInit.auth) {
+            return new Promise((resolve) => {
+              firebaseInit.auth.onAuthStateChanged((user) => {
+                resolve(!!user);
+              });
+              // Timeout after 2 seconds
+              setTimeout(() => resolve(false), 2000);
+            });
+          }
+          
+          // Check if auth module is available globally
+          if (window.auth) {
+            return new Promise((resolve) => {
+              window.auth.onAuthStateChanged((user) => {
+                resolve(!!user);
+              });
+              setTimeout(() => resolve(false), 2000);
+            });
+          }
+        }
+        
+        // Method 2: Check sessionStorage for user data
+        const userId = sessionStorage.getItem('userId') || sessionStorage.getItem('user') || sessionStorage.getItem('userUid');
+        if (userId) {
+          return true;
+        }
+        
+        // Method 3: Check localStorage for auth token
+        const authToken = localStorage.getItem('authToken') || localStorage.getItem('token') || localStorage.getItem('firebaseAuthToken');
+        if (authToken) {
+          return true;
+        }
+        
+        // Method 4: Check for Firebase user in sessionStorage
+        const firebaseUser = sessionStorage.getItem('firebaseUser') || sessionStorage.getItem('firebase:authUser');
+        if (firebaseUser) {
+          try {
+            const userObj = JSON.parse(firebaseUser);
+            if (userObj && userObj.uid) {
+              return true;
+            }
+          } catch (e) {
+            // Not JSON, but exists
+            return true;
+          }
+        }
+        
+        return false;
+      } catch (err) {
+        console.warn('⚠️ Error checking login status:', err);
+        return false;
+      }
+    }
+
     showError(message) {
       if (!this.el.errorBox) return;
       // Parse JSON error messages if needed

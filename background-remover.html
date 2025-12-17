@@ -208,8 +208,26 @@
         <button id="backgroundBtn" type="button" class="btn btn-primary" style="background: linear-gradient(135deg, #4361ee, #3a0ca3); border: none; padding: 10px 20px; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px;"><i class="fas fa-image"></i> Background</button>
         <button id="undoBtn" class="btn btn-primary" style="background: #6c757d; border: none; padding: 10px 20px; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px;" disabled><i class="fas fa-undo"></i> Undo</button>
         <button id="redoBtn" class="btn btn-primary" style="background: #6c757d; border: none; padding: 10px 20px; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px;" disabled><i class="fas fa-redo"></i> Redo</button>
-        <a href="background-workspace.html" class="btn btn-primary" style="background: linear-gradient(135deg, #f093fb, #f5576c); border: none; padding: 10px 20px; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3); font-size: 0.9rem; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;"><i class="fas fa-crown"></i> Premium HD Download</a>
-        <button id="downloadBtn" class="btn btn-primary" style="background: rgba(67, 97, 238, 0.95); border: none; padding: 10px 20px; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px;" disabled><i class="fas fa-download"></i> Download</button>
+        <div style="position: relative; display: inline-block;">
+          <button id="downloadBtn" class="btn btn-primary" style="background: rgba(67, 97, 238, 0.95); border: none; padding: 10px 20px; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px;" disabled><i class="fas fa-download"></i> Download <i class="fas fa-chevron-down" style="font-size: 0.7rem; margin-left: 4px;"></i></button>
+          <div id="downloadDropdown" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 8px; background: #fff; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); min-width: 280px; z-index: 1000; overflow: hidden; border: 1px solid rgba(0,0,0,0.1);">
+            <button id="downloadFree512" style="width: 100%; padding: 16px 20px; border: none; background: transparent; text-align: left; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; gap: 12px; color: var(--dark); font-weight: 600; font-size: 0.95rem;" onmouseover="this.style.background='rgba(67, 97, 238, 0.05)'" onmouseout="this.style.background='transparent'">
+              <i class="fas fa-download" style="color: #4361ee; font-size: 1.1rem;"></i>
+              <div style="flex: 1;">
+                <div style="font-weight: 600; margin-bottom: 4px;">Download Free 512px</div>
+                <div style="font-size: 0.8rem; color: var(--muted); font-weight: 400;">Instant download • No login required</div>
+              </div>
+            </button>
+            <div style="height: 1px; background: rgba(0,0,0,0.1); margin: 0;"></div>
+            <button id="downloadPremiumHD" style="width: 100%; padding: 16px 20px; border: none; background: transparent; text-align: left; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; gap: 12px; color: var(--dark); font-weight: 600; font-size: 0.95rem;" onmouseover="this.style.background='rgba(245, 87, 108, 0.05)'" onmouseout="this.style.background='transparent'">
+              <i class="fas fa-crown" style="color: #f5576c; font-size: 1.1rem;"></i>
+              <div style="flex: 1;">
+                <div style="font-weight: 600; margin-bottom: 4px;">Premium Full HD</div>
+                <div style="font-size: 0.8rem; color: var(--muted); font-weight: 400;">4000×4000px • Login required</div>
+              </div>
+            </button>
+          </div>
+        </div>
       </div>
       <div id="uploadSection">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; margin-bottom: 32px;">
