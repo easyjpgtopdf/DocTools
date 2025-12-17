@@ -81,11 +81,20 @@
         });
       }
 
-      // New upload button
+      // New upload button - open file browser directly
       const newUploadBtn = document.getElementById('newUploadBtn');
       if (newUploadBtn) {
-        newUploadBtn.addEventListener('click', () => {
+        newUploadBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          // First reset to upload section
           this.resetToUpload();
+          // Then trigger file input after a small delay to ensure UI is ready
+          setTimeout(() => {
+            if (this.el.fileInput) {
+              this.el.fileInput.click();
+            }
+          }, 100);
         });
       }
 
