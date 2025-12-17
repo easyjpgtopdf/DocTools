@@ -312,20 +312,29 @@
           });
           
           if (resultImg && resultSection) {
-            // Set image source
+            // First, ensure result section is visible
+            resultSection.style.display = 'block';
+            
+            // Set image source and force visibility
             resultImg.src = result.resultImage;
             resultImg.style.display = 'block';
+            resultImg.style.visibility = 'visible';
             resultImg.style.opacity = '1';
-            
-            // Show result section
-            resultSection.style.display = 'block';
+            resultImg.style.width = '100%';
+            resultImg.style.height = '100%';
+            resultImg.style.objectFit = 'contain';
             
             // Wait for image to load
             resultImg.onload = () => {
               console.log('✅ Result image loaded successfully');
+              // Force a repaint to ensure visibility
+              resultImg.style.display = 'none';
+              resultImg.offsetHeight; // Trigger reflow
+              resultImg.style.display = 'block';
             };
             resultImg.onerror = (e) => {
               console.error('❌ Result image failed to load:', e);
+              console.error('Image src was:', result.resultImage);
               this.showError('Failed to load result image. Please try again.');
             };
           } else {
