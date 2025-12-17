@@ -42,6 +42,25 @@ except ImportError:
 
 app = Flask(__name__)
 
+# Helper function to convert numpy types to native Python types for JSON serialization
+def convert_numpy_types(obj):
+    """Recursively convert numpy types to native Python types"""
+    if isinstance(obj, dict):
+        return {key: convert_numpy_types(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy_types(item) for item in obj]
+    elif isinstance(obj, (np.integer, np.int_, np.intc, np.intp, np.int8, np.int16, np.int32, np.int64,
+                           np.uint8, np.uint16, np.uint32, np.uint64)):
+        return int(obj)
+    elif isinstance(obj, (np.floating, np.float_, np.float16, np.float32, np.float64)):
+        return float(obj)
+    elif isinstance(obj, (np.bool_, np.bool)):
+        return bool(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    else:
+        return obj
+
 # Initialize AI model sessions (lazy loading with optimization)
 session_512 = None
 session_hd = None
@@ -1858,21 +1877,24 @@ def free_preview_bg():
         response_payload = {
             'success': True,
             'resultImage': result_image,
-            'outputSize': output_size,
-            'outputSizeMB': round(output_size / (1024 * 1024), 2),
+            'outputSize': int(output_size),
+            'outputSizeMB': round(float(output_size) / (1024 * 1024), 2),
             'processedWith': 'Free Preview (512px GPU-accelerated, Optimized)',
-            'processingTime': round(processing_time, 2),
+            'processingTime': round(float(processing_time), 2),
             'previewMode': preview_mode,  # "normal" | "recovered" | "fallback"
             'optimizations': {
                 'model_tuning': 'BiRefNet' if not is_document else 'RobustMatting',
                 'feathering': False,
                 'halo_removal': False,
                 'composite': True,
-                'document_mode': is_document
+                'document_mode': bool(is_document)  # Explicitly convert to Python bool
             }
         }
         if always_return_debug:
-            response_payload['debugMask'] = debug_stats
+            response_payload['debugMask'] = convert_numpy_types(debug_stats)
+        
+        # Convert entire payload to ensure all numpy types are converted
+        response_payload = convert_numpy_types(response_payload)
 
         return jsonify(response_payload), 200
             
@@ -2124,19 +2146,22 @@ def premium_bg():
             response_payload = {
                 'success': True,
                 'resultImage': result_image,
-                'outputSize': output_size,
-                'outputSizeMB': round(output_size / (1024 * 1024), 2),
+                'outputSize': int(output_size),
+                'outputSizeMB': round(float(output_size) / (1024 * 1024), 2),
                 'processedWith': processed_with,
-                'processingTime': round(processing_time, 2),
-                'creditsUsed': credits_required,  # Actual credits deducted (backend only, not shown in UI)
+                'processingTime': round(float(processing_time), 2),
+                'creditsUsed': int(credits_required),  # Actual credits deducted (backend only, not shown in UI)
                 'creditsUsedDisplay': 1,  # Generic display for UI (user sees "1 credit used" or "X credits used")
-                'megapixels': round(final_megapixels, 2),
+                'megapixels': round(float(final_megapixels), 2),
                 'imageType': image_type,  # Return the imageType used
                 'pipelineType': pipeline_type,
-                'optimizations': optimizations
+                'optimizations': convert_numpy_types(optimizations)  # Convert optimizations dict
             }
             if os.environ.get('DEBUG_RETURN_STATS', '0') == '1':
-                response_payload['debugMask'] = debug_stats
+                response_payload['debugMask'] = convert_numpy_types(debug_stats)
+            
+            # Convert entire payload to ensure all numpy types are converted
+            response_payload = convert_numpy_types(response_payload)
 
             return jsonify(response_payload), 200
             
