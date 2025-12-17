@@ -200,14 +200,17 @@
         </div>
       </div>
       <div id="resultSection" style="display: none;">
-        <div style="position: relative; border-radius: 24px; overflow: hidden; box-shadow: 0 24px 60px rgba(16, 35, 96, 0.12); background: #fff;">
-          <img id="resultImage" style="max-width: 100%; width: 100%; height: auto; display: block;" alt="Result">
-          <div style="position: absolute; top: 16px; right: 16px; display: flex; gap: 8px;">
-            <button id="downloadBtn" class="btn btn-primary" style="background: rgba(67, 97, 238, 0.95); backdrop-filter: blur(10px); border: none; padding: 10px 20px; border-radius: 999px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" disabled><i class="fas fa-download"></i> Download</button>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; margin-bottom: 32px;">
+          <div style="display: flex; align-items: center; justify-content: center;">
+            <img src="images/bg-removal-city-demo.svg" alt="Background Removal Demo" style="max-width: 100%; height: auto; border-radius: 12px;">
           </div>
-        </div>
-        <div style="text-align: center; margin-top: 24px;">
-          <button id="newUploadBtn" class="btn btn-primary" style="background: linear-gradient(135deg, #4361ee, #3a0ca3); border: none; padding: 16px 32px; border-radius: 50%; width: 60px; height: 60px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 8px 20px rgba(67, 97, 238, 0.3); font-size: 24px; color: #fff;" title="Upload New Image"><i class="fas fa-plus"></i></button>
+          <div style="position: relative; width: 8cm; height: 8cm; min-width: 8cm; min-height: 8cm; max-width: 8cm; max-height: 8cm; border-radius: 24px; overflow: hidden; box-shadow: 0 24px 60px rgba(16, 35, 96, 0.12); background: #fff;">
+            <img id="resultImage" style="width: 100%; height: 100%; object-fit: contain; display: block;" alt="Result">
+            <div style="position: absolute; top: 8px; right: 8px; display: flex; gap: 8px; flex-direction: column;">
+              <button id="downloadBtn" class="btn btn-primary" style="background: rgba(67, 97, 238, 0.95); backdrop-filter: blur(10px); border: none; padding: 8px 16px; border-radius: 999px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 0.85rem;" disabled><i class="fas fa-download"></i> Download</button>
+              <button id="newUploadBtn" class="btn btn-primary" style="background: linear-gradient(135deg, #4361ee, #3a0ca3); border: none; padding: 8px 16px; border-radius: 50%; width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3); font-size: 18px; color: #fff;" title="Upload New Image"><i class="fas fa-plus"></i></button>
+            </div>
+          </div>
         </div>
       </div>
       <div class="quick-help">
