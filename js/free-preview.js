@@ -135,12 +135,22 @@
       // Hide result section and show upload section
       const uploadSection = document.getElementById('uploadSection');
       const resultSection = document.getElementById('resultSection');
+      const imagePreview = document.getElementById('imagePreview');
+      const uploadContent = document.getElementById('uploadContent');
       
       if (uploadSection) {
         uploadSection.style.display = 'block';
       }
       if (resultSection) {
         resultSection.style.display = 'none';
+      }
+      
+      // Hide preview image and restore upload content
+      if (imagePreview) {
+        imagePreview.style.display = 'none';
+      }
+      if (uploadContent) {
+        uploadContent.style.opacity = '1';
       }
       
       // Reset file input
@@ -313,7 +323,7 @@
             this.el.downloadButton.style.opacity = '1';
           }
           
-          this.setStatus('✅ Free preview complete! Background removed successfully.');
+          this.setStatus('✅ Background removed successfully!');
           this.showError(''); // Clear any errors
           console.log('✅ Processing complete, result URL:', result.resultImage);
         } else {

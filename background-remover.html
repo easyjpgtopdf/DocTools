@@ -33,6 +33,11 @@
     .dropdown-content a { display: block; padding: 10px 20px; color: var(--dark); text-decoration: none; }
     .hero { padding: 40px 0; }
     .hero .container { max-width: 1200px; }
+    @media (max-width: 768px) {
+      .hero .container > div[style*="grid"] { grid-template-columns: 1fr !important; gap: 24px !important; }
+      .hero .container > div[style*="grid"] > div:first-child { order: 2; }
+      .hero .container > div[style*="grid"] > div:last-child { order: 1; }
+    }
     .upload-card { background: var(--surface); border-radius: 24px; padding: 36px 28px; box-shadow: 0 24px 60px rgba(16, 35, 96, 0.12); border: 1px dashed rgba(67, 97, 238, 0.25); display: flex; flex-direction: column; gap: 16px; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; text-align: center; position: relative; }
     .upload-card i { font-size: 52px; color: var(--primary); }
     .upload-card h2 { font-size: 1.3rem; color: #141d4f; }
