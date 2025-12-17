@@ -403,25 +403,44 @@
       const undoBtn = document.getElementById('undoBtn');
       const redoBtn = document.getElementById('redoBtn');
       
+      console.log('🔄 Updating undo/redo buttons:', {
+        historyLength: this.state.history.length,
+        historyIndex: this.state.historyIndex,
+        canUndo: this.state.historyIndex > 0,
+        canRedo: this.state.historyIndex < this.state.history.length - 1
+      });
+      
       if (undoBtn) {
-        undoBtn.disabled = this.state.historyIndex <= 0;
+        const canUndo = this.state.historyIndex > 0 && this.state.history.length > 0;
+        undoBtn.disabled = !canUndo;
+        console.log('Undo button:', canUndo ? 'ENABLED' : 'DISABLED');
       }
       if (redoBtn) {
-        redoBtn.disabled = this.state.historyIndex >= this.state.history.length - 1;
+        const canRedo = this.state.historyIndex < this.state.history.length - 1;
+        redoBtn.disabled = !canRedo;
+        console.log('Redo button:', canRedo ? 'ENABLED' : 'DISABLED');
       }
     }
 
     undo() {
-      if (this.state.historyIndex > 0) {
+      console.log('⏪ Undo clicked, current index:', this.state.historyIndex, 'history length:', this.state.history.length);
+      if (this.state.historyIndex > 0 && this.state.history.length > 0) {
         this.state.historyIndex--;
         this.applyHistoryState();
+        console.log('✅ Undo applied, new index:', this.state.historyIndex);
+      } else {
+        console.warn('⚠️ Cannot undo - at beginning of history or no history');
       }
     }
 
     redo() {
+      console.log('⏩ Redo clicked, current index:', this.state.historyIndex, 'history length:', this.state.history.length);
       if (this.state.historyIndex < this.state.history.length - 1) {
         this.state.historyIndex++;
         this.applyHistoryState();
+        console.log('✅ Redo applied, new index:', this.state.historyIndex);
+      } else {
+        console.warn('⚠️ Cannot redo - at end of history');
       }
     }
 
