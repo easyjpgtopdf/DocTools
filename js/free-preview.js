@@ -93,8 +93,6 @@
           const file = e.dataTransfer.files?.[0];
           if (file) {
             this.handleFile(file);
-            const previewContainer = document.getElementById('previewContainer');
-            if (previewContainer) previewContainer.style.display = 'block';
           }
         });
         
