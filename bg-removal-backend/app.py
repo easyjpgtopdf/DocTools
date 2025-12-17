@@ -56,6 +56,10 @@ def convert_numpy_types(obj):
         return float(obj)
     elif isinstance(obj, (np.bool_, np.bool)):
         return bool(obj)
+    elif isinstance(obj, np.bool_):  # Additional check for bool_ specifically
+        return bool(obj)
+    elif hasattr(obj, 'dtype') and obj.dtype == np.bool_:  # Check numpy scalar bool
+        return bool(obj)
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
     else:
@@ -130,7 +134,9 @@ def is_document_image(image):
     indicators = [aspect_match, is_flat, is_white_heavy, has_text_regions]
     doc_score = sum(indicators)
     
-    is_doc = doc_score >= 2  # At least 2 indicators
+    is_doc_raw = doc_score >= 2  # At least 2 indicators
+    # CRITICAL: Convert numpy bool_ to Python bool for JSON serialization
+    is_doc = bool(is_doc_raw) if isinstance(is_doc_raw, (np.bool_, np.bool)) else bool(is_doc_raw)
     
     if is_doc:
         logger.info(f"📄 DOCUMENT detected: aspect={aspect_ratio:.3f}, flat={is_flat}, white={is_white_heavy:.2f}, text={has_text_regions:.2f}, score={doc_score}/4")
@@ -825,10 +831,10 @@ def process_premium_document_pipeline(input_image, birefnet_session):
     binary_alpha_uint8 = (binary_alpha * 255).astype(np.uint8)
     binary_mask = Image.fromarray(binary_alpha_uint8, mode='L')
     
-    debug_stats["binary_alpha_threshold"] = 0.5
-    debug_stats["maxmatting_disabled"] = True
-    debug_stats["feather_disabled"] = True
-    debug_stats["halo_removal_disabled"] = True
+    debug_stats["binary_alpha_threshold"] = float(0.5)
+    debug_stats["maxmatting_disabled"] = bool(True)  # Explicit Python bool
+    debug_stats["feather_disabled"] = bool(True)  # Explicit Python bool
+    debug_stats["halo_removal_disabled"] = bool(True)  # Explicit Python bool
     
     # Step 3: Composite Directly (no post-processing)
     logger.info("Step 3: Compositing RGB + binary alpha (direct, no post-processing)...")
@@ -841,8 +847,8 @@ def process_premium_document_pipeline(input_image, birefnet_session):
     rgba_composite.paste(rgb_image, (0, 0))
     rgba_composite.putalpha(binary_mask)
     
-    debug_stats["composite_completed"] = True
-    debug_stats["pipeline_type"] = "document_safe"
+    debug_stats["composite_completed"] = bool(True)  # Explicit Python bool
+    debug_stats["pipeline_type"] = str("document_safe")  # Explicit string
     
     # Final alpha check
     final_alpha = np.array(rgba_composite.getchannel('A'))
@@ -971,7 +977,7 @@ def process_premium_hd_pipeline(input_image, birefnet_session, maxmatting_sessio
     if alpha_percent < 1.0:
         logger.warning(f"⚠️ MaxMatting alpha too low ({alpha_percent:.2f}%), falling back to BiRefNet mask")
         refined_alpha = mask
-        debug_stats["maxmatting_fallback"] = True
+        debug_stats["maxmatting_fallback"] = bool(True)
     
     # Step 4: Composite RGB + Alpha FIRST (CRITICAL ORDER)
     logger.info("Step 4: Compositing RGB + refined alpha...")
@@ -984,7 +990,7 @@ def process_premium_hd_pipeline(input_image, birefnet_session, maxmatting_sessio
     rgba_composite.paste(rgb_image, (0, 0))
     rgba_composite.putalpha(refined_alpha)
     
-    debug_stats["composite_completed"] = True
+    debug_stats["composite_completed"] = bool(True)
     
     # Step 5: Adaptive Feather (Alpha only, based on MP)
     # Document preset: max 2-3px feather, no aggressive halo
@@ -1000,8 +1006,8 @@ def process_premium_hd_pipeline(input_image, birefnet_session, maxmatting_sessio
             is_document=True  # Forces max 2-3px feather
         )
         rgba_composite.putalpha(feathered_alpha)
-        debug_stats["adaptive_feather_applied"] = True
-        debug_stats["document_preset"] = True
+        debug_stats["adaptive_feather_applied"] = bool(True)
+        debug_stats["document_preset"] = bool(True)
         
         # Step 6: Reduced Halo Removal for documents
         logger.info("Step 6: Applying reduced halo removal (document preset)...")
@@ -1012,7 +1018,7 @@ def process_premium_hd_pipeline(input_image, birefnet_session, maxmatting_sessio
             is_document=True  # Gentle suppression for documents
         )
         rgba_composite.putalpha(cleaned_alpha)
-        debug_stats["halo_removal_applied"] = True
+        debug_stats["halo_removal_applied"] = bool(True)
         debug_stats["halo_strength"] = "reduced_document"
     else:
         # Human photo: Full feather + strong halo
@@ -1036,7 +1042,7 @@ def process_premium_hd_pipeline(input_image, birefnet_session, maxmatting_sessio
             is_document=False  # Strong suppression for photos
         )
         rgba_composite.putalpha(cleaned_alpha)
-        debug_stats["halo_removal_applied"] = True
+        debug_stats["halo_removal_applied"] = bool(True)
         debug_stats["halo_strength"] = "strong_photo"
     
     # Step 7: Color Decontamination
@@ -1046,7 +1052,7 @@ def process_premium_hd_pipeline(input_image, birefnet_session, maxmatting_sessio
         rgb_image, 
         strength=0.6
     )
-    debug_stats["color_decontamination_applied"] = True
+    debug_stats["color_decontamination_applied"] = bool(True)
     
     # Step 8: Optional Mild Edge Sharpening (for photos only)
     if CV2_AVAILABLE:
@@ -1068,10 +1074,10 @@ def process_premium_hd_pipeline(input_image, birefnet_session, maxmatting_sessio
             final_rgba[:, :, :3] = sharpened
             
             final_image = Image.fromarray(final_rgba, mode='RGBA')
-            debug_stats["edge_sharpening_applied"] = True
+            debug_stats["edge_sharpening_applied"] = bool(True)
         except Exception as e:
             logger.warning(f"Edge sharpening failed: {e}, using image without sharpening")
-            debug_stats["edge_sharpening_applied"] = False
+            debug_stats["edge_sharpening_applied"] = bool(False)
     else:
         debug_stats["edge_sharpening_applied"] = False
     
@@ -1170,7 +1176,7 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
     mask_empty = (nonzero == 0)
     if mask_empty:
         logger.warning("Mask appears empty; will use raw rembg output with alpha clamp")
-        debug_stats["mask_empty"] = True
+        debug_stats["mask_empty"] = bool(True)  # Explicit Python bool
         # Don't return early - let it go through alpha clamp at the end
     
     # Track mask stats helper
@@ -1419,7 +1425,7 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
         
         if alpha_too_low:
             logger.warning(f"⚠️ Alpha too low ({alpha_percent:.2f}%) - falling back to raw BiRefNet output (no feather/halo)")
-            debug_stats["fallback_to_raw"] = True
+            debug_stats["fallback_to_raw"] = bool(True)
             # Use raw rembg output as final image (will apply alpha clamp at the end for free preview)
             final_image = output_image
             # Skip all post-processing steps, go directly to final alpha clamp
@@ -1507,7 +1513,7 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                     binary_alpha_img = Image.fromarray(binary_alpha_uint8, mode='L')
                     final_image.putalpha(binary_alpha_img)
                     logger.info("✅ Document safe mode: Binary alpha applied (text fully visible)")
-                    debug_stats["document_binary_alpha"] = True
+                    debug_stats["document_binary_alpha"] = bool(True)
                 except Exception as doc_binary_err:
                     logger.warning(f"Document binary alpha conversion failed: {doc_binary_err}")
             
@@ -1563,7 +1569,7 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
             logger.warning(f"🔍 FORENSIC: Composite execution path: RAW_OUTPUT_FALLBACK (mask_empty={mask_empty}, alpha_too_low={alpha_too_low})")
             logger.warning(f"🔍 FORENSIC: WARNING - Raw output path taken (but will have alpha clamp applied)")
             debug_stats["composite_execution_path"] = "RAW_OUTPUT_FALLBACK"
-            debug_stats["raw_output_path_taken"] = True
+            debug_stats["raw_output_path_taken"] = bool(True)
             final_image = output_image
             # Ensure it has alpha channel
             if final_image.mode != 'RGBA':
@@ -1828,7 +1834,9 @@ def free_preview_bg():
             logger.info(f"📄 Free Preview: Using provided imageType: {image_type} → Document mode")
         else:
             # Auto-detect if not provided
-            is_document = is_document_image(input_image)
+            is_document_raw = is_document_image(input_image)
+            # CRITICAL: Convert numpy bool_ to Python bool to avoid JSON serialization errors
+            is_document = bool(is_document_raw) if isinstance(is_document_raw, (np.bool_, np.bool)) else bool(is_document_raw)
             if image_type:
                 logger.info(f"📷 Free Preview: Using provided imageType: {image_type} → Photo mode (auto-detected: {'document' if is_document else 'photo'})")
             else:
@@ -1874,6 +1882,9 @@ def free_preview_bg():
         # This allows forensic validation without changing logic
         always_return_debug = os.environ.get('FORENSIC_MODE', '0') == '1' or os.environ.get('DEBUG_RETURN_STATS', '0') == '1'
         
+        # Ensure is_document is Python bool, not numpy bool_
+        is_document_python_bool = bool(is_document) if isinstance(is_document, (np.bool_, np.bool)) else bool(is_document)
+        
         response_payload = {
             'success': True,
             'resultImage': result_image,
@@ -1881,20 +1892,32 @@ def free_preview_bg():
             'outputSizeMB': round(float(output_size) / (1024 * 1024), 2),
             'processedWith': 'Free Preview (512px GPU-accelerated, Optimized)',
             'processingTime': round(float(processing_time), 2),
-            'previewMode': preview_mode,  # "normal" | "recovered" | "fallback"
+            'previewMode': str(preview_mode),  # Ensure string
             'optimizations': {
-                'model_tuning': 'BiRefNet' if not is_document else 'RobustMatting',
-                'feathering': False,
-                'halo_removal': False,
-                'composite': True,
-                'document_mode': bool(is_document)  # Explicitly convert to Python bool
+                'model_tuning': str('BiRefNet' if not is_document_python_bool else 'RobustMatting'),
+                'feathering': bool(False),  # Explicit Python bool
+                'halo_removal': bool(False),  # Explicit Python bool
+                'composite': bool(True),  # Explicit Python bool
+                'document_mode': is_document_python_bool  # Already converted to Python bool
             }
         }
         if always_return_debug:
+            # Convert debug_stats recursively to ensure all numpy types are converted
             response_payload['debugMask'] = convert_numpy_types(debug_stats)
         
-        # Convert entire payload to ensure all numpy types are converted
+        # Convert entire payload to ensure all numpy types are converted (recursive)
         response_payload = convert_numpy_types(response_payload)
+        
+        # Final safety check: Convert any remaining numpy types in nested structures
+        # This is a belt-and-suspenders approach
+        try:
+            import json
+            # Try to serialize to catch any remaining non-serializable types
+            json.dumps(response_payload)
+        except (TypeError, ValueError) as e:
+            logger.warning(f"JSON serialization check failed, applying additional conversion: {e}")
+            # Apply conversion again if needed
+            response_payload = convert_numpy_types(response_payload)
 
         return jsonify(response_payload), 200
             
