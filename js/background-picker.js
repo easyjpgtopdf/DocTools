@@ -270,7 +270,16 @@ class BackgroundPicker {
       canvas.height = foregroundImg.height;
       const ctx = canvas.getContext('2d');
 
-      // Draw background
+      console.log('🖼️ Compositing images:', {
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+        bgWidth: this.backgroundImage.width,
+        bgHeight: this.backgroundImage.height,
+        fgWidth: foregroundImg.width,
+        fgHeight: foregroundImg.height
+      });
+
+      // Draw background (scale to fit canvas)
       ctx.drawImage(this.backgroundImage, 0, 0, canvas.width, canvas.height);
       
       // Draw foreground on top
@@ -286,22 +295,31 @@ class BackgroundPicker {
         window.freePreviewApp.state.resultURL = dataURL;
       }
 
-      console.log(`✅ Background applied: ${label}`);
+      console.log(`✅ Background applied successfully: ${label}`);
     } catch (err) {
-      console.error('Failed to apply background image:', err);
+      console.error('❌ Failed to apply background image:', err);
+      alert('Failed to apply background. Please try another background or check console for details.');
     }
   }
 
   async applyBackgroundColor(color, label) {
     if (!this.resultImage || !this.originalResultURL) {
-      console.error('No result image available');
+      console.error('❌ No result image available:', {
+        hasResultImage: !!this.resultImage,
+        hasOriginalURL: !!this.originalResultURL
+      });
       return;
     }
 
+    console.log('🎨 Applying background color:', label);
+
     try {
       // Load foreground (result image with transparent background)
+      console.log('📥 Loading foreground image (original result)...');
       const foregroundImg = new Image();
-      foregroundImg.crossOrigin = 'anonymous';
+      if (!this.originalResultURL.startsWith('data:')) {
+        foregroundImg.crossOrigin = 'anonymous';
+      }
       await this.loadImage(foregroundImg, this.originalResultURL);
 
       // Create canvas for composition
@@ -338,16 +356,24 @@ class BackgroundPicker {
         window.freePreviewApp.state.resultURL = dataURL;
       }
 
-      console.log(`✅ Background color applied: ${label}`);
+      console.log(`✅ Background color applied successfully: ${label}`);
     } catch (err) {
-      console.error('Failed to apply background color:', err);
+      console.error('❌ Failed to apply background color:', err);
+      alert('Failed to apply background color. Please try again or check console for details.');
     }
   }
 
   loadImage(img, src) {
     return new Promise((resolve, reject) => {
       img.onload = () => resolve();
-      img.onerror = () => reject(new Error('Failed to load image'));
+      img.onerror = (err) => {
+        console.error('❌ Image load failed:', src.substring(0, 100), err);
+        reject(new Error('Failed to load image: ' + src.substring(0, 50)));
+      };
+      // Set crossOrigin before src to avoid CORS issues
+      if (!src.startsWith('data:')) {
+        img.crossOrigin = 'anonymous';
+      }
       img.src = src;
     });
   }
