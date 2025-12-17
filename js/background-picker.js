@@ -107,8 +107,24 @@ class BackgroundPicker {
 
   init(resultImageElement) {
     this.resultImage = resultImageElement;
-    if (this.resultImage && this.resultImage.src) {
-      this.originalResultURL = this.resultImage.src;
+    
+    // Wait for image to load before saving original URL
+    if (this.resultImage) {
+      if (this.resultImage.complete && this.resultImage.naturalWidth > 0) {
+        // Image already loaded
+        this.originalResultURL = this.resultImage.src;
+        console.log('✅ Original result URL saved:', this.originalResultURL.substring(0, 50) + '...');
+      } else {
+        // Wait for image to load
+        this.resultImage.onload = () => {
+          this.originalResultURL = this.resultImage.src;
+          console.log('✅ Original result URL saved (after load):', this.originalResultURL.substring(0, 50) + '...');
+        };
+        // Also set if already has src
+        if (this.resultImage.src) {
+          this.originalResultURL = this.resultImage.src;
+        }
+      }
     }
     
     this.renderGrids();
@@ -254,10 +270,16 @@ class BackgroundPicker {
       ctx.drawImage(foregroundImg, 0, 0);
 
       // Update result image
-      this.resultImage.src = canvas.toDataURL('image/png');
+      const dataURL = canvas.toDataURL('image/png');
+      this.resultImage.src = dataURL;
       this.currentBackground = imageUrl;
+      
+      // Update download state in free-preview.js if available
+      if (window.freePreviewApp && window.freePreviewApp.state) {
+        window.freePreviewApp.state.resultURL = dataURL;
+      }
 
-      console.log(`Background applied: ${label}`);
+      console.log(`✅ Background applied: ${label}`);
     } catch (err) {
       console.error('Failed to apply background image:', err);
     }
@@ -300,10 +322,16 @@ class BackgroundPicker {
       ctx.drawImage(foregroundImg, 0, 0);
 
       // Update result image
-      this.resultImage.src = canvas.toDataURL('image/png');
+      const dataURL = canvas.toDataURL('image/png');
+      this.resultImage.src = dataURL;
       this.currentBackground = color;
+      
+      // Update download state in free-preview.js if available
+      if (window.freePreviewApp && window.freePreviewApp.state) {
+        window.freePreviewApp.state.resultURL = dataURL;
+      }
 
-      console.log(`Background color applied: ${label}`);
+      console.log(`✅ Background color applied: ${label}`);
     } catch (err) {
       console.error('Failed to apply background color:', err);
     }

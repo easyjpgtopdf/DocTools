@@ -169,13 +169,20 @@
 
       if (this.el.downloadButton) {
         this.el.downloadButton.addEventListener('click', () => {
-          if (this.state.resultURL) {
+          // Get current image src (includes any applied background)
+          const resultImg = document.getElementById('resultImage');
+          const downloadURL = resultImg && resultImg.src ? resultImg.src : this.state.resultURL;
+          
+          if (downloadURL) {
             const a = document.createElement('a');
-            a.href = this.state.resultURL;
+            a.href = downloadURL;
             a.download = 'background-removed.png';
             document.body.appendChild(a);
             a.click();
             a.remove();
+            console.log('✅ Download triggered:', downloadURL.substring(0, 50) + '...');
+          } else {
+            console.warn('⚠️ No image to download');
           }
         });
       }
@@ -559,7 +566,10 @@
               this.initBeforeAfterToggle();
               // Initialize/update background picker with the result image
               if (this.backgroundPicker) {
+                // Ensure originalResultURL is set with the transparent background image
+                this.backgroundPicker.originalResultURL = result.resultImage;
                 this.backgroundPicker.init(resultImg);
+                console.log('✅ Background picker initialized with original URL:', result.resultImage.substring(0, 50) + '...');
               }
             };
             resultImg.onerror = (e) => {
