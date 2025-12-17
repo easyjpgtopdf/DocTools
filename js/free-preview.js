@@ -329,11 +329,11 @@
             window.location.href = 'background-workspace.html';
           } else {
             console.log('⚠️ User not logged in, redirecting to pricing...');
-            // Save current image state for after login
+            // Save current image state (user can access from dashboard later)
             if (this.state.resultURL) {
               sessionStorage.setItem('bgRemovePreviewImage', this.state.resultURL);
               sessionStorage.setItem('bgRemoveOriginalImage', this.state.originalURL || '');
-              sessionStorage.setItem('redirectAfterLogin', 'background-workspace.html');
+              // NO auto-redirect after login - user stays in dashboard
             }
             window.location.href = 'pricing.html';
           }

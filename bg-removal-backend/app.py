@@ -1422,19 +1422,21 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                 composite_alpha = apply_feathering(composite_alpha, feather_radius=3)
                 debug_stats.update(mask_stats("mask_after_feather_composite", composite_alpha))
             elif (not is_premium) and (not is_document):
-                # Light feather only for human photos in free preview
+                # Very light feather (1-2px) for free preview human photos
                 try:
-                    logger.info("Step 8.1: Applying light feathering (strength=0.08) for free human preview...")
+                    logger.info("Step 8.1: Applying very light feathering (1-2px, radius=1.0) for free human preview...")
                     alpha_np = np.array(composite_alpha).astype(np.float32)
                     if CV2_AVAILABLE:
-                        blurred = cv2.GaussianBlur(alpha_np, (0, 0), 1.0)
-                        alpha_feather = alpha_np * (1.0 - 0.08) + blurred * 0.08
+                        # Very light Gaussian blur (1-2px feather radius)
+                        blurred = cv2.GaussianBlur(alpha_np, (3, 3), 1.0)  # kernel=3x3, sigma=1.0 (1-2px effect)
+                        alpha_feather = alpha_np * (1.0 - 0.10) + blurred * 0.10  # Slightly stronger blend for natural edge
                         alpha_feather = np.clip(alpha_feather, 0, 255).astype(np.uint8)
                         composite_alpha = Image.fromarray(alpha_feather, mode='L')
                     else:
-                        # Fallback using PIL blur radius 1, blend weight 0.08
-                        blurred = composite_alpha.filter(ImageFilter.GaussianBlur(radius=1))
-                        composite_alpha = Image.blend(composite_alpha, blurred, alpha=0.08)
+                        # Fallback using PIL blur radius 1, blend weight 0.10
+                        from PIL import ImageFilter
+                        blurred = composite_alpha.filter(ImageFilter.GaussianBlur(radius=1.0))
+                        composite_alpha = Image.blend(composite_alpha, blurred, alpha=0.10)
                     debug_stats.update(mask_stats("mask_after_feather_light_free", composite_alpha))
                 except Exception as feather_err:
                     logger.warning(f"Light feathering failed (free preview): {feather_err}")

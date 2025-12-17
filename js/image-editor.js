@@ -12,6 +12,7 @@ class ImageEditor {
     this.editHistoryIndex = -1;
     this.maxHistorySteps = 4;
     this.isOpen = false;
+    this.eventsBound = false;
     
     // Store applied filters/effects
     this.currentEffects = {
@@ -33,10 +34,14 @@ class ImageEditor {
       this.originalResultURL = this.resultImage.src;
     }
     
-    this.bindEvents();
+    // Bind events only once
+    if (!this.eventsBound) {
+      this.bindEvents();
+      this.eventsBound = true;
+    }
     this.resetHistory();
     
-    console.log('ImageEditor initialized');
+    console.log('✅ ImageEditor initialized');
   }
 
   toggle() {
