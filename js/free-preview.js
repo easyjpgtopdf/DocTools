@@ -10,7 +10,6 @@
   const DEFAULT_SELECTORS = {
     fileInput: '#imageInput', // background-remover.html uses imageInput
     uploadButton: '#browseBtn', // background-remover.html uses browseBtn
-    previewImage: '#previewImage',
     resultImage: '#resultImage',
     status: '#statusMessage',
     downloadButton: '#downloadBtn',
@@ -62,6 +61,14 @@
           if (this.el.fileInput) {
             this.el.fileInput.click();
           }
+        });
+      }
+
+      // New upload button handler
+      const newUploadBtn = document.getElementById('newUploadBtn');
+      if (newUploadBtn) {
+        newUploadBtn.addEventListener('click', () => {
+          this.resetToUpload();
         });
       }
 
@@ -118,11 +125,37 @@
     }
 
     resetUI() {
-      if (this.el.previewImage) this.el.previewImage.style.display = 'none';
       if (this.el.resultImage) this.el.resultImage.style.display = 'none';
       if (this.el.downloadButton) this.el.downloadButton.disabled = true;
       this.setStatus('Upload an image to start free preview.');
       this.showError('');
+    }
+
+    resetToUpload() {
+      // Hide result section and show upload section
+      const uploadSection = document.getElementById('uploadSection');
+      const resultSection = document.getElementById('resultSection');
+      
+      if (uploadSection) {
+        uploadSection.style.display = 'block';
+      }
+      if (resultSection) {
+        resultSection.style.display = 'none';
+      }
+      
+      // Reset file input
+      if (this.el.fileInput) {
+        this.el.fileInput.value = '';
+      }
+      
+      // Reset state
+      this.state.file = null;
+      this.state.previewURL = null;
+      this.state.resultURL = null;
+      this.state.isProcessing = false;
+      
+      // Reset UI
+      this.resetUI();
     }
 
     showError(message) {
@@ -260,16 +293,18 @@
 
         if (result.success && result.resultImage) {
           this.state.resultURL = result.resultImage;
-          if (this.el.resultImage) {
+          
+          // Hide upload section and show result section
+          const uploadSection = document.getElementById('uploadSection');
+          const resultSection = document.getElementById('resultSection');
+          
+          if (resultSection && this.el.resultImage) {
             this.el.resultImage.src = result.resultImage;
-            this.el.resultImage.style.display = 'block';
-            this.el.resultImage.style.opacity = '1';
+            resultSection.style.display = 'block';
           }
           
-          // Show preview container if hidden
-          const previewContainer = document.getElementById('previewContainer');
-          if (previewContainer) {
-            previewContainer.style.display = 'block';
+          if (uploadSection) {
+            uploadSection.style.display = 'none';
           }
           
           // Enable download button
