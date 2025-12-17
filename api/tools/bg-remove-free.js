@@ -195,10 +195,21 @@ module.exports = async function handler(req, res) {
     // Convert form-data stream to buffer using proper stream reading
     // form-data FormData is a readable stream, but not directly async iterable
     // We need to collect chunks using stream events
+    // CRITICAL: Ensure all chunks are Buffers (form-data may emit strings for boundaries)
     const chunks = [];
     await new Promise((resolve, reject) => {
       backendFormData.on('data', (chunk) => {
-        chunks.push(chunk);
+        // Convert string chunks to Buffer (form-data may emit strings for multipart boundaries)
+        if (typeof chunk === 'string') {
+          chunks.push(Buffer.from(chunk, 'utf8'));
+        } else if (Buffer.isBuffer(chunk)) {
+          chunks.push(chunk);
+        } else if (chunk instanceof Uint8Array) {
+          chunks.push(Buffer.from(chunk));
+        } else {
+          // Fallback: convert to string then to buffer
+          chunks.push(Buffer.from(String(chunk), 'utf8'));
+        }
       });
       backendFormData.on('end', () => {
         resolve();
@@ -209,6 +220,11 @@ module.exports = async function handler(req, res) {
       // Ensure stream starts reading
       backendFormData.resume();
     });
+    
+    // Verify all chunks are Buffers before concatenating
+    if (chunks.length === 0) {
+      throw new Error('No data chunks collected from form-data stream');
+    }
     
     const formDataBuffer = Buffer.concat(chunks);
     
