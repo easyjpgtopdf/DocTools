@@ -303,10 +303,36 @@
           // Hide upload section and show result section
           const uploadSection = document.getElementById('uploadSection');
           const resultSection = document.getElementById('resultSection');
+          const resultImg = document.getElementById('resultImage');
           
-          if (resultSection && this.el.resultImage) {
-            this.el.resultImage.src = result.resultImage;
+          console.log('📸 Setting result image:', {
+            resultURL: result.resultImage,
+            resultImgExists: !!resultImg,
+            resultSectionExists: !!resultSection
+          });
+          
+          if (resultImg && resultSection) {
+            // Set image source
+            resultImg.src = result.resultImage;
+            resultImg.style.display = 'block';
+            resultImg.style.opacity = '1';
+            
+            // Show result section
             resultSection.style.display = 'block';
+            
+            // Wait for image to load
+            resultImg.onload = () => {
+              console.log('✅ Result image loaded successfully');
+            };
+            resultImg.onerror = (e) => {
+              console.error('❌ Result image failed to load:', e);
+              this.showError('Failed to load result image. Please try again.');
+            };
+          } else {
+            console.error('❌ Missing elements:', {
+              resultImg: !!resultImg,
+              resultSection: !!resultSection
+            });
           }
           
           if (uploadSection) {
