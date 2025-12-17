@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Image Background Remover | easyjpgtopdf</title>
+    <link rel="stylesheet" href="css/footer.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    :root {
+      --primary: #4361ee;
+      --secondary: #3a0ca3;
+      --accent: #4cc9f0;
+      --dark: #1b2050;
+      --muted: #6b7290;
+      --surface: #ffffff;
+      --border: rgba(26, 35, 126, 0.12);
+      --bg-gradient: linear-gradient(180deg, #f1f3ff 0%, #f7f9ff 100%);
+    }
+    body { background: var(--bg-gradient); color: var(--dark); min-height: 100vh; display: flex; flex-direction: column; line-height: 1.6; }
+    .container { width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    header { background: #fff; position: sticky; top: 0; z-index: 40; box-shadow: 0 10px 40px rgba(15, 31, 80, 0.08); }
+    .navbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; }
+    .logo { display: flex; align-items: center; gap: 10px; color: var(--primary); text-decoration: none; font-weight: 700; font-size: 22px; }
+    .logo i { color: var(--secondary); }
+    .nav-links { display: flex; gap: 22px; align-items: center; }
+    .nav-links a { color: var(--dark); text-decoration: none; font-weight: 500; }
+    .nav-links a:hover, .nav-links a.active { color: var(--primary); }
+    .dropdown { position: relative; }
+    .dropdown-content { display: none; position: absolute; top: 100%; left: 0; min-width: 220px; background: #fff; border-radius: 14px; padding: 12px 0; box-shadow: 0 16px 40px rgba(11, 24, 71, 0.12); }
+    .dropdown:hover .dropdown-content { display: block; }
+    .dropdown-content a { display: block; padding: 10px 20px; color: var(--dark); text-decoration: none; }
+    .hero { padding: 40px 0; }
+    .hero .container { max-width: 1200px; }
+    @media (max-width: 768px) {
+      .hero .container > div[style*="grid"] { grid-template-columns: 1fr !important; gap: 24px !important; }
+      .hero .container > div[style*="grid"] > div:first-child { order: 2; }
+      .hero .container > div[style*="grid"] > div:last-child { order: 1; }
+    }
+    .upload-card { background: var(--surface); border-radius: 24px; padding: 36px 28px; box-shadow: 0 24px 60px rgba(16, 35, 96, 0.12); border: 1px dashed rgba(67, 97, 238, 0.25); display: flex; flex-direction: column; gap: 16px; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; text-align: center; position: relative; }
+    .upload-card i { font-size: 52px; color: var(--primary); }
+    .upload-card h2 { font-size: 1.3rem; color: #141d4f; }
+    .upload-card p { color: var(--muted); font-size: 0.95rem; }
+    .upload-card:hover { transform: translateY(-3px); box-shadow: 0 24px 55px rgba(67, 97, 238, 0.16); border-color: rgba(58, 12, 163, 0.45); }
+    .upload-card.dragover { border-color: rgba(67, 97, 238, 0.7); background: rgba(67, 97, 238, 0.08); }
+    .upload-card.uploading { cursor: wait; }
+    .upload-card.uploading button { pointer-events: none; opacity: 0.7; }
+    .upload-status { font-size: 0.92rem; color: var(--muted); min-height: 1.2rem; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 10px 22px; font-weight: 600; border: none; cursor: pointer; font-size: 0.95rem; transition: transform 0.2s, box-shadow 0.2s; }
+    .btn-primary { background: linear-gradient(135deg, #4361ee, #3a0ca3); color: #fff; box-shadow: 0 16px 30px rgba(67, 97, 238, 0.25); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 18px 34px rgba(67, 97, 238, 0.3); }
+    .quick-help { background: #fff; border-radius: 20px; padding: 26px; box-shadow: 0 18px 45px rgba(15, 30, 70, 0.08); border: 1px solid var(--border); text-align: left; }
+    .quick-help h3 { margin-bottom: 14px; font-size: 1.1rem; color: #141c4d; }
+    .quick-help ul { list-style: none; display: flex; flex-direction: column; gap: 10px; color: var(--muted); }
+    .quick-help li { display: flex; gap: 10px; align-items: center; }
+    .quick-help li i { color: var(--primary); }
+    .cta-strip { background: rgba(67, 97, 238, 0.08); padding: 22px 0; border-top: 1px solid rgba(67, 97, 238, 0.12); border-bottom: 1px solid rgba(67, 97, 238, 0.12); }
+    .cta-text { font-weight: 600; color: #1b255b; text-align: center; }
+    .cta-text a { color: var(--secondary); text-decoration: none; }
+    footer { background: #0d1530; color: #e8ecff; padding: 48px 0 32px; margin-top: auto; }
+    .footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 28px; margin-bottom: 28px; }
+    .footer-grid h3 { margin-bottom: 12px; font-size: 1rem; }
+    .footer-links { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .footer-links a { color: rgba(232, 236, 255, 0.75); text-decoration: none; font-size: 0.95rem; }
+    .footer-links a:hover { color: #fff; }
+    .copyright { text-align: center; border-top: 1px solid rgba(232, 236, 255, 0.16); padding-top: 20px; font-size: 0.85rem; color: rgba(232,236,255,0.6); }
+    @media (max-width: 860px) {
+      .nav-links { display: none; }
+      header { position: relative; }
+      .hero { padding: 50px 0; }
+      .upload-card { padding: 32px 20px; }
+      .hero .container > div[style*="grid"] { grid-template-columns: 1fr !important; }
+    }
+  </style>
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+    
+
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/theme-modern.css">
+</head>
+<body>
+<header>
+        <div class="container">
+            <nav class="navbar">
+                <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
+                <div class="nav-links">
+                    <div class="dropdown">
+                        <a href="#">Convert to PDF <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="jpg-to-pdf.html">JPG to PDF</a>
+                            <a href="word-to-pdf.html">Word to PDF</a>
+                            <a href="excel-to-pdf.html">Excel to PDF</a>
+                            <a href="ppt-to-pdf.html">PowerPoint to PDF</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Convert from PDF <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="pdf-to-jpg.html">PDF to JPG</a>
+                            <a href="pdf-to-word.html">PDF to Word</a>
+                            <a href="pdf-to-excel.html">PDF to Excel</a>
+                            <a href="pdf-to-ppt.html">PDF to PowerPoint</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Pdf Editor <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="merge-pdf.html">Merge PDF</a>
+                            <a href="split-pdf.html">Split PDF</a>
+                            <a href="compress-pdf.html">Compress PDF</a>
+                            <a href="edit-pdf.html">Pdf Editor</a>
+                            <a href="protect-pdf.html">Protect PDF</a>
+                            <a href="unlock-pdf.html">Unlock PDF</a>
+                            <a href="watermark-pdf.html">Watermark PDF</a>
+                            <a href="crop-pdf.html">Crop PDF</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Image Tools <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="image-compressor.html">Image Compressor</a>
+                            <a href="image-resizer.html">Image Resizer</a>
+                            <a href="image-editor.html">Image Editor</a>
+                            <a href="background-remover.html">Image Background Remover</a>
+                            <a href="ocr-image.html">OCR Image</a>
+                            <a href="image-watermark.html">Image Watermark Tool</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#">Other Tools <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="resume-maker.html">Resume Maker</a>
+                            <a href="biodata-maker.html">Marrige Biodata-Data Maker</a>
+                            <a href="ai-image-generator.html">AI Image Generator</a>
+                            <a href="marriage-card.html">Marriage Card</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="user-menu" class="user-menu" data-open="false">
+                    <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
+                        <span class="user-initial" aria-hidden="true">U</span>
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                    </button>
+                    <div class="user-dropdown" id="user-dropdown" hidden>
+                        <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
+                        <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
+                        <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
+                        <a href="dashboard.html#dashboard-orders" data-user-nav="dashboard-orders"><i class="fas fa-clipboard-list"></i> Orders &amp; Subscriptions</a>
+                        <a href="accounts.html#login"><i class="fas fa-user-cog"></i> Account Center</a>
+                        <button type="button" id="logout-button" class="dropdown-logout"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+    <nav aria-label="Breadcrumb" style="padding: 15px 0; background: #f8f9ff; border-bottom: 1px solid #e2e6ff;">
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 24px;">
+            <ol style="list-style: none; display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; align-items: center;">
+                <li><a href="index.html" style="color: #4361ee; text-decoration: none; font-weight: 500; transition: color 0.3s;" onmouseover="this.style.color='#3a0ca3'" onmouseout="this.style.color='#4361ee'">Home</a></li>
+                <li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
+                <li><a href="login.html" style="color: #56607a; font-weight: 500; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#4361ee'" onmouseout="this.style.color='#56607a'">Sign In</a></li>
+                <li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
+                <li><a href="signup.html" style="color: #56607a; font-weight: 500; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#4361ee'" onmouseout="this.style.color='#56607a'">Signup</a></li>
+            </ol>
+        </div>
+    </nav>
+
+
+
+
+  
+
+  <section class="hero">
+    <div class="container">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h1 style="font-size: 2rem; color: var(--dark); margin-bottom: 8px;">Upload your image to remove the background</h1>
+        <p style="font-size: 1rem; color: var(--muted);">Fast, private, and AI powered. Drop a file or use the button below to get started.</p>
+      </div>
+      <div style="display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; margin-bottom: 24px;">
+        <a href="background-style.html" class="btn btn-primary" style="background: linear-gradient(135deg, #4361ee, #3a0ca3); border: none; padding: 10px 20px; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3); font-size: 0.9rem; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;"><i class="fas fa-image"></i> Background</a>
+        <button id="undoBtn" class="btn btn-primary" style="background: #6c757d; border: none; padding: 10px 20px; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px;" disabled><i class="fas fa-undo"></i> Undo</button>
+        <button id="redoBtn" class="btn btn-primary" style="background: #6c757d; border: none; padding: 10px 20px; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px;" disabled><i class="fas fa-redo"></i> Redo</button>
+        <a href="background-workspace.html" class="btn btn-primary" style="background: linear-gradient(135deg, #f093fb, #f5576c); border: none; padding: 10px 20px; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3); font-size: 0.9rem; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;"><i class="fas fa-crown"></i> Premium HD Download</a>
+        <button id="downloadBtn" class="btn btn-primary" style="background: rgba(67, 97, 238, 0.95); border: none; padding: 10px 20px; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px;" disabled><i class="fas fa-download"></i> Download</button>
+      </div>
+      <div id="uploadSection">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; margin-bottom: 32px;">
+          <div style="display: flex; align-items: center; justify-content: center;">
+            <img src="images/bg-removal-city-demo.svg" alt="Background Removal Demo" style="max-width: 100%; height: auto; border-radius: 12px;">
+          </div>
+          <div class="upload-card" id="dropzone" style="width: 8cm; height: 8cm; min-width: 8cm; min-height: 8cm; max-width: 8cm; max-height: 8cm; padding: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden;">
+            <div id="imagePreview" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;">
+              <img id="previewImg" style="width: 100%; height: 100%; object-fit: contain;" alt="Preview">
+            </div>
+            <div id="uploadContent" style="position: relative; z-index: 2; text-align: center;">
+              <button class="btn btn-primary" type="button" id="browseBtn" style="padding: 12px 24px; font-size: 1rem; font-weight: 600; background: #4361ee; color: #fff; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);">Upload</button>
+              <input type="file" id="imageInput" accept="image/png,image/jpeg" hidden>
+            </div>
+            <div id="statusMessage" style="margin-top: 8px; min-height: 1rem; font-size: 0.8rem; color: var(--muted); position: relative; z-index: 2;"></div>
+            <div id="errorBox" style="display: none; margin-top: 8px; padding: 8px; background: rgba(255,0,0,0.1); color: #cc0000; border-radius: 6px; font-size: 0.8rem; position: relative; z-index: 2;"></div>
+</div>
+        </div>
+      </div>
+      <div id="resultSection" style="display: none;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; margin-bottom: 32px;">
+          <div style="display: flex; align-items: center; justify-content: center;">
+            <img src="images/bg-removal-city-demo.svg" alt="Background Removal Demo" style="max-width: 100%; height: auto; border-radius: 12px;">
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+            <div style="position: relative; width: 8cm; height: 8cm; min-width: 8cm; min-height: 8cm; max-width: 8cm; max-height: 8cm; border-radius: 24px; overflow: hidden; box-shadow: 0 24px 60px rgba(16, 35, 96, 0.12); background: #fff;">
+              <img id="resultImage" style="width: 100%; height: 100%; object-fit: contain; display: block; opacity: 1; transition: opacity 0.3s ease;" alt="Result">
+              <img id="beforeImage" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; display: none; opacity: 0; transition: opacity 0.3s ease;" alt="Before">
+              <div id="beforeAfterToggle" style="position: absolute; bottom: 12px; right: 12px; display: none; z-index: 10;">
+                <div style="background: rgba(255, 255, 255, 0.95); border-radius: 24px; padding: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 4px;">
+                  <span id="toggleText" style="padding: 0 12px; font-size: 0.85rem; font-weight: 600; color: #333; min-width: 50px; text-align: center;">After</span>
+                  <div style="position: relative; width: 80px; height: 32px; background: #e0e0e0; border-radius: 16px; cursor: pointer; transition: background 0.3s;">
+                    <div id="toggleSlider" style="position: absolute; top: 2px; right: 2px; width: 28px; height: 28px; background: #4361ee; border-radius: 50%; transition: transform 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transform: translateX(0);"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button id="newUploadBtn" class="btn btn-primary" style="background: linear-gradient(135deg, #4361ee, #3a0ca3); border: none; padding: 12px 24px; border-radius: 50%; width: 50px; height: 50px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3); font-size: 24px; color: #fff;" title="Upload New Image"><i class="fas fa-plus"></i></button>
+          </div>
+        </div>
+      </div>
+      <div class="quick-help">
+        <h3>Why it's awesome</h3>
+        <ul>
+          <li><i class="fas fa-check-circle"></i> No sign up. Works offline after first load.</li>
+          <li><i class="fas fa-check-circle"></i> Supports photos, products, and portraits.</li>
+          <li><i class="fas fa-check-circle"></i> Next step lets you change backgrounds or colours.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-strip">
+    <div class="container">
+      <p class="cta-text">Already removed a background? <a href="background-workspace.html">Go to workspace</a></p>
+    </div>
+  </section>
+
+  
+
+  <script type="module">
+    console.log('FREE FLOW STARTED');
+    
+    // Initialize Free Preview App - all events are handled in free-preview.js
+    document.addEventListener('DOMContentLoaded', () => {
+      // Footer year update
+      const footerYear = document.getElementById('footerYear');
+      if (footerYear) {
+        footerYear.textContent = new Date().getFullYear();
+      }
+    });
+  </script>
+
+
+
+
+    
+    <script type="module" src="js/free-preview.js"></script>
+
+    <footer>
+        <div class="container footer-inner">
+            <div class="footer-company-links">
+                <span>Company</span>
+                <a href="index.html#about">About Us</a>
+                <a href="index.html#contact">Contact</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+                <a href="dmca-en.html">DMCA</a>
+                <a href="blog.html">Blog</a>
+            </div>
+            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
+            <p class="footer-credits">
+                Thanks to Font Awesome, Google Fonts, jsPDF, pdf.js, pdf-lib, Mammoth, Tesseract.js, IMG.LY, Firebase, Unsplash photographers, and every open-source contributor powering this site.
+                <a href="attributions.html">See full acknowledgements</a>.
+            </p>
+        </div>
+    </footer>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
