@@ -25,7 +25,10 @@
         file: null,
         previewURL: null,
         resultURL: null,
+        originalURL: null,
         isProcessing: false,
+        history: [],
+        historyIndex: -1,
       };
       this.bindElements();
       this.bindEvents();
