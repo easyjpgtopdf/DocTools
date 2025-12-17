@@ -1194,6 +1194,32 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
 
     debug_stats.update(mask_stats("mask_raw", mask))
 
+    # Step 1.5: Mask Safety Expansion (Dilation) - for hand/cloth safety (FREE PREVIEW ONLY)
+    # Expand mask by 1-2 pixels to prevent hand/cloth parts from being cut off
+    if not is_premium and CV2_AVAILABLE:
+        try:
+            logger.info("Step 1.5: Applying mask safety expansion (1-2px dilation) for hand/cloth protection...")
+            if isinstance(mask, Image.Image):
+                mask_array = np.array(mask.convert('L'))
+            else:
+                mask_array = mask
+            
+            # Dilate mask with 3x3 kernel, 1 iteration = 1-2px expansion
+            kernel = np.ones((3, 3), np.uint8)
+            mask_dilated = cv2.dilate(mask_array.astype(np.uint8), kernel, iterations=1)
+            
+            mask = Image.fromarray(mask_dilated, mode='L')
+            logger.info("✅ Mask safety expansion applied (hand/cloth parts protected)")
+            debug_stats.update({
+                "mask_expansion_applied": True,
+                "expansion_kernel": "3x3",
+                "expansion_iterations": 1
+            })
+            debug_stats.update(mask_stats("mask_after_expansion", mask))
+        except Exception as expansion_err:
+            logger.warning(f"Mask expansion failed: {expansion_err}")
+            debug_stats["mask_expansion_error"] = str(expansion_err)
+
     # 🔥 FREE PREVIEW ONLY: Mask Strength Check and Recovery (Levels 1-3)
     used_fallback_level = 0
     emergency_mask_applied = False  # Track if emergency recovery was used (must be accessible in all scopes)
