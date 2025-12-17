@@ -1598,10 +1598,14 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
             
             alpha_arr = np.array(final_image.getchannel('A'))
             
-            # Apply safety clamp: alpha = max(alpha, 12) - ALL pixels
-            # This ensures no pixel has alpha < 12, preventing fully transparent appearance
+            # Apply safety clamp ONLY on non-zero alpha pixels to avoid background halos
             min_alpha = 12
-            alpha_arr = np.maximum(alpha_arr, min_alpha)
+            nonzero_mask = alpha_arr > 0
+            alpha_arr[nonzero_mask] = np.maximum(alpha_arr[nonzero_mask], min_alpha)
+            # Apply safety clamp ONLY on non-zero alpha pixels to avoid background halos
+            min_alpha = 12
+            nonzero_mask = alpha_arr > 0
+            alpha_arr[nonzero_mask] = np.maximum(alpha_arr[nonzero_mask], min_alpha)
             
             alpha_clamped = Image.fromarray(alpha_arr, mode='L')
             final_image.putalpha(alpha_clamped)
