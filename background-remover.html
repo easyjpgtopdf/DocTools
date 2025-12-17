@@ -204,6 +204,7 @@
         <p style="font-size: 1rem; color: var(--muted);">Fast, private, and AI powered. Drop a file or use the button below to get started.</p>
       </div>
       <div style="display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; margin-bottom: 24px;">
+        <button id="editImageBtn" type="button" class="btn btn-primary" style="background: linear-gradient(135deg, #10b981, #059669); border: none; padding: 10px 20px; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px;"><i class="fas fa-edit"></i> Edit Image</button>
         <button id="backgroundBtn" type="button" class="btn btn-primary" style="background: linear-gradient(135deg, #4361ee, #3a0ca3); border: none; padding: 10px 20px; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px;"><i class="fas fa-image"></i> Background</button>
         <button id="undoBtn" class="btn btn-primary" style="background: #6c757d; border: none; padding: 10px 20px; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px;" disabled><i class="fas fa-undo"></i> Undo</button>
         <button id="redoBtn" class="btn btn-primary" style="background: #6c757d; border: none; padding: 10px 20px; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px;" disabled><i class="fas fa-redo"></i> Redo</button>
@@ -231,7 +232,7 @@
             </div>
             <div id="uploadContent" style="position: relative; z-index: 2; text-align: center;">
               <button class="btn btn-primary" type="button" id="browseBtn" style="padding: 12px 24px; font-size: 1rem; font-weight: 600; background: #4361ee; color: #fff; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);">Upload</button>
-              <input type="file" id="imageInput" accept="image/png,image/jpeg" hidden>
+        <input type="file" id="imageInput" accept="image/png,image/jpeg" hidden>
             </div>
             <div id="statusMessage" style="margin-top: 8px; min-height: 1rem; font-size: 0.8rem; color: var(--muted); position: relative; z-index: 2;"></div>
             <div id="errorBox" style="display: none; margin-top: 8px; padding: 8px; background: rgba(255,0,0,0.1); color: #cc0000; border-radius: 6px; font-size: 0.8rem; position: relative; z-index: 2;"></div>
@@ -251,7 +252,7 @@
                   <li style="display: flex; gap: 10px; align-items: center;"><i class="fas fa-check-circle" style="color: var(--primary);"></i> No sign up. Works offline after first load.</li>
                   <li style="display: flex; gap: 10px; align-items: center;"><i class="fas fa-check-circle" style="color: var(--primary);"></i> Supports photos, products, and portraits.</li>
                   <li style="display: flex; gap: 10px; align-items: center;"><i class="fas fa-check-circle" style="color: var(--primary);"></i> Next step lets you change backgrounds or colours.</li>
-                </ul>
+        </ul>
               </div>
             </div>
             
@@ -273,6 +274,67 @@
             </div>
           </div>
           
+          <!-- Image Editor Panel -->
+          <div id="imageEditorPanel" style="display: none; position: sticky; top: 20px; width: 350px; max-height: calc(100vh - 40px); background: var(--surface); border-radius: 24px; padding: 24px; box-shadow: 0 24px 60px rgba(16, 35, 96, 0.15); border: 1px solid var(--border); overflow-y: auto; opacity: 0; transform: translateX(100%); transition: opacity 0.3s ease, transform 0.3s ease; z-index: 100;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+              <h2 style="font-size: 1.25rem; margin: 0; color: #121a4c; display: flex; align-items: center; gap: 10px;"><i class="fas fa-edit"></i> Edit Image</h2>
+              <button id="closeImageEditor" style="background: transparent; border: none; color: var(--muted); cursor: pointer; font-size: 1.2rem; padding: 4px 8px; border-radius: 4px; transition: color 0.2s, background 0.2s;" onmouseover="this.style.background='rgba(0,0,0,0.05)'; this.style.color='var(--dark)'" onmouseout="this.style.background='transparent'; this.style.color='var(--muted)'"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <!-- Auto Enhance (AI-powered, free) -->
+            <div style="margin-bottom: 24px;">
+              <button id="editAutoEnhance" class="btn btn-primary" style="width: 100%; background: linear-gradient(135deg, #10b981, #059669); border: none; padding: 12px 20px; border-radius: 12px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <i class="fas fa-sparkles"></i> Auto Enhance (AI)
+              </button>
+            </div>
+
+            <!-- Manual Adjustments -->
+            <div style="margin-bottom: 20px;">
+              <h3 style="font-size: 0.95rem; color: #121a4c; margin-bottom: 16px; font-weight: 600;">Manual Adjustments</h3>
+              
+              <!-- Sharpness -->
+              <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; font-weight: 500;">
+                  <i class="fas fa-crosshairs"></i> Sharpness
+                  <span id="sharpnessValue" style="float: right; color: var(--primary); font-weight: 600;">0</span>
+                </label>
+                <input type="range" id="editSharpness" min="-50" max="50" value="0" step="1" style="width: 100%; height: 6px; border-radius: 3px; background: #e0e0e0; outline: none; -webkit-appearance: none;">
+              </div>
+
+              <!-- Brightness -->
+              <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; font-weight: 500;">
+                  <i class="fas fa-sun"></i> Brightness
+                  <span id="brightnessValue" style="float: right; color: var(--primary); font-weight: 600;">0</span>
+                </label>
+                <input type="range" id="editBrightness" min="-50" max="50" value="0" step="1" style="width: 100%; height: 6px; border-radius: 3px; background: #e0e0e0; outline: none; -webkit-appearance: none;">
+              </div>
+
+              <!-- Contrast -->
+              <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; font-weight: 500;">
+                  <i class="fas fa-adjust"></i> Contrast
+                  <span id="contrastValue" style="float: right; color: var(--primary); font-weight: 600;">0</span>
+                </label>
+                <input type="range" id="editContrast" min="-50" max="50" value="0" step="1" style="width: 100%; height: 6px; border-radius: 3px; background: #e0e0e0; outline: none; -webkit-appearance: none;">
+              </div>
+
+              <!-- Saturation -->
+              <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; font-weight: 500;">
+                  <i class="fas fa-palette"></i> Saturation
+                  <span id="saturationValue" style="float: right; color: var(--primary); font-weight: 600;">0</span>
+                </label>
+                <input type="range" id="editSaturation" min="-50" max="50" value="0" step="1" style="width: 100%; height: 6px; border-radius: 3px; background: #e0e0e0; outline: none; -webkit-appearance: none;">
+              </div>
+            </div>
+
+            <!-- Reset Button -->
+            <button id="editReset" class="btn btn-primary" style="width: 100%; background: #6c757d; border: none; padding: 10px 20px; border-radius: 12px; color: #fff; font-weight: 600; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <i class="fas fa-undo"></i> Reset All
+            </button>
+          </div>
+
           <!-- Background Picker Panel -->
           <div id="backgroundPickerPanel" style="display: none; position: sticky; top: 20px; width: 350px; max-height: calc(100vh - 40px); background: var(--surface); border-radius: 24px; padding: 24px; box-shadow: 0 24px 60px rgba(16, 35, 96, 0.15); border: 1px solid var(--border); overflow-y: auto; opacity: 0; transform: translateX(100%); transition: opacity 0.3s ease, transform 0.3s ease; z-index: 100;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -334,6 +396,7 @@
     
     <!-- Load background-picker.js first (not as module for global access), then free-preview.js -->
     <script src="js/background-picker.js"></script>
+    <script src="js/image-editor.js"></script>
     <script type="module" src="js/free-preview.js"></script>
 
     <footer>

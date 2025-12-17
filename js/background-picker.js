@@ -259,10 +259,21 @@ class BackgroundPicker {
       // Load background image
       await this.loadImage(this.backgroundImage, imageUrl + '&auto=compress&fit=crop&w=1200&q=80');
       
-      // Load foreground (result image with transparent background)
+      // Load foreground - use current edited image if available, otherwise use originalResultURL
       const foregroundImg = new Image();
+      let foregroundSrc = this.originalResultURL;
+      
+      // Check if image editor has current edited image
+      if (window.freePreviewApp && window.freePreviewApp.imageEditor) {
+        const editedURL = window.freePreviewApp.imageEditor.getCurrentImageURL();
+        if (editedURL && editedURL !== this.originalResultURL) {
+          foregroundSrc = editedURL;
+          console.log('✅ Using edited image for background composition');
+        }
+      }
+      
       foregroundImg.crossOrigin = 'anonymous';
-      await this.loadImage(foregroundImg, this.originalResultURL);
+      await this.loadImage(foregroundImg, foregroundSrc);
 
       // Create canvas for composition
       const canvas = document.createElement('canvas');
@@ -286,13 +297,54 @@ class BackgroundPicker {
       ctx.drawImage(foregroundImg, 0, 0);
 
       // Update result image
-      const dataURL = canvas.toDataURL('image/png');
-      this.resultImage.src = dataURL;
+      const finalDataURL = canvas.toDataURL('image/png');
+      this.resultImage.src = finalDataURL;
       this.currentBackground = imageUrl;
       
-      // Update download state in free-preview.js if available
+      // Save to history
       if (window.freePreviewApp && window.freePreviewApp.state) {
-        window.freePreviewApp.state.resultURL = dataURL;
+        const app = window.freePreviewApp;
+        // Update current history entry with background
+        if (app.state.history.length > 0 && app.state.historyIndex >= 0) {
+          app.state.history[app.state.historyIndex].background = {
+            type: 'image',
+            url: imageUrl,
+            label: label
+          };
+          app.state.history[app.state.historyIndex].result = finalDataURL;
+          app.state.resultURL = finalDataURL;
+        } else {
+          // Create new history entry
+          if (app.state.originalURL) {
+            if (app.state.historyIndex < app.state.history.length - 1) {
+              app.state.history = app.state.history.slice(0, app.state.historyIndex + 1);
+            }
+            
+            app.state.history.push({
+              original: app.state.originalURL,
+              result: finalDataURL,
+              edits: app.imageEditor ? {
+                imageSrc: foregroundSrc,
+                effects: { ...app.imageEditor.currentEffects },
+                filter: app.imageEditor.resultImage ? app.imageEditor.resultImage.style.filter || 'none' : 'none'
+              } : null,
+              background: {
+                type: 'image',
+                url: imageUrl,
+                label: label
+              }
+            });
+            
+            const maxHistorySteps = 4;
+            if (app.state.history.length > maxHistorySteps) {
+              app.state.history.shift();
+            } else {
+              app.state.historyIndex = app.state.history.length - 1;
+            }
+          }
+        }
+        
+        app.updateUndoRedoButtons();
       }
 
       console.log(`✅ Background applied successfully: ${label}`);
@@ -314,13 +366,24 @@ class BackgroundPicker {
     console.log('🎨 Applying background color:', label);
 
     try {
-      // Load foreground (result image with transparent background)
-      console.log('📥 Loading foreground image (original result)...');
+      // Load foreground - use current edited image if available, otherwise use originalResultURL
+      console.log('📥 Loading foreground image...');
       const foregroundImg = new Image();
-      if (!this.originalResultURL.startsWith('data:')) {
+      let foregroundSrc = this.originalResultURL;
+      
+      // Check if image editor has current edited image
+      if (window.freePreviewApp && window.freePreviewApp.imageEditor) {
+        const editedURL = window.freePreviewApp.imageEditor.getCurrentImageURL();
+        if (editedURL && editedURL !== this.originalResultURL) {
+          foregroundSrc = editedURL;
+          console.log('✅ Using edited image for background composition');
+        }
+      }
+      
+      if (!foregroundSrc.startsWith('data:')) {
         foregroundImg.crossOrigin = 'anonymous';
       }
-      await this.loadImage(foregroundImg, this.originalResultURL);
+      await this.loadImage(foregroundImg, foregroundSrc);
 
       // Create canvas for composition
       const canvas = document.createElement('canvas');

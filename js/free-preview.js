@@ -31,10 +31,12 @@
         historyIndex: -1,
       };
       this.backgroundPicker = null;
+      this.imageEditor = null;
       this.bindElements();
       this.bindEvents();
       this.resetUI();
       this.initBackgroundPicker();
+      this.initImageEditor();
     }
 
     bindElements() {
@@ -365,14 +367,42 @@
     applyHistoryState() {
       if (this.state.historyIndex >= 0 && this.state.historyIndex < this.state.history.length) {
         const state = this.state.history[this.state.historyIndex];
-        const resultImg = document.getElementById('resultImage');
-        const beforeImg = document.getElementById('beforeImage');
         
-        if (resultImg && state.result) {
-          resultImg.src = state.result;
+        if (this.el.resultImage) {
+          // Restore result image
+          if (state.result) {
+            this.el.resultImage.src = state.result;
+            this.state.resultURL = state.result;
+          }
+          
+          // Restore edits if any
+          if (state.edits && this.imageEditor) {
+            this.imageEditor.restoreFromHistory(state);
+          } else if (this.imageEditor) {
+            // Reset edits if no edits in this state
+            this.imageEditor.currentEffects = {
+              sharpness: 0,
+              brightness: 0,
+              contrast: 0,
+              saturation: 0,
+              crop: null
+            };
+            this.imageEditor.updateSliderValues();
+          }
+          
+          // Restore background if any (background is already in state.result if applied)
         }
-        if (beforeImg && state.original) {
-          beforeImg.src = state.original;
+        
+        if (this.el.beforeImage && state.original) {
+          this.el.beforeImage.src = state.original;
+        }
+        
+        // Update background picker's original URL to current edited image
+        if (this.backgroundPicker && this.imageEditor) {
+          const currentURL = this.imageEditor.getCurrentImageURL();
+          if (currentURL) {
+            this.backgroundPicker.originalResultURL = currentURL;
+          }
         }
         
         this.updateUndoRedoButtons();
@@ -514,13 +544,28 @@
         if (result.success && result.resultImage) {
           this.state.resultURL = result.resultImage;
           
-          // Add to history
+          // Add to history (limit to 4 stages)
           if (this.state.originalURL && result.resultImage) {
+            // Remove future history if not at the end
+            if (this.state.historyIndex < this.state.history.length - 1) {
+              this.state.history = this.state.history.slice(0, this.state.historyIndex + 1);
+            }
+            
             this.state.history.push({
               original: this.state.originalURL,
-              result: result.resultImage
+              result: result.resultImage,
+              edits: null,
+              background: null
             });
-            this.state.historyIndex = this.state.history.length - 1;
+            
+            // Limit history to 4 stages
+            const maxHistorySteps = 4;
+            if (this.state.history.length > maxHistorySteps) {
+              this.state.history.shift();
+            } else {
+              this.state.historyIndex = this.state.history.length - 1;
+            }
+            
             this.updateUndoRedoButtons();
           }
           
