@@ -177,7 +177,6 @@
       this.state.isProcessing = false;
       this.state.history = [];
       this.state.historyIndex = -1;
-      // Note: previewHistory is kept for recovery
       
       // Reset UI
       this.resetUI();
