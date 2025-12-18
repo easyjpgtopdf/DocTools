@@ -493,7 +493,10 @@ function loadGlobalBreadcrumb() {
     const breadcrumbPlaceholder = document.getElementById('global-breadcrumb-placeholder');
     if (breadcrumbPlaceholder) {
         breadcrumbPlaceholder.outerHTML = globalBreadcrumbHTML;
-        updateBreadcrumbAuthButtons();
+        // Wait a bit for DOM to update
+        setTimeout(() => {
+            updateBreadcrumbAuthButtons();
+        }, 50);
     } else {
         // If no placeholder, try to add breadcrumb after header
         const header = document.querySelector('header');
@@ -501,7 +504,9 @@ function loadGlobalBreadcrumb() {
             const breadcrumbDiv = document.createElement('div');
             breadcrumbDiv.innerHTML = globalBreadcrumbHTML.trim();
             header.insertAdjacentElement('afterend', breadcrumbDiv.firstElementChild);
-            updateBreadcrumbAuthButtons();
+            setTimeout(() => {
+                updateBreadcrumbAuthButtons();
+            }, 50);
         }
     }
 }
