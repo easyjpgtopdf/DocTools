@@ -383,13 +383,39 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    const result = await response.json();
+    let result;
+    try {
+      result = await response.json();
+    } catch (parseError) {
+      console.error('Failed to parse response JSON:', parseError);
+      const errorText = await response.text();
+      console.error('Response text:', errorText.substring(0, 500));
+      return res.status(500).json({
+        success: false,
+        error: 'Invalid response from server',
+        message: 'Server returned invalid JSON response. Please try again.'
+      });
+    }
+
+    console.log('Cloud Run response:', {
+      success: result.success,
+      hasResultImage: !!result.resultImage,
+      error: result.error,
+      message: result.message
+    });
 
     if (!result.success || !result.resultImage) {
       // Processing failed - don't deduct credits
+      console.error('Processing failed:', {
+        success: result.success,
+        error: result.error,
+        message: result.message,
+        hasResultImage: !!result.resultImage
+      });
       return res.status(500).json({
         success: false,
-        error: result.error || 'Processing failed'
+        error: result.error || 'Processing failed',
+        message: result.message || 'Background removal processing failed. Please try again.'
       });
     }
 
