@@ -280,7 +280,7 @@
               
               const a = document.createElement('a');
               a.href = blobURL;
-              a.download = 'background-removed-512px.png';
+              a.download = 'background-removed-640px.png';
               document.body.appendChild(a);
               a.click();
               a.remove();
@@ -294,7 +294,7 @@
               // Fallback to direct download
               const a = document.createElement('a');
               a.href = downloadURL;
-              a.download = 'background-removed-512px.png';
+              a.download = 'background-removed-640px.png';
               document.body.appendChild(a);
               a.click();
               a.remove();
