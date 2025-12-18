@@ -209,19 +209,11 @@
 </head>
 <body>
     <div id="global-header-placeholder"></div>
+    <!-- Global header will be loaded here by global-components.js -->
     
-
-        <nav aria-label="Breadcrumb" style="padding: 15px 0; background: #f8f9ff; border-bottom: 1px solid #e2e6ff;">
-        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 24px;">
-            <ol style="list-style: none; display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; align-items: center;">
-                <li><a href="index.html" style="color: #4361ee; text-decoration: none; font-weight: 500; transition: color 0.3s;" onmouseover="this.style.color='#3a0ca3'" onmouseout="this.style.color='#4361ee'">Home</a></li>
-                <li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
-                <li><a href="login.html" style="color: #56607a; font-weight: 500; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#4361ee'" onmouseout="this.style.color='#56607a'">Sign In</a></li>
-                <li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
-                <li><a href="signup.html" style="color: #56607a; font-weight: 500; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#4361ee'" onmouseout="this.style.color='#56607a'">Signup</a></li>
-            </ol>
-        </div>
-    </nav>
+    <!-- Global Breadcrumb Placeholder -->
+    <div id="global-breadcrumb-placeholder"></div>
+    <!-- Global breadcrumb will be loaded here by global-components.js -->
 
     <main>
         <div class="container">
@@ -324,16 +316,26 @@
         </div>
     </footer>
     <script src="js/global-components.js"></script>
+    <script src="js/auth.js"></script>
     <script>
-    // Ensure header loads - multiple attempts to guarantee it works
+    // Ensure all components load - multiple attempts to guarantee it works
     (function() {
-        function tryLoadHeader() {
+        function tryLoadComponents() {
             if (typeof loadGlobalHeader === 'function') {
                 try {
                     loadGlobalHeader();
+                    if (typeof loadGlobalBreadcrumb === 'function') {
+                        loadGlobalBreadcrumb();
+                    }
+                    if (typeof loadAccountSection === 'function') {
+                        loadAccountSection();
+                    }
+                    if (typeof updateBreadcrumbAuthButtons === 'function') {
+                        updateBreadcrumbAuthButtons();
+                    }
                     return true;
                 } catch (e) {
-                    console.error('Error calling loadGlobalHeader:', e);
+                    console.error('Error loading components:', e);
                 }
             }
             return false;
@@ -341,40 +343,36 @@
         
         // Try immediately if script already loaded
         if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            if (!tryLoadHeader()) {
-                // Script not loaded yet, wait for it
+            if (!tryLoadComponents()) {
                 var attempts = 0;
-                var maxAttempts = 60; // 3 seconds total
-                var checkHeader = setInterval(function() {
+                var maxAttempts = 60;
+                var checkComponents = setInterval(function() {
                     attempts++;
-                    if (tryLoadHeader() || attempts >= maxAttempts) {
-                        clearInterval(checkHeader);
+                    if (tryLoadComponents() || attempts >= maxAttempts) {
+                        clearInterval(checkComponents);
                     }
                 }, 50);
             }
         } else {
-            // Wait for DOM to be ready
             document.addEventListener('DOMContentLoaded', function() {
-                if (!tryLoadHeader()) {
+                if (!tryLoadComponents()) {
                     var attempts = 0;
                     var maxAttempts = 40;
-                    var checkHeader = setInterval(function() {
+                    var checkComponents = setInterval(function() {
                         attempts++;
-                        if (tryLoadHeader() || attempts >= maxAttempts) {
-                            clearInterval(checkHeader);
+                        if (tryLoadComponents() || attempts >= maxAttempts) {
+                            clearInterval(checkComponents);
                         }
                     }, 50);
                 }
             });
         }
         
-        // Final backup attempt on window load
+        // Final attempt on window load
         window.addEventListener('load', function() {
-            setTimeout(function() {
-                if (!document.querySelector('header') && typeof loadGlobalHeader === 'function') {
-                    loadGlobalHeader();
-                }
-            }, 100);
+            tryLoadComponents();
+            setTimeout(tryLoadComponents, 200);
+            setTimeout(tryLoadComponents, 500);
         });
     })();
     </script>
