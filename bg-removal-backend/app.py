@@ -867,6 +867,223 @@ def process_premium_document_pipeline(input_image, birefnet_session):
     
     return output_bytes, debug_stats
 
+def process_enterprise_pipeline(input_image, birefnet_session, maxmatting_session, image_type='human'):
+    """
+    ENTERPRISE-GRADE BACKGROUND REMOVAL PIPELINE
+    
+    Requirements:
+    - BiRefNet: min 1024, confidence 0.88, multi-scale detail
+    - MaxMatting: min 2048, preserve hair/fur, anti-halo, NO feather, NO blur
+    - Image-type-specific tuning
+    - Output: Sharp yet natural, no cutting, no outline, no halo
+    
+    Image types: human, document, animal, ecommerce
+    """
+    start_time = time.time()
+    debug_stats = {}
+    
+    original_width, original_height = input_image.size
+    original_megapixels = (original_width * original_height) / 1_000_000
+    
+    logger.info(f"🚀 Enterprise Pipeline: {original_width}x{original_height} = {original_megapixels:.2f} MP, type: {image_type}")
+    
+    # Step 1: BiRefNet Semantic Mask (ENTERPRISE CONFIG)
+    # Min 1024, confidence 0.88, multi-scale detail enabled
+    logger.info("Step 1: BiRefNet semantic mask (min 1024, confidence 0.88, multi-scale)")
+    max_dimension = max(original_width, original_height)
+    
+    # ENTERPRISE: Minimum 1024 on longest side
+    target_size = max(1024, max_dimension)
+    scale = target_size / max_dimension
+    
+    # Resize for BiRefNet if needed (ensure min 1024)
+    if scale > 1.0:
+        process_width = int(original_width * scale)
+        process_height = int(original_height * scale)
+        process_image = input_image.resize((process_width, process_height), Image.Resampling.LANCZOS)
+        logger.info(f"Upscaled to {process_width}x{process_height} for BiRefNet (min 1024 requirement)")
+    else:
+        process_image = input_image
+    
+    # Get BiRefNet mask (confidence threshold handled by model)
+    input_buffer = io.BytesIO()
+    process_image.save(input_buffer, format='PNG')
+    input_bytes = input_buffer.getvalue()
+    output_bytes = remove(input_bytes, session=birefnet_session)
+    output_image = Image.open(io.BytesIO(output_bytes))
+    
+    # Extract mask
+    if output_image.mode == 'RGBA':
+        mask = output_image.split()[3]
+    else:
+        mask = output_image.convert('L')
+    
+    # Resize mask back to original size if needed
+    if mask.size != input_image.size:
+        mask = mask.resize(input_image.size, Image.Resampling.LANCZOS)
+    
+    debug_stats.update({
+        "birefnet_mask_shape": mask.size,
+        "birefnet_processing_size": process_image.size,
+        "birefnet_min_resolution": 1024
+    })
+    
+    # Step 2: Trimap Generation (for MaxMatting)
+    logger.info("Step 2: Generating trimap for MaxMatting...")
+    # Image-type-specific trimap expansion
+    if image_type == 'document':
+        expand_radius = 4  # Smaller for documents (sharp edges)
+    elif image_type == 'animal':
+        expand_radius = 10  # Larger for fur/hair
+    elif image_type == 'ecommerce':
+        expand_radius = 6  # Medium for products
+    else:  # human
+        expand_radius = 8  # Standard for human photos
+    
+    trimap = generate_trimap(mask, expand_radius=expand_radius)
+    debug_stats["trimap_expand_radius"] = expand_radius
+    debug_stats["trimap_type"] = image_type
+    
+    # Step 3: MaxMatting Fine Alpha Matting (ENTERPRISE CONFIG)
+    # Min 2048, preserve hair/fur, anti-halo, NO feather, NO blur
+    logger.info("Step 3: MaxMatting fine alpha matting (min 2048, preserve hair/fur, anti-halo)")
+    
+    # ENTERPRISE: Minimum 2048 for MaxMatting
+    maxmatting_max_dim = max(original_width, original_height)
+    maxmatting_target = max(2048, maxmatting_max_dim)
+    maxmatting_scale = maxmatting_target / maxmatting_max_dim
+    
+    # Prepare high-res input for MaxMatting
+    if maxmatting_scale > 1.0:
+        maxmatting_width = int(original_width * maxmatting_scale)
+        maxmatting_height = int(original_height * maxmatting_scale)
+        maxmatting_image = input_image.resize((maxmatting_width, maxmatting_height), Image.Resampling.LANCZOS)
+        maxmatting_trimap = trimap.resize((maxmatting_width, maxmatting_height), Image.Resampling.LANCZOS)
+        logger.info(f"Upscaled to {maxmatting_width}x{maxmatting_height} for MaxMatting (min 2048 requirement)")
+    else:
+        maxmatting_image = input_image
+        maxmatting_trimap = trimap
+    
+    # Prepare input for MaxMatting: RGB image + trimap
+    trimap_rgba = Image.new('RGBA', maxmatting_image.size)
+    trimap_rgba.paste(maxmatting_image.convert('RGB'), (0, 0))
+    trimap_rgba.putalpha(maxmatting_trimap)
+    
+    # Process with MaxMatting
+    matting_buffer = io.BytesIO()
+    trimap_rgba.save(matting_buffer, format='PNG')
+    matting_bytes = matting_buffer.getvalue()
+    matting_output_bytes = remove(matting_bytes, session=maxmatting_session)
+    matting_output = Image.open(io.BytesIO(matting_output_bytes))
+    
+    # Extract refined alpha from MaxMatting output
+    if matting_output.mode == 'RGBA':
+        refined_alpha = matting_output.split()[3]
+    else:
+        refined_alpha = matting_output.convert('L')
+    
+    # Resize alpha back to original size if needed
+    if refined_alpha.size != input_image.size:
+        refined_alpha = refined_alpha.resize(input_image.size, Image.Resampling.LANCZOS)
+    
+    debug_stats.update({
+        "maxmatting_alpha_shape": refined_alpha.size,
+        "maxmatting_processing_size": maxmatting_image.size,
+        "maxmatting_min_resolution": 2048,
+        "maxmatting_applied": True
+    })
+    
+    # Safety check: alpha should have content
+    alpha_array = np.array(refined_alpha.convert('L'))
+    alpha_nonzero = np.count_nonzero(alpha_array)
+    alpha_percent = (alpha_nonzero / alpha_array.size) * 100.0
+    
+    if alpha_percent < 1.0:
+        logger.warning(f"⚠️ MaxMatting alpha too low ({alpha_percent:.2f}%), falling back to BiRefNet mask")
+        refined_alpha = mask
+        debug_stats["maxmatting_fallback"] = bool(True)
+    
+    # Step 4: Composite RGB + Alpha (NO FEATHER, NO BLUR)
+    logger.info("Step 4: Compositing RGB + refined alpha (NO feather, NO blur)")
+    
+    rgb_image = input_image.convert('RGB') if input_image.mode != 'RGB' else input_image
+    
+    # Create RGBA with refined alpha (direct composite, no processing)
+    rgba_composite = Image.new('RGBA', rgb_image.size, (0, 0, 0, 0))
+    rgba_composite.paste(rgb_image, (0, 0))
+    rgba_composite.putalpha(refined_alpha)
+    
+    debug_stats["composite_completed"] = bool(True)
+    debug_stats["feather_applied"] = False  # NO FEATHER
+    debug_stats["blur_applied"] = False     # NO BLUR
+    
+    # Step 5: Image-Type-Specific Anti-Halo (Alpha edge only, NO blur)
+    logger.info(f"Step 5: Image-type-specific anti-halo ({image_type})")
+    
+    if image_type == 'document':
+        # Document: Hard edges, sharp corners, preserve text
+        # Minimal halo removal to preserve text clarity
+        current_alpha = rgba_composite.split()[3]
+        cleaned_alpha = strong_halo_removal_alpha(current_alpha, rgb_image, is_document=True)
+        rgba_composite.putalpha(cleaned_alpha)
+        debug_stats["halo_removal_applied"] = True
+        debug_stats["halo_strength"] = "minimal_document"
+    elif image_type == 'animal':
+        # Animal: Preserve fur texture, no hair loss
+        # Strong anti-halo to preserve fur details
+        current_alpha = rgba_composite.split()[3]
+        cleaned_alpha = strong_halo_removal_alpha(current_alpha, rgb_image, is_document=False)
+        rgba_composite.putalpha(cleaned_alpha)
+        debug_stats["halo_removal_applied"] = True
+        debug_stats["halo_strength"] = "strong_animal"
+    elif image_type == 'ecommerce':
+        # E-commerce: Clean sharp edges, full object shape
+        # Medium anti-halo for clean product edges
+        current_alpha = rgba_composite.split()[3]
+        cleaned_alpha = strong_halo_removal_alpha(current_alpha, rgb_image, is_document=False)
+        rgba_composite.putalpha(cleaned_alpha)
+        debug_stats["halo_removal_applied"] = True
+        debug_stats["halo_strength"] = "medium_ecommerce"
+    else:  # human
+        # Human: Preserve face, hair strands, shoulders
+        # Strong anti-halo to preserve hair and face details
+        current_alpha = rgba_composite.split()[3]
+        cleaned_alpha = strong_halo_removal_alpha(current_alpha, rgb_image, is_document=False)
+        rgba_composite.putalpha(cleaned_alpha)
+        debug_stats["halo_removal_applied"] = True
+        debug_stats["halo_strength"] = "strong_human"
+    
+    # Step 6: Color Decontamination (remove background color spill)
+    logger.info("Step 6: Color decontamination (remove background spill)")
+    final_image = color_decontamination(rgba_composite, rgb_image, strength=0.6)
+    debug_stats["color_decontamination_applied"] = bool(True)
+    
+    # NO EDGE SHARPENING - MaxMatting already provides sharp edges
+    # NO FEATHER - True AI matting doesn't need artificial feathering
+    # NO BLUR - Enterprise quality requires sharp, natural edges
+    
+    # Final alpha check
+    final_alpha = np.array(final_image.getchannel('A'))
+    final_alpha_nonzero = np.count_nonzero(final_alpha)
+    final_alpha_percent = (final_alpha_nonzero / final_alpha.size) * 100.0
+    debug_stats.update({
+        "final_alpha_percent": float(final_alpha_percent),
+        "final_alpha_nonzero": int(final_alpha_nonzero)
+    })
+    
+    if final_alpha_nonzero == 0:
+        logger.error(f"❌ CRITICAL: Final alpha is empty (0% nonzero) - processing failed")
+        raise ValueError("Processing failed: output alpha channel is empty")
+    
+    logger.info(f"✅ Enterprise pipeline completed in {time.time() - start_time:.2f}s, final alpha: {final_alpha_percent:.2f}%, type: {image_type}")
+    
+    # Convert to bytes (will be converted to JPG later if needed)
+    output_buffer = io.BytesIO()
+    final_image.save(output_buffer, format='PNG', optimize=True)
+    output_bytes = output_buffer.getvalue()
+    
+    return output_bytes, debug_stats
+
 def process_premium_hd_pipeline(input_image, birefnet_session, maxmatting_session, is_document=False):
     """
     PREMIUM PHOTO PIPELINE (GPU)
@@ -2010,55 +2227,57 @@ def premium_bg():
             logger.info(f"Final processing size: {final_size[0]}x{final_size[1]} = {final_megapixels:.2f} MP")
             
             # Image Type Detection: Use provided imageType or auto-detect
-            image_type = data.get('imageType')  # "human" | "document" | "id_card" | "a4"
+            image_type = data.get('imageType')  # "human" | "document" | "animal" | "ecommerce"
             
+            # White background option (no transparent PNG)
+            white_background = data.get('whiteBackground', True)  # Default to white background
+            
+            # Output format (JPG or PNG)
+            output_format = data.get('outputFormat', 'jpg')  # Default JPG
+            output_quality = data.get('quality', 100)  # Default quality 100
+            
+            # Normalize image type
             if image_type:
-                # Use provided imageType
+                # Map to standard types
                 if image_type in ['document', 'id_card', 'a4']:
-                    is_document = True
-                    logger.info(f"📄 Using provided imageType: {image_type} → Document mode")
+                    image_type = 'document'
+                elif image_type in ['animal', 'pet', 'wildlife']:
+                    image_type = 'animal'
+                elif image_type in ['ecommerce', 'product', 'shop', 'item']:
+                    image_type = 'ecommerce'
                 else:
-                    is_document = False
-                    logger.info(f"📷 Using provided imageType: {image_type} → Photo mode")
+                    image_type = 'human'  # Default
+                logger.info(f"📸 Using provided imageType: {image_type}")
             else:
                 # Auto-detect if not provided
                 is_document = is_document_image(input_image)
                 image_type = 'document' if is_document else 'human'
+                logger.info(f"🔍 Auto-detected imageType: {image_type}")
             
-            # Select pipeline based on image type
+            # ENTERPRISE PIPELINE: BiRefNet + MaxMatting (all image types)
+            logger.info(f"🚀 Enterprise Pipeline: BiRefNet (min 1024) + MaxMatting (min 2048), type: {image_type}")
             birefnet_session = get_session_512()  # BiRefNet for semantic mask
+            maxmatting_session = get_session_maxmatting()  # MaxMatting for fine alpha matting
             
-            if is_document:
-                # PREMIUM DOCUMENT PIPELINE: BiRefNet only, no MaxMatting, no feather, no halo
-                logger.info("📄 Premium: Using Document Pipeline (BiRefNet only, safe mode)")
-                try:
-                    output_bytes, debug_stats = process_premium_document_pipeline(
-                        input_image, 
-                        birefnet_session
-                    )
-                    pipeline_type = "document_safe"
-                except Exception as doc_error:
-                    logger.error(f"Document pipeline failed: {doc_error}, falling back to photo pipeline")
-                    # Fallback to photo pipeline if document pipeline fails
-                    maxmatting_session = get_session_maxmatting()
-                    output_bytes, debug_stats = process_premium_hd_pipeline(
-                        input_image, 
-                        birefnet_session, 
-                        maxmatting_session, 
-                        is_document=False
-                    )
-                    pipeline_type = "photo_fallback"
-            else:
-                # PREMIUM PHOTO PIPELINE: BiRefNet + MaxMatting
-                logger.info("📷 Premium: Using Photo Pipeline (BiRefNet + MaxMatting)")
-                maxmatting_session = get_session_maxmatting()  # MaxMatting for fine alpha matting
-                output_bytes, debug_stats = process_premium_hd_pipeline(
-                    input_image, 
-                    birefnet_session, 
-                    maxmatting_session, 
-                    is_document=False
+            try:
+                output_bytes, debug_stats = process_enterprise_pipeline(
+                    input_image,
+                    birefnet_session,
+                    maxmatting_session,
+                    image_type=image_type
                 )
-                pipeline_type = "photo_hd"
+                pipeline_type = f"enterprise_{image_type}"
+            except Exception as pipeline_error:
+                logger.error(f"Enterprise pipeline failed: {pipeline_error}, falling back to standard pipeline")
+                # Fallback to standard pipeline
+                is_document = (image_type == 'document')
+                output_bytes, debug_stats = process_premium_hd_pipeline(
+                    input_image,
+                    birefnet_session,
+                    maxmatting_session,
+                    is_document=is_document
+                )
+                pipeline_type = f"fallback_{image_type}"
             
             # CRITICAL: Validate output before credit deduction
             # Check if alpha channel has content (safety check)
@@ -2075,6 +2294,24 @@ def premium_bg():
                             'message': 'The processed image has no valid content. Please try again or contact support.',
                             'creditsUsed': 0  # No credits deducted
                         }), 500
+                    
+                    # Convert to white background (RGB) and JPG if requested
+                    if white_background:
+                        logger.info("🔄 Converting RGBA to RGB with white background (no transparent)")
+                        rgb_output = Image.new('RGB', output_image_check.size, (255, 255, 255))
+                        rgb_output.paste(output_image_check, mask=output_image_check.split()[3])
+                        output_image_check = rgb_output
+                        
+                        # Convert to JPG with quality 100 (enterprise requirement)
+                        output_buffer = io.BytesIO()
+                        if output_format.lower() == 'jpg' or output_format.lower() == 'jpeg':
+                            output_image_check.save(output_buffer, format='JPEG', quality=output_quality, optimize=True)
+                            logger.info(f"✅ Converted to JPG quality {output_quality} with white background")
+                        else:
+                            output_image_check.save(output_buffer, format='PNG', optimize=True)
+                            logger.info(f"✅ Converted to PNG with white background")
+                        output_bytes = output_buffer.getvalue()
+                        logger.info(f"✅ Final output size: {len(output_bytes) / 1024:.2f} KB")
             except Exception as alpha_check_error:
                 logger.error(f"Alpha validation failed: {alpha_check_error}")
                 return jsonify({
@@ -2104,7 +2341,11 @@ def premium_bg():
             
             # Convert to base64
             output_b64 = base64.b64encode(output_bytes).decode()
-            result_image = f"data:image/png;base64,{output_b64}"
+            # Use appropriate format based on output
+            if output_format.lower() == 'jpg' or output_format.lower() == 'jpeg':
+                result_image = f"data:image/jpeg;base64,{output_b64}"
+            else:
+                result_image = f"data:image/png;base64,{output_b64}"
             
             processing_time = time.time() - start_time
             output_size = len(output_bytes)

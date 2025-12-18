@@ -1274,6 +1274,39 @@ Monthly download: <span id="image-remover-download-used">0</span> MB / <span id=
 <script src="js/config.js" type="module"></script>
 <script src="js/firebase-init.js" type="module"></script>
 <script src="js/auth.js" type="module"></script>
+<script>
+    // Listen for credit updates from background workspace
+    window.addEventListener('creditsUpdated', (event) => {
+        const credits = event.detail.credits;
+        if (typeof credits === 'number') {
+            // Update credit display elements
+            document.querySelectorAll('.user-credits').forEach(el => {
+                el.textContent = credits.toFixed(0);
+            });
+            
+            const creditBalanceDisplay = document.getElementById('credit-balance-display');
+            if (creditBalanceDisplay) {
+                creditBalanceDisplay.textContent = credits.toFixed(0);
+            }
+            
+            const creditBalanceDisplayMain = document.getElementById('credit-balance-display-main');
+            if (creditBalanceDisplayMain) {
+                creditBalanceDisplayMain.textContent = credits.toFixed(0);
+            }
+        }
+    });
+    
+    // Global function to update credit balance (called from background workspace)
+    window.updateCreditBalance = function(credits) {
+        if (typeof credits === 'number') {
+            document.querySelectorAll('.user-credits, #credit-balance-display, #credit-balance-display-main').forEach(el => {
+                if (el) {
+                    el.textContent = credits.toFixed(0);
+                }
+            });
+        }
+    };
+</script>
 <script type="module">
         import { auth } from './js/firebase-init.js';
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js';
@@ -1378,6 +1411,10 @@ Monthly download: <span id="image-remover-download-used">0</span> MB / <span id=
                         } else if (expiresAtEl) {
                             expiresAtEl.textContent = 'Never';
                         }
+                        
+                        // Store in localStorage for cross-tab sync
+                        localStorage.setItem('lastCreditBalance', credits.toString());
+                        localStorage.setItem('lastCreditUpdate', Date.now().toString());
                         
                         // Update last used
                         const lastUsedEl = document.getElementById('credit-last-used');
