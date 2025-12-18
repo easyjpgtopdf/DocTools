@@ -408,7 +408,389 @@
     </div>
   </section>
 
-  
+  <!-- SSL Security Badge Section -->
+  <section style="padding: 40px 0; background: #f8f9ff; border-top: 1px solid #e2e6ff;">
+    <div class="container">
+      <div style="text-align: center; max-width: 800px; margin: 0 auto;">
+        <h3 style="font-size: 1.5rem; color: #0b1630; margin-bottom: 20px;">
+          <i class="fas fa-shield-alt" style="color: #4361ee; margin-right: 10px;"></i>
+          Secure & Trusted
+        </h3>
+        <div style="display: flex; justify-content: center; align-items: center; gap: 30px; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 15px 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <i class="fas fa-lock" style="font-size: 2rem; color: #4361ee;"></i>
+            <div style="text-align: left;">
+              <div style="font-weight: 600; color: #0b1630; font-size: 1.1rem;">SSL Encrypted</div>
+              <div style="color: #56607a; font-size: 0.9rem;">256-bit Security</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 15px 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <i class="fas fa-user-shield" style="font-size: 2rem; color: #4361ee;"></i>
+            <div style="text-align: left;">
+              <div style="font-weight: 600; color: #0b1630; font-size: 1.1rem;">Privacy Protected</div>
+              <div style="color: #56607a; font-size: 0.9rem;">Your images are secure</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 15px 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <i class="fas fa-server" style="font-size: 2rem; color: #4361ee;"></i>
+            <div style="text-align: left;">
+              <div style="font-weight: 600; color: #0b1630; font-size: 1.1rem;">Cloud Processing</div>
+              <div style="color: #56607a; font-size: 0.9rem;">Google Cloud Run</div>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: 20px; color: #56607a; font-size: 0.95rem;">
+          All image processing is done securely on our servers. Images are automatically deleted after processing.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feedback and Review Section -->
+  <section class="feedback-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+    <div class="container">
+      <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
+        <i class="fas fa-comments" style="margin-right: 10px;"></i>
+        Reviews & Comments
+      </h2>
+      
+      <div class="feedback-container" style="max-width: 900px; margin: 0 auto;">
+        <!-- Share Feedback Form -->
+        <div class="feedback-form-card" style="background: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+          <h3 style="font-size: 1.3rem; color: #0b1630; margin-bottom: 20px;">
+            <i class="fas fa-edit" style="color: #4361ee; margin-right: 8px;"></i>
+            Share Your Feedback
+          </h3>
+          <form id="feedbackForm" style="display: flex; flex-direction: column; gap: 15px;">
+            <div class="form-group">
+              <label for="feedbackName" style="display: block; margin-bottom: 8px; color: #56607a; font-weight: 600;">Your Name</label>
+              <input type="text" id="feedbackName" placeholder="Enter your name" required style="width: 100%; padding: 12px 16px; border: 1px solid #e2e6ff; border-radius: 8px; font-size: 0.95rem; transition: border-color 0.3s;" onfocus="this.style.borderColor='#4361ee'" onblur="this.style.borderColor='#e2e6ff'">
+            </div>
+            <div class="form-group">
+              <label for="feedbackMessage" style="display: block; margin-bottom: 8px; color: #56607a; font-weight: 600;">Your Comment</label>
+              <textarea id="feedbackMessage" placeholder="Write your feedback or comment here..." required rows="4" style="width: 100%; padding: 12px 16px; border: 1px solid #e2e6ff; border-radius: 8px; font-size: 0.95rem; resize: vertical; transition: border-color 0.3s; font-family: inherit;" onfocus="this.style.borderColor='#4361ee'" onblur="this.style.borderColor='#e2e6ff'"></textarea>
+            </div>
+            <button type="submit" style="background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; align-self: flex-start;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(67, 97, 238, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+              <i class="fas fa-paper-plane" style="margin-right: 8px;"></i>
+              Submit Feedback
+            </button>
+          </form>
+        </div>
+        
+        <!-- Display Feedback (Only 3 per page) -->
+        <div id="feedbackList" class="feedback-list" style="display: flex; flex-direction: column; gap: 20px;">
+          <!-- Feedback items will be loaded here (max 3) -->
+          <div class="feedback-item" style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+              <div>
+                <h4 style="font-size: 1.1rem; color: #0b1630; margin-bottom: 4px;">Rajesh Kumar</h4>
+                <span style="font-size: 0.85rem; color: #9ca3af;">2 days ago</span>
+              </div>
+              <div style="color: #fbbf24;">
+                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+              </div>
+            </div>
+            <p style="color: #56607a; line-height: 1.6; margin-bottom: 15px;">Amazing tool! Removed background perfectly from my product photos. Free version works great, premium HD quality is outstanding!</p>
+          </div>
+          
+          <div class="feedback-item" style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+              <div>
+                <h4 style="font-size: 1.1rem; color: #0b1630; margin-bottom: 4px;">Priya Sharma</h4>
+                <span style="font-size: 0.85rem; color: #9ca3af;">5 days ago</span>
+              </div>
+              <div style="color: #fbbf24;">
+                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+              </div>
+            </div>
+            <p style="color: #56607a; line-height: 1.6; margin-bottom: 15px;">Very fast processing and excellent quality. Used premium HD for wedding photos - results were perfect!</p>
+          </div>
+          
+          <div class="feedback-item" style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+              <div>
+                <h4 style="font-size: 1.1rem; color: #0b1630; margin-bottom: 4px;">Amit Patel</h4>
+                <span style="font-size: 0.85rem; color: #9ca3af;">1 week ago</span>
+              </div>
+              <div style="color: #fbbf24;">
+                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i>
+              </div>
+            </div>
+            <p style="color: #56607a; line-height: 1.6; margin-bottom: 15px;">Great free tool for quick background removal. Easy to use and reliable!</p>
+          </div>
+        </div>
+        
+        <!-- Link to All Feedback Page -->
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e6ff;">
+          <a href="feedback.html" style="color: #4361ee; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: color 0.3s;" onmouseover="this.style.color='#3a0ca3'" onmouseout="this.style.color='#4361ee'">
+            <i class="fas fa-arrow-right"></i>
+            View All Feedback & Comments
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section style="padding: 60px 0; background: white;">
+    <div class="container">
+      <h2 style="font-size: 2.5rem; color: #0b1630; text-align: center; margin-bottom: 50px;">
+        <i class="fas fa-question-circle" style="color: #4361ee; margin-right: 15px;"></i>
+        Frequently Asked Questions
+      </h2>
+      
+      <div style="max-width: 900px; margin: 0 auto;">
+        <!-- FAQ Item 1 -->
+        <div class="faq-item" style="margin-bottom: 20px; background: #f8f9ff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e6ff;">
+          <div class="faq-question" onclick="toggleFAQ(this)" style="padding: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.3s;" onmouseover="this.style.background='#f0f2ff'" onmouseout="this.style.background='#f8f9ff'">
+            <h3 style="font-size: 1.2rem; color: #0b1630; font-weight: 600; margin: 0;">What is AI-powered background removal?</h3>
+            <i class="fas fa-chevron-down" style="color: #4361ee; transition: transform 0.3s;"></i>
+          </div>
+          <div class="faq-answer" style="display: none; padding: 0 20px 20px 20px; color: #56607a; line-height: 1.8;">
+            <p>Our AI-powered background removal tool uses advanced BiRefNet neural network to automatically detect and remove backgrounds from images. It works with photos, product images, portraits, and documents, providing clean, professional results in seconds.</p>
+          </div>
+        </div>
+
+        <!-- FAQ Item 2 -->
+        <div class="faq-item" style="margin-bottom: 20px; background: #f8f9ff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e6ff;">
+          <div class="faq-question" onclick="toggleFAQ(this)" style="padding: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.3s;" onmouseover="this.style.background='#f0f2ff'" onmouseout="this.style.background='#f8f9ff'">
+            <h3 style="font-size: 1.2rem; color: #0b1630; font-weight: 600; margin: 0;">What is the difference between Free and Premium HD versions?</h3>
+            <i class="fas fa-chevron-down" style="color: #4361ee; transition: transform 0.3s;"></i>
+          </div>
+          <div class="faq-answer" style="display: none; padding: 0 20px 20px 20px; color: #56607a; line-height: 1.8;">
+            <p><strong>Free Version (640px):</strong></p>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              <li>Maximum resolution: 640px (longest side)</li>
+              <li>Industry-level quality with soft alpha edges</li>
+              <li>Natural edge transitions (1px feather)</li>
+              <li>Perfect for web use, social media, thumbnails</li>
+              <li>No hand/body parts cut off</li>
+              <li>Complete, trustworthy output</li>
+            </ul>
+            <p style="margin-top: 15px;"><strong>Premium HD Version:</strong></p>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              <li>Resolution: 2000-4000px (up to original size)</li>
+              <li>BiRefNet High-Resolution model with TensorRT FP16 acceleration</li>
+              <li>Adaptive input processing (1024-1536px on longest side)</li>
+              <li>MaxMatting fine matting refinement for professional results</li>
+              <li>Adaptive feathering based on image size (up to 5px for large images)</li>
+              <li>Strong halo removal for clean background separation</li>
+              <li>Color decontamination for perfect edge quality</li>
+              <li>Optional edge sharpening for crisp details</li>
+              <li>Perfect for print, professional photography, e-commerce</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- FAQ Item 3 -->
+        <div class="faq-item" style="margin-bottom: 20px; background: #f8f9ff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e6ff;">
+          <div class="faq-question" onclick="toggleFAQ(this)" style="padding: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.3s;" onmouseover="this.style.background='#f0f2ff'" onmouseout="this.style.background='#f8f9ff'">
+            <h3 style="font-size: 1.2rem; color: #0b1630; font-weight: 600; margin: 0;">What image formats are supported?</h3>
+            <i class="fas fa-chevron-down" style="color: #4361ee; transition: transform 0.3s;"></i>
+          </div>
+          <div class="faq-answer" style="display: none; padding: 0 20px 20px 20px; color: #56607a; line-height: 1.8;">
+            <p>We support all common image formats including:</p>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              <li>JPEG/JPG</li>
+              <li>PNG</li>
+              <li>WEBP</li>
+              <li>BMP</li>
+              <li>TIFF</li>
+              <li>And more...</li>
+            </ul>
+            <p style="margin-top: 15px;">Output format is always PNG with transparent background, perfect for use in any design software or website.</p>
+          </div>
+        </div>
+
+        <!-- FAQ Item 4 -->
+        <div class="faq-item" style="margin-bottom: 20px; background: #f8f9ff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e6ff;">
+          <div class="faq-question" onclick="toggleFAQ(this)" style="padding: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.3s;" onmouseover="this.style.background='#f0f2ff'" onmouseout="this.style.background='#f8f9ff'">
+            <h3 style="font-size: 1.2rem; color: #0b1630; font-weight: 600; margin: 0;">How does Premium HD processing work?</h3>
+            <i class="fas fa-chevron-down" style="color: #4361ee; transition: transform 0.3s;"></i>
+          </div>
+          <div class="faq-answer" style="display: none; padding: 0 20px 20px 20px; color: #56607a; line-height: 1.8;">
+            <p><strong>Premium HD Processing Pipeline:</strong></p>
+            <ol style="margin: 10px 0; padding-left: 20px;">
+              <li><strong>BiRefNet Semantic Mask:</strong> Advanced AI model generates initial mask with adaptive input resolution (1024-1536px)</li>
+              <li><strong>MaxMatting Refinement:</strong> Fine matting algorithm refines edges for professional quality</li>
+              <li><strong>Composite RGB + Alpha:</strong> Combines original image with refined mask</li>
+              <li><strong>Adaptive Feathering:</strong> Smooth edges based on image size (up to 5px for large images)</li>
+              <li><strong>Strong Halo Removal:</strong> Removes background color spill from edges</li>
+              <li><strong>Color Decontamination:</strong> Cleans edge pixels for perfect separation</li>
+              <li><strong>Edge Sharpening (Optional):</strong> Enhances details for crisp results</li>
+              <li><strong>Final Output:</strong> High-resolution PNG (2000-4000px) ready for professional use</li>
+            </ol>
+            <p style="margin-top: 15px;"><strong>GPU Acceleration:</strong> Premium HD uses NVIDIA GPU with TensorRT FP16 for fast processing of large images.</p>
+          </div>
+        </div>
+
+        <!-- FAQ Item 5 -->
+        <div class="faq-item" style="margin-bottom: 20px; background: #f8f9ff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e6ff;">
+          <div class="faq-question" onclick="toggleFAQ(this)" style="padding: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.3s;" onmouseover="this.style.background='#f0f2ff'" onmouseout="this.style.background='#f8f9ff'">
+            <h3 style="font-size: 1.2rem; color: #0b1630; font-weight: 600; margin: 0;">Is my data safe and private?</h3>
+            <i class="fas fa-chevron-down" style="color: #4361ee; transition: transform 0.3s;"></i>
+          </div>
+          <div class="faq-answer" style="display: none; padding: 0 20px 20px 20px; color: #56607a; line-height: 1.8;">
+            <p>Yes, absolutely! Your privacy and security are our top priorities:</p>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              <li><strong>SSL Encrypted:</strong> All data transmission is encrypted with 256-bit SSL security</li>
+              <li><strong>Automatic Deletion:</strong> Images are automatically deleted from our servers after processing</li>
+              <li><strong>No Storage:</strong> We don't store your images permanently</li>
+              <li><strong>Cloud Processing:</strong> Images are processed on secure Google Cloud Run servers</li>
+              <li><strong>Privacy Protected:</strong> Your images are never shared or used for any other purpose</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- FAQ Item 6 -->
+        <div class="faq-item" style="margin-bottom: 20px; background: #f8f9ff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e6ff;">
+          <div class="faq-question" onclick="toggleFAQ(this)" style="padding: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.3s;" onmouseover="this.style.background='#f0f2ff'" onmouseout="this.style.background='#f8f9ff'">
+            <h3 style="font-size: 1.2rem; color: #0b1630; font-weight: 600; margin: 0;">Can I edit the image after removing the background?</h3>
+            <i class="fas fa-chevron-down" style="color: #4361ee; transition: transform 0.3s;"></i>
+          </div>
+          <div class="faq-answer" style="display: none; padding: 0 20px 20px 20px; color: #56607a; line-height: 1.8;">
+            <p>Yes! After background removal, you can:</p>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              <li>Apply custom backgrounds (solid colors, gradients, images)</li>
+              <li>Edit image (crop, resize, sharpen, enhance)</li>
+              <li>Download the transparent PNG</li>
+              <li>Use in any design software</li>
+            </ul>
+            <p style="margin-top: 15px;">All editing features are available right on the page - no need to download and use external software!</p>
+          </div>
+        </div>
+
+        <!-- FAQ Item 7 -->
+        <div class="faq-item" style="margin-bottom: 20px; background: #f8f9ff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e6ff;">
+          <div class="faq-question" onclick="toggleFAQ(this)" style="padding: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.3s;" onmouseover="this.style.background='#f0f2ff'" onmouseout="this.style.background='#f8f9ff'">
+            <h3 style="font-size: 1.2rem; color: #0b1630; font-weight: 600; margin: 0;">How fast is the processing?</h3>
+            <i class="fas fa-chevron-down" style="color: #4361ee; transition: transform 0.3s;"></i>
+          </div>
+          <div class="faq-answer" style="display: none; padding: 0 20px 20px 20px; color: #56607a; line-height: 1.8;">
+            <p>Processing speed depends on image size and version:</p>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              <li><strong>Free Version (640px):</strong> Typically 2-5 seconds per image</li>
+              <li><strong>Premium HD (2000-4000px):</strong> Typically 5-15 seconds per image (depending on size)</li>
+            </ul>
+            <p style="margin-top: 15px;">All processing happens on GPU-accelerated servers for maximum speed. You'll see a real-time progress indicator during processing.</p>
+          </div>
+        </div>
+
+        <!-- FAQ Item 8 -->
+        <div class="faq-item" style="margin-bottom: 20px; background: #f8f9ff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e6ff;">
+          <div class="faq-question" onclick="toggleFAQ(this)" style="padding: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.3s;" onmouseover="this.style.background='#f0f2ff'" onmouseout="this.style.background='#f8f9ff'">
+            <h3 style="font-size: 1.2rem; color: #0b1630; font-weight: 600; margin: 0;">What makes the Free version industry-level quality?</h3>
+            <i class="fas fa-chevron-down" style="color: #4361ee; transition: transform 0.3s;"></i>
+          </div>
+          <div class="faq-answer" style="display: none; padding: 0 20px 20px 20px; color: #56607a; line-height: 1.8;">
+            <p>Our Free version uses an optimized formula that provides complete, trustworthy results:</p>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              <li><strong>640px Resolution:</strong> Higher than standard free tools (512px)</li>
+              <li><strong>Soft Alpha:</strong> Natural edge transitions without harsh cuts</li>
+              <li><strong>1px Feather:</strong> Smooth edges for professional look</li>
+              <li><strong>No Clamping:</strong> Preserves thin parts like hands, hair, cloth edges</li>
+              <li><strong>Complete Output:</strong> Never cuts off body parts or important details</li>
+              <li><strong>Industry-Level:</strong> Quality that builds trust, not cheap/buggy appearance</li>
+            </ul>
+            <p style="margin-top: 15px;">Perfect for web use, social media, and general purpose. Premium HD is recommended for print and professional photography.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // FAQ Toggle Function
+    function toggleFAQ(element) {
+      const answer = element.nextElementSibling;
+      const icon = element.querySelector('i');
+      const isOpen = answer.style.display === 'block';
+      
+      // Close all FAQs
+      document.querySelectorAll('.faq-answer').forEach(ans => ans.style.display = 'none');
+      document.querySelectorAll('.faq-question i').forEach(ic => {
+        ic.style.transform = 'rotate(0deg)';
+      });
+      
+      // Toggle current FAQ
+      if (!isOpen) {
+        answer.style.display = 'block';
+        icon.style.transform = 'rotate(180deg)';
+      }
+    }
+
+    // Feedback Form Handler
+    const currentPage = window.location.pathname.split('/').pop() || 'background-remover.html';
+    
+    function loadFeedbacks() {
+      const storedFeedbacks = JSON.parse(localStorage.getItem('feedbacks') || '{}');
+      const pageFeedbacks = (storedFeedbacks[currentPage] || []).slice(0, 3);
+      const feedbackList = document.getElementById('feedbackList');
+      
+      if (!feedbackList) return;
+      
+      if (pageFeedbacks.length === 0) {
+        // Keep default feedbacks if none exist
+        return;
+      }
+      
+      feedbackList.innerHTML = pageFeedbacks.map(fb => `
+        <div class="feedback-item" style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+            <div>
+              <h4 style="font-size: 1.1rem; color: #0b1630; margin-bottom: 4px;">${fb.name}</h4>
+              <span style="font-size: 0.85rem; color: #9ca3af;">${fb.date}</span>
+            </div>
+            <div style="color: #fbbf24;">
+              ${'<i class="fas fa-star"></i>'.repeat(fb.rating || 5)}
+              ${'<i class="far fa-star"></i>'.repeat(5 - (fb.rating || 5))}
+            </div>
+          </div>
+          <p style="color: #56607a; line-height: 1.6; margin-bottom: 15px;">${fb.message}</p>
+        </div>
+      `).join('');
+    }
+    
+    const feedbackForm = document.getElementById('feedbackForm');
+    if (feedbackForm) {
+      feedbackForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const name = document.getElementById('feedbackName').value.trim();
+        const message = document.getElementById('feedbackMessage').value.trim();
+        
+        if (!name || !message) {
+          alert('Please fill in all fields');
+          return;
+        }
+        
+        const feedback = {
+          name: name,
+          message: message,
+          date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+          rating: 5,
+          page: currentPage
+        };
+        
+        const storedFeedbacks = JSON.parse(localStorage.getItem('feedbacks') || '{}');
+        if (!storedFeedbacks[currentPage]) {
+          storedFeedbacks[currentPage] = [];
+        }
+        storedFeedbacks[currentPage].unshift(feedback);
+        localStorage.setItem('feedbacks', JSON.stringify(storedFeedbacks));
+        
+        this.reset();
+        loadFeedbacks();
+        alert('Thank you for your feedback!');
+      });
+    }
+    
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', loadFeedbacks);
+    } else {
+      loadFeedbacks();
+    }
+  </script>
 
   <script type="module">
     console.log('FREE FLOW STARTED');
