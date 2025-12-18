@@ -713,24 +713,27 @@
       const uploadContent = document.getElementById('uploadContent');
       
       if (imagePreview && previewImg) {
-        // Set display FIRST (before src) for instant visual feedback
+        // CRITICAL: Show container FIRST, then set src - this makes it instant
         imagePreview.style.display = 'block';
         imagePreview.style.visibility = 'visible';
+        imagePreview.style.opacity = '1';
+        imagePreview.style.zIndex = '10';
         
-        // Use onload to ensure image is ready, but show container immediately
-        previewImg.onload = () => {
-          // Image loaded, ensure it's visible
-          previewImg.style.display = 'block';
-          previewImg.style.opacity = '1';
-        };
+        // Set image properties before src for instant display
+        previewImg.style.display = 'block';
+        previewImg.style.visibility = 'visible';
+        previewImg.style.width = '100%';
+        previewImg.style.height = '100%';
+        previewImg.style.objectFit = 'contain';
         
-        // Set src immediately (triggers load)
+        // Set src - browser will load and display immediately
         previewImg.src = url;
         
-        // Hide upload button immediately
+        // Hide upload button/content immediately for visual feedback
         if (uploadContent) {
           uploadContent.style.opacity = '0.1';
           uploadContent.style.pointerEvents = 'none';
+          uploadContent.style.transition = 'opacity 0.1s';
         }
       }
       
@@ -740,13 +743,20 @@
       const uploadSection = document.getElementById('uploadSection');
       
       if (resultImg && resultSection && uploadSection) {
-        // Show result section immediately with uploaded image
+        // Show result section immediately
         uploadSection.style.display = 'none';
         resultSection.style.display = 'block';
-        resultImg.onload = () => {
-          resultImg.style.display = 'block';
-          resultImg.style.opacity = '0.7'; // Slightly transparent to show it's preview
-        };
+        resultSection.style.visibility = 'visible';
+        
+        // Set image properties
+        resultImg.style.display = 'block';
+        resultImg.style.visibility = 'visible';
+        resultImg.style.opacity = '0.7'; // Slightly transparent to show it's preview
+        resultImg.style.width = '100%';
+        resultImg.style.height = '100%';
+        resultImg.style.objectFit = 'contain';
+        
+        // Set src
         resultImg.src = url;
       }
     }
