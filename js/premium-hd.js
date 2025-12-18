@@ -18,6 +18,14 @@
     sizeSelect: '#premiumSizeSelect', // background-workspace.html uses premiumSizeSelect (in modal)
     processButton: '#processBtn', // background-workspace.html has processBtn
     errorBox: '#statusMessage', // Use statusMessage for errors too
+    downloadModal: '#downloadModal', // Download modal
+    confirmDownload: '#confirmDownload', // Confirm download button
+    cancelDownload: '#cancelDownload', // Cancel download button
+    freeDownloadOption: '#freeDownloadOption', // Free download option
+    premiumDownloadOption: '#premiumDownloadOption', // Premium download option
+    premiumSizeSelection: '#premiumSizeSelection', // Premium size selection container
+    premiumCreditInfo: '#premiumCreditInfo', // Credit info display
+    premiumCreditText: '#premiumCreditText', // Credit text
   };
 
   class PremiumHDApp {
@@ -33,6 +41,9 @@
         resultURL: null,
         isProcessing: false,
         targetSize: 'original',
+        selectedQuality: null,
+        selectedSize: 'original',
+        userId: null,
       };
       this.bindElements();
       this.bindEvents();
@@ -50,6 +61,14 @@
         downloadButton: get(this.selectors.downloadButton),
         sizeSelect: get(this.selectors.sizeSelect),
         errorBox: get(this.selectors.errorBox),
+        downloadModal: get(this.selectors.downloadModal),
+        confirmDownload: get(this.selectors.confirmDownload),
+        cancelDownload: get(this.selectors.cancelDownload),
+        freeDownloadOption: get(this.selectors.freeDownloadOption),
+        premiumDownloadOption: get(this.selectors.premiumDownloadOption),
+        premiumSizeSelection: get(this.selectors.premiumSizeSelection),
+        premiumCreditInfo: get(this.selectors.premiumCreditInfo),
+        premiumCreditText: get(this.selectors.premiumCreditText),
       };
     }
 
@@ -97,16 +116,56 @@
         });
       }
 
+      // Download button - show modal instead of direct download
       if (this.el.downloadButton) {
         this.el.downloadButton.addEventListener('click', () => {
           if (this.state.resultURL) {
-            const a = document.createElement('a');
-            a.href = this.state.resultURL;
-            a.download = 'background-removed-hd.png';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
+            this.showDownloadModal();
           }
+        });
+      }
+      
+      // Download modal handlers
+      if (this.el.cancelDownload) {
+        this.el.cancelDownload.addEventListener('click', () => {
+          this.closeDownloadModal();
+        });
+      }
+      
+      // Close modal on outside click
+      if (this.el.downloadModal) {
+        this.el.downloadModal.addEventListener('click', (e) => {
+          if (e.target === this.el.downloadModal) {
+            this.closeDownloadModal();
+          }
+        });
+      }
+      
+      // Free download option
+      if (this.el.freeDownloadOption) {
+        this.el.freeDownloadOption.addEventListener('click', () => {
+          this.selectDownloadOption('free');
+        });
+      }
+      
+      // Premium download option
+      if (this.el.premiumDownloadOption) {
+        this.el.premiumDownloadOption.addEventListener('click', () => {
+          this.selectDownloadOption('premium');
+        });
+      }
+      
+      // Size selection change
+      if (this.el.sizeSelect) {
+        this.el.sizeSelect.addEventListener('change', (e) => {
+          this.updateCreditInfo(e.target.value);
+        });
+      }
+      
+      // Confirm download
+      if (this.el.confirmDownload) {
+        this.el.confirmDownload.addEventListener('click', () => {
+          this.handleDownload();
         });
       }
     }
@@ -199,14 +258,22 @@
       });
     }
 
-    async process() {
+    async process(file = null, targetSize = null) {
       if (this.state.isProcessing) {
         this.setStatus('Processing already in progress...');
         return;
       }
-      if (!this.state.file) {
+      
+      // Use provided file or state file
+      const processFile = file || this.state.file;
+      if (!processFile) {
         this.showError('Please upload a file first.');
         return;
+      }
+      
+      // Update target size if provided
+      if (targetSize) {
+        this.state.targetSize = targetSize;
       }
 
       this.state.isProcessing = true;
@@ -217,9 +284,14 @@
       this.showProcessingOverlay();
 
       try {
-        const dataURL = await this.fileToDataURL(this.state.file);
+        const dataURL = await this.fileToDataURL(processFile);
         const token = await this.getAuthToken();
         const userId = await this.getUserId();
+        
+        // Store userId for credit checks
+        if (userId) {
+          this.state.userId = userId;
+        }
 
         if (!token || !userId) {
           throw new Error('Please sign in to use Premium HD.');
@@ -229,6 +301,9 @@
           imageData: dataURL,
           userId,
           targetSize: this.state.targetSize || 'original',
+          whiteBackground: true,  // Enterprise requirement: white background JPG
+          outputFormat: 'jpg',     // Enterprise requirement: JPG output
+          quality: 100,            // Enterprise requirement: quality 100
         };
 
         const response = await fetch(`${this.apiBaseUrl}${this.endpoint}`, {
@@ -297,6 +372,175 @@
       } finally {
         this.state.isProcessing = false;
       }
+    }
+    
+    // Download modal functions
+    showDownloadModal() {
+      if (!this.el.downloadModal || !this.state.resultURL) return;
+      
+      this.el.downloadModal.classList.add('active');
+      this.state.selectedQuality = null;
+      this.state.selectedSize = 'original';
+      
+      // Reset UI
+      if (this.el.freeDownloadOption) {
+        this.el.freeDownloadOption.classList.remove('selected');
+      }
+      if (this.el.premiumDownloadOption) {
+        this.el.premiumDownloadOption.classList.remove('selected');
+      }
+      if (this.el.confirmDownload) {
+        this.el.confirmDownload.disabled = true;
+      }
+      if (this.el.premiumSizeSelection) {
+        this.el.premiumSizeSelection.classList.remove('active');
+      }
+      
+      // Update credit info for default size
+      if (this.el.sizeSelect) {
+        this.updateCreditInfo(this.el.sizeSelect.value);
+      }
+    }
+    
+    closeDownloadModal() {
+      if (this.el.downloadModal) {
+        this.el.downloadModal.classList.remove('active');
+      }
+    }
+    
+    selectDownloadOption(quality) {
+      this.state.selectedQuality = quality;
+      
+      if (this.el.freeDownloadOption) {
+        this.el.freeDownloadOption.classList.toggle('selected', quality === 'free');
+      }
+      if (this.el.premiumDownloadOption) {
+        this.el.premiumDownloadOption.classList.toggle('selected', quality === 'premium');
+      }
+      
+      if (this.el.premiumSizeSelection) {
+        if (quality === 'premium') {
+          this.el.premiumSizeSelection.classList.add('active');
+          if (this.el.sizeSelect) {
+            this.updateCreditInfo(this.el.sizeSelect.value);
+          }
+        } else {
+          this.el.premiumSizeSelection.classList.remove('active');
+        }
+      }
+      
+      if (this.el.confirmDownload) {
+        this.el.confirmDownload.disabled = false;
+      }
+    }
+    
+    async updateCreditInfo(size) {
+      if (!this.el.premiumCreditInfo || !this.el.premiumCreditText) return;
+      
+      // Credit costs based on size
+      const creditCosts = {
+        'original': 2,
+        '1920x1080': 2,
+        '2048x2048': 4,
+        '3000x2000': 4,
+        '3000x3000': 6,
+        '4000x3000': 9,
+        '4000x4000': 10,
+        '5000x3000': 12,
+        '5000x5000': 15,
+      };
+      
+      const credits = creditCosts[size] || creditCosts['original'];
+      this.state.selectedSize = size;
+      
+      if (this.state.userId) {
+        try {
+          // Get user credits
+          const token = await this.getAuthToken();
+          const response = await fetch(`/api/user/credits?userId=${this.state.userId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            const available = data.credits || 0;
+            const hasEnough = available >= credits;
+            
+            this.el.premiumCreditInfo.style.display = 'block';
+            this.el.premiumCreditText.textContent = hasEnough
+              ? `You have ${available} credits. This download will cost ${credits} credits.`
+              : `Insufficient credits. You have ${available} credits, but need ${credits} credits.`;
+            
+            if (this.el.confirmDownload) {
+              this.el.confirmDownload.disabled = !hasEnough || !this.state.selectedQuality;
+            }
+          } else {
+            this.el.premiumCreditInfo.style.display = 'block';
+            this.el.premiumCreditText.textContent = `This download will cost ${credits} credits.`;
+          }
+        } catch (err) {
+          console.error('Error fetching credits:', err);
+          this.el.premiumCreditInfo.style.display = 'block';
+          this.el.premiumCreditText.textContent = `This download will cost ${credits} credits.`;
+        }
+      } else {
+        this.el.premiumCreditInfo.style.display = 'block';
+        this.el.premiumCreditText.textContent = `This download will cost ${credits} credits.`;
+      }
+    }
+    
+    async handleDownload() {
+      if (!this.state.resultURL || !this.state.selectedQuality) return;
+      
+      try {
+        if (this.state.selectedQuality === 'free') {
+          // Free download - 512px preview
+          this.downloadImage(this.state.resultURL, 'background-removed-free.png');
+          this.closeDownloadModal();
+        } else {
+          // Premium download - process at selected size
+          const size = this.state.selectedSize || 'original';
+          
+          // Credit costs
+          const creditCosts = {
+            'original': 2,
+            '1920x1080': 2,
+            '2048x2048': 4,
+            '3000x2000': 4,
+            '3000x3000': 6,
+            '4000x3000': 9,
+            '4000x4000': 10,
+            '5000x3000': 12,
+            '5000x5000': 15,
+          };
+          
+          const credits = creditCosts[size] || creditCosts['original'];
+          
+          // Process image at selected size
+          this.setStatus(`Processing ${size} image...`);
+          this.closeDownloadModal();
+          
+          // Re-process with selected size
+          if (this.state.file) {
+            await this.process(this.state.file, size);
+          } else {
+            throw new Error('Original file not available');
+          }
+        }
+      } catch (err) {
+        this.showError(err.message || 'Download failed');
+      }
+    }
+    
+    downloadImage(url, filename) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     }
   }
 

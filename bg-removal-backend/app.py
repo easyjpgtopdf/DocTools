@@ -204,9 +204,9 @@ def get_session_maxmatting():
 def generate_trimap(mask, expand_radius=8):
     """
     Generate trimap from BiRefNet mask for fine alpha matting
-    - Foreground: mask > 240
-    - Background: mask < 15
-    - Unknown region: 15-240 (expanded by radius pixels)
+    - Foreground: mask > 245 (LOCKED - human-safe)
+    - Background: mask < 10 (LOCKED - human-safe)
+    - Unknown region: 10-245 (expanded by radius pixels)
     
     Returns: trimap (128 = unknown, 0 = background, 255 = foreground)
     """
@@ -219,14 +219,14 @@ def generate_trimap(mask, expand_radius=8):
         # Create trimap
         trimap = np.zeros_like(mask_array, dtype=np.uint8)
         
-        # Foreground: mask > 240
-        trimap[mask_array > 240] = 255
+        # Foreground: mask > 245 (LOCKED threshold for human safety)
+        trimap[mask_array > 245] = 255
         
-        # Background: mask < 15
-        trimap[mask_array < 15] = 0
+        # Background: mask < 10 (LOCKED threshold for human safety)
+        trimap[mask_array < 10] = 0
         
-        # Unknown region: 15-240
-        unknown_mask = (mask_array >= 15) & (mask_array <= 240)
+        # Unknown region: 10-245
+        unknown_mask = (mask_array >= 10) & (mask_array <= 245)
         trimap[unknown_mask] = 128
         
         # Expand unknown region by dilating the boundary
@@ -869,13 +869,16 @@ def process_premium_document_pipeline(input_image, birefnet_session):
 
 def process_enterprise_pipeline(input_image, birefnet_session, maxmatting_session, image_type='human'):
     """
-    ENTERPRISE-GRADE BACKGROUND REMOVAL PIPELINE
+    ENTERPRISE-GRADE BACKGROUND REMOVAL PIPELINE (Better than remove.bg)
     
-    Requirements:
-    - BiRefNet: min 1024, confidence 0.88, multi-scale detail
-    - MaxMatting: min 2048, preserve hair/fur, anti-halo, NO feather, NO blur
-    - Image-type-specific tuning
-    - Output: Sharp yet natural, no cutting, no outline, no halo
+    Rules for Human Images:
+    - BiRefNet: NO feather, NO guided filter, NO halo removal, NO alpha smoothing
+    - Trimap: expand_radius=3 (NEVER more than 3 for humans)
+    - MaxMatting: thresholds 245/10, erode_size=0
+    - Hair enhancement: strength=0.12 (DO NOT exceed 0.15)
+    - Hard alpha clamp: 220->255, <=8->0 (TRANSPARENCY KILL)
+    - Color decontamination: strength=0.4 (NEVER exceed 0.6)
+    - NO adaptive_feather_alpha, guided_filter, apply_feathering, strong_halo_removal_alpha, apply_alpha_anti_bleed
     
     Image types: human, document, animal, ecommerce
     """
@@ -885,81 +888,101 @@ def process_enterprise_pipeline(input_image, birefnet_session, maxmatting_sessio
     original_width, original_height = input_image.size
     original_megapixels = (original_width * original_height) / 1_000_000
     
+    # INPUT RULES (CRITICAL)
+    MAX_MP = 25  # up to 5000x5000
+    MIN_LONG_SIDE = 2048
+    PROCESS_LONG_SIDE = 3072  # sweet spot for quality (remove.bg internally ~3K processing)
+    
     logger.info(f"🚀 Enterprise Pipeline: {original_width}x{original_height} = {original_megapixels:.2f} MP, type: {image_type}")
     
-    # Step 1: BiRefNet Semantic Mask (ENTERPRISE CONFIG)
-    # Min 1024, confidence 0.88, multi-scale detail enabled
-    logger.info("Step 1: BiRefNet semantic mask (min 1024, confidence 0.88, multi-scale)")
+    # Check max MP limit
+    if original_megapixels > MAX_MP:
+        logger.warning(f"Image exceeds {MAX_MP} MP limit ({original_megapixels:.2f} MP), will be downscaled")
+        scale = (MAX_MP / original_megapixels) ** 0.5
+        new_width = int(original_width * scale)
+        new_height = int(original_height * scale)
+        input_image = input_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        original_width, original_height = input_image.size
+        original_megapixels = (original_width * original_height) / 1_000_000
+        logger.info(f"Downscaled to {original_width}x{original_height} = {original_megapixels:.2f} MP")
+    
+    # Step 1: BiRefNet Semantic Segmentation (SAFE - NO FEATHER, NO BLUR, NO HALO)
+    logger.info("Step 1: BiRefNet semantic mask (NO feather, NO guided filter, NO halo removal, NO alpha smoothing)")
     max_dimension = max(original_width, original_height)
     
-    # ENTERPRISE: Minimum 1024 on longest side
-    target_size = max(1024, max_dimension)
+    # Use PROCESS_LONG_SIDE (3072) for quality (remove.bg style)
+    target_size = max(MIN_LONG_SIDE, min(PROCESS_LONG_SIDE, max_dimension))
     scale = target_size / max_dimension
     
-    # Resize for BiRefNet if needed (ensure min 1024)
-    if scale > 1.0:
+    # Resize for BiRefNet processing
+    if abs(scale - 1.0) > 0.01:
         process_width = int(original_width * scale)
         process_height = int(original_height * scale)
         process_image = input_image.resize((process_width, process_height), Image.Resampling.LANCZOS)
-        logger.info(f"Upscaled to {process_width}x{process_height} for BiRefNet (min 1024 requirement)")
+        logger.info(f"Resized to {process_width}x{process_height} for BiRefNet processing (target: {target_size}px)")
     else:
         process_image = input_image
     
-    # Get BiRefNet mask (confidence threshold handled by model)
+    # Get BiRefNet mask - NO POST-PROCESSING (NO feather, NO blur, NO halo)
     input_buffer = io.BytesIO()
     process_image.save(input_buffer, format='PNG')
     input_bytes = input_buffer.getvalue()
     output_bytes = remove(input_bytes, session=birefnet_session)
     output_image = Image.open(io.BytesIO(output_bytes))
     
-    # Extract mask
+    # Extract semantic alpha (L channel) - DIRECT EXTRACTION, NO PROCESSING
     if output_image.mode == 'RGBA':
-        mask = output_image.split()[3]
+        semantic_alpha = output_image.split()[3]  # L channel
     else:
-        mask = output_image.convert('L')
+        semantic_alpha = output_image.convert('L')
     
     # Resize mask back to original size if needed
-    if mask.size != input_image.size:
-        mask = mask.resize(input_image.size, Image.Resampling.LANCZOS)
+    if semantic_alpha.size != input_image.size:
+        semantic_alpha = semantic_alpha.resize(input_image.size, Image.Resampling.LANCZOS)
     
     debug_stats.update({
-        "birefnet_mask_shape": mask.size,
+        "birefnet_mask_shape": semantic_alpha.size,
         "birefnet_processing_size": process_image.size,
-        "birefnet_min_resolution": 1024
+        "birefnet_no_feather": True,
+        "birefnet_no_blur": True,
+        "birefnet_no_halo": True
     })
     
-    # Step 2: Trimap Generation (for MaxMatting)
-    logger.info("Step 2: Generating trimap for MaxMatting...")
-    # Image-type-specific trimap expansion
-    if image_type == 'document':
-        expand_radius = 4  # Smaller for documents (sharp edges)
-    elif image_type == 'animal':
-        expand_radius = 10  # Larger for fur/hair
-    elif image_type == 'ecommerce':
-        expand_radius = 6  # Medium for products
-    else:  # human
-        expand_radius = 8  # Standard for human photos
+    # Step 2: HUMAN-SAFE TRIMAP (MOST IMPORTANT - expand_radius=3 for humans)
+    logger.info("Step 2: Generating human-safe trimap (expand_radius=3, thresholds 245/10)")
     
-    trimap = generate_trimap(mask, expand_radius=expand_radius)
+    if image_type == 'human':
+        # CRITICAL: NEVER more than 3 for humans (prevents cutting fingers, hair, edges)
+        expand_radius = 3
+    elif image_type == 'document':
+        expand_radius = 4
+    elif image_type == 'animal':
+        expand_radius = 10
+    elif image_type == 'ecommerce':
+        expand_radius = 6
+    else:
+        expand_radius = 3  # Default to safe value
+    
+    trimap = generate_trimap(semantic_alpha, expand_radius=expand_radius)
     debug_stats["trimap_expand_radius"] = expand_radius
     debug_stats["trimap_type"] = image_type
+    debug_stats["trimap_thresholds"] = "FG>245, BG<10"
     
-    # Step 3: MaxMatting Fine Alpha Matting (ENTERPRISE CONFIG)
-    # Min 2048, preserve hair/fur, anti-halo, NO feather, NO blur
-    logger.info("Step 3: MaxMatting fine alpha matting (min 2048, preserve hair/fur, anti-halo)")
+    # Step 3: MaxMatting Fine Alpha Matting (REAL QUALITY MAGIC)
+    logger.info("Step 3: MaxMatting fine alpha matting (thresholds 245/10, erode_size=0)")
     
-    # ENTERPRISE: Minimum 2048 for MaxMatting
+    # Use PROCESS_LONG_SIDE (3072) for MaxMatting quality
     maxmatting_max_dim = max(original_width, original_height)
-    maxmatting_target = max(2048, maxmatting_max_dim)
+    maxmatting_target = max(MIN_LONG_SIDE, min(PROCESS_LONG_SIDE, maxmatting_max_dim))
     maxmatting_scale = maxmatting_target / maxmatting_max_dim
     
     # Prepare high-res input for MaxMatting
-    if maxmatting_scale > 1.0:
+    if abs(maxmatting_scale - 1.0) > 0.01:
         maxmatting_width = int(original_width * maxmatting_scale)
         maxmatting_height = int(original_height * maxmatting_scale)
         maxmatting_image = input_image.resize((maxmatting_width, maxmatting_height), Image.Resampling.LANCZOS)
         maxmatting_trimap = trimap.resize((maxmatting_width, maxmatting_height), Image.Resampling.LANCZOS)
-        logger.info(f"Upscaled to {maxmatting_width}x{maxmatting_height} for MaxMatting (min 2048 requirement)")
+        logger.info(f"Resized to {maxmatting_width}x{maxmatting_height} for MaxMatting (target: {maxmatting_target}px)")
     else:
         maxmatting_image = input_image
         maxmatting_trimap = trimap
@@ -969,7 +992,7 @@ def process_enterprise_pipeline(input_image, birefnet_session, maxmatting_sessio
     trimap_rgba.paste(maxmatting_image.convert('RGB'), (0, 0))
     trimap_rgba.putalpha(maxmatting_trimap)
     
-    # Process with MaxMatting
+    # Process with MaxMatting (silueta model)
     matting_buffer = io.BytesIO()
     trimap_rgba.save(matting_buffer, format='PNG')
     matting_bytes = matting_buffer.getvalue()
@@ -978,85 +1001,96 @@ def process_enterprise_pipeline(input_image, birefnet_session, maxmatting_sessio
     
     # Extract refined alpha from MaxMatting output
     if matting_output.mode == 'RGBA':
-        refined_alpha = matting_output.split()[3]
+        alpha_mm = matting_output.split()[3]
     else:
-        refined_alpha = matting_output.convert('L')
+        alpha_mm = matting_output.convert('L')
     
     # Resize alpha back to original size if needed
-    if refined_alpha.size != input_image.size:
-        refined_alpha = refined_alpha.resize(input_image.size, Image.Resampling.LANCZOS)
+    if alpha_mm.size != input_image.size:
+        alpha_mm = alpha_mm.resize(input_image.size, Image.Resampling.LANCZOS)
     
     debug_stats.update({
-        "maxmatting_alpha_shape": refined_alpha.size,
+        "maxmatting_alpha_shape": alpha_mm.size,
         "maxmatting_processing_size": maxmatting_image.size,
-        "maxmatting_min_resolution": 2048,
+        "maxmatting_thresholds": "245/10",
+        "maxmatting_erode_size": 0,
         "maxmatting_applied": True
     })
     
     # Safety check: alpha should have content
-    alpha_array = np.array(refined_alpha.convert('L'))
+    alpha_array = np.array(alpha_mm.convert('L'))
     alpha_nonzero = np.count_nonzero(alpha_array)
     alpha_percent = (alpha_nonzero / alpha_array.size) * 100.0
     
     if alpha_percent < 1.0:
         logger.warning(f"⚠️ MaxMatting alpha too low ({alpha_percent:.2f}%), falling back to BiRefNet mask")
-        refined_alpha = mask
+        alpha_mm = semantic_alpha
         debug_stats["maxmatting_fallback"] = bool(True)
     
-    # Step 4: Composite RGB + Alpha (NO FEATHER, NO BLUR)
-    logger.info("Step 4: Compositing RGB + refined alpha (NO feather, NO blur)")
+    # Step 4: HAIR DETAIL ENHANCEMENT (LIMITED - strength=0.12, DO NOT exceed 0.15)
+    if image_type == 'human':
+        logger.info("Step 4: Hair detail enhancement (strength=0.12, micro-boost only)")
+        alpha_enhanced = enhance_hair_details(alpha_mm, input_image, strength=0.12)
+        debug_stats["hair_enhancement_applied"] = True
+        debug_stats["hair_enhancement_strength"] = 0.12
+    else:
+        alpha_enhanced = alpha_mm
+        debug_stats["hair_enhancement_applied"] = False
     
+    # Step 5: HARD ALPHA CLAMP (TRANSPARENCY KILL - Enterprise Rule)
+    logger.info("Step 5: Hard alpha clamp (220->255, <=8->0) - TRANSPARENCY KILL")
+    alpha_np = np.array(alpha_enhanced.convert('L'))
+    
+    # Human body kabhi semi-transparent nahi hota
+    alpha_np[alpha_np >= 220] = 255  # Faded skin/cloth -> fully opaque
+    alpha_np[alpha_np <= 8] = 0      # Background -> fully transparent
+    
+    alpha_hard = Image.fromarray(alpha_np, 'L')
+    debug_stats["hard_alpha_clamp_applied"] = True
+    debug_stats["alpha_clamp_thresholds"] = "220->255, <=8->0"
+    
+    # Step 6: Composite RGB + Alpha
+    logger.info("Step 6: Compositing RGB + hard alpha")
     rgb_image = input_image.convert('RGB') if input_image.mode != 'RGB' else input_image
-    
-    # Create RGBA with refined alpha (direct composite, no processing)
     rgba_composite = Image.new('RGBA', rgb_image.size, (0, 0, 0, 0))
     rgba_composite.paste(rgb_image, (0, 0))
-    rgba_composite.putalpha(refined_alpha)
+    rgba_composite.putalpha(alpha_hard)
     
     debug_stats["composite_completed"] = bool(True)
-    debug_stats["feather_applied"] = False  # NO FEATHER
-    debug_stats["blur_applied"] = False     # NO BLUR
     
-    # Step 5: Image-Type-Specific Anti-Halo (Alpha edge only, NO blur)
-    logger.info(f"Step 5: Image-type-specific anti-halo ({image_type})")
+    # Step 7: COLOR DECONTAMINATION (EDGE ONLY - strength=0.4, NEVER exceed 0.6)
+    if image_type == 'human':
+        logger.info("Step 7: Color decontamination (strength=0.4, edge only)")
+        final_image = color_decontamination(rgba_composite, rgb_image, strength=0.4)
+        debug_stats["color_decontamination_applied"] = True
+        debug_stats["color_decontamination_strength"] = 0.4
+    else:
+        # For other types, use appropriate strength
+        if image_type == 'document':
+            final_image = color_decontamination(rgba_composite, rgb_image, strength=0.2)
+        else:
+            final_image = color_decontamination(rgba_composite, rgb_image, strength=0.6)
+        debug_stats["color_decontamination_applied"] = True
+        debug_stats["color_decontamination_strength"] = 0.6 if image_type != 'document' else 0.2
     
-    if image_type == 'document':
-        # Document: Hard edges, sharp corners, preserve text
-        # Minimal halo removal to preserve text clarity
-        current_alpha = rgba_composite.split()[3]
-        cleaned_alpha = strong_halo_removal_alpha(current_alpha, rgb_image, is_document=True)
-        rgba_composite.putalpha(cleaned_alpha)
-        debug_stats["halo_removal_applied"] = True
-        debug_stats["halo_strength"] = "minimal_document"
-    elif image_type == 'animal':
-        # Animal: Preserve fur texture, no hair loss
-        # Strong anti-halo to preserve fur details
-        current_alpha = rgba_composite.split()[3]
-        cleaned_alpha = strong_halo_removal_alpha(current_alpha, rgb_image, is_document=False)
-        rgba_composite.putalpha(cleaned_alpha)
-        debug_stats["halo_removal_applied"] = True
-        debug_stats["halo_strength"] = "strong_animal"
-    elif image_type == 'ecommerce':
-        # E-commerce: Clean sharp edges, full object shape
-        # Medium anti-halo for clean product edges
-        current_alpha = rgba_composite.split()[3]
-        cleaned_alpha = strong_halo_removal_alpha(current_alpha, rgb_image, is_document=False)
-        rgba_composite.putalpha(cleaned_alpha)
-        debug_stats["halo_removal_applied"] = True
-        debug_stats["halo_strength"] = "medium_ecommerce"
-    else:  # human
-        # Human: Preserve face, hair strands, shoulders
-        # Strong anti-halo to preserve hair and face details
-        current_alpha = rgba_composite.split()[3]
-        cleaned_alpha = strong_halo_removal_alpha(current_alpha, rgb_image, is_document=False)
-        rgba_composite.putalpha(cleaned_alpha)
-        debug_stats["halo_removal_applied"] = True
-        debug_stats["halo_strength"] = "strong_human"
-    
-    # Step 6: Color Decontamination (remove background color spill)
-    logger.info("Step 6: Color decontamination (remove background spill)")
-    final_image = color_decontamination(rgba_composite, rgb_image, strength=0.6)
-    debug_stats["color_decontamination_applied"] = bool(True)
+    # Step 8: NO MORE FILTERS for human pipeline
+    # ❌ DO NOT USE: adaptive_feather_alpha, guided_filter, apply_feathering, 
+    #                strong_halo_removal_alpha, apply_alpha_anti_bleed
+    if image_type == 'human':
+        logger.info("Step 8: NO additional filters for human pipeline (enterprise rule)")
+        debug_stats["additional_filters_applied"] = False
+    else:
+        # For documents/animals/ecommerce, apply appropriate filters
+        if image_type == 'document':
+            current_alpha = final_image.split()[3]
+            cleaned_alpha = strong_halo_removal_alpha(current_alpha, rgb_image, is_document=True)
+            final_image.putalpha(cleaned_alpha)
+            debug_stats["halo_removal_applied"] = True
+        elif image_type in ['animal', 'ecommerce']:
+            current_alpha = final_image.split()[3]
+            cleaned_alpha = strong_halo_removal_alpha(current_alpha, rgb_image, is_document=False)
+            final_image.putalpha(cleaned_alpha)
+            debug_stats["halo_removal_applied"] = True
     
     # NO EDGE SHARPENING - MaxMatting already provides sharp edges
     # NO FEATHER - True AI matting doesn't need artificial feathering
@@ -2174,6 +2208,20 @@ def premium_bg():
             
             logger.info(f"Original image: {original_width}x{original_height} = {original_megapixels:.2f} MP")
             
+            # Parse targetSize string if provided (e.g., "1920x1080")
+            if target_size and target_size != 'original' and not target_width and not target_height:
+                if 'x' in str(target_size):
+                    try:
+                        parts = str(target_size).split('x')
+                        if len(parts) == 2:
+                            target_width = int(parts[0])
+                            target_height = int(parts[1])
+                            logger.info(f"Parsed targetSize '{target_size}' to {target_width}x{target_height}")
+                    except (ValueError, IndexError):
+                        logger.warning(f"Could not parse targetSize '{target_size}', ignoring")
+                        target_width = None
+                        target_height = None
+            
             # Handle target size selection
             if target_size and target_size != 'original' and target_width and target_height:
                 # User selected specific size
@@ -2256,7 +2304,8 @@ def premium_bg():
             
             # ENTERPRISE PIPELINE: BiRefNet + MaxMatting (all image types)
             logger.info(f"🚀 Enterprise Pipeline: BiRefNet (min 1024) + MaxMatting (min 2048), type: {image_type}")
-            birefnet_session = get_session_512()  # BiRefNet for semantic mask
+            # Use get_session_hd() for BiRefNet (better quality - remove.bg style)
+            birefnet_session = get_session_hd()  # BiRefNet HD for semantic mask (NO feather, NO blur, NO halo)
             maxmatting_session = get_session_maxmatting()  # MaxMatting for fine alpha matting
             
             try:
@@ -2321,20 +2370,50 @@ def premium_bg():
                     'creditsUsed': 0  # No credits deducted
                 }), 500
             
-            # Calculate final megapixels for credit deduction (after successful processing)
-            # Resolution-Based Credit Deduction (Backend Only)
-            # New credit tiers based on final output MP
-            if final_megapixels <= 2:
+            # Calculate credits based on SELECTED SIZE (not final output size)
+            # This ensures users pay for what they selected, not what was processed
+            selected_mp = final_megapixels  # Default to final output size
+            
+            if target_size and target_size != 'original':
+                # Parse targetSize string (e.g., "1920x1080") or use provided dimensions
+                if target_width and target_height:
+                    # Use provided dimensions
+                    selected_mp = (target_width * target_height) / 1_000_000
+                    logger.info(f"💰 Credit calculation based on SELECTED size: {target_width}x{target_height} = {selected_mp:.2f} MP")
+                elif 'x' in str(target_size):
+                    # Parse from string format "WxH"
+                    try:
+                        parts = str(target_size).split('x')
+                        if len(parts) == 2:
+                            parsed_width = int(parts[0])
+                            parsed_height = int(parts[1])
+                            selected_mp = (parsed_width * parsed_height) / 1_000_000
+                            logger.info(f"💰 Credit calculation based on SELECTED size: {parsed_width}x{parsed_height} = {selected_mp:.2f} MP")
+                    except (ValueError, IndexError):
+                        logger.warning(f"Could not parse targetSize '{target_size}', using final output size for credit calculation")
+                        selected_mp = final_megapixels
+                else:
+                    # Use final output size
+                    selected_mp = final_megapixels
+                    logger.info(f"💰 Credit calculation based on FINAL output size: {final_megapixels:.2f} MP")
+            else:
+                # Use final output size for credit calculation (original or auto-downscaled)
+                selected_mp = final_megapixels
+                logger.info(f"💰 Credit calculation based on FINAL output size: {final_megapixels:.2f} MP")
+            
+            # Resolution-Based Credit Deduction (based on SELECTED size)
+            # Credit tiers based on selected/requested MP
+            if selected_mp <= 2:
                 credits_required = 2
-            elif final_megapixels <= 6:
+            elif selected_mp <= 6:
                 credits_required = 4
-            elif final_megapixels <= 9:
+            elif selected_mp <= 9:
                 credits_required = 6
-            elif final_megapixels <= 12:
+            elif selected_mp <= 12:
                 credits_required = 9
-            elif final_megapixels <= 16:
+            elif selected_mp <= 16:
                 credits_required = 10
-            elif final_megapixels <= 20:
+            elif selected_mp <= 20:
                 credits_required = 12
             else:  # <= 25 MP
                 credits_required = 15
