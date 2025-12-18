@@ -1537,64 +1537,15 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                 except Exception as doc_binary_err:
                     logger.warning(f"Document binary alpha conversion failed: {doc_binary_err}")
             
-            # 🔥 MOST IMPORTANT - ALPHA SAFETY CLAMP (FREE PREVIEW ONLY, MANDATORY)
-            # Only apply to foreground pixels (alpha > 0) to prevent visible border
+            # FIX 1: NO ALPHA CLAMP for FREE preview (industry-level formula)
+            # Alpha clamp removed - keep soft alpha as-is for natural edges
             if not is_premium:
-                try:
-                    logger.info("Step 10: Applying MANDATORY alpha safety clamp for free preview (foreground pixels only)...")
-                    alpha_arr = np.array(final_image.getchannel('A'))
-                    
-                    # FIX 3: Soft alpha clamp for FREE preview - protect thin parts (hands, hair, cloth edges)
-                    # Reduced min_alpha from 8 to 6 to preserve thin parts while still preventing fully transparent appearance
-                    # Background pixels (alpha = 0) remain fully transparent to avoid border
-                    min_alpha = 6  # FIX 3: Softened from 8 to 6 to protect thin parts (hands/dupatta)
-                    foreground_mask = alpha_arr > 0  # Only apply to pixels that are already in foreground
-                    
-                    # FIX 5: Human safety bias - protect low alpha regions for humans (hands, dupatta, thin parts)
-                    # Only apply to human photos (not documents) to preserve thin body parts
-                    human_safety_applied = False
-                    low_alpha_protected = 0
-                    if not is_document:
-                        # Protect low alpha regions (alpha between 1-30) - these are likely thin parts (hands, hair, cloth edges)
-                        # Don't clamp these too aggressively to preserve fine details
-                        low_alpha_mask = (alpha_arr > 0) & (alpha_arr < 30)
-                        low_alpha_protected = int(np.sum(low_alpha_mask))
-                        if low_alpha_protected > 0:
-                            # Apply softer clamp to low alpha regions (min_alpha - 2) to preserve thin parts
-                            alpha_arr[low_alpha_mask] = np.maximum(alpha_arr[low_alpha_mask], max(1, min_alpha - 2))
-                            # Apply normal clamp to other foreground pixels
-                            other_foreground = foreground_mask & (~low_alpha_mask)
-                            alpha_arr[other_foreground] = np.maximum(alpha_arr[other_foreground], min_alpha)
-                            human_safety_applied = True
-                            logger.info(f"✅ FIX 5: Human safety bias applied - protected {low_alpha_protected} low-alpha pixels (hands/dupatta)")
-                        else:
-                            # No low alpha regions, apply standard clamp
-                            alpha_arr[foreground_mask] = np.maximum(alpha_arr[foreground_mask], min_alpha)
-                    else:
-                        # Documents: standard clamp (no special protection needed)
-                        alpha_arr[foreground_mask] = np.maximum(alpha_arr[foreground_mask], min_alpha)
-                    
-                    alpha_clamped = Image.fromarray(alpha_arr, mode='L')
-                    final_image.putalpha(alpha_clamped)
-                    
-                    # Log stats
-                    alpha_min = float(np.min(alpha_arr))
-                    alpha_max = float(np.max(alpha_arr))
-                    alpha_nonzero = int(np.count_nonzero(alpha_arr))
-                    foreground_pixels = int(np.sum(foreground_mask))
-                    logger.info(f"✅ Free preview: Alpha safety clamp applied (min: {alpha_min}, max: {alpha_max}, nonzero: {alpha_nonzero}, foreground: {foreground_pixels})")
-                    debug_stats.update({
-                        "alpha_safety_clamp_applied": True,
-                        "alpha_clamp_min": float(min_alpha),
-                        "alpha_final_min": alpha_min,
-                        "alpha_final_max": alpha_max,
-                        "alpha_clamp_foreground_only": True,
-                        "human_safety_bias_applied": human_safety_applied,
-                        "low_alpha_protected_pixels": low_alpha_protected
-                    })
-                except Exception as clamp_err:
-                    logger.error(f"⚠️ CRITICAL: Alpha safety clamp failed: {clamp_err}")
-                    # This is critical for free preview - log as error
+                logger.info("Step 10: Skipping alpha clamp for free preview (industry-level: soft alpha preserved, no clamp)")
+                debug_stats.update({
+                    "alpha_clamp_applied": False,
+                    "alpha_clamp_removed": True,
+                    "industry_level_free_preview": True
+                })
             
             # NOTE: This line is redundant (final_image already set above) but kept for safety
             # FORENSIC: This should not execute if composite path above worked correctly
@@ -1635,50 +1586,15 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
     opt_time = time.time() - start_opt
     logger.info(f"Optimization pipeline completed in {opt_time:.2f}s")
     
-    # 🔥 MOST IMPORTANT - FINAL ALPHA SAFETY CLAMP (FREE PREVIEW ONLY, MANDATORY)
-    # This MUST run at the very end, after ALL processing, including fallbacks
+    # FIX 1: NO FINAL ALPHA CLAMP for FREE preview (industry-level formula)
+    # Keep soft alpha as-is, no clamping for natural edges
     if not is_premium:
-        try:
-            logger.info("Step FINAL: Applying MANDATORY final alpha safety clamp for free preview...")
-            # Ensure image has alpha channel
-            if final_image.mode != 'RGBA':
-                # If no alpha, create opaque alpha
-                alpha_channel = Image.new('L', final_image.size, 255)
-                final_image = final_image.convert('RGB')
-                final_image.putalpha(alpha_channel)
-            
-            alpha_arr = np.array(final_image.getchannel('A'))
-            
-            # Apply safety clamp ONLY on non-zero alpha pixels to avoid background halos
-            # Lower min_alpha further to reduce visible borders
-            min_alpha = 2
-            nonzero_mask = alpha_arr > 0
-            alpha_arr[nonzero_mask] = np.maximum(alpha_arr[nonzero_mask], min_alpha)
-            # Apply safety clamp ONLY on non-zero alpha pixels to avoid background halos
-            # Lower min_alpha further to reduce visible borders
-            min_alpha = 2
-            nonzero_mask = alpha_arr > 0
-            alpha_arr[nonzero_mask] = np.maximum(alpha_arr[nonzero_mask], min_alpha)
-            
-            alpha_clamped = Image.fromarray(alpha_arr, mode='L')
-            final_image.putalpha(alpha_clamped)
-            
-            # Log final stats
-            alpha_min = float(np.min(alpha_arr))
-            alpha_max = float(np.max(alpha_arr))
-            alpha_nonzero = int(np.count_nonzero(alpha_arr))
-            logger.info(f"✅ Free preview: FINAL alpha safety clamp applied (min: {alpha_min}, max: {alpha_max}, nonzero: {alpha_nonzero})")
-            debug_stats.update({
-                "alpha_safety_clamp_applied": True,
-                "alpha_clamp_min": float(min_alpha),
-                "alpha_final_min": alpha_min,
-                "alpha_final_max": alpha_max,
-                "alpha_final_nonzero": alpha_nonzero
-            })
-        except Exception as clamp_err:
-            logger.error(f"⚠️ CRITICAL: Final alpha safety clamp failed: {clamp_err}")
-            # Try to save anyway, but log the error
-            debug_stats["alpha_clamp_error"] = str(clamp_err)
+        logger.info("Step FINAL: Skipping final alpha clamp for free preview (industry-level: soft alpha preserved)")
+        debug_stats.update({
+            "final_alpha_clamp_applied": False,
+            "final_alpha_clamp_removed": True,
+            "industry_level_free_preview": True
+        })
     
     # Convert to bytes
     output_buffer = io.BytesIO()
