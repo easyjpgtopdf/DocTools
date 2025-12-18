@@ -1448,27 +1448,28 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                 composite_alpha = apply_feathering(composite_alpha, feather_radius=3)
                 debug_stats.update(mask_stats("mask_after_feather_composite", composite_alpha))
             elif (not is_premium) and (not is_document):
-                # EXTREMELY light feathering (1-2% blend) to reduce outline visibility without harsh edges
-                # Without any feathering, edges become too sharp and outline becomes MORE visible
+                # FIX 2: Soft feather 1px for FREE preview (industry-level quality)
+                # 1px feather provides smooth edges without thick border, premium se clearly worse but complete
                 try:
-                    logger.info("Step 8.1: Applying extremely light feathering (0.5px, 1.5% blend) to reduce outline visibility...")
+                    logger.info("Step 8.1: Applying soft feathering (1px) for free preview (industry-level quality)...")
                     alpha_np = np.array(composite_alpha).astype(np.float32)
                     if CV2_AVAILABLE:
-                        # Extremely light Gaussian blur (0.5px) with minimal blend (1.5%) to reduce outline
-                        blurred = cv2.GaussianBlur(alpha_np, (3, 3), 0.5)  # sigma=0.5 (very light)
-                        alpha_feather = alpha_np * (1.0 - 0.015) + blurred * 0.015  # 1.5% blend (extremely light to reduce outline)
+                        # Soft feather: 1px Gaussian blur for smooth edges
+                        blurred = cv2.GaussianBlur(alpha_np, (3, 3), 1.0)  # sigma=1.0 (1px feather)
+                        # Light blend to avoid thick border but keep edges smooth
+                        alpha_feather = alpha_np * (1.0 - 0.08) + blurred * 0.08  # 8% blend (soft but not heavy)
                         alpha_feather = np.clip(alpha_feather, 0, 255).astype(np.uint8)
                         composite_alpha = Image.fromarray(alpha_feather, mode='L')
                     else:
-                        # Fallback using PIL blur radius 0.5, blend weight 0.015 (1.5%)
+                        # Fallback using PIL blur radius 1.0, blend weight 0.08
                         from PIL import ImageFilter
-                        blurred = composite_alpha.filter(ImageFilter.GaussianBlur(radius=0.5))
-                        composite_alpha = Image.blend(composite_alpha, blurred, alpha=0.015)  # 1.5% blend
-                    debug_stats.update(mask_stats("mask_after_feather_ultra_light_free", composite_alpha))
-                    debug_stats["feathering_ultra_light_free"] = True
+                        blurred = composite_alpha.filter(ImageFilter.GaussianBlur(radius=1.0))
+                        composite_alpha = Image.blend(composite_alpha, blurred, alpha=0.08)  # 8% blend
+                    debug_stats.update(mask_stats("mask_after_feather_soft_free", composite_alpha))
+                    debug_stats["feathering_soft_free"] = True
                 except Exception as feather_err:
-                    logger.warning(f"Ultra-light feathering failed (free preview): {feather_err}")
-                    debug_stats["feather_ultra_light_free_error"] = str(feather_err)
+                    logger.warning(f"Soft feathering failed (free preview): {feather_err}")
+                    debug_stats["feather_soft_free_error"] = str(feather_err)
             elif (not is_premium) and is_document:
                 # Very light feather for documents (natural look, not too clean) - OPTIMIZED: Added light feathering
                 try:
@@ -1510,6 +1511,17 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
             final_image.paste(input_image, (0, 0))
             final_image.putalpha(composite_alpha)
             
+            # FIX 4: Micro color decontamination for FREE preview (strength=0.15) - clean border, reduce background bleed
+            if not is_premium and not is_document:
+                try:
+                    logger.info("Step 8.3: Applying micro color decontamination (strength=0.15) for free preview...")
+                    final_image = color_decontamination(final_image, input_image, strength=0.15)  # FIX 4: Light decontamination
+                    debug_stats["color_decontamination_free"] = True
+                    debug_stats["color_decontamination_strength"] = 0.15
+                except Exception as decontam_err:
+                    logger.warning(f"Micro color decontamination failed (free preview): {decontam_err}")
+                    debug_stats["color_decontamination_free_error"] = str(decontam_err)
+            
             # 🔥 FREE PREVIEW: Document Safe Mode - Binary Alpha (if document)
             if not is_premium and is_document:
                 try:
@@ -1532,12 +1544,35 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                     logger.info("Step 10: Applying MANDATORY alpha safety clamp for free preview (foreground pixels only)...")
                     alpha_arr = np.array(final_image.getchannel('A'))
                     
-                    # Apply safety clamp ONLY to foreground pixels (alpha > 0) to prevent visible border
-                    # Reduced min_alpha from 12 to 8 to minimize outline visibility while still preventing fully transparent appearance
+                    # FIX 3: Soft alpha clamp for FREE preview - protect thin parts (hands, hair, cloth edges)
+                    # Reduced min_alpha from 8 to 6 to preserve thin parts while still preventing fully transparent appearance
                     # Background pixels (alpha = 0) remain fully transparent to avoid border
-                    min_alpha = 8  # Reduced from 12 to minimize outline visibility
+                    min_alpha = 6  # FIX 3: Softened from 8 to 6 to protect thin parts (hands/dupatta)
                     foreground_mask = alpha_arr > 0  # Only apply to pixels that are already in foreground
-                    alpha_arr[foreground_mask] = np.maximum(alpha_arr[foreground_mask], min_alpha)
+                    
+                    # FIX 5: Human safety bias - protect low alpha regions for humans (hands, dupatta, thin parts)
+                    # Only apply to human photos (not documents) to preserve thin body parts
+                    human_safety_applied = False
+                    low_alpha_protected = 0
+                    if not is_document:
+                        # Protect low alpha regions (alpha between 1-30) - these are likely thin parts (hands, hair, cloth edges)
+                        # Don't clamp these too aggressively to preserve fine details
+                        low_alpha_mask = (alpha_arr > 0) & (alpha_arr < 30)
+                        low_alpha_protected = int(np.sum(low_alpha_mask))
+                        if low_alpha_protected > 0:
+                            # Apply softer clamp to low alpha regions (min_alpha - 2) to preserve thin parts
+                            alpha_arr[low_alpha_mask] = np.maximum(alpha_arr[low_alpha_mask], max(1, min_alpha - 2))
+                            # Apply normal clamp to other foreground pixels
+                            other_foreground = foreground_mask & (~low_alpha_mask)
+                            alpha_arr[other_foreground] = np.maximum(alpha_arr[other_foreground], min_alpha)
+                            human_safety_applied = True
+                            logger.info(f"✅ FIX 5: Human safety bias applied - protected {low_alpha_protected} low-alpha pixels (hands/dupatta)")
+                        else:
+                            # No low alpha regions, apply standard clamp
+                            alpha_arr[foreground_mask] = np.maximum(alpha_arr[foreground_mask], min_alpha)
+                    else:
+                        # Documents: standard clamp (no special protection needed)
+                        alpha_arr[foreground_mask] = np.maximum(alpha_arr[foreground_mask], min_alpha)
                     
                     alpha_clamped = Image.fromarray(alpha_arr, mode='L')
                     final_image.putalpha(alpha_clamped)
@@ -1553,7 +1588,9 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                         "alpha_clamp_min": float(min_alpha),
                         "alpha_final_min": alpha_min,
                         "alpha_final_max": alpha_max,
-                        "alpha_clamp_foreground_only": True
+                        "alpha_clamp_foreground_only": True,
+                        "human_safety_bias_applied": human_safety_applied,
+                        "low_alpha_protected_pixels": low_alpha_protected
                     })
                 except Exception as clamp_err:
                     logger.error(f"⚠️ CRITICAL: Alpha safety clamp failed: {clamp_err}")
@@ -1699,7 +1736,7 @@ def free_preview_bg():
         # CRITICAL: Free preview ONLY accepts multipart/form-data
         # Base64 JSON is completely removed for 100% consistency
         image_bytes = None
-        max_size = 512
+        max_size = 640  # FIX 1: Increased from 512 to 640 for better quality (industry-level free)
         image_type = None
         
         if 'image' in request.files:
@@ -1707,7 +1744,7 @@ def free_preview_bg():
             logger.info("✅ Processing multipart/form-data upload")
             file = request.files['image']
             image_bytes = file.read()
-            max_size = int(request.form.get('maxSize', 512))
+            max_size = int(request.form.get('maxSize', 640))  # FIX 1: Default changed to 640
             image_type = request.form.get('imageType')
             
             if not image_bytes or len(image_bytes) == 0:
@@ -1861,7 +1898,7 @@ def free_preview_bg():
             else:
                 logger.info(f"🔍 Free Preview: Auto-detected image type: {'document' if is_document else 'photo'}")
         
-        # Resize to max 512px for preview
+        # FIX 1: Resize to max 640px for preview (increased from 512 for industry-level quality)
         original_size = input_image.size
         max_dimension = max(original_size)
         
@@ -1869,7 +1906,7 @@ def free_preview_bg():
             scale = max_size / max_dimension
             new_size = (int(original_size[0] * scale), int(original_size[1] * scale))
             input_image = input_image.resize(new_size, Image.Resampling.LANCZOS)
-            logger.info(f"Resized image from {original_size} to {new_size} for preview")
+            logger.info(f"Resized image from {original_size} to {new_size} for preview (max_side={max_size})")
         
         # Select model based on image type
         if is_document:
