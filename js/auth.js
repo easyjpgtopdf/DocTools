@@ -452,10 +452,36 @@ function initializeAuthUI() {
   if (authUiInitialized) {
     // Re-attach event listeners if elements exist but weren't initialized
     if (userMenuToggle && !userMenuToggle.hasAttribute('data-dropdown-initialized')) {
+      // Click handler
       userMenuToggle.addEventListener('click', (event) => {
         event.preventDefault();
+        event.stopPropagation();
         toggleUserDropdown();
       });
+      
+      // Hover handler for better UX
+      userMenu.addEventListener('mouseenter', () => {
+        if (userMenu && userDropdown) {
+          userDropdown.hidden = false;
+          userMenu.dataset.open = 'true';
+          userMenuToggle.setAttribute('aria-expanded', 'true');
+        }
+      });
+      
+      // Keep dropdown open when hovering over it
+      if (userDropdown) {
+        userDropdown.addEventListener('mouseenter', () => {
+          if (userMenu && userDropdown) {
+            userDropdown.hidden = false;
+            userMenu.dataset.open = 'true';
+          }
+        });
+        
+        userDropdown.addEventListener('mouseleave', () => {
+          // Don't close immediately on mouse leave, let the timeout handle it
+        });
+      }
+      
       userMenuToggle.setAttribute('data-dropdown-initialized', 'true');
     }
     
@@ -1221,14 +1247,22 @@ function toggleUserDropdown(forceState) {
   userMenu.dataset.open = isOpen ? 'true' : 'false';
   userMenuToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
   
-  // Ensure dropdown visibility
+  // Ensure dropdown visibility with proper styles
   if (isOpen) {
     userDropdown.hidden = false;
+    userDropdown.removeAttribute('hidden');
     userDropdown.style.display = 'block';
     userDropdown.style.visibility = 'visible';
+    userDropdown.style.opacity = '1';
+    userDropdown.style.transform = 'translateY(0)';
+    // Force reflow to ensure styles apply
+    userDropdown.offsetHeight;
   } else {
     userDropdown.hidden = true;
+    userDropdown.setAttribute('hidden', '');
     userDropdown.style.display = 'none';
+    userDropdown.style.visibility = 'hidden';
+    userDropdown.style.opacity = '0';
   }
   
   if (isOpen) {
