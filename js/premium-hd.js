@@ -244,20 +244,49 @@
         }
 
         const result = await response.json();
+        console.log('API Response:', { success: result.success, hasResultImage: !!result.resultImage, result });
+        
         if (result.success && result.resultImage) {
           this.state.resultURL = result.resultImage;
+          
+          // Hide original preview image
+          if (this.el.previewImage) {
+            this.el.previewImage.style.display = 'none';
+            this.el.previewImage.hidden = true;
+          }
+          
+          // Show result image
           if (this.el.resultImage) {
             this.el.resultImage.src = result.resultImage;
             this.el.resultImage.hidden = false;
             this.el.resultImage.style.display = 'block';
+            this.el.resultImage.style.opacity = '1';
+            
+            // Ensure preview-stage shows result
+            const previewStage = document.getElementById('previewStage');
+            if (previewStage) {
+              previewStage.classList.remove('empty');
+              previewStage.classList.add('revealed');
+            }
+            
+            // Hide placeholder
+            const placeholder = document.getElementById('previewPlaceholder');
+            if (placeholder) {
+              placeholder.classList.add('hidden');
+              placeholder.style.display = 'none';
+            }
           }
+          
           if (this.el.downloadButton) this.el.downloadButton.disabled = false;
           this.setStatus('Background removed successfully!');
           
           // Hide processing overlay and show result
           this.hideProcessingOverlay();
+          
+          console.log('✅ Result image displayed successfully');
         } else {
-          throw new Error(result.error || 'Processing failed');
+          console.error('❌ Processing failed:', result);
+          throw new Error(result.error || result.message || 'Processing failed');
         }
       } catch (err) {
         this.showError(err.message || 'Processing failed. Please try again.');

@@ -1358,9 +1358,20 @@ if (typeof window !== 'undefined') {
   window.updateUI = updateUI;
   window.auth = auth;
   window.updateBreadcrumbAuthButtons = function() {
-    // Call the function from global-components.js if available
-    if (typeof updateBreadcrumbAuthButtons === 'function') {
-      updateBreadcrumbAuthButtons();
+    // Prevent infinite recursion - check if we're calling a different function
+    // Only call if it's from global-components.js (not this function itself)
+    try {
+      // Check if there's a function in global-components.js
+      if (typeof window.loadGlobalBreadcrumb === 'function') {
+        // Use loadGlobalBreadcrumb instead to avoid recursion
+        return;
+      }
+      // If no global function, just return (don't call itself)
+      return;
+    } catch (e) {
+      // If error, just return to prevent recursion
+      console.warn('updateBreadcrumbAuthButtons: Error prevented', e);
+      return;
     }
   };
   
