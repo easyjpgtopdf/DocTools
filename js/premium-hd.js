@@ -108,7 +108,20 @@
       this.state.previewURL = url;
       if (this.el.previewImage) {
         this.el.previewImage.src = url;
+        this.el.previewImage.hidden = false;
         this.el.previewImage.style.display = 'block';
+        
+        // Remove empty class from preview-stage to show image
+        const previewStage = document.getElementById('previewStage');
+        if (previewStage) {
+          previewStage.classList.remove('empty');
+        }
+        
+        // Hide placeholder
+        const placeholder = document.getElementById('previewPlaceholder');
+        if (placeholder) {
+          placeholder.classList.add('hidden');
+        }
       }
       // Do NOT auto-start premium by default; allow explicit trigger (optional)
     }
@@ -234,10 +247,16 @@
       
       // Initialize PremiumHDApp
       if (window.PremiumHDApp) {
+        console.log('Initializing PremiumHDApp...');
         window.premiumHDApp = new window.PremiumHDApp({
           getAuthToken,
           getUserId,
         });
+        console.log('PremiumHDApp initialized:', window.premiumHDApp);
+        console.log('File input element:', window.premiumHDApp.el?.fileInput);
+        console.log('Upload button element:', window.premiumHDApp.el?.uploadButton);
+      } else {
+        console.error('PremiumHDApp class not found!');
       }
     } catch (error) {
       console.error('Failed to initialize PremiumHDApp:', error);
