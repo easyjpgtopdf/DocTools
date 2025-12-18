@@ -1318,9 +1318,22 @@ if (document.readyState === 'loading') {
 
 restoreRedirectResult();
 
-// Make initializeAuthUI available globally for account section loading
+// Make functions available globally for account section loading
 if (typeof window !== 'undefined') {
   window.initializeAuthUI = initializeAuthUI;
+  window.updateUI = updateUI;
+  window.auth = auth;
+  window.updateBreadcrumbAuthButtons = function() {
+    // Call the function from global-components.js if available
+    if (typeof updateBreadcrumbAuthButtons === 'function') {
+      updateBreadcrumbAuthButtons();
+    }
+  };
+  
+  // Also expose updateUI to be called from global-components
+  window.forceUpdateUI = function() {
+    updateUI(auth.currentUser);
+  };
 }
 
 export { auth };

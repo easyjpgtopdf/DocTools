@@ -516,22 +516,22 @@ function updateBreadcrumbAuthButtons() {
     try {
         let userLoggedIn = false;
         
-        // Check if Firebase auth is available and user is logged in
-        if (typeof firebase !== 'undefined' && firebase.auth) {
+        // Check new modular Firebase SDK first (from auth.js)
+        if (typeof window !== 'undefined' && window.auth) {
+            try {
+                userLoggedIn = window.auth.currentUser !== null;
+            } catch (e) {
+                // Auth not initialized yet
+            }
+        }
+        
+        // Fallback to old Firebase SDK
+        if (!userLoggedIn && typeof firebase !== 'undefined' && firebase.auth) {
             try {
                 const currentUser = firebase.auth().currentUser;
                 userLoggedIn = currentUser !== null;
             } catch (e) {
                 // Firebase not initialized yet
-            }
-        }
-        
-        // Also check if auth.js has initialized and user exists
-        if (!userLoggedIn && typeof window !== 'undefined' && window.auth) {
-            try {
-                userLoggedIn = window.auth.currentUser !== null;
-            } catch (e) {
-                // Auth not initialized yet
             }
         }
         
@@ -809,24 +809,61 @@ if (!window.globalComponentsInitialized) {
             updateBreadcrumbAuthButtons();
         }, 200);
         
-        // Monitor auth state changes to update breadcrumb
-        if (typeof firebase !== 'undefined' && firebase.auth) {
-            firebase.auth().onAuthStateChanged(function(user) {
-                setTimeout(() => {
-                    updateBreadcrumbAuthButtons();
-                    // Also ensure account section is visible if user is logged in
-                    if (user) {
-                        const accountSection = document.getElementById('account-section');
-                        if (accountSection) {
-                            accountSection.style.display = 'block';
-                            accountSection.style.visibility = 'visible';
+        // Monitor auth state changes to update breadcrumb - support both old and new Firebase SDK
+        function setupAuthListener() {
+            // Try new modular Firebase SDK first (from auth.js)
+            if (typeof window !== 'undefined' && window.auth && typeof window.auth.onAuthStateChanged === 'function') {
+                window.auth.onAuthStateChanged(function(user) {
+                    setTimeout(() => {
+                        updateBreadcrumbAuthButtons();
+                        // Also ensure account section is visible if user is logged in
+                        if (user) {
+                            const accountSection = document.getElementById('account-section');
+                            if (accountSection) {
+                                accountSection.style.display = 'block';
+                                accountSection.style.visibility = 'visible';
+                            } else {
+                                loadAccountSection();
+                            }
+                            // Force update UI
+                            if (typeof window.forceUpdateUI === 'function') {
+                                window.forceUpdateUI();
+                            }
                         } else {
-                            loadAccountSection();
+                            // Hide account section when logged out
+                            const accountSection = document.getElementById('account-section');
+                            if (accountSection) {
+                                accountSection.style.display = 'none';
+                            }
                         }
-                    }
-                }, 100);
-            });
+                    }, 100);
+                });
+            } 
+            // Fallback to old Firebase SDK
+            else if (typeof firebase !== 'undefined' && firebase.auth) {
+                firebase.auth().onAuthStateChanged(function(user) {
+                    setTimeout(() => {
+                        updateBreadcrumbAuthButtons();
+                        if (user) {
+                            const accountSection = document.getElementById('account-section');
+                            if (accountSection) {
+                                accountSection.style.display = 'block';
+                                accountSection.style.visibility = 'visible';
+                            } else {
+                                loadAccountSection();
+                            }
+                        }
+                    }, 100);
+                });
+            }
+            // If auth.js hasn't loaded yet, retry
+            else {
+                setTimeout(setupAuthListener, 200);
+            }
         }
+        
+        // Start setting up auth listener
+        setupAuthListener();
     });
 }
 
