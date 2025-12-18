@@ -1195,24 +1195,24 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
     debug_stats.update(mask_stats("mask_raw", mask))
 
     # Step 1.5: Mask Safety Expansion (Dilation) - for hand/cloth safety (FREE PREVIEW ONLY)
-    # Expand mask by 1-2 pixels to prevent hand/cloth parts from being cut off
+    # Expand mask by 2-3 pixels to prevent hand/cloth parts from being cut off
     if not is_premium and CV2_AVAILABLE:
         try:
-            logger.info("Step 1.5: Applying mask safety expansion (1-2px dilation) for hand/cloth protection...")
+            logger.info("Step 1.5: Applying mask safety expansion (2-3px dilation) for hand/cloth protection...")
             if isinstance(mask, Image.Image):
                 mask_array = np.array(mask.convert('L'))
             else:
                 mask_array = mask
             
-            # Dilate mask with 3x3 kernel, 1 iteration = 1-2px expansion
-            kernel = np.ones((3, 3), np.uint8)
+            # Dilate mask with 5x5 kernel, 1 iteration = 2-3px expansion (increased for better body part protection)
+            kernel = np.ones((5, 5), np.uint8)
             mask_dilated = cv2.dilate(mask_array.astype(np.uint8), kernel, iterations=1)
             
             mask = Image.fromarray(mask_dilated, mode='L')
-            logger.info("✅ Mask safety expansion applied (hand/cloth parts protected)")
+            logger.info("✅ Mask safety expansion applied (hand/cloth parts protected, 2-3px expansion)")
             debug_stats.update({
                 "mask_expansion_applied": True,
-                "expansion_kernel": "3x3",
+                "expansion_kernel": "5x5",
                 "expansion_iterations": 1
             })
             debug_stats.update(mask_stats("mask_after_expansion", mask))
@@ -1448,25 +1448,11 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                 composite_alpha = apply_feathering(composite_alpha, feather_radius=3)
                 debug_stats.update(mask_stats("mask_after_feather_composite", composite_alpha))
             elif (not is_premium) and (not is_document):
-                # Very light feather (1-2px) for free preview human photos
-                try:
-                    logger.info("Step 8.1: Applying very light feathering (1-2px, radius=1.0) for free human preview...")
-                    alpha_np = np.array(composite_alpha).astype(np.float32)
-                    if CV2_AVAILABLE:
-                        # Very light Gaussian blur (1-2px feather radius) - OPTIMIZED: Reduced blend for clearer border
-                        blurred = cv2.GaussianBlur(alpha_np, (3, 3), 1.0)  # kernel=3x3, sigma=1.0 (1-2px effect)
-                        alpha_feather = alpha_np * (1.0 - 0.05) + blurred * 0.05  # Reduced from 0.10 to 0.05 for clearer border (less visible outline)
-                        alpha_feather = np.clip(alpha_feather, 0, 255).astype(np.uint8)
-                        composite_alpha = Image.fromarray(alpha_feather, mode='L')
-                    else:
-                        # Fallback using PIL blur radius 1, blend weight 0.05 - OPTIMIZED: Reduced blend for clearer border
-                        from PIL import ImageFilter
-                        blurred = composite_alpha.filter(ImageFilter.GaussianBlur(radius=1.0))
-                        composite_alpha = Image.blend(composite_alpha, blurred, alpha=0.05)  # Reduced from 0.10 to 0.05
-                    debug_stats.update(mask_stats("mask_after_feather_light_free", composite_alpha))
-                except Exception as feather_err:
-                    logger.warning(f"Light feathering failed (free preview): {feather_err}")
-                    debug_stats["feather_light_free_error"] = str(feather_err)
+                # REMOVED: Feathering disabled for free preview to eliminate visible outline/border
+                # No feathering applied - direct use of alpha channel for clean edges without border
+                logger.info("Step 8.1: Skipping feathering for free preview (outline removal - no visible border)")
+                debug_stats.update(mask_stats("mask_after_feather_skipped_free", composite_alpha))
+                debug_stats["feathering_disabled_free"] = True
             elif (not is_premium) and is_document:
                 # Very light feather for documents (natural look, not too clean) - OPTIMIZED: Added light feathering
                 try:
@@ -1524,15 +1510,18 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                     logger.warning(f"Document binary alpha conversion failed: {doc_binary_err}")
             
             # 🔥 MOST IMPORTANT - ALPHA SAFETY CLAMP (FREE PREVIEW ONLY, MANDATORY)
+            # Only apply to foreground pixels (alpha > 0) to prevent visible border
             if not is_premium:
                 try:
-                    logger.info("Step 10: Applying MANDATORY alpha safety clamp for free preview...")
+                    logger.info("Step 10: Applying MANDATORY alpha safety clamp for free preview (foreground pixels only)...")
                     alpha_arr = np.array(final_image.getchannel('A'))
                     
-                    # Apply safety clamp: alpha = max(alpha, 12) - ALL pixels
-                    # This ensures no pixel has alpha < 12, preventing fully transparent appearance
+                    # Apply safety clamp ONLY to foreground pixels (alpha > 0) to prevent visible border
+                    # This ensures no foreground pixel has alpha < 12, preventing fully transparent appearance
+                    # Background pixels (alpha = 0) remain fully transparent to avoid border
                     min_alpha = 12
-                    alpha_arr = np.maximum(alpha_arr, min_alpha)
+                    foreground_mask = alpha_arr > 0  # Only apply to pixels that are already in foreground
+                    alpha_arr[foreground_mask] = np.maximum(alpha_arr[foreground_mask], min_alpha)
                     
                     alpha_clamped = Image.fromarray(alpha_arr, mode='L')
                     final_image.putalpha(alpha_clamped)
@@ -1541,12 +1530,14 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                     alpha_min = float(np.min(alpha_arr))
                     alpha_max = float(np.max(alpha_arr))
                     alpha_nonzero = int(np.count_nonzero(alpha_arr))
-                    logger.info(f"✅ Free preview: Alpha safety clamp applied (min: {alpha_min}, max: {alpha_max}, nonzero: {alpha_nonzero})")
+                    foreground_pixels = int(np.sum(foreground_mask))
+                    logger.info(f"✅ Free preview: Alpha safety clamp applied (min: {alpha_min}, max: {alpha_max}, nonzero: {alpha_nonzero}, foreground: {foreground_pixels})")
                     debug_stats.update({
                         "alpha_safety_clamp_applied": True,
                         "alpha_clamp_min": float(min_alpha),
                         "alpha_final_min": alpha_min,
-                        "alpha_final_max": alpha_max
+                        "alpha_final_max": alpha_max,
+                        "alpha_clamp_foreground_only": True
                     })
                 except Exception as clamp_err:
                     logger.error(f"⚠️ CRITICAL: Alpha safety clamp failed: {clamp_err}")
