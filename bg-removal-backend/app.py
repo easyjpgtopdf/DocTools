@@ -1254,8 +1254,8 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                         # Convert to numpy array
                         mask_array = mask_np.astype(np.float32)
                         
-                        # Apply gaussian blur (radius=2) gentler
-                        mask_blurred = cv2.GaussianBlur(mask_array, (5, 5), 2.0)  # kernel size 5 = radius 2
+                        # Apply gaussian blur (radius=2) gentler - OPTIMIZED: Reduced kernel for GPU cost savings
+                        mask_blurred = cv2.GaussianBlur(mask_array, (3, 3), 1.0)  # kernel size 3, sigma=1.0 (optimized for free preview)
                         
                         # Dilate (iterations=1) gentler
                         kernel = np.ones((5, 5), np.uint8)
@@ -1334,9 +1334,9 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
             mask = enhance_hair_details(mask, input_image, strength=0.3)
             debug_stats.update(mask_stats("mask_after_hair", mask))
         elif not is_document:
-            # Free preview: Light hair protection ONLY (0.15-0.2 strength)
-            logger.info("Step 3: Applying light hair protection (free preview, human photo, strength=0.18)...")
-            mask = enhance_hair_details(mask, input_image, strength=0.18)  # 0.15-0.2 range
+            # Free preview: Light hair protection ONLY - OPTIMIZED: Reduced strength for GPU cost savings
+            logger.info("Step 3: Applying light hair protection (free preview, human photo, strength=0.10)...")
+            mask = enhance_hair_details(mask, input_image, strength=0.10)  # Reduced from 0.18 to 0.10 for cost optimization
             debug_stats.update(mask_stats("mask_after_hair", mask))
         else:
             logger.info("Step 3: Skipping hair enhancement for document...")
@@ -1453,22 +1453,41 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                     logger.info("Step 8.1: Applying very light feathering (1-2px, radius=1.0) for free human preview...")
                     alpha_np = np.array(composite_alpha).astype(np.float32)
                     if CV2_AVAILABLE:
-                        # Very light Gaussian blur (1-2px feather radius)
+                        # Very light Gaussian blur (1-2px feather radius) - OPTIMIZED: Reduced blend for clearer border
                         blurred = cv2.GaussianBlur(alpha_np, (3, 3), 1.0)  # kernel=3x3, sigma=1.0 (1-2px effect)
-                        alpha_feather = alpha_np * (1.0 - 0.10) + blurred * 0.10  # Slightly stronger blend for natural edge
+                        alpha_feather = alpha_np * (1.0 - 0.05) + blurred * 0.05  # Reduced from 0.10 to 0.05 for clearer border (less visible outline)
                         alpha_feather = np.clip(alpha_feather, 0, 255).astype(np.uint8)
                         composite_alpha = Image.fromarray(alpha_feather, mode='L')
                     else:
-                        # Fallback using PIL blur radius 1, blend weight 0.10
+                        # Fallback using PIL blur radius 1, blend weight 0.05 - OPTIMIZED: Reduced blend for clearer border
                         from PIL import ImageFilter
                         blurred = composite_alpha.filter(ImageFilter.GaussianBlur(radius=1.0))
-                        composite_alpha = Image.blend(composite_alpha, blurred, alpha=0.10)
+                        composite_alpha = Image.blend(composite_alpha, blurred, alpha=0.05)  # Reduced from 0.10 to 0.05
                     debug_stats.update(mask_stats("mask_after_feather_light_free", composite_alpha))
                 except Exception as feather_err:
                     logger.warning(f"Light feathering failed (free preview): {feather_err}")
                     debug_stats["feather_light_free_error"] = str(feather_err)
+            elif (not is_premium) and is_document:
+                # Very light feather for documents (natural look, not too clean) - OPTIMIZED: Added light feathering
+                try:
+                    logger.info("Step 8.1: Applying very light feathering (0.8px) for free document preview...")
+                    alpha_np = np.array(composite_alpha).astype(np.float32)
+                    if CV2_AVAILABLE:
+                        blurred = cv2.GaussianBlur(alpha_np, (3, 3), 0.8)  # sigma=0.8 (lighter than human)
+                        alpha_feather = alpha_np * (1.0 - 0.03) + blurred * 0.03  # 3% blend (lighter than human)
+                        alpha_feather = np.clip(alpha_feather, 0, 255).astype(np.uint8)
+                        composite_alpha = Image.fromarray(alpha_feather, mode='L')
+                    else:
+                        # Fallback using PIL blur radius 0.8, blend weight 0.03
+                        from PIL import ImageFilter
+                        blurred = composite_alpha.filter(ImageFilter.GaussianBlur(radius=0.8))
+                        composite_alpha = Image.blend(composite_alpha, blurred, alpha=0.03)
+                    debug_stats.update(mask_stats("mask_after_feather_light_document", composite_alpha))
+                except Exception as feather_err:
+                    logger.warning(f"Light feathering failed (free document): {feather_err}")
+                    debug_stats["feather_light_document_error"] = str(feather_err)
             else:
-                # Free preview documents or when feather skipped
+                # When feather skipped (should not happen for free preview)
                 logger.info("Step 8.1: Skipping feathering for this mode")
                 debug_stats.update(mask_stats("mask_after_feather_skipped", composite_alpha))
             
