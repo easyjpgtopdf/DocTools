@@ -398,6 +398,35 @@
       }
     }
 
+    initImageEditor() {
+      // Initialize image editor after DOM is ready
+      // Wait a bit for scripts to load if needed
+      if (typeof window.ImageEditor !== 'undefined') {
+        this.imageEditor = new window.ImageEditor();
+        const resultImg = document.getElementById('resultImage');
+        if (resultImg && resultImg.src) {
+          this.imageEditor.init(resultImg, this.state.resultURL || resultImg.src);
+        }
+        console.log('✅ Image editor initialized');
+      } else if (typeof ImageEditor !== 'undefined') {
+        // Fallback: try without window prefix
+        this.imageEditor = new ImageEditor();
+        const resultImg = document.getElementById('resultImage');
+        if (resultImg && resultImg.src) {
+          this.imageEditor.init(resultImg, this.state.resultURL || resultImg.src);
+        }
+        console.log('✅ Image editor initialized (fallback)');
+      } else {
+        console.warn('⚠️ ImageEditor class not found. Make sure image-editor.js is loaded.');
+        // Try again after a short delay
+        setTimeout(() => {
+          if (typeof window.ImageEditor !== 'undefined') {
+            this.initImageEditor();
+          }
+        }, 500);
+      }
+    }
+
     initBackgroundPicker() {
       // Initialize background picker after DOM is ready
       // Wait a bit for scripts to load if needed
