@@ -164,9 +164,11 @@
       if (overlay) {
         overlay.classList.remove('processing');
         overlay.style.display = 'none';
+        overlay.style.opacity = '0';
       }
       const previewStage = document.getElementById('previewStage');
       if (previewStage) {
+        previewStage.classList.remove('empty');
         previewStage.classList.add('revealed');
       }
     }
