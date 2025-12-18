@@ -97,7 +97,7 @@
 }
 
 .account-section .user-dropdown {
-    display: none !important;
+    display: none;
     position: absolute;
     top: calc(100% + 8px);
     right: 0;
@@ -121,6 +121,12 @@
 
 .account-section .user-menu[data-open="true"] .user-dropdown:not([hidden]) {
     display: block !important;
+}
+
+/* Show dropdown on click - ensure it works */
+.account-section .user-menu[data-open="true"] .user-dropdown {
+    display: block !important;
+    visibility: visible !important;
 }
 
 .account-section .user-dropdown a,

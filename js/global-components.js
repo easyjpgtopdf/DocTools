@@ -793,15 +793,37 @@ if (!window.globalComponentsInitialized) {
         if (!document.querySelector('header')) {
             forceLoadHeader();
         }
-        // Ensure account section is loaded on ALL pages
+        // FORCE ensure account section is loaded on ALL pages
         loadAccountSection();
-        // Update breadcrumb auth buttons
+        // Retry after delay
+        setTimeout(() => {
+            loadAccountSection();
+        }, 200);
+        setTimeout(() => {
+            loadAccountSection();
+        }, 500);
+        
+        // FORCE update breadcrumb auth buttons
         updateBreadcrumbAuthButtons();
+        setTimeout(() => {
+            updateBreadcrumbAuthButtons();
+        }, 200);
+        
         // Monitor auth state changes to update breadcrumb
         if (typeof firebase !== 'undefined' && firebase.auth) {
             firebase.auth().onAuthStateChanged(function(user) {
                 setTimeout(() => {
                     updateBreadcrumbAuthButtons();
+                    // Also ensure account section is visible if user is logged in
+                    if (user) {
+                        const accountSection = document.getElementById('account-section');
+                        if (accountSection) {
+                            accountSection.style.display = 'block';
+                            accountSection.style.visibility = 'visible';
+                        } else {
+                            loadAccountSection();
+                        }
+                    }
                 }, 100);
             });
         }

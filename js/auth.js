@@ -1004,53 +1004,76 @@ function updateUI(user) {
   const dashboard = document.getElementById('user-dashboard');
   let accountSection = document.getElementById('account-section');
   
-  // If account section doesn't exist, try to load it
-  if (!accountSection && typeof loadAccountSection === 'function') {
-    loadAccountSection();
+  // ALWAYS try to load account section if it doesn't exist or is empty
+  if (!accountSection || accountSection.children.length === 0) {
+    if (typeof loadAccountSection === 'function') {
+      loadAccountSection();
+    } else if (typeof window.loadAccountSection === 'function') {
+      window.loadAccountSection();
+    }
+    // Wait a bit and check again
+    setTimeout(() => {
+      accountSection = document.getElementById('account-section');
+      if (accountSection && user) {
+        accountSection.style.display = 'block';
+        accountSection.style.visibility = 'visible';
+      }
+    }, 100);
     accountSection = document.getElementById('account-section');
   }
   
   if (user) {
     if (authButtons) authButtons.style.display = 'none';
     
-    // Ensure account section exists and is visible on ALL pages
-    if (!accountSection) {
-      // Try to load account section if it doesn't exist
+    // FORCE load account section on ALL pages when user is logged in
+    if (!accountSection || accountSection.children.length === 0) {
       if (typeof window.loadAccountSection === 'function') {
         window.loadAccountSection();
-        accountSection = document.getElementById('account-section');
       }
-    }
-    
-    if (accountSection) {
-      // Show account section above header - remove inline hidden styles
-      accountSection.style.display = 'block';
-      accountSection.style.visibility = 'visible';
-      // Highlight active link in dropdown
-      if (typeof window.highlightActiveAccountLink === 'function') {
-        window.highlightActiveAccountLink();
-      }
-    } else {
-      // If still not found, try loading account section again after a delay
+      // Multiple retries to ensure it loads
       setTimeout(() => {
         if (typeof window.loadAccountSection === 'function') {
           window.loadAccountSection();
-          const retryAccountSection = document.getElementById('account-section');
-          if (retryAccountSection) {
-            retryAccountSection.style.display = 'block';
-            retryAccountSection.style.visibility = 'visible';
-            // Re-initialize auth UI to get the menu elements
-            if (typeof window.initializeAuthUI === 'function') {
-              window.initializeAuthUI();
-            }
+        }
+        accountSection = document.getElementById('account-section');
+        if (accountSection) {
+          accountSection.style.display = 'block';
+          accountSection.style.visibility = 'visible';
+        }
+      }, 200);
+      setTimeout(() => {
+        if (typeof window.loadAccountSection === 'function') {
+          window.loadAccountSection();
+        }
+        accountSection = document.getElementById('account-section');
+        if (accountSection) {
+          accountSection.style.display = 'block';
+          accountSection.style.visibility = 'visible';
+          if (typeof window.initializeAuthUI === 'function') {
+            window.initializeAuthUI();
           }
         }
       }, 500);
     }
     
-    // Update breadcrumb to hide Sign In/Signup buttons
+    if (accountSection) {
+      // FORCE show account section above header - remove ALL inline hidden styles
+      accountSection.style.display = 'block';
+      accountSection.style.visibility = 'visible';
+      accountSection.removeAttribute('hidden');
+      // Highlight active link in dropdown
+      if (typeof window.highlightActiveAccountLink === 'function') {
+        window.highlightActiveAccountLink();
+      }
+    }
+    
+    // FORCE update breadcrumb to hide Sign In/Signup buttons
     if (typeof window.updateBreadcrumbAuthButtons === 'function') {
       window.updateBreadcrumbAuthButtons();
+      // Retry to ensure it updates
+      setTimeout(() => {
+        window.updateBreadcrumbAuthButtons();
+      }, 200);
     }
     
     // Re-fetch user menu elements in case account section was loaded after initial init
@@ -1094,9 +1117,13 @@ function updateUI(user) {
     }
     closeUserDropdown();
     
-    // Update breadcrumb to show Sign In/Signup buttons
+    // FORCE update breadcrumb to show Sign In/Signup buttons
     if (typeof window.updateBreadcrumbAuthButtons === 'function') {
       window.updateBreadcrumbAuthButtons();
+      // Retry to ensure it updates
+      setTimeout(() => {
+        window.updateBreadcrumbAuthButtons();
+      }, 200);
     }
   }
 }
@@ -1193,7 +1220,17 @@ function toggleUserDropdown(forceState) {
   const isOpen = typeof forceState === 'boolean' ? forceState : userMenu.dataset.open !== 'true';
   userMenu.dataset.open = isOpen ? 'true' : 'false';
   userMenuToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-  userDropdown.hidden = !isOpen;
+  
+  // Ensure dropdown visibility
+  if (isOpen) {
+    userDropdown.hidden = false;
+    userDropdown.style.display = 'block';
+    userDropdown.style.visibility = 'visible';
+  } else {
+    userDropdown.hidden = true;
+    userDropdown.style.display = 'none';
+  }
+  
   if (isOpen) {
     cancelUserMenuHoverClose();
     if (!userMenuPointerHandlersBound) {
@@ -1287,3 +1324,4 @@ if (typeof window !== 'undefined') {
 }
 
 export { auth };
+
