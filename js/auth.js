@@ -1103,6 +1103,12 @@ function updateUI(user) {
 
 onAuthStateChanged(auth, (user) => {
   updateUI(user);
+  // Update breadcrumb auth buttons when auth state changes
+  if (typeof window.updateBreadcrumbAuthButtons === 'function') {
+    setTimeout(() => {
+      window.updateBreadcrumbAuthButtons();
+    }, 100);
+  }
   if (user) {
     loadBillingAddress(user);
     dispatchPendingAction(user);

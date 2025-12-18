@@ -301,13 +301,33 @@ function loadAccountSection() {
     // Check if account section already exists
     let existingAccountSection = document.getElementById('account-section');
     if (existingAccountSection) {
-        // Ensure it's properly positioned
-        const header = document.querySelector('header');
-        if (header && existingAccountSection.nextSibling !== header && existingAccountSection.parentNode !== header.parentNode) {
+        // If it's an empty div (like in index.html), replace it with proper content
+        if (existingAccountSection.children.length === 0) {
             try {
-                header.parentNode.insertBefore(existingAccountSection, header);
-            } catch (e) {
-                console.warn('Could not reposition account section:', e);
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = globalAccountSectionHTML.trim();
+                const accountElement = tempDiv.firstElementChild;
+                if (accountElement) {
+                    existingAccountSection.outerHTML = accountElement.outerHTML;
+                    // Re-initialize auth UI after account section is loaded
+                    if (typeof window.initializeAuthUI === 'function') {
+                        setTimeout(() => {
+                            window.initializeAuthUI();
+                        }, 100);
+                    }
+                }
+            } catch (error) {
+                console.error('Error replacing empty account section:', error);
+            }
+        } else {
+            // Ensure it's properly positioned
+            const header = document.querySelector('header');
+            if (header && existingAccountSection.nextSibling !== header && existingAccountSection.parentNode !== header.parentNode) {
+                try {
+                    header.parentNode.insertBefore(existingAccountSection, header);
+                } catch (e) {
+                    console.warn('Could not reposition account section:', e);
+                }
             }
         }
         return;
@@ -443,11 +463,30 @@ function loadGlobalHeader() {
 
 // Function to load breadcrumb
 function loadGlobalBreadcrumb() {
-    // Prevent duplicate breadcrumbs
+    // Check for existing breadcrumbs
     const existingBreadcrumbs = document.querySelectorAll('nav[aria-label="Breadcrumb"]');
     if (existingBreadcrumbs.length > 0) {
-        // Update existing breadcrumb auth buttons visibility
-        updateBreadcrumbAuthButtons();
+        // If breadcrumb exists but doesn't have the required classes, replace it
+        const firstBreadcrumb = existingBreadcrumbs[0];
+        const hasAuthClasses = firstBreadcrumb.querySelector('.breadcrumb-signin-item') !== null;
+        
+        if (!hasAuthClasses) {
+            // Replace with new breadcrumb that has proper classes
+            try {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = globalBreadcrumbHTML.trim();
+                const newBreadcrumb = tempDiv.firstElementChild;
+                if (newBreadcrumb) {
+                    firstBreadcrumb.outerHTML = newBreadcrumb.outerHTML;
+                    updateBreadcrumbAuthButtons();
+                }
+            } catch (error) {
+                console.error('Error replacing breadcrumb:', error);
+            }
+        } else {
+            // Update existing breadcrumb auth buttons visibility
+            updateBreadcrumbAuthButtons();
+        }
         return;
     }
     
@@ -491,11 +530,61 @@ function updateBreadcrumbAuthButtons() {
             }
         }
         
-        // Find all breadcrumb auth elements
+        // Find all breadcrumb auth elements (both new format with classes and old format)
         const signInItems = document.querySelectorAll('.breadcrumb-signin-item');
         const signUpItems = document.querySelectorAll('.breadcrumb-signup-item');
         const authSeparators = document.querySelectorAll('.breadcrumb-auth-separator');
         
+        // Also find old format breadcrumb items (for backward compatibility)
+        const allBreadcrumbs = document.querySelectorAll('nav[aria-label="Breadcrumb"]');
+        allBreadcrumbs.forEach(breadcrumb => {
+            const signInLinks = breadcrumb.querySelectorAll('a[href*="login.html"]');
+            const signUpLinks = breadcrumb.querySelectorAll('a[href*="signup.html"]');
+            const allListItems = breadcrumb.querySelectorAll('li');
+            
+            if (userLoggedIn) {
+                // Hide Sign In and Signup links in old format
+                signInLinks.forEach(link => {
+                    const listItem = link.closest('li');
+                    if (listItem && !listItem.classList.contains('breadcrumb-signin-item')) {
+                        listItem.style.display = 'none';
+                    }
+                });
+                signUpLinks.forEach(link => {
+                    const listItem = link.closest('li');
+                    if (listItem && !listItem.classList.contains('breadcrumb-signup-item')) {
+                        listItem.style.display = 'none';
+                    }
+                });
+                // Hide separators before/after auth links
+                allListItems.forEach((li, index) => {
+                    const prevLi = allListItems[index - 1];
+                    const nextLi = allListItems[index + 1];
+                    if ((prevLi && (prevLi.querySelector('a[href*="login.html"]') || prevLi.querySelector('a[href*="signup.html"]'))) ||
+                        (nextLi && (nextLi.querySelector('a[href*="login.html"]') || nextLi.querySelector('a[href*="signup.html"]')))) {
+                        if (li.textContent.trim() === '|') {
+                            li.style.display = 'none';
+                        }
+                    }
+                });
+            } else {
+                // Show Sign In and Signup links in old format
+                signInLinks.forEach(link => {
+                    const listItem = link.closest('li');
+                    if (listItem && !listItem.classList.contains('breadcrumb-signin-item')) {
+                        listItem.style.display = 'list-item';
+                    }
+                });
+                signUpLinks.forEach(link => {
+                    const listItem = link.closest('li');
+                    if (listItem && !listItem.classList.contains('breadcrumb-signup-item')) {
+                        listItem.style.display = 'list-item';
+                    }
+                });
+            }
+        });
+        
+        // Update new format breadcrumb elements
         if (userLoggedIn) {
             // Hide Sign In and Signup buttons when user is logged in
             signInItems.forEach(item => {
