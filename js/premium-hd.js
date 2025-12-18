@@ -89,6 +89,14 @@
         });
       }
 
+      // Wire up process button if it exists
+      const processBtn = document.getElementById('processBtn');
+      if (processBtn) {
+        processBtn.addEventListener('click', () => {
+          this.process();
+        });
+      }
+
       if (this.el.downloadButton) {
         this.el.downloadButton.addEventListener('click', () => {
           if (this.state.resultURL) {
@@ -141,7 +149,26 @@
           placeholder.classList.add('hidden');
         }
       }
-      // Do NOT auto-start premium by default; allow explicit trigger (optional)
+    }
+    
+    showProcessingOverlay() {
+      const overlay = document.getElementById('previewOverlay');
+      if (overlay) {
+        overlay.classList.add('processing');
+        overlay.style.display = 'flex';
+      }
+    }
+    
+    hideProcessingOverlay() {
+      const overlay = document.getElementById('previewOverlay');
+      if (overlay) {
+        overlay.classList.remove('processing');
+        overlay.style.display = 'none';
+      }
+      const previewStage = document.getElementById('previewStage');
+      if (previewStage) {
+        previewStage.classList.add('revealed');
+      }
     }
 
     async handleFile(file) {
@@ -151,8 +178,14 @@
       }
       this.state.file = file;
       this.showError('');
-      this.setStatus('Preview ready. Choose a size and start Premium HD.');
+      this.setStatus('Image uploaded! Processing with AI...');
       this.showPreview(file);
+      
+      // Auto-start processing after preview (for better UX)
+      // Small delay to ensure preview is visible first
+      setTimeout(() => {
+        this.process();
+      }, 500);
     }
 
     async fileToDataURL(file) {
@@ -175,8 +208,11 @@
       }
 
       this.state.isProcessing = true;
-      this.setStatus('Processing with Premium HD...');
+      this.setStatus('AI is processing your image...');
       this.showError('');
+      
+      // Show processing overlay
+      this.showProcessingOverlay();
 
       try {
         const dataURL = await this.fileToDataURL(this.state.file);
@@ -212,16 +248,21 @@
           this.state.resultURL = result.resultImage;
           if (this.el.resultImage) {
             this.el.resultImage.src = result.resultImage;
+            this.el.resultImage.hidden = false;
             this.el.resultImage.style.display = 'block';
           }
           if (this.el.downloadButton) this.el.downloadButton.disabled = false;
-          this.setStatus('Premium HD complete!');
+          this.setStatus('Background removed successfully!');
+          
+          // Hide processing overlay and show result
+          this.hideProcessingOverlay();
         } else {
           throw new Error(result.error || 'Processing failed');
         }
       } catch (err) {
         this.showError(err.message || 'Processing failed. Please try again.');
         this.setStatus('Processing failed.');
+        this.hideProcessingOverlay();
       } finally {
         this.state.isProcessing = false;
       }
