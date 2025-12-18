@@ -1,7 +1,7 @@
 // Direct route handler for /api/tools/bg-remove-premium
 // Premium HD Background Removal (2000-4000px GPU-accelerated)
 
-const CLOUDRUN_API_URL = process.env.CLOUDRUN_API_URL_BG_REMOVAL || 'https://bg-removal-birefnet-564572183797.us-central1.run.app';
+const CLOUDRUN_API_URL = process.env.CLOUDRUN_API_URL_BG_REMOVAL || 'https://bg-removal-ai-564572183797.us-central1.run.app';
 
 function normalizeImageData(imageData) {
   if (!imageData || typeof imageData !== 'string') {
@@ -330,24 +330,34 @@ module.exports = async function handler(req, res) {
     console.log('Premium HD request received, proxying to Cloud Run...');
     console.log('Cloud Run URL:', CLOUDRUN_API_URL);
     console.log('Decoded bytes:', normalized.bytes);
+    console.log('User ID:', finalUserId);
+    console.log('Target Size:', targetSize);
 
     // STEP 2: Process image first (before deducting credits)
+    const requestBody = {
+      imageData: normalized.dataUrl,
+      userId: finalUserId, // Use verified userId from token
+      quality: 100, // Enterprise requirement: quality 100
+      maxMegapixels: 25, // Max 25 Megapixels (width × height)
+      preserveOriginal: targetSize === 'original' || !targetSize, // Preserve original resolution if ≤ 25 MP
+      targetSize: targetSize || 'original',
+      targetWidth: targetWidth || null,
+      targetHeight: targetHeight || null,
+      imageType: req.body.imageType || null, // Forward imageType: "human" | "document" | "id_card" | "a4"
+      whiteBackground: true, // Enterprise requirement: white background JPG
+      outputFormat: 'jpg' // Enterprise requirement: JPG output
+    };
+    
+    console.log('Request body keys:', Object.keys(requestBody));
+    console.log('Request body (without imageData):', { ...requestBody, imageData: '[REDACTED]' });
+    
     const response = await fetch(`${CLOUDRUN_API_URL}/api/premium-bg`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: JSON.stringify({
-        imageData: normalized.dataUrl,
-        quality: 'hd',
-        maxMegapixels: 25, // Max 25 Megapixels (width × height)
-        preserveOriginal: targetSize === 'original' || !targetSize, // Preserve original resolution if ≤ 25 MP
-        targetSize: targetSize || 'original',
-        targetWidth: targetWidth || null,
-        targetHeight: targetHeight || null,
-        imageType: req.body.imageType || null // Forward imageType: "human" | "document" | "id_card" | "a4"
-      }),
+      body: JSON.stringify(requestBody),
       signal: AbortSignal.timeout(300000)
     });
 

@@ -2,7 +2,7 @@
 // Proxies requests to Cloud Run BiRefNet backend with authentication
 
 const CLOUDRUN_API_URL_BG_REMOVAL = process.env.CLOUDRUN_API_URL_BG_REMOVAL || 
-                                     'https://bg-removal-birefnet-564572183797.us-central1.run.app';
+                                     'https://bg-removal-ai-564572183797.us-central1.run.app';
 
 module.exports = async function handler(req, res) {
   // Enable CORS
