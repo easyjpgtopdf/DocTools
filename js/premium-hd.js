@@ -197,7 +197,51 @@
     }
   }
 
-  // Expose class for manual init; no auto-init to avoid unintended wiring
+  // Expose class for manual init
   window.PremiumHDApp = PremiumHDApp;
+  
+  // Auto-initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeApp);
+  } else {
+    initializeApp();
+  }
+  
+  async function initializeApp() {
+    try {
+      // Get auth token and user ID
+      async function getAuthToken() {
+        try {
+          if (window.auth && window.auth.currentUser) {
+            return await window.auth.currentUser.getIdToken();
+          }
+          return localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || null;
+        } catch (e) {
+          return null;
+        }
+      }
+      
+      async function getUserId() {
+        try {
+          if (window.auth && window.auth.currentUser) {
+            return window.auth.currentUser.uid;
+          }
+          return localStorage.getItem('userId') || sessionStorage.getItem('userId') || null;
+        } catch (e) {
+          return null;
+        }
+      }
+      
+      // Initialize PremiumHDApp
+      if (window.PremiumHDApp) {
+        window.premiumHDApp = new window.PremiumHDApp({
+          getAuthToken,
+          getUserId,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to initialize PremiumHDApp:', error);
+    }
+  }
 })();
 
