@@ -764,7 +764,7 @@
 
         const formData = new FormData();
         formData.append('image', file, file.name || 'image.jpg');
-        formData.append('maxSize', '512');
+        formData.append('maxSize', '640'); // FIX 1: Updated to 640px for industry-level free quality
         formData.append('imageType', 'human'); // default; backend may override
 
         // Verify FormData contents (for debugging)

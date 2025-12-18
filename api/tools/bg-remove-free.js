@@ -131,7 +131,7 @@ module.exports = async function handler(req, res) {
     
     const imageFile = files.image ? (Array.isArray(files.image) ? files.image[0] : files.image) : null;
     const imageType = fields.imageType ? (Array.isArray(fields.imageType) ? fields.imageType[0] : fields.imageType) : null;
-    const maxSize = fields.maxSize ? (Array.isArray(fields.maxSize) ? fields.maxSize[0] : fields.maxSize) : '512';
+    const maxSize = fields.maxSize ? (Array.isArray(fields.maxSize) ? fields.maxSize[0] : fields.maxSize) : '640'; // FIX 1: Default updated to 640px
     
     if (!imageFile) {
       return res.status(400).json({
