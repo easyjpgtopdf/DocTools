@@ -707,7 +707,7 @@
       this.state.previewURL = url;
       this.state.originalURL = url;
       
-      // Show instant preview in upload bar
+      // INSTANT PREVIEW: Show uploaded image immediately in upload card
       const imagePreview = document.getElementById('imagePreview');
       const previewImg = document.getElementById('previewImg');
       const uploadContent = document.getElementById('uploadContent');
@@ -720,13 +720,19 @@
         }
       }
       
-      // Auto-start processing after a small delay to ensure UI is updated
-      setTimeout(() => {
-        this.process(file).finally(() => {
-          // Revoke preview URL after processing/display to avoid leaks
-          setTimeout(() => URL.revokeObjectURL(url), 5000);
-        });
-      }, 100);
+      // INSTANT PREVIEW: Also show in result section immediately (before processing)
+      const resultImg = document.getElementById('resultImage');
+      const resultSection = document.getElementById('resultSection');
+      const uploadSection = document.getElementById('uploadSection');
+      
+      if (resultImg && resultSection && uploadSection) {
+        // Show result section immediately with uploaded image
+        uploadSection.style.display = 'none';
+        resultSection.style.display = 'block';
+        resultImg.src = url;
+        resultImg.style.display = 'block';
+        resultImg.style.opacity = '0.7'; // Slightly transparent to show it's preview
+      }
     }
 
     async handleFile(file) {
@@ -737,8 +743,13 @@
       }
       this.state.file = file;
       this.showError('');
-      this.setStatus('Preview ready. Starting processing...');
+      
+      // INSTANT PREVIEW: Show uploaded image immediately
       this.showPreview(file);
+      this.setStatus('Image uploaded! Processing with AI...');
+      
+      // Start processing automatically after showing preview
+      await this.process(file);
     }
 
     async process(file) {
@@ -747,8 +758,14 @@
         return;
       }
       this.state.isProcessing = true;
-      this.setStatus('Processing with Free Preview (512px)...');
+      this.setStatus('AI is processing your image...');
       this.showError(''); // Clear previous errors
+      
+      // Show processing animation with blinking stars
+      this.showProcessingAnimation();
+      
+      // Show processing animation with blinking stars
+      this.showProcessingAnimation();
 
       try {
         // Validate file before creating FormData
@@ -800,6 +817,9 @@
 
         const result = await response.json();
         console.log('✅ API Response:', result);
+        
+        // Hide processing animation
+        this.hideProcessingAnimation();
 
         if (result.success && result.resultImage) {
           this.state.resultURL = result.resultImage;
@@ -910,10 +930,136 @@
         this.showError(errorMsg);
         this.setStatus('❌ Processing failed.');
         
+        // Hide processing animation on error
+        this.hideProcessingAnimation();
+        
         // Reset state on error
         if (this.el.downloadButton) this.el.downloadButton.disabled = true;
       } finally {
         this.state.isProcessing = false;
+      }
+    }
+    
+    showProcessingAnimation() {
+      // Create or get processing overlay with blinking stars
+      let overlay = document.getElementById('processingOverlay');
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'processingOverlay';
+        overlay.style.cssText = `
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(67, 97, 238, 0.85);
+          backdrop-filter: blur(4px);
+          border-radius: 24px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          z-index: 100;
+          animation: fadeIn 0.3s ease;
+        `;
+        
+        // Add blinking stars container
+        const starsContainer = document.createElement('div');
+        starsContainer.style.cssText = `
+          position: relative;
+          width: 200px;
+          height: 200px;
+        `;
+        
+        // Create multiple blinking stars in a circle
+        for (let i = 0; i < 12; i++) {
+          const star = document.createElement('div');
+          const angle = (i * 30) * Math.PI / 180;
+          const radius = 80;
+          const x = Math.cos(angle) * radius;
+          const y = Math.sin(angle) * radius;
+          
+          star.style.cssText = `
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 8px;
+            height: 8px;
+            background: #fff;
+            border-radius: 50%;
+            transform: translate(${x}px, ${y}px);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+            animation: blinkStar${i} ${0.8 + (i * 0.1)}s ease-in-out infinite;
+            animation-delay: ${i * 0.1}s;
+          `;
+          starsContainer.appendChild(star);
+        }
+        
+        // Add center AI icon/text
+        const centerText = document.createElement('div');
+        centerText.textContent = 'AI';
+        centerText.style.cssText = `
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
+          font-size: 2rem;
+          font-weight: 700;
+          color: #fff;
+          text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+          animation: pulse 1.5s ease-in-out infinite;
+        `;
+        starsContainer.appendChild(centerText);
+        
+        overlay.appendChild(starsContainer);
+        
+        // Add CSS animations if not already added
+        if (!document.getElementById('processingAnimationStyles')) {
+          const style = document.createElement('style');
+          style.id = 'processingAnimationStyles';
+          style.textContent = `
+            @keyframes fadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+            @keyframes pulse {
+              0%, 100% { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
+              50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+            }
+          `;
+          // Add individual star animations
+          for (let i = 0; i < 12; i++) {
+            const angle = (i * 30) * Math.PI / 180;
+            const radius = 80;
+            const x = Math.cos(angle) * radius;
+            const y = Math.sin(angle) * radius;
+            style.textContent += `
+              @keyframes blinkStar${i} {
+                0%, 100% { opacity: 0.3; transform: translate(${x}px, ${y}px) scale(0.8); }
+                50% { opacity: 1; transform: translate(${x}px, ${y}px) scale(1.2); }
+              }
+            `;
+          }
+          document.head.appendChild(style);
+        }
+        
+        // Find the result image container to append overlay
+        const resultImg = document.getElementById('resultImage');
+        const container = resultImg?.parentElement;
+        
+        if (container) {
+          container.style.position = 'relative';
+          container.appendChild(overlay);
+        }
+      } else {
+        overlay.style.display = 'flex';
+      }
+    }
+    
+    hideProcessingAnimation() {
+      const overlay = document.getElementById('processingOverlay');
+      if (overlay) {
+        overlay.style.display = 'none';
       }
     }
 
