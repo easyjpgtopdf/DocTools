@@ -408,45 +408,7 @@
     </div>
   </section>
 
-  <!-- SSL Security Badge Section -->
-  <section style="padding: 40px 0; background: #f8f9ff; border-top: 1px solid #e2e6ff;">
-    <div class="container">
-      <div style="text-align: center; max-width: 800px; margin: 0 auto;">
-        <h3 style="font-size: 1.5rem; color: #0b1630; margin-bottom: 20px;">
-          <i class="fas fa-shield-alt" style="color: #4361ee; margin-right: 10px;"></i>
-          Secure & Trusted
-        </h3>
-        <div style="display: flex; justify-content: center; align-items: center; gap: 30px; flex-wrap: wrap;">
-          <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 15px 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-            <i class="fas fa-lock" style="font-size: 2rem; color: #4361ee;"></i>
-            <div style="text-align: left;">
-              <div style="font-weight: 600; color: #0b1630; font-size: 1.1rem;">SSL Encrypted</div>
-              <div style="color: #56607a; font-size: 0.9rem;">256-bit Security</div>
-            </div>
-          </div>
-          <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 15px 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-            <i class="fas fa-user-shield" style="font-size: 2rem; color: #4361ee;"></i>
-            <div style="text-align: left;">
-              <div style="font-weight: 600; color: #0b1630; font-size: 1.1rem;">Privacy Protected</div>
-              <div style="color: #56607a; font-size: 0.9rem;">Your images are secure</div>
-            </div>
-          </div>
-          <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 15px 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-            <i class="fas fa-server" style="font-size: 2rem; color: #4361ee;"></i>
-            <div style="text-align: left;">
-              <div style="font-weight: 600; color: #0b1630; font-size: 1.1rem;">Cloud Processing</div>
-              <div style="color: #56607a; font-size: 0.9rem;">Google Cloud Run</div>
-            </div>
-          </div>
-        </div>
-        <p style="margin-top: 20px; color: #56607a; font-size: 0.95rem;">
-          All image processing is done securely on our servers. Images are automatically deleted after processing.
-        </p>
-      </div>
-    </div>
-  </section>
-
-  <!-- Feedback and Review Section -->
+  <!-- FAQ Section -->
   <section class="feedback-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
     <div class="container">
       <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
@@ -719,36 +681,99 @@
       }
     }
 
-    // Feedback Form Handler
+    // Feedback Form Handler (Index Page Style - Live Comments)
     const currentPage = window.location.pathname.split('/').pop() || 'background-remover.html';
     
     function loadFeedbacks() {
       const storedFeedbacks = JSON.parse(localStorage.getItem('feedbacks') || '{}');
       const pageFeedbacks = (storedFeedbacks[currentPage] || []).slice(0, 3);
       const feedbackList = document.getElementById('feedbackList');
+      const emptyState = document.getElementById('feedback-empty-state');
       
       if (!feedbackList) return;
       
+      // Clear existing content
+      feedbackList.innerHTML = '';
+      
       if (pageFeedbacks.length === 0) {
-        // Keep default feedbacks if none exist
+        // Show empty state
+        if (emptyState) {
+          feedbackList.appendChild(emptyState);
+        } else {
+          const empty = document.createElement('li');
+          empty.className = 'feedback-muted';
+          empty.id = 'feedback-empty-state';
+          empty.style.cssText = 'text-align: center; padding: 40px 20px; color: #9ca3af; font-size: 0.95rem;';
+          empty.textContent = 'No comments yet. Start the conversation!';
+          feedbackList.appendChild(empty);
+        }
         return;
       }
       
-      feedbackList.innerHTML = pageFeedbacks.map(fb => `
-        <div class="feedback-item" style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-            <div>
-              <h4 style="font-size: 1.1rem; color: #0b1630; margin-bottom: 4px;">${fb.name}</h4>
-              <span style="font-size: 0.85rem; color: #9ca3af;">${fb.date}</span>
-            </div>
-            <div style="color: #fbbf24;">
-              ${'<i class="fas fa-star"></i>'.repeat(fb.rating || 5)}
-              ${'<i class="far fa-star"></i>'.repeat(5 - (fb.rating || 5))}
-            </div>
-          </div>
-          <p style="color: #56607a; line-height: 1.6; margin-bottom: 15px;">${fb.message}</p>
-        </div>
-      `).join('');
+      // Remove empty state
+      if (emptyState) {
+        emptyState.remove();
+      }
+      
+      // Display genuine user feedbacks (Index page style)
+      pageFeedbacks.forEach(fb => {
+        const li = document.createElement('li');
+        li.className = 'live-comment';
+        li.style.cssText = 'background: #f8f9ff; padding: 16px; border-radius: 8px; border-left: 3px solid #4361ee; margin-bottom: 12px;';
+        
+        const header = document.createElement('div');
+        header.style.cssText = 'display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;';
+        
+        const nameDiv = document.createElement('div');
+        const name = document.createElement('h4');
+        name.style.cssText = 'font-size: 1rem; color: #0b1630; margin: 0 0 4px 0; font-weight: 600;';
+        name.textContent = fb.name || 'Anonymous';
+        
+        const time = document.createElement('span');
+        time.style.cssText = 'font-size: 0.8rem; color: #9ca3af;';
+        time.textContent = fb.date || 'Recently';
+        
+        nameDiv.appendChild(name);
+        nameDiv.appendChild(time);
+        header.appendChild(nameDiv);
+        
+        li.appendChild(header);
+        
+        const body = document.createElement('p');
+        body.style.cssText = 'color: #56607a; line-height: 1.6; margin: 0 0 12px 0; font-size: 0.9rem;';
+        body.textContent = fb.message || '';
+        li.appendChild(body);
+        
+        // Add reply if exists (Index page style)
+        if (fb.reply) {
+          const replyDiv = document.createElement('div');
+          replyDiv.style.cssText = 'margin-left: 20px; padding: 12px; background: white; border-radius: 6px; margin-top: 10px; border-left: 2px solid #4361ee;';
+          
+          const replyHeader = document.createElement('div');
+          replyHeader.style.cssText = 'display: flex; align-items: center; gap: 8px; margin-bottom: 6px;';
+          
+          const replyIcon = document.createElement('i');
+          replyIcon.className = 'fas fa-reply';
+          replyIcon.style.cssText = 'color: #4361ee; font-size: 0.85rem;';
+          
+          const replyLabel = document.createElement('strong');
+          replyLabel.style.cssText = 'color: #4361ee; font-size: 0.85rem;';
+          replyLabel.textContent = 'Admin Reply:';
+          
+          replyHeader.appendChild(replyIcon);
+          replyHeader.appendChild(replyLabel);
+          replyDiv.appendChild(replyHeader);
+          
+          const replyText = document.createElement('p');
+          replyText.style.cssText = 'color: #56607a; font-size: 0.85rem; line-height: 1.5; margin: 0;';
+          replyText.textContent = fb.reply;
+          replyDiv.appendChild(replyText);
+          
+          li.appendChild(replyDiv);
+        }
+        
+        feedbackList.appendChild(li);
+      });
     }
     
     const feedbackForm = document.getElementById('feedbackForm');
@@ -768,10 +793,10 @@
           name: name,
           message: message,
           date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-          rating: 5,
           page: currentPage
         };
         
+        // Store in localStorage
         const storedFeedbacks = JSON.parse(localStorage.getItem('feedbacks') || '{}');
         if (!storedFeedbacks[currentPage]) {
           storedFeedbacks[currentPage] = [];
@@ -779,12 +804,17 @@
         storedFeedbacks[currentPage].unshift(feedback);
         localStorage.setItem('feedbacks', JSON.stringify(storedFeedbacks));
         
+        // Reset form
         this.reset();
+        
+        // Reload feedbacks
         loadFeedbacks();
+        
         alert('Thank you for your feedback!');
       });
     }
     
+    // Load feedbacks on page load
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', loadFeedbacks);
     } else {
