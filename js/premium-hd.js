@@ -336,8 +336,12 @@
           if (this.el.resultImage) {
             this.el.resultImage.src = result.resultImage;
             this.el.resultImage.hidden = false;
+            this.el.resultImage.removeAttribute('hidden');
             this.el.resultImage.style.display = 'block';
             this.el.resultImage.style.opacity = '1';
+            this.el.resultImage.style.visibility = 'visible';
+            // Force reflow to ensure display
+            this.el.resultImage.offsetHeight;
             
             // Ensure preview-stage shows result
             const previewStage = document.getElementById('previewStage');
