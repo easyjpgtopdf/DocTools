@@ -707,16 +707,30 @@
       this.state.previewURL = url;
       this.state.originalURL = url;
       
-      // INSTANT PREVIEW: Show uploaded image immediately in upload card
+      // INSTANT PREVIEW: Show uploaded image IMMEDIATELY in upload box (no delay)
       const imagePreview = document.getElementById('imagePreview');
       const previewImg = document.getElementById('previewImg');
       const uploadContent = document.getElementById('uploadContent');
       
       if (imagePreview && previewImg) {
-        previewImg.src = url;
+        // Set display FIRST (before src) for instant visual feedback
         imagePreview.style.display = 'block';
+        imagePreview.style.visibility = 'visible';
+        
+        // Use onload to ensure image is ready, but show container immediately
+        previewImg.onload = () => {
+          // Image loaded, ensure it's visible
+          previewImg.style.display = 'block';
+          previewImg.style.opacity = '1';
+        };
+        
+        // Set src immediately (triggers load)
+        previewImg.src = url;
+        
+        // Hide upload button immediately
         if (uploadContent) {
-          uploadContent.style.opacity = '0.3';
+          uploadContent.style.opacity = '0.1';
+          uploadContent.style.pointerEvents = 'none';
         }
       }
       
@@ -729,9 +743,11 @@
         // Show result section immediately with uploaded image
         uploadSection.style.display = 'none';
         resultSection.style.display = 'block';
+        resultImg.onload = () => {
+          resultImg.style.display = 'block';
+          resultImg.style.opacity = '0.7'; // Slightly transparent to show it's preview
+        };
         resultImg.src = url;
-        resultImg.style.display = 'block';
-        resultImg.style.opacity = '0.7'; // Slightly transparent to show it's preview
       }
     }
 
