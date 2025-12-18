@@ -703,33 +703,27 @@
     }
 
     showPreview(file) {
-      const url = URL.createObjectURL(file);
-      this.state.previewURL = url;
-      this.state.originalURL = url;
-      
-      // INSTANT PREVIEW: Show uploaded image IMMEDIATELY in upload box (no delay)
+      // INSTANT PREVIEW: Show container IMMEDIATELY (synchronous, no async operations)
       const imagePreview = document.getElementById('imagePreview');
       const previewImg = document.getElementById('previewImg');
       const uploadContent = document.getElementById('uploadContent');
       
+      // STEP 1: Show preview container IMMEDIATELY (before any async operations)
       if (imagePreview && previewImg) {
-        // CRITICAL: Show container FIRST, then set src - this makes it instant
+        // Show container FIRST - this is instant (no delay)
         imagePreview.style.display = 'block';
         imagePreview.style.visibility = 'visible';
         imagePreview.style.opacity = '1';
         imagePreview.style.zIndex = '10';
         
-        // Set image properties before src for instant display
+        // Set image properties BEFORE setting src
         previewImg.style.display = 'block';
         previewImg.style.visibility = 'visible';
         previewImg.style.width = '100%';
         previewImg.style.height = '100%';
         previewImg.style.objectFit = 'contain';
         
-        // Set src - browser will load and display immediately
-        previewImg.src = url;
-        
-        // Hide upload button/content immediately for visual feedback
+        // Hide upload button/content IMMEDIATELY for instant visual feedback
         if (uploadContent) {
           uploadContent.style.opacity = '0.1';
           uploadContent.style.pointerEvents = 'none';
@@ -737,13 +731,23 @@
         }
       }
       
-      // INSTANT PREVIEW: Also show in result section immediately (before processing)
+      // STEP 2: Create object URL and set src (async, but container already visible)
+      const url = URL.createObjectURL(file);
+      this.state.previewURL = url;
+      this.state.originalURL = url;
+      
+      // Set src - image will load and appear in already-visible container
+      if (previewImg) {
+        previewImg.src = url;
+      }
+      
+      // STEP 3: Show result section IMMEDIATELY (before processing)
       const resultImg = document.getElementById('resultImage');
       const resultSection = document.getElementById('resultSection');
       const uploadSection = document.getElementById('uploadSection');
       
       if (resultImg && resultSection && uploadSection) {
-        // Show result section immediately
+        // Show result section immediately (synchronous)
         uploadSection.style.display = 'none';
         resultSection.style.display = 'block';
         resultSection.style.visibility = 'visible';
@@ -756,7 +760,7 @@
         resultImg.style.height = '100%';
         resultImg.style.objectFit = 'contain';
         
-        // Set src
+        // Set src - image will load in already-visible container
         resultImg.src = url;
       }
     }
