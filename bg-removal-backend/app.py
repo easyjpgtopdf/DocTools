@@ -1448,11 +1448,27 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                 composite_alpha = apply_feathering(composite_alpha, feather_radius=3)
                 debug_stats.update(mask_stats("mask_after_feather_composite", composite_alpha))
             elif (not is_premium) and (not is_document):
-                # REMOVED: Feathering disabled for free preview to eliminate visible outline/border
-                # No feathering applied - direct use of alpha channel for clean edges without border
-                logger.info("Step 8.1: Skipping feathering for free preview (outline removal - no visible border)")
-                debug_stats.update(mask_stats("mask_after_feather_skipped_free", composite_alpha))
-                debug_stats["feathering_disabled_free"] = True
+                # EXTREMELY light feathering (1-2% blend) to reduce outline visibility without harsh edges
+                # Without any feathering, edges become too sharp and outline becomes MORE visible
+                try:
+                    logger.info("Step 8.1: Applying extremely light feathering (0.5px, 1.5% blend) to reduce outline visibility...")
+                    alpha_np = np.array(composite_alpha).astype(np.float32)
+                    if CV2_AVAILABLE:
+                        # Extremely light Gaussian blur (0.5px) with minimal blend (1.5%) to reduce outline
+                        blurred = cv2.GaussianBlur(alpha_np, (3, 3), 0.5)  # sigma=0.5 (very light)
+                        alpha_feather = alpha_np * (1.0 - 0.015) + blurred * 0.015  # 1.5% blend (extremely light to reduce outline)
+                        alpha_feather = np.clip(alpha_feather, 0, 255).astype(np.uint8)
+                        composite_alpha = Image.fromarray(alpha_feather, mode='L')
+                    else:
+                        # Fallback using PIL blur radius 0.5, blend weight 0.015 (1.5%)
+                        from PIL import ImageFilter
+                        blurred = composite_alpha.filter(ImageFilter.GaussianBlur(radius=0.5))
+                        composite_alpha = Image.blend(composite_alpha, blurred, alpha=0.015)  # 1.5% blend
+                    debug_stats.update(mask_stats("mask_after_feather_ultra_light_free", composite_alpha))
+                    debug_stats["feathering_ultra_light_free"] = True
+                except Exception as feather_err:
+                    logger.warning(f"Ultra-light feathering failed (free preview): {feather_err}")
+                    debug_stats["feather_ultra_light_free_error"] = str(feather_err)
             elif (not is_premium) and is_document:
                 # Very light feather for documents (natural look, not too clean) - OPTIMIZED: Added light feathering
                 try:
@@ -1517,9 +1533,9 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                     alpha_arr = np.array(final_image.getchannel('A'))
                     
                     # Apply safety clamp ONLY to foreground pixels (alpha > 0) to prevent visible border
-                    # This ensures no foreground pixel has alpha < 12, preventing fully transparent appearance
+                    # Reduced min_alpha from 12 to 8 to minimize outline visibility while still preventing fully transparent appearance
                     # Background pixels (alpha = 0) remain fully transparent to avoid border
-                    min_alpha = 12
+                    min_alpha = 8  # Reduced from 12 to minimize outline visibility
                     foreground_mask = alpha_arr > 0  # Only apply to pixels that are already in foreground
                     alpha_arr[foreground_mask] = np.maximum(alpha_arr[foreground_mask], min_alpha)
                     
