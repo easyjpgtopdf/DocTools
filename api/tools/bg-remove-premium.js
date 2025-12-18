@@ -1,7 +1,7 @@
 // Direct route handler for /api/tools/bg-remove-premium
 // Premium HD Background Removal (2000-4000px GPU-accelerated)
 
-const CLOUDRUN_API_URL = process.env.CLOUDRUN_API_URL_BG_REMOVAL || 'https://bg-removal-birefnet-iwumaktavq-uc.a.run.app';
+const CLOUDRUN_API_URL = process.env.CLOUDRUN_API_URL_BG_REMOVAL || 'https://bg-removal-birefnet-564572183797.us-central1.run.app';
 
 function normalizeImageData(imageData) {
   if (!imageData || typeof imageData !== 'string') {
