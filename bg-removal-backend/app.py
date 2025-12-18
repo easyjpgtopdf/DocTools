@@ -967,6 +967,22 @@ def process_enterprise_pipeline(input_image, birefnet_session, maxmatting_sessio
     else:
         expand_radius = 3  # Default to safe value
     
+    # CRITICAL FIX: Expand BiRefNet mask BEFORE trimap generation to prevent body parts cutting
+    # This ensures hands, fingers, hair edges are preserved
+    if image_type == 'human' and CV2_AVAILABLE:
+        try:
+            logger.info("Step 2.1: Expanding BiRefNet mask (1px dilation) to prevent body parts cutting...")
+            mask_array = np.array(semantic_alpha.convert('L'))
+            # Small dilation (1px) to preserve body parts without over-expanding
+            kernel = np.ones((3, 3), np.uint8)  # 3x3 kernel = 1px expansion per iteration
+            mask_expanded = cv2.dilate(mask_array.astype(np.uint8), kernel, iterations=1)  # 1 iteration = ~1px expansion
+            semantic_alpha = Image.fromarray(mask_expanded, mode='L')
+            logger.info("✅ Mask expanded (1px) to prevent body parts cutting")
+            debug_stats["mask_pre_expansion_applied"] = True
+        except Exception as exp_err:
+            logger.warning(f"Mask pre-expansion failed: {exp_err}, continuing with original mask")
+            debug_stats["mask_pre_expansion_error"] = str(exp_err)
+    
     trimap = generate_trimap(semantic_alpha, expand_radius=expand_radius)
     debug_stats["trimap_expand_radius"] = expand_radius
     debug_stats["trimap_type"] = image_type
@@ -1064,12 +1080,14 @@ def process_enterprise_pipeline(input_image, birefnet_session, maxmatting_sessio
     
     debug_stats["composite_completed"] = bool(True)
     
-    # Step 7: COLOR DECONTAMINATION (EDGE ONLY - strength=0.4, NEVER exceed 0.6)
+    # Step 7: COLOR DECONTAMINATION (EDGE ONLY - strength=0.3, NEVER exceed 0.6)
+    # CRITICAL: For human images, use minimal strength to prevent blur
     if image_type == 'human':
-        logger.info("Step 7: Color decontamination (strength=0.4, edge only)")
-        final_image = color_decontamination(rgba_composite, rgb_image, strength=0.4)
+        logger.info("Step 7: Color decontamination (strength=0.3, edge only, minimal for sharpness)")
+        # Reduced from 0.4 to 0.3 for sharper edges (prevents blur)
+        final_image = color_decontamination(rgba_composite, rgb_image, strength=0.3)
         debug_stats["color_decontamination_applied"] = True
-        debug_stats["color_decontamination_strength"] = 0.4
+        debug_stats["color_decontamination_strength"] = 0.3
     else:
         # For other types, use appropriate strength
         if image_type == 'document':
