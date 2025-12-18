@@ -265,41 +265,6 @@
 </div>
 </section>
 </main>
-<script type="module">
-    console.log('PREMIUM FLOW STARTED');
-    
-    // Initialize Premium HD App with auth providers
-    document.addEventListener('DOMContentLoaded', async () => {
-      // Get auth token and user ID (placeholder - implement based on your auth system)
-      async function getAuthToken() {
-        // TODO: Implement actual auth token retrieval (Firebase, etc.)
-        return null; // Return actual token
-      }
-      
-      async function getUserId() {
-        // TODO: Implement actual user ID retrieval (Firebase, etc.)
-        return null; // Return actual user ID
-      }
-      
-      if (window.PremiumHDApp) {
-        window.premiumHDApp = new window.PremiumHDApp({
-          getAuthToken,
-          getUserId,
-        });
-        
-        // Wire process button
-        const processBtn = document.getElementById('processBtn');
-        if (processBtn) {
-          processBtn.addEventListener('click', async () => {
-            if (window.premiumHDApp) {
-              await window.premiumHDApp.process();
-            }
-          });
-        }
-      }
-    });
-  </script>
-  
   <script type="module" src="js/background-workspace-enterprise.js"></script>
 
     <!-- Download Modal -->

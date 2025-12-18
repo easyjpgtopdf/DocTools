@@ -32,9 +32,30 @@ module.exports = async function handler(req, res) {
       const token = authHeader.replace('Bearer ', '');
       
       // Try to verify Firebase token if Firebase Admin is available
+      // Note: In Vercel serverless, Firebase Admin might not be available
+      // The token will be verified by the backend or we can skip verification here
+      // and let the backend handle it
       try {
-        const { getFirebaseAdmin } = require('../server/config/google-cloud');
-        const firebaseAdmin = getFirebaseAdmin();
+        // Try to load Firebase Admin (may not be available in Vercel serverless)
+        let firebaseAdmin = null;
+        try {
+          const admin = require('firebase-admin');
+          if (admin.apps.length > 0) {
+            firebaseAdmin = admin.app();
+          } else {
+            // Try to initialize if service account is available
+            const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
+            if (serviceAccount) {
+              const serviceAccountJson = JSON.parse(serviceAccount);
+              firebaseAdmin = admin.initializeApp({
+                credential: admin.credential.cert(serviceAccountJson)
+              });
+            }
+          }
+        } catch (adminError) {
+          // Firebase Admin not available - this is OK, backend will verify
+          console.log('Firebase Admin not available in serverless function (this is OK)');
+        }
         
         if (firebaseAdmin && firebaseAdmin.apps.length > 0) {
           const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
@@ -43,7 +64,8 @@ module.exports = async function handler(req, res) {
         }
       } catch (firebaseError) {
         // If Firebase Admin not available or token invalid, continue with token from body
-        console.warn('Firebase token verification failed (may not be configured):', firebaseError.message);
+        // Backend will verify the token
+        console.log('Token verification skipped in serverless (backend will verify):', firebaseError.message);
       }
     }
     
