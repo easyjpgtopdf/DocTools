@@ -259,7 +259,7 @@
         });
       }
       
-      // Free 512px download
+      // Free 640px download (updated for industry-level quality)
       if (downloadFree512) {
         downloadFree512.addEventListener('click', async (e) => {
           e.stopPropagation();
@@ -288,7 +288,7 @@
               // Clean up blob URL
               setTimeout(() => URL.revokeObjectURL(blobURL), 100);
               
-              console.log('✅ Free 512px download triggered');
+              console.log('✅ Free 640px download triggered');
             } catch (err) {
               console.error('❌ Download failed:', err);
               // Fallback to direct download
