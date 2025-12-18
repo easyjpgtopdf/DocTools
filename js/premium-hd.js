@@ -57,12 +57,30 @@
       if (this.el.fileInput) {
         this.el.fileInput.addEventListener('change', (e) => {
           const file = e.target.files?.[0];
-          if (file) this.handleFile(file);
+          if (file) {
+            console.log('File selected:', file.name, file.type, file.size);
+            this.handleFile(file);
+          } else {
+            console.warn('No file selected');
+          }
         });
+      } else {
+        console.error('File input not found:', this.selectors.fileInput);
       }
 
       if (this.el.uploadButton && this.el.fileInput) {
-        this.el.uploadButton.addEventListener('click', () => this.el.fileInput.click());
+        this.el.uploadButton.addEventListener('click', (e) => {
+          e.preventDefault();
+          console.log('Upload button clicked');
+          this.el.fileInput.click();
+        });
+      } else {
+        if (!this.el.uploadButton) {
+          console.error('Upload button not found:', this.selectors.uploadButton);
+        }
+        if (!this.el.fileInput) {
+          console.error('File input not found for upload button');
+        }
       }
 
       if (this.el.sizeSelect) {
