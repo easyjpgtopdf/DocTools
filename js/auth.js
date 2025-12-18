@@ -442,11 +442,59 @@ let authUiInitialized = false;
 let documentClickHandlerBound = false;
 
 function initializeAuthUI() {
+  // Always re-fetch user menu elements in case account section was loaded after initial init
+  userMenu = document.getElementById('user-menu');
+  userMenuToggle = document.getElementById('user-menu-toggle');
+  userDropdown = document.getElementById('user-dropdown');
+  logoutButton = document.getElementById('logout-button');
+  dropdownNavLinks = Array.from(document.querySelectorAll('[data-user-nav]'));
+  
   if (authUiInitialized) {
-    // Re-fetch user menu elements in case account section was loaded after initial init
-    userMenu = document.getElementById('user-menu');
-    userMenuToggle = document.getElementById('user-menu-toggle');
-    userDropdown = document.getElementById('user-dropdown');
+    // Re-attach event listeners if elements exist but weren't initialized
+    if (userMenuToggle && !userMenuToggle.hasAttribute('data-dropdown-initialized')) {
+      userMenuToggle.addEventListener('click', (event) => {
+        event.preventDefault();
+        toggleUserDropdown();
+      });
+      userMenuToggle.setAttribute('data-dropdown-initialized', 'true');
+    }
+    
+    if (logoutButton && !logoutButton.hasAttribute('data-logout-initialized')) {
+      logoutButton.addEventListener('click', handleLogout);
+      logoutButton.setAttribute('data-logout-initialized', 'true');
+    }
+    
+    // Re-attach dropdown nav links
+    dropdownNavLinks.forEach((link) => {
+      if (!link.hasAttribute('data-nav-initialized')) {
+        link.addEventListener('click', (event) => {
+          const rawHref = link.getAttribute('href') || '';
+          const targetId = link.dataset.userNav || rawHref.replace(/^[^#]*#/, '');
+          if (!targetId) {
+            closeUserDropdown();
+            return;
+          }
+          const currentPage = window.location.pathname.split('/').pop();
+          const isDashboardPage = currentPage === 'dashboard.html' || currentPage === '';
+          const isDashboardLink = rawHref.includes('dashboard.html') || rawHref.startsWith('#dashboard');
+          if (isDashboardPage && isDashboardLink) {
+            event.preventDefault();
+            closeUserDropdown();
+            revealDashboardSection(targetId);
+            return;
+          }
+          if (rawHref && !rawHref.startsWith('#')) {
+            closeUserDropdown();
+            return;
+          }
+          event.preventDefault();
+          closeUserDropdown();
+          revealDashboardSection(targetId);
+        });
+        link.setAttribute('data-nav-initialized', 'true');
+      }
+    });
+    
     updateUI(auth.currentUser || null);
     return;
   }
@@ -496,9 +544,10 @@ function initializeAuthUI() {
   });
 
   dropdownNavLinks.forEach((link) => {
-    link.addEventListener('click', (event) => {
-      const rawHref = link.getAttribute('href') || '';
-      const targetId = link.dataset.userNav || rawHref.replace(/^[^#]*#/, '');
+    if (!link.hasAttribute('data-nav-initialized')) {
+      link.addEventListener('click', (event) => {
+        const rawHref = link.getAttribute('href') || '';
+        const targetId = link.dataset.userNav || rawHref.replace(/^[^#]*#/, '');
 
       if (!targetId) {
         closeUserDropdown();
@@ -531,7 +580,9 @@ function initializeAuthUI() {
       event.preventDefault();
       closeUserDropdown();
       revealDashboardSection(targetId);
-    });
+      });
+      link.setAttribute('data-nav-initialized', 'true');
+    }
   });
 
   dashboardNavButtons.forEach((button) => {
@@ -547,6 +598,7 @@ function initializeAuthUI() {
       event.preventDefault();
       toggleUserDropdown();
     });
+    userMenuToggle.setAttribute('data-dropdown-initialized', 'true');
   }
 
   if (userMenu) {
@@ -595,6 +647,7 @@ function initializeAuthUI() {
 
   if (logoutButton) {
     logoutButton.addEventListener('click', handleLogout);
+    logoutButton.setAttribute('data-logout-initialized', 'true');
   }
 
   authUiInitialized = true;
@@ -960,7 +1013,7 @@ function updateUI(user) {
   if (user) {
     if (authButtons) authButtons.style.display = 'none';
     
-    // Ensure account section exists and is visible
+    // Ensure account section exists and is visible on ALL pages
     if (!accountSection) {
       // Try to load account section if it doesn't exist
       if (typeof window.loadAccountSection === 'function') {
@@ -994,6 +1047,12 @@ function updateUI(user) {
         }
       }, 500);
     }
+    
+    // Update breadcrumb to hide Sign In/Signup buttons
+    if (typeof window.updateBreadcrumbAuthButtons === 'function') {
+      window.updateBreadcrumbAuthButtons();
+    }
+    
     // Re-fetch user menu elements in case account section was loaded after initial init
     if (!userMenu || !userMenuToggle || !userDropdown) {
       userMenu = document.getElementById('user-menu');
@@ -1034,6 +1093,11 @@ function updateUI(user) {
       dashboardGuest.style.display = 'flex';
     }
     closeUserDropdown();
+    
+    // Update breadcrumb to show Sign In/Signup buttons
+    if (typeof window.updateBreadcrumbAuthButtons === 'function') {
+      window.updateBreadcrumbAuthButtons();
+    }
   }
 }
 

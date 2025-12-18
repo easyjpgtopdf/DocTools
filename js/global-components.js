@@ -29,7 +29,7 @@ const globalAccountSectionHTML = `
     <div class="container">
         <div id="user-menu" class="user-menu" data-open="false">
             <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
-                <img src="/images/user-logo-o.svg" alt="User Account" class="user-logo-o" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                <img src="images/user-logo-o.svg" alt="User Account" class="user-logo-o" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
                 <span class="user-logo-fallback" style="display: none; width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem;">O</span>
                 <span class="user-id" id="user-id-display"></span>
                 <span id="credit-balance-nav" style="display: none; margin-left: 8px; padding: 2px 8px; background: rgba(67,97,238,0.1); border-radius: 12px; font-size: 0.85rem; color: #4361ee; font-weight: 600;">
@@ -57,7 +57,7 @@ const globalHeaderHTML = `
 <header>
     <div class="container">
         <nav class="navbar">
-            <a href="/" class="logo"><img src="/images/logo.png" alt="Logo" style="height:54px;"></a>
+            <a href="index.html" class="logo"><img src="images/logo.png" alt="Logo" style="height:54px;"></a>
             <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle mobile menu" aria-expanded="false">
                 <span></span>
                 <span></span>
@@ -227,16 +227,16 @@ const globalHeaderHTML = `
 </header>
 `;
 
-// Global Breadcrumb HTML
+// Global Breadcrumb HTML - with dynamic Sign In/Signup buttons
 const globalBreadcrumbHTML = `
     <nav aria-label="Breadcrumb" style="padding: 15px 0; background: #f8f9ff; border-bottom: 1px solid #e2e6ff;">
         <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 24px;">
             <ol style="list-style: none; display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; align-items: center;">
                 <li><a href="index.html" style="color: #4361ee; text-decoration: none; font-weight: 500; transition: color 0.3s;" onmouseover="this.style.color='#3a0ca3'" onmouseout="this.style.color='#4361ee'">Home</a></li>
-                <li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
-                <li><a href="login.html" style="color: #56607a; font-weight: 500; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#4361ee'" onmouseout="this.style.color='#56607a'">Sign In</a></li>
-                <li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
-                <li><a href="signup.html" style="color: #56607a; font-weight: 500; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#4361ee'" onmouseout="this.style.color='#56607a'">Signup</a></li>
+                <li class="breadcrumb-auth-separator" style="margin: 0 8px; color: #9ca3af;">|</li>
+                <li class="breadcrumb-signin-item"><a href="login.html" class="breadcrumb-signin-link" style="color: #56607a; font-weight: 500; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#4361ee'" onmouseout="this.style.color='#56607a'">Sign In</a></li>
+                <li class="breadcrumb-auth-separator" style="margin: 0 8px; color: #9ca3af;">|</li>
+                <li class="breadcrumb-signup-item"><a href="signup.html" class="breadcrumb-signup-link" style="color: #56607a; font-weight: 500; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#4361ee'" onmouseout="this.style.color='#56607a'">Signup</a></li>
             </ol>
         </div>
     </nav>
@@ -296,11 +296,20 @@ const globalFooterHTML = `
 </footer>
 `;
 
-// Function to load account section
+// Function to load account section - Enhanced to work on ALL pages
 function loadAccountSection() {
     // Check if account section already exists
-    const existingAccountSection = document.getElementById('account-section');
+    let existingAccountSection = document.getElementById('account-section');
     if (existingAccountSection) {
+        // Ensure it's properly positioned
+        const header = document.querySelector('header');
+        if (header && existingAccountSection.nextSibling !== header && existingAccountSection.parentNode !== header.parentNode) {
+            try {
+                header.parentNode.insertBefore(existingAccountSection, header);
+            } catch (e) {
+                console.warn('Could not reposition account section:', e);
+            }
+        }
         return;
     }
     
@@ -345,6 +354,14 @@ function loadAccountSection() {
             }
         }
     }
+    
+    // Retry mechanism - ensure it loads even if header loads later
+    setTimeout(() => {
+        existingAccountSection = document.getElementById('account-section');
+        if (!existingAccountSection) {
+            loadAccountSection();
+        }
+    }, 500);
 }
 
 // Function to load header
@@ -383,6 +400,7 @@ function loadGlobalHeader() {
                 initializeMobileMenu();
                 loadGlobalBreadcrumb();
                 loadAccountSection();
+                updateBreadcrumbAuthButtons();
                 console.log('Header loaded successfully!');
             });
             return;
@@ -412,6 +430,7 @@ function loadGlobalHeader() {
                         initializeMobileMenu();
                         loadGlobalBreadcrumb();
                         loadAccountSection();
+                        updateBreadcrumbAuthButtons();
                         console.log('Header loaded successfully (fallback method)!');
                     });
                 }
@@ -427,13 +446,15 @@ function loadGlobalBreadcrumb() {
     // Prevent duplicate breadcrumbs
     const existingBreadcrumbs = document.querySelectorAll('nav[aria-label="Breadcrumb"]');
     if (existingBreadcrumbs.length > 0) {
-        console.warn('Breadcrumb already exists, skipping duplicate load');
+        // Update existing breadcrumb auth buttons visibility
+        updateBreadcrumbAuthButtons();
         return;
     }
     
     const breadcrumbPlaceholder = document.getElementById('global-breadcrumb-placeholder');
     if (breadcrumbPlaceholder) {
         breadcrumbPlaceholder.outerHTML = globalBreadcrumbHTML;
+        updateBreadcrumbAuthButtons();
     } else {
         // If no placeholder, try to add breadcrumb after header
         const header = document.querySelector('header');
@@ -441,7 +462,66 @@ function loadGlobalBreadcrumb() {
             const breadcrumbDiv = document.createElement('div');
             breadcrumbDiv.innerHTML = globalBreadcrumbHTML.trim();
             header.insertAdjacentElement('afterend', breadcrumbDiv.firstElementChild);
+            updateBreadcrumbAuthButtons();
         }
+    }
+}
+
+// Function to update breadcrumb Sign In/Signup buttons based on auth state
+function updateBreadcrumbAuthButtons() {
+    try {
+        let userLoggedIn = false;
+        
+        // Check if Firebase auth is available and user is logged in
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            try {
+                const currentUser = firebase.auth().currentUser;
+                userLoggedIn = currentUser !== null;
+            } catch (e) {
+                // Firebase not initialized yet
+            }
+        }
+        
+        // Also check if auth.js has initialized and user exists
+        if (!userLoggedIn && typeof window !== 'undefined' && window.auth) {
+            try {
+                userLoggedIn = window.auth.currentUser !== null;
+            } catch (e) {
+                // Auth not initialized yet
+            }
+        }
+        
+        // Find all breadcrumb auth elements
+        const signInItems = document.querySelectorAll('.breadcrumb-signin-item');
+        const signUpItems = document.querySelectorAll('.breadcrumb-signup-item');
+        const authSeparators = document.querySelectorAll('.breadcrumb-auth-separator');
+        
+        if (userLoggedIn) {
+            // Hide Sign In and Signup buttons when user is logged in
+            signInItems.forEach(item => {
+                if (item) item.style.display = 'none';
+            });
+            signUpItems.forEach(item => {
+                if (item) item.style.display = 'none';
+            });
+            authSeparators.forEach(sep => {
+                if (sep) sep.style.display = 'none';
+            });
+        } else {
+            // Show Sign In and Signup buttons when user is not logged in
+            signInItems.forEach(item => {
+                if (item) item.style.display = 'list-item';
+            });
+            signUpItems.forEach(item => {
+                if (item) item.style.display = 'list-item';
+            });
+            // Show separators only if there are visible items
+            authSeparators.forEach(sep => {
+                if (sep) sep.style.display = '';
+            });
+        }
+    } catch (error) {
+        console.warn('Error updating breadcrumb auth buttons:', error);
     }
 }
 
@@ -590,6 +670,8 @@ if (!window.globalComponentsInitialized) {
                     highlightActiveLink();
                     initializeMobileMenu();
                     loadGlobalBreadcrumb();
+                    loadAccountSection();
+                    updateBreadcrumbAuthButtons();
                 }, 10);
             } catch (e) {
                 console.error('Force load header error:', e);
@@ -617,8 +699,18 @@ if (!window.globalComponentsInitialized) {
         if (!document.querySelector('header')) {
             forceLoadHeader();
         }
-        // Ensure user menu is loaded in header
+        // Ensure account section is loaded on ALL pages
         loadAccountSection();
+        // Update breadcrumb auth buttons
+        updateBreadcrumbAuthButtons();
+        // Monitor auth state changes to update breadcrumb
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            firebase.auth().onAuthStateChanged(function(user) {
+                setTimeout(() => {
+                    updateBreadcrumbAuthButtons();
+                }, 100);
+            });
+        }
     });
 }
 
@@ -628,6 +720,7 @@ window.loadGlobalFooter = loadGlobalFooter;
 window.loadGlobalBreadcrumb = loadGlobalBreadcrumb;
 window.loadAccountSection = loadAccountSection;
 window.highlightActiveAccountLink = highlightActiveAccountLink;
+window.updateBreadcrumbAuthButtons = updateBreadcrumbAuthButtons;
 
 // Make function available globally immediately
 if (typeof window !== 'undefined') {
@@ -636,6 +729,7 @@ if (typeof window !== 'undefined') {
     window.loadGlobalBreadcrumb = loadGlobalBreadcrumb;
     window.loadAccountSection = loadAccountSection;
     window.highlightActiveAccountLink = highlightActiveAccountLink;
+    window.updateBreadcrumbAuthButtons = updateBreadcrumbAuthButtons;
 }
 
 })(); // Close IIFE to prevent duplicate execution
