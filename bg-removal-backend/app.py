@@ -661,10 +661,12 @@ def apply_matte_strength(mask, matte_strength=0.2):
         logger.warning(f"Matte strength failed, using original mask: {str(e)}")
         return mask if isinstance(mask, Image.Image) else Image.fromarray(mask, mode='L')
 
-def enhance_hair_details(mask, original_image, strength=0.3):
+def enhance_hair_details(mask, original_image, strength=0.3, apply_blur=False):
     """
     Enhance hair details and fine edges for premium quality
     Preserves fine hair strands and detailed edges
+    
+    CRITICAL: For human images, apply_blur=False to prevent blur (enterprise requirement)
     """
     if not CV2_AVAILABLE:
         return mask
@@ -692,10 +694,12 @@ def enhance_hair_details(mask, original_image, strength=0.3):
         # Boost mask values in edge regions to preserve fine details
         enhanced_mask[edge_mask] = np.minimum(255, mask_array[edge_mask] * (1.0 + strength))
         
-        # Smooth transition to avoid artifacts
-        if SCIPY_AVAILABLE:
+        # CRITICAL: NO BLUR for human images (enterprise requirement)
+        # Only apply smoothing if explicitly requested (for non-human images)
+        if apply_blur and SCIPY_AVAILABLE:
             from scipy.ndimage import gaussian_filter
             enhanced_mask = gaussian_filter(enhanced_mask, sigma=0.5)
+        # For human images: NO blur, direct return for sharp edges
         
         return Image.fromarray(enhanced_mask.astype(np.uint8), mode='L')
     except Exception as e:
@@ -1027,12 +1031,14 @@ def process_enterprise_pipeline(input_image, birefnet_session, maxmatting_sessio
         alpha_mm = semantic_alpha
         debug_stats["maxmatting_fallback"] = bool(True)
     
-    # Step 4: HAIR DETAIL ENHANCEMENT (LIMITED - strength=0.12, DO NOT exceed 0.15)
+    # Step 4: HAIR DETAIL ENHANCEMENT (LIMITED - strength=0.12, DO NOT exceed 0.15, NO BLUR)
     if image_type == 'human':
-        logger.info("Step 4: Hair detail enhancement (strength=0.12, micro-boost only)")
-        alpha_enhanced = enhance_hair_details(alpha_mm, input_image, strength=0.12)
+        logger.info("Step 4: Hair detail enhancement (strength=0.12, micro-boost only, NO BLUR)")
+        # CRITICAL: apply_blur=False for human images to prevent blur (enterprise requirement)
+        alpha_enhanced = enhance_hair_details(alpha_mm, input_image, strength=0.12, apply_blur=False)
         debug_stats["hair_enhancement_applied"] = True
         debug_stats["hair_enhancement_strength"] = 0.12
+        debug_stats["hair_enhancement_blur"] = False  # NO BLUR for humans
     else:
         alpha_enhanced = alpha_mm
         debug_stats["hair_enhancement_applied"] = False
