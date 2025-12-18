@@ -763,9 +763,6 @@
       
       // Show processing animation with blinking stars
       this.showProcessingAnimation();
-      
-      // Show processing animation with blinking stars
-      this.showProcessingAnimation();
 
       try {
         // Validate file before creating FormData
@@ -952,8 +949,7 @@
           left: 0;
           width: 100%;
           height: 100%;
-          background: rgba(67, 97, 238, 0.85);
-          backdrop-filter: blur(4px);
+          background: transparent;
           border-radius: 24px;
           display: flex;
           flex-direction: column;
@@ -961,6 +957,7 @@
           justify-content: center;
           z-index: 100;
           animation: fadeIn 0.3s ease;
+          pointer-events: none;
         `;
         
         // Add blinking stars container
@@ -988,7 +985,7 @@
             background: #fff;
             border-radius: 50%;
             transform: translate(${x}px, ${y}px);
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 1), 0 0 30px rgba(67, 97, 238, 0.8);
             animation: blinkStar${i} ${0.8 + (i * 0.1)}s ease-in-out infinite;
             animation-delay: ${i * 0.1}s;
           `;
@@ -1006,7 +1003,7 @@
           font-size: 2rem;
           font-weight: 700;
           color: #fff;
-          text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+          text-shadow: 0 0 20px rgba(255, 255, 255, 1), 0 0 40px rgba(67, 97, 238, 0.9), 2px 2px 4px rgba(0, 0, 0, 0.5);
           animation: pulse 1.5s ease-in-out infinite;
         `;
         starsContainer.appendChild(centerText);
