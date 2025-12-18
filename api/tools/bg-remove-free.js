@@ -72,11 +72,14 @@ module.exports = async function handler(req, res) {
     // Handle both v2 and v3 API
     let fields, files;
     try {
+      // Free version upload limit: 500 KB (512000 bytes)
+      const MAX_FILE_SIZE_FREE = 500 * 1024; // 500 KB
+      
       // Try v3 first (formidable is an object with IncomingForm)
       if (formidable && formidable.IncomingForm) {
         const form = formidable.IncomingForm({
           multiples: false,
-          maxFileSize: 50 * 1024 * 1024,
+          maxFileSize: MAX_FILE_SIZE_FREE,
           keepExtensions: true
         });
         [fields, files] = await form.parse(req);
@@ -84,7 +87,7 @@ module.exports = async function handler(req, res) {
         // Formidable v2 style - direct function call
         const form = formidable({
           multiples: false,
-          maxFileSize: 50 * 1024 * 1024,
+          maxFileSize: MAX_FILE_SIZE_FREE,
           keepExtensions: true
         });
         [fields, files] = await form.parse(req);
@@ -93,11 +96,11 @@ module.exports = async function handler(req, res) {
         const Form = formidable.default || formidable;
         const form = typeof Form === 'function' ? Form({
           multiples: false,
-          maxFileSize: 50 * 1024 * 1024,
+          maxFileSize: MAX_FILE_SIZE_FREE,
           keepExtensions: true
         }) : new Form({
           multiples: false,
-          maxFileSize: 50 * 1024 * 1024,
+          maxFileSize: MAX_FILE_SIZE_FREE,
           keepExtensions: true
         });
         [fields, files] = await form.parse(req);
@@ -112,7 +115,7 @@ module.exports = async function handler(req, res) {
         if (IncomingForm) {
           const form = IncomingForm({
             multiples: false,
-            maxFileSize: 50 * 1024 * 1024,
+            maxFileSize: 500 * 1024, // 500 KB for free version
             keepExtensions: true
           });
           [fields, files] = await form.parse(req);
@@ -143,6 +146,17 @@ module.exports = async function handler(req, res) {
     
     // Read file buffer
     const fileBuffer = fs.readFileSync(imageFile.filepath);
+    
+    // Validate file size: Free version limit is 500 KB
+    const MAX_FILE_SIZE_FREE = 500 * 1024; // 500 KB in bytes
+    if (fileBuffer.length > MAX_FILE_SIZE_FREE) {
+      const fileSizeMB = (fileBuffer.length / (1024 * 1024)).toFixed(2);
+      return res.status(400).json({
+        success: false,
+        error: 'File size exceeds limit',
+        message: `File size (${fileSizeMB} MB) exceeds the free version limit of 500 KB. Please compress your image or use Premium HD for larger files.`
+      });
+    }
     
     // Forward as multipart/form-data to backend
     // CRITICAL: Use form-data package correctly with Node.js fetch

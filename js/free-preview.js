@@ -771,6 +771,15 @@
         this.showError('Please select a valid image file.');
         return;
       }
+      
+      // Validate file size: Free version limit is 500 KB
+      const MAX_FILE_SIZE = 500 * 1024; // 500 KB in bytes
+      if (file.size > MAX_FILE_SIZE) {
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        this.showError(`File size (${fileSizeMB} MB) exceeds the free version limit of 500 KB. Please compress your image or use Premium HD for larger files.`);
+        return;
+      }
+      
       this.state.file = file;
       this.showError('');
       
