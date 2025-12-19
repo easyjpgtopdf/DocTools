@@ -259,7 +259,7 @@
         });
       }
       
-      // Free 640px download (updated for industry-level quality)
+      // Free 512px download
       if (downloadFree512) {
         downloadFree512.addEventListener('click', async (e) => {
           e.stopPropagation();
@@ -280,7 +280,7 @@
               
               const a = document.createElement('a');
               a.href = blobURL;
-              a.download = 'background-removed-640px.png';
+              a.download = 'background-removed-512px.png';
               document.body.appendChild(a);
               a.click();
               a.remove();
@@ -288,13 +288,13 @@
               // Clean up blob URL
               setTimeout(() => URL.revokeObjectURL(blobURL), 100);
               
-              console.log('✅ Free 640px download triggered');
+              console.log('✅ Free 512px download triggered');
             } catch (err) {
               console.error('❌ Download failed:', err);
               // Fallback to direct download
               const a = document.createElement('a');
               a.href = downloadURL;
-              a.download = 'background-removed-640px.png';
+              a.download = 'background-removed-512px.png';
               document.body.appendChild(a);
               a.click();
               a.remove();
@@ -817,7 +817,7 @@
 
         const formData = new FormData();
         formData.append('image', file, file.name || 'image.jpg');
-        formData.append('maxSize', '640'); // FIX 1: Updated to 640px for industry-level free quality
+        formData.append('maxSize', '512'); // Free preview: 512px maximum resolution
         formData.append('imageType', 'human'); // default; backend may override
 
         // Verify FormData contents (for debugging)

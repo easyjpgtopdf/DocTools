@@ -201,12 +201,16 @@ def get_session_maxmatting():
                 logger.info("MaxMatting fallback: BiRefNet initialized")
     return session_maxmatting
 
-def generate_trimap(mask, expand_radius=8):
+def generate_trimap(mask, expand_radius=8, fg_threshold=None, bg_threshold=None):
     """
     Generate trimap from BiRefNet mask for fine alpha matting
-    - Foreground: mask > 245 (LOCKED - human-safe)
-    - Background: mask < 10 (LOCKED - human-safe)
-    - Unknown region: 10-245 (expanded by radius pixels)
+    - Foreground: mask > fg_threshold
+    - Background: mask < bg_threshold
+    - Unknown region: bg_threshold to fg_threshold (expanded by radius pixels)
+    
+    Default thresholds:
+    - Premium: FG=245, BG=10 (human-safe)
+    - Free preview: FG=240, BG=15
     
     Returns: trimap (128 = unknown, 0 = background, 255 = foreground)
     """
@@ -219,14 +223,22 @@ def generate_trimap(mask, expand_radius=8):
         # Create trimap
         trimap = np.zeros_like(mask_array, dtype=np.uint8)
         
-        # Foreground: mask > 245 (LOCKED threshold for human safety)
-        trimap[mask_array > 245] = 255
+        # Set default thresholds based on context
+        # Free preview: FG=240, BG=15
+        # Premium: FG=245, BG=10 (human-safe)
+        if fg_threshold is None:
+            fg_threshold = 245  # Premium default
+        if bg_threshold is None:
+            bg_threshold = 10   # Premium default
         
-        # Background: mask < 10 (LOCKED threshold for human safety)
-        trimap[mask_array < 10] = 0
+        # Foreground: mask > fg_threshold
+        trimap[mask_array > fg_threshold] = 255
         
-        # Unknown region: 10-245
-        unknown_mask = (mask_array >= 10) & (mask_array <= 245)
+        # Background: mask < bg_threshold
+        trimap[mask_array < bg_threshold] = 0
+        
+        # Unknown region: bg_threshold to fg_threshold
+        unknown_mask = (mask_array >= bg_threshold) & (mask_array <= fg_threshold)
         trimap[unknown_mask] = 128
         
         # Expand unknown region by dilating the boundary
@@ -1469,31 +1481,60 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
 
     debug_stats.update(mask_stats("mask_raw", mask))
 
-    # Step 1.5: Mask Safety Expansion (Dilation) - for hand/cloth safety (FREE PREVIEW ONLY)
-    # Expand mask by 2-3 pixels to prevent hand/cloth parts from being cut off
+    # Step 1.5: HUMAN IMAGE PIPELINE - Mask Safety Expansion (Dilation)
+    # Trimap expand equivalent = 3 (using 3x3 kernel, 1 iteration = ~1.5px expansion)
+    # Erode = 0 (no erosion applied)
     if not is_premium and CV2_AVAILABLE:
-        try:
-            logger.info("Step 1.5: Applying mask safety expansion (2-3px dilation) for hand/cloth protection...")
-            if isinstance(mask, Image.Image):
-                mask_array = np.array(mask.convert('L'))
-            else:
-                mask_array = mask
-            
-            # Dilate mask with 5x5 kernel, 1 iteration = 2-3px expansion (increased for better body part protection)
-            kernel = np.ones((5, 5), np.uint8)
-            mask_dilated = cv2.dilate(mask_array.astype(np.uint8), kernel, iterations=1)
-            
-            mask = Image.fromarray(mask_dilated, mode='L')
-            logger.info("✅ Mask safety expansion applied (hand/cloth parts protected, 2-3px expansion)")
-            debug_stats.update({
-                "mask_expansion_applied": True,
-                "expansion_kernel": "5x5",
-                "expansion_iterations": 1
-            })
-            debug_stats.update(mask_stats("mask_after_expansion", mask))
-        except Exception as expansion_err:
-            logger.warning(f"Mask expansion failed: {expansion_err}")
-            debug_stats["mask_expansion_error"] = str(expansion_err)
+        if not is_document:
+            # HUMAN IMAGES: Trimap expand = 3, Erode = 0
+            try:
+                logger.info("Step 1.5: Applying human image mask expansion (Trimap expand = 3, Erode = 0)...")
+                if isinstance(mask, Image.Image):
+                    mask_array = np.array(mask.convert('L'))
+                else:
+                    mask_array = mask
+                
+                # HUMAN PIPELINE: Trimap expand = 3 (3x3 kernel, 1 iteration ≈ 1.5px expansion)
+                # Erode = 0 (no erosion, only dilation for safety)
+                kernel = np.ones((3, 3), np.uint8)
+                mask_dilated = cv2.dilate(mask_array.astype(np.uint8), kernel, iterations=1)
+                # No erosion (Erode = 0) - dilation only for hand/cloth protection
+                
+                mask = Image.fromarray(mask_dilated, mode='L')
+                logger.info("✅ Human image mask expansion applied (Trimap expand = 3, Erode = 0)")
+                debug_stats.update({
+                    "mask_expansion_applied": True,
+                    "expansion_kernel": "3x3",
+                    "expansion_iterations": 1,
+                    "trimap_expand_equivalent": 3,
+                    "erode_applied": False,
+                    "human_pipeline_expansion": True
+                })
+                debug_stats.update(mask_stats("mask_after_expansion_human", mask))
+            except Exception as expansion_err:
+                logger.warning(f"Human image mask expansion failed: {expansion_err}")
+                debug_stats["mask_expansion_error"] = str(expansion_err)
+        else:
+            # DOCUMENTS: Keep existing expansion logic (different from human images)
+            try:
+                logger.info("Step 1.5: Applying document mask expansion...")
+                if isinstance(mask, Image.Image):
+                    mask_array = np.array(mask.convert('L'))
+                else:
+                    mask_array = mask
+                
+                kernel = np.ones((5, 5), np.uint8)
+                mask_dilated = cv2.dilate(mask_array.astype(np.uint8), kernel, iterations=1)
+                mask = Image.fromarray(mask_dilated, mode='L')
+                debug_stats.update({
+                    "mask_expansion_applied": True,
+                    "expansion_kernel": "5x5",
+                    "expansion_iterations": 1,
+                    "document_pipeline_expansion": True
+                })
+            except Exception as expansion_err:
+                logger.warning(f"Document mask expansion failed: {expansion_err}")
+                debug_stats["mask_expansion_error"] = str(expansion_err)
 
     # 🔥 FREE PREVIEW ONLY: Mask Strength Check and Recovery (Levels 1-3)
     used_fallback_level = 0
@@ -1723,28 +1764,11 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                 composite_alpha = apply_feathering(composite_alpha, feather_radius=3)
                 debug_stats.update(mask_stats("mask_after_feather_composite", composite_alpha))
             elif (not is_premium) and (not is_document):
-                # FIX 2: Soft feather 1px for FREE preview (industry-level quality)
-                # 1px feather provides smooth edges without thick border, premium se clearly worse but complete
-                try:
-                    logger.info("Step 8.1: Applying soft feathering (1px) for free preview (industry-level quality)...")
-                    alpha_np = np.array(composite_alpha).astype(np.float32)
-                    if CV2_AVAILABLE:
-                        # Soft feather: 1px Gaussian blur for smooth edges
-                        blurred = cv2.GaussianBlur(alpha_np, (3, 3), 1.0)  # sigma=1.0 (1px feather)
-                        # Light blend to avoid thick border but keep edges smooth
-                        alpha_feather = alpha_np * (1.0 - 0.08) + blurred * 0.08  # 8% blend (soft but not heavy)
-                        alpha_feather = np.clip(alpha_feather, 0, 255).astype(np.uint8)
-                        composite_alpha = Image.fromarray(alpha_feather, mode='L')
-                    else:
-                        # Fallback using PIL blur radius 1.0, blend weight 0.08
-                        from PIL import ImageFilter
-                        blurred = composite_alpha.filter(ImageFilter.GaussianBlur(radius=1.0))
-                        composite_alpha = Image.blend(composite_alpha, blurred, alpha=0.08)  # 8% blend
-                    debug_stats.update(mask_stats("mask_after_feather_soft_free", composite_alpha))
-                    debug_stats["feathering_soft_free"] = True
-                except Exception as feather_err:
-                    logger.warning(f"Soft feathering failed (free preview): {feather_err}")
-                    debug_stats["feather_soft_free_error"] = str(feather_err)
+                # HUMAN IMAGE PIPELINE: Feather = OFF (no feathering for human images)
+                logger.info("Step 8.1: Skipping feathering for human images (Feather = OFF per pipeline settings)...")
+                debug_stats.update(mask_stats("mask_after_feather_skipped_human", composite_alpha))
+                debug_stats["feathering_human"] = False
+                debug_stats["feather_off_human_pipeline"] = True
             elif (not is_premium) and is_document:
                 # Very light feather for documents (natural look, not too clean) - OPTIMIZED: Added light feathering
                 try:
@@ -1786,16 +1810,18 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
             final_image.paste(input_image, (0, 0))
             final_image.putalpha(composite_alpha)
             
-            # FIX 4: Micro color decontamination for FREE preview (strength=0.15) - clean border, reduce background bleed
+            # HUMAN IMAGE PIPELINE: Decontamination = EDGE ONLY (strength=0.15)
+            # color_decontamination already applies only to edge pixels (alpha < 0.95)
             if not is_premium and not is_document:
                 try:
-                    logger.info("Step 8.3: Applying micro color decontamination (strength=0.15) for free preview...")
-                    final_image = color_decontamination(final_image, input_image, strength=0.15)  # FIX 4: Light decontamination
-                    debug_stats["color_decontamination_free"] = True
+                    logger.info("Step 8.3: Applying edge-only color decontamination (strength=0.15) for human images...")
+                    final_image = color_decontamination(final_image, input_image, strength=0.15)  # Edge-only (alpha < 0.95)
+                    debug_stats["color_decontamination_human"] = True
                     debug_stats["color_decontamination_strength"] = 0.15
+                    debug_stats["color_decontamination_mode"] = "EDGE_ONLY"
                 except Exception as decontam_err:
-                    logger.warning(f"Micro color decontamination failed (free preview): {decontam_err}")
-                    debug_stats["color_decontamination_free_error"] = str(decontam_err)
+                    logger.warning(f"Edge-only color decontamination failed (human images): {decontam_err}")
+                    debug_stats["color_decontamination_human_error"] = str(decontam_err)
             
             # 🔥 FREE PREVIEW: Document Safe Mode - Binary Alpha (if document)
             if not is_premium and is_document:
@@ -1812,14 +1838,38 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                 except Exception as doc_binary_err:
                     logger.warning(f"Document binary alpha conversion failed: {doc_binary_err}")
             
-            # FIX 1: NO ALPHA CLAMP for FREE preview (industry-level formula)
-            # Alpha clamp removed - keep soft alpha as-is for natural edges
-            if not is_premium:
-                logger.info("Step 10: Skipping alpha clamp for free preview (industry-level: soft alpha preserved, no clamp)")
+            # HUMAN IMAGE PIPELINE: Alpha clamp = ON (min_alpha threshold)
+            # Apply alpha clamp for human images to ensure minimum alpha value
+            if not is_premium and not is_document:
+                try:
+                    logger.info("Step 10: Applying alpha clamp for human images (Alpha clamp = ON)...")
+                    alpha_arr = np.array(final_image.getchannel('A')).astype(np.float32)
+                    
+                    # Apply alpha clamp: set minimum alpha for foreground pixels
+                    # Foreground: alpha > 0 (any non-zero alpha)
+                    foreground_mask = alpha_arr > 0
+                    min_alpha = 12  # Minimum alpha value for foreground pixels
+                    alpha_arr[foreground_mask] = np.maximum(alpha_arr[foreground_mask], min_alpha)
+                    
+                    # Update alpha channel
+                    alpha_clamped = Image.fromarray(alpha_arr.astype(np.uint8), mode='L')
+                    final_image.putalpha(alpha_clamped)
+                    
+                    debug_stats.update({
+                        "alpha_clamp_applied": True,
+                        "alpha_clamp_min": min_alpha,
+                        "alpha_clamp_human_pipeline": True
+                    })
+                    logger.info(f"✅ Alpha clamp applied (min_alpha={min_alpha}) for human images")
+                except Exception as clamp_err:
+                    logger.warning(f"Alpha clamp failed (human images): {clamp_err}")
+                    debug_stats["alpha_clamp_error"] = str(clamp_err)
+            elif not is_premium and is_document:
+                # Documents: Keep no alpha clamp (binary alpha handles it)
+                logger.info("Step 10: Skipping alpha clamp for documents (binary alpha used)")
                 debug_stats.update({
                     "alpha_clamp_applied": False,
-                    "alpha_clamp_removed": True,
-                    "industry_level_free_preview": True
+                    "alpha_clamp_skipped_document": True
                 })
             
             # NOTE: This line is redundant (final_image already set above) but kept for safety
@@ -1861,14 +1911,19 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
     opt_time = time.time() - start_opt
     logger.info(f"Optimization pipeline completed in {opt_time:.2f}s")
     
-    # FIX 1: NO FINAL ALPHA CLAMP for FREE preview (industry-level formula)
-    # Keep soft alpha as-is, no clamping for natural edges
-    if not is_premium:
-        logger.info("Step FINAL: Skipping final alpha clamp for free preview (industry-level: soft alpha preserved)")
+    # HUMAN IMAGE PIPELINE: Final alpha clamp check (already applied in Step 10)
+    # Alpha clamp is already applied for human images in Step 10, so skip here
+    if not is_premium and not is_document:
+        logger.info("Step FINAL: Alpha clamp already applied for human images in Step 10")
+        debug_stats.update({
+            "final_alpha_clamp_applied": True,
+            "final_alpha_clamp_human_pipeline": True
+        })
+    elif not is_premium and is_document:
+        logger.info("Step FINAL: No final alpha clamp for documents (binary alpha used)")
         debug_stats.update({
             "final_alpha_clamp_applied": False,
-            "final_alpha_clamp_removed": True,
-            "industry_level_free_preview": True
+            "final_alpha_clamp_skipped_document": True
         })
     
     # Convert to bytes
@@ -1927,7 +1982,7 @@ def free_preview_bg():
         # CRITICAL: Free preview ONLY accepts multipart/form-data
         # Base64 JSON is completely removed for 100% consistency
         image_bytes = None
-        max_size = 640  # FIX 1: Increased from 512 to 640 for better quality (industry-level free)
+        max_size = 512  # Free preview: 512px maximum resolution
         image_type = None
         
         if 'image' in request.files:
@@ -1935,7 +1990,7 @@ def free_preview_bg():
             logger.info("✅ Processing multipart/form-data upload")
             file = request.files['image']
             image_bytes = file.read()
-            max_size = int(request.form.get('maxSize', 640))  # FIX 1: Default changed to 640
+            max_size = int(request.form.get('maxSize', 512))  # Default: 512px for free preview
             image_type = request.form.get('imageType')
             
             if not image_bytes or len(image_bytes) == 0:
@@ -2089,15 +2144,24 @@ def free_preview_bg():
             else:
                 logger.info(f"🔍 Free Preview: Auto-detected image type: {'document' if is_document else 'photo'}")
         
-        # FIX 1: Resize to max 640px for preview (increased from 512 for industry-level quality)
+        # Free preview: process_size = 768 (internal), output_size = 512
         original_size = input_image.size
         max_dimension = max(original_size)
+        process_size = 768  # Internal processing size for free preview
+        output_size = 512   # Final output size for free preview
         
-        if max_dimension > max_size:
-            scale = max_size / max_dimension
-            new_size = (int(original_size[0] * scale), int(original_size[1] * scale))
-            input_image = input_image.resize(new_size, Image.Resampling.LANCZOS)
-            logger.info(f"Resized image from {original_size} to {new_size} for preview (max_side={max_size})")
+        # Resize to process_size (768px) for internal processing
+        if max_dimension > process_size:
+            scale = process_size / max_dimension
+            process_size_tuple = (int(original_size[0] * scale), int(original_size[1] * scale))
+            input_image_processed = input_image.resize(process_size_tuple, Image.Resampling.LANCZOS)
+            logger.info(f"Resized image from {original_size} to {process_size_tuple} for processing (process_size={process_size}px)")
+        else:
+            input_image_processed = input_image
+            logger.info(f"Image size {original_size} within process_size limit, no resize needed")
+        
+        # Update input_image for processing
+        input_image = input_image_processed
         
         # Select model based on image type
         if is_document:
@@ -2107,16 +2171,17 @@ def free_preview_bg():
             session = get_session_512()
         
         # Process with optimizations (light mode for free preview with new config)
-        output_bytes, debug_stats = process_with_optimizations(input_image, session, is_premium=False, is_document=is_document)
+        # output_size is passed to process_with_optimizations for final resize
+        output_bytes, debug_stats = process_with_optimizations(input_image, session, is_premium=False, is_document=is_document, output_size=output_size)
         
         # Convert to base64
         output_b64 = base64.b64encode(output_bytes).decode()
         result_image = f"data:image/png;base64,{output_b64}"
         
         processing_time = time.time() - start_time
-        output_size = len(output_bytes)
+        output_file_size = len(output_bytes)
         
-        logger.info(f"Free preview processed in {processing_time:.2f}s, output size: {output_size / 1024:.2f} KB")
+        logger.info(f"Free preview processed in {processing_time:.2f}s, output size: {output_file_size / 1024:.2f} KB (process_size={process_size}px, output_size={output_size}px)")
         
         # Check if fallback was used (from debug_stats)
         preview_mode = "normal"
