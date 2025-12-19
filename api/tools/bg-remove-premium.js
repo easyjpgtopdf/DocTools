@@ -305,6 +305,21 @@ module.exports = async function handler(req, res) {
     // Use verified userId from token for credit operations
     const finalUserId = verifiedUserId;
     
+    // Parse targetSize to get width and height if not provided
+    let parsedWidth = targetWidth;
+    let parsedHeight = targetHeight;
+    const selectedSize = targetSize || 'original';
+    
+    if (selectedSize && selectedSize !== 'original' && !targetWidth && !targetHeight) {
+      // Parse sizes like "1920x1080", "2048x2048", etc.
+      const sizeMatch = selectedSize.match(/^(\d+)x(\d+)$/);
+      if (sizeMatch) {
+        parsedWidth = parseInt(sizeMatch[1], 10);
+        parsedHeight = parseInt(sizeMatch[2], 10);
+        console.log(`[Premium HD] Parsed size ${selectedSize} to width: ${parsedWidth}, height: ${parsedHeight}`);
+      }
+    }
+    
     // STEP 1: Check credit balance based on SELECTED SIZE (not just minimum 4)
     // Credit costs based on size
     const creditCosts = {
@@ -319,7 +334,6 @@ module.exports = async function handler(req, res) {
       '5000x5000': 15,
     };
     
-    const selectedSize = targetSize || 'original';
     const creditsRequired = creditCosts[selectedSize] || creditCosts['original'];
     
     const creditCheck = await checkCreditBalance(finalUserId, token);
