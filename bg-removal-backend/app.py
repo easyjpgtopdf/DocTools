@@ -1390,7 +1390,7 @@ def process_premium_hd_pipeline(input_image, birefnet_session, maxmatting_sessio
     
     return output_bytes, debug_stats
 
-def process_with_optimizations(input_image, session, is_premium=False, is_document=False):
+def process_with_optimizations(input_image, session, is_premium=False, is_document=False, output_size=None):
     """
     Process image with all optimizations:
     - BiRefNet or RobustMatting model (based on image type)
