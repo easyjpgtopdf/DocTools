@@ -252,7 +252,7 @@
             return;
           }
 
-          const MIN_CREDITS_REQUIRED = 4;
+          const MIN_CREDITS_REQUIRED = 15; // Minimum 15 credits required to enter page
           console.log(`[Page Access] Checking credits for user ${userId}...`);
 
           // Check credits via API
@@ -504,10 +504,26 @@
           throw new Error('Please sign in to use Premium HD.');
         }
 
+        // Parse targetSize to get width and height for exact size processing
+        let targetWidth = null;
+        let targetHeight = null;
+        const selectedSize = this.state.targetSize || 'original';
+        
+        if (selectedSize && selectedSize !== 'original') {
+          const sizeMatch = selectedSize.match(/^(\d+)x(\d+)$/);
+          if (sizeMatch) {
+            targetWidth = parseInt(sizeMatch[1], 10);
+            targetHeight = parseInt(sizeMatch[2], 10);
+            console.log(`[Process] Parsed selected size ${selectedSize} to width: ${targetWidth}, height: ${targetHeight}`);
+          }
+        }
+        
         const body = {
           imageData: dataURL,
           userId,
-          targetSize: this.state.targetSize || 'original',
+          targetSize: selectedSize,
+          targetWidth: targetWidth,  // Send exact width for processing
+          targetHeight: targetHeight, // Send exact height for processing
           whiteBackground: true,  // Enterprise requirement: white background JPG
           outputFormat: 'jpg',     // Enterprise requirement: JPG output
           quality: 100,            // Enterprise requirement: quality 100
