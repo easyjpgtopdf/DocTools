@@ -119,13 +119,14 @@
         }
       }
 
-      // Size selection BEFORE upload - NO credit check, just update state
+      // Size selection BEFORE upload - NO credit check, NO redirect, just update state
       if (this.el.sizeSelect) {
         this.el.sizeSelect.addEventListener('change', (e) => {
+          e.stopPropagation(); // Prevent any event bubbling that might trigger redirects
           const selectedSize = e.target.value || 'original';
           this.state.targetSize = selectedSize;
-          console.log(`[Size Selection] Selected size: ${selectedSize}`);
-          // NO redirect, NO credit check here - only when user tries to upload/process
+          console.log(`[Size Selection Before Upload] Selected size: ${selectedSize} - NO redirect, NO credit check`);
+          // NO redirect, NO credit check, NO page access check - only update state
         });
       }
 
