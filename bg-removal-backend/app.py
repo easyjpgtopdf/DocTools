@@ -1926,6 +1926,24 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
             "final_alpha_clamp_skipped_document": True
         })
     
+    # FREE PREVIEW: Resize final output to output_size (512px) if specified
+    # Premium pipeline is NOT affected (output_size=None for premium)
+    if not is_premium and output_size is not None:
+        try:
+            final_max_dimension = max(final_image.size)
+            if final_max_dimension > output_size:
+                scale = output_size / final_max_dimension
+                new_final_size = (int(final_image.size[0] * scale), int(final_image.size[1] * scale))
+                final_image = final_image.resize(new_final_size, Image.Resampling.LANCZOS)
+                logger.info(f"✅ FREE PREVIEW: Resized final output to {new_final_size} (output_size={output_size}px)")
+                debug_stats["final_output_resized"] = True
+                debug_stats["final_output_size"] = new_final_size
+                debug_stats["process_size"] = 768  # Internal processing size
+                debug_stats["output_size"] = output_size  # Final output size
+        except Exception as resize_err:
+            logger.warning(f"Final output resize failed: {resize_err}")
+            debug_stats["output_resize_error"] = str(resize_err)
+    
     # Convert to bytes
     output_buffer = io.BytesIO()
     final_image.save(output_buffer, format='PNG', optimize=True)
