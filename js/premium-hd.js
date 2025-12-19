@@ -27,8 +27,6 @@
     premiumSizeSelection: '#premiumSizeSelection', // Premium size selection container
     premiumCreditInfo: '#premiumCreditInfo', // Credit info display
     premiumCreditText: '#premiumCreditText', // Credit text
-    sizeCreditInfo: '#sizeCreditInfo', // NEW: Credit info before upload
-    sizeCreditText: '#sizeCreditText', // NEW: Credit text before upload
   };
 
   class PremiumHDApp {
@@ -51,6 +49,8 @@
       this.bindElements();
       this.bindEvents();
       this.resetUI();
+      // Check credits on page load and redirect if insufficient
+      this.checkPageAccess();
     }
 
     bindElements() {
@@ -72,8 +72,6 @@
         premiumSizeSelection: get(this.selectors.premiumSizeSelection),
         premiumCreditInfo: get(this.selectors.premiumCreditInfo),
         premiumCreditText: get(this.selectors.premiumCreditText),
-        sizeCreditInfo: get(this.selectors.sizeCreditInfo),
-        sizeCreditText: get(this.selectors.sizeCreditText),
       };
     }
 
@@ -121,16 +119,11 @@
 
       // Size selection BEFORE upload
       if (this.el.sizeSelect) {
-        this.el.sizeSelect.addEventListener('change', async (e) => {
+        this.el.sizeSelect.addEventListener('change', (e) => {
           const selectedSize = e.target.value || 'original';
           this.state.targetSize = selectedSize;
-          // Update credit info when size changes
-          await this.updateSizeCreditInfo(selectedSize);
         });
       }
-      
-      // Initialize size credit info on load
-      this.initializeSizeSelection();
 
       // Wire up process button if it exists
       const processBtn = document.getElementById('processBtn');
@@ -202,74 +195,48 @@
       this.showError('');
     }
 
-    // Initialize size selection and credit info
-    async initializeSizeSelection() {
-      const selectedSize = this.state.targetSize || 'original';
-      await this.updateSizeCreditInfo(selectedSize);
-    }
-
-    // Update credit info for selected size (BEFORE upload)
-    async updateSizeCreditInfo(size) {
-      const sizeCreditInfo = document.getElementById('sizeCreditInfo');
-      const sizeCreditText = document.getElementById('sizeCreditText');
-      if (!sizeCreditInfo || !sizeCreditText) return;
-      
-      // Credit costs based on size
-      const creditCosts = {
-        'original': 2, // Will be adjusted based on actual MP
-        '1920x1080': 2,
-        '2048x2048': 4,
-        '3000x2000': 4,
-        '3000x3000': 6,
-        '4000x3000': 9,
-        '4000x4000': 10,
-        '5000x3000': 12,
-        '5000x5000': 15,
-      };
-      
-      const creditsRequired = creditCosts[size] || creditCosts['original'];
-      
+    // Check page access on load - redirect if insufficient credits
+    async checkPageAccess() {
       try {
         const userId = await this.getUserId();
         if (!userId) {
-          sizeCreditInfo.style.display = 'block';
-          sizeCreditText.textContent = `This size will cost ${creditsRequired} credits. Please sign in.`;
+          // User not logged in - redirect to pricing
+          window.location.href = '/pricing.html';
           return;
         }
 
         const token = await this.getAuthToken();
+        const MIN_CREDITS_REQUIRED = 4;
+
+        // Check credits via API
         const response = await fetch(`/api/user/credits?userId=${userId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          const available = data.credits || 0;
-          const hasEnough = available >= creditsRequired;
-          
-          sizeCreditInfo.style.display = 'block';
-          sizeCreditText.textContent = hasEnough
-            ? `You have ${available} credits. This size will cost ${creditsRequired} credits.`
-            : `Insufficient credits. You have ${available} credits, but need ${creditsRequired} credits.`;
-          
-          // Change color based on credit availability
-          if (hasEnough) {
-            sizeCreditInfo.style.background = 'rgba(34, 197, 94, 0.1)';
-            sizeCreditInfo.style.color = '#059669';
-          } else {
-            sizeCreditInfo.style.background = 'rgba(239, 68, 68, 0.1)';
-            sizeCreditInfo.style.color = '#dc2626';
-          }
-        } else {
-          sizeCreditInfo.style.display = 'block';
-          sizeCreditText.textContent = `This size will cost ${creditsRequired} credits.`;
+        if (!response.ok) {
+          // If can't check credits, redirect to pricing
+          window.location.href = '/pricing.html';
+          return;
         }
-      } catch (err) {
-        console.error('Error fetching credits:', err);
-        sizeCreditInfo.style.display = 'block';
-        sizeCreditText.textContent = `This size will cost ${creditsRequired} credits.`;
+
+        const data = await response.json();
+        const availableCredits = data.credits || 0;
+
+        if (availableCredits < MIN_CREDITS_REQUIRED) {
+          // Insufficient credits - redirect to pricing
+          alert(`You need at least ${MIN_CREDITS_REQUIRED} credits to use Premium HD. You have ${availableCredits} credit(s). Redirecting to pricing page...`);
+          window.location.href = '/pricing.html';
+          return;
+        }
+
+        // Credits sufficient - allow access
+        console.log(`✅ Access granted. User has ${availableCredits} credits.`);
+      } catch (error) {
+        console.error('Page access check error:', error);
+        // On error, redirect to pricing for safety
+        window.location.href = '/pricing.html';
       }
     }
 

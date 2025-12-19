@@ -211,31 +211,22 @@
     </div>
 </div>
 <!-- Size Selection BEFORE Upload -->
-<div class="size-selection-before-upload" id="sizeSelectionBeforeUpload" style="margin-bottom: 20px; padding: 20px; background: #f8f9ff; border-radius: 16px; border: 2px solid #e2e6ff;">
-  <h3 style="font-size: 1.1rem; color: #1a214d; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-    <i class="fas fa-expand-arrows-alt" style="color: #4361ee;"></i>
-    Step 1: Choose Output Size
-  </h3>
-  <p style="font-size: 0.9rem; color: #666; margin-bottom: 16px;">Select the size for your processed image. Credits will be deducted based on your selection.</p>
-  <div style="display: flex; flex-direction: column; gap: 12px;">
-    <label for="premiumSizeSelectBeforeUpload" style="display: block; font-size: 0.9rem; color: #1a214d; font-weight: 600; margin-bottom: 8px;">
-      Select Resolution:
-    </label>
-    <select id="premiumSizeSelectBeforeUpload" class="size-select" style="width: 100%; padding: 12px 16px; border: 2px solid #e2e6ff; border-radius: 12px; font-size: 1rem; color: #1a214d; background: #fff; cursor: pointer; transition: border-color 0.2s;">
-      <option value="original">Original Size (2-4 credits)</option>
-      <option value="1920x1080">1920×1080 (2 credits)</option>
-      <option value="2048x2048">2048×2048 (4 credits)</option>
-      <option value="3000x2000">3000×2000 (4 credits)</option>
-      <option value="3000x3000">3000×3000 (6 credits)</option>
-      <option value="4000x3000">4000×3000 (9 credits)</option>
-      <option value="4000x4000">4000×4000 (10 credits)</option>
-      <option value="5000x3000">5000×3000 (12 credits)</option>
-      <option value="5000x5000">5000×5000 (15 credits)</option>
-    </select>
-    <div id="sizeCreditInfo" style="margin-top: 8px; padding: 12px; background: rgba(67, 97, 238, 0.1); border-radius: 8px; font-size: 0.85rem; color: #4361ee; display: none;">
-      <i class="fas fa-info-circle"></i> <span id="sizeCreditText">Checking credits...</span>
-    </div>
-  </div>
+<div class="size-selection-before-upload" id="sizeSelectionBeforeUpload" style="margin-bottom: 20px;">
+  <label for="premiumSizeSelectBeforeUpload" style="display: block; font-size: 0.95rem; color: #1a214d; font-weight: 600; margin-bottom: 8px;">
+    <i class="fas fa-expand-arrows-alt" style="color: #4361ee; margin-right: 6px;"></i>
+    Select Output Size:
+  </label>
+  <select id="premiumSizeSelectBeforeUpload" class="size-select" style="width: 100%; padding: 10px 14px; border: 1px solid #e2e6ff; border-radius: 8px; font-size: 0.95rem; color: #1a214d; background: #fff; cursor: pointer; transition: border-color 0.2s;">
+    <option value="original">Original Size</option>
+    <option value="1920x1080">1920×1080</option>
+    <option value="2048x2048">2048×2048</option>
+    <option value="3000x2000">3000×2000</option>
+    <option value="3000x3000">3000×3000</option>
+    <option value="4000x3000">4000×3000</option>
+    <option value="4000x4000">4000×4000</option>
+    <option value="5000x3000">5000×3000</option>
+    <option value="5000x5000">5000×5000</option>
+  </select>
 </div>
 <div class="actions">
 <button class="btn btn-outline" disabled="" id="backgroundChange">
