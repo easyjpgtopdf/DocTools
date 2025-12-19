@@ -438,11 +438,10 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // STEP 3: Processing successful - NOW deduct credits (variable based on output MP)
-    // Credits required is calculated by backend based on final output megapixels
-    const creditsRequired = result.creditsUsed || 2; // Backend returns actual credits needed (2-7)
-    
-    console.log(`[Premium HD] Deducting ${creditsRequired} credits for ${result.megapixels || 0} MP output`);
+    // STEP 3: Processing successful - NOW deduct credits based on SELECTED SIZE (not output size)
+    // Use the credits required for the SELECTED size that user chose
+    // This ensures user pays for what they selected, not what they got
+    console.log(`[Premium HD] Deducting ${creditsRequired} credits for selected size: ${selectedSize}`);
     
     const deductResult = await deductCredits(finalUserId, token, creditsRequired);
     
