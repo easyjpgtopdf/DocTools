@@ -1764,11 +1764,30 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                 composite_alpha = apply_feathering(composite_alpha, feather_radius=3)
                 debug_stats.update(mask_stats("mask_after_feather_composite", composite_alpha))
             elif (not is_premium) and (not is_document):
-                # HUMAN IMAGE PIPELINE: Feather = OFF (no feathering for human images)
-                logger.info("Step 8.1: Skipping feathering for human images (Feather = OFF per pipeline settings)...")
-                debug_stats.update(mask_stats("mask_after_feather_skipped_human", composite_alpha))
-                debug_stats["feathering_human"] = False
-                debug_stats["feather_off_human_pipeline"] = True
+                # HUMAN IMAGE PIPELINE: Ultra-light feather for soft border (no visible outline)
+                # Ultra-light: 0.5px blur, 2% blend - removes outline without thick border
+                try:
+                    logger.info("Step 8.1: Applying ultra-light feathering (0.5px, 2% blend) for soft border...")
+                    alpha_np = np.array(composite_alpha).astype(np.float32)
+                    if CV2_AVAILABLE:
+                        # Ultra-light Gaussian blur (0.5px) with minimal blend (2%) to remove outline
+                        blurred = cv2.GaussianBlur(alpha_np, (3, 3), 0.5)  # sigma=0.5 (ultra-light)
+                        alpha_feather = alpha_np * (1.0 - 0.02) + blurred * 0.02  # 2% blend (ultra-light to remove outline)
+                        alpha_feather = np.clip(alpha_feather, 0, 255).astype(np.uint8)
+                        composite_alpha = Image.fromarray(alpha_feather, mode='L')
+                    else:
+                        # Fallback using PIL blur radius 0.5, blend weight 0.02 (2%)
+                        from PIL import ImageFilter
+                        blurred = composite_alpha.filter(ImageFilter.GaussianBlur(radius=0.5))
+                        composite_alpha = Image.blend(composite_alpha, blurred, alpha=0.02)  # 2% blend
+                    debug_stats.update(mask_stats("mask_after_feather_ultra_light", composite_alpha))
+                    debug_stats["feathering_human"] = True
+                    debug_stats["feather_ultra_light"] = True
+                    debug_stats["feather_radius"] = 0.5
+                    debug_stats["feather_blend"] = 0.02
+                except Exception as feather_err:
+                    logger.warning(f"Ultra-light feathering failed (human images): {feather_err}")
+                    debug_stats["feather_ultra_light_error"] = str(feather_err)
             elif (not is_premium) and is_document:
                 # Very light feather for documents (natural look, not too clean) - OPTIMIZED: Added light feathering
                 try:
@@ -1795,14 +1814,25 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
             
             # Apply halo removal to alpha channel only
             # Premium: Strong halo removal
-            # Free Preview: NO HALO REMOVAL (disabled for free preview)
+            # Free Preview (Human): Light halo removal to remove outline
             if is_premium:
                 logger.info("Step 8.2: Applying strong halo removal to alpha channel of composite...")
                 composite_alpha = remove_halo(composite_alpha, input_image, threshold=0.15)
                 debug_stats.update(mask_stats("mask_after_halo_composite", composite_alpha))
+            elif (not is_premium) and (not is_document):
+                # FREE PREVIEW (Human): Light halo removal to remove visible outline
+                try:
+                    logger.info("Step 8.2: Applying light halo removal (threshold=0.25) to remove outline...")
+                    composite_alpha = remove_halo(composite_alpha, input_image, threshold=0.25)  # Light threshold
+                    debug_stats.update(mask_stats("mask_after_halo_light", composite_alpha))
+                    debug_stats["halo_removal_free_human"] = True
+                    debug_stats["halo_threshold"] = 0.25
+                except Exception as halo_err:
+                    logger.warning(f"Light halo removal failed (human images): {halo_err}")
+                    debug_stats["halo_removal_free_error"] = str(halo_err)
             else:
-                # Free preview: NO halo removal (disabled)
-                logger.info("Step 8.2: Skipping halo removal for free preview (disabled)")
+                # Free preview (Documents): NO halo removal (disabled)
+                logger.info("Step 8.2: Skipping halo removal for free preview documents (disabled)")
                 debug_stats.update(mask_stats("mask_after_halo_skipped", composite_alpha))
             
             # Re-composite with processed alpha
@@ -1810,14 +1840,14 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
             final_image.paste(input_image, (0, 0))
             final_image.putalpha(composite_alpha)
             
-            # HUMAN IMAGE PIPELINE: Decontamination = EDGE ONLY (strength=0.15)
+            # HUMAN IMAGE PIPELINE: Decontamination = EDGE ONLY (strength=0.25) - increased for better outline removal
             # color_decontamination already applies only to edge pixels (alpha < 0.95)
             if not is_premium and not is_document:
                 try:
-                    logger.info("Step 8.3: Applying edge-only color decontamination (strength=0.15) for human images...")
-                    final_image = color_decontamination(final_image, input_image, strength=0.15)  # Edge-only (alpha < 0.95)
+                    logger.info("Step 8.3: Applying edge-only color decontamination (strength=0.25) for human images...")
+                    final_image = color_decontamination(final_image, input_image, strength=0.25)  # Increased from 0.15 to 0.25 for better outline removal
                     debug_stats["color_decontamination_human"] = True
-                    debug_stats["color_decontamination_strength"] = 0.15
+                    debug_stats["color_decontamination_strength"] = 0.25
                     debug_stats["color_decontamination_mode"] = "EDGE_ONLY"
                 except Exception as decontam_err:
                     logger.warning(f"Edge-only color decontamination failed (human images): {decontam_err}")
@@ -1838,17 +1868,17 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                 except Exception as doc_binary_err:
                     logger.warning(f"Document binary alpha conversion failed: {doc_binary_err}")
             
-            # HUMAN IMAGE PIPELINE: Alpha clamp = ON (min_alpha threshold)
-            # Apply alpha clamp for human images to ensure minimum alpha value
+            # HUMAN IMAGE PIPELINE: Soft alpha clamp = ON (reduced min_alpha for soft border, no visible outline)
+            # Apply soft alpha clamp for human images - reduced from 12 to 6 for softer edges
             if not is_premium and not is_document:
                 try:
-                    logger.info("Step 10: Applying alpha clamp for human images (Alpha clamp = ON)...")
+                    logger.info("Step 10: Applying soft alpha clamp for human images (min_alpha=6 for soft border)...")
                     alpha_arr = np.array(final_image.getchannel('A')).astype(np.float32)
                     
-                    # Apply alpha clamp: set minimum alpha for foreground pixels
+                    # Apply soft alpha clamp: set minimum alpha for foreground pixels
                     # Foreground: alpha > 0 (any non-zero alpha)
                     foreground_mask = alpha_arr > 0
-                    min_alpha = 12  # Minimum alpha value for foreground pixels
+                    min_alpha = 6  # Reduced from 12 to 6 for softer edges and no visible outline
                     alpha_arr[foreground_mask] = np.maximum(alpha_arr[foreground_mask], min_alpha)
                     
                     # Update alpha channel
@@ -1858,11 +1888,12 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                     debug_stats.update({
                         "alpha_clamp_applied": True,
                         "alpha_clamp_min": min_alpha,
-                        "alpha_clamp_human_pipeline": True
+                        "alpha_clamp_human_pipeline": True,
+                        "alpha_clamp_soft": True
                     })
-                    logger.info(f"✅ Alpha clamp applied (min_alpha={min_alpha}) for human images")
+                    logger.info(f"✅ Soft alpha clamp applied (min_alpha={min_alpha}) for human images - soft border, no outline")
                 except Exception as clamp_err:
-                    logger.warning(f"Alpha clamp failed (human images): {clamp_err}")
+                    logger.warning(f"Soft alpha clamp failed (human images): {clamp_err}")
                     debug_stats["alpha_clamp_error"] = str(clamp_err)
             elif not is_premium and is_document:
                 # Documents: Keep no alpha clamp (binary alpha handles it)

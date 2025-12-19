@@ -178,45 +178,95 @@ module.exports = async function handler(req, res) {
       const orderRef = db.collection('creditOrders').doc(orderId);
       const orderDoc = await orderRef.get();
       
+      // SECURITY: Check if order already processed (prevent duplicate credits)
       if (orderDoc.exists && orderDoc.data().status === 'completed') {
-        // Order already processed
+        console.warn(`SECURITY: Order ${orderId} already processed - preventing duplicate credit addition`);
         return res.status(200).json({
           success: true,
-          creditsAdded: creditsToAdd,
-          message: 'Credits already added (duplicate verification)'
+          creditsAdded: 0,
+          creditsRemaining: orderDoc.data().creditsAfter || 0,
+          message: 'Credits already added (duplicate verification prevented)',
+          duplicate: true
         });
       }
       
-      await orderRef.update({
-        status: 'completed',
-        paymentId: paymentId,
-        completedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-
-      // SECURITY: Use verified userId (from token if available, otherwise from body)
+      // SECURITY: Use transaction to prevent duplicate credit addition
       const finalUserId = verifiedUserId || userId;
       
-      // Add credits to user account
-      const userRef = db.collection('users').doc(finalUserId);
-      const userDoc = await userRef.get();
-      
-      if (!userDoc.exists) {
-        // Initialize user
-        await userRef.set({
-          credits: 0,
-          totalCreditsEarned: 0,
-          totalCreditsUsed: 0,
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          lastCreditUpdate: admin.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
+      // SECURITY: Verify order belongs to correct user (prevent fraud)
+      if (orderDoc.exists && orderDoc.data().userId && orderDoc.data().userId !== finalUserId) {
+        console.error(`SECURITY ALERT: Order ${orderId} belongs to ${orderDoc.data().userId} but verification attempted by ${finalUserId}`);
+        return res.status(403).json({
+          success: false,
+          error: 'Order ownership verification failed',
+          message: 'This order does not belong to the authenticated user'
+        });
       }
       
-      const currentCredits = userDoc.data()?.credits || 0;
-      
-      await userRef.update({
-        credits: admin.firestore.FieldValue.increment(creditsToAdd),
-        totalCreditsEarned: admin.firestore.FieldValue.increment(creditsToAdd),
-        lastCreditUpdate: admin.firestore.FieldValue.serverTimestamp()
+      // SECURITY: Use atomic transaction to prevent race conditions and duplicate credits
+      await db.runTransaction(async (transaction) => {
+        const orderRef = db.collection('creditOrders').doc(orderId);
+        const orderDoc = await transaction.get(orderRef);
+        
+        // Double-check if already completed (within transaction)
+        if (orderDoc.exists && orderDoc.data().status === 'completed') {
+          throw new Error('Order already processed');
+        }
+        
+        const userRef = db.collection('users').doc(finalUserId);
+        const userDoc = await transaction.get(userRef);
+        
+        if (!userDoc.exists) {
+          // Initialize user
+          transaction.set(userRef, {
+            credits: 0,
+            totalCreditsEarned: 0,
+            totalCreditsUsed: 0,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            lastCreditUpdate: admin.firestore.FieldValue.serverTimestamp()
+          });
+        }
+        
+        const currentCredits = userDoc.exists ? (userDoc.data().credits || 0) : 0;
+        const newCredits = currentCredits + creditsToAdd;
+        
+        // Update user credits atomically
+        transaction.update(userRef, {
+          credits: admin.firestore.FieldValue.increment(creditsToAdd),
+          totalCreditsEarned: admin.firestore.FieldValue.increment(creditsToAdd),
+          lastCreditUpdate: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // Mark order as completed (prevents duplicate processing)
+        transaction.update(orderRef, {
+          status: 'completed',
+          paymentId: paymentId,
+          completedAt: admin.firestore.FieldValue.serverTimestamp(),
+          creditsAfter: newCredits,
+          creditsAdded: creditsToAdd
+        });
+        
+        // Store for transaction record
+        transaction.set(
+          db.collection('users').doc(finalUserId).collection('creditTransactions').doc(),
+          {
+            type: 'addition',
+            amount: creditsToAdd,
+            reason: 'Credit purchase',
+            creditsBefore: currentCredits,
+            creditsAfter: newCredits,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            metadata: {
+              orderId: orderId,
+              paymentId: paymentId,
+              packId: orderDoc.data()?.creditPack,
+              amount: orderDoc.data()?.amount,
+              currency: orderDoc.data()?.currency,
+              verifiedBy: 'api-handlers/credits/verify',
+              transactionId: orderId + '_' + Date.now()
+            }
+          }
+        );
       });
 
       // Get order details for receipt

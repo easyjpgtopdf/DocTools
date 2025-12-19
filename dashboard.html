@@ -1310,7 +1310,7 @@ Monthly download: <span id="image-remover-download-used">0</span> MB / <span id=
 <script type="module">
         import { auth } from './js/firebase-init.js';
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js';
-        import { getFirestore, collection, query, where, getDocs, orderBy, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js';
+        import { getFirestore, collection, query, where, getDocs, orderBy, doc, getDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js';
 
         // Real-time dashboard data updater
         async function updateDashboardData(user) {
@@ -1363,8 +1363,88 @@ Monthly download: <span id="image-remover-download-used">0</span> MB / <span id=
             // Update user plan will be handled by dashboard-subscription.js
         }
         
-        // Load credit balance from API (backend)
+        // Load credit balance from API (backend) with real-time Firestore listener
+        let creditUnsubscribe = null; // Store unsubscribe function for cleanup
+        
         async function loadCreditBalance(user, firestore) {
+            try {
+                // Set up real-time Firestore listener for instant credit updates
+                const userDocRef = doc(firestore, 'users', user.uid);
+                
+                // Clean up previous listener if exists
+                if (creditUnsubscribe) {
+                    creditUnsubscribe();
+                }
+                
+                // SECURITY: Real-time listener with user verification
+                creditUnsubscribe = onSnapshot(userDocRef, (userDoc) => {
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        // SECURITY: Ensure credits is a number (not string or fake data)
+                        const credits = typeof userData.credits === 'number' 
+                            ? userData.credits 
+                            : (typeof userData.credits === 'string' ? parseFloat(userData.credits) || 0 : 0);
+                        
+                        // Update ALL credit display elements instantly
+                        updateCreditDisplay(credits);
+                        
+                        // Dispatch event for cross-tab sync and other components
+                        window.dispatchEvent(new CustomEvent('creditsUpdated', { 
+                            detail: { credits: credits, userId: user.uid }
+                        }));
+                    }
+                }, (error) => {
+                    console.error('Firestore credit listener error:', error);
+                    // Fallback to API on error
+                    loadCreditBalanceViaAPI(user);
+                });
+                
+                // Also load via API for initial load and fallback
+                await loadCreditBalanceViaAPI(user);
+            } catch (error) {
+                console.error('Failed to load credit balance:', error);
+                // Fallback to API
+                await loadCreditBalanceViaAPI(user);
+            }
+        }
+        
+        // Helper function to update credit display everywhere
+        function updateCreditDisplay(credits) {
+            // Ensure credits is a valid number
+            const validCredits = typeof credits === 'number' ? credits : 0;
+            
+            // Update all credit display elements
+            document.querySelectorAll('.user-credits').forEach(el => {
+                el.textContent = validCredits.toFixed(0);
+            });
+            
+            const creditBalanceDisplay = document.getElementById('credit-balance-display');
+            if (creditBalanceDisplay) {
+                creditBalanceDisplay.textContent = validCredits.toFixed(0);
+            }
+            
+            const creditBalanceDisplayMain = document.getElementById('credit-balance-display-main');
+            if (creditBalanceDisplayMain) {
+                creditBalanceDisplayMain.textContent = validCredits.toFixed(0);
+            }
+            
+            // Update account section navigation
+            const creditBalanceNav = document.getElementById('credit-balance-nav');
+            const creditBalanceValue = document.getElementById('credit-balance-value');
+            if (creditBalanceValue) {
+                creditBalanceValue.textContent = validCredits.toFixed(0);
+            }
+            if (creditBalanceNav && validCredits > 0) {
+                creditBalanceNav.style.display = 'inline-block';
+            }
+            
+            // Store in localStorage for cross-tab sync
+            localStorage.setItem('lastCreditBalance', validCredits.toString());
+            localStorage.setItem('lastCreditUpdate', Date.now().toString());
+        }
+        
+        // Load credit balance via API (fallback method)
+        async function loadCreditBalanceViaAPI(user) {
             try {
                 const token = await user.getIdToken();
                 const API_BASE_URL = window.location.origin.includes('localhost') 
@@ -1382,22 +1462,9 @@ Monthly download: <span id="image-remover-download-used">0</span> MB / <span id=
                 if (response.ok) {
                     const data = await response.json();
                     if (data.success) {
-                        const credits = data.credits || 0;
-                        
-                        // Update credit display elements
-                        document.querySelectorAll('.user-credits').forEach(el => {
-                            el.textContent = credits.toFixed(0);
-                        });
-                        
-                        const creditBalanceDisplay = document.getElementById('credit-balance-display');
-                        if (creditBalanceDisplay) {
-                            creditBalanceDisplay.textContent = credits.toFixed(0);
-                        }
-                        
-                        const creditBalanceDisplayMain = document.getElementById('credit-balance-display-main');
-                        if (creditBalanceDisplayMain) {
-                            creditBalanceDisplayMain.textContent = credits.toFixed(0);
-                        }
+                        // SECURITY: Ensure credits is a number
+                        const credits = typeof data.credits === 'number' ? data.credits : (parseFloat(data.credits) || 0);
+                        updateCreditDisplay(credits);
                         
                         // Update expiry date
                         const expiresAtEl = document.getElementById('credit-expires-at');
@@ -1411,10 +1478,6 @@ Monthly download: <span id="image-remover-download-used">0</span> MB / <span id=
                         } else if (expiresAtEl) {
                             expiresAtEl.textContent = 'Never';
                         }
-                        
-                        // Store in localStorage for cross-tab sync
-                        localStorage.setItem('lastCreditBalance', credits.toString());
-                        localStorage.setItem('lastCreditUpdate', Date.now().toString());
                         
                         // Update last used
                         const lastUsedEl = document.getElementById('credit-last-used');
@@ -1430,27 +1493,10 @@ Monthly download: <span id="image-remover-download-used">0</span> MB / <span id=
                         }
                     }
                 } else {
-                    console.warn('Failed to load credits from API, using fallback');
-                    // Fallback to Firestore
-                    const userDocRef = doc(firestore, 'users', user.uid);
-                    const userDoc = await getDoc(userDocRef);
-                    
-                    if (userDoc.exists()) {
-                        const userData = userDoc.data();
-                        const credits = userData.credits || 0;
-                        
-                        document.querySelectorAll('.user-credits').forEach(el => {
-                            el.textContent = credits.toFixed(0);
-                        });
-                        
-                        const creditBalanceDisplay = document.getElementById('credit-balance-display');
-                        if (creditBalanceDisplay) {
-                            creditBalanceDisplay.textContent = credits.toFixed(0);
-                        }
-                    }
+                    console.warn('Failed to load credits from API, using Firestore fallback');
                 }
             } catch (error) {
-                console.error('Failed to load credit balance:', error);
+                console.error('Failed to load credit balance via API:', error);
             }
         }
         

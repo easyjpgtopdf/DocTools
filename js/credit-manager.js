@@ -520,14 +520,30 @@ async function handleCreditPurchaseSuccess(paymentResponse, userId, pack, orderI
         });
       }
       
-      alert(`Success! ${pack.credits} credits added to your account.`);
+      // Auto-refresh credits without page reload
+      // Dispatch event for real-time credit update
+      window.dispatchEvent(new CustomEvent('creditsUpdated', { 
+        detail: { 
+          credits: result.creditsRemaining || (result.creditsAdded ? (currentCredits + pack.credits) : currentCredits),
+          purchased: pack.credits,
+          userId: userId
+        }
+      }));
       
-      // Reload page or update UI
-      if (window.location.pathname.includes('dashboard')) {
-        window.location.reload();
-      } else {
+      // Update credit display immediately (if updateCreditBalance function exists)
+      if (typeof window.updateCreditBalance === 'function') {
+        const newCredits = result.creditsRemaining || (result.creditsAdded ? (currentCredits + pack.credits) : currentCredits);
+        window.updateCreditBalance(newCredits);
+      }
+      
+      // Show success message
+      alert(`Success! ${pack.credits} credits added to your account. Your balance will update automatically.`);
+      
+      // Navigate to dashboard if not already there
+      if (!window.location.pathname.includes('dashboard')) {
         window.location.href = 'dashboard.html#dashboard-credits';
       }
+      // If already on dashboard, credits will update automatically via Firestore listener
     } else {
       throw new Error('Payment verification failed');
     }

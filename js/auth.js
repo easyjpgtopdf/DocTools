@@ -17,6 +17,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  onSnapshot,
 } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
 const auth = getAuth(app);
@@ -1128,6 +1129,9 @@ function updateUI(user) {
     }
     updateSidebarAvatar(user);
     updateUserMenuBadge(user);
+    
+    // Set up real-time credit listener for account section
+    setupCreditListener(user);
   } else {
     if (authButtons) authButtons.style.display = 'flex';
     if (accountSection) {
@@ -1154,6 +1158,96 @@ function updateUI(user) {
   }
 }
 
+// Global credit listener unsubscribe function
+let globalCreditUnsubscribe = null;
+
+// Setup real-time credit listener for account section and navigation
+function setupCreditListener(user) {
+  if (!user || !db) return;
+  
+  // Clean up previous listener
+  if (globalCreditUnsubscribe) {
+    globalCreditUnsubscribe();
+    globalCreditUnsubscribe = null;
+  }
+  
+  try {
+    const userDocRef = doc(db, 'users', user.uid);
+    
+    // SECURITY: Real-time listener with user verification
+    globalCreditUnsubscribe = onSnapshot(userDocRef, (userDoc) => {
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        // SECURITY: Ensure credits is a number (not string or fake data)
+        const credits = typeof userData.credits === 'number' 
+          ? userData.credits 
+          : (typeof userData.credits === 'string' ? parseFloat(userData.credits) || 0 : 0);
+        
+        // Update account section credit display
+        updateAccountSectionCredits(credits);
+        
+        // Dispatch event for cross-component sync
+        window.dispatchEvent(new CustomEvent('creditsUpdated', { 
+          detail: { credits: credits, userId: user.uid }
+        }));
+      }
+    }, (error) => {
+      console.error('Firestore credit listener error:', error);
+    });
+  } catch (error) {
+    console.error('Error setting up credit listener:', error);
+  }
+}
+
+// Update credit display in account section navigation
+function updateAccountSectionCredits(credits) {
+  // Ensure credits is a valid number
+  const validCredits = typeof credits === 'number' ? credits : 0;
+  
+  // Update credit balance in navigation
+  const creditBalanceValue = document.getElementById('credit-balance-value');
+  const creditBalanceNav = document.getElementById('credit-balance-nav');
+  
+  if (creditBalanceValue) {
+    creditBalanceValue.textContent = validCredits.toFixed(0);
+  }
+  
+  // Show/hide credit badge based on balance
+  if (creditBalanceNav) {
+    if (validCredits > 0) {
+      creditBalanceNav.style.display = 'inline-block';
+    } else {
+      creditBalanceNav.style.display = 'none';
+    }
+  }
+  
+  // Store for cross-tab sync
+  localStorage.setItem('lastCreditBalance', validCredits.toString());
+  localStorage.setItem('lastCreditUpdate', Date.now().toString());
+}
+
+// Global function to update credit balance (called from other components)
+window.updateCreditBalance = function(credits) {
+  if (typeof credits === 'number') {
+    updateAccountSectionCredits(credits);
+    
+    // Also update dashboard elements if on dashboard page
+    document.querySelectorAll('.user-credits, #credit-balance-display, #credit-balance-display-main').forEach(el => {
+      if (el) {
+        el.textContent = credits.toFixed(0);
+      }
+    });
+  }
+};
+
+// Listen for credit updates from other components
+window.addEventListener('creditsUpdated', (event) => {
+  const credits = event.detail.credits;
+  if (typeof credits === 'number') {
+    updateAccountSectionCredits(credits);
+  }
+});
+
 onAuthStateChanged(auth, (user) => {
   updateUI(user);
   // Update breadcrumb auth buttons when auth state changes
@@ -1169,8 +1263,15 @@ onAuthStateChanged(auth, (user) => {
     if (pendingDashboardTarget) {
       revealDashboardSection(pendingDashboardTarget, { skipStore: true });
     }
+    // Setup credit listener
+    setupCreditListener(user);
   } else {
     resetBillingUI();
+    // Clean up credit listener on logout
+    if (globalCreditUnsubscribe) {
+      globalCreditUnsubscribe();
+      globalCreditUnsubscribe = null;
+    }
   }
 });
 

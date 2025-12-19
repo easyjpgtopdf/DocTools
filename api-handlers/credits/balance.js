@@ -87,6 +87,21 @@ module.exports = async function handler(req, res) {
 
     const userData = userDoc.data();
     
+    // CRITICAL: Ensure credits is a number, not a string or null/undefined
+    // Firestore may store credits as strings, so we need to parse them properly
+    const credits = typeof userData.credits === 'number' 
+      ? userData.credits 
+      : (typeof userData.credits === 'string' ? parseFloat(userData.credits) || 0 : (userData.credits != null ? Number(userData.credits) : 0));
+    
+    // Same for other credit fields
+    const totalCreditsEarned = typeof userData.totalCreditsEarned === 'number'
+      ? userData.totalCreditsEarned
+      : (typeof userData.totalCreditsEarned === 'string' ? parseFloat(userData.totalCreditsEarned) || 0 : (userData.totalCreditsEarned != null ? Number(userData.totalCreditsEarned) : 0));
+    
+    const totalCreditsUsed = typeof userData.totalCreditsUsed === 'number'
+      ? userData.totalCreditsUsed
+      : (typeof userData.totalCreditsUsed === 'string' ? parseFloat(userData.totalCreditsUsed) || 0 : (userData.totalCreditsUsed != null ? Number(userData.totalCreditsUsed) : 0));
+    
     // Check subscription for unlimited credits
     const subscriptionRef = db.collection('subscriptions').doc(userId);
     const subscriptionDoc = await subscriptionRef.get();
@@ -99,12 +114,15 @@ module.exports = async function handler(req, res) {
       }
     }
 
+    // Log for debugging (to help diagnose credit display issues)
+    console.log(`Credit balance check for user ${userId}: credits=${credits}, totalEarned=${totalCreditsEarned}, totalUsed=${totalCreditsUsed}`);
+
     res.setHeader('Access-Control-Allow-Origin', '*');
     return res.status(200).json({
       success: true,
-      credits: userData.credits || 0,
-      totalCreditsEarned: userData.totalCreditsEarned || 0,
-      totalCreditsUsed: userData.totalCreditsUsed || 0,
+      credits: credits,
+      totalCreditsEarned: totalCreditsEarned,
+      totalCreditsUsed: totalCreditsUsed,
       unlimited: unlimited
     });
 
