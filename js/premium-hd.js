@@ -64,6 +64,7 @@
         status: get(this.selectors.status),
         downloadButton: get(this.selectors.downloadButton),
         sizeSelect: get(this.selectors.sizeSelect),
+        sizeSelectModal: get(this.selectors.sizeSelectModal),
         errorBox: get(this.selectors.errorBox),
         downloadModal: get(this.selectors.downloadModal),
         confirmDownload: get(this.selectors.confirmDownload),
