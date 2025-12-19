@@ -49,7 +49,8 @@
       this.bindElements();
       this.bindEvents();
       this.resetUI();
-      // Check credits on page load and redirect if insufficient
+      // Check credits on page load ONCE - don't check again on size selection
+      this.pageAccessChecked = false;
       this.checkPageAccess();
     }
 
@@ -174,10 +175,13 @@
         });
       }
       
-      // Size selection change
-      if (this.el.sizeSelect) {
-        this.el.sizeSelect.addEventListener('change', (e) => {
-          this.updateCreditInfo(e.target.value);
+      // Size selection change in download modal (if exists) - NO redirect, just update credit info
+      if (this.el.sizeSelectModal) {
+        this.el.sizeSelectModal.addEventListener('change', (e) => {
+          const selectedSize = e.target.value || 'original';
+          this.state.selectedSize = selectedSize;
+          this.updateCreditInfo(selectedSize);
+          // NO redirect, NO page access check - just update UI
         });
       }
       
@@ -197,8 +201,17 @@
       this.showError('');
     }
 
-    // Check page access on load - redirect if insufficient credits
+    // Check page access on load - redirect if insufficient credits (ONLY ONCE)
     async checkPageAccess() {
+      // Prevent multiple calls
+      if (this.pageAccessChecked) {
+        console.log('[Page Access] Already checked, skipping...');
+        return;
+      }
+      
+      // Mark as checked immediately to prevent race conditions
+      this.pageAccessChecked = true;
+      
       // Wait a bit for auth to initialize
       await new Promise(resolve => setTimeout(resolve, 500));
       
