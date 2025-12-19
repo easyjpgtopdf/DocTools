@@ -1481,39 +1481,63 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
 
     debug_stats.update(mask_stats("mask_raw", mask))
 
-    # Step 1.5: HUMAN IMAGE PIPELINE - Mask Safety Expansion (Dilation)
-    # Trimap expand equivalent = 3 (using 3x3 kernel, 1 iteration = ~1.5px expansion)
-    # Erode = 0 (no erosion applied)
+    # Step 1.5: HUMAN IMAGE PIPELINE - Trimap Generation (FREE PREVIEW)
+    # FREE PREVIEW: Generate trimap with FG=240, BG=15, expand_radius=1, Erode=0
     if not is_premium and CV2_AVAILABLE:
         if not is_document:
-            # HUMAN IMAGES: Trimap expand = 3, Erode = 0
+            # HUMAN IMAGES: Trimap generation with FG=240, BG=15, expand_radius=1 (FREE PREVIEW ONLY)
             try:
-                logger.info("Step 1.5: Applying human image mask expansion (Trimap expand = 3, Erode = 0)...")
-                if isinstance(mask, Image.Image):
-                    mask_array = np.array(mask.convert('L'))
-                else:
-                    mask_array = mask
+                logger.info("Step 1.5: Generating trimap for free preview human images (FG=240, BG=15, expand_radius=1, Erode=0)...")
                 
-                # HUMAN PIPELINE: Trimap expand = 3 (3x3 kernel, 1 iteration ≈ 1.5px expansion)
-                # Erode = 0 (no erosion, only dilation for safety)
-                kernel = np.ones((3, 3), np.uint8)
-                mask_dilated = cv2.dilate(mask_array.astype(np.uint8), kernel, iterations=1)
-                # No erosion (Erode = 0) - dilation only for hand/cloth protection
+                # Generate trimap with free preview thresholds
+                trimap = generate_trimap(mask, expand_radius=1, fg_threshold=240, bg_threshold=15)
                 
-                mask = Image.fromarray(mask_dilated, mode='L')
-                logger.info("✅ Human image mask expansion applied (Trimap expand = 3, Erode = 0)")
+                # Convert trimap back to mask format for pipeline:
+                # - Trimap 255 (certain foreground) → Mask 255
+                # - Trimap 128 (unknown/edge region) → Preserve original mask value (protect edge pixels)
+                # - Trimap 0 (certain background) → Mask 0
+                trimap_array = np.array(trimap.convert('L'))
+                original_mask_array = np.array(mask.convert('L')) if isinstance(mask, Image.Image) else np.array(mask)
+                
+                # Create refined mask from trimap
+                refined_mask = np.zeros_like(original_mask_array, dtype=np.uint8)
+                # Certain foreground: keep as 255
+                refined_mask[trimap_array == 255] = 255
+                # Unknown region: preserve original mask value (protect edge pixels from being cut)
+                unknown_region = (trimap_array == 128)
+                refined_mask[unknown_region] = original_mask_array[unknown_region]
+                # Certain background: keep as 0 (already set by zeros_like)
+                
+                mask = Image.fromarray(refined_mask, mode='L')
+                logger.info("✅ Trimap generation applied for free preview human images (FG=240, BG=15, expand_radius=1, Erode=0)")
                 debug_stats.update({
-                    "mask_expansion_applied": True,
-                    "expansion_kernel": "3x3",
-                    "expansion_iterations": 1,
-                    "trimap_expand_equivalent": 3,
-                    "erode_applied": False,
-                    "human_pipeline_expansion": True
+                    "trimap_generation_applied": True,
+                    "trimap_fg_threshold": 240,
+                    "trimap_bg_threshold": 15,
+                    "trimap_expand_radius": 1,
+                    "trimap_erode": 0,
+                    "trimap_unknown_preserved": True,
+                    "human_pipeline_trimap": True,
+                    "free_preview_trimap": True
                 })
-                debug_stats.update(mask_stats("mask_after_expansion_human", mask))
-            except Exception as expansion_err:
-                logger.warning(f"Human image mask expansion failed: {expansion_err}")
-                debug_stats["mask_expansion_error"] = str(expansion_err)
+                debug_stats.update(mask_stats("mask_after_trimap_human", mask))
+            except Exception as trimap_err:
+                logger.warning(f"Trimap generation failed for free preview human images: {trimap_err}, falling back to direct dilation")
+                debug_stats["trimap_generation_error"] = str(trimap_err)
+                # Fallback to direct dilation (original approach)
+                try:
+                    if isinstance(mask, Image.Image):
+                        mask_array = np.array(mask.convert('L'))
+                    else:
+                        mask_array = mask
+                    kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
+                    mask_dilated = cv2.dilate(mask_array.astype(np.uint8), kernel, iterations=1)
+                    mask = Image.fromarray(mask_dilated, mode='L')
+                    logger.info("✅ Fallback: Direct mask dilation applied")
+                    debug_stats["trimap_fallback_dilation"] = True
+                except Exception as fallback_err:
+                    logger.warning(f"Fallback dilation also failed: {fallback_err}")
+                    debug_stats["trimap_fallback_error"] = str(fallback_err)
         else:
             # DOCUMENTS: Keep existing expansion logic (different from human images)
             try:
@@ -1747,47 +1771,78 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                 logger.warning(f"Mask size {mask.size} != image size {input_image.size}, resizing mask to match")
                 mask = mask.resize(input_image.size, Image.Resampling.LANCZOS)
             
-            # Create RGBA with mask applied to RGB
-            rgba_temp = Image.new('RGBA', input_image.size, (0, 0, 0, 0))
-            rgba_temp.paste(input_image, (0, 0))
-            rgba_temp.putalpha(mask)
+            # FREE PREVIEW HUMAN IMAGE PIPELINE: Apply alpha clamp BEFORE composite
+            # Alpha clamp: alpha >= 235 → 255, alpha <= 12 → 0
+            if (not is_premium) and (not is_document):
+                try:
+                    logger.info("Step 7.5: Applying light alpha clamp BEFORE composite for free preview human images...")
+                    mask_array = np.array(mask).astype(np.float32)
+                    
+                    # Alpha clamp rules: alpha >= 235 → 255, alpha <= 12 → 0
+                    # Maximum clamp: harden bright edges
+                    mask_array[mask_array >= 235] = 255
+                    # Minimum clamp: remove faint background
+                    mask_array[mask_array <= 12] = 0
+                    
+                    mask = Image.fromarray(mask_array.astype(np.uint8), mode='L')
+                    logger.info("✅ Alpha clamp applied BEFORE composite (>=235→255, <=12→0)")
+                    debug_stats.update({
+                        "alpha_clamp_before_composite": True,
+                        "alpha_clamp_max": 235,
+                        "alpha_clamp_min": 12,
+                        "alpha_clamp_free_preview": True
+                    })
+                except Exception as clamp_err:
+                    logger.warning(f"Alpha clamp before composite failed (free preview human): {clamp_err}")
+                    debug_stats["alpha_clamp_before_composite_error"] = str(clamp_err)
             
-            # Now apply feathering and halo removal to the composite RGBA image
-            # Extract alpha channel from composite for post-processing
-            composite_alpha = rgba_temp.split()[3]
+            # FREE PREVIEW HUMAN: Use Image.composite() method instead of paste()+putalpha()
+            if (not is_premium) and (not is_document):
+                # FREE PREVIEW HUMAN PIPELINE: Image.composite(rgb, black_bg, alpha) then putalpha(alpha)
+                try:
+                    logger.info("Step 8: Using Image.composite() method for free preview human images...")
+                    # Create black background
+                    black_bg = Image.new('RGB', input_image.size, (0, 0, 0))
+                    
+                    # Composite RGB image with black background using mask as alpha
+                    # Image.composite(image1, image2, mask) - blends image1 and image2 using mask
+                    # We want: RGB image on black background with mask as blending
+                    composite_rgb = Image.composite(input_image, black_bg, mask)
+                    
+                    # Create RGBA image
+                    final_image = Image.new('RGBA', input_image.size, (0, 0, 0, 0))
+                    final_image.paste(composite_rgb, (0, 0))
+                    final_image.putalpha(mask)
+                    
+                    logger.info("✅ Image.composite() method applied for free preview human images")
+                    debug_stats.update({
+                        "composite_method": "Image.composite",
+                        "composite_free_preview": True
+                    })
+                except Exception as composite_err:
+                    logger.warning(f"Image.composite() method failed (free preview human): {composite_err}, using fallback")
+                    # Fallback to standard method
+                    rgba_temp = Image.new('RGBA', input_image.size, (0, 0, 0, 0))
+                    rgba_temp.paste(input_image, (0, 0))
+                    rgba_temp.putalpha(mask)
+                    final_image = rgba_temp
+                    debug_stats["composite_method_fallback"] = True
+            else:
+                # Premium/Document: Use standard paste()+putalpha() method
+                rgba_temp = Image.new('RGBA', input_image.size, (0, 0, 0, 0))
+                rgba_temp.paste(input_image, (0, 0))
+                rgba_temp.putalpha(mask)
+                final_image = rgba_temp
             
-            # Apply feathering to alpha channel only
-            # Premium: Adaptive feather based on MP
-            # Free Preview (human): very light feathering (strength=0.08) to soften edges
+            # Extract alpha for post-processing (only for premium/documents that need further refinement)
+            if is_premium or is_document:
+                composite_alpha = final_image.split()[3]
+            
+            # Apply feathering to alpha channel only (PREMIUM/DOCUMENTS ONLY - FREE PREVIEW HUMAN SKIPPED)
             if is_premium and SCIPY_AVAILABLE:
                 logger.info("Step 8.1: Applying premium adaptive feathering to alpha channel of composite...")
                 composite_alpha = apply_feathering(composite_alpha, feather_radius=3)
                 debug_stats.update(mask_stats("mask_after_feather_composite", composite_alpha))
-            elif (not is_premium) and (not is_document):
-                # HUMAN IMAGE PIPELINE: Ultra-light feather for soft border (no visible outline)
-                # Ultra-light: 0.5px blur, 2% blend - removes outline without thick border
-                try:
-                    logger.info("Step 8.1: Applying ultra-light feathering (0.5px, 2% blend) for soft border...")
-                    alpha_np = np.array(composite_alpha).astype(np.float32)
-                    if CV2_AVAILABLE:
-                        # Ultra-light Gaussian blur (0.5px) with minimal blend (2%) to remove outline
-                        blurred = cv2.GaussianBlur(alpha_np, (3, 3), 0.5)  # sigma=0.5 (ultra-light)
-                        alpha_feather = alpha_np * (1.0 - 0.02) + blurred * 0.02  # 2% blend (ultra-light to remove outline)
-                        alpha_feather = np.clip(alpha_feather, 0, 255).astype(np.uint8)
-                        composite_alpha = Image.fromarray(alpha_feather, mode='L')
-                    else:
-                        # Fallback using PIL blur radius 0.5, blend weight 0.02 (2%)
-                        from PIL import ImageFilter
-                        blurred = composite_alpha.filter(ImageFilter.GaussianBlur(radius=0.5))
-                        composite_alpha = Image.blend(composite_alpha, blurred, alpha=0.02)  # 2% blend
-                    debug_stats.update(mask_stats("mask_after_feather_ultra_light", composite_alpha))
-                    debug_stats["feathering_human"] = True
-                    debug_stats["feather_ultra_light"] = True
-                    debug_stats["feather_radius"] = 0.5
-                    debug_stats["feather_blend"] = 0.02
-                except Exception as feather_err:
-                    logger.warning(f"Ultra-light feathering failed (human images): {feather_err}")
-                    debug_stats["feather_ultra_light_error"] = str(feather_err)
             elif (not is_premium) and is_document:
                 # Very light feather for documents (natural look, not too clean) - OPTIMIZED: Added light feathering
                 try:
@@ -1807,51 +1862,34 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                 except Exception as feather_err:
                     logger.warning(f"Light feathering failed (free document): {feather_err}")
                     debug_stats["feather_light_document_error"] = str(feather_err)
+            
+            # FREE PREVIEW HUMAN: Skip all refinement filters (feathering, halo removal, decontamination)
+            if (not is_premium) and (not is_document):
+                logger.info("Step 8.1-8.3: Skipping all refinement filters for free preview human images (feathering=OFF, halo_removal=OFF, decontamination=OFF)")
+                debug_stats.update({
+                    "feathering_free_human": False,
+                    "halo_removal_free_human": False,
+                    "color_decontamination_free_human": False,
+                    "all_refinement_filters_disabled": True
+                })
             else:
-                # When feather skipped (should not happen for free preview)
-                logger.info("Step 8.1: Skipping feathering for this mode")
-                debug_stats.update(mask_stats("mask_after_feather_skipped", composite_alpha))
-            
-            # Apply halo removal to alpha channel only
-            # Premium: Strong halo removal
-            # Free Preview (Human): Light halo removal to remove outline
-            if is_premium:
-                logger.info("Step 8.2: Applying strong halo removal to alpha channel of composite...")
-                composite_alpha = remove_halo(composite_alpha, input_image, threshold=0.15)
-                debug_stats.update(mask_stats("mask_after_halo_composite", composite_alpha))
-            elif (not is_premium) and (not is_document):
-                # FREE PREVIEW (Human): Light halo removal to remove visible outline
-                try:
-                    logger.info("Step 8.2: Applying light halo removal (threshold=0.25) to remove outline...")
-                    composite_alpha = remove_halo(composite_alpha, input_image, threshold=0.25)  # Light threshold
-                    debug_stats.update(mask_stats("mask_after_halo_light", composite_alpha))
-                    debug_stats["halo_removal_free_human"] = True
-                    debug_stats["halo_threshold"] = 0.25
-                except Exception as halo_err:
-                    logger.warning(f"Light halo removal failed (human images): {halo_err}")
-                    debug_stats["halo_removal_free_error"] = str(halo_err)
-            else:
-                # Free preview (Documents): NO halo removal (disabled)
-                logger.info("Step 8.2: Skipping halo removal for free preview documents (disabled)")
-                debug_stats.update(mask_stats("mask_after_halo_skipped", composite_alpha))
-            
-            # Re-composite with processed alpha
-            final_image = Image.new('RGBA', input_image.size, (0, 0, 0, 0))
-            final_image.paste(input_image, (0, 0))
-            final_image.putalpha(composite_alpha)
-            
-            # HUMAN IMAGE PIPELINE: Decontamination = EDGE ONLY (strength=0.25) - increased for better outline removal
-            # color_decontamination already applies only to edge pixels (alpha < 0.95)
-            if not is_premium and not is_document:
-                try:
-                    logger.info("Step 8.3: Applying edge-only color decontamination (strength=0.25) for human images...")
-                    final_image = color_decontamination(final_image, input_image, strength=0.25)  # Increased from 0.15 to 0.25 for better outline removal
-                    debug_stats["color_decontamination_human"] = True
-                    debug_stats["color_decontamination_strength"] = 0.25
-                    debug_stats["color_decontamination_mode"] = "EDGE_ONLY"
-                except Exception as decontam_err:
-                    logger.warning(f"Edge-only color decontamination failed (human images): {decontam_err}")
-                    debug_stats["color_decontamination_human_error"] = str(decontam_err)
+                # Apply halo removal to alpha channel (PREMIUM/DOCUMENTS ONLY)
+                if is_premium:
+                    logger.info("Step 8.2: Applying strong halo removal to alpha channel of composite...")
+                    composite_alpha = remove_halo(composite_alpha, input_image, threshold=0.15)
+                    debug_stats.update(mask_stats("mask_after_halo_composite", composite_alpha))
+                    # Re-composite with processed alpha for premium
+                    final_image = Image.new('RGBA', input_image.size, (0, 0, 0, 0))
+                    final_image.paste(input_image, (0, 0))
+                    final_image.putalpha(composite_alpha)
+                elif is_document:
+                    # Free preview (Documents): NO halo removal (disabled)
+                    logger.info("Step 8.2: Skipping halo removal for free preview documents (disabled)")
+                    debug_stats.update(mask_stats("mask_after_halo_skipped", composite_alpha))
+                    # Re-composite with processed alpha for documents
+                    final_image = Image.new('RGBA', input_image.size, (0, 0, 0, 0))
+                    final_image.paste(input_image, (0, 0))
+                    final_image.putalpha(composite_alpha)
             
             # 🔥 FREE PREVIEW: Document Safe Mode - Binary Alpha (if document)
             if not is_premium and is_document:
@@ -1868,33 +1906,14 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                 except Exception as doc_binary_err:
                     logger.warning(f"Document binary alpha conversion failed: {doc_binary_err}")
             
-            # HUMAN IMAGE PIPELINE: Soft alpha clamp = ON (reduced min_alpha for soft border, no visible outline)
-            # Apply soft alpha clamp for human images - reduced from 12 to 6 for softer edges
+            # FREE PREVIEW HUMAN: Alpha clamp already applied BEFORE composite (no need to apply again)
+            # Alpha clamp is applied in Step 7.5 before composite method
             if not is_premium and not is_document:
-                try:
-                    logger.info("Step 10: Applying soft alpha clamp for human images (min_alpha=6 for soft border)...")
-                    alpha_arr = np.array(final_image.getchannel('A')).astype(np.float32)
-                    
-                    # Apply soft alpha clamp: set minimum alpha for foreground pixels
-                    # Foreground: alpha > 0 (any non-zero alpha)
-                    foreground_mask = alpha_arr > 0
-                    min_alpha = 6  # Reduced from 12 to 6 for softer edges and no visible outline
-                    alpha_arr[foreground_mask] = np.maximum(alpha_arr[foreground_mask], min_alpha)
-                    
-                    # Update alpha channel
-                    alpha_clamped = Image.fromarray(alpha_arr.astype(np.uint8), mode='L')
-                    final_image.putalpha(alpha_clamped)
-                    
-                    debug_stats.update({
-                        "alpha_clamp_applied": True,
-                        "alpha_clamp_min": min_alpha,
-                        "alpha_clamp_human_pipeline": True,
-                        "alpha_clamp_soft": True
-                    })
-                    logger.info(f"✅ Soft alpha clamp applied (min_alpha={min_alpha}) for human images - soft border, no outline")
-                except Exception as clamp_err:
-                    logger.warning(f"Soft alpha clamp failed (human images): {clamp_err}")
-                    debug_stats["alpha_clamp_error"] = str(clamp_err)
+                logger.info("Step 10: Alpha clamp already applied BEFORE composite for free preview human images - skipping duplicate clamp")
+                debug_stats.update({
+                    "alpha_clamp_skipped_after_composite": True,
+                    "alpha_clamp_already_applied_before_composite": True
+                })
             elif not is_premium and is_document:
                 # Documents: Keep no alpha clamp (binary alpha handles it)
                 logger.info("Step 10: Skipping alpha clamp for documents (binary alpha used)")
