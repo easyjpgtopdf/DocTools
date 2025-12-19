@@ -74,10 +74,17 @@
 
     bindEvents() {
       if (this.el.fileInput) {
-        this.el.fileInput.addEventListener('change', (e) => {
+        this.el.fileInput.addEventListener('change', async (e) => {
           const file = e.target.files?.[0];
           if (file) {
             console.log('File selected:', file.name, file.type, file.size);
+            // Check credits BEFORE allowing file upload
+            const hasCredits = await this.checkCreditsBeforeUpload();
+            if (!hasCredits) {
+              // Reset file input
+              this.el.fileInput.value = '';
+              return;
+            }
             this.handleFile(file);
           } else {
             console.warn('No file selected');
@@ -88,9 +95,14 @@
       }
 
       if (this.el.uploadButton && this.el.fileInput) {
-        this.el.uploadButton.addEventListener('click', (e) => {
+        this.el.uploadButton.addEventListener('click', async (e) => {
           e.preventDefault();
           console.log('Upload button clicked');
+          // Check credits BEFORE allowing file selection
+          const hasCredits = await this.checkCreditsBeforeUpload();
+          if (!hasCredits) {
+            return;
+          }
           this.el.fileInput.click();
         });
       } else {
@@ -176,6 +188,50 @@
       if (this.el.downloadButton) this.el.downloadButton.disabled = true;
       this.setStatus('Upload an image to start Premium HD processing.');
       this.showError('');
+    }
+
+    // Check credits BEFORE file upload (minimum 4 credits required)
+    async checkCreditsBeforeUpload() {
+      try {
+        const userId = await this.getUserId();
+        if (!userId) {
+          this.showError('Please sign in to use Premium HD.');
+          return false;
+        }
+
+        const token = await this.getAuthToken();
+        const MIN_CREDITS_REQUIRED = 4; // Minimum credits required before upload
+
+        // Check credits via API
+        const response = await fetch(`/api/user/credits?userId=${userId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          this.showError('Unable to check credits. Please try again.');
+          return false;
+        }
+
+        const data = await response.json();
+        const availableCredits = data.credits || 0;
+
+        if (availableCredits < MIN_CREDITS_REQUIRED) {
+          this.showError(`You need at least ${MIN_CREDITS_REQUIRED} credits to use Premium HD. You have ${availableCredits} credit(s). Please purchase credits.`);
+          this.setStatus(`Insufficient credits. You have ${availableCredits} credit(s), but need ${MIN_CREDITS_REQUIRED} credits.`);
+          return false;
+        }
+
+        // Credits sufficient
+        this.showError('');
+        this.setStatus(`You have ${availableCredits} credits. Upload an image to start processing.`);
+        return true;
+      } catch (error) {
+        console.error('Credit check error:', error);
+        this.showError('Unable to check credits. Please try again.');
+        return false;
+      }
     }
 
     showError(message) {
@@ -317,7 +373,29 @@
 
         if (!response.ok) {
           const text = await response.text();
-          throw new Error(text || `Server error ${response.status}`);
+          let errorData = {};
+          try {
+            errorData = JSON.parse(text);
+          } catch (e) {
+            errorData = { error: text || `Server error: ${response.status}` };
+          }
+          
+          // Handle 402 (Payment Required) - Insufficient credits
+          if (response.status === 402) {
+            const message = errorData.message || `Insufficient credits. You need at least ${errorData.minRequired || 4} credits. Please purchase credits.`;
+            this.showError(message);
+            this.setStatus(`Insufficient credits. You have ${errorData.creditsAvailable || 0} credit(s).`);
+            return;
+          }
+          
+          // Handle 401 (Unauthorized) - Authentication required
+          if (response.status === 401) {
+            this.showError(errorData.message || 'Please sign in to use Premium HD.');
+            this.setStatus('Authentication required.');
+            return;
+          }
+          
+          throw new Error(errorData.error || errorData.message || `Server error: ${response.status}`);
         }
 
         const result = await response.json();

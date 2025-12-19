@@ -305,8 +305,8 @@ module.exports = async function handler(req, res) {
     // Use verified userId from token for credit operations
     const finalUserId = verifiedUserId;
     
-    // STEP 1: Check credit balance (use minimum 2 credits for initial check, actual deduction will be variable)
-    const MIN_CREDITS_REQUIRED = 2; // Minimum for initial check (actual will be 2-7 based on MP)
+    // STEP 1: Check credit balance (minimum 4 credits required before processing)
+    const MIN_CREDITS_REQUIRED = 4; // Minimum credits required before upload/processing
     const creditCheck = await checkCreditBalance(finalUserId, token);
     
     // CRITICAL: Ensure creditsAvailable is a number for proper comparison
@@ -323,7 +323,8 @@ module.exports = async function handler(req, res) {
         message: `You need at least ${MIN_CREDITS_REQUIRED} credit(s) for Premium HD. You have ${availableCredits} credit(s). Please purchase credits.`,
         requiresAuth: false,
         requiresCredits: true,
-        creditsAvailable: availableCredits
+        creditsAvailable: availableCredits,
+        minRequired: MIN_CREDITS_REQUIRED
       });
     }
 
