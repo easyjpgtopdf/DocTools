@@ -1,37 +1,41 @@
-// Proxy endpoint for /api/user/credits -> /api/credits/balance
-// This maintains backward compatibility with frontend code
+// Vercel Serverless Function - Get User Credit Balance
+// Endpoint: /api/user/credits?userId=xxx
 
-// Import Firebase Admin initialization
-// Try different possible paths
-let initializeFirebase;
-try {
-  initializeFirebase = require('../config/google-cloud').initializeFirebase;
-} catch (e) {
+const admin = require('firebase-admin');
+
+// Initialize Firebase if not already done
+if (!admin.apps.length) {
   try {
-    initializeFirebase = require('../../config/google-cloud').initializeFirebase;
-  } catch (e2) {
-    // Fallback: use same pattern as credits/balance.js
-    const admin = require('firebase-admin');
-    initializeFirebase = async () => {
-      if (!admin.apps.length) {
-        try {
-          const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '{}');
-          if (serviceAccount.project_id) {
-            admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
-          }
-        } catch (err) {
-          console.error('Firebase initialization error:', err);
-        }
+    const serviceAccountRaw = process.env.FIREBASE_SERVICE_ACCOUNT;
+    if (serviceAccountRaw) {
+      try {
+        const serviceAccount = JSON.parse(serviceAccountRaw);
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount)
+        });
+      } catch (parseError) {
+        console.warn('Firebase service account JSON parse failed, using default');
+        admin.initializeApp();
       }
-      return admin;
-    };
+    } else {
+      admin.initializeApp();
+    }
+  } catch (error) {
+    console.error('Firebase initialization error:', error);
   }
 }
 
 module.exports = async function handler(req, res) {
-  // Only allow GET requests
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'GET') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
     return res.status(405).json({
       success: false,
       error: 'Method not allowed',
@@ -40,25 +44,21 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const admin = await initializeFirebase();
-    
-    if (!admin || !admin.apps.length) {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      return res.status(500).json({ 
-        success: false,
-        error: 'Database not available',
-        message: 'Firebase not initialized'
-      });
-    }
-
     const userId = req.query.userId || req.headers['x-user-id'];
 
     if (!userId) {
-      res.setHeader('Access-Control-Allow-Origin', '*');
       return res.status(401).json({ 
         success: false,
         error: 'User ID required',
         message: 'Please provide userId'
+      });
+    }
+
+    if (!admin.apps.length) {
+      return res.status(500).json({ 
+        success: false,
+        error: 'Database not available',
+        message: 'Firebase not initialized'
       });
     }
 
@@ -76,7 +76,6 @@ module.exports = async function handler(req, res) {
         lastCreditUpdate: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
       
-      res.setHeader('Access-Control-Allow-Origin', '*');
       return res.status(200).json({
         success: true,
         credits: 0,
@@ -106,7 +105,6 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    res.setHeader('Access-Control-Allow-Origin', '*');
     return res.status(200).json({
       success: true,
       credits: credits, // Ensure this is a number
@@ -117,7 +115,6 @@ module.exports = async function handler(req, res) {
 
   } catch (error) {
     console.error('Get credit balance error:', error);
-    res.setHeader('Access-Control-Allow-Origin', '*');
     return res.status(500).json({
       success: false,
       error: 'Failed to get credit balance',
@@ -125,4 +122,3 @@ module.exports = async function handler(req, res) {
     });
   }
 };
-
