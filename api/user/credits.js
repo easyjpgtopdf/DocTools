@@ -1,7 +1,32 @@
 // Proxy endpoint for /api/user/credits -> /api/credits/balance
 // This maintains backward compatibility with frontend code
 
-const { initializeFirebase } = require('../config/google-cloud');
+// Import Firebase Admin initialization
+// Try different possible paths
+let initializeFirebase;
+try {
+  initializeFirebase = require('../config/google-cloud').initializeFirebase;
+} catch (e) {
+  try {
+    initializeFirebase = require('../../config/google-cloud').initializeFirebase;
+  } catch (e2) {
+    // Fallback: use same pattern as credits/balance.js
+    const admin = require('firebase-admin');
+    initializeFirebase = async () => {
+      if (!admin.apps.length) {
+        try {
+          const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '{}');
+          if (serviceAccount.project_id) {
+            admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+          }
+        } catch (err) {
+          console.error('Firebase initialization error:', err);
+        }
+      }
+      return admin;
+    };
+  }
+}
 
 module.exports = async function handler(req, res) {
   // Only allow GET requests
