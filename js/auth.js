@@ -1088,6 +1088,13 @@ function updateUI(user) {
       accountSection.style.display = 'block';
       accountSection.style.visibility = 'visible';
       accountSection.removeAttribute('hidden');
+      
+      // Remove hidden attribute from dropdown to allow CSS hover to work
+      const userDropdown = document.getElementById('user-dropdown');
+      if (userDropdown) {
+        userDropdown.removeAttribute('hidden');
+      }
+      
       // Highlight active link in dropdown
       if (typeof window.highlightActiveAccountLink === 'function') {
         window.highlightActiveAccountLink();
@@ -1348,22 +1355,14 @@ function toggleUserDropdown(forceState) {
   userMenu.dataset.open = isOpen ? 'true' : 'false';
   userMenuToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
   
-  // Ensure dropdown visibility with proper styles
+  // Ensure dropdown visibility - remove hidden attribute to allow CSS hover to work
   if (isOpen) {
-    userDropdown.hidden = false;
     userDropdown.removeAttribute('hidden');
-    userDropdown.style.display = 'block';
-    userDropdown.style.visibility = 'visible';
-    userDropdown.style.opacity = '1';
-    userDropdown.style.transform = 'translateY(0)';
-    // Force reflow to ensure styles apply
-    userDropdown.offsetHeight;
+    // CSS will handle display via hover or data-open attribute
   } else {
-    userDropdown.hidden = true;
-    userDropdown.setAttribute('hidden', '');
-    userDropdown.style.display = 'none';
-    userDropdown.style.visibility = 'hidden';
-    userDropdown.style.opacity = '0';
+    // Only hide if not hovering (let CSS hover handle it)
+    // Don't set hidden attribute as it breaks CSS hover
+    userMenu.dataset.open = 'false';
   }
   
   if (isOpen) {

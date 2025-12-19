@@ -108,47 +108,26 @@
     border: 1px solid rgba(67, 97, 238, 0.08);
     padding: 10px 0;
     z-index: 10002; /* Higher than account section z-index */
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-10px);
-    transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
 }
 
+/* Hide dropdown when hidden attribute is present */
 .account-section .user-dropdown[hidden] {
     display: none !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
 }
 
-/* Show dropdown on hover - like other dropdowns */
-.account-section .user-menu:hover .user-dropdown:not([hidden]) {
+/* Show dropdown on hover - exactly like header dropdowns */
+.account-section .user-menu:hover .user-dropdown {
     display: block !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    transform: translateY(0) !important;
 }
 
-.account-section .user-menu[data-open="true"] .user-dropdown:not([hidden]) {
-    display: block !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    transform: translateY(0) !important;
-}
-
-/* Show dropdown on click - ensure it works */
-.account-section .user-menu[data-open="true"] .user-dropdown {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    transform: translateY(0) !important;
-}
-
-/* Also show when dropdown itself is hovered */
+/* Also show when dropdown itself is hovered (to keep it open when moving mouse to dropdown) */
 .account-section .user-dropdown:hover {
     display: block !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    transform: translateY(0) !important;
+}
+
+/* Show dropdown on click/toggle */
+.account-section .user-menu[data-open="true"] .user-dropdown {
+    display: block !important;
 }
 
 .account-section .user-dropdown a,

@@ -38,7 +38,7 @@ const globalAccountSectionHTML = `
                 </span>
                 <i class="fas fa-chevron-down" aria-hidden="true"></i>
             </button>
-            <div class="user-dropdown" id="user-dropdown" hidden>
+            <div class="user-dropdown" id="user-dropdown">
                 <a href="dashboard.html#dashboard-overview" data-user-nav="dashboard-overview"><i class="fas fa-user-circle"></i> Account Dashboard</a>
                 <a href="dashboard.html#dashboard-billing" data-user-nav="dashboard-billing"><i class="fas fa-file-invoice"></i> Billing Details</a>
                 <a href="dashboard.html#dashboard-payments" data-user-nav="dashboard-payments"><i class="fas fa-wallet"></i> Payment History</a>
@@ -309,6 +309,13 @@ function loadAccountSection() {
                 const accountElement = tempDiv.firstElementChild;
                 if (accountElement) {
                     existingAccountSection.outerHTML = accountElement.outerHTML;
+                    // Remove hidden attribute from dropdown to allow CSS hover
+                    setTimeout(() => {
+                        const dropdown = document.getElementById('user-dropdown');
+                        if (dropdown) {
+                            dropdown.removeAttribute('hidden');
+                        }
+                    }, 50);
                     // Re-initialize auth UI after account section is loaded
                     if (typeof window.initializeAuthUI === 'function') {
                         setTimeout(() => {
@@ -342,12 +349,19 @@ function loadAccountSection() {
             const accountElement = tempDiv.firstElementChild;
             if (accountElement) {
                 header.parentNode.insertBefore(accountElement, header);
+                // Remove hidden attribute from dropdown to allow CSS hover
+                setTimeout(() => {
+                    const dropdown = document.getElementById('user-dropdown');
+                    if (dropdown) {
+                        dropdown.removeAttribute('hidden');
+                    }
+                }, 50);
                 // Re-initialize auth UI after account section is loaded
                 if (typeof window.initializeAuthUI === 'function') {
                     setTimeout(() => {
                         window.initializeAuthUI();
                     }, 100);
-                }
+                    }
             }
         } catch (error) {
             console.error('Error adding account section:', error);
@@ -362,6 +376,13 @@ function loadAccountSection() {
                 const accountElement = tempDiv.firstElementChild;
                 if (accountElement) {
                     body.insertBefore(accountElement, body.firstChild);
+                    // Remove hidden attribute from dropdown to allow CSS hover
+                    setTimeout(() => {
+                        const dropdown = document.getElementById('user-dropdown');
+                        if (dropdown) {
+                            dropdown.removeAttribute('hidden');
+                        }
+                    }, 50);
                     // Re-initialize auth UI after account section is loaded
                     if (typeof window.initializeAuthUI === 'function') {
                         setTimeout(() => {
