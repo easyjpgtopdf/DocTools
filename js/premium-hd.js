@@ -728,22 +728,100 @@
       // Get auth token and user ID
       async function getAuthToken() {
         try {
+          // First check if auth is available and user is already logged in
           if (window.auth && window.auth.currentUser) {
             return await window.auth.currentUser.getIdToken();
           }
-          return localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || null;
+          
+          // Check localStorage/sessionStorage
+          const storedToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+          if (storedToken) {
+            return storedToken;
+          }
+          
+          // Wait for auth state change if auth is available
+          if (window.auth) {
+            return new Promise(async (resolve) => {
+              const unsubscribe = window.auth.onAuthStateChanged(async (user) => {
+                unsubscribe();
+                if (user) {
+                  try {
+                    const token = await user.getIdToken();
+                    resolve(token);
+                  } catch (e) {
+                    resolve(null);
+                  }
+                } else {
+                  // Wait a bit more for auth to initialize
+                  setTimeout(async () => {
+                    if (window.auth?.currentUser) {
+                      try {
+                        const token = await window.auth.currentUser.getIdToken();
+                        resolve(token);
+                      } catch (e) {
+                        resolve(null);
+                      }
+                    } else {
+                      resolve(null);
+                    }
+                  }, 500);
+                }
+              });
+              
+              // Timeout after 3 seconds
+              setTimeout(() => {
+                unsubscribe();
+                resolve(null);
+              }, 3000);
+            });
+          }
+          
+          return null;
         } catch (e) {
+          console.error('getAuthToken error:', e);
           return null;
         }
       }
       
       async function getUserId() {
         try {
+          // First check if auth is available and user is already logged in
           if (window.auth && window.auth.currentUser) {
             return window.auth.currentUser.uid;
           }
-          return localStorage.getItem('userId') || sessionStorage.getItem('userId') || null;
+          
+          // Check localStorage/sessionStorage
+          const storedUserId = localStorage.getItem('userId') || sessionStorage.getItem('userId');
+          if (storedUserId) {
+            return storedUserId;
+          }
+          
+          // Wait for auth state change if auth is available
+          if (window.auth) {
+            return new Promise((resolve) => {
+              const unsubscribe = window.auth.onAuthStateChanged((user) => {
+                unsubscribe();
+                if (user) {
+                  resolve(user.uid);
+                } else {
+                  // Wait a bit more for auth to initialize
+                  setTimeout(() => {
+                    resolve(window.auth?.currentUser?.uid || null);
+                  }, 500);
+                }
+              });
+              
+              // Timeout after 3 seconds
+              setTimeout(() => {
+                unsubscribe();
+                resolve(window.auth?.currentUser?.uid || null);
+              }, 3000);
+            });
+          }
+          
+          return null;
         } catch (e) {
+          console.error('getUserId error:', e);
           return null;
         }
       }
