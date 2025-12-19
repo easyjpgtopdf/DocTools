@@ -197,46 +197,97 @@
 
     // Check page access on load - redirect if insufficient credits
     async checkPageAccess() {
-      try {
-        const userId = await this.getUserId();
-        if (!userId) {
-          // User not logged in - redirect to pricing
+      // Wait a bit for auth to initialize
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      let retries = 3;
+      while (retries > 0) {
+        try {
+          console.log(`[Page Access] Attempt ${4 - retries}/3 - Checking user access...`);
+          
+          const userId = await this.getUserId();
+          console.log(`[Page Access] User ID: ${userId || 'null'}`);
+          
+          if (!userId) {
+            // Wait a bit more and retry (auth might still be initializing)
+            if (retries > 1) {
+              console.log('[Page Access] No userId yet, waiting for auth...');
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              retries--;
+              continue;
+            }
+            // Final attempt failed - user not logged in
+            console.log('[Page Access] User not logged in - redirecting to pricing');
+            window.location.href = '/pricing.html';
+            return;
+          }
+
+          const token = await this.getAuthToken();
+          if (!token) {
+            console.log('[Page Access] No auth token - waiting...');
+            if (retries > 1) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              retries--;
+              continue;
+            }
+            console.log('[Page Access] No auth token - redirecting to pricing');
+            window.location.href = '/pricing.html';
+            return;
+          }
+
+          const MIN_CREDITS_REQUIRED = 4;
+          console.log(`[Page Access] Checking credits for user ${userId}...`);
+
+          // Check credits via API
+          const response = await fetch(`/api/user/credits?userId=${userId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+
+          console.log(`[Page Access] Credit check response status: ${response.status}`);
+
+          if (!response.ok) {
+            // If can't check credits, try again or redirect
+            if (retries > 1) {
+              console.log('[Page Access] Credit check failed, retrying...');
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              retries--;
+              continue;
+            }
+            console.log('[Page Access] Credit check failed - redirecting to pricing');
+            window.location.href = '/pricing.html';
+            return;
+          }
+
+          const data = await response.json();
+          const availableCredits = data.credits || 0;
+          console.log(`[Page Access] Available credits: ${availableCredits}`);
+
+          if (availableCredits < MIN_CREDITS_REQUIRED) {
+            // Insufficient credits - redirect to pricing
+            console.log(`[Page Access] Insufficient credits (${availableCredits} < ${MIN_CREDITS_REQUIRED}) - redirecting`);
+            alert(`You need at least ${MIN_CREDITS_REQUIRED} credits to use Premium HD. You have ${availableCredits} credit(s). Redirecting to pricing page...`);
+            window.location.href = '/pricing.html';
+            return;
+          }
+
+          // Credits sufficient - allow access
+          console.log(`✅ [Page Access] Access granted. User has ${availableCredits} credits.`);
+          return; // Success - exit function
+          
+        } catch (error) {
+          console.error(`[Page Access] Error (attempt ${4 - retries}/3):`, error);
+          if (retries > 1) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            retries--;
+            continue;
+          }
+          // Final attempt failed - redirect to pricing for safety
+          console.error('[Page Access] All retries failed - redirecting to pricing');
           window.location.href = '/pricing.html';
           return;
         }
-
-        const token = await this.getAuthToken();
-        const MIN_CREDITS_REQUIRED = 4;
-
-        // Check credits via API
-        const response = await fetch(`/api/user/credits?userId=${userId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          // If can't check credits, redirect to pricing
-          window.location.href = '/pricing.html';
-          return;
-        }
-
-        const data = await response.json();
-        const availableCredits = data.credits || 0;
-
-        if (availableCredits < MIN_CREDITS_REQUIRED) {
-          // Insufficient credits - redirect to pricing
-          alert(`You need at least ${MIN_CREDITS_REQUIRED} credits to use Premium HD. You have ${availableCredits} credit(s). Redirecting to pricing page...`);
-          window.location.href = '/pricing.html';
-          return;
-        }
-
-        // Credits sufficient - allow access
-        console.log(`✅ Access granted. User has ${availableCredits} credits.`);
-      } catch (error) {
-        console.error('Page access check error:', error);
-        // On error, redirect to pricing for safety
-        window.location.href = '/pricing.html';
       }
     }
 
