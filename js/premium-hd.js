@@ -278,9 +278,14 @@
           }
 
           const data = await response.json();
-          const availableCredits = data.credits || 0;
-          console.log(`[Page Access] Available credits: ${availableCredits}`);
-
+          // CRITICAL: Ensure credits is a number for proper comparison
+          const availableCredits = typeof data.credits === 'number' 
+            ? data.credits 
+            : (typeof data.credits === 'string' ? parseFloat(data.credits) || 0 : 0);
+          
+          console.log(`[Page Access] Available credits: ${availableCredits} (type: ${typeof availableCredits}, raw: ${data.credits})`);
+          console.log(`[Page Access] Minimum required: ${MIN_CREDITS_REQUIRED}, Comparison: ${availableCredits} >= ${MIN_CREDITS_REQUIRED} = ${availableCredits >= MIN_CREDITS_REQUIRED}`);
+          
           if (availableCredits < MIN_CREDITS_REQUIRED) {
             // Insufficient credits - redirect to pricing
             console.log(`[Page Access] Insufficient credits (${availableCredits} < ${MIN_CREDITS_REQUIRED}) - redirecting`);
