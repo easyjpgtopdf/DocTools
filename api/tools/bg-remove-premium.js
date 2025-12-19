@@ -305,8 +305,23 @@ module.exports = async function handler(req, res) {
     // Use verified userId from token for credit operations
     const finalUserId = verifiedUserId;
     
-    // STEP 1: Check credit balance (minimum 4 credits required before processing)
-    const MIN_CREDITS_REQUIRED = 4; // Minimum credits required before upload/processing
+    // STEP 1: Check credit balance based on SELECTED SIZE (not just minimum 4)
+    // Credit costs based on size
+    const creditCosts = {
+      'original': 2, // Will be adjusted based on actual MP, but minimum 2
+      '1920x1080': 2,
+      '2048x2048': 4,
+      '3000x2000': 4,
+      '3000x3000': 6,
+      '4000x3000': 9,
+      '4000x4000': 10,
+      '5000x3000': 12,
+      '5000x5000': 15,
+    };
+    
+    const selectedSize = targetSize || 'original';
+    const creditsRequired = creditCosts[selectedSize] || creditCosts['original'];
+    
     const creditCheck = await checkCreditBalance(finalUserId, token);
     
     // CRITICAL: Ensure creditsAvailable is a number for proper comparison
@@ -314,17 +329,18 @@ module.exports = async function handler(req, res) {
       ? creditCheck.creditsAvailable 
       : (typeof creditCheck.creditsAvailable === 'string' ? parseFloat(creditCheck.creditsAvailable) || 0 : 0);
     
-    console.log(`[Premium HD] Credit check - Available: ${availableCredits} (type: ${typeof creditCheck.creditsAvailable}), Min Required: ${MIN_CREDITS_REQUIRED}`);
+    console.log(`[Premium HD] Credit check - Available: ${availableCredits}, Required for ${selectedSize}: ${creditsRequired}`);
     
-    if (!creditCheck.hasCredits || (!creditCheck.unlimited && availableCredits < MIN_CREDITS_REQUIRED)) {
+    if (!creditCheck.hasCredits || (!creditCheck.unlimited && availableCredits < creditsRequired)) {
       return res.status(402).json({
         success: false,
         error: 'Insufficient credits',
-        message: `You need at least ${MIN_CREDITS_REQUIRED} credit(s) for Premium HD. You have ${availableCredits} credit(s). Please purchase credits.`,
+        message: `You need ${creditsRequired} credit(s) for ${selectedSize} size. You have ${availableCredits} credit(s). Please purchase credits or choose a smaller size.`,
         requiresAuth: false,
         requiresCredits: true,
         creditsAvailable: availableCredits,
-        minRequired: MIN_CREDITS_REQUIRED
+        creditsRequired: creditsRequired,
+        selectedSize: selectedSize
       });
     }
 
@@ -334,20 +350,22 @@ module.exports = async function handler(req, res) {
     console.log('User ID:', finalUserId);
     console.log('Target Size:', targetSize);
 
-    // STEP 2: Process image first (before deducting credits)
+    // STEP 2: Process image first (before deducting credits) at SELECTED SIZE
     const requestBody = {
       imageData: normalized.dataUrl,
       userId: finalUserId, // Use verified userId from token
       quality: 100, // Enterprise requirement: quality 100
       maxMegapixels: 25, // Max 25 Megapixels (width × height)
-      preserveOriginal: targetSize === 'original' || !targetSize, // Preserve original resolution if ≤ 25 MP
-      targetSize: targetSize || 'original',
-      targetWidth: targetWidth || null,
-      targetHeight: targetHeight || null,
+      preserveOriginal: selectedSize === 'original' || !selectedSize, // Preserve original resolution if ≤ 25 MP
+      targetSize: selectedSize || 'original',
+      targetWidth: parsedWidth || null, // Use parsed width from targetSize
+      targetHeight: parsedHeight || null, // Use parsed height from targetSize
       imageType: req.body.imageType || null, // Forward imageType: "human" | "document" | "id_card" | "a4"
       whiteBackground: true, // Enterprise requirement: white background JPG
       outputFormat: 'jpg' // Enterprise requirement: JPG output
     };
+    
+    console.log(`[Premium HD] Processing at size: ${selectedSize}, width: ${parsedWidth}, height: ${parsedHeight}`);
     
     console.log('Request body keys:', Object.keys(requestBody));
     console.log('Request body (without imageData):', { ...requestBody, imageData: '[REDACTED]' });

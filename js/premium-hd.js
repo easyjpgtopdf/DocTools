@@ -117,11 +117,13 @@
         }
       }
 
-      // Size selection BEFORE upload
+      // Size selection BEFORE upload - NO credit check, just update state
       if (this.el.sizeSelect) {
         this.el.sizeSelect.addEventListener('change', (e) => {
           const selectedSize = e.target.value || 'original';
           this.state.targetSize = selectedSize;
+          console.log(`[Size Selection] Selected size: ${selectedSize}`);
+          // NO redirect, NO credit check here - only when user tries to upload/process
         });
       }
 
@@ -291,7 +293,21 @@
       }
     }
 
-    // Check credits BEFORE file upload (based on selected size)
+    // Show credit upgrade popup
+    showCreditUpgradePopup(selectedSize, creditsRequired, availableCredits) {
+      const message = `You need ${creditsRequired} credits for ${selectedSize} size, but you only have ${availableCredits} credit(s).\n\nWould you like to upgrade your credits?`;
+      
+      if (confirm(message)) {
+        // User wants to upgrade - redirect to pricing
+        window.location.href = '/pricing.html';
+      } else {
+        // User cancelled - just show message, don't redirect
+        this.showError(`Insufficient credits. You need ${creditsRequired} credits for ${selectedSize} size.`);
+        this.setStatus(`You have ${availableCredits} credit(s), but need ${creditsRequired} credits. Please choose a smaller size or upgrade credits.`);
+      }
+    }
+
+    // Check credits BEFORE file upload (based on selected size) - NO redirect, show popup
     async checkCreditsBeforeUpload() {
       try {
         const userId = await this.getUserId();
@@ -318,6 +334,8 @@
         const selectedSize = this.state.targetSize || 'original';
         const creditsRequired = creditCosts[selectedSize] || creditCosts['original'];
 
+        console.log(`[Credit Check] Checking credits for size: ${selectedSize}, required: ${creditsRequired}`);
+
         // Check credits via API
         const response = await fetch(`/api/user/credits?userId=${userId}`, {
           headers: {
@@ -333,15 +351,17 @@
         const data = await response.json();
         const availableCredits = data.credits || 0;
 
+        console.log(`[Credit Check] Available: ${availableCredits}, Required: ${creditsRequired}`);
+
         if (availableCredits < creditsRequired) {
-          this.showError(`You need at least ${creditsRequired} credits for ${selectedSize} size. You have ${availableCredits} credit(s). Please purchase credits or choose a smaller size.`);
-          this.setStatus(`Insufficient credits. You have ${availableCredits} credit(s), but need ${creditsRequired} credits for ${selectedSize}.`);
+          // Show popup instead of redirecting
+          this.showCreditUpgradePopup(selectedSize, creditsRequired, availableCredits);
           return false;
         }
 
         // Credits sufficient
         this.showError('');
-        this.setStatus(`You have ${availableCredits} credits. Upload an image to process at ${selectedSize} size.`);
+        this.setStatus(`You have ${availableCredits} credits. Ready to process at ${selectedSize} size.`);
         return true;
       } catch (error) {
         console.error('Credit check error:', error);
