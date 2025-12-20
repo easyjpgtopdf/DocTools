@@ -473,9 +473,14 @@
 
             // ??? ??? ??????????? ???? ???? ?? ?? 3 ????? ??? ??? ??? ?? ?????????? ????
             if (!txnId) {
-                console.log('No transaction ID found, redirecting to home page in 5 seconds...');
+                console.log('No transaction ID found, redirecting to dashboard in 3 seconds...');
                 setTimeout(() => {
-                    window.location.href = 'index.html';
+                    window.location.href = 'dashboard.html#dashboard-credits';
+                }, 3000);
+            } else {
+                // Auto-redirect to dashboard after 5 seconds to show updated credit balance
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html#dashboard-credits';
                 }, 5000);
             }
         });

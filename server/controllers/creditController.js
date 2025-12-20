@@ -30,15 +30,12 @@ if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
  */
 async function createCreditOrder(req, res) {
   try {
-    // Handle OPTIONS requests for CORS preflight
-    if (req.method === 'OPTIONS') {
-      res.header('Access-Control-Allow-Origin', '*');
-      res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-      return res.status(200).end();
-    }
-    
+    // Check if Razorpay is initialized
     if (!razorpay) {
+      console.error('Razorpay not initialized. Keys available:', {
+        key_id: !!process.env.RAZORPAY_KEY_ID,
+        key_secret: !!process.env.RAZORPAY_KEY_SECRET
+      });
       return res.status(503).json({
         success: false,
         error: 'Payment service unavailable',
@@ -50,12 +47,15 @@ async function createCreditOrder(req, res) {
     const userId = req.userId;
     
     if (!userId) {
+      console.error('createCreditOrder: No userId found in request');
       return res.status(401).json({
         success: false,
         error: 'User not authenticated',
         message: 'Please sign in to purchase credits.'
       });
     }
+
+    console.log(`Creating order for user ${userId}, plan: ${plan}, credits: ${credits}, amount: ${amount}`);
 
     // Try to get plan from config (if exists)
     const planConfig = getPricingPlan(plan);

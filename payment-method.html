@@ -1138,10 +1138,14 @@
         const result = await response.json();
         
         if (result.success) {
-          // Show success message
-          const successMsg = `Payment successful! ${result.credits || credits} credits have been added to your account.`;
+          // Get current credit balance from result
+          const currentBalance = result.credits || result.receipt?.creditsBalance || 0;
+          const creditsAdded = result.receipt?.credits || credits;
           
-          // Redirect to receipt page with payment details
+          // Show success message
+          const successMsg = `Payment successful! ${creditsAdded} credits have been added to your account.\n\nYour current balance: ${currentBalance} credits`;
+          
+          // Redirect to receipt page with payment details (if receipt data available)
           if (result.receipt) {
             const receiptParams = new URLSearchParams({
               payment_id: result.receipt.paymentId,
@@ -1155,13 +1159,15 @@
               type: 'credit_purchase'
             });
             
-            // Show success message briefly, then redirect to receipt
-            alert(successMsg + '\n\nRedirecting to receipt...');
+            // Redirect to receipt page (receipt page will show success message)
             window.location.href = `payment-receipt.html?${receiptParams.toString()}`;
           } else {
-            // Fallback to dashboard if receipt data not available
+            // Fallback: show success message and redirect to dashboard
             alert(successMsg);
-            window.location.href = 'dashboard.html#dashboard-credits';
+            // Redirect to dashboard after 2 seconds to allow user to see the message
+            setTimeout(() => {
+              window.location.href = 'dashboard.html#dashboard-credits';
+            }, 2000);
           }
         } else {
           throw new Error(result.error || result.message || 'Payment verification failed');
