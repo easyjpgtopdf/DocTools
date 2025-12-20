@@ -100,10 +100,10 @@
               this.el.fileInput.value = '';
               return;
             }
-            // Handle multiple files
+            // Handle files - always add to queue for batch processing
             if (files.length === 1) {
-              // Single file - use existing flow
-              this.handleFile(files[0]);
+              // Single file - add to queue and auto-process with selected size
+              this.handleFileToQueue(files[0]);
             } else {
               // Multiple files - add to queue
               this.handleMultipleFiles(files);
@@ -571,7 +571,7 @@
             console.log(`[Process] Parsed selected size ${selectedSize} to width: ${targetWidth}, height: ${targetHeight}`);
           }
         }
-        
+
         const body = {
           imageData: dataURL,
           userId,
@@ -1016,16 +1016,33 @@
       this.updateImagesGrid();
       
       try {
-        // Process using existing process function
+        // Process using selected size from state
         const resultURL = await this.processSingleImage(imageData.file);
         imageData.resultURL = resultURL;
         imageData.status = 'completed';
         this.updateImagesGrid();
+        
+        // If this is the only image or first completed, show in main preview
+        const completedImages = this.state.imageQueue.filter(img => img.status === 'completed');
+        if (completedImages.length === 1 || imageData.id === imageId) {
+          this.showPreview(imageData.file);
+          this.state.resultURL = resultURL;
+          this.state.file = imageData.file;
+          if (this.el.resultImage) {
+            this.el.resultImage.src = resultURL;
+            this.el.resultImage.hidden = false;
+            this.el.resultImage.style.display = 'block';
+          }
+          if (this.el.downloadButton) {
+            this.el.downloadButton.disabled = false;
+          }
+        }
       } catch (error) {
         console.error(`Error processing image ${imageId}:`, error);
         imageData.status = 'error';
         imageData.error = error.message;
         this.updateImagesGrid();
+        this.showError(`Failed to process ${imageData.file.name}: ${error.message}`);
       }
     }
     
