@@ -72,6 +72,7 @@ textarea{min-height:90px}
 .no-scroll{overflow:hidden}
 
 .resume{display:flex;flex-direction:column;gap:18px}
+.resume-header{display:flex;align-items:flex-start;gap:20px}
 .resume-header-info{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px}
 .resume-header-name{font-family:Poppins;font-weight:700;font-size:20px}
 .resume-header-title{color:var(--muted);font-size:14px}
@@ -633,9 +634,20 @@ function render(){
   let html = `<div class="preview-root tpl-${currentTemplate}"><div class="resume">`;
 
   // header - ALWAYS include name/title/mobile/email if available
+  // Photo on LEFT side, name/info on RIGHT side
   const fallbackInitials = (name || 'Your Name').split(' ').map(n => n.charAt(0)).join('').substring(0,2).toUpperCase();
-  html += `<div class="resume-header">`;
-  html += `<div class="resume-header-info">
+  html += `<div class="resume-header" style="display:flex;align-items:flex-start;gap:20px;">`;
+  // Photo on LEFT
+  html += `<div class="resume-header-meta">
+    <div class="resume-header-photo">`;
+  if(photoDataUrl){
+    html += `<img src="${photoDataUrl}" alt="Profile photo">`;
+  } else {
+    html += `<span class="small" style="font-weight:700;color:var(--muted)">${escape(fallbackInitials)}</span>`;
+  }
+  html += `</div></div>`;
+  // Name and info on RIGHT
+  html += `<div class="resume-header-info" style="flex:1;">
     <div class="resume-header-name">${escape(name||'Your Name')}</div>
     <div class="resume-header-title">${escape(title||'')}</div>
     <div class="resume-header-contact">
@@ -644,14 +656,7 @@ function render(){
     </div>
     ${address ? `<div class="resume-header-address">${escape(address)}</div>` : ''}
   </div>`;
-  html += `<div class="resume-header-meta">
-    <div class="resume-header-photo">`;
-  if(photoDataUrl){
-    html += `<img src="${photoDataUrl}" alt="Profile photo">`;
-  } else {
-    html += `<span class="small" style="font-weight:700;color:var(--muted)">${escape(fallbackInitials)}</span>`;
-  }
-  html += `</div></div></div>`;
+  html += `</div>`;
 
   // profile/objective/summary
   if(profileVal) html += `<div><div class="section-title">Profile</div><div class="small">${escape(profileVal)}</div></div>`;
