@@ -188,22 +188,6 @@ th{font-weight:700;background:linear-gradient(90deg,#fff7e6,#fff3d6)}
 </div>
 </section>
 
-  <div class="topbar">
-    <div class="brand">Indian Resume Maker — Final</div>
-    <div style="margin-left:12px"><button id="themeToggle" class="ghost">Toggle Dark</button></div>
-    <div class="controls header-links">
-      <div class="brand-actions">
-        <a href="resume-maker.html" class="link-primary" target="_blank" rel="noopener">Resume/CV Maker</a>
-        <a href="online_resume_maker.html" class="link-secondary" target="_blank" rel="noopener">20+ Resume Templates</a>
-      </div>
-      <div class="share-bar">
-        <span>Share:</span>
-        <button type="button" data-action="copy-link">Link</button>
-        <button type="button" data-action="share-whatsapp">WhatsApp</button>
-      </div>
-      <button id="downloadHtmlBtn" class="ghost">Download HTML</button>
-    </div>
-  </div>
 
   <div class="wrap" id="mainWrap">
     <!-- LEFT: FORM -->
@@ -359,9 +343,12 @@ th{font-weight:700;background:linear-gradient(90deg,#fff7e6,#fff3d6)}
     <div class="col">
       <div class="preview-frame card" id="previewFrame">
         <div class="preview-head">
-          <div>
-            <strong>LIVE PREVIEW</strong>
-            <div class="small">Template: <span id="previewTpl">1</span></div>
+          <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+            <div>
+              <strong>LIVE PREVIEW</strong>
+              <div class="small">Template: <span id="previewTpl">1</span></div>
+            </div>
+            <a href="https://easyjpgtopdf.com/resume-maker.html" class="btn" style="text-decoration: none; padding: 8px 16px; background: linear-gradient(90deg, #4361ee, #3a0ca3); color: white; border-radius: 6px; font-weight: 600; font-size: 13px; transition: all 0.3s; white-space: nowrap;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(67, 97, 238, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">More CV/Resume</a>
           </div>
           <div>
             <button id="backToForm" class="ghost mobile-only">← Back to Form</button>
@@ -397,7 +384,8 @@ const closePreviewBtn = document.getElementById('closePreview');
 const openPreviewBtn = document.getElementById('openPreview');
 const backToForm = document.getElementById('backToForm');
 const footerYear = document.getElementById('footerYear');
-const shareButtons = document.querySelectorAll('.share-bar [data-action]');
+// Share buttons removed - topbar deleted
+const shareButtons = [];
 for(let i=1;i<=tplCount;i++){
   const names = ['Corporate','Student','Fresher','Supervisor','Labour','Truck','Car','Engineer','Doctor','Manager'];
   const opt = document.createElement('option');
@@ -447,37 +435,8 @@ document.addEventListener('keydown', e=>{
   }
 });
 
-shareButtons.forEach(btn => {
-  btn.addEventListener('click', () => {
-    const action = btn.getAttribute('data-action');
-    if(action === 'copy-link'){
-      const link = window.location.href;
-      if(navigator.clipboard && navigator.clipboard.writeText){
-        navigator.clipboard.writeText(link).then(()=>{
-          alert('Link copied! Share it with your friends.');
-        }).catch(()=>{
-          prompt('Copy this link:', link);
-        });
-      } else {
-        prompt('Copy this link:', link);
-      }
-    }
-    if(action === 'share-whatsapp'){
-      const text = encodeURIComponent('Check out this Indian Resume Maker: ' + window.location.href);
-      window.open('https://wa.me/?text=' + text, '_blank');
-    }
-  });
-});
-
-// dark/light toggle
-const headerThemeToggle = document.getElementById('themeToggle');
-let isDark = false;
-function toggleTheme(){
-  isDark = !isDark;
-  document.documentElement.classList.toggle('dark', isDark);
-  headerThemeToggle.textContent = isDark ? 'Light Mode' : 'Dark Mode';
-}
-headerThemeToggle.addEventListener('click', toggleTheme);
+// Share buttons functionality removed - topbar deleted
+// Theme toggle functionality removed - topbar deleted
 if(footerYear) footerYear.textContent = new Date().getFullYear();
 
 // inputs
@@ -1019,14 +978,7 @@ document.getElementById('downloadDoc').addEventListener('click', ()=> {
   }, 100);
 });
 
-// Download HTML quick
-document.getElementById('downloadHtmlBtn').addEventListener('click', ()=> {
-  const dochtml = '<!doctype html><html>' + document.documentElement.innerHTML + '</html>';
-  const blob = new Blob([dochtml], {type:'text/html'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'resume_maker_live.html'; a.click();
-  setTimeout(()=> URL.revokeObjectURL(url),5000);
-});
+// Download HTML functionality removed - topbar deleted
 
 </script>
 
