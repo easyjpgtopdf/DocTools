@@ -1135,10 +1135,6 @@ def process_enterprise_pipeline(input_image, birefnet_session, maxmatting_sessio
     rgba_composite = Image.new('RGBA', rgb_image.size, (0, 0, 0, 0))
     
     # Use Image.composite() instead of paste()+putalpha()
-    # Convert alpha to RGBA mask for composite
-    alpha_rgba = Image.new('RGBA', rgb_image.size, (0, 0, 0, 0))
-    alpha_rgba.putalpha(alpha_hard)
-    
     # Composite RGB over transparent background using alpha
     rgba_composite = Image.composite(rgb_image, rgba_composite, alpha_hard)
     
