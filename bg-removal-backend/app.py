@@ -1145,11 +1145,35 @@ def process_enterprise_pipeline(input_image, birefnet_session, maxmatting_sessio
     debug_stats["composite_method"] = "Image.composite()"
     debug_stats["composite_completed"] = True
     
-    # STEP 8: NO FEATHER, NO HALO, NO ANTI-BLEED, NO BLUR
+    # STEP 8: Resize to target size AFTER matting (preserve aspect ratio, no stretching)
+    if target_size:
+        target_w, target_h = target_size
+        original_aspect = original_width / original_height
+        target_aspect = target_w / target_h
+        
+        # Preserve aspect ratio - fit within target size
+        if abs(original_aspect - target_aspect) < 0.01:
+            # Same aspect ratio - resize directly
+            final_image = rgba_composite.resize((target_w, target_h), Image.Resampling.LANCZOS)
+            logger.info(f"✅ Resized to target size (same aspect): {target_w}x{target_h}")
+        else:
+            # Different aspect ratio - resize to fit within target (preserve aspect)
+            scale = min(target_w / original_width, target_h / original_height)
+            new_width = int(original_width * scale)
+            new_height = int(original_height * scale)
+            final_image = rgba_composite.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            logger.info(f"✅ Resized to fit target (preserving aspect): {new_width}x{new_height} (target: {target_w}x{target_h})")
+        debug_stats["resize_after_matting"] = True
+        debug_stats["resize_preserve_aspect"] = True
+    else:
+        # No target size - keep original
+        final_image = rgba_composite
+        debug_stats["resize_after_matting"] = False
+    
+    # STEP 9: NO FEATHER, NO HALO, NO ANTI-BLEED, NO BLUR
     # ❌ DO NOT USE: adaptive_feather_alpha, guided_filter, apply_feathering, 
     #                strong_halo_removal_alpha, apply_alpha_anti_bleed, gaussian_filter
-    logger.info("Step 8: NO additional filters (enterprise rule: no feather, no halo, no blur)")
-    final_image = rgba_composite
+    logger.info("Step 9: NO additional filters (enterprise rule: no feather, no halo, no blur)")
     debug_stats["additional_filters_applied"] = False
     debug_stats["feather_disabled"] = True
     debug_stats["halo_removal_disabled"] = True
