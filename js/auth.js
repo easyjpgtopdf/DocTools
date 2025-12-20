@@ -58,12 +58,13 @@ function scheduleUserMenuHoverClose() {
   if (userMenuHoverCloseTimeout !== null) {
     return;
   }
+  // Increased delay to 400ms to allow users to move mouse to dropdown without it closing
   userMenuHoverCloseTimeout = window.setTimeout(() => {
     if (userMenu?.dataset.open === 'true') {
       closeUserDropdown();
     }
     userMenuHoverCloseTimeout = null;
-  }, 150);
+  }, 400);
 }
 
 function handleGlobalPointerMove(event) {
