@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Print Resume - Indian Style Resume Generator</title>
+<style>
+@page {
+  size: A4;
+  margin: 15mm 15mm 15mm 15mm;
+}
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family: 'Poppins', 'Inter', 'Segoe UI', Arial, sans-serif;
+  background: #f4f7fb;
+  color: #0b2545;
+  padding: 20px;
+}
+.print-container {
+  max-width: 900px;
+  margin: 0 auto;
+  background: #ffffff;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+.print-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #4361ee;
+}
+.print-header h1 {
+  font-size: 24px;
+  color: #4361ee;
+  margin: 0;
+}
+.print-actions {
+  display: flex;
+  gap: 10px;
+}
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.3s;
+}
+.btn-primary {
+  background: #4361ee;
+  color: white;
+}
+.btn-primary:hover {
+  background: #3a52d4;
+}
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+.btn-secondary:hover {
+  background: #5a6268;
+}
+.resume-content {
+  background: #ffffff;
+  padding: 0;
+}
+/* Print styles */
+@media print {
+  body {
+    background: white;
+    padding: 0;
+  }
+  .print-container {
+    max-width: 100%;
+    padding: 0;
+    box-shadow: none;
+    border-radius: 0;
+  }
+  .print-header {
+    display: none;
+  }
+  .resume-content {
+    padding: 0;
+  }
+}
+/* Resume styles matching preview */
+:root {
+  --bg: #f4f7fb;
+  --card: #ffffff;
+  --surface: #eef5ff;
+  --text: #0b2545;
+  --muted: #6b7280;
+  --accent: #ff7a00;
+}
+.resume {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.resume-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+.resume-header-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.resume-header-name {
+  font-family: Poppins;
+  font-weight: 700;
+  font-size: 24px;
+  color: #0b2545;
+}
+.resume-header-title {
+  color: var(--muted);
+  font-size: 16px;
+}
+.resume-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+.resume-header-contact {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+  color: #3f4c6b;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.resume-header-contact span {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(67, 97, 238, 0.12);
+  color: #2c3a63;
+  font-weight: 500;
+}
+.resume-header-address {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #4a557a;
+}
+.resume-header-photo {
+  width: 110px;
+  height: 110px;
+  border-radius: 0;
+  overflow: hidden;
+  border: 3px solid rgba(11, 25, 60, 0.12);
+  box-shadow: 0 6px 20px rgba(11, 25, 60, 0.08);
+  background: linear-gradient(135deg, #ffffff, #eef3ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.resume-header-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.section-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--accent);
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.small {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #3f4c6b;
+}
+.personal-details-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid rgba(11, 25, 60, 0.06);
+  border-radius: 10px;
+  padding: 14px;
+  background: linear-gradient(180deg, #ffffff, #f7f9ff);
+}
+.pd-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.pd-label {
+  font-weight: 600;
+  color: #1f2a4d;
+  font-size: 13px;
+}
+.pd-value {
+  font-weight: 500;
+  color: #3f4c6b;
+  font-size: 13px;
+  text-align: right;
+  flex: 1;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 13px;
+}
+table thead th {
+  background: rgba(67, 97, 238, 0.12);
+  color: #2f3b6c;
+  font-weight: 600;
+  padding: 8px 10px;
+  border: 1px solid rgba(67, 97, 238, 0.2);
+  text-align: left;
+}
+table tbody td {
+  padding: 8px 10px;
+  border: 1px solid rgba(67, 97, 238, 0.12);
+  color: #3a4463;
+}
+/* Template styles */
+.preview-root {
+  background: transparent;
+}
+.tpl-1 .resume { border-left: 6px solid #0b5cff; padding-left: 18px; }
+.tpl-2 .resume { border-left: 6px solid #6c5ce7; padding-left: 18px; }
+.tpl-3 .resume { border-left: 6px solid #00b894; padding-left: 18px; }
+.tpl-4 .resume { border-top: 6px solid #0984e3; padding-top: 16px; }
+.tpl-5 .resume { background: linear-gradient(180deg, #fff8f2, #ffffff); padding: 20px; border-radius: 12px; border: 1px solid rgba(255, 180, 130, 0.35); }
+.tpl-6 .resume { border-left: 6px solid #fd7e14; padding-left: 18px; }
+.tpl-7 .resume { border-left: 6px solid #f6c85f; padding-left: 18px; }
+.tpl-8 .resume { border-left: 6px solid #2d3436; padding-left: 18px; color: #222; }
+.tpl-9 .resume { border-left: 6px solid #16a085; padding-left: 18px; }
+.tpl-10 .resume { border-left: 6px solid #9b59b6; padding-left: 18px; }
+.tpl-8 .section-title { color: #2d3436; }
+.tpl-5 .section-title { color: #ff7b54; }
+.tpl-6 .section-title { color: #fd7e14; }
+</style>
+</head>
+<body>
+<div class="print-container">
+  <div class="print-header">
+    <h1>Resume Preview - Ready to Print</h1>
+    <div class="print-actions">
+      <button class="btn btn-primary" onclick="window.print()">Print / Save as PDF</button>
+      <a href="Indian-style-Resume-generator.html" class="btn btn-secondary">Back to Editor</a>
+    </div>
+  </div>
+  <div class="resume-content" id="resumeContent">
+    <!-- Resume content will be loaded here -->
+  </div>
+</div>
+<script>
+// Load resume content from sessionStorage
+window.addEventListener('DOMContentLoaded', function() {
+  try {
+    const resumeHtml = sessionStorage.getItem('indian_resume_html');
+    const templateClass = sessionStorage.getItem('indian_resume_template') || 'tpl-1';
+    
+    if (resumeHtml) {
+      const contentDiv = document.getElementById('resumeContent');
+      contentDiv.innerHTML = `<div class="preview-root ${templateClass}">${resumeHtml}</div>`;
+      
+      // Auto-trigger print dialog after a short delay
+      setTimeout(() => {
+        window.print();
+      }, 500);
+    } else {
+      document.getElementById('resumeContent').innerHTML = '<p style="text-align:center;padding:40px;color:#666;">No resume data found. Please go back and generate your resume first.</p>';
+    }
+  } catch (error) {
+    console.error('Error loading resume:', error);
+    document.getElementById('resumeContent').innerHTML = '<p style="text-align:center;padding:40px;color:#d32f2f;">Error loading resume. Please try again.</p>';
+  }
+});
+</script>
+</body>
+</html>
+

@@ -777,136 +777,46 @@ function loadScript(src, cb) {
 document.getElementById('downloadPdf').addEventListener('click', ()=> {
   // Ensure render is complete and content is ready
   render();
-  // Wait a bit for render to complete and images to load
+  
+  // Wait a bit for render to complete
   setTimeout(() => {
-    loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js', ()=> {
-      const previewInner = document.getElementById('previewInner');
-      if(!previewInner || !previewInner.firstElementChild) {
-        alert('Nothing to export. Please fill the form first.');
-        return;
-      }
-      const el = previewInner.firstElementChild;
-      if (!el) {
-        alert('Nothing to export. Please fill the form first.');
-        return;
-      }
+    const previewInner = document.getElementById('previewInner');
+    if(!previewInner || !previewInner.firstElementChild) {
+      alert('Nothing to export. Please fill the form first.');
+      return;
+    }
+    const el = previewInner.firstElementChild;
+    if (!el) {
+      alert('Nothing to export. Please fill the form first.');
+      return;
+    }
+    
+    // Get the resume HTML content - use innerHTML to get the complete structure
+    // Remove any preview-specific classes and get clean resume HTML
+    const resumeClone = el.cloneNode(true);
+    
+    // Get the template class for styling
+    const templateClass = resumeClone.className.match(/tpl-\d+/)?.[0] || 'tpl-1';
+    
+    // Get the resume div inside preview-root
+    const resumeDiv = resumeClone.querySelector('.resume');
+    if (!resumeDiv) {
+      alert('Error: Resume content not found. Please try again.');
+      return;
+    }
+    
+    // Store resume HTML and template in sessionStorage for print page
+    try {
+      sessionStorage.setItem('indian_resume_html', resumeDiv.outerHTML);
+      sessionStorage.setItem('indian_resume_template', templateClass);
       
-      // Clone element to ensure full content is captured
-      const clone = el.cloneNode(true);
-      
-      // Apply padding and styling directly to clone to match preview overlay body
-      // Preview overlay body has: padding: 22px, background: linear-gradient(180deg, #ffffff, #f6f9ff)
-      // A4 width = 210mm = 794px, but we need to account for PDF margins
-      // Use max-width instead of fixed width to allow proper scaling
-      clone.style.padding = '22px';
-      clone.style.background = 'linear-gradient(180deg, #ffffff, #f6f9ff)';
-      clone.style.maxWidth = '794px'; // A4 width in pixels (210mm)
-      clone.style.width = 'auto';
-      clone.style.height = 'auto';
-      clone.style.boxSizing = 'border-box';
-      
-      // Create a wrapper div for positioning off-screen
-      const wrapper = document.createElement('div');
-      wrapper.style.position = 'fixed';
-      wrapper.style.left = '-9999px';
-      wrapper.style.top = '0';
-      wrapper.style.width = '794px';
-      wrapper.style.height = 'auto';
-      wrapper.style.overflow = 'visible';
-      wrapper.style.zIndex = '-1';
-      wrapper.appendChild(clone);
-      document.body.appendChild(wrapper);
-      
-      // Ensure images in clone are loaded
-      const images = clone.querySelectorAll('img');
-      let imagesLoaded = 0;
-      const totalImages = images.length;
-      
-      const proceedWithDownload = () => {
-        // Force reflow to ensure clone is rendered
-        wrapper.offsetHeight;
-        clone.offsetHeight;
-        
-        // Wait a bit more to ensure all content is rendered
-        setTimeout(() => {
-          // Get actual dimensions from clone (includes padding)
-          // Force a reflow to get accurate measurements
-          const computedWidth = clone.offsetWidth || clone.scrollWidth || 794;
-          const computedHeight = clone.offsetHeight || clone.scrollHeight || 1123;
-          
-          // PDF margins: [top, right, bottom, left] in mm
-          // Use equal margins on all sides to prevent text cutoff
-          // Standard margins: 10mm on all sides (prevents cutoff, maintains balance)
-          const marginMm = 10;
-          const opt = {
-            margin: [marginMm, marginMm, marginMm, marginMm], // Equal margins on all sides
-            filename: (document.getElementById('name').value||'resume')+'.pdf',
-            image: {type: 'jpeg', quality: 0.98},
-            html2canvas: {
-              scale: 2,
-              useCORS: true,
-              logging: false,
-              scrollY: 0,
-              scrollX: 0,
-              windowWidth: computedWidth,
-              windowHeight: computedHeight,
-              backgroundColor: '#ffffff',
-              removeContainer: false,
-              allowTaint: false,
-              width: computedWidth,
-              height: computedHeight
-            },
-            jsPDF: {unit: 'mm', format: 'a4', orientation: 'portrait'}
-          };
-          
-          // Capture clone directly (it has padding and background applied)
-          html2pdf().set(opt).from(clone).save().then(() => {
-            if (document.body.contains(wrapper)) {
-              document.body.removeChild(wrapper);
-            }
-          }).catch((err) => {
-            console.error('PDF generation error:', err);
-            if (document.body.contains(wrapper)) {
-              document.body.removeChild(wrapper);
-            }
-            alert('Error generating PDF. Please try again.');
-          });
-        }, 100);
-      };
-      
-      if (totalImages > 0) {
-        images.forEach(img => {
-          if (img.complete && img.naturalWidth > 0) {
-            imagesLoaded++;
-          } else {
-            img.onload = () => {
-              imagesLoaded++;
-              if (imagesLoaded === totalImages) {
-                proceedWithDownload();
-              }
-            };
-            img.onerror = () => {
-              imagesLoaded++;
-              if (imagesLoaded === totalImages) {
-                proceedWithDownload();
-              }
-            };
-            // Force reload if src exists
-            if (img.src) {
-              const src = img.src;
-              img.src = '';
-              img.src = src;
-            }
-          }
-        });
-        if (imagesLoaded === totalImages) {
-          proceedWithDownload();
-        }
-      } else {
-        proceedWithDownload();
-      }
-    });
-  }, 200);
+      // Redirect to print page
+      window.location.href = 'Indian-style-Resume-print.html';
+    } catch (error) {
+      console.error('Error storing resume data:', error);
+      alert('Error preparing resume for print. Please try again.');
+    }
+  }, 100);
 });
 
 document.getElementById('downloadDoc').addEventListener('click', ()=> {
