@@ -1317,6 +1317,17 @@ document.getElementById('downloadHtmlBtn').addEventListener('click', ()=> {
                 } catch (e) {
                     console.error('Error calling loadGlobalFooter:', e);
                 }
+            } else {
+                // Retry footer loading after a delay
+                setTimeout(() => {
+                    if (typeof loadGlobalFooter === 'function') {
+                        try {
+                            loadGlobalFooter();
+                        } catch (e) {
+                            console.error('Error calling loadGlobalFooter (retry):', e);
+                        }
+                    }
+                }, 500);
             }
             if (typeof loadAccountSection === 'function') {
                 try {
