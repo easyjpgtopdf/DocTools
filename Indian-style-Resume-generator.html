@@ -796,9 +796,12 @@ document.getElementById('downloadPdf').addEventListener('click', ()=> {
       
       // Apply padding and styling directly to clone to match preview overlay body
       // Preview overlay body has: padding: 22px, background: linear-gradient(180deg, #ffffff, #f6f9ff)
+      // A4 width = 210mm = 794px, but we need to account for PDF margins
+      // Use max-width instead of fixed width to allow proper scaling
       clone.style.padding = '22px';
       clone.style.background = 'linear-gradient(180deg, #ffffff, #f6f9ff)';
-      clone.style.width = '794px'; // A4 width in pixels (210mm)
+      clone.style.maxWidth = '794px'; // A4 width in pixels (210mm)
+      clone.style.width = 'auto';
       clone.style.height = 'auto';
       clone.style.boxSizing = 'border-box';
       
@@ -827,14 +830,16 @@ document.getElementById('downloadPdf').addEventListener('click', ()=> {
         // Wait a bit more to ensure all content is rendered
         setTimeout(() => {
           // Get actual dimensions from clone (includes padding)
-          const width = Math.max(clone.scrollWidth || 794, 794);
-          const height = Math.max(clone.scrollHeight || 1123, 1123);
+          // Force a reflow to get accurate measurements
+          const computedWidth = clone.offsetWidth || clone.scrollWidth || 794;
+          const computedHeight = clone.offsetHeight || clone.scrollHeight || 1123;
           
           // PDF margins: [top, right, bottom, left] in mm
-          // Clone already has 22px padding, so use minimal margins
-          // This ensures content matches preview popup exactly
+          // Use equal margins on all sides to prevent text cutoff
+          // Standard margins: 10mm on all sides (prevents cutoff, maintains balance)
+          const marginMm = 10;
           const opt = {
-            margin: [5, 5, 5, 5], // Small margins, clone padding handles spacing
+            margin: [marginMm, marginMm, marginMm, marginMm], // Equal margins on all sides
             filename: (document.getElementById('name').value||'resume')+'.pdf',
             image: {type: 'jpeg', quality: 0.98},
             html2canvas: {
@@ -843,11 +848,13 @@ document.getElementById('downloadPdf').addEventListener('click', ()=> {
               logging: false,
               scrollY: 0,
               scrollX: 0,
-              windowWidth: width,
-              windowHeight: height,
+              windowWidth: computedWidth,
+              windowHeight: computedHeight,
               backgroundColor: '#ffffff',
               removeContainer: false,
-              allowTaint: false
+              allowTaint: false,
+              width: computedWidth,
+              height: computedHeight
             },
             jsPDF: {unit: 'mm', format: 'a4', orientation: 'portrait'}
           };
