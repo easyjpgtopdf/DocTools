@@ -2,7 +2,7 @@
 // Free Preview Background Removal (512px GPU-accelerated)
 // CRITICAL: ONLY accepts multipart/form-data - base64 JSON completely removed for 100% consistency
 
-const CLOUDRUN_API_URL = process.env.CLOUDRUN_API_URL_BG_REMOVAL || 'https://bg-removal-birefnet-564572183797.us-central1.run.app';
+const CLOUDRUN_API_URL = process.env.CLOUDRUN_API_URL_BG_REMOVAL || 'https://bg-removal-ai-564572183797.us-central1.run.app';
 
 // For multipart/form-data parsing (Vercel serverless functions)
 let formidable, FormData;

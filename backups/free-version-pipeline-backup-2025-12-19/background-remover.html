@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="css/footer.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: Tahoma, Geneva, Verdana, sans-serif; }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     :root {
       --primary: #4361ee;
       --secondary: #3a0ca3;
@@ -345,7 +345,7 @@
             <i class="fas fa-chevron-down" style="color: #4361ee; transition: transform 0.3s;"></i>
           </div>
           <div class="faq-answer" style="display: none; padding: 0 20px 20px 20px; color: #56607a; line-height: 1.8;">
-            <p>Our AI-powered background removal tool uses advanced neural network technology to automatically detect and remove backgrounds from images. It works with photos, product images, portraits, and documents, providing clean, professional results in seconds.</p>
+            <p>Our AI-powered background removal tool uses advanced BiRefNet neural network to automatically detect and remove backgrounds from images. It works with photos, product images, portraits, and documents, providing clean, professional results in seconds.</p>
           </div>
         </div>
 
@@ -359,8 +359,7 @@
             <p><strong>Free Version (512px):</strong></p>
             <ul style="margin: 10px 0; padding-left: 20px;">
               <li>Maximum resolution: 512px (longest side)</li>
-              <li>Optimized processing at 512px for cost efficiency</li>
-              <li>Industry-level quality with trimap-based edge preservation</li>
+              <li>Industry-level quality with soft alpha edges</li>
               <li>Sharp edges for human images (feather OFF)</li>
               <li>Perfect for web use, social media, thumbnails</li>
               <li>No hand/body parts cut off</li>
@@ -369,9 +368,9 @@
             <p style="margin-top: 15px;"><strong>Premium HD Version:</strong></p>
             <ul style="margin: 10px 0; padding-left: 20px;">
               <li>Resolution: 2000-4000px (up to original size)</li>
-              <li>High-Resolution AI model with GPU acceleration</li>
+              <li>BiRefNet High-Resolution model with TensorRT FP16 acceleration</li>
               <li>Adaptive input processing (1024-1536px on longest side)</li>
-              <li>Advanced fine matting refinement for professional results</li>
+              <li>MaxMatting fine matting refinement for professional results</li>
               <li>Adaptive feathering based on image size (up to 5px for large images)</li>
               <li>Strong halo removal for clean background separation</li>
               <li>Color decontamination for perfect edge quality</li>
@@ -412,8 +411,8 @@
           <div class="faq-answer" style="display: none; padding: 0 20px 20px 20px; color: #56607a; line-height: 1.8;">
             <p><strong>Premium HD Processing Pipeline:</strong></p>
             <ol style="margin: 10px 0; padding-left: 20px;">
-              <li><strong>AI Semantic Mask:</strong> Advanced AI model generates initial mask with adaptive input resolution (1024-1536px)</li>
-              <li><strong>Advanced Matting Refinement:</strong> Fine matting algorithm refines edges for professional quality</li>
+              <li><strong>BiRefNet Semantic Mask:</strong> Advanced AI model generates initial mask with adaptive input resolution (1024-1536px)</li>
+              <li><strong>MaxMatting Refinement:</strong> Fine matting algorithm refines edges for professional quality</li>
               <li><strong>Composite RGB + Alpha:</strong> Combines original image with refined mask</li>
               <li><strong>Adaptive Feathering:</strong> Smooth edges based on image size (up to 5px for large images)</li>
               <li><strong>Strong Halo Removal:</strong> Removes background color spill from edges</li>
@@ -421,7 +420,7 @@
               <li><strong>Edge Sharpening (Optional):</strong> Enhances details for crisp results</li>
               <li><strong>Final Output:</strong> High-resolution PNG (2000-4000px) ready for professional use</li>
             </ol>
-            <p style="margin-top: 15px;"><strong>GPU Acceleration:</strong> Premium HD uses GPU hardware acceleration for fast processing of large images.</p>
+            <p style="margin-top: 15px;"><strong>GPU Acceleration:</strong> Premium HD uses NVIDIA GPU with TensorRT FP16 for fast processing of large images.</p>
           </div>
         </div>
 
@@ -437,7 +436,7 @@
               <li><strong>SSL Encrypted:</strong> All data transmission is encrypted with 256-bit SSL security</li>
               <li><strong>Automatic Deletion:</strong> Images are automatically deleted from our servers after processing</li>
               <li><strong>No Storage:</strong> We don't store your images permanently</li>
-              <li><strong>Cloud Processing:</strong> Images are processed on secure cloud servers</li>
+              <li><strong>Cloud Processing:</strong> Images are processed on secure Google Cloud Run servers</li>
               <li><strong>Privacy Protected:</strong> Your images are never shared or used for any other purpose</li>
             </ul>
           </div>
@@ -486,8 +485,7 @@
           <div class="faq-answer" style="display: none; padding: 0 20px 20px 20px; color: #56607a; line-height: 1.8;">
             <p>Our Free version uses an optimized formula that provides complete, trustworthy results:</p>
             <ul style="margin: 10px 0; padding-left: 20px;">
-              <li><strong>512px Resolution:</strong> Industry-standard resolution for free tools (optimized processing at 512px)</li>
-              <li><strong>Trimap-Based Processing:</strong> Advanced edge classification (FG=240, BG=15) prevents body part cutting</li>
+              <li><strong>512px Resolution:</strong> Industry-standard resolution for free tools</li>
               <li><strong>Soft Alpha:</strong> Natural edge transitions without harsh cuts</li>
               <li><strong>Feather OFF:</strong> Sharp edges for precise cutouts (human images)</li>
               <li><strong>Alpha Clamp ON:</strong> Ensures minimum alpha for consistent edges</li>

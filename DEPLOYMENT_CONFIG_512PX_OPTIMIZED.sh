@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Deployment script for Background Removal Service to Google Cloud Run
-# Usage: ./deploy-cloudrun.sh [PROJECT_ID] [REGION]
+# OPTIMIZED VERSION: 512px processing + Reduced Resources (8Gi, 2 CPU)
+# Usage: ./DEPLOYMENT_CONFIG_512PX_OPTIMIZED.sh [PROJECT_ID] [REGION]
 
 set -e
 
@@ -11,6 +12,7 @@ SERVICE_NAME="bg-removal-birefnet"
 IMAGE_NAME="gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
 
 echo "🚀 Deploying Background Removal Service to Google Cloud Run"
+echo "📊 OPTIMIZED CONFIGURATION: 512px Processing + Reduced Resources"
 echo "Project: ${PROJECT_ID}"
 echo "Region: ${REGION}"
 echo "Service: ${SERVICE_NAME}"
@@ -26,9 +28,15 @@ docker build -t ${IMAGE_NAME} .
 echo "📤 Pushing image to GCR..."
 docker push ${IMAGE_NAME}
 
-# Deploy to Cloud Run with GPU (OPTIMIZED: 512px processing + Reduced Resources)
+# Deploy to Cloud Run with OPTIMIZED configuration
 echo "🚀 Deploying to Cloud Run with OPTIMIZED Configuration (512px + Reduced Resources)..."
-echo "📊 Configuration: Memory=8Gi, CPU=2, GPU=1xL4, Process=512px"
+echo "📊 Configuration:"
+echo "   - Memory: 8Gi (reduced from 16Gi)"
+echo "   - CPU: 2 vCPU (reduced from 4 vCPU)"
+echo "   - GPU: 1x NVIDIA L4 (same)"
+echo "   - Process Size: 512px (optimized)"
+echo "   - Output Size: 512px (same)"
+
 gcloud run deploy ${SERVICE_NAME} \
   --image ${IMAGE_NAME} \
   --platform managed \
@@ -50,6 +58,10 @@ SERVICE_URL=$(gcloud run services describe ${SERVICE_NAME} --region ${REGION} --
 
 echo "✅ Deployment complete!"
 echo "Service URL: ${SERVICE_URL}"
+echo ""
+echo "📊 Expected Cost Savings:"
+echo "   - 10,000 images: ~$6.78 (vs $13.58 with 768px + 16Gi/4CPU)"
+echo "   - Savings: ~50% reduction"
 echo ""
 echo "Update your Vercel environment variable:"
 echo "CLOUDRUN_API_URL_BG_REMOVAL=${SERVICE_URL}"
