@@ -45,6 +45,9 @@
         selectedQuality: null,
         selectedSize: 'original',
         userId: null,
+        // Batch processing support
+        imageQueue: [], // Array of {file, previewURL, resultURL, status, id}
+        processingQueue: false,
       };
       this.bindElements();
       this.bindEvents();
@@ -74,15 +77,22 @@
         premiumSizeSelection: get(this.selectors.premiumSizeSelection),
         premiumCreditInfo: get(this.selectors.premiumCreditInfo),
         premiumCreditText: get(this.selectors.premiumCreditText),
+        // Batch processing elements
+        multipleImagesGrid: get('#multipleImagesGrid'),
+        imagesGridContainer: get('#imagesGridContainer'),
+        imageCount: get('#imageCount'),
+        clearAllImages: get('#clearAllImages'),
+        processAllBtn: get('#processAllBtn'),
+        downloadAllBtn: get('#downloadAllBtn'),
       };
     }
 
     bindEvents() {
       if (this.el.fileInput) {
         this.el.fileInput.addEventListener('change', async (e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            console.log('File selected:', file.name, file.type, file.size);
+          const files = Array.from(e.target.files || []);
+          if (files.length > 0) {
+            console.log(`Files selected: ${files.length} file(s)`);
             // Check credits BEFORE allowing file upload
             const hasCredits = await this.checkCreditsBeforeUpload();
             if (!hasCredits) {
@@ -90,7 +100,16 @@
               this.el.fileInput.value = '';
               return;
             }
-            this.handleFile(file);
+            // Handle multiple files
+            if (files.length === 1) {
+              // Single file - use existing flow
+              this.handleFile(files[0]);
+            } else {
+              // Multiple files - add to queue
+              this.handleMultipleFiles(files);
+            }
+            // Reset file input to allow same file to be selected again
+            this.el.fileInput.value = '';
           } else {
             console.warn('No file selected');
           }
@@ -191,6 +210,25 @@
       if (this.el.confirmDownload) {
         this.el.confirmDownload.addEventListener('click', () => {
           this.handleDownload();
+        });
+      }
+      
+      // Batch processing handlers
+      if (this.el.clearAllImages) {
+        this.el.clearAllImages.addEventListener('click', () => {
+          this.clearAllImages();
+        });
+      }
+      
+      if (this.el.processAllBtn) {
+        this.el.processAllBtn.addEventListener('click', () => {
+          this.processAllImages();
+        });
+      }
+      
+      if (this.el.downloadAllBtn) {
+        this.el.downloadAllBtn.addEventListener('click', () => {
+          this.downloadAllImages();
         });
       }
     }
@@ -460,6 +498,17 @@
         this.process();
       }, 500);
     }
+    
+    // Reset after processing to allow next upload
+    resetAfterProcessing() {
+      // Keep the result URL but reset processing state
+      this.state.isProcessing = false;
+      // Don't reset file input - allow user to upload again
+      // Reset file input value to allow same file to be selected again
+      if (this.el.fileInput) {
+        this.el.fileInput.value = '';
+      }
+    }
 
     async fileToDataURL(file) {
       return new Promise((resolve, reject) => {
@@ -615,6 +664,9 @@
           this.hideProcessingOverlay();
           
           console.log('✅ Result image displayed successfully');
+          
+          // Reset to allow next upload
+          this.resetAfterProcessing();
         } else {
           console.error('❌ Processing failed:', result);
           throw new Error(result.error || result.message || 'Processing failed');
@@ -625,6 +677,8 @@
         this.hideProcessingOverlay();
       } finally {
         this.state.isProcessing = false;
+        // Reset file input to allow next upload
+        this.resetAfterProcessing();
       }
     }
     
