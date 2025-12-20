@@ -779,8 +779,33 @@ document.getElementById('downloadPdf').addEventListener('click', ()=> {
   loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js', ()=> {
     const el = document.getElementById('previewInner').firstElementChild;
     if(!el) return alert('Nothing to export');
-    const opt = {margin:[12,20,16,20], filename:(document.getElementById('name').value||'resume')+'.pdf', image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2}, jsPDF:{unit:'mm',format:'a4'}};
-    html2pdf().set(opt).from(el).save();
+    // Clone element to ensure full content is captured
+    const clone = el.cloneNode(true);
+    clone.style.position = 'absolute';
+    clone.style.left = '-9999px';
+    clone.style.width = '210mm'; // A4 width
+    clone.style.height = 'auto';
+    clone.style.overflow = 'visible';
+    document.body.appendChild(clone);
+    const opt = {
+      margin: [12, 20, 16, 20],
+      filename: (document.getElementById('name').value||'resume')+'.pdf',
+      image: {type: 'jpeg', quality: 0.98},
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        scrollY: 0,
+        windowWidth: clone.scrollWidth,
+        windowHeight: clone.scrollHeight
+      },
+      jsPDF: {unit: 'mm', format: 'a4', orientation: 'portrait'}
+    };
+    html2pdf().set(opt).from(clone).save().then(() => {
+      document.body.removeChild(clone);
+    }).catch(() => {
+      document.body.removeChild(clone);
+    });
   });
 });
 
