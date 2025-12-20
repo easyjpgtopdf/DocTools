@@ -918,16 +918,15 @@ def process_enterprise_pipeline(input_image, birefnet_session, maxmatting_sessio
     original_width, original_height = input_image.size
     original_megapixels = (original_width * original_height) / 1_000_000
     
-    logger.info(f"🚀 Premium HD Size-Aware Pipeline: {original_width}x{original_height} = {original_megapixels:.2f} MP, type: {image_type}")
+    logger.info(f"🚀 Premium HD Pipeline: {original_width}x{original_height} = {original_megapixels:.2f} MP, type: {image_type}")
     
-    # STEP 1: Resize to EXACT selected size (if provided)
+    # STEP 1: Calculate target size (preserve aspect ratio, no stretching)
+    target_size = None
     if target_width and target_height:
-        # Resize to EXACT target size (do NOT use fixed 3072)
-        input_image = input_image.resize((target_width, target_height), Image.Resampling.LANCZOS)
-        process_width, process_height = target_width, target_height
+        # Calculate selected MP for credit calculation
         selected_mp = (target_width * target_height) / 1_000_000
-        logger.info(f"✅ Resized to EXACT selected size: {target_width}x{target_height} = {selected_mp:.2f} MP")
-        debug_stats["resize_to_exact_size"] = True
+        target_size = (target_width, target_height)
+        logger.info(f"📐 Target size: {target_width}x{target_height} = {selected_mp:.2f} MP (will resize AFTER matting, preserving aspect ratio)")
         debug_stats["target_size"] = f"{target_width}x{target_height}"
     else:
         # No target size - use original (but check max limit)
@@ -935,18 +934,17 @@ def process_enterprise_pipeline(input_image, birefnet_session, maxmatting_sessio
         if original_megapixels > MAX_MP:
             logger.warning(f"Image exceeds {MAX_MP} MP limit ({original_megapixels:.2f} MP), will be downscaled")
             scale = (MAX_MP / original_megapixels) ** 0.5
-            new_width = int(original_width * scale)
-            new_height = int(original_height * scale)
-            input_image = input_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
-            process_width, process_height = input_image.size
-            selected_mp = (process_width * process_height) / 1_000_000
-            logger.info(f"Downscaled to {process_width}x{process_height} = {selected_mp:.2f} MP")
+            target_width = int(original_width * scale)
+            target_height = int(original_height * scale)
+            target_size = (target_width, target_height)
+            selected_mp = (target_width * target_height) / 1_000_000
+            logger.info(f"Target size (downscaled): {target_width}x{target_height} = {selected_mp:.2f} MP")
         else:
-            process_width, process_height = original_width, original_height
             selected_mp = original_megapixels
-        debug_stats["resize_to_exact_size"] = False
+            target_size = None  # Keep original size
+        debug_stats["target_size"] = "original" if not target_size else f"{target_size[0]}x{target_size[1]}"
     
-    # STEP 2: Assign processing tier based on MP
+    # STEP 2: Assign processing tier based on selected MP
     if selected_mp <= 4:
         processing_tier = "SMALL_HD"
     elif selected_mp <= 9:
@@ -960,10 +958,10 @@ def process_enterprise_pipeline(input_image, birefnet_session, maxmatting_sessio
     debug_stats["processing_tier"] = processing_tier
     debug_stats["selected_mp"] = selected_mp
     
-    # Step 3: BiRefNet Semantic Segmentation at EXACT size (NO FEATHER, NO BLUR, NO HALO)
-    logger.info(f"Step 3: BiRefNet semantic mask at {process_width}x{process_height} (NO feather, NO guided filter, NO halo removal)")
+    # STEP 3: BiRefNet Semantic Segmentation at ORIGINAL resolution (NO FEATHER, NO BLUR, NO HALO)
+    logger.info(f"Step 3: BiRefNet semantic mask at ORIGINAL resolution {original_width}x{original_height} (NO feather, NO guided filter, NO halo removal)")
     
-    # Process at EXACT size (no resizing for BiRefNet)
+    # Process at ORIGINAL size (no resizing before BiRefNet)
     process_image = input_image
     
     # Get BiRefNet mask - NO POST-PROCESSING (NO feather, NO blur, NO halo)
@@ -1097,9 +1095,7 @@ def process_enterprise_pipeline(input_image, birefnet_session, maxmatting_sessio
         else:
             alpha_mm = matting_output.convert('L')
         
-        # Resize alpha back if needed (shouldn't be needed since we process at exact size)
-        if alpha_mm.size != input_image.size:
-            alpha_mm = alpha_mm.resize(input_image.size, Image.Resampling.LANCZOS)
+        # Alpha is already at original size (no resize needed)
         
         debug_stats.update({
             "maxmatting_alpha_shape": alpha_mm.size,
