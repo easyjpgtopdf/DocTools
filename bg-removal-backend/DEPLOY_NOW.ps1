@@ -85,6 +85,6 @@ Write-Host "3. Update CLOUDRUN_API_URL_BG_REMOVAL with: $ServiceUrl" -Foreground
 Write-Host "4. Redeploy Vercel frontend (if needed)" -ForegroundColor White
 Write-Host ""
 Write-Host "🧪 Test endpoint:" -ForegroundColor Cyan
-Write-Host "curl -X POST $ServiceUrl/health" -ForegroundColor White
+Write-Host "curl -X POST ${ServiceUrl}/health" -ForegroundColor White
 Write-Host ""
 
