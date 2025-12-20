@@ -65,13 +65,12 @@ textarea{min-height:90px}
 .preview-overlay{position:fixed;inset:0;background:rgba(11,25,60,0.25);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:32px;z-index:999;overflow:auto}
 .preview-overlay.hidden{display:none!important}
 .preview-overlay-inner{background:var(--card);border-radius:16px;box-shadow:0 25px 80px rgba(11,25,60,0.25);max-width:900px;width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(11,25,60,0.08)}
-.preview-overlay-
+.preview-overlay-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(11,25,60,0.08)}
 .preview-overlay-header h3{margin:0;font-family:Poppins;font-weight:700;font-size:18px}
 .overlay-close{background:none;border:none;font-size:26px;line-height:1;color:var(--muted);cursor:pointer;padding:4px}
 .preview-overlay-body{padding:22px;overflow:auto;background:linear-gradient(180deg,#ffffff,#f6f9ff)}
 .no-scroll{overflow:hidden}
 
-.resume-
 .resume{display:flex;flex-direction:column;gap:18px}
 .resume-header-info{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px}
 .resume-header-name{font-family:Poppins;font-weight:700;font-size:20px}
@@ -91,7 +90,6 @@ textarea{min-height:90px}
 
 .section-title{font-weight:600;margin-bottom:6px;color:var(--accent)}
 @media(max-width:600px){
-  .resume-
   .resume-header-meta{width:100%;justify-content:space-between;align-items:flex-end}
   .resume-header-contact{text-align:left}
 }
@@ -420,74 +418,7 @@ function openPreviewOverlay(){
   render();
   const previewContent = document.getElementById('previewInner').innerHTML;
   overlayPreview.innerHTML = previewContent;
-  overlay.cla
-    <section class="faq-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
-            <i class="fas fa-question-circle" style="margin-right: 10px;"></i>
-            Frequently Asked Questions
-        </h2>
-        <div class="faq-container" style="max-width: 800px; margin: 0 auto;">
-            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
-                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
-                    How accurate is the conversion?
-                </h3>
-                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    Our conversion tools maintain 99% accuracy, preserving all formatting, fonts, and layout from your original files.
-                </div>
-            </div>
-            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
-                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
-                    What file sizes are supported?
-                </h3>
-                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    Free users can convert files up to 10MB. Premium users can process files up to 100MB with faster processing.
-                </div>
-            </div>
-            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
-                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
-                    Will my data be secure?
-                </h3>
-                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    Yes, all files are processed securely and automatically deleted after conversion. We never store or share your documents.
-                </div>
-            </div>
-            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
-                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
-                    Can I convert multiple files at once?
-                </h3>
-                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    Yes, premium users can convert multiple files simultaneously. Free users can process one file at a time.
-                </div>
-            </div>
-            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
-                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
-                    What formats are supported?
-                </h3>
-                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    We support all major file formats. Check the tool page for specific format compatibility.
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <script>
-    function toggleFaq(element) {
-        const answer = element.nextElementSibling;
-        const icon = element.querySelector('i');
-        const isOpen = answer.style.display === 'block';
-
-        answer.style.display = isOpen ? 'none' : 'block';
-        icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
-    }
-    </script>
-
-    
-ssList.remove('hidden');
+  overlay.classList.remove('hidden');
   document.body.classList.add('no-scroll');
   overlayPreview.scrollTop = 0;
 }
@@ -881,7 +812,6 @@ document.getElementById('downloadDoc').addEventListener('click', ()=> {
     flex-direction: column;
     gap: 24px;
   }
-  .resume-
   .resume-header-info {
     flex: 1 1 auto;
     min-width: 0;
@@ -1030,52 +960,24 @@ document.getElementById('downloadDoc').addEventListener('click', ()=> {
   .tpl-6 .section-title { color: #fd7e14; }
 </style>`;
 
-  const docHTML = `<!doctype html><html><head><meta charset="utf-8"><title>Indian Style Resume Generator - Online Free Tool | easyjpgtopdf</title>
-    <meta name="description" content="Use our free Indian Style Resume Generator tool online. Fast, secure, and easy to use.">
-    <meta name="keywords" content="indian-style-resume-generator, indian style resume generator, free indian-style-resume-generator, online indian-style-resume-generator">
-    <meta name="robots" content="index, follow">
-    <link rel="canonical" href="https://easyjpgtopdf.com/Indian-style-Resume-generator.html">
-    <link rel="stylesheet" href="css/footer.css">${docStyles}    
-    
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/theme-modern.css">
-                <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "Indian Style Resume Generator - Online Free Tool | easyjpgtopdf",
-      "description": "Use our free Indian Style Resume Generator tool online. Fast, secure, and easy to use.",
-      "url": "https://easyjpgtopdf.com/Indian-style-Resume-generator.html",
-      "inLanguage": "en-US",
-      "isPartOf": {
-        "@type": "WebSite",
-        "name": "easyjpgtopdf",
-        "url": "https://easyjpgtopdf.com"
-      },
-      "publisher": {
-        "@type": "Organization",
-        "name": "easyjpgtopdf",
-        "url": "https://easyjpgtopdf.com"
-      }
-    }
-    </script>
-</head><body>
+  const docHTML = `<!doctype html><html><head><meta charset="utf-8"><title>${nameField || 'Resume'}</title>${docStyles}</head><body><div class="doc-wrapper">${el.outerHTML}</div></body></html>`;
+  const blob = new Blob(['\ufeff', docHTML], {type: 'application/msword'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = (nameField || 'resume') + '.doc'; a.click();
+  setTimeout(()=> URL.revokeObjectURL(url),5000);
+});
 
-        <nav aria-label="Breadcrumb" style="padding: 15px 0; background: #f8f9ff; border-bottom: 1px solid #e2e6ff;">
-        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 24px;">
-            <ol style="list-style: none; display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; align-items: center;">
-                <li><a href="index.html" style="color: #4361ee; text-decoration: none; font-weight: 500; transition: color 0.3s;" onmouseover="this.style.color='#3a0ca3'" onmouseout="this.style.color='#4361ee'">Home</a></li>
-                <li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
-                <li><a href="login.html" style="color: #56607a; font-weight: 500; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#4361ee'" onmouseout="this.style.color='#56607a'">Sign In</a></li>
-                <li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
-                <li><a href="signup.html" style="color: #56607a; font-weight: 500; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#4361ee'" onmouseout="this.style.color='#56607a'">Signup</a></li>
-            </ol>
-        </div>
-    </nav>
-<div class="doc-wrapper">${el.outerHTML}</div>    <script type="module" src="js/auth.js"></script>
+// Download HTML quick
+document.getElementById('downloadHtmlBtn').addEventListener('click', ()=> {
+  const dochtml = '<!doctype html><html>' + document.documentElement.innerHTML + '</html>';
+  const blob = new Blob([dochtml], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'resume_maker_live.html'; a.click();
+  setTimeout(()=> URL.revokeObjectURL(url),5000);
+});
 
-    
-    
+</script>
+
     <section class="feedback-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
         <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
             <i class="fas fa-comments" style="margin-right: 10px;"></i>
@@ -1284,7 +1186,8 @@ document.getElementById('downloadDoc').addEventListener('click', ()=> {
         loadFeedbacks();
     }
     </script>
-<div class="trust-badges" style="text-align: center; padding: 20px; background: linear-gradient(135deg, #f8f9ff, #ffffff); border-radius: 12px; margin: 30px 0; border: 2px solid #e2e6ff;">
+
+    <div class="trust-badges" style="text-align: center; padding: 20px; background: linear-gradient(135deg, #f8f9ff, #ffffff); border-radius: 12px; margin: 30px 0; border: 2px solid #e2e6ff;">
         <div style="display: flex; justify-content: center; align-items: center; gap: 40px; flex-wrap: wrap;">
             <div style="display: flex; align-items: center; gap: 10px;">
                 <i class="fas fa-shield-alt" style="font-size: 2rem; color: #4361ee;"></i>
@@ -1300,137 +1203,58 @@ document.getElementById('downloadDoc').addEventListener('click', ()=> {
                     <div style="color: #56607a; font-size: 0.9rem;">Files Auto-Deleted</div>
                 </div>
             </div>
-            
         </div>
     </div>
-<footer>
-        <div class="container footer-inner">
-            <div class="footer-company-links">
-                <span>Company</span>
-                <a href="index.html#about">About Us</a>
-                <a href="index.html#contact">Contact</a>
-                <a href="pricing.html">Pricing</a>
-                <a href="privacy-policy.html">Privacy Policy</a>
-                <a href="terms-of-service.html">Terms of Service</a>
-                <a href="dmca-en.html">DMCA</a>
-                <a href="blog.html">Blog</a>
-            <a href="sitemap.xml">Sitemap</a>
-                <a href="feedback.html">Feedback</a></div>
-            <p class="footer-brand-line">&copy; easyjpgtopdf &mdash; Free PDF &amp; Image Tools for everyone. All rights reserved.</p>
-                        <p class="footer-credits">
-                Thanks to every open-source contributor powering this site. <a href="attributions.html">See full acknowledgements</a>.
-            </p>
-            <div class="footer-social-search" style="display: flex; align-items: center; justify-content: space-between; margin-top: 20px; padding-top: 20px; border-top: 1px solid #444; flex-wrap: wrap; gap: 15px;">
-                <div class="footer-social-links" style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-                                        <a href="https://x.com/easyjpgtopdf" target="_blank" rel="noopener noreferrer" title="Follow us on X (Twitter)" style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; color: #aaa; text-decoration: none; transition: all 0.3s; border-radius: 50%;" onmouseover="this.style.color='#fff'; this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.color='#aaa'; this.style.background='transparent'">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                        </svg>
-                    </a>
-                                        <a href="https://www.youtube.com/@EasyJpgtoPdf" target="_blank" rel="noopener noreferrer" title="Subscribe to our YouTube channel" style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; color: #aaa; text-decoration: none; transition: all 0.3s; border-radius: 50%;" onmouseover="this.style.color='#fff'; this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.color='#aaa'; this.style.background='transparent'">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                        </svg>
-                    </a>
-                    <div style="display: inline-flex; align-items: center; gap: 8px; color: #aaa; cursor: default;" title="Mobile App Coming Soon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.95-3.24-1.44-2.24-1.01-4.33-1.95-5.99-3.22C2.79 14.25.99 12.12.99 9.12c0-2.23 1.21-4.15 3.29-5.19.4-.2.81-.38 1.24-.52.7-.23 1.23-.52 1.62-.82.49-.38.85-.88 1.06-1.46.19-.57.24-1.17.14-1.8-.09-.63-.29-1.24-.58-1.81L7.76.36c.16-.24.35-.45.57-.62.22-.17.46-.3.72-.4.26-.1.54-.15.82-.15.28 0 .56.05.82.15.26.1.5.23.72.4.22.17.41.38.57.62l1.39 2.06c.29.57.49 1.18.58 1.81.1.63.05 1.23-.14 1.8-.21.58-.57 1.08-1.06 1.46-.39.3-.92.59-1.62.82-.43.14-.84.32-1.24.52-2.08 1.04-3.29 2.96-3.29 5.19 0 3 1.8 5.13 4.5 6.5 1.66 1.27 3.75 2.21 5.99 3.22 1.16.49 2.15.94 3.24 1.44 1.03.48 2.1.55 3.08-.4 1.01-.98 1.01-2.4.01-3.38z"/>
-                        </svg>
-                        <span style="font-size: 0.9rem;">App Coming Soon</span>
-                    </div>
-                </div>
-                <div class="footer-search" style="flex: 1; min-width: 200px; max-width: 300px;">
-                                        <form action="search.html" method="get" style="display: flex; gap: 5px;">
-                        <input type="text" name="q" placeholder="Search our site..." style="flex: 1; padding: 8px 12px; border: 1px solid #555; border-radius: 4px; background: #2a2a2a; color: #fff; font-size: 0.9rem; outline: none;" onfocus="this.style.borderColor='#4361ee'" onblur="this.style.borderColor='#555'">
-                        <button type="submit" style="padding: 8px 15px; background: #4361ee; border: none; border-radius: 4px; color: #fff; cursor: pointer; transition: background 0.3s;" onmouseover="this.style.background='#3a0ca3'" onmouseout="this.style.background='#4361ee'">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-                            </svg>
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </footer>
-</body></html>`;
-  const blob = new Blob(['\ufeff', docHTML], {type: 'application/msword'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = (nameField || 'resume') + '.doc'; a.click();
-  setTimeout(()=> URL.revokeObjectURL(url),5000);
-});
 
-// Download HTML quick
-document.getElementById('downloadHtmlBtn').addEventListener('click', ()=> {
-  const dochtml = '<!doctype html><html>' + document.documentElement.innerHTML + '</html>';
-  const blob = new Blob([dochtml], {type:'text/html'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'resume_maker_live.html'; a.click();
-  setTimeout(()=> URL.revokeObjectURL(url),5000);
-});
-
-</script>
-  
+    <div id="global-footer-placeholder"></div>
 
     <script type="module" src="js/auth.js"></script>
-    <script src="js/global-components.js"></script>
+    <script type="module" src="js/global-components.js"></script>
     <script>
-    // Ensure header loads - multiple attempts to guarantee it works
+    // Ensure header and footer loads
     (function() {
-        function tryLoadHeader() {
+        function tryLoadComponents() {
             if (typeof loadGlobalHeader === 'function') {
                 try {
                     loadGlobalHeader();
-                    return true;
                 } catch (e) {
                     console.error('Error calling loadGlobalHeader:', e);
                 }
             }
-            return false;
-        }
-        
-        // Try immediately if script already loaded
-        if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            if (!tryLoadHeader()) {
-                // Script not loaded yet, wait for it
-                var attempts = 0;
-                var maxAttempts = 60; // 3 seconds total
-                var checkHeader = setInterval(function() {
-                    attempts++;
-                    if (tryLoadHeader() || attempts >= maxAttempts) {
-                        clearInterval(checkHeader);
-                    }
-                }, 50);
+            if (typeof loadGlobalFooter === 'function') {
+                try {
+                    loadGlobalFooter();
+                } catch (e) {
+                    console.error('Error calling loadGlobalFooter:', e);
+                }
             }
-        } else {
-            // Wait for DOM to be ready
-            document.addEventListener('DOMContentLoaded', function() {
-                if (!tryLoadHeader()) {
-                    var attempts = 0;
-                    var maxAttempts = 40;
-                    var checkHeader = setInterval(function() {
-                        attempts++;
-                        if (tryLoadHeader() || attempts >= maxAttempts) {
-                            clearInterval(checkHeader);
-                        }
-                    }, 50);
+            if (typeof loadAccountSection === 'function') {
+                try {
+                    loadAccountSection();
+                } catch (e) {
+                    console.error('Error calling loadAccountSection:', e);
                 }
-            });
+            }
+            if (typeof loadGlobalBreadcrumb === 'function') {
+                try {
+                    loadGlobalBreadcrumb();
+                } catch (e) {
+                    console.error('Error calling loadGlobalBreadcrumb:', e);
+                }
+            }
         }
         
-        // Final backup attempt on window load
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            tryLoadComponents();
+        } else {
+            document.addEventListener('DOMContentLoaded', tryLoadComponents);
+        }
+        
         window.addEventListener('load', function() {
-            setTimeout(function() {
-                if (!document.querySelector('header') && typeof loadGlobalHeader === 'function') {
-                    loadGlobalHeader();
-                }
-            }, 100);
+            setTimeout(tryLoadComponents, 100);
         });
     })();
     </script>
-
-        
 </body>
 </html>
-
-    
 
