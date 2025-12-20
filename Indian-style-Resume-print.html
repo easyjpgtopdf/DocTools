@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Print Resume - Indian Style Resume Generator</title>
+<title>Resume</title>
 <style>
 @page {
   size: A4;
@@ -91,21 +91,34 @@ body {
 }
 /* Print styles */
 @media print {
+  @page {
+    margin: 15mm 15mm 15mm 15mm;
+    size: A4;
+  }
   body {
     background: white;
     padding: 0;
+    margin: 0;
   }
   .print-container {
     max-width: 100%;
     padding: 0;
+    margin: 0;
     box-shadow: none;
     border-radius: 0;
   }
   .print-header {
-    display: none;
+    display: none !important;
   }
   .resume-content {
     padding: 0;
+    margin: 0;
+  }
+  /* Hide any browser print headers/footers */
+  @page {
+    margin: 15mm 15mm 15mm 15mm;
+    size: A4;
+    marks: none;
   }
 }
 /* Resume styles matching preview */
