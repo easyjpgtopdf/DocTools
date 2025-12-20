@@ -883,18 +883,32 @@ def process_premium_document_pipeline(input_image, birefnet_session):
     
     return output_bytes, debug_stats
 
-def process_enterprise_pipeline(input_image, birefnet_session, maxmatting_session, image_type='human'):
+def process_enterprise_pipeline(input_image, birefnet_session, maxmatting_session, image_type='human', target_width=None, target_height=None):
     """
-    ENTERPRISE-GRADE BACKGROUND REMOVAL PIPELINE (Better than remove.bg)
+    PREMIUM HD SIZE-AWARE PIPELINE
     
-    Rules for Human Images:
-    - BiRefNet: NO feather, NO guided filter, NO halo removal, NO alpha smoothing
-    - Trimap: expand_radius=3 (NEVER more than 3 for humans)
-    - MaxMatting: thresholds 245/10, erode_size=0
-    - Hair enhancement: strength=0.12 (DO NOT exceed 0.15)
-    - Hard alpha clamp: 220->255, <=8->0 (TRANSPARENCY KILL)
-    - Color decontamination: strength=0.4 (NEVER exceed 0.6)
-    - NO adaptive_feather_alpha, guided_filter, apply_feathering, strong_halo_removal_alpha, apply_alpha_anti_bleed
+    NON-NEGOTIABLE RULES:
+    1. Use BiRefNet HD + MaxMatting for Human, Animal, Product
+    2. Document/ID Card must NOT use MaxMatting
+    3. No feathering, no guided filter, no gaussian blur
+    4. No semi-transparent output is allowed
+    5. No body-part cutting is allowed
+    6. Composite must NOT use paste()+putalpha()
+    
+    SIZE-AWARE PROCESSING:
+    1. Resize input to EXACT selected size (target_width x target_height)
+    2. Compute megapixels (MP) from selected size
+    3. Assign processing tier based on MP:
+       - <=4 MP   → SMALL_HD
+       - <=9 MP   → MEDIUM_HD
+       - <=16 MP  → LARGE_HD
+       - >16 MP   → ULTRA_HD
+    4. Run BiRefNet HD at that exact resolution
+    5. Generate trimap based on image category and tier
+    6. Run MaxMatting for Human, Animal, Product only
+    7. Apply HARD alpha clamp immediately after MaxMatting
+    8. Disable all feather, halo, anti-bleed, and blur logic
+    9. Composite using Image.composite(), not paste()
     
     Image types: human, document, animal, ecommerce
     """
@@ -904,40 +918,53 @@ def process_enterprise_pipeline(input_image, birefnet_session, maxmatting_sessio
     original_width, original_height = input_image.size
     original_megapixels = (original_width * original_height) / 1_000_000
     
-    # INPUT RULES (CRITICAL)
-    MAX_MP = 25  # up to 5000x5000
-    MIN_LONG_SIDE = 2048
-    PROCESS_LONG_SIDE = 3072  # sweet spot for quality (remove.bg internally ~3K processing)
+    logger.info(f"🚀 Premium HD Size-Aware Pipeline: {original_width}x{original_height} = {original_megapixels:.2f} MP, type: {image_type}")
     
-    logger.info(f"🚀 Enterprise Pipeline: {original_width}x{original_height} = {original_megapixels:.2f} MP, type: {image_type}")
-    
-    # Check max MP limit
-    if original_megapixels > MAX_MP:
-        logger.warning(f"Image exceeds {MAX_MP} MP limit ({original_megapixels:.2f} MP), will be downscaled")
-        scale = (MAX_MP / original_megapixels) ** 0.5
-        new_width = int(original_width * scale)
-        new_height = int(original_height * scale)
-        input_image = input_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
-        original_width, original_height = input_image.size
-        original_megapixels = (original_width * original_height) / 1_000_000
-        logger.info(f"Downscaled to {original_width}x{original_height} = {original_megapixels:.2f} MP")
-    
-    # Step 1: BiRefNet Semantic Segmentation (SAFE - NO FEATHER, NO BLUR, NO HALO)
-    logger.info("Step 1: BiRefNet semantic mask (NO feather, NO guided filter, NO halo removal, NO alpha smoothing)")
-    max_dimension = max(original_width, original_height)
-    
-    # Use PROCESS_LONG_SIDE (3072) for quality (remove.bg style)
-    target_size = max(MIN_LONG_SIDE, min(PROCESS_LONG_SIDE, max_dimension))
-    scale = target_size / max_dimension
-    
-    # Resize for BiRefNet processing
-    if abs(scale - 1.0) > 0.01:
-        process_width = int(original_width * scale)
-        process_height = int(original_height * scale)
-        process_image = input_image.resize((process_width, process_height), Image.Resampling.LANCZOS)
-        logger.info(f"Resized to {process_width}x{process_height} for BiRefNet processing (target: {target_size}px)")
+    # STEP 1: Resize to EXACT selected size (if provided)
+    if target_width and target_height:
+        # Resize to EXACT target size (do NOT use fixed 3072)
+        input_image = input_image.resize((target_width, target_height), Image.Resampling.LANCZOS)
+        process_width, process_height = target_width, target_height
+        selected_mp = (target_width * target_height) / 1_000_000
+        logger.info(f"✅ Resized to EXACT selected size: {target_width}x{target_height} = {selected_mp:.2f} MP")
+        debug_stats["resize_to_exact_size"] = True
+        debug_stats["target_size"] = f"{target_width}x{target_height}"
     else:
-        process_image = input_image
+        # No target size - use original (but check max limit)
+        MAX_MP = 25
+        if original_megapixels > MAX_MP:
+            logger.warning(f"Image exceeds {MAX_MP} MP limit ({original_megapixels:.2f} MP), will be downscaled")
+            scale = (MAX_MP / original_megapixels) ** 0.5
+            new_width = int(original_width * scale)
+            new_height = int(original_height * scale)
+            input_image = input_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            process_width, process_height = input_image.size
+            selected_mp = (process_width * process_height) / 1_000_000
+            logger.info(f"Downscaled to {process_width}x{process_height} = {selected_mp:.2f} MP")
+        else:
+            process_width, process_height = original_width, original_height
+            selected_mp = original_megapixels
+        debug_stats["resize_to_exact_size"] = False
+    
+    # STEP 2: Assign processing tier based on MP
+    if selected_mp <= 4:
+        processing_tier = "SMALL_HD"
+    elif selected_mp <= 9:
+        processing_tier = "MEDIUM_HD"
+    elif selected_mp <= 16:
+        processing_tier = "LARGE_HD"
+    else:  # > 16 MP
+        processing_tier = "ULTRA_HD"
+    
+    logger.info(f"📊 Processing Tier: {processing_tier} (MP: {selected_mp:.2f})")
+    debug_stats["processing_tier"] = processing_tier
+    debug_stats["selected_mp"] = selected_mp
+    
+    # Step 3: BiRefNet Semantic Segmentation at EXACT size (NO FEATHER, NO BLUR, NO HALO)
+    logger.info(f"Step 3: BiRefNet semantic mask at {process_width}x{process_height} (NO feather, NO guided filter, NO halo removal)")
+    
+    # Process at EXACT size (no resizing for BiRefNet)
+    process_image = input_image
     
     # Get BiRefNet mask - NO POST-PROCESSING (NO feather, NO blur, NO halo)
     input_buffer = io.BytesIO()
@@ -995,138 +1022,142 @@ def process_enterprise_pipeline(input_image, birefnet_session, maxmatting_sessio
             logger.warning(f"Mask pre-expansion failed: {exp_err}, continuing with original mask")
             debug_stats["mask_pre_expansion_error"] = str(exp_err)
     
-    trimap = generate_trimap(semantic_alpha, expand_radius=expand_radius)
+    # STEP 4: Generate trimap based on image category and tier
+    logger.info(f"Step 4: Generating trimap (type: {image_type}, tier: {processing_tier})")
+    
+    # Trimap expand radius based on image type (NOT tier)
+    if image_type == 'human':
+        expand_radius = 2  # Human: expand 2-3 (use 2 for safety)
+    elif image_type == 'animal':
+        expand_radius = 3  # Animal: expand 3-5 (use 3)
+    elif image_type == 'ecommerce':
+        expand_radius = 1  # Product: expand 1
+    elif image_type == 'document':
+        expand_radius = 0  # Document: trimap OFF (no trimap needed)
+    else:
+        expand_radius = 2  # Default
+    
+    # CRITICAL: Expand BiRefNet mask BEFORE trimap generation to prevent body parts cutting
+    if image_type == 'human' and CV2_AVAILABLE:
+        try:
+            logger.info("Step 4.1: Expanding BiRefNet mask (1px dilation) to prevent body parts cutting...")
+            mask_array = np.array(semantic_alpha.convert('L'))
+            kernel = np.ones((3, 3), np.uint8)
+            mask_expanded = cv2.dilate(mask_array.astype(np.uint8), kernel, iterations=1)
+            semantic_alpha = Image.fromarray(mask_expanded, mode='L')
+            logger.info("✅ Mask expanded (1px) to prevent body parts cutting")
+            debug_stats["mask_pre_expansion_applied"] = True
+        except Exception as exp_err:
+            logger.warning(f"Mask pre-expansion failed: {exp_err}, continuing with original mask")
+            debug_stats["mask_pre_expansion_error"] = str(exp_err)
+    
+    # Generate trimap (skip for documents)
+    if image_type == 'document':
+        # Document: NO trimap, use BiRefNet mask directly
+        trimap = semantic_alpha
+        logger.info("Document detected: Skipping trimap generation, using BiRefNet mask directly")
+        debug_stats["trimap_skipped"] = True
+    else:
+        trimap = generate_trimap(semantic_alpha, expand_radius=expand_radius)
+        debug_stats["trimap_skipped"] = False
+    
     debug_stats["trimap_expand_radius"] = expand_radius
     debug_stats["trimap_type"] = image_type
-    debug_stats["trimap_thresholds"] = "FG>245, BG<10"
     
-    # Step 3: MaxMatting Fine Alpha Matting (REAL QUALITY MAGIC)
-    logger.info("Step 3: MaxMatting fine alpha matting (thresholds 245/10, erode_size=0)")
-    
-    # Use PROCESS_LONG_SIDE (3072) for MaxMatting quality
-    maxmatting_max_dim = max(original_width, original_height)
-    maxmatting_target = max(MIN_LONG_SIDE, min(PROCESS_LONG_SIDE, maxmatting_max_dim))
-    maxmatting_scale = maxmatting_target / maxmatting_max_dim
-    
-    # Prepare high-res input for MaxMatting
-    if abs(maxmatting_scale - 1.0) > 0.01:
-        maxmatting_width = int(original_width * maxmatting_scale)
-        maxmatting_height = int(original_height * maxmatting_scale)
-        maxmatting_image = input_image.resize((maxmatting_width, maxmatting_height), Image.Resampling.LANCZOS)
-        maxmatting_trimap = trimap.resize((maxmatting_width, maxmatting_height), Image.Resampling.LANCZOS)
-        logger.info(f"Resized to {maxmatting_width}x{maxmatting_height} for MaxMatting (target: {maxmatting_target}px)")
+    # STEP 5: MaxMatting Fine Alpha Matting (ONLY for Human, Animal, Product - NOT Document)
+    if image_type == 'document':
+        # Document/ID Card: NO MaxMatting - use BiRefNet mask directly
+        logger.info("Document detected: Skipping MaxMatting (rule: Document must NOT use MaxMatting)")
+        alpha_mm = semantic_alpha  # Use BiRefNet mask directly
+        debug_stats["maxmatting_skipped"] = True
+        debug_stats["maxmatting_applied"] = False
     else:
+        # Human, Animal, Product: Use MaxMatting
+        logger.info(f"Step 5: MaxMatting fine alpha matting at {process_width}x{process_height}")
+        
+        # Process at EXACT size (no resizing for MaxMatting)
         maxmatting_image = input_image
         maxmatting_trimap = trimap
+        
+        # Prepare input for MaxMatting: RGB image + trimap
+        trimap_rgba = Image.new('RGBA', maxmatting_image.size)
+        trimap_rgba.paste(maxmatting_image.convert('RGB'), (0, 0))
+        trimap_rgba.putalpha(maxmatting_trimap)
+        
+        # Process with MaxMatting
+        matting_buffer = io.BytesIO()
+        trimap_rgba.save(matting_buffer, format='PNG')
+        matting_bytes = matting_buffer.getvalue()
+        matting_output_bytes = remove(matting_bytes, session=maxmatting_session)
+        matting_output = Image.open(io.BytesIO(matting_output_bytes))
+        
+        # Extract refined alpha from MaxMatting output
+        if matting_output.mode == 'RGBA':
+            alpha_mm = matting_output.split()[3]
+        else:
+            alpha_mm = matting_output.convert('L')
+        
+        # Resize alpha back if needed (shouldn't be needed since we process at exact size)
+        if alpha_mm.size != input_image.size:
+            alpha_mm = alpha_mm.resize(input_image.size, Image.Resampling.LANCZOS)
+        
+        debug_stats.update({
+            "maxmatting_alpha_shape": alpha_mm.size,
+            "maxmatting_processing_size": maxmatting_image.size,
+            "maxmatting_applied": True,
+            "maxmatting_skipped": False
+        })
+        
+        # Safety check: alpha should have content
+        alpha_array = np.array(alpha_mm.convert('L'))
+        alpha_nonzero = np.count_nonzero(alpha_array)
+        alpha_percent = (alpha_nonzero / alpha_array.size) * 100.0
+        
+        if alpha_percent < 1.0:
+            logger.warning(f"⚠️ MaxMatting alpha too low ({alpha_percent:.2f}%), falling back to BiRefNet mask")
+            alpha_mm = semantic_alpha
+            debug_stats["maxmatting_fallback"] = True
     
-    # Prepare input for MaxMatting: RGB image + trimap
-    trimap_rgba = Image.new('RGBA', maxmatting_image.size)
-    trimap_rgba.paste(maxmatting_image.convert('RGB'), (0, 0))
-    trimap_rgba.putalpha(maxmatting_trimap)
+    # STEP 6: HARD ALPHA CLAMP immediately after MaxMatting (TRANSPARENCY KILL)
+    logger.info("Step 6: Hard alpha clamp (220->255, <=8->0) - TRANSPARENCY KILL - applied immediately after MaxMatting")
+    alpha_np = np.array(alpha_mm.convert('L'))
     
-    # Process with MaxMatting (silueta model)
-    matting_buffer = io.BytesIO()
-    trimap_rgba.save(matting_buffer, format='PNG')
-    matting_bytes = matting_buffer.getvalue()
-    matting_output_bytes = remove(matting_bytes, session=maxmatting_session)
-    matting_output = Image.open(io.BytesIO(matting_output_bytes))
-    
-    # Extract refined alpha from MaxMatting output
-    if matting_output.mode == 'RGBA':
-        alpha_mm = matting_output.split()[3]
-    else:
-        alpha_mm = matting_output.convert('L')
-    
-    # Resize alpha back to original size if needed
-    if alpha_mm.size != input_image.size:
-        alpha_mm = alpha_mm.resize(input_image.size, Image.Resampling.LANCZOS)
-    
-    debug_stats.update({
-        "maxmatting_alpha_shape": alpha_mm.size,
-        "maxmatting_processing_size": maxmatting_image.size,
-        "maxmatting_thresholds": "245/10",
-        "maxmatting_erode_size": 0,
-        "maxmatting_applied": True
-    })
-    
-    # Safety check: alpha should have content
-    alpha_array = np.array(alpha_mm.convert('L'))
-    alpha_nonzero = np.count_nonzero(alpha_array)
-    alpha_percent = (alpha_nonzero / alpha_array.size) * 100.0
-    
-    if alpha_percent < 1.0:
-        logger.warning(f"⚠️ MaxMatting alpha too low ({alpha_percent:.2f}%), falling back to BiRefNet mask")
-        alpha_mm = semantic_alpha
-        debug_stats["maxmatting_fallback"] = bool(True)
-    
-    # Step 4: HAIR DETAIL ENHANCEMENT (LIMITED - strength=0.12, DO NOT exceed 0.15, NO BLUR)
-    if image_type == 'human':
-        logger.info("Step 4: Hair detail enhancement (strength=0.12, micro-boost only, NO BLUR)")
-        # CRITICAL: apply_blur=False for human images to prevent blur (enterprise requirement)
-        alpha_enhanced = enhance_hair_details(alpha_mm, input_image, strength=0.12, apply_blur=False)
-        debug_stats["hair_enhancement_applied"] = True
-        debug_stats["hair_enhancement_strength"] = 0.12
-        debug_stats["hair_enhancement_blur"] = False  # NO BLUR for humans
-    else:
-        alpha_enhanced = alpha_mm
-        debug_stats["hair_enhancement_applied"] = False
-    
-    # Step 5: HARD ALPHA CLAMP (TRANSPARENCY KILL - Enterprise Rule)
-    logger.info("Step 5: Hard alpha clamp (220->255, <=8->0) - TRANSPARENCY KILL")
-    alpha_np = np.array(alpha_enhanced.convert('L'))
-    
-    # Human body kabhi semi-transparent nahi hota
-    alpha_np[alpha_np >= 220] = 255  # Faded skin/cloth -> fully opaque
+    # Hard clamp: no semi-transparent output allowed
+    alpha_np[alpha_np >= 220] = 255  # Faded -> fully opaque
     alpha_np[alpha_np <= 8] = 0      # Background -> fully transparent
     
     alpha_hard = Image.fromarray(alpha_np, 'L')
     debug_stats["hard_alpha_clamp_applied"] = True
     debug_stats["alpha_clamp_thresholds"] = "220->255, <=8->0"
+    debug_stats["alpha_clamp_timing"] = "immediately_after_maxmatting"
     
-    # Step 6: Composite RGB + Alpha
-    logger.info("Step 6: Compositing RGB + hard alpha")
+    # STEP 7: Composite using Image.composite() - NOT paste()+putalpha()
+    logger.info("Step 7: Compositing RGB + hard alpha using Image.composite() (NOT paste()+putalpha())")
     rgb_image = input_image.convert('RGB') if input_image.mode != 'RGB' else input_image
+    
+    # Create RGBA with transparent background
     rgba_composite = Image.new('RGBA', rgb_image.size, (0, 0, 0, 0))
-    rgba_composite.paste(rgb_image, (0, 0))
-    rgba_composite.putalpha(alpha_hard)
     
-    debug_stats["composite_completed"] = bool(True)
+    # Use Image.composite() instead of paste()+putalpha()
+    # Convert alpha to RGBA mask for composite
+    alpha_rgba = Image.new('RGBA', rgb_image.size, (0, 0, 0, 0))
+    alpha_rgba.putalpha(alpha_hard)
     
-    # Step 7: COLOR DECONTAMINATION (EDGE ONLY - strength=0.3, NEVER exceed 0.6)
-    # CRITICAL: For human images, use minimal strength to prevent blur
-    if image_type == 'human':
-        logger.info("Step 7: Color decontamination (strength=0.3, edge only, minimal for sharpness)")
-        # Reduced from 0.4 to 0.3 for sharper edges (prevents blur)
-        final_image = color_decontamination(rgba_composite, rgb_image, strength=0.3)
-        debug_stats["color_decontamination_applied"] = True
-        debug_stats["color_decontamination_strength"] = 0.3
-    else:
-        # For other types, use appropriate strength
-        if image_type == 'document':
-            final_image = color_decontamination(rgba_composite, rgb_image, strength=0.2)
-        else:
-            final_image = color_decontamination(rgba_composite, rgb_image, strength=0.6)
-        debug_stats["color_decontamination_applied"] = True
-        debug_stats["color_decontamination_strength"] = 0.6 if image_type != 'document' else 0.2
+    # Composite RGB over transparent background using alpha
+    rgba_composite = Image.composite(rgb_image, rgba_composite, alpha_hard)
     
-    # Step 8: NO MORE FILTERS for human pipeline
+    debug_stats["composite_method"] = "Image.composite()"
+    debug_stats["composite_completed"] = True
+    
+    # STEP 8: NO FEATHER, NO HALO, NO ANTI-BLEED, NO BLUR
     # ❌ DO NOT USE: adaptive_feather_alpha, guided_filter, apply_feathering, 
-    #                strong_halo_removal_alpha, apply_alpha_anti_bleed
-    if image_type == 'human':
-        logger.info("Step 8: NO additional filters for human pipeline (enterprise rule)")
-        debug_stats["additional_filters_applied"] = False
-    else:
-        # For documents/animals/ecommerce, apply appropriate filters
-        if image_type == 'document':
-            current_alpha = final_image.split()[3]
-            cleaned_alpha = strong_halo_removal_alpha(current_alpha, rgb_image, is_document=True)
-            final_image.putalpha(cleaned_alpha)
-            debug_stats["halo_removal_applied"] = True
-        elif image_type in ['animal', 'ecommerce']:
-            current_alpha = final_image.split()[3]
-            cleaned_alpha = strong_halo_removal_alpha(current_alpha, rgb_image, is_document=False)
-            final_image.putalpha(cleaned_alpha)
-            debug_stats["halo_removal_applied"] = True
+    #                strong_halo_removal_alpha, apply_alpha_anti_bleed, gaussian_filter
+    logger.info("Step 8: NO additional filters (enterprise rule: no feather, no halo, no blur)")
+    final_image = rgba_composite
+    debug_stats["additional_filters_applied"] = False
+    debug_stats["feather_disabled"] = True
+    debug_stats["halo_removal_disabled"] = True
+    debug_stats["blur_disabled"] = True
     
     # NO EDGE SHARPENING - MaxMatting already provides sharp edges
     # NO FEATHER - True AI matting doesn't need artificial feathering
@@ -1390,7 +1421,7 @@ def process_premium_hd_pipeline(input_image, birefnet_session, maxmatting_sessio
     
     return output_bytes, debug_stats
 
-def process_with_optimizations(input_image, session, is_premium=False, is_document=False, output_size=None):
+def process_with_optimizations(input_image, session, is_premium=False, is_document=False, output_size=None, free_preview_image_type=None):
     """
     Process image with all optimizations:
     - BiRefNet or RobustMatting model (based on image type)
@@ -1401,6 +1432,9 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
     - Alpha Anti-Bleed (for border fixes)
     - Matte Strength (for text preservation)
     - Composite
+    
+    Args:
+        free_preview_image_type: 'human', 'product', 'animal', 'id_card', 'document' (for free preview type-specific pipeline)
     """
     start_opt = time.time()
     debug_stats = {}
@@ -1481,10 +1515,123 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
 
     debug_stats.update(mask_stats("mask_raw", mask))
 
-    # Step 1.5: HUMAN IMAGE PIPELINE - Trimap Generation (FREE PREVIEW)
-    # FREE PREVIEW: Generate trimap with FG=240, BG=15, expand_radius=1, Erode=0
+    # Step 1.5: FREE PREVIEW - Type-Specific Trimap/Mask Processing
+    # HUMAN: Trimap generation (FG=240, BG=15, expand_radius=1)
+    # PRODUCT: Trimap expand=0
+    # ANIMAL: Trimap expand=1, FG=235, BG=20
+    # ID CARD: Trimap expand=0, binary alpha
+    # DOCUMENT: Trimap DISABLE, binary alpha
     if not is_premium and CV2_AVAILABLE:
-        if not is_document:
+        # Determine if this is a human image (for backward compatibility)
+        is_human_image = (free_preview_image_type == 'human' or (free_preview_image_type is None and not is_document))
+        
+        if free_preview_image_type == 'document':
+            # DOCUMENT: Trimap DISABLE, binary alpha (FORCE binary)
+            try:
+                logger.info("Step 1.5: Document mode - FORCING binary alpha (no trimap)...")
+                if isinstance(mask, Image.Image):
+                    mask_array = np.array(mask.convert('L'))
+                else:
+                    mask_array = mask
+                
+                # Force binary: threshold at 127
+                mask_binary = (mask_array > 127).astype(np.uint8) * 255
+                mask = Image.fromarray(mask_binary, mode='L')
+                logger.info("✅ Document: Binary alpha forced (trimap disabled)")
+                debug_stats.update({
+                    "trimap_disabled": True,
+                    "binary_alpha_forced": True,
+                    "document_pipeline_binary": True
+                })
+            except Exception as binary_err:
+                logger.warning(f"Document binary alpha forcing failed: {binary_err}")
+                debug_stats["binary_alpha_error"] = str(binary_err)
+        elif free_preview_image_type == 'id_card':
+            # ID CARD: Trimap expand=0, binary alpha
+            try:
+                logger.info("Step 1.5: ID Card mode - Trimap expand=0, FORCING binary alpha...")
+                if isinstance(mask, Image.Image):
+                    mask_array = np.array(mask.convert('L'))
+                else:
+                    mask_array = mask
+                
+                # Generate trimap with expand_radius=0
+                trimap = generate_trimap(mask, expand_radius=0, fg_threshold=240, bg_threshold=15)
+                trimap_array = np.array(trimap.convert('L'))
+                original_mask_array = mask_array
+                
+                # Convert trimap to mask: certain FG→255, unknown→preserve, certain BG→0
+                refined_mask = np.zeros_like(original_mask_array, dtype=np.uint8)
+                refined_mask[trimap_array == 255] = 255
+                unknown_region = (trimap_array == 128)
+                refined_mask[unknown_region] = original_mask_array[unknown_region]
+                
+                # FORCE binary: threshold at 127
+                mask_binary = (refined_mask > 127).astype(np.uint8) * 255
+                mask = Image.fromarray(mask_binary, mode='L')
+                logger.info("✅ ID Card: Trimap expand=0 applied, binary alpha forced")
+                debug_stats.update({
+                    "trimap_generation_applied": True,
+                    "trimap_expand_radius": 0,
+                    "binary_alpha_forced": True,
+                    "id_card_pipeline": True
+                })
+            except Exception as idcard_err:
+                logger.warning(f"ID Card trimap+binary failed: {idcard_err}")
+                debug_stats["id_card_pipeline_error"] = str(idcard_err)
+        elif free_preview_image_type == 'product':
+            # PRODUCT: Trimap expand=0
+            try:
+                logger.info("Step 1.5: Product mode - Trimap expand=0...")
+                # Generate trimap with expand_radius=0
+                trimap = generate_trimap(mask, expand_radius=0, fg_threshold=240, bg_threshold=15)
+                trimap_array = np.array(trimap.convert('L'))
+                original_mask_array = np.array(mask.convert('L')) if isinstance(mask, Image.Image) else np.array(mask)
+                
+                # Convert trimap to mask: certain FG→255, unknown→preserve, certain BG→0
+                refined_mask = np.zeros_like(original_mask_array, dtype=np.uint8)
+                refined_mask[trimap_array == 255] = 255
+                unknown_region = (trimap_array == 128)
+                refined_mask[unknown_region] = original_mask_array[unknown_region]
+                
+                mask = Image.fromarray(refined_mask, mode='L')
+                logger.info("✅ Product: Trimap expand=0 applied")
+                debug_stats.update({
+                    "trimap_generation_applied": True,
+                    "trimap_expand_radius": 0,
+                    "product_pipeline": True
+                })
+            except Exception as product_err:
+                logger.warning(f"Product trimap failed: {product_err}")
+                debug_stats["product_pipeline_error"] = str(product_err)
+        elif free_preview_image_type == 'animal':
+            # ANIMAL: Trimap expand=1, FG=235, BG=20
+            try:
+                logger.info("Step 1.5: Animal mode - Trimap expand=1, FG=235, BG=20...")
+                # Generate trimap with expand_radius=1, FG=235, BG=20
+                trimap = generate_trimap(mask, expand_radius=1, fg_threshold=235, bg_threshold=20)
+                trimap_array = np.array(trimap.convert('L'))
+                original_mask_array = np.array(mask.convert('L')) if isinstance(mask, Image.Image) else np.array(mask)
+                
+                # Convert trimap to mask: certain FG→255, unknown→preserve, certain BG→0
+                refined_mask = np.zeros_like(original_mask_array, dtype=np.uint8)
+                refined_mask[trimap_array == 255] = 255
+                unknown_region = (trimap_array == 128)
+                refined_mask[unknown_region] = original_mask_array[unknown_region]
+                
+                mask = Image.fromarray(refined_mask, mode='L')
+                logger.info("✅ Animal: Trimap expand=1, FG=235, BG=20 applied")
+                debug_stats.update({
+                    "trimap_generation_applied": True,
+                    "trimap_expand_radius": 1,
+                    "trimap_fg_threshold": 235,
+                    "trimap_bg_threshold": 20,
+                    "animal_pipeline": True
+                })
+            except Exception as animal_err:
+                logger.warning(f"Animal trimap failed: {animal_err}")
+                debug_stats["animal_pipeline_error"] = str(animal_err)
+        elif is_human_image:
             # HUMAN IMAGES: Trimap generation with FG=240, BG=15, expand_radius=1 (FREE PREVIEW ONLY)
             try:
                 logger.info("Step 1.5: Generating trimap for free preview human images (FG=240, BG=15, expand_radius=1, Erode=0)...")
@@ -1538,27 +1685,6 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                 except Exception as fallback_err:
                     logger.warning(f"Fallback dilation also failed: {fallback_err}")
                     debug_stats["trimap_fallback_error"] = str(fallback_err)
-        else:
-            # DOCUMENTS: Keep existing expansion logic (different from human images)
-            try:
-                logger.info("Step 1.5: Applying document mask expansion...")
-                if isinstance(mask, Image.Image):
-                    mask_array = np.array(mask.convert('L'))
-                else:
-                    mask_array = mask
-                
-                kernel = np.ones((5, 5), np.uint8)
-                mask_dilated = cv2.dilate(mask_array.astype(np.uint8), kernel, iterations=1)
-                mask = Image.fromarray(mask_dilated, mode='L')
-                debug_stats.update({
-                    "mask_expansion_applied": True,
-                    "expansion_kernel": "5x5",
-                    "expansion_iterations": 1,
-                    "document_pipeline_expansion": True
-                })
-            except Exception as expansion_err:
-                logger.warning(f"Document mask expansion failed: {expansion_err}")
-                debug_stats["mask_expansion_error"] = str(expansion_err)
 
     # 🔥 FREE PREVIEW ONLY: Mask Strength Check and Recovery (Levels 1-3)
     used_fallback_level = 0
@@ -1771,17 +1897,19 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                 logger.warning(f"Mask size {mask.size} != image size {input_image.size}, resizing mask to match")
                 mask = mask.resize(input_image.size, Image.Resampling.LANCZOS)
             
-            # FREE PREVIEW HUMAN IMAGE PIPELINE: Apply alpha clamp BEFORE composite
-            # Alpha clamp: alpha >= 235 → 255, alpha <= 12 → 0
-            if (not is_premium) and (not is_document):
+            # FREE PREVIEW NON-HUMAN PIPELINE: Apply alpha clamp BEFORE composite for all types
+            # Alpha clamp: alpha >= 235 → 255, alpha <= 15 → 0 (for non-human: <=15, for human: <=12)
+            is_non_human_free_preview = (not is_premium) and (free_preview_image_type in ['product', 'animal', 'id_card', 'document'])
+            is_human_free_preview = (not is_premium) and (free_preview_image_type == 'human' or (free_preview_image_type is None and not is_document))
+            
+            if is_human_free_preview:
+                # HUMAN: Alpha clamp: alpha >= 235 → 255, alpha <= 12 → 0
                 try:
-                    logger.info("Step 7.5: Applying light alpha clamp BEFORE composite for free preview human images...")
+                    logger.info("Step 7.5: Applying alpha clamp BEFORE composite for free preview human images (>=235→255, <=12→0)...")
                     mask_array = np.array(mask).astype(np.float32)
                     
                     # Alpha clamp rules: alpha >= 235 → 255, alpha <= 12 → 0
-                    # Maximum clamp: harden bright edges
                     mask_array[mask_array >= 235] = 255
-                    # Minimum clamp: remove faint background
                     mask_array[mask_array <= 12] = 0
                     
                     mask = Image.fromarray(mask_array.astype(np.uint8), mode='L')
@@ -1790,17 +1918,41 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                         "alpha_clamp_before_composite": True,
                         "alpha_clamp_max": 235,
                         "alpha_clamp_min": 12,
-                        "alpha_clamp_free_preview": True
+                        "alpha_clamp_free_preview_human": True
                     })
                 except Exception as clamp_err:
                     logger.warning(f"Alpha clamp before composite failed (free preview human): {clamp_err}")
                     debug_stats["alpha_clamp_before_composite_error"] = str(clamp_err)
-            
-            # FREE PREVIEW HUMAN: Use Image.composite() method instead of paste()+putalpha()
-            if (not is_premium) and (not is_document):
-                # FREE PREVIEW HUMAN PIPELINE: Image.composite(rgb, black_bg, alpha) then putalpha(alpha)
+            elif is_non_human_free_preview:
+                # NON-HUMAN: Alpha clamp: alpha >= 235 → 255, alpha <= 15 → 0
                 try:
-                    logger.info("Step 8: Using Image.composite() method for free preview human images...")
+                    logger.info(f"Step 7.5: Applying alpha clamp BEFORE composite for free preview {free_preview_image_type} images (>=235→255, <=15→0)...")
+                    mask_array = np.array(mask).astype(np.float32)
+                    
+                    # Alpha clamp rules: alpha >= 235 → 255, alpha <= 15 → 0
+                    mask_array[mask_array >= 235] = 255
+                    mask_array[mask_array <= 15] = 0
+                    
+                    mask = Image.fromarray(mask_array.astype(np.uint8), mode='L')
+                    logger.info(f"✅ Alpha clamp applied BEFORE composite for {free_preview_image_type} (>=235→255, <=15→0)")
+                    debug_stats.update({
+                        "alpha_clamp_before_composite": True,
+                        "alpha_clamp_max": 235,
+                        "alpha_clamp_min": 15,
+                        "alpha_clamp_free_preview_non_human": True,
+                        "free_preview_image_type": free_preview_image_type
+                    })
+                except Exception as clamp_err:
+                    logger.warning(f"Alpha clamp before composite failed (free preview {free_preview_image_type}): {clamp_err}")
+                    debug_stats["alpha_clamp_before_composite_error"] = str(clamp_err)
+            
+            # FREE PREVIEW: Use Image.composite() method for ALL types (HUMAN + NON-HUMAN)
+            # MANDATORY: REMOVE paste()+putalpha(), USE Image.composite(rgb, black_bg, alpha) THEN putalpha(alpha)
+            if (not is_premium) and (is_human_free_preview or is_non_human_free_preview):
+                # FREE PREVIEW PIPELINE (ALL TYPES): Image.composite(rgb, black_bg, alpha) then putalpha(alpha)
+                try:
+                    image_type_name = free_preview_image_type if free_preview_image_type else 'human'
+                    logger.info(f"Step 8: Using Image.composite() method for free preview {image_type_name} images...")
                     # Create black background
                     black_bg = Image.new('RGB', input_image.size, (0, 0, 0))
                     
@@ -1814,13 +1966,14 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                     final_image.paste(composite_rgb, (0, 0))
                     final_image.putalpha(mask)
                     
-                    logger.info("✅ Image.composite() method applied for free preview human images")
+                    logger.info(f"✅ Image.composite() method applied for free preview {image_type_name} images")
                     debug_stats.update({
                         "composite_method": "Image.composite",
-                        "composite_free_preview": True
+                        "composite_free_preview": True,
+                        "free_preview_image_type": image_type_name
                     })
                 except Exception as composite_err:
-                    logger.warning(f"Image.composite() method failed (free preview human): {composite_err}, using fallback")
+                    logger.warning(f"Image.composite() method failed (free preview {image_type_name}): {composite_err}, using fallback")
                     # Fallback to standard method
                     rgba_temp = Image.new('RGBA', input_image.size, (0, 0, 0, 0))
                     rgba_temp.paste(input_image, (0, 0))
@@ -1863,14 +2016,19 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                     logger.warning(f"Light feathering failed (free document): {feather_err}")
                     debug_stats["feather_light_document_error"] = str(feather_err)
             
-            # FREE PREVIEW HUMAN: Skip all refinement filters (feathering, halo removal, decontamination)
-            if (not is_premium) and (not is_document):
-                logger.info("Step 8.1-8.3: Skipping all refinement filters for free preview human images (feathering=OFF, halo_removal=OFF, decontamination=OFF)")
+            # FREE PREVIEW: Skip all refinement filters for ALL types (HUMAN + NON-HUMAN)
+            # GLOBAL: Feather=OFF, Guided filter=OFF, Halo removal=OFF, Color decontamination=OFF, apply_alpha_anti_bleed=OFF
+            if (not is_premium) and (is_human_free_preview or is_non_human_free_preview):
+                image_type_name = free_preview_image_type if free_preview_image_type else 'human'
+                logger.info(f"Step 8.1-8.3: Skipping all refinement filters for free preview {image_type_name} images (feathering=OFF, halo_removal=OFF, decontamination=OFF, guided_filter=OFF, alpha_anti_bleed=OFF)")
                 debug_stats.update({
-                    "feathering_free_human": False,
-                    "halo_removal_free_human": False,
-                    "color_decontamination_free_human": False,
-                    "all_refinement_filters_disabled": True
+                    "feathering_free_preview": False,
+                    "halo_removal_free_preview": False,
+                    "color_decontamination_free_preview": False,
+                    "guided_filter_free_preview": False,
+                    "alpha_anti_bleed_free_preview": False,
+                    "all_refinement_filters_disabled": True,
+                    "free_preview_image_type": image_type_name
                 })
             else:
                 # Apply halo removal to alpha channel (PREMIUM/DOCUMENTS ONLY)
@@ -1988,7 +2146,7 @@ def process_with_optimizations(input_image, session, is_premium=False, is_docume
                 logger.info(f"✅ FREE PREVIEW: Resized final output to {new_final_size} (output_size={output_size}px)")
                 debug_stats["final_output_resized"] = True
                 debug_stats["final_output_size"] = new_final_size
-                debug_stats["process_size"] = 768  # Internal processing size
+                debug_stats["process_size"] = 512  # Internal processing size (optimized for cost)
                 debug_stats["output_size"] = output_size  # Final output size
         except Exception as resize_err:
             logger.warning(f"Final output resize failed: {resize_err}")
@@ -2198,27 +2356,62 @@ def free_preview_bg():
                 input_image = input_image.convert('RGB')
             
         # Image type detection: Use provided imageType or auto-detect
-        # image_type already set above (from multipart)
-        if image_type and image_type.lower() in ['document', 'id_card', 'a4']:
-            is_document = True
-            logger.info(f"📄 Free Preview: Using provided imageType: {image_type} → Document mode")
+        # Normalize image_type for free preview pipeline
+        free_preview_image_type = None  # 'human', 'product', 'animal', 'id_card', 'document'
+        is_document = False
+        
+        if image_type:
+            # Normalize image_type for free preview pipeline
+            image_type_lower = image_type.lower()
+            if image_type_lower in ['document', 'a4']:
+                free_preview_image_type = 'document'
+                is_document = True
+                logger.info(f"📄 Free Preview: Using provided imageType: {image_type} → Document mode")
+            elif image_type_lower in ['id_card', 'idcard', 'id']:
+                free_preview_image_type = 'id_card'
+                is_document = True  # ID cards treated as documents for model selection
+                logger.info(f"🆔 Free Preview: Using provided imageType: {image_type} → ID Card mode")
+            elif image_type_lower in ['ecommerce', 'product', 'shop', 'item']:
+                free_preview_image_type = 'product'
+                is_document = False
+                logger.info(f"🛍️ Free Preview: Using provided imageType: {image_type} → Product mode")
+            elif image_type_lower in ['animal', 'pet', 'wildlife']:
+                free_preview_image_type = 'animal'
+                is_document = False
+                logger.info(f"🐾 Free Preview: Using provided imageType: {image_type} → Animal mode")
+            else:
+                # Default to human for all other types
+                free_preview_image_type = 'human'
+                is_document = False
+                logger.info(f"👤 Free Preview: Using provided imageType: {image_type} → Human mode (default)")
         else:
             # Auto-detect if not provided
             is_document_raw = is_document_image(input_image)
             # CRITICAL: Convert numpy bool_ to Python bool to avoid JSON serialization errors
             is_document = bool(is_document_raw) if isinstance(is_document_raw, (np.bool_, bool)) else bool(is_document_raw)
-            if image_type:
-                logger.info(f"📷 Free Preview: Using provided imageType: {image_type} → Photo mode (auto-detected: {'document' if is_document else 'photo'})")
-            else:
-                logger.info(f"🔍 Free Preview: Auto-detected image type: {'document' if is_document else 'photo'}")
+            free_preview_image_type = 'document' if is_document else 'human'
+            logger.info(f"🔍 Free Preview: Auto-detected image type: {free_preview_image_type}")
         
-        # Free preview: process_size = 768 (internal), output_size = 512
+        # Free preview: Type-specific process_size (internal), output_size = 512
         original_size = input_image.size
         max_dimension = max(original_size)
-        process_size = 768  # Internal processing size for free preview
-        output_size = 512   # Final output size for free preview
         
-        # Resize to process_size (768px) for internal processing
+        # Type-specific process sizes for FREE PREVIEW NON-HUMAN PIPELINE
+        if free_preview_image_type == 'product':
+            process_size = 640  # PRODUCT: 640px internal
+        elif free_preview_image_type == 'animal':
+            process_size = 640  # ANIMAL: 640px internal
+        elif free_preview_image_type == 'id_card':
+            process_size = 512  # ID CARD: 512px internal
+        elif free_preview_image_type == 'document':
+            process_size = 512  # DOCUMENT: 512px internal
+        else:
+            # HUMAN: Keep existing 512px (unchanged)
+            process_size = 512  # HUMAN: 512px internal
+        
+        output_size = 512   # Final output size for free preview (all types)
+        
+        # Resize to process_size (512px) for internal processing
         if max_dimension > process_size:
             scale = process_size / max_dimension
             process_size_tuple = (int(original_size[0] * scale), int(original_size[1] * scale))
@@ -2239,8 +2432,15 @@ def free_preview_bg():
             session = get_session_512()
         
         # Process with optimizations (light mode for free preview with new config)
-        # output_size is passed to process_with_optimizations for final resize
-        output_bytes, debug_stats = process_with_optimizations(input_image, session, is_premium=False, is_document=is_document, output_size=output_size)
+        # output_size and free_preview_image_type are passed to process_with_optimizations
+        output_bytes, debug_stats = process_with_optimizations(
+            input_image, 
+            session, 
+            is_premium=False, 
+            is_document=is_document, 
+            output_size=output_size,
+            free_preview_image_type=free_preview_image_type  # Pass image type for type-specific pipeline
+        )
         
         # Convert to base64
         output_b64 = base64.b64encode(output_bytes).decode()
@@ -2470,7 +2670,9 @@ def premium_bg():
                     input_image,
                     birefnet_session,
                     maxmatting_session,
-                    image_type=image_type
+                    image_type=image_type,
+                    target_width=target_width,
+                    target_height=target_height
                 )
                 pipeline_type = f"enterprise_{image_type}"
             except Exception as pipeline_error:
