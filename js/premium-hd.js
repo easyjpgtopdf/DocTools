@@ -821,6 +821,393 @@
       a.click();
       a.remove();
     }
+    
+    // Batch processing functions
+    handleMultipleFiles(files) {
+      files.forEach(file => {
+        const imageId = `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const previewURL = URL.createObjectURL(file);
+        
+        const imageData = {
+          id: imageId,
+          file: file,
+          previewURL: previewURL,
+          resultURL: null,
+          status: 'uploaded', // uploaded, processing, completed, error
+          error: null,
+        };
+        
+        this.state.imageQueue.push(imageData);
+      });
+      
+      this.updateImagesGrid();
+      this.showImagesGrid();
+    }
+    
+    showImagesGrid() {
+      if (this.el.multipleImagesGrid) {
+        this.el.multipleImagesGrid.style.display = 'block';
+      }
+    }
+    
+    hideImagesGrid() {
+      if (this.el.multipleImagesGrid) {
+        this.el.multipleImagesGrid.style.display = 'none';
+      }
+    }
+    
+    updateImagesGrid() {
+      if (!this.el.imagesGridContainer || !this.el.imageCount) return;
+      
+      const queue = this.state.imageQueue;
+      this.el.imageCount.textContent = queue.length;
+      
+      // Clear grid
+      this.el.imagesGridContainer.innerHTML = '';
+      
+      // Add images to grid
+      queue.forEach((imageData, index) => {
+        const imgDiv = document.createElement('div');
+        imgDiv.className = 'image-grid-item';
+        imgDiv.style.cssText = `
+          position: relative;
+          width: 1cm;
+          height: 1cm;
+          border: 2px solid ${imageData.status === 'completed' ? '#4caf50' : imageData.status === 'processing' ? '#ff9800' : '#e0e0e0'};
+          border-radius: 4px;
+          overflow: hidden;
+          cursor: pointer;
+          background: #f5f5f5;
+        `;
+        
+        const img = document.createElement('img');
+        img.src = imageData.previewURL;
+        img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+        img.alt = imageData.file.name;
+        
+        // Status overlay
+        const statusOverlay = document.createElement('div');
+        statusOverlay.style.cssText = `
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(0,0,0,0.5);
+          color: white;
+          font-size: 0.6rem;
+          font-weight: bold;
+        `;
+        
+        if (imageData.status === 'processing') {
+          statusOverlay.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        } else if (imageData.status === 'completed') {
+          statusOverlay.innerHTML = '<i class="fas fa-check"></i>';
+        } else if (imageData.status === 'error') {
+          statusOverlay.innerHTML = '<i class="fas fa-times"></i>';
+        } else {
+          statusOverlay.style.display = 'none';
+        }
+        
+        // Click to preview/download
+        imgDiv.addEventListener('click', () => {
+          if (imageData.status === 'completed' && imageData.resultURL) {
+            // Show in main preview
+            this.showPreview(imageData.file);
+            this.state.resultURL = imageData.resultURL;
+            this.state.file = imageData.file;
+            if (this.el.resultImage) {
+              this.el.resultImage.src = imageData.resultURL;
+              this.el.resultImage.hidden = false;
+              this.el.resultImage.style.display = 'block';
+            }
+            if (this.el.downloadButton) {
+              this.el.downloadButton.disabled = false;
+            }
+          } else if (imageData.status === 'uploaded') {
+            // Process this image
+            this.processImageInQueue(imageData.id);
+          }
+        });
+        
+        // Delete button
+        const deleteBtn = document.createElement('button');
+        deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+        deleteBtn.style.cssText = `
+          position: absolute;
+          top: 2px;
+          right: 2px;
+          width: 16px;
+          height: 16px;
+          border: none;
+          background: rgba(255,0,0,0.7);
+          color: white;
+          border-radius: 50%;
+          cursor: pointer;
+          font-size: 0.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        `;
+        deleteBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.removeImageFromQueue(imageData.id);
+        });
+        
+        imgDiv.appendChild(img);
+        imgDiv.appendChild(statusOverlay);
+        imgDiv.appendChild(deleteBtn);
+        this.el.imagesGridContainer.appendChild(imgDiv);
+      });
+      
+      // Update buttons
+      if (this.el.processAllBtn) {
+        const hasUnprocessed = queue.some(img => img.status === 'uploaded');
+        this.el.processAllBtn.disabled = !hasUnprocessed || this.state.processingQueue;
+      }
+      
+      if (this.el.downloadAllBtn) {
+        const hasCompleted = queue.some(img => img.status === 'completed');
+        this.el.downloadAllBtn.disabled = !hasCompleted;
+      }
+    }
+    
+    removeImageFromQueue(imageId) {
+      const index = this.state.imageQueue.findIndex(img => img.id === imageId);
+      if (index !== -1) {
+        const imageData = this.state.imageQueue[index];
+        // Revoke object URL
+        if (imageData.previewURL) {
+          URL.revokeObjectURL(imageData.previewURL);
+        }
+        this.state.imageQueue.splice(index, 1);
+        this.updateImagesGrid();
+        
+        if (this.state.imageQueue.length === 0) {
+          this.hideImagesGrid();
+        }
+      }
+    }
+    
+    clearAllImages() {
+      // Revoke all object URLs
+      this.state.imageQueue.forEach(imageData => {
+        if (imageData.previewURL) {
+          URL.revokeObjectURL(imageData.previewURL);
+        }
+      });
+      
+      this.state.imageQueue = [];
+      this.updateImagesGrid();
+      this.hideImagesGrid();
+      
+      // Reset main preview
+      this.resetUI();
+    }
+    
+    async processImageInQueue(imageId) {
+      const imageData = this.state.imageQueue.find(img => img.id === imageId);
+      if (!imageData || imageData.status === 'processing') return;
+      
+      imageData.status = 'processing';
+      this.updateImagesGrid();
+      
+      try {
+        // Process using existing process function
+        const resultURL = await this.processSingleImage(imageData.file);
+        imageData.resultURL = resultURL;
+        imageData.status = 'completed';
+        this.updateImagesGrid();
+      } catch (error) {
+        console.error(`Error processing image ${imageId}:`, error);
+        imageData.status = 'error';
+        imageData.error = error.message;
+        this.updateImagesGrid();
+      }
+    }
+    
+    async processSingleImage(file) {
+      return new Promise(async (resolve, reject) => {
+        try {
+          const dataURL = await this.fileToDataURL(file);
+          const token = await this.getAuthToken();
+          const userId = await this.getUserId();
+          
+          if (!token || !userId) {
+            throw new Error('Please sign in to use Premium HD.');
+          }
+          
+          // Parse targetSize to get width and height
+          let targetWidth = null;
+          let targetHeight = null;
+          const selectedSize = this.state.targetSize || 'original';
+          
+          if (selectedSize && selectedSize !== 'original') {
+            const sizeMatch = selectedSize.match(/^(\d+)x(\d+)$/);
+            if (sizeMatch) {
+              targetWidth = parseInt(sizeMatch[1], 10);
+              targetHeight = parseInt(sizeMatch[2], 10);
+            }
+          }
+          
+          const body = {
+            imageData: dataURL,
+            userId,
+            targetSize: selectedSize,
+            targetWidth: targetWidth,
+            targetHeight: targetHeight,
+            whiteBackground: true,
+            outputFormat: 'jpg',
+            quality: 100,
+          };
+          
+          const response = await fetch(`${this.apiBaseUrl}${this.endpoint}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(body),
+          });
+          
+          if (!response.ok) {
+            const text = await response.text();
+            let errorData = {};
+            try {
+              errorData = JSON.parse(text);
+            } catch (e) {
+              errorData = { error: text || `Server error: ${response.status}` };
+            }
+            
+            if (response.status === 402) {
+              throw new Error(errorData.message || 'Insufficient credits.');
+            }
+            if (response.status === 401) {
+              throw new Error('Please sign in to use Premium HD.');
+            }
+            
+            throw new Error(errorData.error || errorData.message || `Server error: ${response.status}`);
+          }
+          
+          const result = await response.json();
+          
+          if (result.success && result.resultImage) {
+            resolve(result.resultImage);
+          } else {
+            throw new Error(result.error || result.message || 'Processing failed');
+          }
+        } catch (error) {
+          reject(error);
+        }
+      });
+    }
+    
+    async processAllImages() {
+      if (this.state.processingQueue) {
+        this.setStatus('Processing already in progress...');
+        return;
+      }
+      
+      const unprocessedImages = this.state.imageQueue.filter(img => img.status === 'uploaded');
+      if (unprocessedImages.length === 0) {
+        this.setStatus('No images to process.');
+        return;
+      }
+      
+      this.state.processingQueue = true;
+      if (this.el.processAllBtn) {
+        this.el.processAllBtn.disabled = true;
+        this.el.processAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+      }
+      
+      this.setStatus(`Processing ${unprocessedImages.length} image(s)...`);
+      
+      // Process images one by one
+      for (const imageData of unprocessedImages) {
+        try {
+          await this.processImageInQueue(imageData.id);
+        } catch (error) {
+          console.error(`Error processing ${imageData.id}:`, error);
+        }
+      }
+      
+      this.state.processingQueue = false;
+      if (this.el.processAllBtn) {
+        this.el.processAllBtn.disabled = false;
+        this.el.processAllBtn.innerHTML = '<i class="fas fa-magic"></i> Process All Images';
+      }
+      
+      const completed = this.state.imageQueue.filter(img => img.status === 'completed').length;
+      this.setStatus(`Completed processing ${completed} of ${unprocessedImages.length} image(s).`);
+    }
+    
+    async downloadAllImages() {
+      const completedImages = this.state.imageQueue.filter(img => img.status === 'completed' && img.resultURL);
+      if (completedImages.length === 0) {
+        this.setStatus('No processed images to download.');
+        return;
+      }
+      
+      try {
+        // Load JSZip - check if already loaded
+        if (!window.JSZip) {
+          throw new Error('JSZip library not loaded. Please ensure jszip.min.js is included in the page.');
+        }
+        const JSZip = window.JSZip;
+        const zip = new JSZip();
+        
+        // Add all images to ZIP
+        for (const imageData of completedImages) {
+          try {
+            // Fetch image as blob
+            const response = await fetch(imageData.resultURL);
+            const blob = await response.blob();
+            
+            // Get filename
+            const originalName = imageData.file.name.replace(/\.[^/.]+$/, '');
+            const filename = `${originalName}_bg-removed_${this.state.targetSize || 'original'}.jpg`;
+            
+            zip.file(filename, blob);
+          } catch (error) {
+            console.error(`Error adding ${imageData.file.name} to ZIP:`, error);
+          }
+        }
+        
+        // Generate ZIP
+        this.setStatus('Creating ZIP file...');
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        
+        // Download ZIP
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(zipBlob);
+        a.download = `background-removed-images_${Date.now()}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        
+        // Cleanup
+        URL.revokeObjectURL(a.href);
+        
+        this.setStatus(`Downloaded ${completedImages.length} image(s) as ZIP.`);
+      } catch (error) {
+        console.error('Error creating ZIP:', error);
+        this.showError('Failed to create ZIP file. Please download images individually.');
+      }
+    }
+    
+    // Reset after processing to allow next upload
+    resetAfterProcessing() {
+      // Keep the result URL but reset processing state
+      this.state.isProcessing = false;
+      // Don't reset file input - allow user to upload again
+      // Reset file input value to allow same file to be selected again
+      if (this.el.fileInput) {
+        this.el.fileInput.value = '';
+      }
+    }
   }
 
   // Expose class for manual init
