@@ -9,6 +9,12 @@
   size: A4;
   margin: 15mm 15mm 15mm 15mm;
 }
+@media print {
+  @page {
+    size: A4;
+    margin: 15mm 15mm 15mm 15mm;
+  }
+}
 * {
   box-sizing: border-box;
   margin: 0;
@@ -72,6 +78,16 @@ body {
 .resume-content {
   background: #ffffff;
   padding: 0;
+  max-width: 100%;
+}
+.resume-content .preview-root {
+  padding: 0;
+  margin: 0;
+  background: transparent;
+}
+.resume-content .resume {
+  padding: 0;
+  margin: 0;
 }
 /* Print styles */
 @media print {
