@@ -593,19 +593,10 @@ function render(){
   let html = `<div class="preview-root tpl-${currentTemplate}"><div class="resume">`;
 
   // header - ALWAYS include name/title/mobile/email if available
-  // Photo on LEFT side, name/info on RIGHT side
+  // Photo on RIGHT side, name/info on LEFT side
   const fallbackInitials = (name || 'Your Name').split(' ').map(n => n.charAt(0)).join('').substring(0,2).toUpperCase();
   html += `<div class="resume-header" style="display:flex;align-items:flex-start;gap:20px;">`;
-  // Photo on LEFT
-  html += `<div class="resume-header-meta">
-    <div class="resume-header-photo">`;
-  if(photoDataUrl){
-    html += `<img src="${photoDataUrl}" alt="Profile photo">`;
-  } else {
-    html += `<span class="small" style="font-weight:700;color:var(--muted)">${escape(fallbackInitials)}</span>`;
-  }
-  html += `</div></div>`;
-  // Name and info on RIGHT
+  // Name and info on LEFT
   html += `<div class="resume-header-info" style="flex:1;">
     <div class="resume-header-name">${escape(name||'Your Name')}</div>
     <div class="resume-header-title">${escape(title||'')}</div>
@@ -615,6 +606,15 @@ function render(){
     </div>
     ${address ? `<div class="resume-header-address">${escape(address)}</div>` : ''}
   </div>`;
+  // Photo on RIGHT
+  html += `<div class="resume-header-meta">
+    <div class="resume-header-photo">`;
+  if(photoDataUrl){
+    html += `<img src="${photoDataUrl}" alt="Profile photo">`;
+  } else {
+    html += `<span class="small" style="font-weight:700;color:var(--muted)">${escape(fallbackInitials)}</span>`;
+  }
+  html += `</div></div>`;
   html += `</div>`;
 
   // profile/objective/summary
