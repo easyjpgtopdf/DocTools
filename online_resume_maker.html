@@ -332,74 +332,7 @@
       selectTemplate(1);
     }
 
-    function selectTemplate(i){ selectedTemplate=i; document.querySelectorAll('.thumb').forEach(x=>x.cla
-    <section class="faq-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
-            <i class="fas fa-question-circle" style="margin-right: 10px;"></i>
-            Frequently Asked Questions
-        </h2>
-        <div class="faq-container" style="max-width: 800px; margin: 0 auto;">
-            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
-                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
-                    How accurate is the conversion?
-                </h3>
-                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    Our conversion tools maintain 99% accuracy, preserving all formatting, fonts, and layout from your original files.
-                </div>
-            </div>
-            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
-                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
-                    What file sizes are supported?
-                </h3>
-                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    Free users can convert files up to 10MB. Premium users can process files up to 100MB with faster processing.
-                </div>
-            </div>
-            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
-                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
-                    Will my data be secure?
-                </h3>
-                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    Yes, all files are processed securely and automatically deleted after conversion. We never store or share your documents.
-                </div>
-            </div>
-            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
-                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
-                    Can I convert multiple files at once?
-                </h3>
-                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    Yes, premium users can convert multiple files simultaneously. Free users can process one file at a time.
-                </div>
-            </div>
-            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
-                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
-                    What formats are supported?
-                </h3>
-                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
-                    We support all major file formats. Check the tool page for specific format compatibility.
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <script>
-    function toggleFaq(element) {
-        const answer = element.nextElementSibling;
-        const icon = element.querySelector('i');
-        const isOpen = answer.style.display === 'block';
-
-        answer.style.display = isOpen ? 'none' : 'block';
-        icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
-    }
-    </script>
-
-    
-ssList.remove('active')); const sel=document.getElementById('tpl_'+i); if(sel) sel.classList.add('active'); templateSelect.value=i; renderPreview(); }
+    function selectTemplate(i){ selectedTemplate=i; document.querySelectorAll('.thumb').forEach(x=>x.classList.remove('active')); const sel=document.getElementById('tpl_'+i); if(sel) sel.classList.add('active'); templateSelect.value=i; renderPreview(); }
     templateSelect.addEventListener('change',e=>{ selectTemplate(parseInt(e.target.value)); });
 
     // photo upload
@@ -509,65 +442,6 @@ ssList.remove('active')); const sel=document.getElementById('tpl_'+i); if(sel) s
 
     // escape helper
     function escapeHtml(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
-
-    // Render preview function
-    function renderPreview() {
-        const preview = document.getElementById('previewInner');
-        if (!preview) return;
-        
-        // Get all form values
-        const name = document.getElementById('name')?.value || '';
-        const title = document.getElementById('title')?.value || '';
-        const summary = document.getElementById('summary')?.value || '';
-        const hobbies = document.getElementById('hobbies')?.value || '';
-        const father = document.getElementById('father')?.value || '';
-        const dob = document.getElementById('dob')?.value || '';
-        const marital = document.getElementById('marital')?.value || '';
-        const languages = document.getElementById('languages')?.value || '';
-        
-        // Get selected template
-        const templateSelect = document.getElementById('templateSelect');
-        const template = templateSelect ? templateSelect.value || 'tpl-1' : 'tpl-1';
-        
-        // Generate HTML for preview
-        const html = `
-            <div class="resume-root ${template}">
-                <div class="resume">
-                    <div class="r-header">
-                        <div class="r-photo" id="photoPreview"></div>
-                        <div>
-                            <div class="r-name">${escapeHtml(name) || 'Your Name'}</div>
-                            <div class="r-title">${escapeHtml(title) || 'Professional Title'}</div>
-                        </div>
-                    </div>
-                    <div class="r-sections">
-                        <div class="r-left">
-                            <div class="section">
-                                <div class="label-strong">SUMMARY</div>
-                                <div class="meta">${escapeHtml(summary) || 'Professional summary goes here...'}</div>
-                            </div>
-                            <div class="section">
-                                <div class="label-strong">HOBBIES</div>
-                                <div class="meta">${escapeHtml(hobbies) || 'Your hobbies...'}</div>
-                            </div>
-                        </div>
-                        <div class="r-right">
-                            <div class="section">
-                                <div class="label-strong">PERSONAL DETAILS</div>
-                                <div class="meta">Father: ${escapeHtml(father) || 'N/A'}</div>
-                                <div class="meta">DOB: ${escapeHtml(dob) || 'N/A'}</div>
-                                <div class="meta">Marital: ${escapeHtml(marital) || 'N/A'}</div>
-                                <div class="meta">Languages: ${escapeHtml(languages) || 'N/A'}</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // Update preview
-        preview.innerHTML = html;
-    }
 
     // exports (same as before)
     function loadScript(src,cb){ if(document.querySelector(`script[src="${src}"]`)) return cb(); const s=document.createElement('script'); s.src=src; s.onload=cb; s.onerror=()=>alert('Failed to load '+src); document.head.appendChild(s); }
