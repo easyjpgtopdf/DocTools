@@ -822,6 +822,28 @@
       a.remove();
     }
     
+    // Handle single file to queue (with auto-process)
+    handleFileToQueue(file) {
+      const imageId = `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const previewURL = URL.createObjectURL(file);
+      
+      const imageData = {
+        id: imageId,
+        file: file,
+        previewURL: previewURL,
+        resultURL: null,
+        status: 'uploaded', // uploaded, processing, completed, error
+        error: null,
+      };
+      
+      this.state.imageQueue.push(imageData);
+      this.updateImagesGrid();
+      this.showImagesGrid();
+      
+      // Auto-process with selected size
+      this.processImageInQueue(imageId);
+    }
+    
     // Batch processing functions
     handleMultipleFiles(files) {
       files.forEach(file => {
