@@ -688,10 +688,10 @@
     <div id="global-footer-placeholder"></div>
     <!-- Global footer will be loaded here by global-components.js -->
     
-    <script src="js/global-components.js"></script>
+    <script type="module" src="js/global-components.js"></script>
     <script type="module" src="js/auth.js"></script>
     <script>
-    // Ensure header, breadcrumb, and account section load
+    // Ensure header, breadcrumb, account section, and footer load
     (function() {
         function tryLoadComponents() {
             if (typeof loadGlobalHeader === 'function') {
@@ -699,6 +699,9 @@
                     loadGlobalHeader();
                     loadGlobalBreadcrumb();
                     loadAccountSection();
+                    if (typeof loadGlobalFooter === 'function') {
+                        loadGlobalFooter();
+                    }
                     if (typeof updateBreadcrumbAuthButtons === 'function') {
                         updateBreadcrumbAuthButtons();
                     }

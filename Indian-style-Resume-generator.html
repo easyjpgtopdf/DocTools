@@ -775,45 +775,104 @@ function loadScript(src, cb) {
 }
 
 document.getElementById('downloadPdf').addEventListener('click', ()=> {
+  // Ensure render is complete and content is ready
   render();
-  loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js', ()=> {
-    const el = document.getElementById('previewInner').firstElementChild;
-    if(!el) return alert('Nothing to export');
-    // Clone element to ensure full content is captured
-    const clone = el.cloneNode(true);
-    clone.style.position = 'absolute';
-    clone.style.left = '-9999px';
-    clone.style.width = '210mm'; // A4 width
-    clone.style.height = 'auto';
-    clone.style.overflow = 'visible';
-    document.body.appendChild(clone);
-    const opt = {
-      margin: [12, 20, 16, 20],
-      filename: (document.getElementById('name').value||'resume')+'.pdf',
-      image: {type: 'jpeg', quality: 0.98},
-      html2canvas: {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        scrollY: 0,
-        windowWidth: clone.scrollWidth,
-        windowHeight: clone.scrollHeight
-      },
-      jsPDF: {unit: 'mm', format: 'a4', orientation: 'portrait'}
-    };
-    html2pdf().set(opt).from(clone).save().then(() => {
-      document.body.removeChild(clone);
-    }).catch(() => {
-      document.body.removeChild(clone);
+  // Wait a bit for render to complete and images to load
+  setTimeout(() => {
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js', ()=> {
+      const previewInner = document.getElementById('previewInner');
+      if(!previewInner || !previewInner.firstElementChild) {
+        alert('Nothing to export. Please fill the form first.');
+        return;
+      }
+      const el = previewInner.firstElementChild;
+      // Clone element to ensure full content is captured
+      const clone = el.cloneNode(true);
+      // Ensure images in clone are loaded
+      const images = clone.querySelectorAll('img');
+      let imagesLoaded = 0;
+      const totalImages = images.length;
+      
+      if (totalImages > 0) {
+        images.forEach(img => {
+          if (img.complete) {
+            imagesLoaded++;
+          } else {
+            img.onload = () => {
+              imagesLoaded++;
+              if (imagesLoaded === totalImages) {
+                proceedWithDownload();
+              }
+            };
+            img.onerror = () => {
+              imagesLoaded++;
+              if (imagesLoaded === totalImages) {
+                proceedWithDownload();
+              }
+            };
+          }
+        });
+        if (imagesLoaded === totalImages) {
+          proceedWithDownload();
+        }
+      } else {
+        proceedWithDownload();
+      }
+      
+      function proceedWithDownload() {
+        clone.style.position = 'absolute';
+        clone.style.left = '-9999px';
+        clone.style.width = '210mm'; // A4 width
+        clone.style.height = 'auto';
+        clone.style.overflow = 'visible';
+        clone.style.visibility = 'hidden';
+        document.body.appendChild(clone);
+        
+        // Force reflow to ensure clone is rendered
+        clone.offsetHeight;
+        
+        const opt = {
+          margin: [12, 20, 16, 20],
+          filename: (document.getElementById('name').value||'resume')+'.pdf',
+          image: {type: 'jpeg', quality: 0.98},
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            scrollY: 0,
+            windowWidth: clone.scrollWidth || 210 * 3.779527559, // mm to px
+            windowHeight: clone.scrollHeight || 297 * 3.779527559
+          },
+          jsPDF: {unit: 'mm', format: 'a4', orientation: 'portrait'}
+        };
+        html2pdf().set(opt).from(clone).save().then(() => {
+          if (document.body.contains(clone)) {
+            document.body.removeChild(clone);
+          }
+        }).catch((err) => {
+          console.error('PDF generation error:', err);
+          if (document.body.contains(clone)) {
+            document.body.removeChild(clone);
+          }
+          alert('Error generating PDF. Please try again.');
+        });
+      }
     });
-  });
+  }, 100);
 });
 
 document.getElementById('downloadDoc').addEventListener('click', ()=> {
+  // Ensure render is complete and content is ready
   render();
-  const el = document.getElementById('previewInner').firstElementChild;
-  if(!el) return alert('Nothing to export');
-  const nameField = (document.getElementById('name').value || 'Resume').replace(/[<>]/g,'');
+  // Wait a bit for render to complete
+  setTimeout(() => {
+    const previewInner = document.getElementById('previewInner');
+    if(!previewInner || !previewInner.firstElementChild) {
+      alert('Nothing to export. Please fill the form first.');
+      return;
+    }
+    const el = previewInner.firstElementChild;
+    const nameField = (document.getElementById('name').value || 'Resume').replace(/[<>]/g,'');
   const docStyles = `
 <style>
   @page {
