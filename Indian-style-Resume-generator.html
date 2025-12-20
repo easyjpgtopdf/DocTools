@@ -795,6 +795,7 @@ document.getElementById('downloadPdf').addEventListener('click', ()=> {
       const clone = el.cloneNode(true);
       
       // Create a wrapper div with proper styling - positioned off-screen but visible
+      // Match the preview overlay body styling exactly
       const wrapper = document.createElement('div');
       wrapper.style.position = 'fixed';
       wrapper.style.left = '-9999px';
@@ -802,8 +803,8 @@ document.getElementById('downloadPdf').addEventListener('click', ()=> {
       wrapper.style.width = '794px'; // A4 width in pixels (210mm)
       wrapper.style.height = 'auto';
       wrapper.style.overflow = 'visible';
-      wrapper.style.background = '#ffffff';
-      wrapper.style.padding = '20px';
+      wrapper.style.background = 'linear-gradient(180deg, #ffffff, #f6f9ff)'; // Match preview-overlay-body background
+      wrapper.style.padding = '22px'; // Match preview-overlay-body padding exactly
       wrapper.style.zIndex = '-1';
       wrapper.appendChild(clone);
       document.body.appendChild(wrapper);
@@ -811,7 +812,7 @@ document.getElementById('downloadPdf').addEventListener('click', ()=> {
       // Ensure clone has all necessary classes and styles
       clone.style.width = '100%';
       clone.style.height = 'auto';
-      clone.style.background = '#ffffff';
+      clone.style.background = 'transparent'; // Let wrapper background show through
       
       // Ensure images in clone are loaded
       const images = clone.querySelectorAll('img');
@@ -825,12 +826,16 @@ document.getElementById('downloadPdf').addEventListener('click', ()=> {
         
         // Wait a bit more to ensure all content is rendered
         setTimeout(() => {
-          // Get actual dimensions
-          const width = Math.max(clone.scrollWidth || 794, 794);
-          const height = Math.max(clone.scrollHeight || 1123, 1123);
+          // Get actual dimensions from wrapper (includes padding)
+          const width = Math.max(wrapper.scrollWidth || 794, 794);
+          const height = Math.max(wrapper.scrollHeight || 1123, 1123);
           
+          // PDF margins: [top, right, bottom, left] in mm
+          // Preview overlay body has padding: 22px (≈ 5.8mm)
+          // Use minimal margins since wrapper already has padding
+          // This ensures content matches preview popup exactly
           const opt = {
-            margin: [12, 20, 16, 20],
+            margin: [5, 5, 5, 5], // Small margins, wrapper padding handles spacing
             filename: (document.getElementById('name').value||'resume')+'.pdf',
             image: {type: 'jpeg', quality: 0.98},
             html2canvas: {
@@ -848,7 +853,8 @@ document.getElementById('downloadPdf').addEventListener('click', ()=> {
             jsPDF: {unit: 'mm', format: 'a4', orientation: 'portrait'}
           };
           
-          html2pdf().set(opt).from(clone).save().then(() => {
+          // Use wrapper instead of clone to include padding and background
+          html2pdf().set(opt).from(wrapper).save().then(() => {
             if (document.body.contains(wrapper)) {
               document.body.removeChild(wrapper);
             }
