@@ -30,6 +30,9 @@ def get_credits_from_firebase(user_id: str) -> Optional[int]:
     """
     Get real credits from Firebase Firestore for a logged-in user.
     
+    CRITICAL: NEVER creates or initializes user documents.
+    Only reads existing credits. This prevents overwriting credits.
+    
     Args:
         user_id: Firebase user ID (UID)
     
@@ -42,24 +45,46 @@ def get_credits_from_firebase(user_id: str) -> Optional[int]:
             logger.warning("Firestore client not available, cannot fetch credits")
             return None
         
+        # Validate user_id format (Firebase UIDs are typically 28 characters)
+        if not user_id or user_id == "anonymous" or user_id.startswith("user_") or user_id.startswith("anonymous_"):
+            logger.error(f"INVALID user_id format: {user_id}. This looks like a localStorage ID, not Firebase UID!")
+            logger.error("This will cause credits to show 0. User must be logged in with Firebase.")
+            return None
+        
         # Get user document from Firestore
         user_ref = db.collection('users').document(user_id)
         user_doc = user_ref.get()
         
         if not user_doc.exists:
-            logger.info(f"User {user_id} not found in Firestore")
-            return 0  # New user starts with 0 credits
+            logger.error(f"User {user_id} NOT FOUND in Firestore!")
+            logger.error("This could mean:")
+            logger.error("  1. User is not logged in (using localStorage ID instead of Firebase UID)")
+            logger.error("  2. User document was deleted")
+            logger.error("  3. Wrong user_id being sent from frontend")
+            logger.error("DO NOT create user document here - let frontend/auth handle user creation!")
+            # Return None instead of 0 to prevent overwriting credits
+            return None
         
         user_data = user_doc.to_dict()
         
         # Get credits field (ensure it's a number)
-        credits = user_data.get('credits', 0)
+        credits = user_data.get('credits')
+        
+        # CRITICAL: If credits field doesn't exist, don't assume 0
+        # The user might have credits but field is missing
+        if credits is None:
+            logger.warning(f"User {user_id} exists but 'credits' field is missing. Checking other fields...")
+            # Check if user has other credit-related fields
+            if 'totalCreditsEarned' in user_data or 'totalCreditsUsed' in user_data:
+                logger.warning(f"User {user_id} has credit history but 'credits' field is None. This is a data issue!")
+            # Return None to indicate field is missing (don't assume 0)
+            return None
         
         # Ensure credits is a number
         if isinstance(credits, str):
-            credits = float(credits) if credits else 0
+            credits = float(credits) if credits else None
         elif credits is None:
-            credits = 0
+            return None  # Field exists but is None - don't convert to 0
         
         credits = int(credits) if credits >= 0 else 0
         
@@ -68,6 +93,8 @@ def get_credits_from_firebase(user_id: str) -> Optional[int]:
         
     except Exception as e:
         logger.error(f"Error fetching credits from Firebase for user {user_id}: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return None
 
 
@@ -120,7 +147,9 @@ def deduct_credits_from_firebase(user_id: str, amount: int) -> bool:
             'lastCreditUpdate': firestore.SERVER_TIMESTAMP
         })
         
-        logger.info(f"Deducted {amount} credits from user {user_id}. New balance: {new_credits}")
+        # Calculate new balance for logging
+        new_credits = current_credits - amount
+        logger.info(f"Deducted {amount} credits from user {user_id}. Previous: {current_credits}, New balance: {new_credits}")
         return True
         
     except Exception as e:

@@ -130,6 +130,9 @@ async function getUserId() {
 
 /**
  * Get user ID from localStorage or generate one
+ * 
+ * WARNING: This should only be used as a fallback.
+ * Real credits require Firebase authentication.
  */
 function getLocalStorageUserId() {
     try {
@@ -138,10 +141,16 @@ function getLocalStorageUserId() {
             // Generate a unique ID
             userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
             localStorage.setItem('pdf_excel_user_id', userId);
+            console.warn(`Generated localStorage user_id: ${userId}. This will NOT have real credits!`);
+            console.warn('User must log in with Firebase to access real credits.');
+        } else {
+            console.warn(`Using localStorage user_id: ${userId}. This may not match Firebase UID!`);
         }
         return userId;
     } catch (e) {
-        return 'anonymous_' + Date.now();
+        const fallbackId = 'anonymous_' + Date.now();
+        console.error(`Error getting localStorage user_id, using fallback: ${fallbackId}`);
+        return fallbackId;
     }
 }
 

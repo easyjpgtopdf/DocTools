@@ -47,14 +47,29 @@ def get_credits(user_id: str) -> int:
     """
     Get current credit balance for a user.
     Fetches from Firebase Firestore for real logged-in users.
+    
+    CRITICAL: Returns 0 only if user explicitly has 0 credits in Firebase.
+    Returns 0 if user not found to prevent errors, but logs warning.
     """
     # Try Firebase first (real credits for logged-in users)
     if FIREBASE_AVAILABLE:
         credits = get_credits_from_firebase(user_id)
         if credits is not None:
             return credits
-        # If Firebase returns None (error), fall back to 0 (not in-memory)
-        logger.warning(f"Firebase credit fetch failed for {user_id}, returning 0")
+        # If Firebase returns None (error or user not found)
+        # Check if user_id looks invalid (localStorage ID instead of Firebase UID)
+        if user_id and (user_id.startswith("user_") or user_id.startswith("anonymous_") or user_id == "anonymous"):
+            logger.error(f"CRITICAL: Invalid user_id format detected: {user_id}")
+            logger.error("This is a localStorage ID, not a Firebase UID!")
+            logger.error("User must be logged in with Firebase to access real credits.")
+            logger.error("Returning 0, but this is likely because user is not logged in.")
+        else:
+            logger.error(f"Firebase credit fetch failed for {user_id}. This might indicate:")
+            logger.error("  1. Firebase not initialized properly")
+            logger.error("  2. User ID mismatch (check Firebase UID)")
+            logger.error("  3. Firestore connection issue")
+            logger.error("  4. User document doesn't exist in Firestore")
+        logger.error("Returning 0 as fallback, but this may be incorrect if user has credits!")
         return 0
     
     # Fallback: in-memory (development/testing only)

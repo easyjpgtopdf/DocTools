@@ -137,17 +137,34 @@ async def health():
 async def get_credits_endpoint(request: Request):
     """
     Get current credit balance for the user.
+    Includes debug info to help diagnose credit issues.
     """
     try:
         user_id = get_user_id(request)
+        logger.info(f"Credit check request for user_id: {user_id}")
+        
         credit_info = get_credit_info(user_id)
+        current_credits = credit_info.get("credits", 0)
+        
+        # Log detailed info for debugging
+        logger.info(f"User {user_id} credits: {current_credits}")
+        logger.info(f"Credit info: {credit_info}")
+        
         return {
             "success": True,
-            "credits": credit_info["credits"],
-            "created_at": credit_info["created_at"]
+            "credits": current_credits,
+            "created_at": credit_info.get("created_at"),
+            "totalCreditsEarned": credit_info.get("totalCreditsEarned", 0),
+            "totalCreditsUsed": credit_info.get("totalCreditsUsed", 0),
+            "user_id": user_id,  # Include user_id in response for debugging
+            "debug": {
+                "firebase_available": hasattr(credit_info, "error") == False,
+                "has_error": "error" in credit_info
+            }
         }
     except Exception as e:
         logger.error(f"Error getting credits: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Failed to get credits: {str(e)}")
 
 

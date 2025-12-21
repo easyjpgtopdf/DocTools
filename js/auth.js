@@ -100,34 +100,72 @@ async function ensureUserProfile(user, defaults = {}) {
     const userDocRef = doc(db, 'users', user.uid);
     const snapshot = await getDoc(userDocRef);
     if (snapshot.exists()) {
+      // CRITICAL: Get existing data to preserve credits
+      const existingData = snapshot.data();
+      const existingCredits = existingData?.credits;
+      
       if (Object.keys(defaults).length) {
-        await setDoc(
-          userDocRef,
-          {
-            displayName: user.displayName || defaults.displayName || '',
-            email: user.email || defaults.email || '',
-            lastLogin: new Date().toISOString(),
-          },
-          { merge: true }
-        );
+        // Only update non-credit fields, preserve credits
+        const updateData = {
+          displayName: user.displayName || defaults.displayName || existingData?.displayName || '',
+          email: user.email || defaults.email || existingData?.email || '',
+          lastLogin: new Date().toISOString(),
+        };
+        
+        // CRITICAL: Preserve credits if they exist
+        if (existingCredits !== undefined && existingCredits !== null) {
+          updateData.credits = existingCredits;
+          updateData.totalCreditsEarned = existingData?.totalCreditsEarned || 0;
+          updateData.totalCreditsUsed = existingData?.totalCreditsUsed || 0;
+          console.log(`Preserving existing credits for user ${user.uid}: ${existingCredits}`);
+        }
+        
+        await setDoc(userDocRef, updateData, { merge: true });
       }
       return;
     }
 
-    await setDoc(userDocRef, {
+    // CRITICAL: Check if user already exists before setting credits to 0
+    // Only set credits to 0 if this is a truly new user
+    const existingData = snapshot.exists() ? snapshot.data() : null;
+    const existingCredits = existingData?.credits;
+    
+    const userData = {
       displayName: user.displayName || defaults.displayName || '',
       email: user.email || defaults.email || '',
       dob: defaults.dob || '',
       ageVerified: Boolean(defaults.ageVerified),
-      createdAt: new Date().toISOString(),
+      createdAt: existingData?.createdAt || new Date().toISOString(),
       lastLogin: new Date().toISOString(),
-      plan: 'free',
-      totalConversions: 0,
-      // Initialize credit system
-      credits: 0,
-      totalCreditsEarned: 0,
-      totalCreditsUsed: 0,
-    });
+      plan: existingData?.plan || 'free',
+      totalConversions: existingData?.totalConversions || 0,
+    };
+    
+    // CRITICAL: Only initialize credits to 0 if user doesn't exist
+    // If user exists, preserve existing credits
+    if (!snapshot.exists()) {
+      // New user - initialize with 0 credits
+      userData.credits = 0;
+      userData.totalCreditsEarned = 0;
+      userData.totalCreditsUsed = 0;
+      console.log(`Initializing NEW user ${user.uid} with 0 credits`);
+    } else {
+      // Existing user - preserve credits (don't overwrite)
+      if (existingCredits !== undefined) {
+        userData.credits = existingCredits;
+        userData.totalCreditsEarned = existingData?.totalCreditsEarned || 0;
+        userData.totalCreditsUsed = existingData?.totalCreditsUsed || 0;
+        console.log(`Preserving existing credits for user ${user.uid}: ${existingCredits}`);
+      } else {
+        // Credits field missing - initialize to 0 but log warning
+        userData.credits = 0;
+        userData.totalCreditsEarned = existingData?.totalCreditsEarned || 0;
+        userData.totalCreditsUsed = existingData?.totalCreditsUsed || 0;
+        console.warn(`User ${user.uid} exists but credits field missing. Initializing to 0.`);
+      }
+    }
+    
+    await setDoc(userDocRef, userData, { merge: true });
     
     // Initialize credit manager if available
     try {

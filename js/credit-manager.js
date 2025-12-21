@@ -66,7 +66,8 @@ export async function initializeUserCredits(userId) {
     const userDoc = await getDoc(userRef);
     
     if (!userDoc.exists()) {
-      // Create user with initial credits
+      // Create user with initial credits ONLY if user doesn't exist
+      console.log(`Initializing NEW user ${userId} with 0 credits`);
       await setDoc(userRef, {
         credits: 0,
         totalCreditsEarned: 0,
@@ -76,16 +77,32 @@ export async function initializeUserCredits(userId) {
         lastCreditUpdate: serverTimestamp()
       }, { merge: true });
     } else {
-      // Ensure credits field exists
+      // CRITICAL: Only add missing fields, NEVER overwrite existing credits
       const data = userDoc.data();
+      const updateData = {};
+      
+      // Only add fields that are missing, preserve existing values
       if (data.credits === undefined) {
-        await updateDoc(userRef, {
-          credits: 0,
-          totalCreditsEarned: 0,
-          totalCreditsUsed: 0,
-          creditTransactions: [],
-          lastCreditUpdate: serverTimestamp()
-        });
+        console.warn(`User ${userId} exists but credits field missing. Initializing to 0.`);
+        updateData.credits = 0;
+      }
+      if (data.totalCreditsEarned === undefined) {
+        updateData.totalCreditsEarned = 0;
+      }
+      if (data.totalCreditsUsed === undefined) {
+        updateData.totalCreditsUsed = 0;
+      }
+      if (data.creditTransactions === undefined) {
+        updateData.creditTransactions = [];
+      }
+      
+      // Only update if there are fields to add
+      if (Object.keys(updateData).length > 0) {
+        updateData.lastCreditUpdate = serverTimestamp();
+        await updateDoc(userRef, updateData);
+        console.log(`Added missing credit fields for user ${userId}. Preserved existing credits: ${data.credits || 0}`);
+      } else {
+        console.log(`User ${userId} already has all credit fields. Credits: ${data.credits || 0}`);
       }
     }
   } catch (error) {

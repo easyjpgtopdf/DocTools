@@ -66,7 +66,37 @@ module.exports = async function handler(req, res) {
     const userDoc = await userRef.get();
 
     if (!userDoc.exists) {
-      // Initialize user with 0 credits
+      // CRITICAL: Check if this is a valid Firebase UID
+      // If user_id looks like localStorage ID (user_xxx or anonymous_xxx), don't create user
+      if (userId.startsWith('user_') || userId.startsWith('anonymous_') || userId === 'anonymous') {
+        console.error(`CRITICAL: Invalid user_id format: ${userId}. This is a localStorage ID, not Firebase UID!`);
+        console.error('User must be logged in with Firebase to access credits.');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        return res.status(401).json({
+          success: false,
+          error: 'Invalid user ID',
+          message: 'User must be logged in with Firebase. localStorage IDs are not valid.',
+          credits: 0,
+          requires_login: true
+        });
+      }
+      
+      // Only create user if it's a valid Firebase UID format
+      // Firebase UIDs are typically 28 characters, alphanumeric
+      if (userId.length < 20 || !/^[a-zA-Z0-9]+$/.test(userId)) {
+        console.error(`CRITICAL: Suspicious user_id format: ${userId}. Not creating user document.`);
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        return res.status(401).json({
+          success: false,
+          error: 'Invalid user ID format',
+          message: 'User ID does not match Firebase UID format.',
+          credits: 0,
+          requires_login: true
+        });
+      }
+      
+      // Initialize user with 0 credits ONLY if it's a valid Firebase UID
+      console.log(`Creating new user document for Firebase UID: ${userId}`);
       await userRef.set({
         credits: 0,
         totalCreditsEarned: 0,
@@ -81,7 +111,8 @@ module.exports = async function handler(req, res) {
         credits: 0,
         totalCreditsEarned: 0,
         totalCreditsUsed: 0,
-        unlimited: false
+        unlimited: false,
+        is_new_user: true
       });
     }
 
