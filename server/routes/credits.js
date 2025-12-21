@@ -41,17 +41,12 @@ router.get('/tool-costs', (req, res) => {
 });
 
 // Handle OPTIONS requests for CORS preflight BEFORE authentication
+// These handlers ensure OPTIONS requests bypass authentication
 router.options('/create-order', (req, res) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.status(200).end();
 });
 
 router.options('/verify-payment', (req, res) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.status(200).end();
 });
 

@@ -102,12 +102,10 @@ async function verifyFirebaseTokenAndGetUser(token) {
  */
 async function authenticate(req, res, next) {
   try {
-    // Handle OPTIONS requests for CORS preflight
+    // OPTIONS requests are handled by CORS middleware and explicit route handlers
+    // Skip authentication for OPTIONS requests
     if (req.method === 'OPTIONS') {
-      res.header('Access-Control-Allow-Origin', '*');
-      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-      return res.status(200).end();
+      return next();
     }
     
     // Get token from header or cookie
