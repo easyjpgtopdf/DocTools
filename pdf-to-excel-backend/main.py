@@ -309,20 +309,55 @@ async def pdf_to_excel_endpoint(request: Request, file: UploadFile = File(...)):
 @app.post("/api/pdf-to-excel-docai")
 async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(...)):
     """
-    New endpoint: Convert PDF to Excel using Google Document AI.
+    PREMIUM endpoint: Convert PDF to Excel using Google Document AI.
+    
+    SECURITY: This endpoint is PREMIUM ONLY. Free users are blocked.
     
     Workflow:
     1. Validate file
-    2. Check Document AI environment variables
-    3. Process PDF with Document AI (estimate pages or process first)
-    4. Get page count from Document AI response
-    5. Check credits
-    6. Extract tables and create Excel
-    7. Upload Excel to GCS
-    8. Deduct credits
-    9. Return download URL
+    2. Check user type (PREMIUM ONLY - FREE users blocked)
+    3. Check credits (minimum 15 required)
+    4. Check Document AI environment variables
+    5. Process PDF with Document AI
+    6. Get page count from Document AI response
+    7. Check credits again
+    8. Extract tables and create Excel
+    9. Upload Excel to GCS
+    10. Deduct credits
+    11. Return download URL
     """
     try:
+        # Step 1: Get user ID and check user type
+        user_id = get_user_id(request)
+        
+        # Step 2: Check user type from header (FREE users blocked)
+        user_type = request.headers.get("X-User-Type", "").lower()
+        if user_type == "free":
+            logger.warning(f"FREE user {user_id} attempted to access PREMIUM endpoint")
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "Premium feature only",
+                    "message": "This feature requires a Premium subscription. Free users cannot use Document AI (OCR). Please use the basic conversion or upgrade to Premium.",
+                    "user_type": "free",
+                    "required": "premium"
+                }
+            )
+        
+        # Step 3: Check minimum credits (15 required for premium)
+        current_credits = get_credits(user_id)
+        if current_credits < 15:
+            logger.warning(f"User {user_id} has insufficient credits for premium: {current_credits} < 15")
+            return JSONResponse(
+                status_code=402,
+                content={
+                    "insufficient_credits": True,
+                    "message": f"Premium conversion requires at least 15 credits. You have {current_credits}.",
+                    "required": 15,
+                    "available": current_credits,
+                    "minimum_premium_credits": 15
+                }
+            )
         # Step 1: Validate file
         if not file.filename:
             raise HTTPException(status_code=400, detail="No file provided")
@@ -344,8 +379,9 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
             raise HTTPException(status_code=400, detail="File is empty")
         
         logger.info(f"Received PDF file: {file.filename}, size: {file_size} bytes")
+        logger.info(f"Processing PREMIUM conversion for user: {user_id} (type: {user_type or 'premium'})")
         
-        # Step 2: Check Document AI environment variables
+        # Step 4: Check Document AI environment variables
         if not os.environ.get('DOCAI_PROCESSOR_ID'):
             raise HTTPException(
                 status_code=500,
@@ -364,11 +400,7 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
                 detail={"error": "Document AI environment variables not configured", "message": "DOCAI_LOCATION is required"}
             )
         
-        # Step 3: Get user ID
-        user_id = get_user_id(request)
-        logger.info(f"Processing request for user: {user_id}")
-        
-        # Step 4: Process PDF with Document AI (lazy import)
+        # Step 5: Process PDF with Document AI (lazy import)
         # This will return page count and create Excel
         logger.info("Processing PDF with Google Document AI...")
         try:
@@ -391,7 +423,8 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
         
         logger.info(f"PDF processed. Pages: {pages_processed}")
         
-        # Step 5: Check credits (after processing to know exact page count)
+        # Step 6: Check credits (after processing to know exact page count)
+        # Note: Minimum 15 credits already checked, but verify again for actual page count
         if not check_sufficient_credits(user_id, pages_processed):
             return JSONResponse(
                 status_code=402,
@@ -403,12 +436,12 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
                 }
             )
         
-        # Step 6: Deduct credits (only after successful conversion)
+        # Step 7: Deduct credits (only after successful conversion)
         deduct_credits(user_id, pages_processed)
         credits_left = get_credits(user_id)
         logger.info(f"Credits deducted: {pages_processed}, remaining: {credits_left}")
         
-        # Step 7: Return success response
+        # Step 8: Return success response
         return {
             "status": "success",
             "engine": "docai",

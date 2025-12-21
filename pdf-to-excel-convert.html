@@ -281,6 +281,11 @@
 <link href="css/theme-modern.css" rel="stylesheet"/>
 <link rel="stylesheet" href="css/voice-assistant.css">
 <script src="js/voice-assistant.js" defer></script>
+<!-- PDF to Excel FREE + PREMIUM Modules -->
+<script src="js/pdf-excel-user-type.js" defer></script>
+<script src="js/pdf-excel-analysis.js" defer></script>
+<script src="js/pdf-excel-free-converter.js" defer></script>
+<script src="js/pdf-excel-upgrade-popup.js" defer></script>
             <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -354,8 +359,13 @@
 <div class="table-empty">Select a page to inspect its table data.</div>
 </div>
 <div class="convert-actions">
-<button class="btn" id="downloadExcel"><i class="fas fa-file-excel"></i> Download Excel (Textract)</button>
-<button class="btn" id="downloadExcelDocAI" style="background: #0f9d58;"><i class="fas fa-file-excel"></i> Download Excel (DocAI)</button>
+<!-- FREE: Basic Excel (Browser-based) -->
+<button class="btn" id="downloadExcelFree" style="background: #4361ee;"><i class="fas fa-file-excel"></i> Download Excel (Basic)</button>
+<!-- PREMIUM: OCR Excel (Document AI) - Locked for free users -->
+<button class="btn" id="downloadExcelPremium" style="background: #0f9d58; position: relative;" disabled><i class="fas fa-file-excel"></i> Download Excel (OCR / Premium) <i class="fas fa-lock" style="margin-left: 8px; font-size: 12px;"></i></button>
+<!-- Legacy buttons (hidden, kept for backward compatibility) -->
+<button class="btn" id="downloadExcel" style="display: none;"><i class="fas fa-file-excel"></i> Download Excel (Textract)</button>
+<button class="btn" id="downloadExcelDocAI" style="display: none; background: #0f9d58;"><i class="fas fa-file-excel"></i> Download Excel (DocAI)</button>
 <button class="btn secondary" id="backBtn"><i class="fas fa-arrow-left"></i> Back</button>
 <button class="btn secondary" id="refreshBtn"><i class="fas fa-arrows-rotate"></i> Reload file</button>
 </div>
@@ -378,6 +388,10 @@
   const pdfNameEl = document.getElementById('pdfName');
   const selectAllBtn = document.getElementById('selectAll');
   const clearBtn = document.getElementById('clearSelection');
+  // Get new FREE + PREMIUM buttons
+  const downloadBtnFree = document.getElementById('downloadExcelFree');
+  const downloadBtnPremium = document.getElementById('downloadExcelPremium');
+  // Legacy buttons (kept for backward compatibility)
   const downloadBtn = document.getElementById('downloadExcel');
   const downloadDocAIBtn = document.getElementById('downloadExcelDocAI');
   const backBtn = document.getElementById('backBtn');
@@ -388,6 +402,9 @@
   let pdfDoc = null;
   let pageTables = new Map();
   let selected = new Set();
+  let pdfAnalysis = null; // Store PDF analysis results
+  let userType = 'free'; // Default to free
+  let hasPremiumAccess = false; // Premium access status
 
   function showToast(message, isError){
     toastMessage.textContent = message;
@@ -546,6 +563,100 @@
     selected = new Set(Array.from({length: pdfDoc.numPages}, (_,idx)=>idx+1));
     renderTablePreview(null);
     await renderPreview();
+    
+    // FREE + PREMIUM: Analyze PDF and check user type
+    await initializeFreePremiumSystem();
+  }
+  
+  /**
+   * Initialize FREE + PREMIUM system
+   */
+  async function initializeFreePremiumSystem() {
+    try {
+      // Wait for modules to load
+      await waitForModules();
+      
+      // Check user type
+      if (window.PDFExcelUserType) {
+        userType = window.PDFExcelUserType.getUserType();
+        hasPremiumAccess = await window.PDFExcelUserType.hasPremiumAccess();
+      }
+      
+      // Analyze PDF (browser-based, no AI)
+      if (window.PDFExcelAnalysis && pdfDoc) {
+        showToast('Analyzing PDF...', false);
+        pdfAnalysis = await window.PDFExcelAnalysis.analyzePdf(pdfDoc);
+        console.log('PDF Analysis:', pdfAnalysis);
+      }
+      
+      // Update UI based on user type and analysis
+      updateButtonVisibility();
+      
+    } catch (error) {
+      console.error('Error initializing FREE + PREMIUM system:', error);
+      // Fallback to showing all buttons
+      updateButtonVisibility();
+    }
+  }
+  
+  /**
+   * Wait for required modules to load
+   */
+  function waitForModules() {
+    return new Promise((resolve) => {
+      let attempts = 0;
+      const maxAttempts = 50; // 5 seconds max
+      const checkModules = setInterval(() => {
+        attempts++;
+        if (
+          window.PDFExcelUserType &&
+          window.PDFExcelAnalysis &&
+          window.PDFExcelFreeConverter &&
+          window.PDFExcelUpgradePopup
+        ) {
+          clearInterval(checkModules);
+          resolve();
+        } else if (attempts >= maxAttempts) {
+          clearInterval(checkModules);
+          resolve(); // Continue anyway
+        }
+      }, 100);
+    });
+  }
+  
+  /**
+   * Update button visibility based on user type and PDF analysis
+   */
+  function updateButtonVisibility() {
+    if (!downloadBtnFree || !downloadBtnPremium) return;
+    
+    const isFreeUser = userType === 'free' || !hasPremiumAccess;
+    const confidenceHigh = pdfAnalysis && pdfAnalysis.confidence === 'high';
+    
+    // FREE button: Always visible for all users
+    downloadBtnFree.style.display = 'inline-flex';
+    
+    // PREMIUM button: 
+    if (isFreeUser) {
+      // Free users: Show locked button
+      downloadBtnPremium.disabled = true;
+      downloadBtnPremium.style.display = 'inline-flex';
+      downloadBtnPremium.style.opacity = '0.7';
+      downloadBtnPremium.style.cursor = 'not-allowed';
+      
+      // If confidence is low, show warning
+      if (pdfAnalysis && pdfAnalysis.confidence === 'low') {
+        downloadBtnFree.style.opacity = '0.7';
+        showToast('This PDF appears to be scanned. Basic conversion may have limited accuracy.', false);
+      }
+    } else {
+      // Premium users: Show enabled button
+      downloadBtnPremium.disabled = false;
+      downloadBtnPremium.style.display = 'inline-flex';
+      downloadBtnPremium.style.opacity = '1';
+      downloadBtnPremium.style.cursor = 'pointer';
+      downloadBtnPremium.innerHTML = '<i class="fas fa-file-excel"></i> Download Excel (OCR / Premium)';
+    }
   }
 
   async function ensureTableData(pageNumbers){
@@ -557,7 +668,7 @@
   }
 
   // Backend API URL - Cloud Run deployment
-  const API_BASE_URL = 'https://pdf-to-excel-backend-564572183797.us-central1.run.app';
+  const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
   
   async function exportExcel(){
     if(!pdfDoc){
@@ -626,12 +737,181 @@
     tablePreview.innerHTML = '<div class="table-empty">Select a page to inspect its table data.</div>';
   });
 
-  downloadBtn.addEventListener('click', ()=>{
-    exportExcel().catch(err=>{
-      console.error(err);
-      showToast('Failed to export Excel.', true);
+  // FREE conversion handler
+  if (downloadBtnFree) {
+    downloadBtnFree.addEventListener('click', async function() {
+      if (!pdfDoc) {
+        showToast('Load a PDF first.', true);
+        return;
+      }
+      
+      try {
+        downloadBtnFree.disabled = true;
+        showToast('Converting PDF to Excel (Basic)...', false);
+        
+        // Wait for free converter module
+        await waitForModules();
+        
+        if (!window.PDFExcelFreeConverter) {
+          throw new Error('Free converter module not loaded');
+        }
+        
+        // Get selected pages
+        const pagesToConvert = Array.from(selected);
+        
+        // Convert using browser-based extraction
+        const result = await window.PDFExcelFreeConverter.convertPdfToExcelFree(
+          pdfDoc,
+          pagesToConvert.length > 0 ? pagesToConvert : null
+        );
+        
+        if (result.success) {
+          // Download the Excel file
+          const url = URL.createObjectURL(result.blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `converted_${Date.now()}.xlsx`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          
+          showToast(`Success! Converted ${result.pagesProcessed} pages using basic conversion.`, false);
+        } else {
+          throw new Error(result.error || 'Conversion failed');
+        }
+        
+      } catch (error) {
+        console.error('Free conversion error:', error);
+        showToast('Failed to convert: ' + error.message, true);
+        
+        // If confidence is low, suggest upgrade
+        if (pdfAnalysis && pdfAnalysis.confidence === 'low' && window.PDFExcelUpgradePopup) {
+          setTimeout(() => {
+            window.PDFExcelUpgradePopup.showUpgradePopup(
+              'This file needs OCR for accurate Excel conversion. Basic conversion may not work well for scanned PDFs.'
+            );
+          }, 1000);
+        }
+      } finally {
+        downloadBtnFree.disabled = false;
+      }
     });
-  });
+  }
+  
+  // PREMIUM conversion handler
+  if (downloadBtnPremium) {
+    downloadBtnPremium.addEventListener('click', async function() {
+      // Check if user has premium access
+      if (userType === 'free' || !hasPremiumAccess) {
+        // Show upgrade popup
+        if (window.PDFExcelUpgradePopup) {
+          window.PDFExcelUpgradePopup.showUpgradePopup(
+            'This file needs OCR for accurate Excel conversion. Upgrade to Premium to unlock high-accuracy conversion.'
+          );
+        }
+        return;
+      }
+      
+      // Check credits (minimum 15)
+      try {
+        await waitForModules();
+        const credits = await window.PDFExcelUserType.getCreditBalance();
+        const requiredCredits = pdfDoc ? pdfDoc.numPages : 1;
+        
+        if (credits < Math.max(requiredCredits, 15)) {
+          if (window.PDFExcelUpgradePopup) {
+            window.PDFExcelUpgradePopup.showCreditInsufficientPopup(requiredCredits, credits);
+          } else {
+            alert(`You need at least ${Math.max(requiredCredits, 15)} credits. You have ${credits}.`);
+          }
+          return;
+        }
+      } catch (error) {
+        console.warn('Error checking credits:', error);
+      }
+      
+      // Proceed with premium conversion (Document AI)
+      convertPdfToExcelPremium();
+    });
+  }
+  
+  /**
+   * Premium conversion using Document AI
+   */
+  async function convertPdfToExcelPremium() {
+    if (!pdfDoc) {
+      showToast('Load a PDF first.', true);
+      return;
+    }
+    
+    const rec = await getPdf();
+    if (!rec || !rec.blob) {
+      showToast('PDF file not found. Please upload again.', true);
+      location.href = 'pdf-to-excel.html';
+      return;
+    }
+    
+    downloadBtnPremium.disabled = true;
+    showToast('Converting PDF to Excel with OCR (Premium)...', false);
+    
+    try {
+      const fd = new FormData();
+      const pdfFile = new File([rec.blob], rec.name || 'document.pdf', { type: 'application/pdf' });
+      fd.append('file', pdfFile);
+      
+      const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
+      const userId = window.PDFExcelUserType ? window.PDFExcelUserType.getUserId() : 'anonymous';
+      const currentUserType = window.PDFExcelUserType ? window.PDFExcelUserType.getUserType() : 'free';
+      
+      const response = await fetch(`${API_BASE_URL}/api/pdf-to-excel-docai`, {
+        method: 'POST',
+        headers: {
+          'X-User-ID': userId,
+          'X-User-Type': currentUserType  // Backend will block if 'free'
+        },
+        body: fd
+      });
+      
+      const result = await response.json();
+      
+      if (result.insufficient_credits) {
+        if (window.PDFExcelUpgradePopup) {
+          window.PDFExcelUpgradePopup.showCreditInsufficientPopup(
+            result.required || 0,
+            result.available || 0
+          );
+        } else {
+          alert(`Not enough credits. You need ${result.required} credits but only have ${result.available}.`);
+        }
+        downloadBtnPremium.disabled = false;
+        return;
+      }
+      
+      if (!response.ok || (result.status !== 'success' && !result.success)) {
+        throw new Error(result.error || result.detail || result.message || 'Conversion failed');
+      }
+      
+      const pages = result.pagesConverted || result.pagesProcessed || 0;
+      showToast(`Success! Converted ${pages} pages using OCR. Credits left: ${result.creditsLeft}`, false);
+      window.location.href = result.downloadUrl;
+      
+    } catch (err) {
+      console.error('Premium conversion error:', err);
+      showToast('Failed to convert: ' + err.message, true);
+      downloadBtnPremium.disabled = false;
+    }
+  }
+  
+  // Legacy handlers (kept for backward compatibility)
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', ()=>{
+      exportExcel().catch(err=>{
+        console.error(err);
+        showToast('Failed to export Excel.', true);
+      });
+    });
+  }
 
   // Document AI endpoint handler
   if (downloadDocAIBtn) {

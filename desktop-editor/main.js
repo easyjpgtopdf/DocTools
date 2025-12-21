@@ -3,7 +3,7 @@ const path = require('path');
 const axios = require('axios');
 
 // Backend API URL (same Cloud Run service)
-const API_BASE_URL = process.env.API_BASE_URL || 'https://pdf-editor-service-564572183797.us-central1.run.app';
+const API_BASE_URL = process.env.API_BASE_URL || 'https://pdf-editor-service-iwumaktavq-uc.a.run.app';
 
 let mainWindow;
 
