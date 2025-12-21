@@ -521,18 +521,41 @@ async function handleCreditPurchaseSuccess(paymentResponse, userId, pack, orderI
       }
       
       // Auto-refresh credits without page reload
+      const newCredits = result.creditsRemaining || (result.creditsAdded ? (currentCredits + pack.credits) : currentCredits);
+      
       // Dispatch event for real-time credit update
       window.dispatchEvent(new CustomEvent('creditsUpdated', { 
         detail: { 
-          credits: result.creditsRemaining || (result.creditsAdded ? (currentCredits + pack.credits) : currentCredits),
+          credits: newCredits,
           purchased: pack.credits,
           userId: userId
         }
       }));
       
+      // Activate PDF to Excel Premium if credits >= 15
+      const MIN_PREMIUM_CREDITS = 15;
+      if (newCredits >= MIN_PREMIUM_CREDITS) {
+        try {
+          // Set user type to premium
+          if (window.PDFExcelUserType && window.PDFExcelUserType.setUserType) {
+            window.PDFExcelUserType.setUserType('premium');
+            console.log('✅ PDF to Excel Premium activated (credits >= 15)');
+          } else {
+            // Fallback: Set directly in localStorage
+            localStorage.setItem('pdf_excel_user_type', 'premium');
+          }
+          
+          // Dispatch event
+          window.dispatchEvent(new CustomEvent('pdfExcelPremiumActivated', {
+            detail: { credits: newCredits, timestamp: Date.now() }
+          }));
+        } catch (e) {
+          console.warn('Error activating PDF Excel premium:', e);
+        }
+      }
+      
       // Update credit display immediately (if updateCreditBalance function exists)
       if (typeof window.updateCreditBalance === 'function') {
-        const newCredits = result.creditsRemaining || (result.creditsAdded ? (currentCredits + pack.credits) : currentCredits);
         window.updateCreditBalance(newCredits);
       }
       

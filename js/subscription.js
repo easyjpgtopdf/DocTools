@@ -443,6 +443,25 @@ async function handlePaymentSuccess(paymentResponse, planKey, billing, userId, o
       // Update subscription in Firestore with actual currency and amount
       await activateSubscription(userId, planKey, billing, paymentResponse.razorpay_payment_id, currency, convertedAmount);
       
+      // Activate PDF to Excel Premium access
+      try {
+        // Set user type to premium
+        if (window.PDFExcelUserType && window.PDFExcelUserType.setUserType) {
+          window.PDFExcelUserType.setUserType('premium');
+          console.log('✅ PDF to Excel Premium activated after subscription purchase');
+        } else {
+          // Fallback: Set directly in localStorage
+          localStorage.setItem('pdf_excel_user_type', 'premium');
+        }
+        
+        // Dispatch event for other components
+        window.dispatchEvent(new CustomEvent('subscriptionActivated', {
+          detail: { plan: planKey, billing, userId }
+        }));
+      } catch (e) {
+        console.warn('Error activating PDF Excel premium:', e);
+      }
+      
       // Redirect to dashboard
       window.location.href = 'dashboard.html#dashboard-overview';
     } else {
