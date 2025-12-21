@@ -29,8 +29,54 @@ async function convertPdfToExcelFree(pdfDoc, selectedPages = null) {
                 
                 if (tables && tables.length > 0) {
                     // Create worksheet for each table
-                    tables.forEach((table, tableIndex) => {
-                        const ws = XLSX.utils.aoa_to_sheet(table);
+                    tables.forEach((tableObj, tableIndex) => {
+                        // Handle both old format (2D array) and new format (object with data)
+                        let table = null;
+                        let hasFormatting = false;
+                        
+                        if (Array.isArray(tableObj)) {
+                            // Old format: direct 2D array
+                            table = tableObj;
+                            hasFormatting = false;
+                        } else if (tableObj && tableObj.data) {
+                            // New format: object with data property
+                            table = tableObj.data;
+                            hasFormatting = tableObj.hasFormatting || false;
+                        } else {
+                            table = tableObj;
+                        }
+                        
+                        // Convert to simple 2D array for XLSX
+                        const tableArray = table.map(row => {
+                            if (hasFormatting && Array.isArray(row) && row.length > 0 && row[0] && typeof row[0] === 'object' && 'text' in row[0]) {
+                                // Row has formatting objects {text, fontName, fontSize, isBold}
+                                return row.map(cell => cell.text || (typeof cell === 'string' ? cell : ''));
+                            }
+                            return row;
+                        });
+                        
+                        const ws = XLSX.utils.aoa_to_sheet(tableArray);
+                        
+                        // Apply formatting if available
+                        if (hasFormatting && Array.isArray(table) && table.length > 0 && table[0] && Array.isArray(table[0]) && table[0][0] && typeof table[0][0] === 'object' && 'text' in table[0][0]) {
+                            applyFormattingToWorksheet(ws, table);
+                        }
+                        
+                        // Auto-size columns based on content
+                        if (!ws['!cols']) ws['!cols'] = [];
+                        const maxCols = Math.max(...tableArray.map(row => row ? row.length : 0), 1);
+                        for (let i = 0; i < maxCols; i++) {
+                            // Calculate column width based on content
+                            let maxWidth = 10;
+                            tableArray.forEach(row => {
+                                if (row && row[i]) {
+                                    const cellText = String(row[i] || '');
+                                    maxWidth = Math.max(maxWidth, Math.min(cellText.length + 2, 50));
+                                }
+                            });
+                            ws['!cols'][i] = { wch: maxWidth };
+                        }
+                        
                         const sheetName = tables.length > 1 
                             ? `Page${pageNum}_Table${tableIndex + 1}` 
                             : `Page${pageNum}`;
@@ -55,8 +101,12 @@ async function convertPdfToExcelFree(pdfDoc, selectedPages = null) {
             XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
         }
         
-        // Generate Excel file
-        const excelBuffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+        // Generate Excel file with cell styles enabled
+        const excelBuffer = XLSX.write(wb, { 
+            type: 'array', 
+            bookType: 'xlsx',
+            cellStyles: true // Enable cell styles
+        });
         const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         
         return {
@@ -76,10 +126,24 @@ async function convertPdfToExcelFree(pdfDoc, selectedPages = null) {
 
 /**
  * Extract tables from a PDF page using text positioning
- * Returns: Array of 2D arrays (tables)
+ * Uses iLovePDF-like layout reconstruction if available
+ * Returns: Array of objects with table data and cell formatting
  */
 async function extractTablesFromPage(page) {
     try {
+        // Try iLovePDF-style extraction first (if available)
+        if (window.PDFExcelILovePDFLayout && window.PDFExcelILovePDFLayout.extractTableILovePDFStyle) {
+            try {
+                const ilovepdfTable = await window.PDFExcelILovePDFLayout.extractTableILovePDFStyle(page);
+                if (ilovepdfTable && ilovepdfTable.length > 0) {
+                    return [{ data: ilovepdfTable, hasFormatting: true }];
+                }
+            } catch (e) {
+                console.warn('iLovePDF-style extraction failed, falling back to basic:', e);
+            }
+        }
+        
+        // Fallback to basic extraction
         const textContent = await page.getTextContent();
         if (!textContent || !textContent.items || textContent.items.length === 0) {
             return [];
@@ -97,11 +161,22 @@ async function extractTablesFromPage(page) {
             
             if (!text) return;
             
+            // Extract font information
+            const fontName = item.fontName || 'Arial';
+            const fontSize = calculateFontSize(item.transform) || 10;
+            const isBold = detectBoldFont(fontName);
+            
             if (!rowsMap.has(y)) {
                 rowsMap.set(y, []);
             }
             
-            rowsMap.get(y).push({ x, text });
+            rowsMap.get(y).push({ 
+                x, 
+                text,
+                fontName: fontName,
+                fontSize: fontSize,
+                isBold: isBold
+            });
         });
         
         // Sort rows by Y position (top to bottom)
@@ -121,13 +196,13 @@ async function extractTablesFromPage(page) {
         
         const columns = Array.from(allXPositions).sort((a, b) => a - b);
         
-        // Build table: Map each row to columns
-        const table = sortedRows.map(row => {
+        // Build table: Map each row to columns with formatting
+        const table = sortedRows.map((row, rowIndex) => {
             // Sort cells in row by X position
             const sortedCells = row.sort((a, b) => a.x - b.x);
             
             // Create array matching column positions
-            const rowArray = new Array(columns.length).fill('');
+            const rowArray = new Array(columns.length).fill(null).map(() => ({ text: '', fontName: 'Arial', fontSize: 10, isBold: false }));
             
             sortedCells.forEach(cell => {
                 // Find closest column index
@@ -136,10 +211,16 @@ async function extractTablesFromPage(page) {
                 }, 0);
                 
                 // Merge text if cell already has content
-                if (rowArray[colIndex]) {
-                    rowArray[colIndex] += ' ' + cell.text;
+                if (rowArray[colIndex].text) {
+                    rowArray[colIndex].text += ' ' + cell.text;
+                    // Use the first cell's formatting for merged content
                 } else {
-                    rowArray[colIndex] = cell.text;
+                    rowArray[colIndex] = {
+                        text: cell.text,
+                        fontName: cell.fontName || 'Arial',
+                        fontSize: cell.fontSize || 10,
+                        isBold: cell.isBold || false
+                    };
                 }
             });
             
@@ -147,13 +228,13 @@ async function extractTablesFromPage(page) {
         });
         
         // Filter out completely empty rows
-        const filteredTable = table.filter(row => row.some(cell => cell.trim()));
+        const filteredTable = table.filter(row => row.some(cell => cell.text && cell.text.trim()));
         
         if (filteredTable.length === 0) {
             return [];
         }
         
-        return [filteredTable];
+        return [{ data: filteredTable, hasFormatting: true }];
         
     } catch (error) {
         console.error('Error extracting tables from page:', error);
@@ -161,11 +242,99 @@ async function extractTablesFromPage(page) {
     }
 }
 
+/**
+ * Calculate font size from transformation matrix
+ */
+function calculateFontSize(transform) {
+    if (!transform || transform.length < 6) return 10;
+    // Font size is typically sqrt(a^2 + b^2) or sqrt(c^2 + d^2)
+    const a = transform[0] || 1;
+    const b = transform[1] || 0;
+    const size = Math.sqrt(a * a + b * b);
+    return Math.round(size * 10) / 10; // Round to 1 decimal
+}
+
+/**
+ * Detect if font is bold based on font name
+ */
+function detectBoldFont(fontName) {
+    if (!fontName) return false;
+    const boldKeywords = ['Bold', 'bold', 'Bd', 'bd', 'Black', 'black', 'Heavy', 'heavy'];
+    return boldKeywords.some(keyword => fontName.includes(keyword));
+}
+
+/**
+ * Apply formatting to Excel worksheet cells
+ */
+function applyFormattingToWorksheet(ws, table) {
+    try {
+        // XLSX uses cell addresses like 'A1', 'B1', etc.
+        const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: table.length - 1, c: 0 } };
+        
+        // Initialize styles array if not exists
+        if (!ws['!styles']) {
+            ws['!styles'] = {};
+        }
+        
+        for (let rowIndex = 0; rowIndex < table.length; rowIndex++) {
+            const row = table[rowIndex];
+            if (!Array.isArray(row)) continue;
+            
+            for (let colIndex = 0; colIndex < row.length; colIndex++) {
+                const cellObj = row[colIndex];
+                if (!cellObj || typeof cellObj !== 'object') continue;
+                
+                const cellAddress = XLSX.utils.encode_cell({ r: rowIndex, c: colIndex });
+                
+                // Get or ensure cell exists
+                if (!ws[cellAddress]) {
+                    // Cell should already exist from aoa_to_sheet, but ensure it does
+                    continue;
+                }
+                
+                // Extract font info from cell object
+                const fontName = cellObj.fontName || 'Arial';
+                const fontSize = cellObj.fontSize || 10;
+                let isBold = cellObj.isBold || false;
+                
+                // First row is typically header - make it bold
+                if (rowIndex === 0) {
+                    isBold = true;
+                }
+                
+                // Apply cell style using XLSX style format
+                // Note: XLSX.js has limited style support, but we'll try to apply what we can
+                if (!ws[cellAddress].s) {
+                    ws[cellAddress].s = {};
+                }
+                
+                // Font styling (XLSX style format)
+                ws[cellAddress].s.font = ws[cellAddress].s.font || {};
+                if (fontName && fontName !== 'Arial') {
+                    ws[cellAddress].s.font.name = fontName;
+                }
+                if (fontSize && fontSize !== 10) {
+                    ws[cellAddress].s.font.sz = fontSize;
+                }
+                if (isBold) {
+                    ws[cellAddress].s.font.bold = true;
+                }
+            }
+        }
+    } catch (error) {
+        console.warn('Error applying formatting to worksheet:', error);
+        // Continue without formatting if there's an error
+    }
+}
+
 // Export for use in other scripts
 if (typeof window !== 'undefined') {
     window.PDFExcelFreeConverter = {
         convertPdfToExcelFree,
-        extractTablesFromPage
+        extractTablesFromPage,
+        applyFormattingToWorksheet,
+        calculateFontSize,
+        detectBoldFont
     };
 }
 

@@ -285,6 +285,7 @@
 <script src="js/pdf-excel-user-type.js" defer></script>
 <script src="js/pdf-excel-analysis.js" defer></script>
 <script src="js/pdf-excel-free-converter.js" defer></script>
+<script src="js/pdf-excel-ilovepdf-layout.js" defer></script>
 <script src="js/pdf-excel-free-enhancer.js" defer></script>
 <script src="js/pdf-excel-upgrade-popup.js" defer></script>
             <script type="application/ld+json">
@@ -905,8 +906,33 @@
         console.warn('Error checking credits:', error);
       }
       
-      // Proceed with premium conversion (Document AI)
-      convertPdfToExcelPremium();
+      // Redirect to premium page instead of processing here
+      // Save PDF data to sessionStorage for premium page
+      try {
+        const rec = await getPdf();
+        if (rec && rec.blob) {
+          // Convert blob to base64 for sessionStorage
+          const reader = new FileReader();
+          reader.onload = function() {
+            const base64 = reader.result.split(',')[1];
+            sessionStorage.setItem('pdfToExcelPremiumData', JSON.stringify({
+              filename: rec.name || 'document.pdf',
+              data: base64,
+              timestamp: Date.now()
+            }));
+            // Redirect to premium page
+            window.location.href = 'pdf-to-excel-premium.html';
+          };
+          reader.readAsDataURL(rec.blob);
+        } else {
+          // Fallback: process on same page
+          convertPdfToExcelPremium();
+        }
+      } catch (error) {
+        console.error('Error preparing premium redirect:', error);
+        // Fallback: process on same page
+        convertPdfToExcelPremium();
+      }
     });
   }
   
