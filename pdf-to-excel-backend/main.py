@@ -107,6 +107,7 @@ MAX_FILE_SIZE = 100 * 1024 * 1024  # 100 MB
 @app.get("/")
 async def root():
     """Health check endpoint."""
+    pricing_info = get_pricing_info()
     return {
         "status": "ok",
         "service": "PDF to Excel Converter API",
@@ -115,8 +116,14 @@ async def root():
         "endpoints": {
             "textract": "/api/pdf-to-excel (AWS Textract - requires S3_BUCKET)",
             "docai": "/api/pdf-to-excel-docai (Google Document AI - default)"
-        }
+        },
+        "pricing": pricing_info
     }
+
+@app.get("/api/pricing")
+async def pricing_endpoint():
+    """Get pricing information for PDF to Excel conversion."""
+    return JSONResponse(content=get_pricing_info())
 
 
 @app.get("/api/health")
