@@ -59,7 +59,7 @@ async function convertPdfToExcelFree(pdfDoc, selectedPages = null) {
                         
                         // Apply formatting if available
                         if (hasFormatting && Array.isArray(table) && table.length > 0 && table[0] && Array.isArray(table[0]) && table[0][0] && typeof table[0][0] === 'object' && 'text' in table[0][0]) {
-                            applyFormattingToWorksheet(ws, table);
+                            applyFormattingToWorksheet(ws, table, tableObj.visualElements, tableObj.cellMappings);
                         }
                         
                         // Auto-size columns based on content
@@ -125,18 +125,69 @@ async function convertPdfToExcelFree(pdfDoc, selectedPages = null) {
 }
 
 /**
- * Extract tables from a PDF page using text positioning
- * Uses iLovePDF-like layout reconstruction if available
- * Returns: Array of objects with table data and cell formatting
+ * Extract tables from a PDF page using text positioning + visual detection
+ * Uses iLovePDF-like layout reconstruction + visual element detection
+ * Returns: Array of objects with table data, cell formatting, and visual mappings
  */
 async function extractTablesFromPage(page) {
     try {
-        // Try iLovePDF-style extraction first (if available)
+        // Step 1: Detect visual elements (boxes, borders, images)
+        let visualElements = { boxes: [], borders: [], images: [] };
+        let cellMappings = new Map();
+        
+        if (window.PDFExcelVisualDetector && window.PDFExcelVisualDetector.detectVisualElements) {
+            try {
+                visualElements = await window.PDFExcelVisualDetector.detectVisualElements(page);
+                console.log('Visual elements detected:', {
+                    boxes: visualElements.boxes.length,
+                    borders: visualElements.borders.length,
+                    images: visualElements.images.length
+                });
+            } catch (e) {
+                console.warn('Visual detection failed, continuing without visual elements:', e);
+            }
+        }
+        
+        // Step 2: Try iLovePDF-style extraction first (if available)
+        let ilovepdfTable = null;
+        let columnBoundaries = [];
+        let rowPositions = [];
+        
         if (window.PDFExcelILovePDFLayout && window.PDFExcelILovePDFLayout.extractTableILovePDFStyle) {
             try {
-                const ilovepdfTable = await window.PDFExcelILovePDFLayout.extractTableILovePDFStyle(page);
+                ilovepdfTable = await window.PDFExcelILovePDFLayout.extractTableILovePDFStyle(page);
                 if (ilovepdfTable && ilovepdfTable.length > 0) {
-                    return [{ data: ilovepdfTable, hasFormatting: true }];
+                    // Extract column boundaries and row positions for visual mapping
+                    const viewport = page.getViewport({ scale: 1.0 });
+                    const textContent = await page.getTextContent();
+                    if (textContent && textContent.items) {
+                        const textObjects = window.PDFExcelILovePDFLayout.collectTextObjects(textContent.items, viewport);
+                        const rows = window.PDFExcelILovePDFLayout.clusterRowsDynamic(textObjects);
+                        columnBoundaries = window.PDFExcelILovePDFLayout.detectColumnsWithClustering(rows);
+                        rowPositions = rows.map(row => row.y);
+                    }
+                    
+                    // Map visual elements to Excel cells
+                    if (window.PDFExcelVisualDetector && window.PDFExcelVisualDetector.mapVisualToExcel &&
+                        visualElements && columnBoundaries.length > 0 && rowPositions.length > 0) {
+                        try {
+                            cellMappings = window.PDFExcelVisualDetector.mapVisualToExcel(
+                                visualElements,
+                                textObjects || [],
+                                columnBoundaries,
+                                rowPositions
+                            );
+                        } catch (e) {
+                            console.warn('Visual mapping failed:', e);
+                        }
+                    }
+                    
+                    return [{ 
+                        data: ilovepdfTable, 
+                        hasFormatting: true,
+                        visualElements: visualElements,
+                        cellMappings: cellMappings
+                    }];
                 }
             } catch (e) {
                 console.warn('iLovePDF-style extraction failed, falling back to basic:', e);
@@ -234,7 +285,34 @@ async function extractTablesFromPage(page) {
             return [];
         }
         
-        return [{ data: filteredTable, hasFormatting: true }];
+        // Extract column boundaries and row positions for visual mapping
+        columnBoundaries = columns;
+        rowPositions = sortedRows.map((row, idx) => {
+            const yPos = Array.from(rowsMap.keys()).sort((a, b) => b - a)[idx];
+            return yPos;
+        });
+        
+        // Map visual elements to Excel cells
+        if (window.PDFExcelVisualDetector && window.PDFExcelVisualDetector.mapVisualToExcel &&
+            visualElements && columnBoundaries.length > 0 && rowPositions.length > 0) {
+            try {
+                cellMappings = window.PDFExcelVisualDetector.mapVisualToExcel(
+                    visualElements,
+                    sortedRows.flat(),
+                    columnBoundaries,
+                    rowPositions
+                );
+            } catch (e) {
+                console.warn('Visual mapping failed:', e);
+            }
+        }
+        
+        return [{ 
+            data: filteredTable, 
+            hasFormatting: true,
+            visualElements: visualElements,
+            cellMappings: cellMappings
+        }];
         
     } catch (error) {
         console.error('Error extracting tables from page:', error);
@@ -265,9 +343,9 @@ function detectBoldFont(fontName) {
 
 /**
  * Apply formatting to Excel worksheet cells
- * IMPROVED: Better font support for multi-language Unicode
+ * IMPROVED: Better font support + visual borders + images
  */
-function applyFormattingToWorksheet(ws, table) {
+function applyFormattingToWorksheet(ws, table, visualElements = null, cellMappings = null) {
     try {
         // XLSX uses cell addresses like 'A1', 'B1', etc.
         const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: table.length - 1, c: 0 } };
@@ -341,6 +419,77 @@ function applyFormattingToWorksheet(ws, table) {
                 }
                 ws[cellAddress].s.alignment.vertical = 'top';
                 ws[cellAddress].s.alignment.wrapText = true; // Wrap long text
+                
+                // IMPROVED: Apply visual borders from PDF
+                if (cellMappings) {
+                    // Check for borders
+                    const rowBorderKey = `row_${rowIndex}_bottom`;
+                    const colBorderKey = `col_${colIndex}_right`;
+                    const cellKey = `cell_${rowIndex}_${colIndex}`;
+                    
+                    // Initialize border style
+                    if (!ws[cellAddress].s.border) {
+                        ws[cellAddress].s.border = {};
+                    }
+                    
+                    // Apply bottom border if detected
+                    if (cellMappings.has(rowBorderKey)) {
+                        ws[cellAddress].s.border.bottom = {
+                            style: 'thin',
+                            color: { rgb: '000000' }
+                        };
+                    }
+                    
+                    // Apply right border if detected
+                    if (cellMappings.has(colBorderKey)) {
+                        ws[cellAddress].s.border.right = {
+                            style: 'thin',
+                            color: { rgb: '000000' }
+                        };
+                    }
+                    
+                    // Apply top border for first row
+                    if (rowIndex === 0) {
+                        ws[cellAddress].s.border.top = {
+                            style: 'thin',
+                            color: { rgb: '000000' }
+                        };
+                    }
+                    
+                    // Apply left border for first column
+                    if (colIndex === 0) {
+                        ws[cellAddress].s.border.left = {
+                            style: 'thin',
+                            color: { rgb: '000000' }
+                        };
+                    }
+                    
+                    // Check for image in this cell
+                    const imageKey = `cell_${rowIndex}_${colIndex}_image`;
+                    if (cellMappings.has(imageKey)) {
+                        const imageInfo = cellMappings.get(imageKey);
+                        // Note: XLSX.js has limited image support
+                        // We can add image reference in cell comment or note
+                        if (!ws[cellAddress].c) {
+                            ws[cellAddress].c = [];
+                        }
+                        ws[cellAddress].c.push({
+                            t: 'Note: Image detected at this position',
+                            a: 'System'
+                        });
+                    }
+                } else {
+                    // Default: Add borders to all cells for table structure
+                    if (!ws[cellAddress].s.border) {
+                        ws[cellAddress].s.border = {};
+                    }
+                    ws[cellAddress].s.border = {
+                        top: { style: 'thin', color: { rgb: 'CCCCCC' } },
+                        bottom: { style: 'thin', color: { rgb: 'CCCCCC' } },
+                        left: { style: 'thin', color: { rgb: 'CCCCCC' } },
+                        right: { style: 'thin', color: { rgb: 'CCCCCC' } }
+                    };
+                }
             }
         }
     } catch (error) {
