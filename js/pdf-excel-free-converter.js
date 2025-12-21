@@ -149,25 +149,29 @@ async function extractTablesFromPage(page) {
         }
         
         // Step 2: Try iLovePDF-style extraction first (if available)
+        // IMPROVED: Pass visual elements to improve column detection
         let ilovepdfTable = null;
         let columnBoundaries = [];
         let rowPositions = [];
         
         if (window.PDFExcelILovePDFLayout && window.PDFExcelILovePDFLayout.extractTableILovePDFStyle) {
             try {
-                ilovepdfTable = await window.PDFExcelILovePDFLayout.extractTableILovePDFStyle(page);
+                // Pass visual elements to improve column detection
+                ilovepdfTable = await window.PDFExcelILovePDFLayout.extractTableILovePDFStyle(page, visualElements);
                 if (ilovepdfTable && ilovepdfTable.length > 0) {
                     // Extract column boundaries and row positions for visual mapping
                     const viewport = page.getViewport({ scale: 1.0 });
                     const textContent = await page.getTextContent();
                     if (textContent && textContent.items) {
                         const textObjects = window.PDFExcelILovePDFLayout.collectTextObjects(textContent.items, viewport);
-                        const rows = window.PDFExcelILovePDFLayout.clusterRowsDynamic(textObjects);
-                        columnBoundaries = window.PDFExcelILovePDFLayout.detectColumnsWithClustering(rows);
+                        const filteredObjects = window.PDFExcelILovePDFLayout.suppressHeadersFooters(textObjects, viewport);
+                        const rows = window.PDFExcelILovePDFLayout.clusterRowsDynamic(filteredObjects);
+                        // Pass visual elements for better column detection
+                        columnBoundaries = window.PDFExcelILovePDFLayout.detectColumnsWithClustering(rows, visualElements);
                         rowPositions = rows.map(row => row.y);
                     }
                     
-                    // Map visual elements to Excel cells
+                    // IMPROVED: Map visual elements to Excel cells with better alignment
                     if (window.PDFExcelVisualDetector && window.PDFExcelVisualDetector.mapVisualToExcel &&
                         visualElements && columnBoundaries.length > 0 && rowPositions.length > 0) {
                         try {
@@ -177,6 +181,37 @@ async function extractTablesFromPage(page) {
                                 columnBoundaries,
                                 rowPositions
                             );
+                            console.log(`Mapped ${cellMappings.size} visual elements to cells`);
+                            
+                            // Also recreate table borders based on detected visual elements
+                            if (window.PDFExcelVisualDetector.recreateTableBorders) {
+                                const recreatedBorders = window.PDFExcelVisualDetector.recreateTableBorders(
+                                    visualElements,
+                                    columnBoundaries,
+                                    rowPositions
+                                );
+                                // Add recreated borders to cell mappings
+                                recreatedBorders.horizontal.forEach((border, idx) => {
+                                    if (border.row !== undefined) {
+                                        cellMappings.set(`row_${border.row}_bottom`, {
+                                            type: 'border',
+                                            style: 'thin',
+                                            position: 'bottom',
+                                            inferred: border.inferred || false
+                                        });
+                                    }
+                                });
+                                recreatedBorders.vertical.forEach((border, idx) => {
+                                    if (border.col !== undefined) {
+                                        cellMappings.set(`col_${border.col}_right`, {
+                                            type: 'border',
+                                            style: 'thin',
+                                            position: 'right',
+                                            inferred: border.inferred || false
+                                        });
+                                    }
+                                });
+                            }
                         } catch (e) {
                             console.warn('Visual mapping failed:', e);
                         }
@@ -420,17 +455,16 @@ function applyFormattingToWorksheet(ws, table, visualElements = null, cellMappin
                 ws[cellAddress].s.alignment.vertical = 'top';
                 ws[cellAddress].s.alignment.wrapText = true; // Wrap long text
                 
-                // IMPROVED: Apply visual borders from PDF
-                if (cellMappings) {
-                    // Check for borders
+                // IMPROVED: Apply visual borders from PDF (enhanced detection)
+                // Initialize border style
+                if (!ws[cellAddress].s.border) {
+                    ws[cellAddress].s.border = {};
+                }
+                
+                if (cellMappings && cellMappings.size > 0) {
+                    // Check for row borders
                     const rowBorderKey = `row_${rowIndex}_bottom`;
-                    const colBorderKey = `col_${colIndex}_right`;
-                    const cellKey = `cell_${rowIndex}_${colIndex}`;
-                    
-                    // Initialize border style
-                    if (!ws[cellAddress].s.border) {
-                        ws[cellAddress].s.border = {};
-                    }
+                    const rowTopBorderKey = `row_${rowIndex}_top`;
                     
                     // Apply bottom border if detected
                     if (cellMappings.has(rowBorderKey)) {
@@ -440,6 +474,18 @@ function applyFormattingToWorksheet(ws, table, visualElements = null, cellMappin
                         };
                     }
                     
+                    // Apply top border if detected
+                    if (cellMappings.has(rowTopBorderKey)) {
+                        ws[cellAddress].s.border.top = {
+                            style: 'thin',
+                            color: { rgb: '000000' }
+                        };
+                    }
+                    
+                    // Check for column borders
+                    const colBorderKey = `col_${colIndex}_right`;
+                    const colLeftBorderKey = `col_${colIndex}_left`;
+                    
                     // Apply right border if detected
                     if (cellMappings.has(colBorderKey)) {
                         ws[cellAddress].s.border.right = {
@@ -448,20 +494,47 @@ function applyFormattingToWorksheet(ws, table, visualElements = null, cellMappin
                         };
                     }
                     
-                    // Apply top border for first row
-                    if (rowIndex === 0) {
+                    // Apply left border if detected
+                    if (cellMappings.has(colLeftBorderKey)) {
+                        ws[cellAddress].s.border.left = {
+                            style: 'thin',
+                            color: { rgb: '000000' }
+                        };
+                    }
+                    
+                    // Apply top border for first row (if not already set)
+                    if (rowIndex === 0 && !ws[cellAddress].s.border.top) {
                         ws[cellAddress].s.border.top = {
                             style: 'thin',
                             color: { rgb: '000000' }
                         };
                     }
                     
-                    // Apply left border for first column
-                    if (colIndex === 0) {
+                    // Apply left border for first column (if not already set)
+                    if (colIndex === 0 && !ws[cellAddress].s.border.left) {
                         ws[cellAddress].s.border.left = {
                             style: 'thin',
                             color: { rgb: '000000' }
                         };
+                    }
+                    
+                    // Check for box/rectangle in this cell
+                    const boxKey = `box_${rowIndex}_${colIndex}`;
+                    if (cellMappings.has(boxKey)) {
+                        const boxInfo = cellMappings.get(boxKey);
+                        // Apply all borders for box
+                        if (!ws[cellAddress].s.border.top) {
+                            ws[cellAddress].s.border.top = { style: 'thin', color: { rgb: '000000' } };
+                        }
+                        if (!ws[cellAddress].s.border.bottom) {
+                            ws[cellAddress].s.border.bottom = { style: 'thin', color: { rgb: '000000' } };
+                        }
+                        if (!ws[cellAddress].s.border.left) {
+                            ws[cellAddress].s.border.left = { style: 'thin', color: { rgb: '000000' } };
+                        }
+                        if (!ws[cellAddress].s.border.right) {
+                            ws[cellAddress].s.border.right = { style: 'thin', color: { rgb: '000000' } };
+                        }
                     }
                     
                     // Check for image in this cell
@@ -469,25 +542,26 @@ function applyFormattingToWorksheet(ws, table, visualElements = null, cellMappin
                     if (cellMappings.has(imageKey)) {
                         const imageInfo = cellMappings.get(imageKey);
                         // Note: XLSX.js has limited image support
-                        // We can add image reference in cell comment or note
+                        // Store image info in cell comment
                         if (!ws[cellAddress].c) {
                             ws[cellAddress].c = [];
                         }
                         ws[cellAddress].c.push({
-                            t: 'Note: Image detected at this position',
+                            t: `Image detected (${imageInfo.image.width}×${imageInfo.image.height}px)`,
                             a: 'System'
                         });
+                        // Add note that image is present
+                        ws[cellAddress].s.fill = ws[cellAddress].s.fill || {};
+                        ws[cellAddress].s.fill.fgColor = { rgb: 'FFF9E6' }; // Light yellow background for images
                     }
                 } else {
-                    // Default: Add borders to all cells for table structure
-                    if (!ws[cellAddress].s.border) {
-                        ws[cellAddress].s.border = {};
-                    }
+                    // Default: Add light borders to all cells for table structure
+                    // This ensures tables have some visual structure even if detection fails
                     ws[cellAddress].s.border = {
-                        top: { style: 'thin', color: { rgb: 'CCCCCC' } },
-                        bottom: { style: 'thin', color: { rgb: 'CCCCCC' } },
-                        left: { style: 'thin', color: { rgb: 'CCCCCC' } },
-                        right: { style: 'thin', color: { rgb: 'CCCCCC' } }
+                        top: { style: 'thin', color: { rgb: 'E0E0E0' } },
+                        bottom: { style: 'thin', color: { rgb: 'E0E0E0' } },
+                        left: { style: 'thin', color: { rgb: 'E0E0E0' } },
+                        right: { style: 'thin', color: { rgb: 'E0E0E0' } }
                     };
                 }
             }

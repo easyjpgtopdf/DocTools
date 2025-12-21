@@ -1,246 +1,632 @@
 /**
- * PDF Visual Element Detector
- * Detects boxes, rectangles, borders, and images from PDF pages
- * Uses PDF.js rendering to analyze visual structure
+ * PDF Visual Element Detector (FREE Version)
+ * Detects borders, boxes, rectangles, and images from PDF using canvas rendering
+ * NO AI, NO OCR - Pure browser-based visual detection
  */
 
 /**
- * Detect visual elements (boxes, rectangles, borders) from PDF page
- * Returns: { boxes: [], borders: [], images: [] }
+ * Detect visual elements (borders, boxes, images) from PDF page
+ * Uses canvas rendering and image processing techniques
  */
 async function detectVisualElements(page) {
     try {
         const viewport = page.getViewport({ scale: 2.0 }); // Higher scale for better detection
         const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d');
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         
         // Render PDF page to canvas
-        const renderContext = {
-            canvasContext: context,
+        await page.render({
+            canvasContext: ctx,
             viewport: viewport
-        };
+        }).promise;
         
-        await page.render(renderContext).promise;
-        
-        // Get image data for analysis
-        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        // Get image data from canvas
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         
         // Detect visual elements
         const boxes = detectBoxes(imageData, canvas.width, canvas.height);
         const borders = detectBorders(imageData, canvas.width, canvas.height);
-        const images = await detectImages(page);
-        
-        // Clean up canvas from DOM if it was added
-        if (canvas.parentNode) {
-            canvas.parentNode.removeChild(canvas);
-        }
+        const images = detectImages(imageData, canvas.width, canvas.height);
         
         return {
             boxes: boxes,
             borders: borders,
-            images: images
+            images: images,
+            viewport: viewport
         };
+        
     } catch (error) {
         console.error('Error detecting visual elements:', error);
-        return { boxes: [], borders: [], images: [] };
+        return { boxes: [], borders: [], images: [], viewport: null };
     }
 }
 
 /**
- * Detect rectangular boxes/regions in the image
- * Uses edge detection and rectangle finding
+ * Detect boxes/rectangles in the image
+ * Uses edge detection and rectangle detection algorithm
  */
 function detectBoxes(imageData, width, height) {
     const boxes = [];
     const data = imageData.data;
     
     // Convert to grayscale and detect edges
-    const edges = new Uint8Array(width * height);
-    const threshold = 200; // Edge detection threshold
+    const grayData = new Uint8Array(width * height);
+    const edgeData = new Uint8Array(width * height);
     
-    for (let y = 1; y < height - 1; y++) {
-        for (let x = 1; x < width - 1; x++) {
-            const idx = (y * width + x) * 4;
-            const r = data[idx];
-            const g = data[idx + 1];
-            const b = data[idx + 2];
-            const gray = (r + g + b) / 3;
-            
-            // Simple edge detection (Sobel-like)
-            const rightIdx = (y * width + (x + 1)) * 4;
-            const rightGray = (data[rightIdx] + data[rightIdx + 1] + data[rightIdx + 2]) / 3;
-            const bottomIdx = ((y + 1) * width + x) * 4;
-            const bottomGray = (data[bottomIdx] + data[bottomIdx + 1] + data[bottomIdx + 2]) / 3;
-            
-            const edgeX = Math.abs(gray - rightGray);
-            const edgeY = Math.abs(gray - bottomGray);
-            const edge = Math.sqrt(edgeX * edgeX + edgeY * edgeY);
-            
-            edges[y * width + x] = edge > threshold ? 255 : 0;
-        }
+    // Convert to grayscale
+    for (let i = 0; i < data.length; i += 4) {
+        const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
+        grayData[i / 4] = gray < 200 ? 0 : 255; // Threshold for white/black
     }
     
-    // Find rectangular regions (simplified - find connected edge regions)
-    const visited = new Set();
-    const minBoxSize = 20; // Minimum box size in pixels
-    
-    for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
+    // Simple edge detection (Sobel operator simplified)
+    for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
             const idx = y * width + x;
-            if (edges[idx] > 0 && !visited.has(idx)) {
-                const box = findRectangle(edges, width, height, x, y, visited);
-                if (box && (box.width > minBoxSize || box.height > minBoxSize)) {
-                    // Convert from canvas coordinates to PDF coordinates
-                    boxes.push({
-                        x: box.x / 2, // Scale back down
-                        y: box.y / 2,
-                        width: box.width / 2,
-                        height: box.height / 2,
-                        type: 'box'
-                    });
-                }
+            const left = grayData[idx - 1];
+            const right = grayData[idx + 1];
+            const top = grayData[(y - 1) * width + x];
+            const bottom = grayData[(y + 1) * width + x];
+            
+            // Edge if there's a significant difference
+            if (Math.abs(left - right) > 50 || Math.abs(top - bottom) > 50) {
+                edgeData[idx] = 255;
             }
         }
     }
     
-    return boxes;
+    // Detect horizontal and vertical lines (potential box borders)
+    const horizontalLines = detectHorizontalLines(edgeData, width, height);
+    const verticalLines = detectVerticalLines(edgeData, width, height);
+    
+    // Find rectangles formed by intersecting lines
+    const rectangles = findRectangles(horizontalLines, verticalLines, width, height);
+    
+    return rectangles.map(rect => ({
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+        confidence: rect.confidence
+    }));
 }
 
 /**
- * Find rectangle starting from a point
- */
-function findRectangle(edges, width, height, startX, startY, visited) {
-    // Simple flood fill to find connected edge region
-    const region = [];
-    const stack = [[startX, startY]];
-    let minX = startX, maxX = startX, minY = startY, maxY = startY;
-    
-    while (stack.length > 0) {
-        const [x, y] = stack.pop();
-        const idx = y * width + x;
-        
-        if (x < 0 || x >= width || y < 0 || y >= height) continue;
-        if (visited.has(idx)) continue;
-        if (edges[idx] === 0) continue;
-        
-        visited.add(idx);
-        region.push([x, y]);
-        
-        minX = Math.min(minX, x);
-        maxX = Math.max(maxX, x);
-        minY = Math.min(minY, y);
-        maxY = Math.max(maxY, y);
-        
-        // Check neighbors
-        stack.push([x + 1, y]);
-        stack.push([x - 1, y]);
-        stack.push([x, y + 1]);
-        stack.push([x, y - 1]);
-    }
-    
-    if (region.length < 10) return null; // Too small
-    
-    return {
-        x: minX,
-        y: minY,
-        width: maxX - minX,
-        height: maxY - minY
-    };
-}
-
-/**
- * Detect table borders (horizontal and vertical lines)
+ * Detect borders (lines) in the image
  */
 function detectBorders(imageData, width, height) {
     const borders = [];
     const data = imageData.data;
-    const threshold = 200; // Border detection threshold
     
     // Detect horizontal lines
+    const hLines = detectHorizontalLinesSimple(data, width, height);
+    // Detect vertical lines
+    const vLines = detectVerticalLinesSimple(data, width, height);
+    
+    // Combine and return
+    return {
+        horizontal: hLines,
+        vertical: vLines
+    };
+}
+
+/**
+ * Detect images in the PDF
+ * Images are typically rectangular regions with complex pixel data
+ */
+function detectImages(imageData, width, height) {
+    const images = [];
+    const data = imageData.data;
+    
+    // Detect image-like regions (areas with high color variation)
+    const regions = detectImageRegions(data, width, height);
+    
+    return regions.map(region => ({
+        x: region.x,
+        y: region.y,
+        width: region.width,
+        height: region.height,
+        type: 'image'
+    }));
+}
+
+/**
+ * Detect horizontal lines (simplified)
+ */
+function detectHorizontalLinesSimple(data, width, height) {
+    const lines = [];
+    const lineThreshold = 5; // Minimum line length
+    const pixelThreshold = 50; // Color difference threshold
+    
     for (let y = 0; y < height; y++) {
         let lineStart = -1;
-        let lineLength = 0;
+        let consecutiveDark = 0;
         
         for (let x = 0; x < width; x++) {
             const idx = (y * width + x) * 4;
-            const r = data[idx];
-            const g = data[idx + 1];
-            const b = data[idx + 2];
-            const gray = (r + g + b) / 3;
+            const gray = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+            const isDark = gray < 200;
             
-            // Check if this is a dark line (border)
-            if (gray < threshold) {
+            if (isDark) {
+                consecutiveDark++;
+                if (lineStart === -1) {
+                    lineStart = x;
+                }
+            } else {
+                if (consecutiveDark >= lineThreshold && lineStart !== -1) {
+                    lines.push({
+                        y: y,
+                        x1: lineStart,
+                        x2: x - 1,
+                        length: consecutiveDark,
+                        thickness: 1
+                    });
+                }
+                consecutiveDark = 0;
+                lineStart = -1;
+            }
+        }
+        
+        // Check for line at end
+        if (consecutiveDark >= lineThreshold && lineStart !== -1) {
+            lines.push({
+                y: y,
+                x1: lineStart,
+                x2: width - 1,
+                length: consecutiveDark,
+                thickness: 1
+            });
+        }
+    }
+    
+    return lines;
+}
+
+/**
+ * Detect vertical lines (simplified)
+ */
+function detectVerticalLinesSimple(data, width, height) {
+    const lines = [];
+    const lineThreshold = 5; // Minimum line length
+    
+    for (let x = 0; x < width; x++) {
+        let lineStart = -1;
+        let consecutiveDark = 0;
+        
+        for (let y = 0; y < height; y++) {
+            const idx = (y * width + x) * 4;
+            const gray = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+            const isDark = gray < 200;
+            
+            if (isDark) {
+                consecutiveDark++;
+                if (lineStart === -1) {
+                    lineStart = y;
+                }
+            } else {
+                if (consecutiveDark >= lineThreshold && lineStart !== -1) {
+                    lines.push({
+                        x: x,
+                        y1: lineStart,
+                        y2: y - 1,
+                        length: consecutiveDark,
+                        thickness: 1
+                    });
+                }
+                consecutiveDark = 0;
+                lineStart = -1;
+            }
+        }
+        
+        // Check for line at end
+        if (consecutiveDark >= lineThreshold && lineStart !== -1) {
+            lines.push({
+                x: x,
+                y1: lineStart,
+                y2: height - 1,
+                length: consecutiveDark,
+                thickness: 1
+            });
+        }
+    }
+    
+    return lines;
+}
+
+/**
+ * Detect horizontal lines for box detection
+ */
+function detectHorizontalLines(edgeData, width, height) {
+    const lines = [];
+    const minLineLength = width * 0.1; // At least 10% of page width
+    
+    for (let y = 0; y < height; y++) {
+        let lineLength = 0;
+        let lineStart = -1;
+        
+        for (let x = 0; x < width; x++) {
+            const idx = y * width + x;
+            if (edgeData[idx] > 128) {
                 if (lineStart === -1) {
                     lineStart = x;
                 }
                 lineLength++;
             } else {
-                if (lineLength > 50) { // Minimum line length
-                    borders.push({
-                        type: 'horizontal',
-                        x: lineStart / 2,
-                        y: y / 2,
-                        width: lineLength / 2,
-                        height: 1
-                    });
+                if (lineLength >= minLineLength) {
+                    lines.push({ y: y, x1: lineStart, x2: lineStart + lineLength });
                 }
-                lineStart = -1;
                 lineLength = 0;
+                lineStart = -1;
             }
         }
         
-        if (lineLength > 50) {
-            borders.push({
-                type: 'horizontal',
-                x: lineStart / 2,
-                y: y / 2,
-                width: lineLength / 2,
-                height: 1
-            });
+        if (lineLength >= minLineLength) {
+            lines.push({ y: y, x1: lineStart, x2: lineStart + lineLength });
         }
     }
     
-    // Detect vertical lines
+    return lines;
+}
+
+/**
+ * Detect vertical lines for box detection
+ */
+function detectVerticalLines(edgeData, width, height) {
+    const lines = [];
+    const minLineLength = height * 0.1; // At least 10% of page height
+    
     for (let x = 0; x < width; x++) {
-        let lineStart = -1;
         let lineLength = 0;
+        let lineStart = -1;
         
         for (let y = 0; y < height; y++) {
-            const idx = (y * width + x) * 4;
-            const r = data[idx];
-            const g = data[idx + 1];
-            const b = data[idx + 2];
-            const gray = (r + g + b) / 3;
-            
-            if (gray < threshold) {
+            const idx = y * width + x;
+            if (edgeData[idx] > 128) {
                 if (lineStart === -1) {
                     lineStart = y;
                 }
                 lineLength++;
             } else {
-                if (lineLength > 50) {
-                    borders.push({
-                        type: 'vertical',
-                        x: x / 2,
-                        y: lineStart / 2,
-                        width: 1,
-                        height: lineLength / 2
-                    });
+                if (lineLength >= minLineLength) {
+                    lines.push({ x: x, y1: lineStart, y2: lineStart + lineLength });
                 }
-                lineStart = -1;
                 lineLength = 0;
+                lineStart = -1;
             }
         }
         
-        if (lineLength > 50) {
-            borders.push({
-                type: 'vertical',
-                x: x / 2,
-                y: lineStart / 2,
-                width: 1,
-                height: lineLength / 2
+        if (lineLength >= minLineLength) {
+            lines.push({ x: x, y1: lineStart, y2: lineStart + lineLength });
+        }
+    }
+    
+    return lines;
+}
+
+/**
+ * Find rectangles from intersecting horizontal and vertical lines
+ */
+function findRectangles(hLines, vLines, width, height) {
+    const rectangles = [];
+    const tolerance = 5; // Pixel tolerance for intersection
+    
+    // Find intersections
+    for (const hLine of hLines) {
+        for (const vLine of vLines) {
+            // Check if horizontal line intersects vertical line
+            if (vLine.x >= hLine.x1 - tolerance && vLine.x <= hLine.x2 + tolerance &&
+                hLine.y >= vLine.y1 - tolerance && hLine.y <= vLine.y2 + tolerance) {
+                
+                // Find next horizontal and vertical lines to form rectangle
+                const nextHLine = hLines.find(h => h.y > hLine.y && 
+                    vLine.x >= h.x1 - tolerance && vLine.x <= h.x2 + tolerance);
+                const nextVLine = vLines.find(v => v.x > vLine.x &&
+                    hLine.y >= v.y1 - tolerance && hLine.y <= v.y2 + tolerance);
+                
+                if (nextHLine && nextVLine) {
+                    // Check if nextVLine also intersects nextHLine
+                    if (nextVLine.x >= nextHLine.x1 - tolerance && nextVLine.x <= nextHLine.x2 + tolerance &&
+                        nextHLine.y >= nextVLine.y1 - tolerance && nextHLine.y <= nextVLine.y2 + tolerance) {
+                        
+                        rectangles.push({
+                            x: vLine.x,
+                            y: hLine.y,
+                            width: nextVLine.x - vLine.x,
+                            height: nextHLine.y - hLine.y,
+                            confidence: 0.8
+                        });
+                    }
+                }
+            }
+        }
+    }
+    
+    return rectangles;
+}
+
+/**
+ * Detect image regions (areas with high color variation)
+ */
+function detectImageRegions(data, width, height) {
+    const regions = [];
+    const blockSize = 20; // Analyze in 20x20 blocks
+    const variationThreshold = 30; // Color variation threshold
+    
+    for (let blockY = 0; blockY < height - blockSize; blockY += blockSize) {
+        for (let blockX = 0; blockX < width - blockSize; blockX += blockSize) {
+            let sumR = 0, sumG = 0, sumB = 0;
+            let count = 0;
+            
+            // Calculate average color in block
+            for (let y = blockY; y < blockY + blockSize && y < height; y++) {
+                for (let x = blockX; x < blockX + blockSize && x < width; x++) {
+                    const idx = (y * width + x) * 4;
+                    sumR += data[idx];
+                    sumG += data[idx + 1];
+                    sumB += data[idx + 2];
+                    count++;
+                }
+            }
+            
+            const avgR = sumR / count;
+            const avgG = sumG / count;
+            const avgB = sumB / count;
+            
+            // Calculate variation
+            let variation = 0;
+            for (let y = blockY; y < blockY + blockSize && y < height; y++) {
+                for (let x = blockX; x < blockX + blockSize && x < width; x++) {
+                    const idx = (y * width + x) * 4;
+                    variation += Math.abs(data[idx] - avgR) +
+                                Math.abs(data[idx + 1] - avgG) +
+                                Math.abs(data[idx + 2] - avgB);
+                }
+            }
+            variation = variation / count;
+            
+            // If variation is high, it might be an image
+            if (variation > variationThreshold) {
+                regions.push({
+                    x: blockX,
+                    y: blockY,
+                    width: blockSize,
+                    height: blockSize,
+                    variation: variation
+                });
+            }
+        }
+    }
+    
+    // Merge nearby regions
+    return mergeImageRegions(regions);
+}
+
+/**
+ * Merge nearby image regions
+ */
+function mergeImageRegions(regions) {
+    if (regions.length === 0) return [];
+    
+    const merged = [];
+    const mergedFlags = new Set();
+    
+    for (let i = 0; i < regions.length; i++) {
+        if (mergedFlags.has(i)) continue;
+        
+        const region = regions[i];
+        const group = [region];
+        mergedFlags.add(i);
+        
+        // Find nearby regions
+        for (let j = i + 1; j < regions.length; j++) {
+            if (mergedFlags.has(j)) continue;
+            
+            const other = regions[j];
+            const distance = Math.sqrt(
+                Math.pow(region.x - other.x, 2) + Math.pow(region.y - other.y, 2)
+            );
+            
+            if (distance < 50) { // Merge if within 50 pixels
+                group.push(other);
+                mergedFlags.add(j);
+            }
+        }
+        
+        // Create merged region
+        const minX = Math.min(...group.map(r => r.x));
+        const minY = Math.min(...group.map(r => r.y));
+        const maxX = Math.max(...group.map(r => r.x + r.width));
+        const maxY = Math.max(...group.map(r => r.y + r.height));
+        
+        merged.push({
+            x: minX,
+            y: minY,
+            width: maxX - minX,
+            height: maxY - minY,
+            variation: group.reduce((sum, r) => sum + r.variation, 0) / group.length
+        });
+    }
+    
+    return merged;
+}
+
+/**
+ * Map visual elements to Excel cells
+ * Creates a mapping of borders, boxes, and images to cell positions
+ */
+function mapVisualToExcel(visualElements, textObjects, columnBoundaries, rowPositions) {
+    const cellMappings = new Map();
+    
+    if (!visualElements || !columnBoundaries || !rowPositions) {
+        return cellMappings;
+    }
+    
+    // Map borders to cells
+    if (visualElements.borders) {
+        // Map horizontal borders (row separators)
+        if (visualElements.borders.horizontal) {
+            visualElements.borders.horizontal.forEach(line => {
+                // Find closest row position
+                const closestRow = rowPositions.reduce((closest, rowY, idx) => {
+                    const dist = Math.abs(rowY - line.y);
+                    const closestDist = Math.abs(rowPositions[closest] - line.y);
+                    return dist < closestDist ? idx : closest;
+                }, 0);
+                
+                // Map to row border
+                cellMappings.set(`row_${closestRow}_bottom`, {
+                    type: 'border',
+                    style: 'thin',
+                    position: 'bottom',
+                    line: line
+                });
+            });
+        }
+        
+        // Map vertical borders (column separators)
+        if (visualElements.borders.vertical) {
+            visualElements.borders.vertical.forEach(line => {
+                // Find closest column boundary
+                const closestCol = columnBoundaries.reduce((closest, colX, idx) => {
+                    const dist = Math.abs(colX - line.x);
+                    const closestDist = Math.abs(columnBoundaries[closest] - line.x);
+                    return dist < closestDist ? idx : closest;
+                }, 0);
+                
+                // Map to column border
+                cellMappings.set(`col_${closestCol}_right`, {
+                    type: 'border',
+                    style: 'thin',
+                    position: 'right',
+                    line: line
+                });
+            });
+        }
+    }
+    
+    // Map boxes to cell ranges
+    if (visualElements.boxes) {
+        visualElements.boxes.forEach((box, boxIdx) => {
+            // Find cells that intersect with this box
+            const startRow = rowPositions.findIndex((rowY, idx) => 
+                rowY <= box.y && (idx === rowPositions.length - 1 || rowPositions[idx + 1] > box.y)
+            );
+            const endRow = rowPositions.findIndex((rowY, idx) => 
+                rowY <= (box.y + box.height) && (idx === rowPositions.length - 1 || rowPositions[idx + 1] > (box.y + box.height))
+            );
+            const startCol = columnBoundaries.findIndex((colX, idx) => 
+                colX <= box.x && (idx === columnBoundaries.length - 1 || columnBoundaries[idx + 1] > box.x)
+            );
+            const endCol = columnBoundaries.findIndex((colX, idx) => 
+                colX <= (box.x + box.width) && (idx === columnBoundaries.length - 1 || columnBoundaries[idx + 1] > (box.x + box.width))
+            );
+            
+            if (startRow !== -1 && startCol !== -1) {
+                cellMappings.set(`box_${startRow}_${startCol}`, {
+                    type: 'box',
+                    box: box,
+                    cellRange: { startRow, endRow, startCol, endCol }
+                });
+            }
+        });
+    }
+    
+    // Map images to cells
+    if (visualElements.images) {
+        visualElements.images.forEach((image, imgIdx) => {
+            // Find cell that contains this image
+            const row = rowPositions.findIndex((rowY, idx) => 
+                rowY <= image.y && (idx === rowPositions.length - 1 || rowPositions[idx + 1] > image.y)
+            );
+            const col = columnBoundaries.findIndex((colX, idx) => 
+                colX <= image.x && (idx === columnBoundaries.length - 1 || columnBoundaries[idx + 1] > image.x)
+            );
+            
+            if (row !== -1 && col !== -1) {
+                cellMappings.set(`cell_${row}_${col}_image`, {
+                    type: 'image',
+                    image: image,
+                    row: row,
+                    col: col
+                });
+            }
+        });
+    }
+    
+    return cellMappings;
+}
+
+/**
+ * Recreate table borders based on detected visual elements
+ */
+function recreateTableBorders(visualElements, columnBoundaries, rowPositions) {
+    const borders = {
+        horizontal: [],
+        vertical: []
+    };
+    
+    if (!visualElements || !columnBoundaries || !rowPositions) {
+        return borders;
+    }
+    
+    // Recreate horizontal borders between rows
+    for (let i = 0; i < rowPositions.length - 1; i++) {
+        const y = rowPositions[i];
+        const nextY = rowPositions[i + 1];
+        const midY = (y + nextY) / 2;
+        
+        // Check if there's a detected border near this position
+        const detectedBorder = visualElements.borders?.horizontal?.find(line => 
+            Math.abs(line.y - midY) < 10
+        );
+        
+        if (detectedBorder) {
+            borders.horizontal.push({
+                row: i,
+                y: detectedBorder.y,
+                x1: columnBoundaries[0] || 0,
+                x2: columnBoundaries[columnBoundaries.length - 1] || 1000
+            });
+        } else {
+            // Add inferred border
+            borders.horizontal.push({
+                row: i,
+                y: midY,
+                x1: columnBoundaries[0] || 0,
+                x2: columnBoundaries[columnBoundaries.length - 1] || 1000,
+                inferred: true
+            });
+        }
+    }
+    
+    // Recreate vertical borders between columns
+    for (let i = 0; i < columnBoundaries.length - 1; i++) {
+        const x = columnBoundaries[i];
+        const nextX = columnBoundaries[i + 1];
+        const midX = (x + nextX) / 2;
+        
+        // Check if there's a detected border near this position
+        const detectedBorder = visualElements.borders?.vertical?.find(line => 
+            Math.abs(line.x - midX) < 10
+        );
+        
+        if (detectedBorder) {
+            borders.vertical.push({
+                col: i,
+                x: detectedBorder.x,
+                y1: rowPositions[rowPositions.length - 1] || 0,
+                y2: rowPositions[0] || 1000
+            });
+        } else {
+            // Add inferred border
+            borders.vertical.push({
+                col: i,
+                x: midX,
+                y1: rowPositions[rowPositions.length - 1] || 0,
+                y2: rowPositions[0] || 1000,
+                inferred: true
             });
         }
     }
@@ -248,153 +634,14 @@ function detectBorders(imageData, width, height) {
     return borders;
 }
 
-/**
- * Detect and extract images from PDF page
- */
-async function detectImages(page) {
-    const images = [];
-    try {
-        // Get page operators (drawing commands)
-        const opList = await page.getOperatorList();
-        
-        // Check if pdfjsLib is available
-        const pdfjsLib = window.pdfjsLib || window.pdfjs;
-        if (!pdfjsLib || !pdfjsLib.OPS) {
-            console.warn('PDF.js library not available for image detection');
-            return images;
-        }
-        
-        // Extract image objects from operators
-        for (let i = 0; i < opList.fnArray.length; i++) {
-            const op = opList.fnArray[i];
-            const args = opList.argsArray[i];
-            
-            // Check for image drawing operators
-            const OPS = pdfjsLib.OPS;
-            if (op === OPS.paintImageXObject || 
-                op === OPS.paintInlineImageXObject ||
-                op === OPS.paintImageXObjectRepeat) {
-                
-                try {
-                    // Get image data from page objects
-                    if (page.objs && args && args[0]) {
-                        const img = await page.objs.get(args[0]);
-                        if (img && (img.data || img.src)) {
-                            let imageUrl = null;
-                            
-                            // Handle different image formats
-                            if (img.data) {
-                                const blob = new Blob([img.data], { type: 'image/png' });
-                                imageUrl = URL.createObjectURL(blob);
-                            } else if (img.src) {
-                                imageUrl = img.src;
-                            } else if (typeof img === 'string') {
-                                imageUrl = img; // Base64 or URL
-                            }
-                            
-                            if (imageUrl) {
-                                images.push({
-                                    id: args[0],
-                                    url: imageUrl,
-                                    width: img.width || 100,
-                                    height: img.height || 100,
-                                    x: (args[1] !== undefined) ? args[1] : 0,
-                                    y: (args[2] !== undefined) ? args[2] : 0
-                                });
-                            }
-                        }
-                    }
-                } catch (e) {
-                    console.warn('Error extracting image:', e);
-                }
-            }
-        }
-    } catch (error) {
-        console.warn('Error detecting images:', error);
-    }
-    
-    return images;
-}
-
-/**
- * Map visual elements to Excel cells
- * Creates a mapping of visual boxes/borders to cell positions
- */
-function mapVisualToExcel(visualElements, textObjects, columnBoundaries, rowPositions) {
-    const cellMappings = new Map();
-    
-    // Map borders to cell edges
-    visualElements.borders.forEach(border => {
-        if (border.type === 'horizontal') {
-            // Find closest row
-            const closestRow = rowPositions.reduce((closest, rowY, idx) => {
-                return Math.abs(rowY - border.y) < Math.abs(rowPositions[closest] - border.y) ? idx : closest;
-            }, 0);
-            
-            // Mark this row as having a border below
-            const key = `row_${closestRow}_bottom`;
-            cellMappings.set(key, { type: 'border', style: 'thin' });
-        } else if (border.type === 'vertical') {
-            // Find closest column
-            const closestCol = columnBoundaries.reduce((closest, colX, idx) => {
-                return Math.abs(colX - border.x) < Math.abs(columnBoundaries[closest] - border.x) ? idx : closest;
-            }, 0);
-            
-            // Mark this column as having a border on the right
-            const key = `col_${closestCol}_right`;
-            cellMappings.set(key, { type: 'border', style: 'thin' });
-        }
-    });
-    
-    // Map boxes to cell regions
-    visualElements.boxes.forEach(box => {
-        // Find which cells this box overlaps
-        const startCol = columnBoundaries.findIndex(colX => colX >= box.x);
-        const endCol = columnBoundaries.findIndex(colX => colX >= box.x + box.width);
-        const startRow = rowPositions.findIndex(rowY => rowY >= box.y);
-        const endRow = rowPositions.findIndex(rowY => rowY >= box.y + box.height);
-        
-        if (startCol >= 0 && startRow >= 0) {
-            for (let r = startRow; r <= (endRow >= 0 ? endRow : rowPositions.length - 1); r++) {
-                for (let c = startCol; c <= (endCol >= 0 ? endCol : columnBoundaries.length - 1); c++) {
-                    const key = `cell_${r}_${c}`;
-                    if (!cellMappings.has(key)) {
-                        cellMappings.set(key, { type: 'box', region: true });
-                    }
-                }
-            }
-        }
-    });
-    
-    // Map images to cells
-    visualElements.images.forEach((img, imgIdx) => {
-        const closestCol = columnBoundaries.reduce((closest, colX, idx) => {
-            return Math.abs(colX - img.x) < Math.abs(columnBoundaries[closest] - img.x) ? idx : closest;
-        }, 0);
-        const closestRow = rowPositions.reduce((closest, rowY, idx) => {
-            return Math.abs(rowY - img.y) < Math.abs(rowPositions[closest] - img.y) ? idx : closest;
-        }, 0);
-        
-        const key = `cell_${closestRow}_${closestCol}_image`;
-        cellMappings.set(key, {
-            type: 'image',
-            url: img.url,
-            width: img.width,
-            height: img.height
-        });
-    });
-    
-    return cellMappings;
-}
-
 // Export
 if (typeof window !== 'undefined') {
     window.PDFExcelVisualDetector = {
         detectVisualElements,
+        mapVisualToExcel,
+        recreateTableBorders,
         detectBoxes,
         detectBorders,
-        detectImages,
-        mapVisualToExcel
+        detectImages
     };
 }
-

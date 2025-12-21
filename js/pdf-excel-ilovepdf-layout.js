@@ -6,8 +6,9 @@
 
 /**
  * Main iLovePDF-like table extraction
+ * IMPROVED: Now includes visual element detection for better borders and column detection
  */
-async function extractTableILovePDFStyle(page) {
+async function extractTableILovePDFStyle(page, visualElements = null) {
     try {
         const viewport = page.getViewport({ scale: 1.0 });
         const textContent = await page.getTextContent();
@@ -33,8 +34,8 @@ async function extractTableILovePDFStyle(page) {
             return null; // Need at least header + 1 row
         }
         
-        // STEP 4: Column detection with clustering (X-axis)
-        const columnBoundaries = detectColumnsWithClustering(rows);
+        // STEP 4: Column detection with clustering (X-axis) + visual alignment
+        const columnBoundaries = detectColumnsWithClustering(rows, visualElements);
         
         if (columnBoundaries.length === 0) {
             return null;
@@ -220,9 +221,9 @@ function clusterRowsDynamic(textObjects) {
 
 /**
  * STEP 4: Column detection with clustering (X-axis)
- * IMPROVED: Better column boundary detection with density analysis
+ * IMPROVED: Better column boundary detection with density analysis + visual alignment
  */
-function detectColumnsWithClustering(rows) {
+function detectColumnsWithClustering(rows, visualElements = null) {
     if (rows.length === 0) return [];
     
     // Collect all X positions with their frequencies (how many items at each X)
@@ -242,6 +243,14 @@ function detectColumnsWithClustering(rows) {
     // Calculate average font size for adaptive threshold
     const avgFontSize = rows.reduce((sum, row) => sum + row.fontSize, 0) / rows.length;
     
+    // IMPROVED: If visual elements available, use vertical lines as column hints
+    let visualColumnHints = [];
+    if (visualElements && visualElements.borders && visualElements.borders.vertical) {
+        visualColumnHints = visualElements.borders.vertical
+            .map(line => line.x)
+            .sort((a, b) => a - b);
+    }
+    
     // IMPROVED: Adaptive clustering with density weighting
     // Columns are detected by finding X positions that appear frequently across rows
     const clusters = [];
@@ -250,12 +259,28 @@ function detectColumnsWithClustering(rows) {
     // Dynamic threshold: based on font size and character width
     // Typical character width is ~0.6 * font size
     const charWidth = avgFontSize * 0.6;
-    const clusterThreshold = Math.max(charWidth * 3, 15); // 3 characters or 15px min
+    // Use smaller threshold if visual hints are available (they're more accurate)
+    const clusterThreshold = visualColumnHints.length > 0 
+        ? Math.max(charWidth * 2, 10) // Smaller threshold when visual hints exist
+        : Math.max(charWidth * 3, 15); // 3 characters or 15px min
     
     for (let i = 1; i < sortedX.length; i++) {
         const currentX = sortedX[i];
         const lastX = currentCluster[currentCluster.length - 1].x;
         const distance = currentX - lastX;
+        
+        // If visual hints exist, check if we should create a new cluster at visual line
+        if (visualColumnHints.length > 0) {
+            const nearbyVisualLine = visualColumnHints.find(vx => 
+                Math.abs(currentX - vx) < 5 && Math.abs(currentX - lastX) > clusterThreshold / 2
+            );
+            if (nearbyVisualLine) {
+                // Force new cluster at visual line
+                clusters.push(currentCluster);
+                currentCluster = [{ x: currentX, count: xPositionMap.get(currentX) }];
+                continue;
+            }
+        }
         
         if (distance < clusterThreshold) {
             // Same cluster - add to current cluster
@@ -279,7 +304,7 @@ function detectColumnsWithClustering(rows) {
     
     // IMPROVED: Get weighted center of each cluster (by frequency)
     // Columns that appear more frequently get higher weight
-    const columnBoundaries = clusters.map(cluster => {
+    let columnBoundaries = clusters.map(cluster => {
         let weightedSum = 0;
         let totalWeight = 0;
         
@@ -291,10 +316,33 @@ function detectColumnsWithClustering(rows) {
         return totalWeight > 0 ? weightedSum / totalWeight : cluster[0].x;
     }).sort((a, b) => a - b);
     
+    // IMPROVED: Align column boundaries to visual lines if available
+    if (visualColumnHints.length > 0) {
+        columnBoundaries = columnBoundaries.map(boundary => {
+            const nearbyVisualLine = visualColumnHints.find(vx => Math.abs(boundary - vx) < 10);
+            return nearbyVisualLine || boundary; // Use visual line if close, else use text-based boundary
+        });
+        
+        // Add visual lines that don't have nearby text columns
+        visualColumnHints.forEach(vx => {
+            const hasNearby = columnBoundaries.some(b => Math.abs(b - vx) < 10);
+            if (!hasNearby) {
+                columnBoundaries.push(vx);
+            }
+        });
+        
+        columnBoundaries.sort((a, b) => a - b);
+    }
+    
     // Filter out columns that appear too infrequently (noise)
     const minFrequency = rows.length * 0.1; // Must appear in at least 10% of rows
     const filteredBoundaries = columnBoundaries.filter((boundary, idx) => {
+        // Visual hints are always included
+        if (visualColumnHints.includes(boundary)) return true;
+        
+        // Check frequency for text-based boundaries
         const cluster = clusters[idx];
+        if (!cluster) return true; // Keep if no cluster (might be visual-only)
         const totalCount = cluster.reduce((sum, item) => sum + item.count, 0);
         return totalCount >= minFrequency;
     });
