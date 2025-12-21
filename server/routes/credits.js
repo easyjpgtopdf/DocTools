@@ -68,7 +68,10 @@ const paymentLimiter = require('express-rate-limit')({
     error: 'Too Many Payment Requests',
     message: 'Too many payment attempts. Please try again later.',
     code: 'PAYMENT_RATE_LIMIT'
-  }
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.method === 'OPTIONS' // Skip rate limiting for OPTIONS requests
 });
 
 // Create Razorpay order for credit purchase

@@ -24,8 +24,11 @@ def get_firestore_client():
     return _db_client
 
 # Credit pricing constants (for logged-in/premium users)
-CREDITS_PER_PAGE_TEXT = 1.0   # 1 credit per text page
-CREDITS_PER_PAGE_OCR = 1.5    # 1.5 credits per OCR page
+# Word conversion pricing
+CREDITS_PER_PAGE_TEXT = 2.0   # 2 credits per text page (Premium)
+CREDITS_PER_PAGE_OCR = 2.0    # 2 credits per OCR page (Premium)
+# Excel conversion pricing (Premium Pro)
+CREDITS_PER_PAGE_EXCEL = 2.0  # 2 credits per page for Excel conversion
 # Premium user file size limit
 PREMIUM_MAX_FILE_SIZE_MB = 50  # Maximum 50MB file size for logged-in users
 

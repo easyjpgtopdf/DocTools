@@ -972,6 +972,8 @@
               : window.location.origin);
         
         console.log('Creating order with:', { plan, credits, price, userId });
+        console.log('API URL:', `${API_BASE_URL}/api/credits/create-order`);
+        console.log('Token available:', !!token);
         
         const response = await fetch(`${API_BASE_URL}/api/credits/create-order`, {
           method: 'POST',
@@ -987,15 +989,18 @@
           })
         });
 
+        console.log('Response status:', response.status, response.statusText);
+        
         if (!response.ok) {
           const errorText = await response.text();
+          console.error('Error response:', errorText);
           let error;
           try {
             error = JSON.parse(errorText);
           } catch (e) {
-            error = { message: errorText || 'Failed to create order' };
+            error = { message: errorText || `Failed to create order (${response.status})` };
           }
-          throw new Error(error.error || error.message || 'Failed to create order');
+          throw new Error(error.error || error.message || `Failed to create order (${response.status})`);
         }
 
         const orderData = await response.json();

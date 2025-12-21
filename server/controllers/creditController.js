@@ -29,6 +29,14 @@ if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
  * Create Razorpay order for credit purchase
  */
 async function createCreditOrder(req, res) {
+  // Explicitly handle OPTIONS requests
+  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return res.status(200).end();
+  }
+  
   try {
     // Check if Razorpay is initialized
     if (!razorpay) {

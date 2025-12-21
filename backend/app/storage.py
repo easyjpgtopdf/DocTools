@@ -2,6 +2,7 @@
 Google Cloud Storage module.
 Handles file uploads and signed URL generation.
 """
+import os
 from google.cloud import storage
 from google.cloud.exceptions import GoogleCloudError
 import logging

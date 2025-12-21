@@ -126,6 +126,25 @@ class PdfMetadataResponse(BaseModel):
     daily_usage_text: Optional[int] = 0  # Pages used today (text)
     daily_usage_ocr: Optional[int] = 0  # Pages used today (OCR)
     daily_limit_text: Optional[int] = 10  # Daily limit for text pages
-    daily_limit_ocr: Optional[int] = 5  # Daily limit for OCR pages
+    daily_limit_ocr: Optional[int] = 3  # Daily limit for OCR pages
     can_use_free_tier: Optional[bool] = True  # Whether user can use free tier for this file
+    # New fields from document detector
+    has_tables: Optional[bool] = False  # Whether PDF contains tables
+    is_id_card_like: Optional[bool] = False  # Whether PDF is ID card-like
+    is_scanned: Optional[bool] = False  # Whether PDF is scanned (no text)
+    suggested_tool: Optional[str] = "word"  # "word" or "excel"
+    requires_premium: Optional[bool] = False  # Whether premium is required
+    suggestion_reason: Optional[str] = None  # Reason for tool suggestion
+
+
+class ExcelConvertResponse(BaseModel):
+    """PDF to Excel conversion response model."""
+    status: str
+    job_id: str
+    download_url: str
+    pages: int
+    table_count: int
+    conversion_time_ms: int
+    file_size_bytes: Optional[int] = None
+    job_status: Optional[str] = None
 

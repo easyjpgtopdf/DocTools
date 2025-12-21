@@ -69,7 +69,7 @@ Write-Host "Image pushed" -ForegroundColor Green
 Write-Host "`n[6/7] Deploying to Cloud Run..." -ForegroundColor Yellow
 $envVars = "PROJECT_ID=$PROJECT_ID,GCS_INPUT_BUCKET=$BUCKET_NAME,GCS_OUTPUT_BUCKET=$BUCKET_NAME,DOCAI_PROCESSOR_ID=$DOCAI_PROCESSOR_ID,DOCAI_LOCATION=$DOCAI_LOCATION,FIREBASE_PROJECT_ID=$PROJECT_ID"
 
-gcloud run deploy $SERVICE_NAME --image $IMAGE_NAME --platform managed --region $REGION --allow-unauthenticated --memory 2Gi --cpu 2 --timeout 540 --set-env-vars $envVars --project $PROJECT_ID
+gcloud run deploy $SERVICE_NAME --image $IMAGE_NAME --platform managed --region $REGION --allow-unauthenticated --memory 512Mi --cpu 1 --timeout 540 --set-env-vars $envVars --project $PROJECT_ID
 
 if (-not $?) {
     Write-Host "Deployment failed" -ForegroundColor Red

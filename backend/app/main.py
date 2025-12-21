@@ -13,6 +13,7 @@ from typing import Optional
 from app.config import get_settings, Settings
 from app.models import (
     ConvertResponse,
+    ExcelConvertResponse,
     PdfToJpgResponse,
     ImageInfo,
     ConversionJob,
@@ -34,6 +35,7 @@ from app.converter import (
     generate_pdf_thumbnail,
     get_page_count,
     smart_convert_pdf_to_word,
+    convert_pdf_to_excel_with_docai,
     ConversionMethod
 )
 from app.docai_client import process_pdf_to_layout, get_docai_confidence
@@ -300,78 +302,120 @@ async def convert_pdf_to_word(
                 update_job_status(job.id, "error", error_message=error_msg)
             raise HTTPException(status_code=400, detail=error_msg)
         
-        # Get page count
-        pages_count = get_page_count(temp_pdf_path)
+        # Use central document detection engine
+        from app.document_detector import detect_document, check_free_tier_eligibility, check_premium_requirements
         
-        # Detect if PDF is text-based or scanned (will use OCR)
-        has_text = pdf_has_text(temp_pdf_path)
-        will_use_docai = not has_text  # OCR if no text
+        analysis = detect_document(temp_pdf_path, file_size, settings, use_docai_for_analysis=True)
+        pages_count = analysis.page_count
+        has_text = analysis.has_text
+        will_use_docai = analysis.is_scanned  # OCR if scanned
+        
+        # CRITICAL RULE: Tables and ID cards must use Excel, not Word
+        if analysis.has_tables or analysis.is_id_card_like:
+            error_msg = f"This document contains tables or structured data (ID card/invoice/form). " \
+                       f"For accurate results, please use PDF to Excel (Pro). {analysis.reason}"
+            logger.warning(f"[Job {job.id}] Blocked Word conversion: {error_msg}")
+            if job:
+                update_job_status(job.id, "error", error_message=error_msg)
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "REQUIRES_EXCEL_TOOL",
+                    "message": error_msg,
+                    "suggested_tool": "excel",
+                    "reason": analysis.reason,
+                    "has_tables": analysis.has_tables,
+                    "is_id_card_like": analysis.is_id_card_like
+                }
+            )
         
         # Check limits based on authentication
         db = get_firestore_client()
         
         if is_authenticated:
             # LOGGED-IN USERS: Must use credits (NO free quota)
-            from app.credit_manager import calculate_required_credits, has_sufficient_credits
-            required_credits = calculate_required_credits(pages_count, will_use_docai)
-            credit_check = has_sufficient_credits(user_id, required_credits, db)
+            # Check premium requirements
+            user_credits_info = get_user_credits(user_id, db)
+            user_credits = user_credits_info.get('credits', 0)
             
-            if not credit_check['hasCredits']:
-                error_msg = f"Insufficient credits. Required: {required_credits}, Available: {credit_check['creditsAvailable']}. Note: Logged-in users must use credits (no free quota). Sign out to use free tier."
+            premium_check = check_premium_requirements(analysis, user_credits)
+            
+            if not premium_check['eligible']:
+                error_msg = premium_check['reason']
                 logger.warning(f"[Job {job.id}] {error_msg}")
                 if job:
                     update_job_status(job.id, "error", error_message=error_msg)
                 raise HTTPException(
                     status_code=402,
                     detail={
-                        "error": "NOT_ENOUGH_CREDITS",
-                        "required": required_credits,
-                        "available": credit_check['creditsAvailable'],
-                        "message": error_msg
+                        "error": "PREMIUM_REQUIREMENTS_NOT_MET",
+                        "message": error_msg,
+                        "required": premium_check.get('required', 0),
+                        "available": premium_check.get('current_credits', user_credits),
+                        "required_minimum": premium_check.get('required_minimum', 30)
                     }
                 )
             
+            required_credits = premium_check['required']
             logger.info(f"[Job {job.id}] Logged-in user: {user_id}, {pages_count} pages, OCR: {will_use_docai}, Credits required: {required_credits}")
             free_tier_allowed = False  # Logged-in users don't get free tier
         else:
-            # ANONYMOUS USERS: Can use free tier (10 pages text, 3 pages OCR per day)
-            from app.daily_usage import can_use_free_tier, record_daily_usage, FREE_TIER_DAILY_PAGES_TEXT, FREE_TIER_DAILY_PAGES_OCR
-            free_tier_check = can_use_free_tier(user_id, pages_count, will_use_docai, db)
-            free_tier_allowed = free_tier_check['allowed']
+            # ANONYMOUS USERS: Can use free tier (10 pages text, 3 pages OCR per day, 20MB max, text PDFs only)
+            # Check free tier eligibility using document detector
+            free_tier_eligibility = check_free_tier_eligibility(analysis, is_authenticated)
+            free_tier_allowed = free_tier_eligibility.get('allowed', False)
             
-            if free_tier_allowed:
-                # Anonymous user can use free tier
-                logger.info(f"[Job {job.id}] Free tier usage: {user_id}, {pages_count} pages, OCR: {will_use_docai}")
-            else:
-                # Anonymous user exceeded free tier
-                error_msg = free_tier_check['reason']
+            if not free_tier_allowed:
+                # Check if it's a daily limit issue or a document type issue
+                error_msg = free_tier_eligibility.get('reason', 'Free tier not available')
                 logger.warning(f"[Job {job.id}] {error_msg}")
                 if job:
                     update_job_status(job.id, "error", error_message=error_msg)
-                raise HTTPException(
-                    status_code=403,
-                    detail={
-                        "error": "FREE_TIER_DAILY_LIMIT_EXCEEDED",
-                        "message": error_msg,
-                        "remaining_text": free_tier_check['remaining_text'],
-                        "remaining_ocr": free_tier_check['remaining_ocr'],
-                        "daily_limit_text": FREE_TIER_DAILY_PAGES_TEXT,
-                        "daily_limit_ocr": FREE_TIER_DAILY_PAGES_OCR
-                    }
-                )
-                if job:
-                    update_job_status(job.id, "error", error_message=error_msg)
-                raise HTTPException(
-                    status_code=402,
-                    detail={
-                        "error": "NOT_ENOUGH_CREDITS",
-                        "required": required_credits,
-                        "available": credit_check['creditsAvailable'],
-                        "message": error_msg
-                    }
-                )
+                
+                # Check daily usage for more specific error details
+                from app.daily_usage import can_use_free_tier, FREE_TIER_DAILY_PAGES_TEXT, FREE_TIER_DAILY_PAGES_OCR
+                daily_limit_check = can_use_free_tier(user_id, pages_count, will_use_docai, db)
+                
+                if free_tier_eligibility.get('requires_ocr'):
+                    raise HTTPException(
+                        status_code=403,
+                        detail={
+                            "error": "FREE_TIER_OCR_NOT_ALLOWED",
+                            "message": error_msg,
+                            "suggestion": "Sign in to use OCR (Premium feature)"
+                        }
+                    )
+                elif free_tier_eligibility.get('exceeds_pages'):
+                    raise HTTPException(
+                        status_code=403,
+                        detail={
+                            "error": "FREE_TIER_PAGE_LIMIT_EXCEEDED",
+                            "message": error_msg,
+                            "daily_limit": FREE_TIER_DAILY_PAGES_TEXT,
+                            "suggestion": "Sign in for higher limits"
+                        }
+                    )
+                elif free_tier_eligibility.get('exceeds_size'):
+                    raise HTTPException(
+                        status_code=403,
+                        detail={
+                            "error": "FREE_TIER_SIZE_LIMIT_EXCEEDED",
+                            "message": error_msg,
+                            "suggestion": "Sign in for higher limits (50MB max)"
+                        }
+                    )
+                else:
+                    # Generic free tier error
+                    raise HTTPException(
+                        status_code=403,
+                        detail={
+                            "error": "FREE_TIER_NOT_ELIGIBLE",
+                            "message": error_msg
+                        }
+                    )
             
-            logger.info(f"[Job {job.id}] Credits check passed. Required: {required_credits}, Available: {credit_check['creditsAvailable']}")
+            # Free tier allowed - log it
+            logger.info(f"[Job {job.id}] Free tier usage: {user_id}, {pages_count} pages, OCR: {will_use_docai}")
         
         # Perform smart conversion (generates both primary and alternative)
         logger.info(f"[Job {job.id}] Starting smart conversion with alternative generation")
@@ -381,11 +425,15 @@ async def convert_pdf_to_word(
         engine = None
         docai_confidence = None
         
+        # Determine if we should use free pipeline (anonymous users with free tier)
+        use_free_pipeline = (not is_authenticated and free_tier_allowed and has_text)
+        
         conversion_result = smart_convert_pdf_to_word(
             temp_pdf_path,
             temp_dir,
             settings,
-            generate_alternative=True
+            generate_alternative=not use_free_pipeline,  # Don't generate alternative for free tier
+            use_free_pipeline=use_free_pipeline
         )
         
         primary_docx_path = conversion_result.main_docx_path
@@ -448,40 +496,44 @@ async def convert_pdf_to_word(
                 expiration_seconds=settings.signed_url_expiration
             )
         
-        # Record daily usage if free tier was used
-        if free_tier_check['allowed']:
+        # Record daily usage or deduct credits based on tier
+        if not is_authenticated and free_tier_allowed:
+            # Free tier usage - record daily usage
             try:
+                from app.daily_usage import record_daily_usage
                 record_daily_usage(user_id, conversion_result.pages, conversion_result.used_docai, db)
                 logger.info(f"[Job {job.id}] Recorded free tier usage: {user_id}, {conversion_result.pages} pages, OCR: {conversion_result.used_docai}")
             except Exception as usage_error:
                 logger.error(f"[Job {job.id}] Error recording daily usage: {usage_error}", exc_info=True)
-        else:
-            # Free tier exceeded - deduct credits for authenticated users only
-            if user_id and user_id != 'anonymous':
-                try:
-                    required_credits = calculate_required_credits(conversion_result.pages, conversion_result.used_docai)
-                    
-                    deduct_result = deduct_credits(
-                        user_id=user_id,
-                        amount=required_credits,
-                        reason='Converted PDF to Word',
-                        metadata={
-                            'file_name': file.filename,
-                            'page_count': conversion_result.pages,
-                            'processor': conversion_result.main_method.value,
-                            'job_id': job.id
-                        },
-                        db=db
-                    )
-                    
-                    if deduct_result.get('success'):
-                        logger.info(f"[Job {job.id}] Credits deducted: {required_credits}. Remaining: {deduct_result['creditsRemaining']}")
-                    else:
-                        logger.error(f"[Job {job.id}] Failed to deduct credits: {deduct_result.get('error')}")
-                        # Don't fail the conversion if credit deduction fails - log it
-                except Exception as credit_error:
-                    logger.error(f"[Job {job.id}] Error deducting credits: {credit_error}", exc_info=True)
-                    # Don't fail the conversion - log the error
+        elif is_authenticated:
+            # Premium user - deduct credits after successful conversion
+            try:
+                from app.credit_manager import calculate_required_credits
+                required_credits = calculate_required_credits(conversion_result.pages, conversion_result.used_docai)
+                
+                deduct_result = deduct_credits(
+                    user_id=user_id,
+                    amount=required_credits,
+                    reason='Converted PDF to Word',
+                    metadata={
+                        'file_name': file.filename,
+                        'page_count': conversion_result.pages,
+                        'processor': conversion_result.main_method.value,
+                        'tool': 'pdf-to-word',
+                        'job_id': job.id,
+                        'engine': engine
+                    },
+                    db=db
+                )
+                
+                if deduct_result.get('success'):
+                    logger.info(f"[Job {job.id}] Credits deducted: {required_credits}. Remaining: {deduct_result['creditsRemaining']}")
+                else:
+                    logger.error(f"[Job {job.id}] Failed to deduct credits: {deduct_result.get('error')}")
+                    # Don't fail the conversion if credit deduction fails - log it
+            except Exception as credit_error:
+                logger.error(f"[Job {job.id}] Error deducting credits: {credit_error}", exc_info=True)
+                # Don't fail the conversion - log the error
         
         # Update job status to completed
         job_status = "completed"
@@ -665,6 +717,241 @@ async def convert_pdf_to_jpg_endpoint(
             cleanup_file(temp_pdf_path)
         for img_path in image_paths:
             cleanup_file(img_path)
+
+
+@app.post("/api/convert/pdf-to-excel", response_model=ExcelConvertResponse)
+async def convert_pdf_to_excel(
+    file: UploadFile = File(...),
+    user: dict = Depends(get_current_user_dep),
+    settings: Settings = Depends(get_app_settings)
+):
+    """
+    Convert PDF to Excel (Premium Pro) - requires login and credits >= 30.
+    Excel conversion is optimized for tables, invoices, forms, and ID cards.
+    """
+    start_time = time.time()
+    job = None
+    temp_pdf_path = None
+    temp_dir = None
+    excel_path = None
+    
+    try:
+        # Create job for tracking
+        job = create_job("pdf-to-excel")
+        update_job_status(job.id, "processing")
+        logger.info(f"[Job {job.id}] PDF to Excel conversion started - User: {user.get('user_id')}, File: {file.filename}")
+        
+        # Validate file
+        if not file.filename or not file.filename.lower().endswith('.pdf'):
+            error_msg = "File must be a PDF"
+            if job:
+                update_job_status(job.id, "error", error_message=error_msg)
+            raise HTTPException(status_code=400, detail=error_msg)
+        
+        # Check user authentication - Excel requires login
+        user_id = user.get('user_id', 'anonymous')
+        is_authenticated = user_id and user_id != 'anonymous'
+        
+        if not is_authenticated:
+            error_msg = "Excel conversion (Premium Pro) requires login. Please sign in to continue."
+            logger.warning(f"[Job {job.id}] {error_msg}")
+            if job:
+                update_job_status(job.id, "error", error_message=error_msg)
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "error": "AUTHENTICATION_REQUIRED",
+                    "message": error_msg
+                }
+            )
+        
+        # Check file size
+        file_size_bytes = file.size or 0
+        from app.credit_manager import PREMIUM_MAX_FILE_SIZE_MB
+        file_size_mb = file_size_bytes / (1024 * 1024)
+        max_size_mb = PREMIUM_MAX_FILE_SIZE_MB  # 50MB for premium users
+        
+        if file_size_mb > max_size_mb:
+            error_msg = f"File too large. Maximum size for premium users: {max_size_mb}MB. Your file is {file_size_mb:.2f}MB."
+            logger.warning(f"[Job {job.id}] {error_msg}")
+            if job:
+                update_job_status(job.id, "error", error_message=error_msg)
+            raise HTTPException(status_code=413, detail=error_msg)
+        
+        # Save uploaded file
+        temp_dir = os.path.join(ensure_temp_dir(), job.id)
+        os.makedirs(temp_dir, exist_ok=True)
+        temp_pdf_path = os.path.join(temp_dir, "input.pdf")
+        
+        contents = await file.read()
+        with open(temp_pdf_path, "wb") as f:
+            f.write(contents)
+        
+        file_size = os.path.getsize(temp_pdf_path)
+        logger.info(f"[Job {job.id}] File saved: {temp_pdf_path}, size: {file_size} bytes")
+        
+        # Validate PDF
+        is_valid, error_msg = validate_pdf_file(temp_pdf_path, settings.max_file_size_mb)
+        if not is_valid:
+            if job:
+                update_job_status(job.id, "error", error_message=error_msg)
+            raise HTTPException(status_code=400, detail=error_msg)
+        
+        # Use document detection to analyze
+        from app.document_detector import detect_document, check_premium_requirements
+        analysis = detect_document(temp_pdf_path, file_size, settings, use_docai_for_analysis=True)
+        pages_count = analysis.page_count
+        
+        # Check premium requirements (login + credits >= 30)
+        db = get_firestore_client()
+        user_credits_info = get_user_credits(user_id, db)
+        user_credits = user_credits_info.get('credits', 0)
+        
+        premium_check = check_premium_requirements(analysis, user_credits)
+        
+        if not premium_check['eligible']:
+            error_msg = premium_check['reason']
+            logger.warning(f"[Job {job.id}] {error_msg}")
+            if job:
+                update_job_status(job.id, "error", error_message=error_msg)
+            raise HTTPException(
+                status_code=402,
+                detail={
+                    "error": "PREMIUM_REQUIREMENTS_NOT_MET",
+                    "message": error_msg,
+                    "required": premium_check.get('required', 0),
+                    "available": premium_check.get('current_credits', user_credits),
+                    "required_minimum": premium_check.get('required_minimum', 30)
+                }
+            )
+        
+        required_credits = premium_check['required']
+        logger.info(f"[Job {job.id}] Premium user: {user_id}, {pages_count} pages, Credits required: {required_credits}")
+        
+        # Parse document with Document AI once
+        with open(temp_pdf_path, 'rb') as f:
+            pdf_bytes = f.read()
+        
+        from app.docai_client import process_pdf_to_layout
+        parsed_doc = process_pdf_to_layout(
+            settings.project_id,
+            settings.docai_location,
+            settings.docai_processor_id,
+            pdf_bytes
+        )
+        table_count = len(parsed_doc.tables) if parsed_doc.tables else 0
+        
+        # Perform Excel conversion using parsed document
+        excel_path = os.path.join(temp_dir, "output.xlsx")
+        logger.info(f"[Job {job.id}] Starting Excel conversion with Document AI (found {table_count} tables)")
+        
+        convert_pdf_to_excel_with_docai(
+            temp_pdf_path,
+            excel_path,
+            parsed_doc=parsed_doc,  # Use pre-parsed document
+            settings=settings
+        )
+        
+        # Upload to GCS
+        storage_client = GCSStorage(settings.project_id)
+        excel_blob_name = f"converted/{job.id}/output.xlsx"
+        
+        logger.info(f"[Job {job.id}] Uploading Excel to GCS: {excel_blob_name}")
+        storage_client.upload_file_to_gcs(
+            excel_path,
+            settings.gcs_output_bucket,
+            excel_blob_name,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        
+        signed_url = storage_client.generate_signed_url(
+            settings.gcs_output_bucket,
+            excel_blob_name,
+            expiration_seconds=settings.signed_url_expiration
+        )
+        
+        # Deduct credits after successful conversion
+        try:
+            deduct_result = deduct_credits(
+                user_id=user_id,
+                amount=required_credits,
+                reason='Converted PDF to Excel (Premium Pro)',
+                metadata={
+                    'file_name': file.filename,
+                    'page_count': pages_count,
+                    'table_count': table_count,
+                    'processor': 'docai',
+                    'tool': 'pdf-to-excel',
+                    'job_id': job.id,
+                    'engine': 'docai'
+                },
+                db=db
+            )
+            
+            if deduct_result.get('success'):
+                logger.info(f"[Job {job.id}] Credits deducted: {required_credits}. Remaining: {deduct_result['creditsRemaining']}")
+            else:
+                logger.error(f"[Job {job.id}] Failed to deduct credits: {deduct_result.get('error')}")
+        except Exception as credit_error:
+            logger.error(f"[Job {job.id}] Error deducting credits: {credit_error}", exc_info=True)
+        
+        # Update job status
+        conversion_time_ms = int((time.time() - start_time) * 1000)
+        logger.info(f"[Job {job.id}] Excel conversion successful - Pages: {pages_count}, Tables: {table_count}, Time: {conversion_time_ms}ms")
+        
+        update_job_status(job.id, "done", pages=pages_count, conversion_time_ms=conversion_time_ms)
+        update_job_success(
+            job_id=job.id,
+            download_url=signed_url,
+            engine="docai",
+            pages=pages_count,
+            confidence=None
+        )
+        
+        return ExcelConvertResponse(
+            status="success",
+            job_id=job.id,
+            download_url=signed_url,
+            pages=pages_count,
+            table_count=table_count,
+            conversion_time_ms=conversion_time_ms,
+            file_size_bytes=os.path.getsize(excel_path),
+            job_status="completed"
+        )
+        
+    except HTTPException as e:
+        if job:
+            error_msg = str(e.detail) if hasattr(e, 'detail') else str(e)
+            update_job_failure(job.id, error_msg)
+            update_job_status(job.id, "error", error_message=error_msg)
+        logger.exception(f"[Job {job.id if job else 'N/A'}] HTTP Exception: {str(e.detail) if hasattr(e, 'detail') else str(e)}")
+        raise
+    except Exception as e:
+        error_msg = str(e)
+        logger.exception(f"[Job {job.id if job else 'N/A'}] Excel conversion error: {error_msg}")
+        if job:
+            update_job_failure(job.id, error_msg)
+            update_job_status(job.id, "error", error_message=error_msg)
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": True,
+                "message": f"Excel conversion failed: {error_msg}",
+                "error_type": type(e).__name__
+            }
+        )
+    finally:
+        # Cleanup
+        if temp_pdf_path:
+            cleanup_file(temp_pdf_path)
+        if excel_path:
+            cleanup_file(excel_path)
+        if temp_dir and os.path.exists(temp_dir):
+            try:
+                if not os.listdir(temp_dir):
+                    os.rmdir(temp_dir)
+            except:
+                pass
 
 
 @app.get("/api/pdf/thumbnail")
@@ -951,7 +1238,8 @@ async def get_pdf_metadata_for_credits(
     settings: Settings = Depends(get_app_settings)
 ):
     """
-    Get PDF metadata (pages, size, has_text) to calculate required credits.
+    Get PDF metadata using central document detection engine.
+    Analyzes document and suggests appropriate tool (Word vs Excel).
     Accepts POST with multipart/form-data file upload.
     """
     temp_pdf_path = None
@@ -966,33 +1254,42 @@ async def get_pdf_metadata_for_credits(
         with open(temp_pdf_path, "wb") as f:
             f.write(contents)
         
-        # Get page count
-        pages = get_page_count(temp_pdf_path)
         file_size_bytes = os.path.getsize(temp_pdf_path)
         
-        # Detect if PDF has text (to estimate OCR vs text conversion)
-        has_text = pdf_has_text(temp_pdf_path)
-        
-        # Calculate estimated credits
-        estimated_credits_text = calculate_required_credits(pages, False)
-        estimated_credits_ocr = calculate_required_credits(pages, True)
+        # Use central document detection engine
+        from app.document_detector import detect_document, check_free_tier_eligibility
+        analysis = detect_document(temp_pdf_path, file_size_bytes, settings, use_docai_for_analysis=True)
         
         # Get user ID for daily usage check
         user = get_user_from_token(authorization) if authorization else {'user_id': 'anonymous'}
         user_id = user.get('user_id', 'anonymous')
-        will_use_docai = not has_text
+        is_authenticated = user_id and user_id != 'anonymous'
         
-        # Check daily free tier usage
-        from app.daily_usage import get_today_usage, FREE_TIER_DAILY_PAGES_TEXT, FREE_TIER_DAILY_PAGES_OCR, can_use_free_tier
+        # Check free tier eligibility
+        free_tier_eligibility = check_free_tier_eligibility(analysis, is_authenticated)
+        
+        # Check daily free tier usage (for free tier calculations)
+        from app.daily_usage import get_today_usage, FREE_TIER_DAILY_PAGES_TEXT, FREE_TIER_DAILY_PAGES_OCR
         db = get_firestore_client()
         daily_usage = get_today_usage(user_id, db)
-        free_tier_check = can_use_free_tier(user_id, pages, will_use_docai, db)
         
-        logger.info(f"PDF metadata calculated: pages={pages}, has_text={has_text}, size={file_size_bytes} bytes, credits_text={estimated_credits_text}, credits_ocr={estimated_credits_ocr}, can_use_free_tier={free_tier_check['allowed']}")
+        # Calculate estimated credits based on analysis
+        if analysis.suggested_tool == "excel":
+            # Excel uses premium pricing
+            estimated_credits_text = analysis.page_count * analysis.credit_cost_per_page
+            estimated_credits_ocr = estimated_credits_text  # Excel always uses DocAI
+        else:
+            # Word conversion
+            estimated_credits_text = calculate_required_credits(analysis.page_count, False)
+            estimated_credits_ocr = calculate_required_credits(analysis.page_count, True)
+        
+        logger.info(f"PDF metadata: pages={analysis.page_count}, has_text={analysis.has_text}, has_tables={analysis.has_tables}, "
+                   f"suggested_tool={analysis.suggested_tool}, requires_premium={analysis.requires_premium}, "
+                   f"free_tier_allowed={free_tier_eligibility.get('allowed', False)}")
         
         return PdfMetadataResponse(
-            pages=pages,
-            has_text=has_text,
+            pages=analysis.page_count,
+            has_text=analysis.has_text,
             file_size_bytes=file_size_bytes,
             estimated_credits_text=estimated_credits_text,
             estimated_credits_ocr=estimated_credits_ocr,
@@ -1000,7 +1297,13 @@ async def get_pdf_metadata_for_credits(
             daily_usage_ocr=daily_usage['ocr_pages'],
             daily_limit_text=FREE_TIER_DAILY_PAGES_TEXT,
             daily_limit_ocr=FREE_TIER_DAILY_PAGES_OCR,
-            can_use_free_tier=free_tier_check['allowed']
+            can_use_free_tier=free_tier_eligibility.get('allowed', False),
+            has_tables=analysis.has_tables,
+            is_id_card_like=analysis.is_id_card_like,
+            is_scanned=analysis.is_scanned,
+            suggested_tool=analysis.suggested_tool,
+            requires_premium=analysis.requires_premium,
+            suggestion_reason=analysis.reason
         )
     except HTTPException:
         raise

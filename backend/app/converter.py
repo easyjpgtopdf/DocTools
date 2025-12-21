@@ -19,6 +19,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 
 from app.docai_client import process_pdf_to_layout, ParsedDocument, get_docai_confidence
+from app.free_pipeline_converter import convert_pdf_to_docx_free_pipeline, detect_visual_pdf
 
 logger = logging.getLogger(__name__)
 
@@ -511,7 +512,8 @@ def smart_convert_pdf_to_word(
     pdf_path: str,
     output_dir: str,
     settings,
-    generate_alternative: bool = True
+    generate_alternative: bool = True,
+    use_free_pipeline: bool = False
 ) -> SmartConversionResult:
     """
     Intelligently convert PDF to Word, choosing best method and optionally generating alternative.
@@ -553,8 +555,26 @@ def smart_convert_pdf_to_word(
     # Generate primary conversion
     primary_start = time.time()
     if primary_method == ConversionMethod.LIBREOFFICE:
-        primary_docx = convert_pdf_to_docx_with_libreoffice(pdf_path, output_dir)
-        used_docai = False
+        # For free tier, use improved free pipeline converter
+        if use_free_pipeline:
+            try:
+                logger.info("Using FREE pipeline converter with layout reconstruction")
+                primary_docx = os.path.join(output_dir, f"primary-{Path(pdf_path).stem}.docx")
+                convert_pdf_to_docx_free_pipeline(pdf_path, primary_docx)
+                used_docai = False
+            except ValueError as ve:
+                # Visual PDF detected - block conversion
+                logger.warning(f"FREE pipeline blocked conversion: {ve}")
+                raise ValueError(f"FREE conversion blocked: {str(ve)}")
+            except Exception as free_error:
+                # Fallback to LibreOffice if free pipeline fails
+                logger.warning(f"FREE pipeline failed, falling back to LibreOffice: {free_error}")
+                primary_docx = convert_pdf_to_docx_with_libreoffice(pdf_path, output_dir)
+                used_docai = False
+        else:
+            # Premium/LibreOffice path
+            primary_docx = convert_pdf_to_docx_with_libreoffice(pdf_path, output_dir)
+            used_docai = False
     else:
         # DocAI conversion
         try:
@@ -728,3 +748,123 @@ if HAS_PYMUPDF:
 else:
     def generate_pdf_thumbnail(pdf_path: str, output_path: str, width_px: int = 300) -> str:
         raise ImportError("PyMuPDF (fitz) is required for PDF thumbnail generation.")
+
+
+# PDF to Excel conversion (using Document AI and openpyxl)
+try:
+    import openpyxl
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+    HAS_OPENPYXL = True
+except ImportError:
+    HAS_OPENPYXL = False
+    logger.warning("openpyxl not available. PDF to Excel conversion will not work.")
+
+
+if HAS_OPENPYXL:
+    def convert_pdf_to_excel_with_docai(
+        pdf_path: str,
+        output_path: str,
+        parsed_doc: Optional[ParsedDocument] = None,
+        settings: Optional[Any] = None
+    ) -> str:
+        """
+        Convert PDF to Excel (XLSX) using Document AI table extraction.
+        
+        Args:
+            pdf_path: Path to input PDF file
+            output_path: Path to save output Excel file
+            parsed_doc: Optional pre-parsed DocumentAI document (if already processed)
+            settings: Optional settings object for Document AI
+            
+        Returns:
+            Path to created Excel file
+        """
+        logger.info(f"Converting PDF to Excel: {pdf_path}")
+        
+        try:
+            # Parse document with Document AI if not provided
+            if parsed_doc is None:
+                if not settings:
+                    raise ValueError("Settings required if parsed_doc not provided")
+                
+                with open(pdf_path, 'rb') as f:
+                    pdf_bytes = f.read()
+                
+                from app.docai_client import process_pdf_to_layout
+                parsed_doc = process_pdf_to_layout(
+                    settings.project_id,
+                    settings.docai_location,
+                    settings.docai_processor_id,
+                    pdf_bytes
+                )
+            
+            # Create Excel workbook
+            workbook = Workbook()
+            workbook.remove(workbook.active)  # Remove default sheet
+            
+            # Define styles
+            header_font = Font(bold=True, color="FFFFFF")
+            header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+            border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+            center_alignment = Alignment(horizontal='center', vertical='center')
+            
+            # Add tables to Excel
+            tables = parsed_doc.tables if parsed_doc.tables else []
+            
+            if tables:
+                for idx, table_data in enumerate(tables):
+                    sheet_name = f"Table {idx + 1}" if len(tables) > 1 else "Table 1"
+                    # Excel sheet names are limited to 31 characters
+                    if len(sheet_name) > 31:
+                        sheet_name = sheet_name[:31]
+                    
+                    sheet = workbook.create_sheet(title=sheet_name)
+                    rows = table_data.rows
+                    
+                    for row_idx, row in enumerate(rows, start=1):
+                        for col_idx, cell_value in enumerate(row, start=1):
+                            cell = sheet.cell(row=row_idx, column=col_idx)
+                            cell.value = cell_value if cell_value else ""
+                            cell.border = border
+                            cell.alignment = center_alignment
+                            
+                            # Style header row
+                            if row_idx == 1:
+                                cell.font = header_font
+                                cell.fill = header_fill
+                
+                logger.info(f"Added {len(tables)} tables to Excel workbook")
+            else:
+                # No tables found - create a sheet with full text
+                sheet = workbook.create_sheet(title="Content")
+                full_text = parsed_doc.full_text if parsed_doc.full_text else ""
+                
+                # Split text into lines and add to cells
+                lines = full_text.split('\n')
+                for row_idx, line in enumerate(lines[:1000], start=1):  # Limit to 1000 rows
+                    sheet.cell(row=row_idx, column=1, value=line)
+                
+                logger.info("No tables found, added full text to Excel")
+            
+            # Save workbook
+            workbook.save(output_path)
+            logger.info(f"Excel file saved to: {output_path}")
+            return output_path
+            
+        except Exception as e:
+            logger.error(f"Error converting PDF to Excel: {e}", exc_info=True)
+            raise
+else:
+    def convert_pdf_to_excel_with_docai(
+        pdf_path: str,
+        output_path: str,
+        parsed_doc: Optional[ParsedDocument] = None,
+        settings: Optional[Any] = None
+    ) -> str:
+        raise ImportError("openpyxl is required for PDF to Excel conversion.")
