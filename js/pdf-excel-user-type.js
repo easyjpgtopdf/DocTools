@@ -50,15 +50,11 @@ function setUserType(type) {
 
 /**
  * Check if user has premium access
- * Requires: user_type == PREMIUM AND credits >= MIN_PREMIUM_CREDITS
+ * Premium access is granted if credits >= MIN_PREMIUM_CREDITS (30)
+ * User type in localStorage is not required - credits are the primary check
  */
 async function hasPremiumAccess() {
-    const userType = getUserType();
-    if (userType !== USER_TYPE.PREMIUM) {
-        return false;
-    }
-    
-    // Check credits via API
+    // Check credits via API - this is the primary check
     try {
         const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
         const userId = await getUserId(); // Use async getUserId to get Firebase user ID
@@ -71,14 +67,22 @@ async function hasPremiumAccess() {
         
         if (response.ok) {
             const data = await response.json();
-            return data.credits >= MIN_PREMIUM_CREDITS;
+            const hasCredits = data.credits >= MIN_PREMIUM_CREDITS;
+            
+            // If user has sufficient credits, automatically set user type to premium
+            if (hasCredits) {
+                setUserType(USER_TYPE.PREMIUM);
+            }
+            
+            return hasCredits;
         }
     } catch (e) {
         console.warn('Error checking credits:', e);
     }
     
-    // Fallback: assume insufficient credits
-    return false;
+    // Fallback: check localStorage user type (for backward compatibility)
+    const userType = getUserType();
+    return userType === USER_TYPE.PREMIUM;
 }
 
 /**

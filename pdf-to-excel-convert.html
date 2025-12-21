@@ -360,6 +360,9 @@
 <div class="table-empty">Select a page to inspect its table data.</div>
 </div>
 <div class="convert-actions">
+<!-- ID Card buttons (shown when ID card detected) -->
+<button class="btn" id="viewIdCardText" style="background: #4361ee; display: none;"><i class="fas fa-eye"></i> View Text</button>
+<button class="btn" id="downloadIdCardTemplate" style="background: #3a0ca3; display: none;"><i class="fas fa-download"></i> Download CSV Template</button>
 <!-- FREE: Basic Excel (Browser-based) -->
 <button class="btn" id="downloadExcelFree" style="background: #4361ee;"><i class="fas fa-file-excel"></i> Download Excel (Basic)</button>
 <!-- PREMIUM: OCR Excel (Document AI) - Locked for free users -->
@@ -404,6 +407,7 @@
   let pageTables = new Map();
   let selected = new Set();
   let pdfAnalysis = null; // Store PDF analysis results
+  let isIdCard = false; // ID card detection flag
   let userType = 'free'; // Default to free
   let hasPremiumAccess = false; // Premium access status
 
@@ -577,10 +581,20 @@
       // Wait for modules to load
       await waitForModules();
       
-      // Check user type
+      // Check user type and premium access
       if (window.PDFExcelUserType) {
-        userType = window.PDFExcelUserType.getUserType();
+        // hasPremiumAccess() checks credits and automatically sets userType to premium if credits >= 30
         hasPremiumAccess = await window.PDFExcelUserType.hasPremiumAccess();
+        // Get user type after premium access check (may have been auto-set)
+        userType = window.PDFExcelUserType.getUserType();
+        
+        // Debug logging
+        console.log('User Type:', userType);
+        console.log('Has Premium Access:', hasPremiumAccess);
+        if (hasPremiumAccess) {
+          const credits = await window.PDFExcelUserType.getCreditBalance();
+          console.log('Credits:', credits);
+        }
       }
       
       // Analyze PDF (browser-based, no AI)
@@ -588,6 +602,10 @@
         showToast('Analyzing PDF...', false);
         pdfAnalysis = await window.PDFExcelAnalysis.analyzePdf(pdfDoc);
         console.log('PDF Analysis:', pdfAnalysis);
+        
+        // Detect ID card (simple heuristic: few pages + low text density + no tables)
+        isIdCard = detectIdCardFromAnalysis(pdfAnalysis, pdfDoc);
+        console.log('ID Card Detection:', isIdCard);
       }
       
       // Update UI based on user type and analysis
@@ -626,6 +644,22 @@
   }
   
   /**
+   * Detect ID card from PDF analysis
+   */
+  function detectIdCardFromAnalysis(analysis, pdfDoc) {
+    if (!analysis || !pdfDoc) return false;
+    
+    // Simple heuristic: few pages (<=2) + low text density + no tables
+    const hasFewPages = pdfDoc.numPages <= 2;
+    const avgTextPerPage = analysis.totalTextLength / Math.max(1, pdfDoc.numPages);
+    const hasLowTextDensity = avgTextPerPage < 500;
+    const hasNoTables = analysis.pagesWithTables === 0;
+    
+    // If all conditions met, likely an ID card
+    return hasFewPages && hasLowTextDensity && hasNoTables;
+  }
+  
+  /**
    * Update button visibility based on user type and PDF analysis
    */
   function updateButtonVisibility() {
@@ -634,6 +668,30 @@
     const isFreeUser = userType === 'free' || !hasPremiumAccess;
     const confidenceHigh = pdfAnalysis && pdfAnalysis.confidence === 'high';
     
+    // Get ID card buttons
+    const viewIdCardBtn = document.getElementById('viewIdCardText');
+    const downloadTemplateBtn = document.getElementById('downloadIdCardTemplate');
+    
+    // If ID card detected, show ID card UI and hide Excel buttons
+    if (isIdCard) {
+      // Hide Excel buttons
+      if (downloadBtnFree) downloadBtnFree.style.display = 'none';
+      if (downloadBtnPremium) downloadBtnPremium.style.display = 'none';
+      
+      // Show ID card buttons
+      if (viewIdCardBtn) viewIdCardBtn.style.display = 'inline-flex';
+      if (downloadTemplateBtn) downloadTemplateBtn.style.display = 'inline-flex';
+      
+      // Show message
+      showToast('ID card detected. Excel conversion is not suitable for ID cards.', false);
+      return;
+    }
+    
+    // Hide ID card buttons
+    if (viewIdCardBtn) viewIdCardBtn.style.display = 'none';
+    if (downloadTemplateBtn) downloadTemplateBtn.style.display = 'none';
+    
+    // Show Excel buttons
     // FREE button: Always visible and enabled for all users
     // User can try free conversion - popup will show only if conversion fails
     downloadBtnFree.style.display = 'inline-flex';
@@ -918,6 +976,113 @@
       showToast('Failed to convert: ' + err.message, true);
       downloadBtnPremium.disabled = false;
     }
+  }
+  
+  // ID Card handlers
+  const viewIdCardBtn = document.getElementById('viewIdCardText');
+  const downloadTemplateBtn = document.getElementById('downloadIdCardTemplate');
+  
+  if (viewIdCardBtn) {
+    viewIdCardBtn.addEventListener('click', async function() {
+      if (!pdfDoc) {
+        showToast('Load a PDF first.', true);
+        return;
+      }
+      
+      try {
+        showToast('Processing ID card...', false);
+        
+        // Get PDF file
+        const rec = await getPdf();
+        if (!rec || !rec.blob) {
+          throw new Error('PDF file not found');
+        }
+        
+        // Call ID card processing endpoint
+        const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
+        const fd = new FormData();
+        const pdfFile = new File([rec.blob], rec.name || 'document.pdf', { type: 'application/pdf' });
+        fd.append('file', pdfFile);
+        
+        // Add user type header
+        const headers = {};
+        if (window.PDFExcelUserType) {
+          const userTypeHeader = window.PDFExcelUserType.getUserType();
+          headers['X-User-Type'] = userTypeHeader;
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/api/id-card-process`, {
+          method: 'POST',
+          body: fd,
+          headers: headers
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'success' && result.text_extraction) {
+          // Show text in a modal or alert
+          const textContent = result.text_extraction.text || 'No text extracted.';
+          alert('Extracted Text:\n\n' + textContent.substring(0, 500) + (textContent.length > 500 ? '...' : ''));
+          showToast('Text extracted successfully', false);
+        } else {
+          throw new Error(result.message || 'Failed to process ID card');
+        }
+      } catch (error) {
+        console.error('ID card processing error:', error);
+        showToast('Error: ' + error.message, true);
+      }
+    });
+  }
+  
+  if (downloadTemplateBtn) {
+    downloadTemplateBtn.addEventListener('click', async function() {
+      if (!pdfDoc) {
+        showToast('Load a PDF first.', true);
+        return;
+      }
+      
+      try {
+        showToast('Downloading CSV template...', false);
+        
+        // Get PDF file
+        const rec = await getPdf();
+        if (!rec || !rec.blob) {
+          throw new Error('PDF file not found');
+        }
+        
+        // Call ID card processing endpoint
+        const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
+        const fd = new FormData();
+        const pdfFile = new File([rec.blob], rec.name || 'document.pdf', { type: 'application/pdf' });
+        fd.append('file', pdfFile);
+        
+        // Add user type header
+        const headers = {};
+        if (window.PDFExcelUserType) {
+          const userTypeHeader = window.PDFExcelUserType.getUserType();
+          headers['X-User-Type'] = userTypeHeader;
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/api/id-card-process`, {
+          method: 'POST',
+          body: fd,
+          headers: headers
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'success' && result.csv_template_url) {
+          // Download CSV template
+          window.location.href = result.csv_template_url;
+          showToast('CSV template downloaded', false);
+        } else {
+          throw new Error(result.message || 'Failed to get CSV template');
+        }
+      } catch (error) {
+        console.error('CSV template download error:', error);
+        showToast('Error: ' + error.message, true);
+      }
+    });
   }
   
   // Legacy handlers (kept for backward compatibility)
