@@ -634,8 +634,21 @@
     const isFreeUser = userType === 'free' || !hasPremiumAccess;
     const confidenceHigh = pdfAnalysis && pdfAnalysis.confidence === 'high';
     
-    // FREE button: Always visible for all users
-    downloadBtnFree.style.display = 'inline-flex';
+      // FREE button: Always visible for all users
+      downloadBtnFree.style.display = 'inline-flex';
+      
+      // If PDF is scanned/heavy OCR (low confidence), disable FREE button
+      if (pdfAnalysis && pdfAnalysis.confidence === 'low') {
+        downloadBtnFree.disabled = true;
+        downloadBtnFree.style.opacity = '0.7';
+        downloadBtnFree.style.cursor = 'not-allowed';
+        downloadBtnFree.title = 'This PDF is scanned. Premium OCR required.';
+      } else {
+        downloadBtnFree.disabled = false;
+        downloadBtnFree.style.opacity = '1';
+        downloadBtnFree.style.cursor = 'pointer';
+        downloadBtnFree.title = '';
+      }
     
     // PREMIUM button: 
     if (isFreeUser) {
@@ -645,10 +658,22 @@
       downloadBtnPremium.style.opacity = '0.7';
       downloadBtnPremium.style.cursor = 'not-allowed';
       
-      // If confidence is low, show warning
+      // If confidence is low (scanned/heavy OCR), show upgrade popup and disable FREE button
       if (pdfAnalysis && pdfAnalysis.confidence === 'low') {
         downloadBtnFree.style.opacity = '0.7';
-        showToast('This PDF appears to be scanned. Basic conversion may have limited accuracy.', false);
+        downloadBtnFree.disabled = true; // Disable FREE button for scanned PDFs
+        downloadBtnFree.style.cursor = 'not-allowed';
+        
+        // Show upgrade popup immediately when scanned PDF detected
+        if (window.PDFExcelUpgradePopup) {
+          setTimeout(() => {
+            window.PDFExcelUpgradePopup.showUpgradePopup(
+              'This PDF appears to be scanned and requires OCR for accurate conversion. Upgrade to Premium to convert scanned PDFs with high accuracy.'
+            );
+          }, 1500); // Show after 1.5 seconds to let user see the page
+        }
+        
+        showToast('This PDF is scanned. Basic conversion may not work. Upgrade to Premium for OCR conversion.', false);
       }
     } else {
       // Premium users: Show enabled button
