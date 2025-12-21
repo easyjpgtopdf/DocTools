@@ -506,50 +506,113 @@ function mapVisualToExcel(visualElements, textObjects, columnBoundaries, rowPosi
         }
     }
     
-    // Map boxes to cell ranges
-    if (visualElements.boxes) {
+    // IMPROVED: Map boxes to cell ranges with better intersection detection
+    if (visualElements.boxes && visualElements.boxes.length > 0) {
         visualElements.boxes.forEach((box, boxIdx) => {
-            // Find cells that intersect with this box
-            const startRow = rowPositions.findIndex((rowY, idx) => 
-                rowY <= box.y && (idx === rowPositions.length - 1 || rowPositions[idx + 1] > box.y)
-            );
-            const endRow = rowPositions.findIndex((rowY, idx) => 
-                rowY <= (box.y + box.height) && (idx === rowPositions.length - 1 || rowPositions[idx + 1] > (box.y + box.height))
-            );
-            const startCol = columnBoundaries.findIndex((colX, idx) => 
-                colX <= box.x && (idx === columnBoundaries.length - 1 || columnBoundaries[idx + 1] > box.x)
-            );
-            const endCol = columnBoundaries.findIndex((colX, idx) => 
-                colX <= (box.x + box.width) && (idx === columnBoundaries.length - 1 || columnBoundaries[idx + 1] > (box.x + box.width))
-            );
+            // Find cells that intersect with this box using center point and bounds
+            const boxCenterX = box.x + box.width / 2;
+            const boxCenterY = box.y + box.height / 2;
             
+            // Find start row (row that contains or is closest to box top)
+            let startRow = -1;
+            let minRowDist = Infinity;
+            rowPositions.forEach((rowY, idx) => {
+                const dist = Math.abs(rowY - box.y);
+                if (dist < minRowDist && rowY <= box.y + box.height) {
+                    minRowDist = dist;
+                    startRow = idx;
+                }
+            });
+            
+            // Find end row (row that contains or is closest to box bottom)
+            let endRow = startRow;
+            rowPositions.forEach((rowY, idx) => {
+                if (rowY >= box.y && rowY <= box.y + box.height && idx >= startRow) {
+                    endRow = idx;
+                }
+            });
+            
+            // Find start column (column that contains or is closest to box left)
+            let startCol = -1;
+            let minColDist = Infinity;
+            columnBoundaries.forEach((colX, idx) => {
+                const dist = Math.abs(colX - box.x);
+                if (dist < minColDist && colX <= box.x + box.width) {
+                    minColDist = dist;
+                    startCol = idx;
+                }
+            });
+            
+            // Find end column (column that contains or is closest to box right)
+            let endCol = startCol;
+            columnBoundaries.forEach((colX, idx) => {
+                if (colX >= box.x && colX <= box.x + box.width && idx >= startCol) {
+                    endCol = idx;
+                }
+            });
+            
+            // Map box to all cells in range
             if (startRow !== -1 && startCol !== -1) {
-                cellMappings.set(`box_${startRow}_${startCol}`, {
-                    type: 'box',
-                    box: box,
-                    cellRange: { startRow, endRow, startCol, endCol }
-                });
+                for (let r = startRow; r <= endRow && r < rowPositions.length; r++) {
+                    for (let c = startCol; c <= endCol && c < columnBoundaries.length; c++) {
+                        const key = `box_${r}_${c}`;
+                        if (!cellMappings.has(key)) {
+                            cellMappings.set(key, {
+                                type: 'box',
+                                box: box,
+                                cellRange: { startRow, endRow, startCol, endCol }
+                            });
+                        }
+                    }
+                }
             }
         });
     }
     
-    // Map images to cells
-    if (visualElements.images) {
+    // IMPROVED: Map images to cells with better containment detection
+    if (visualElements.images && visualElements.images.length > 0) {
         visualElements.images.forEach((image, imgIdx) => {
-            // Find cell that contains this image
-            const row = rowPositions.findIndex((rowY, idx) => 
-                rowY <= image.y && (idx === rowPositions.length - 1 || rowPositions[idx + 1] > image.y)
-            );
-            const col = columnBoundaries.findIndex((colX, idx) => 
-                colX <= image.x && (idx === columnBoundaries.length - 1 || columnBoundaries[idx + 1] > image.x)
-            );
+            // Find cell that contains the center of this image
+            const imageCenterX = image.x + image.width / 2;
+            const imageCenterY = image.y + image.height / 2;
             
+            // Find row that contains image center
+            let row = -1;
+            let minRowDist = Infinity;
+            rowPositions.forEach((rowY, idx) => {
+                const nextRowY = idx < rowPositions.length - 1 ? rowPositions[idx + 1] : rowY + 50;
+                if (imageCenterY >= rowY && imageCenterY <= nextRowY) {
+                    const dist = Math.abs(imageCenterY - rowY);
+                    if (dist < minRowDist) {
+                        minRowDist = dist;
+                        row = idx;
+                    }
+                }
+            });
+            
+            // Find column that contains image center
+            let col = -1;
+            let minColDist = Infinity;
+            columnBoundaries.forEach((colX, idx) => {
+                const nextColX = idx < columnBoundaries.length - 1 ? columnBoundaries[idx + 1] : colX + 100;
+                if (imageCenterX >= colX && imageCenterX <= nextColX) {
+                    const dist = Math.abs(imageCenterX - colX);
+                    if (dist < minColDist) {
+                        minColDist = dist;
+                        col = idx;
+                    }
+                }
+            });
+            
+            // Map image to cell if found
             if (row !== -1 && col !== -1) {
                 cellMappings.set(`cell_${row}_${col}_image`, {
                     type: 'image',
                     image: image,
                     row: row,
-                    col: col
+                    col: col,
+                    width: image.width,
+                    height: image.height
                 });
             }
         });
