@@ -762,18 +762,7 @@
         return;
       }
       
-      // Check if PDF is scanned/heavy OCR - show upgrade popup immediately
-      if (pdfAnalysis && pdfAnalysis.confidence === 'low') {
-        if (window.PDFExcelUpgradePopup) {
-          window.PDFExcelUpgradePopup.showUpgradePopup(
-            'This PDF is scanned and requires OCR for accurate conversion. Basic conversion will not work properly. Upgrade to Premium for high-accuracy OCR conversion.'
-          );
-        } else {
-          alert('This PDF appears to be scanned. Upgrade to Premium for OCR-powered conversion.');
-        }
-        return; // Stop conversion
-      }
-      
+      // Allow conversion attempt - popup will show only if conversion fails
       try {
         downloadBtnFree.disabled = true;
         showToast('Converting PDF to Excel (Basic)...', false);
