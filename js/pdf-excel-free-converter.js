@@ -265,6 +265,7 @@ function detectBoldFont(fontName) {
 
 /**
  * Apply formatting to Excel worksheet cells
+ * IMPROVED: Better font support for multi-language Unicode
  */
 function applyFormattingToWorksheet(ws, table) {
     try {
@@ -293,9 +294,24 @@ function applyFormattingToWorksheet(ws, table) {
                 }
                 
                 // Extract font info from cell object
-                const fontName = cellObj.fontName || 'Arial';
+                let fontName = cellObj.fontName || 'Arial';
                 const fontSize = cellObj.fontSize || 10;
                 let isBold = cellObj.isBold || false;
+                const language = cellObj.language || 'unknown';
+                
+                // IMPROVED: Use Unicode-supporting font for multi-language text
+                // Check if cell text contains non-Latin characters
+                const cellText = ws[cellAddress].v || '';
+                if (typeof cellText === 'string' && /[^\x00-\x7F]/.test(cellText)) {
+                    // Contains non-ASCII characters - use Unicode font
+                    const unicodeFonts = ['Arial Unicode MS', 'Calibri', 'Tahoma', 'Microsoft Sans Serif'];
+                    if (!unicodeFonts.includes(fontName)) {
+                        fontName = 'Arial Unicode MS'; // Best Unicode support
+                    }
+                } else if (language && language !== 'latin' && language !== 'unknown') {
+                    // Language detected - use appropriate font
+                    fontName = getFontForLanguage(language, fontName);
+                }
                 
                 // First row is typically header - make it bold
                 if (rowIndex === 0) {
@@ -303,28 +319,57 @@ function applyFormattingToWorksheet(ws, table) {
                 }
                 
                 // Apply cell style using XLSX style format
-                // Note: XLSX.js has limited style support, but we'll try to apply what we can
                 if (!ws[cellAddress].s) {
                     ws[cellAddress].s = {};
                 }
                 
                 // Font styling (XLSX style format)
                 ws[cellAddress].s.font = ws[cellAddress].s.font || {};
-                if (fontName && fontName !== 'Arial') {
-                    ws[cellAddress].s.font.name = fontName;
-                }
-                if (fontSize && fontSize !== 10) {
-                    ws[cellAddress].s.font.sz = fontSize;
-                }
+                ws[cellAddress].s.font.name = fontName;
+                ws[cellAddress].s.font.sz = fontSize;
                 if (isBold) {
                     ws[cellAddress].s.font.bold = true;
                 }
+                
+                // IMPROVED: Set cell alignment for better readability
+                ws[cellAddress].s.alignment = ws[cellAddress].s.alignment || {};
+                // Numbers right-align, text left-align
+                if (/^\d+([.,]\d+)?$/.test(cellText)) {
+                    ws[cellAddress].s.alignment.horizontal = 'right';
+                } else {
+                    ws[cellAddress].s.alignment.horizontal = 'left';
+                }
+                ws[cellAddress].s.alignment.vertical = 'top';
+                ws[cellAddress].s.alignment.wrapText = true; // Wrap long text
             }
         }
     } catch (error) {
         console.warn('Error applying formatting to worksheet:', error);
         // Continue without formatting if there's an error
     }
+}
+
+/**
+ * Get appropriate font for language (helper function)
+ */
+function getFontForLanguage(language, originalFont) {
+    const fontMap = {
+        'devanagari': 'Arial Unicode MS', // Hindi, Marathi, etc.
+        'arabic': 'Arial Unicode MS',
+        'cjk': 'Arial Unicode MS', // Chinese, Japanese, Korean
+        'thai': 'Arial Unicode MS',
+        'latin': originalFont || 'Calibri',
+        'mixed': 'Arial Unicode MS',
+        'unknown': 'Arial Unicode MS'
+    };
+    
+    // If original font already supports Unicode, keep it
+    const unicodeFonts = ['Arial Unicode MS', 'Calibri', 'Times New Roman', 'Tahoma', 'Microsoft Sans Serif'];
+    if (unicodeFonts.includes(originalFont)) {
+        return originalFont;
+    }
+    
+    return fontMap[language] || 'Arial Unicode MS';
 }
 
 // Export for use in other scripts
@@ -334,7 +379,8 @@ if (typeof window !== 'undefined') {
         extractTablesFromPage,
         applyFormattingToWorksheet,
         calculateFontSize,
-        detectBoldFont
+        detectBoldFont,
+        getFontForLanguage: typeof getFontForLanguage !== 'undefined' ? getFontForLanguage : function(lang, orig) { return 'Arial Unicode MS'; }
     };
 }
 

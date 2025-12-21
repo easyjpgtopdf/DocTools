@@ -138,12 +138,17 @@ function suppressHeadersFooters(textObjects, viewport) {
 
 /**
  * STEP 3: Dynamic row clustering (Y-axis with font similarity)
+ * IMPROVED: Better row detection with adaptive tolerance
  */
 function clusterRowsDynamic(textObjects) {
     if (textObjects.length === 0) return [];
     
     // Sort by Y position (top to bottom)
     const sorted = [...textObjects].sort((a, b) => b.y - a.y);
+    
+    // Calculate average font size for adaptive tolerance
+    const avgFontSize = sorted.reduce((sum, obj) => sum + obj.fontSize, 0) / sorted.length;
+    const baseLineHeight = avgFontSize * 1.2;
     
     const rows = [];
     let currentRow = null;
@@ -154,33 +159,48 @@ function clusterRowsDynamic(textObjects) {
             currentRow = {
                 y: obj.y,
                 fontSize: obj.fontSize,
-                items: [obj]
+                items: [obj],
+                minX: obj.x,
+                maxX: obj.x + obj.width
             };
         } else {
             // Calculate Y distance
             const yDistance = currentRow.y - obj.y;
             
-            // Calculate relative line height (based on font size)
-            const lineHeight = currentRow.fontSize * 1.2;
-            const tolerance = Math.max(lineHeight * 0.3, 3); // 30% of line height or 3px min
+            // IMPROVED: Adaptive tolerance based on font size
+            // Larger fonts need more tolerance, smaller fonts need less
+            const objLineHeight = obj.fontSize * 1.2;
+            const rowLineHeight = currentRow.fontSize * 1.2;
+            const avgLineHeight = (objLineHeight + rowLineHeight) / 2;
+            
+            // Tolerance: 25% of average line height, minimum 2px, maximum 10px
+            const tolerance = Math.min(Math.max(avgLineHeight * 0.25, 2), 10);
             
             // Check if same row based on:
-            // 1. Y distance within tolerance
-            // 2. Font size similarity (within 20%)
-            const fontSizeSimilar = Math.abs(currentRow.fontSize - obj.fontSize) / currentRow.fontSize < 0.2;
+            // 1. Y distance within adaptive tolerance
+            // 2. Font size similarity (within 25% - more lenient)
+            // 3. X position overlap (items in similar horizontal region)
+            const fontSizeSimilar = Math.abs(currentRow.fontSize - obj.fontSize) / Math.max(currentRow.fontSize, obj.fontSize) < 0.25;
+            const xOverlap = (obj.x >= currentRow.minX - 50 && obj.x <= currentRow.maxX + 50);
             
-            if (yDistance <= tolerance && fontSizeSimilar) {
+            if (yDistance <= tolerance && fontSizeSimilar && xOverlap) {
                 // Same row
                 currentRow.items.push(obj);
-                // Update row Y to average
-                currentRow.y = (currentRow.y + obj.y) / 2;
+                // Update row Y to weighted average (by font size)
+                const totalFontSize = currentRow.items.reduce((sum, item) => sum + item.fontSize, 0);
+                currentRow.y = currentRow.items.reduce((sum, item) => sum + (item.y * item.fontSize), 0) / totalFontSize;
+                // Update row bounds
+                currentRow.minX = Math.min(currentRow.minX, obj.x);
+                currentRow.maxX = Math.max(currentRow.maxX, obj.x + obj.width);
             } else {
                 // New row
                 rows.push(currentRow);
                 currentRow = {
                     y: obj.y,
                     fontSize: obj.fontSize,
-                    items: [obj]
+                    items: [obj],
+                    minX: obj.x,
+                    maxX: obj.x + obj.width
                 };
             }
         }
@@ -200,39 +220,56 @@ function clusterRowsDynamic(textObjects) {
 
 /**
  * STEP 4: Column detection with clustering (X-axis)
+ * IMPROVED: Better column boundary detection with density analysis
  */
 function detectColumnsWithClustering(rows) {
-    // Collect all X positions
-    const allXPositions = new Set();
+    if (rows.length === 0) return [];
+    
+    // Collect all X positions with their frequencies (how many items at each X)
+    const xPositionMap = new Map();
     rows.forEach(row => {
         row.items.forEach(item => {
-            allXPositions.add(item.x);
+            const x = Math.round(item.x); // Round to nearest pixel for clustering
+            xPositionMap.set(x, (xPositionMap.get(x) || 0) + 1);
         });
     });
     
-    if (allXPositions.size === 0) return [];
+    if (xPositionMap.size === 0) return [];
     
     // Sort X positions
-    const sortedX = Array.from(allXPositions).sort((a, b) => a - b);
+    const sortedX = Array.from(xPositionMap.keys()).sort((a, b) => a - b);
     
-    // Cluster nearby X positions
-    const clusters = [];
-    let currentCluster = [sortedX[0]];
-    
-    // Dynamic threshold based on average font size
+    // Calculate average font size for adaptive threshold
     const avgFontSize = rows.reduce((sum, row) => sum + row.fontSize, 0) / rows.length;
-    const clusterThreshold = Math.max(avgFontSize * 2, 20); // 2x font size or 20px min
+    
+    // IMPROVED: Adaptive clustering with density weighting
+    // Columns are detected by finding X positions that appear frequently across rows
+    const clusters = [];
+    let currentCluster = [{ x: sortedX[0], count: xPositionMap.get(sortedX[0]) }];
+    
+    // Dynamic threshold: based on font size and character width
+    // Typical character width is ~0.6 * font size
+    const charWidth = avgFontSize * 0.6;
+    const clusterThreshold = Math.max(charWidth * 3, 15); // 3 characters or 15px min
     
     for (let i = 1; i < sortedX.length; i++) {
-        const distance = sortedX[i] - currentCluster[currentCluster.length - 1];
+        const currentX = sortedX[i];
+        const lastX = currentCluster[currentCluster.length - 1].x;
+        const distance = currentX - lastX;
         
         if (distance < clusterThreshold) {
-            // Same cluster
-            currentCluster.push(sortedX[i]);
+            // Same cluster - add to current cluster
+            currentCluster.push({
+                x: currentX,
+                count: xPositionMap.get(currentX)
+            });
         } else {
-            // New cluster
+            // New cluster - save current and start new
             clusters.push(currentCluster);
-            currentCluster = [sortedX[i]];
+            currentCluster = [{
+                x: currentX,
+                count: xPositionMap.get(currentX)
+            }];
         }
     }
     
@@ -240,56 +277,109 @@ function detectColumnsWithClustering(rows) {
         clusters.push(currentCluster);
     }
     
-    // Get center of each cluster (column boundary)
+    // IMPROVED: Get weighted center of each cluster (by frequency)
+    // Columns that appear more frequently get higher weight
     const columnBoundaries = clusters.map(cluster => {
-        const sum = cluster.reduce((a, b) => a + b, 0);
-        return sum / cluster.length;
+        let weightedSum = 0;
+        let totalWeight = 0;
+        
+        cluster.forEach(({ x, count }) => {
+            weightedSum += x * count; // Weight by frequency
+            totalWeight += count;
+        });
+        
+        return totalWeight > 0 ? weightedSum / totalWeight : cluster[0].x;
     }).sort((a, b) => a - b);
     
-    return columnBoundaries;
+    // Filter out columns that appear too infrequently (noise)
+    const minFrequency = rows.length * 0.1; // Must appear in at least 10% of rows
+    const filteredBoundaries = columnBoundaries.filter((boundary, idx) => {
+        const cluster = clusters[idx];
+        const totalCount = cluster.reduce((sum, item) => sum + item.count, 0);
+        return totalCount >= minFrequency;
+    });
+    
+    return filteredBoundaries.length > 0 ? filteredBoundaries : columnBoundaries;
 }
 
 /**
  * STEP 5: Build table with multi-line cell merging
+ * IMPROVED: Better cell alignment and text merging
  */
 function buildTableWithMerging(rows, columnBoundaries) {
+    if (columnBoundaries.length === 0) return [];
+    
     const table = [];
-    const tolerance = 30; // Pixel tolerance for column alignment
+    
+    // IMPROVED: Adaptive tolerance based on column spacing
+    const columnSpacings = [];
+    for (let i = 1; i < columnBoundaries.length; i++) {
+        columnSpacings.push(columnBoundaries[i] - columnBoundaries[i - 1]);
+    }
+    const avgSpacing = columnSpacings.length > 0 
+        ? columnSpacings.reduce((a, b) => a + b, 0) / columnSpacings.length 
+        : 50;
+    const tolerance = Math.min(avgSpacing * 0.3, 40); // 30% of spacing or 40px max
     
     rows.forEach((row, rowIndex) => {
         const tableRow = new Array(columnBoundaries.length).fill(null).map(() => ({
             text: '',
-            fontSize: row.fontSize,
-            isBold: false
+            fontSize: row.fontSize || 10,
+            isBold: false,
+            fontName: 'Arial',
+            language: 'unknown'
         }));
         
         row.items.forEach(item => {
-            // Find closest column
+            // Find closest column with improved matching
             let minDist = Infinity;
             let closestCol = 0;
+            let foundMatch = false;
             
             columnBoundaries.forEach((boundary, idx) => {
                 const dist = Math.abs(item.x - boundary);
-                if (dist < minDist && dist < tolerance) {
+                if (dist < minDist) {
                     minDist = dist;
                     closestCol = idx;
+                    if (dist < tolerance) {
+                        foundMatch = true;
+                    }
                 }
             });
             
-            // Merge text if cell already has content
-            if (tableRow[closestCol].text) {
-                tableRow[closestCol].text += ' ' + item.text;
+            // Only assign to column if within tolerance
+            if (foundMatch || minDist < tolerance * 1.5) {
+                // Merge text if cell already has content
+                if (tableRow[closestCol].text) {
+                    // Add space only if needed (not for languages that don't use spaces)
+                    const needsSpace = !isLanguageWithoutSpaces(tableRow[closestCol].text, item.text);
+                    tableRow[closestCol].text += (needsSpace ? ' ' : '') + item.text;
+                } else {
+                    tableRow[closestCol].text = item.text;
+                    tableRow[closestCol].fontSize = item.fontSize || row.fontSize || 10;
+                    tableRow[closestCol].isBold = item.isBold || false;
+                    tableRow[closestCol].fontName = item.fontName || 'Arial';
+                }
             } else {
-                tableRow[closestCol].text = item.text;
-                tableRow[closestCol].fontSize = item.fontSize;
-                tableRow[closestCol].isBold = item.isBold;
+                // Item doesn't fit in any column - might be merged cell or overflow
+                // Try to add to nearest column anyway if it's close
+                if (minDist < tolerance * 2) {
+                    if (tableRow[closestCol].text) {
+                        tableRow[closestCol].text += ' ' + item.text;
+                    } else {
+                        tableRow[closestCol].text = item.text;
+                        tableRow[closestCol].fontSize = item.fontSize || row.fontSize || 10;
+                        tableRow[closestCol].isBold = item.isBold || false;
+                        tableRow[closestCol].fontName = item.fontName || 'Arial';
+                    }
+                }
             }
         });
         
         table.push(tableRow);
     });
     
-    // Multi-line cell merging: Check adjacent rows for same column + small Y-gap
+    // IMPROVED: Multi-line cell merging with better detection
     for (let rowIndex = 0; rowIndex < table.length - 1; rowIndex++) {
         const currentRow = table[rowIndex];
         const nextRow = table[rowIndex + 1];
@@ -301,14 +391,25 @@ function buildTableWithMerging(rows, columnBoundaries) {
             // Check if cells should be merged:
             // 1. Current cell has text
             // 2. Next cell in same column has text
-            // 3. Current cell text doesn't look like a complete sentence/header
+            // 3. Current cell doesn't look complete
             if (currentCell.text && nextCell.text) {
                 const currentIsHeader = currentCell.isBold || rowIndex === 0;
-                const currentIsComplete = currentCell.text.match(/[.!?]$/);
+                const currentEndsWithPunctuation = /[.!?।]$/.test(currentCell.text.trim());
+                const currentIsNumber = /^\d+$/.test(currentCell.text.trim());
+                const nextIsNumber = /^\d+$/.test(nextCell.text.trim());
                 
-                // If current cell is not a header and not complete, merge with next
-                if (!currentIsHeader && !currentIsComplete && currentCell.text.length < 50) {
-                    currentCell.text += ' ' + nextCell.text;
+                // Don't merge if:
+                // - Current is header
+                // - Current ends with punctuation (complete sentence)
+                // - Both are numbers (likely separate data points)
+                // - Current is too long (likely complete)
+                if (!currentIsHeader && 
+                    !currentEndsWithPunctuation && 
+                    !(currentIsNumber && nextIsNumber) &&
+                    currentCell.text.length < 80) {
+                    // Merge with appropriate spacing
+                    const needsSpace = !isLanguageWithoutSpaces(currentCell.text, nextCell.text);
+                    currentCell.text += (needsSpace ? ' ' : '') + nextCell.text;
                     nextCell.text = ''; // Clear next cell
                 }
             }
@@ -320,7 +421,16 @@ function buildTableWithMerging(rows, columnBoundaries) {
 }
 
 /**
- * STEP 6: Unicode normalization (NFC + reordering)
+ * Check if text is in a language that doesn't use spaces (like Thai, Khmer)
+ */
+function isLanguageWithoutSpaces(text1, text2) {
+    // Thai, Khmer, etc. don't use spaces between words
+    const noSpaceLanguages = /[\u0E00-\u0E7F\u1780-\u17FF]/; // Thai, Khmer
+    return noSpaceLanguages.test(text1) || noSpaceLanguages.test(text2);
+}
+
+/**
+ * STEP 6: Unicode normalization (NFC + reordering) + Multi-language support
  */
 function normalizeUnicodeTable(table) {
     return table.map(row => {
@@ -329,21 +439,125 @@ function normalizeUnicodeTable(table) {
             
             let normalizedText = cell.text;
             
-            // NFC normalization
-            if (typeof String.prototype.normalize === 'function') {
+            // Multi-language Unicode normalization
+            if (typeof String.prototype.normalize === 'function' && normalizedText) {
                 try {
+                    // NFC normalization (canonical composition)
                     normalizedText = normalizedText.normalize('NFC');
+                    
+                    // Fix common Unicode issues for Hindi/Devanagari
+                    // Reorder dependent vowel signs (matras) if needed
+                    normalizedText = fixDevanagariReordering(normalizedText);
+                    
+                    // Fix zero-width joiners and non-joiners
+                    normalizedText = normalizedText.replace(/\u200D/g, ''); // Zero-width joiner
+                    normalizedText = normalizedText.replace(/\u200C/g, ''); // Zero-width non-joiner
+                    
                 } catch (e) {
-                    // Fallback if normalize fails
+                    console.warn('Unicode normalization failed:', e);
                 }
             }
             
+            // Detect language and set appropriate font
+            const detectedLanguage = detectTextLanguage(normalizedText);
+            const fontName = getFontForLanguage(detectedLanguage, cell.fontName);
+            
             return {
                 ...cell,
-                text: normalizedText
+                text: normalizedText,
+                fontName: fontName,
+                language: detectedLanguage
             };
         });
     });
+}
+
+/**
+ * Fix Devanagari (Hindi) character reordering
+ * Ensures proper display of Hindi text
+ */
+function fixDevanagariReordering(text) {
+    if (!text) return text;
+    
+    // Devanagari range: \u0900-\u097F
+    if (!/[\u0900-\u097F]/.test(text)) {
+        return text; // Not Devanagari, return as-is
+    }
+    
+    // Common fixes for Hindi text
+    // Fix common misordered sequences
+    const fixes = [
+        // Fix common vowel sign issues
+        [/\u093E\u0947/g, '\u0947\u093E'], // ai + aa
+        [/\u093E\u0948/g, '\u0948\u093E'], // au + aa
+        [/\u0947\u093E/g, '\u093E\u0947'], // aa + ai
+    ];
+    
+    let fixed = text;
+    fixes.forEach(([pattern, replacement]) => {
+        fixed = fixed.replace(pattern, replacement);
+    });
+    
+    return fixed;
+}
+
+/**
+ * Detect text language based on Unicode ranges
+ */
+function detectTextLanguage(text) {
+    if (!text) return 'unknown';
+    
+    // Devanagari (Hindi, Marathi, etc.)
+    if (/[\u0900-\u097F]/.test(text)) {
+        return 'devanagari';
+    }
+    
+    // Arabic
+    if (/[\u0600-\u06FF]/.test(text)) {
+        return 'arabic';
+    }
+    
+    // Chinese, Japanese, Korean
+    if (/[\u4E00-\u9FFF]/.test(text)) {
+        return 'cjk';
+    }
+    
+    // Thai
+    if (/[\u0E00-\u0E7F]/.test(text)) {
+        return 'thai';
+    }
+    
+    // Latin (English, etc.)
+    if (/^[a-zA-Z0-9\s\.,;:!?\-\(\)\[\]{}'"]+$/.test(text)) {
+        return 'latin';
+    }
+    
+    // Mixed or unknown
+    return 'mixed';
+}
+
+/**
+ * Get appropriate font for language
+ * Excel-compatible fonts that support the language
+ */
+function getFontForLanguage(language, originalFont) {
+    const fontMap = {
+        'devanagari': 'Arial Unicode MS', // Best for Hindi
+        'arabic': 'Arial Unicode MS',
+        'cjk': 'Arial Unicode MS',
+        'thai': 'Arial Unicode MS',
+        'latin': originalFont || 'Calibri',
+        'mixed': 'Arial Unicode MS', // Safe for mixed content
+        'unknown': 'Arial Unicode MS'
+    };
+    
+    // If original font already supports Unicode, keep it
+    const unicodeFonts = ['Arial Unicode MS', 'Calibri', 'Times New Roman', 'Tahoma'];
+    if (unicodeFonts.includes(originalFont)) {
+        return originalFont;
+    }
+    
+    return fontMap[language] || 'Arial Unicode MS';
 }
 
 /**
@@ -375,7 +589,11 @@ if (typeof window !== 'undefined') {
         clusterRowsDynamic,
         detectColumnsWithClustering,
         buildTableWithMerging,
-        normalizeUnicodeTable
+        normalizeUnicodeTable,
+        fixDevanagariReordering,
+        detectTextLanguage,
+        getFontForLanguage,
+        isLanguageWithoutSpaces
     };
 }
 
