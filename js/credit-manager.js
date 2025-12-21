@@ -539,7 +539,7 @@ async function handleCreditPurchaseSuccess(paymentResponse, userId, pack, orderI
           // Set user type to premium
           if (window.PDFExcelUserType && window.PDFExcelUserType.setUserType) {
             window.PDFExcelUserType.setUserType('premium');
-            console.log('✅ PDF to Excel Premium activated (credits >= 15)');
+            console.log('✅ PDF to Excel Premium activated (credits >= 30)');
           } else {
             // Fallback: Set directly in localStorage
             localStorage.setItem('pdf_excel_user_type', 'premium');

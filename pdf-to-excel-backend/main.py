@@ -345,16 +345,15 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
                 }
             )
         
-        # Step 3: Check minimum credits (30 required for premium) - NEW RULE
-        from credit_calculator import check_premium_access, MIN_PREMIUM_CREDITS
+        # Step 3: Check minimum credits (30 required for premium - UPDATED)
         current_credits = get_credits(user_id)
-        if not check_premium_access(current_credits):
+        if not can_access_premium(current_credits):
             logger.warning(f"User {user_id} has insufficient credits for premium: {current_credits} < {MIN_PREMIUM_CREDITS}")
             return JSONResponse(
                 status_code=402,
                 content={
                     "insufficient_credits": True,
-                    "message": f"Premium conversion requires at least {MIN_PREMIUM_CREDITS} credits. You have {current_credits}.",
+                    "message": f"Premium conversion requires at least {MIN_PREMIUM_CREDITS} credits. You have {current_credits}. Please purchase credits to continue.",
                     "required": MIN_PREMIUM_CREDITS,
                     "available": current_credits,
                     "minimum_premium_credits": MIN_PREMIUM_CREDITS
@@ -425,54 +424,60 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
         
         logger.info(f"PDF processed. Pages: {pages_processed}")
         
-        # Step 6: Calculate required credits based on document type
-        from credit_calculator import detect_document_type, calculate_required_credits
-        document_type = detect_document_type(file.filename, is_scanned=False)  # TODO: Get is_scanned from analysis
-        required_credits = calculate_required_credits(pages_processed, document_type)
-        cost_per_page = calculate_required_credits(1, document_type)
+        # Step 6: Calculate credit cost based on document type
+        # For now, use default pricing (2 credits/page for clean tables)
+        # TODO: Detect document type and use appropriate pricing
+        credit_per_page = get_credit_cost_for_document_type(
+            document_type=None,  # Could be enhanced to detect from filename/content
+            is_scanned=False     # Could be detected from analysis
+        )
+        total_credits_required = pages_processed * credit_per_page
         
-        # Step 7: Check credits (after processing to know exact page count and type)
+        # Step 7: Check credits (after processing to know exact page count and cost)
+        # Note: Minimum 30 credits already checked, but verify again for actual cost
         current_credits = get_credits(user_id)
-        if current_credits < required_credits:
+        if current_credits < total_credits_required:
             return JSONResponse(
                 status_code=402,
                 content={
                     "insufficient_credits": True,
-                    "message": f"Insufficient credits. Need {required_credits:.1f} credits ({pages_processed} pages × {cost_per_page:.1f}/page), have {current_credits}",
-                    "required": required_credits,
+                    "message": f"Insufficient credits. Need {total_credits_required} credits ({credit_per_page} per page × {pages_processed} pages), have {current_credits}",
+                    "required": total_credits_required,
                     "available": current_credits,
-                    "pages": pages_processed,
-                    "cost_per_page": cost_per_page,
-                    "document_type": document_type
+                    "credit_per_page": credit_per_page,
+                    "pages": pages_processed
                 }
             )
         
-        # Step 8: Deduct credits (per-page based on document type)
-        credits_to_deduct = int(required_credits)  # Round to integer for deduction
-        if not deduct_credits(user_id, credits_to_deduct):
+        # Step 8: Deduct credits (variable cost based on document type)
+        if not deduct_credits(user_id, int(total_credits_required)):
+            logger.error(f"Failed to deduct credits for user {user_id}")
             return JSONResponse(
-                status_code=402,
-                content={
-                    "insufficient_credits": True,
-                    "message": f"Failed to deduct credits. Need {required_credits:.1f} credits, have {current_credits}",
-                    "required": required_credits,
-                    "available": current_credits
-                }
+                status_code=500,
+                content={"error": "Failed to deduct credits"}
             )
-        credits_left = get_credits(user_id)
-        logger.info(f"Credits deducted: {credits_to_deduct} (type: {document_type}, {cost_per_page:.1f}/page), remaining: {credits_left}")
         
-        # Step 9: Return success response
-        return {
-            "status": "success",
-            "engine": "docai",
-            "downloadUrl": download_url,
-            "pagesProcessed": pages_processed,
-            "creditsDeducted": credits_to_deduct,
-            "creditsLeft": credits_left,
-            "documentType": document_type,
-            "costPerPage": cost_per_page
-        }
+        # Get remaining credits after deduction
+        remaining_credits = get_credits(user_id)
+        
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "success",
+                "engine": "docai",
+                "downloadUrl": download_url,
+                "pagesProcessed": pages_processed,
+                "creditsLeft": remaining_credits,
+                "creditsDeducted": int(total_credits_required),
+                "creditPerPage": credit_per_page,
+                "pricing": {
+                    "type": "per_page",
+                    "cost_per_page": credit_per_page,
+                    "total_cost": int(total_credits_required),
+                    "pages": pages_processed
+                }
+            }
+        )
         
     except HTTPException:
         # Re-raise HTTP exceptions
