@@ -785,11 +785,12 @@
         console.error('Free conversion error:', error);
         showToast('Failed to convert: ' + error.message, true);
         
-        // If confidence is low, suggest upgrade
-        if (pdfAnalysis && pdfAnalysis.confidence === 'low' && window.PDFExcelUpgradePopup) {
+        // Show upgrade popup ONLY when conversion fails
+        // This applies to any PDF that couldn't be converted with free resources (scanned/complex)
+        if (window.PDFExcelUpgradePopup) {
           setTimeout(() => {
             window.PDFExcelUpgradePopup.showUpgradePopup(
-              'This file needs OCR for accurate Excel conversion. Basic conversion may not work well for scanned PDFs.'
+              'This PDF could not be converted with basic (free) conversion. It may be scanned or have complex formatting. Upgrade to Premium for OCR-powered high-accuracy conversion.'
             );
           }, 1000);
         }
