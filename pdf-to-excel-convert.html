@@ -288,6 +288,7 @@
 <script src="js/pdf-excel-free-converter.js" defer></script>
 <script src="js/pdf-excel-ilovepdf-layout.js" defer></script>
 <script src="js/pdf-excel-visual-detector.js" defer></script>
+<script src="js/pdf-excel-visual-pdf-detector.js" defer></script>
 <script src="js/pdf-excel-free-enhancer.js" defer></script>
 <script src="js/pdf-excel-upgrade-popup.js" defer></script>
             <script type="application/ld+json">
@@ -839,16 +840,32 @@
           
           showToast(`Success! Converted ${result.pagesProcessed} pages using basic conversion.`, false);
         } else {
-          throw new Error(result.error || 'Conversion failed');
+          // Check if it's a visual PDF detection
+          if (result.isVisualPDF && result.error === 'VISUAL_PDF_DETECTED') {
+            // Show visual PDF upgrade message
+            if (window.PDFExcelUpgradePopup) {
+              setTimeout(() => {
+                window.PDFExcelUpgradePopup.showUpgradePopup(
+                  result.message || 'This document contains complex visual layout. Use Premium for accurate Excel conversion.',
+                  'visual'
+                );
+              }, 100);
+            } else {
+              showToast(result.message || 'This document contains complex visual layout. Use Premium for accurate Excel conversion.', true);
+            }
+            return; // Don't throw error, just show message
+          }
+          
+          throw new Error(result.error || result.message || 'Conversion failed');
         }
         
       } catch (error) {
         console.error('Free conversion error:', error);
         showToast('Failed to convert: ' + error.message, true);
         
-        // Show upgrade popup ONLY when conversion fails
+        // Show upgrade popup ONLY when conversion fails (not for visual PDFs - handled above)
         // This applies to any PDF that couldn't be converted with free resources (scanned/complex)
-        if (window.PDFExcelUpgradePopup) {
+        if (window.PDFExcelUpgradePopup && error.message !== 'VISUAL_PDF_DETECTED') {
           setTimeout(() => {
             window.PDFExcelUpgradePopup.showUpgradePopup(
               'This PDF could not be converted with basic (free) conversion. It may be scanned or have complex formatting. Upgrade to Premium for OCR-powered high-accuracy conversion.'

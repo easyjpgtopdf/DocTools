@@ -10,10 +10,30 @@
 
 /**
  * Convert PDF to Excel using browser-based extraction
- * Returns: { success: boolean, blob: Blob, error?: string }
+ * Returns: { success: boolean, blob: Blob, error?: string, isVisualPDF?: boolean, visualReasons?: string[] }
  */
 async function convertPdfToExcelFree(pdfDoc, selectedPages = null) {
     try {
+        // STEP 0: Detect visual-heavy PDF (should use Premium)
+        if (window.PDFExcelVisualPDFDetector && window.PDFExcelVisualPDFDetector.detectVisualPDFDocument) {
+            try {
+                const visualDetection = await window.PDFExcelVisualPDFDetector.detectVisualPDFDocument(pdfDoc);
+                if (visualDetection.isVisualPDF) {
+                    return {
+                        success: false,
+                        error: 'VISUAL_PDF_DETECTED',
+                        isVisualPDF: true,
+                        visualReasons: visualDetection.reasons,
+                        confidence: visualDetection.confidence,
+                        message: 'This document contains complex visual layout. Use Premium for accurate Excel conversion.'
+                    };
+                }
+            } catch (detectionError) {
+                console.warn('Visual PDF detection failed, continuing with conversion:', detectionError);
+                // Continue with conversion if detection fails (fail-safe)
+            }
+        }
+        
         // Get pages to process
         const totalPages = pdfDoc.numPages;
         const pagesToProcess = selectedPages || Array.from({ length: totalPages }, (_, i) => i + 1);
