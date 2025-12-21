@@ -106,6 +106,47 @@ def upload_pdf_to_gcs_temp(file_content: bytes, filename: str) -> str:
         raise Exception(f"Failed to upload PDF to GCS: {str(e)}")
 
 
+def upload_file_to_gcs(file_content: bytes, blob_name: str, content_type: str = 'application/octet-stream') -> str:
+    """
+    Upload file to GCS and return a signed URL for download.
+    
+    Args:
+        file_content: File content as bytes
+        blob_name: GCS blob name (path)
+        content_type: MIME type of the file
+    
+    Returns:
+        Signed download URL (valid for 1 hour)
+    
+    Raises:
+        Exception: If upload fails
+    """
+    bucket_name = os.environ.get('GCS_BUCKET')
+    if not bucket_name:
+        raise ValueError("GCS_BUCKET environment variable not set")
+    
+    try:
+        client = get_gcs_client()
+        bucket = client.bucket(bucket_name)
+        blob = bucket.blob(blob_name)
+        
+        # Upload file
+        blob.upload_from_string(
+            file_content,
+            content_type=content_type
+        )
+        
+        # Generate signed URL (valid for 1 hour)
+        download_url = blob.generate_signed_url(
+            expiration=timedelta(hours=1),
+            method='GET'
+        )
+        
+        return download_url
+    except Exception as e:
+        raise Exception(f"Failed to upload file to GCS: {str(e)}")
+
+
 def delete_from_gcs(blob_name: str) -> bool:
     """
     Delete file from GCS.

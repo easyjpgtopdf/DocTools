@@ -14,6 +14,7 @@ import traceback
 from credit import get_user_id, get_credits, deduct_credits, check_sufficient_credits, get_credit_info
 from pricing import MIN_PREMIUM_CREDITS, get_credit_cost_for_document_type, can_access_premium, get_pricing_info
 from storage_gcs import upload_excel_to_gcs
+from id_card_detector import detect_id_card
 # Lazy import for docai_service to avoid startup errors
 # from docai_service import process_pdf_to_excel_docai
 
@@ -215,7 +216,28 @@ async def pdf_to_excel_endpoint(request: Request, file: UploadFile = File(...)):
         
         logger.info(f"Received PDF file: {file.filename}, size: {file_size} bytes")
         
-        # Step 2: Get user ID
+        # Step 2: Detect if this is an ID card (before Excel processing)
+        # If ID card detected, route to ID card endpoint instead
+        try:
+            detection_result = detect_id_card(file_content, pdf_metadata=None, text_blocks=None)
+            if detection_result.get("document_type") == "ID_CARD" and detection_result.get("confidence", 0) >= 50:
+                logger.info(f"ID Card detected (confidence: {detection_result.get('confidence')}). Routing to ID card endpoint.")
+                # Return response indicating ID card should use different endpoint
+                return JSONResponse(
+                    status_code=400,
+                    content={
+                        "error": "ID card detected",
+                        "message": "ID cards do not contain tables and cannot be converted to Excel format. Please use the ID card processing endpoint.",
+                        "document_type": "ID_CARD",
+                        "suggested_endpoint": "/api/id-card-process",
+                        "confidence": detection_result.get("confidence")
+                    }
+                )
+        except Exception as e:
+            logger.warning(f"ID card detection failed (continuing with Excel conversion): {e}")
+            # Continue with normal Excel conversion if detection fails
+        
+        # Step 3: Get user ID
         user_id = get_user_id(request)
         logger.info(f"Processing request for user: {user_id}")
         
@@ -499,6 +521,171 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
         raise HTTPException(
             status_code=500,
             detail=f"Conversion failed: {str(e)}"
+        )
+
+
+# ID Card Processing Endpoint
+@app.post("/api/id-card-process")
+async def id_card_process_endpoint(request: Request, file: UploadFile = File(...)):
+    """
+    Process ID card PDFs (both FREE and PREMIUM users).
+    
+    FREE users: Text extraction + CSV template (zero cost)
+    PREMIUM users: Structured extraction using identity-docai (credit-based)
+    
+    ID cards are detected and routed here from Excel conversion endpoints.
+    """
+    try:
+        # Step 1: Validate file
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="No file provided")
+        
+        if not file.filename.lower().endswith('.pdf'):
+            raise HTTPException(status_code=400, detail="File must be a PDF")
+        
+        # Read file content
+        file_content = await file.read()
+        file_size = len(file_content)
+        
+        if file_size > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File size exceeds {MAX_FILE_SIZE / (1024*1024):.0f}MB limit"
+            )
+        
+        if file_size == 0:
+            raise HTTPException(status_code=400, detail="File is empty")
+        
+        # Step 2: Get user ID and type
+        user_id = get_user_id(request)
+        user_type = request.headers.get("X-User-Type", "").lower()
+        current_credits = get_credits(user_id)
+        
+        # Step 3: Detect ID card (confirm)
+        detection_result = detect_id_card(file_content, pdf_metadata=None, text_blocks=None)
+        if detection_result.get("document_type") != "ID_CARD":
+            logger.warning(f"Document may not be an ID card (confidence: {detection_result.get('confidence')})")
+        
+        # Step 4: Route based on user type
+        if user_type == "free" or not can_access_premium(current_credits):
+            # FREE USER FLOW: Text extraction + CSV template (zero cost)
+            logger.info(f"Processing ID card for FREE user: {user_id}")
+            from id_card_service import process_id_card_free
+            
+            csv_template_url, text_result = process_id_card_free(file_content, file.filename)
+            
+            return {
+                "status": "success",
+                "user_type": "free",
+                "document_type": "ID_CARD",
+                "csv_template_url": csv_template_url,
+                "text_extraction": {
+                    "text": text_result.get("text", ""),
+                    "page_count": text_result.get("page_count", 0),
+                    "pages": text_result.get("pages", [])
+                },
+                "message": "ID cards do not contain tables. For structured data extraction, upgrade to Premium."
+            }
+        else:
+            # PREMIUM USER FLOW: identity-docai processor
+            logger.info(f"Processing ID card for PREMIUM user: {user_id}")
+            
+            # Check minimum credits (30 required)
+            if not can_access_premium(current_credits):
+                return JSONResponse(
+                    status_code=402,
+                    content={
+                        "insufficient_credits": True,
+                        "message": f"Premium ID card processing requires at least {MIN_PREMIUM_CREDITS} credits. You have {current_credits}.",
+                        "required": MIN_PREMIUM_CREDITS,
+                        "available": current_credits
+                    }
+                )
+            
+            # Use identity-docai processor
+            _lazy_import_multi_processor()
+            if _process_pdf_with_processor_func is None:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Multi-processor module not available"
+                )
+            
+            # Calculate required credits (6 credits/page for ID cards)
+            credit_per_page = get_credit_cost_for_document_type(document_type="id_card")
+            # Estimate page count (will be confirmed after processing)
+            estimated_pages = detection_result.get("page_count", 1)
+            estimated_credits = estimated_pages * credit_per_page
+            
+            if current_credits < estimated_credits:
+                return JSONResponse(
+                    status_code=402,
+                    content={
+                        "insufficient_credits": True,
+                        "message": f"Insufficient credits. Estimated {estimated_credits:.1f} credits needed ({estimated_pages} pages × {credit_per_page:.1f}/page), have {current_credits}",
+                        "required": estimated_credits,
+                        "available": current_credits
+                    }
+                )
+            
+            # Process with identity-docai
+            download_url, pages_processed, tables_found, extracted_data = await process_pdf_with_processor(
+                file_content,
+                file.filename,
+                "identity-docai"
+            )
+            
+            # Calculate actual credits required
+            total_credits_required = pages_processed * credit_per_page
+            
+            # Check credits again after processing
+            current_credits = get_credits(user_id)
+            if current_credits < total_credits_required:
+                return JSONResponse(
+                    status_code=402,
+                    content={
+                        "insufficient_credits": True,
+                        "message": f"Insufficient credits. Need {total_credits_required:.1f} credits ({pages_processed} pages × {credit_per_page:.1f}/page), have {current_credits}",
+                        "required": total_credits_required,
+                        "available": current_credits
+                    }
+                )
+            
+            # Deduct credits
+            credits_to_deduct = int(total_credits_required)
+            if not deduct_credits(user_id, credits_to_deduct):
+                return JSONResponse(
+                    status_code=402,
+                    content={
+                        "insufficient_credits": True,
+                        "message": f"Failed to deduct credits. Need {total_credits_required:.1f} credits, have {current_credits}",
+                        "required": total_credits_required,
+                        "available": current_credits
+                    }
+                )
+            
+            credits_left = get_credits(user_id)
+            logger.info(f"Credits deducted: {credits_to_deduct} (ID card, {credit_per_page:.1f}/page), remaining: {credits_left}")
+            
+            return {
+                "status": "success",
+                "user_type": "premium",
+                "document_type": "ID_CARD",
+                "downloadUrl": download_url,
+                "pagesProcessed": pages_processed,
+                "creditsDeducted": credits_to_deduct,
+                "creditsLeft": credits_left,
+                "costPerPage": credit_per_page,
+                "extractedData": extracted_data
+            }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"ID card processing error: {e}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"ID card processing failed: {str(e)}"
         )
 
 
