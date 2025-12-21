@@ -61,10 +61,11 @@ async function hasPremiumAccess() {
     // Check credits via API
     try {
         const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
+        const userId = await getUserId(); // Use async getUserId to get Firebase user ID
         const response = await fetch(`${API_BASE_URL}/api/credits`, {
             method: 'GET',
             headers: {
-                'X-User-ID': getUserId()
+                'X-User-ID': userId
             }
         });
         
@@ -81,9 +82,52 @@ async function hasPremiumAccess() {
 }
 
 /**
+ * Get user ID - prefers Firebase authenticated user ID, falls back to localStorage
+ */
+async function getUserId() {
+    try {
+        // Try importing Firebase auth from firebase-init.js (most reliable method)
+        try {
+            const { auth } = await import("./firebase-init.js");
+            if (auth && auth.currentUser && auth.currentUser.uid) {
+                return auth.currentUser.uid;
+            }
+            // If not immediately available, wait for auth state
+            if (auth) {
+                const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js");
+                return new Promise((resolve) => {
+                    const unsubscribe = onAuthStateChanged(auth, (user) => {
+                        unsubscribe();
+                        if (user && user.uid) {
+                            resolve(user.uid);
+                        } else {
+                            // Fallback to localStorage
+                            resolve(getLocalStorageUserId());
+                        }
+                    });
+                    // Timeout after 1 second if auth doesn't resolve
+                    setTimeout(() => {
+                        unsubscribe();
+                        resolve(getLocalStorageUserId());
+                    }, 1000);
+                });
+            }
+        } catch (e) {
+            // Firebase not available, continue to fallback
+        }
+        
+        // Fallback to localStorage
+        return getLocalStorageUserId();
+    } catch (e) {
+        // Final fallback to session-based ID
+        return 'anonymous_' + Date.now();
+    }
+}
+
+/**
  * Get user ID from localStorage or generate one
  */
-function getUserId() {
+function getLocalStorageUserId() {
     try {
         let userId = localStorage.getItem('pdf_excel_user_id');
         if (!userId) {
@@ -93,7 +137,6 @@ function getUserId() {
         }
         return userId;
     } catch (e) {
-        // Fallback to session-based ID
         return 'anonymous_' + Date.now();
     }
 }
@@ -104,10 +147,11 @@ function getUserId() {
 async function getCreditBalance() {
     try {
         const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
+        const userId = await getUserId(); // Use async getUserId to get Firebase user ID
         const response = await fetch(`${API_BASE_URL}/api/credits`, {
             method: 'GET',
             headers: {
-                'X-User-ID': getUserId()
+                'X-User-ID': userId
             }
         });
         

@@ -861,7 +861,8 @@
       fd.append('file', pdfFile);
       
       const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
-      const userId = window.PDFExcelUserType ? window.PDFExcelUserType.getUserId() : 'anonymous';
+      // Get user ID - must be async to properly fetch Firebase user ID
+      const userId = window.PDFExcelUserType ? await window.PDFExcelUserType.getUserId() : 'anonymous';
       const currentUserType = window.PDFExcelUserType ? window.PDFExcelUserType.getUserType() : 'free';
       
       const response = await fetch(`${API_BASE_URL}/api/pdf-to-excel-docai`, {
