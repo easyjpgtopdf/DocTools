@@ -532,8 +532,8 @@ async function handleCreditPurchaseSuccess(paymentResponse, userId, pack, orderI
         }
       }));
       
-      // Activate PDF to Excel Premium if credits >= 15
-      const MIN_PREMIUM_CREDITS = 15;
+      // Activate PDF to Excel Premium if credits >= 30 (UPDATED RULE)
+      const MIN_PREMIUM_CREDITS = 30;
       if (newCredits >= MIN_PREMIUM_CREDITS) {
         try {
           // Set user type to premium

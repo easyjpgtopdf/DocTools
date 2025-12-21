@@ -814,17 +814,32 @@
         return;
       }
       
-      // Check credits (minimum 15)
+      // Check credits (minimum 30 for premium access) - UPDATED RULE
       try {
         await waitForModules();
         const credits = await window.PDFExcelUserType.getCreditBalance();
-        const requiredCredits = pdfDoc ? pdfDoc.numPages : 1;
+        const MIN_PREMIUM_CREDITS = 30; // Updated minimum
         
-        if (credits < Math.max(requiredCredits, 15)) {
+        // First check: Minimum 30 credits for premium access
+        if (credits < MIN_PREMIUM_CREDITS) {
           if (window.PDFExcelUpgradePopup) {
-            window.PDFExcelUpgradePopup.showCreditInsufficientPopup(requiredCredits, credits);
+            window.PDFExcelUpgradePopup.showCreditInsufficientPopup(MIN_PREMIUM_CREDITS, credits);
           } else {
-            alert(`You need at least ${Math.max(requiredCredits, 15)} credits. You have ${credits}.`);
+            alert(`Premium conversion requires at least ${MIN_PREMIUM_CREDITS} credits. You have ${credits}. Please purchase credits.`);
+          }
+          return;
+        }
+        
+        // Second check: Estimate required credits for this document
+        // (Actual calculation will be done by backend based on document type)
+        const estimatedPages = pdfDoc ? pdfDoc.numPages : 1;
+        const estimatedCredits = estimatedPages * 3; // Average 3 credits/page (backend will calculate exact)
+        
+        if (credits < estimatedCredits) {
+          if (window.PDFExcelUpgradePopup) {
+            window.PDFExcelUpgradePopup.showCreditInsufficientPopup(MIN_PREMIUM_CREDITS, credits);
+          } else {
+            alert(`Premium conversion requires at least ${MIN_PREMIUM_CREDITS} credits. You have ${credits}. Please purchase credits to continue.`);
           }
           return;
         }

@@ -14,8 +14,8 @@ const USER_TYPE = {
     PREMIUM: 'premium'
 };
 
-// Minimum credits required for premium features
-const MIN_PREMIUM_CREDITS = 15;
+// Minimum credits required for premium features (UPDATED: 30 credits)
+const MIN_PREMIUM_CREDITS = 30;
 
 /**
  * Get current user type from localStorage

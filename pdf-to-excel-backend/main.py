@@ -12,6 +12,7 @@ from typing import Optional
 import traceback
 
 from credit import get_user_id, get_credits, deduct_credits, check_sufficient_credits, get_credit_info
+from pricing import MIN_PREMIUM_CREDITS, get_credit_cost_for_document_type, can_access_premium, get_pricing_info
 from storage_gcs import upload_excel_to_gcs
 # Lazy import for docai_service to avoid startup errors
 # from docai_service import process_pdf_to_excel_docai
@@ -344,18 +345,19 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
                 }
             )
         
-        # Step 3: Check minimum credits (15 required for premium)
+        # Step 3: Check minimum credits (30 required for premium) - NEW RULE
+        from credit_calculator import check_premium_access, MIN_PREMIUM_CREDITS
         current_credits = get_credits(user_id)
-        if current_credits < 15:
-            logger.warning(f"User {user_id} has insufficient credits for premium: {current_credits} < 15")
+        if not check_premium_access(current_credits):
+            logger.warning(f"User {user_id} has insufficient credits for premium: {current_credits} < {MIN_PREMIUM_CREDITS}")
             return JSONResponse(
                 status_code=402,
                 content={
                     "insufficient_credits": True,
-                    "message": f"Premium conversion requires at least 15 credits. You have {current_credits}.",
-                    "required": 15,
+                    "message": f"Premium conversion requires at least {MIN_PREMIUM_CREDITS} credits. You have {current_credits}.",
+                    "required": MIN_PREMIUM_CREDITS,
                     "available": current_credits,
-                    "minimum_premium_credits": 15
+                    "minimum_premium_credits": MIN_PREMIUM_CREDITS
                 }
             )
         # Step 1: Validate file
@@ -423,31 +425,53 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
         
         logger.info(f"PDF processed. Pages: {pages_processed}")
         
-        # Step 6: Check credits (after processing to know exact page count)
-        # Note: Minimum 15 credits already checked, but verify again for actual page count
-        if not check_sufficient_credits(user_id, pages_processed):
+        # Step 6: Calculate required credits based on document type
+        from credit_calculator import detect_document_type, calculate_required_credits
+        document_type = detect_document_type(file.filename, is_scanned=False)  # TODO: Get is_scanned from analysis
+        required_credits = calculate_required_credits(pages_processed, document_type)
+        cost_per_page = calculate_required_credits(1, document_type)
+        
+        # Step 7: Check credits (after processing to know exact page count and type)
+        current_credits = get_credits(user_id)
+        if current_credits < required_credits:
             return JSONResponse(
                 status_code=402,
                 content={
                     "insufficient_credits": True,
-                    "message": f"Insufficient credits. Need {pages_processed} credits, have {get_credits(user_id)}",
-                    "required": pages_processed,
-                    "available": get_credits(user_id)
+                    "message": f"Insufficient credits. Need {required_credits:.1f} credits ({pages_processed} pages × {cost_per_page:.1f}/page), have {current_credits}",
+                    "required": required_credits,
+                    "available": current_credits,
+                    "pages": pages_processed,
+                    "cost_per_page": cost_per_page,
+                    "document_type": document_type
                 }
             )
         
-        # Step 7: Deduct credits (only after successful conversion)
-        deduct_credits(user_id, pages_processed)
+        # Step 8: Deduct credits (per-page based on document type)
+        credits_to_deduct = int(required_credits)  # Round to integer for deduction
+        if not deduct_credits(user_id, credits_to_deduct):
+            return JSONResponse(
+                status_code=402,
+                content={
+                    "insufficient_credits": True,
+                    "message": f"Failed to deduct credits. Need {required_credits:.1f} credits, have {current_credits}",
+                    "required": required_credits,
+                    "available": current_credits
+                }
+            )
         credits_left = get_credits(user_id)
-        logger.info(f"Credits deducted: {pages_processed}, remaining: {credits_left}")
+        logger.info(f"Credits deducted: {credits_to_deduct} (type: {document_type}, {cost_per_page:.1f}/page), remaining: {credits_left}")
         
-        # Step 8: Return success response
+        # Step 9: Return success response
         return {
             "status": "success",
             "engine": "docai",
             "downloadUrl": download_url,
             "pagesProcessed": pages_processed,
-            "creditsLeft": credits_left
+            "creditsDeducted": credits_to_deduct,
+            "creditsLeft": credits_left,
+            "documentType": document_type,
+            "costPerPage": cost_per_page
         }
         
     except HTTPException:
