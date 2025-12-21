@@ -1,6 +1,6 @@
 /**
  * Upgrade Popup for Premium Features
- * iLovePDF-style upgrade prompts
+ * Upgrade prompts for premium features
  */
 
 /**

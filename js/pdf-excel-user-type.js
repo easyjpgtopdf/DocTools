@@ -1,11 +1,11 @@
 /**
  * User Type Detection for PDF to Excel Converter
- * FREE vs PREMIUM architecture (iLovePDF style)
+ * FREE vs PREMIUM architecture
  * 
  * Rules:
  * - FREE users: ZERO AI cost, browser-based only
  * - PREMIUM users: Google Document AI (heavy OCR)
- * - Minimum 15 credits required for premium conversion
+ * - Minimum 30 credits required for premium conversion
  */
 
 // User types

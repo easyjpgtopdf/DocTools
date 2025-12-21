@@ -1,14 +1,14 @@
 /**
- * iLovePDF-like FREE Layout Reconstruction
+ * Advanced FREE Layout Reconstruction
  * Advanced table detection using text + coordinates ONLY
  * NO AI, NO OCR, NO cloud costs
  */
 
 /**
- * Main iLovePDF-like table extraction
+ * Main advanced table extraction
  * IMPROVED: Now includes visual element detection for better borders and column detection
  */
-async function extractTableILovePDFStyle(page, visualElements = null) {
+async function extractTableAdvancedLayout(page, visualElements = null) {
     try {
         const viewport = page.getViewport({ scale: 1.0 });
         const textContent = await page.getTextContent();
@@ -50,7 +50,7 @@ async function extractTableILovePDFStyle(page, visualElements = null) {
         return normalizedTable;
         
     } catch (error) {
-        console.error('iLovePDF-style extraction error:', error);
+        console.error('Advanced layout extraction error:', error);
         return null;
     }
 }
@@ -630,8 +630,8 @@ function detectBoldFromFontName(fontName) {
 
 // Export
 if (typeof window !== 'undefined') {
-    window.PDFExcelILovePDFLayout = {
-        extractTableILovePDFStyle,
+    window.PDFExcelLayoutReconstruction = {
+        extractTableAdvancedLayout,
         collectTextObjects,
         suppressHeadersFooters,
         clusterRowsDynamic,

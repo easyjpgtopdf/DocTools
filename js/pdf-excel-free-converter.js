@@ -146,7 +146,7 @@ async function convertPdfToExcelFree(pdfDoc, selectedPages = null) {
 
 /**
  * Extract tables from a PDF page using text positioning + visual detection
- * Uses iLovePDF-like layout reconstruction + visual element detection
+ * Uses advanced layout reconstruction + visual element detection
  * Returns: Array of objects with table data, cell formatting, and visual mappings
  */
 async function extractTablesFromPage(page) {
@@ -168,26 +168,26 @@ async function extractTablesFromPage(page) {
             }
         }
         
-        // Step 2: Try iLovePDF-style extraction first (if available)
+        // Step 2: Try advanced layout extraction first (if available)
         // IMPROVED: Pass visual elements to improve column detection
-        let ilovepdfTable = null;
+        let advancedTable = null;
         let columnBoundaries = [];
         let rowPositions = [];
         
-        if (window.PDFExcelILovePDFLayout && window.PDFExcelILovePDFLayout.extractTableILovePDFStyle) {
+        if (window.PDFExcelLayoutReconstruction && window.PDFExcelLayoutReconstruction.extractTableAdvancedLayout) {
             try {
                 // Pass visual elements to improve column detection
-                ilovepdfTable = await window.PDFExcelILovePDFLayout.extractTableILovePDFStyle(page, visualElements);
-                if (ilovepdfTable && ilovepdfTable.length > 0) {
+                advancedTable = await window.PDFExcelLayoutReconstruction.extractTableAdvancedLayout(page, visualElements);
+                if (advancedTable && advancedTable.length > 0) {
                     // Extract column boundaries and row positions for visual mapping
                     const viewport = page.getViewport({ scale: 1.0 });
                     const textContent = await page.getTextContent();
                     if (textContent && textContent.items) {
-                        const textObjects = window.PDFExcelILovePDFLayout.collectTextObjects(textContent.items, viewport);
-                        const filteredObjects = window.PDFExcelILovePDFLayout.suppressHeadersFooters(textObjects, viewport);
-                        const rows = window.PDFExcelILovePDFLayout.clusterRowsDynamic(filteredObjects);
+                        const textObjects = window.PDFExcelLayoutReconstruction.collectTextObjects(textContent.items, viewport);
+                        const filteredObjects = window.PDFExcelLayoutReconstruction.suppressHeadersFooters(textObjects, viewport);
+                        const rows = window.PDFExcelLayoutReconstruction.clusterRowsDynamic(filteredObjects);
                         // Pass visual elements for better column detection
-                        columnBoundaries = window.PDFExcelILovePDFLayout.detectColumnsWithClustering(rows, visualElements);
+                        columnBoundaries = window.PDFExcelLayoutReconstruction.detectColumnsWithClustering(rows, visualElements);
                         rowPositions = rows.map(row => row.y);
                     }
                     
@@ -238,14 +238,14 @@ async function extractTablesFromPage(page) {
                     }
                     
                     return [{ 
-                        data: ilovepdfTable, 
+                        data: advancedTable, 
                         hasFormatting: true,
                         visualElements: visualElements,
                         cellMappings: cellMappings
                     }];
                 }
             } catch (e) {
-                console.warn('iLovePDF-style extraction failed, falling back to basic:', e);
+                console.warn('Advanced layout extraction failed, falling back to basic:', e);
             }
         }
         

@@ -46,6 +46,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
     
+    <!-- FREE Browser-Based Converter (Zero Server Costs) -->
+    <script src="/js/pdf-to-word-free-browser.js"></script>
+    
     <style>
         * {
             margin: 0;
@@ -809,6 +812,86 @@
             }
         });
         
+        /**
+         * FREE VERSION: Browser-based conversion (zero server costs)
+         */
+        async function convertToWordBrowser() {
+            if (!currentFile || !pdfDoc) {
+                showStatus('Please select a PDF file first', 'error');
+                return;
+            }
+            
+            convertBtn.disabled = true;
+            progressBar.style.display = 'block';
+            progressFill.style.width = '0%';
+            showStatus('Starting browser-based conversion...', 'info');
+            
+            try {
+                // Check if browser converter is available
+                if (typeof convertPdfToWordBrowser === 'undefined') {
+                    throw new Error('Browser converter not loaded. Please refresh the page.');
+                }
+                
+                progressFill.style.width = '5%';
+                showStatus('Converting PDF to Word (browser-based, free)...', 'info');
+                
+                // Use browser-based conversion
+                const progressCallback = (percent, message) => {
+                    progressFill.style.width = `${percent}%`;
+                    showStatus(message, 'info');
+                };
+                
+                const blob = await convertPdfToWordBrowser(pdfDoc, progressCallback);
+                
+                // Create download link
+                const url = URL.createObjectURL(blob);
+                primaryDownload.href = url;
+                primaryDownload.download = (currentFile.name || 'converted').replace(/\.pdf$/i, '.docx');
+                primaryMethod.textContent = 'Browser-Based (Free)';
+                primaryMethod.className = 'method-badge libreoffice';
+                
+                // Hide alternative card
+                altCard.style.display = 'none';
+                
+                progressFill.style.width = '100%';
+                showStatus('Conversion successful! (Browser-based, zero server costs)', 'success');
+                resultsSection.style.display = 'block';
+                showToast('Conversion successful! Download your Word file.', false);
+                
+                // Auto-trigger download
+                setTimeout(() => {
+                    primaryDownload.click();
+                }, 500);
+                
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                }, 2000);
+                
+            } catch (error) {
+                const errorMsg = error.message || 'Browser-based conversion failed. Please try again.';
+                showStatus(`Error: ${errorMsg}`, 'error');
+                showToast(errorMsg, true);
+                console.error('Browser conversion error:', error);
+                progressBar.style.display = 'none';
+                progressFill.style.width = '0%';
+                resultsSection.style.display = 'none';
+                
+                // If visual PDF detected, suggest premium
+                if (errorMsg.includes('complex visual layout') || errorMsg.includes('Premium')) {
+                    setTimeout(() => {
+                        if (confirm('This PDF requires premium conversion. Would you like to sign in for premium features?')) {
+                            window.location.href = `/accounts.html#login?returnTo=${encodeURIComponent(window.location.href)}`;
+                        }
+                    }, 2000);
+                }
+            } finally {
+                convertBtn.disabled = false;
+            }
+        }
+        
+        /**
+         * PREMIUM VERSION: Server-based conversion (credits-based)
+         */
         async function convertToWord() {
             if (!currentFile) {
                 showStatus('Please select a PDF file first', 'error');
