@@ -5,7 +5,7 @@ Supports both AWS Textract (fallback) and Google Document AI.
 
 import os
 import logging
-from fastapi import FastAPI, File, UploadFile, HTTPException, Request
+from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from typing import Optional
@@ -714,7 +714,7 @@ async def id_card_process_endpoint(request: Request, file: UploadFile = File(...
 async def pdf_to_excel_free_server_endpoint(
     request: Request,
     file: UploadFile = File(...),
-    fingerprint: Optional[str] = None
+    fingerprint: Optional[str] = Form(None)
 ):
     """
     FREE Server-Side PDF to Excel Conversion (NEW ENGINE v1).
