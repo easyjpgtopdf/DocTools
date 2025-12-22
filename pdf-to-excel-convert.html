@@ -857,10 +857,37 @@
               body: formData
             });
             
-            const serverResult = await serverResponse.json();
+            // Check response status
+            if (!serverResponse.ok) {
+              const errorData = await serverResponse.json().catch(() => ({}));
+              // Check if it's an upgrade required error
+              if (errorData.upgrade_required || (errorData.error && (
+                errorData.error.includes('limit') || 
+                errorData.error.includes('upgrade') ||
+                errorData.error.includes('Upgrade')
+              ))) {
+                // Show upgrade popup
+                if (window.PDFExcelUpgradePopup) {
+                  window.PDFExcelUpgradePopup.showUpgradePopup(errorData.error || 'Daily limit reached. Upgrade to Pro for unlimited conversions.');
+                } else {
+                  showToast(errorData.error || 'Daily limit reached. Upgrade to Pro.', true);
+                }
+                downloadBtnFree.disabled = false;
+                return;
+              }
+              // Other error - fallback to browser-based
+              throw new Error(errorData.error || errorData.message || `Server error: ${serverResponse.status}`);
+            }
             
-            if (serverResult.success && serverResult.downloadUrl) {
+            const serverResult = await serverResponse.json();
+            console.log('Server response:', serverResult);
+            
+            // Check for success response (support both formats)
+            if ((serverResult.status === 'success' || serverResult.success) && serverResult.downloadUrl) {
               // Server-side conversion successful
+              showToast(`Converting ${serverResult.pagesProcessed || 1} pages using free server conversion...`, false);
+              
+              // Handle different download methods
               if (serverResult.method === 'direct_download' && serverResult.downloadUrl.startsWith('data:')) {
                 // Base64 download
                 const link = document.createElement('a');
@@ -874,21 +901,33 @@
                 window.open(serverResult.downloadUrl, '_blank');
               }
               
-              showToast(`Success! Converted ${serverResult.pagesProcessed} pages using free server conversion.`, false);
+              showToast(`Success! Converted ${serverResult.pagesProcessed || 1} pages using free server conversion.`, false);
               downloadBtnFree.disabled = false;
               return;
-            } else if (serverResult.upgrade_required) {
-              // Show upgrade popup
-              if (window.PDFExcelUpgradePopup) {
-                window.PDFExcelUpgradePopup.showUpgradePopup(serverResult.error || 'Daily limit reached. Upgrade to Pro for unlimited conversions.');
+            } else if (serverResult.status === 'error' || serverResult.error) {
+              // Check if it's an upgrade required error
+              if (serverResult.upgrade_required || (serverResult.error && (
+                serverResult.error.includes('limit') || 
+                serverResult.error.includes('upgrade') ||
+                serverResult.error.includes('Upgrade')
+              ))) {
+                // Show upgrade popup
+                if (window.PDFExcelUpgradePopup) {
+                  window.PDFExcelUpgradePopup.showUpgradePopup(serverResult.error || 'Daily limit reached. Upgrade to Pro for unlimited conversions.');
+                } else {
+                  showToast(serverResult.error || 'Daily limit reached. Upgrade to Pro.', true);
+                }
+                downloadBtnFree.disabled = false;
+                return;
               } else {
-                showToast(serverResult.error || 'Daily limit reached. Upgrade to Pro.', true);
+                // Other error - fallback to browser-based
+                console.log('Server conversion error, falling back to browser-based:', serverResult.error);
+                // Continue to browser-based fallback below
               }
-              downloadBtnFree.disabled = false;
-              return;
-            } else if (serverResult.fallback_available) {
-              // Fallback to browser-based - continue below
-              console.log('Server conversion failed, falling back to browser-based:', serverResult.error);
+            } else {
+              // Unexpected response format - fallback
+              console.warn('Unexpected server response format:', serverResult);
+              // Continue to browser-based fallback below
             }
           } catch (serverError) {
             console.warn('Server-side conversion failed, falling back to browser-based:', serverError);
