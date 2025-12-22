@@ -730,7 +730,9 @@ async def pdf_to_excel_free_server_endpoint(
         # Get client info for abuse control
         ip_address = request.client.host if request.client else "unknown"
         user_agent = request.headers.get("user-agent", "")
-        fingerprint = fingerprint or request.headers.get("x-fingerprint", "")
+        # Get fingerprint from FormData or header
+        if not fingerprint:
+            fingerprint = request.headers.get("x-fingerprint", "")
         
         # Generate free key
         free_key = generate_free_key(ip_address, user_agent, fingerprint)

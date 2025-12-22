@@ -170,3 +170,39 @@ def delete_from_gcs(blob_name: str) -> bool:
     except Exception:
         return False
 
+
+def delete_from_gcs_temp(gcs_uri: str) -> bool:
+    """
+    Delete temporary file from GCS using GCS URI.
+    
+    Args:
+        gcs_uri: GCS URI (gs://bucket/path) to delete
+    
+    Returns:
+        True if successful, False otherwise
+    """
+    if not gcs_uri or not gcs_uri.startswith('gs://'):
+        return False
+    
+    try:
+        # Extract bucket and blob name from GCS URI
+        # Format: gs://bucket_name/blob_name
+        uri_parts = gcs_uri.replace('gs://', '').split('/', 1)
+        if len(uri_parts) != 2:
+            return False
+        
+        bucket_name = uri_parts[0]
+        blob_name = uri_parts[1]
+        
+        # Delete using GCS client
+        client = get_gcs_client()
+        bucket = client.bucket(bucket_name)
+        blob = bucket.blob(blob_name)
+        blob.delete()
+        return True
+    except Exception as e:
+        # Log error but don't raise (cleanup failures shouldn't break the flow)
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Failed to delete temporary file from GCS: {gcs_uri}, error: {e}")
+        return False
