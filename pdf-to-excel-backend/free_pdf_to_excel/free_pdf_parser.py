@@ -151,14 +151,14 @@ def detect_scanned_pdf(pdf_bytes: bytes) -> Tuple[bool, float]:
                 # Even more lenient: only mark as scanned if density is extremely low AND we have very few text objects
                 is_scanned = text_density < 0.001 and len(text_objects) < 5  # Very strict: only if almost no text AND very few objects
                 logger.info(f"PDF scan detection: density={text_density:.6f}, objects={len(text_objects)}, is_scanned={is_scanned}")
-                return is_scanned, text_density
+                return is_scanned, text_density, len(text_objects)
         
         # If we can't determine, assume not scanned if we have text
-        return False, 0.1
+        return False, 0.1, len(text_objects) if text_objects else 0
     
     except Exception as e:
         logger.error(f"Error detecting scanned PDF: {e}")
-        return False, 0.1  # Assume not scanned on error
+        return False, 0.1, 0  # Assume not scanned on error
 
 
 def get_page_count(pdf_bytes: bytes) -> int:
