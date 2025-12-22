@@ -3,7 +3,7 @@ Debug utilities for FREE limits tracking.
 Helps diagnose limit issues by IP address.
 """
 
-from .free_limits import _usage_tracker, generate_free_key, get_usage_info, MAX_FREE_PAGES_PER_DAY
+from .free_limits import _usage_tracker, generate_free_key, get_usage_info, MAX_FREE_PDFS_PER_DAY
 import logging
 
 logger = logging.getLogger(__name__)
@@ -27,11 +27,11 @@ def get_usage_by_ip(ip_address: str, user_agent: str = "", fingerprint: str = ""
     return {
         "ip_address": ip_address,
         "free_key": free_key[:8],  # First 8 chars for debugging
-        "pages_used_today": usage_info['pages_used_today'],
-        "pages_remaining": usage_info['pages_remaining'],
-        "max_pages_per_day": MAX_FREE_PAGES_PER_DAY,
+        "pdfs_used_today": usage_info['pdfs_used_today'],
+        "pdfs_remaining": usage_info['pdfs_remaining'],
+        "max_pdfs_per_day": MAX_FREE_PDFS_PER_DAY,
         "last_reset_timestamp": usage_info['last_reset_timestamp'],
-        "is_limit_reached": usage_info['pages_remaining'] <= 0
+        "is_limit_reached": usage_info['is_limit_reached']
     }
 
 
@@ -46,7 +46,7 @@ def reset_usage_for_ip(ip_address: str, user_agent: str = "", fingerprint: str =
     """
     free_key = generate_free_key(ip_address, user_agent, fingerprint)
     if free_key in _usage_tracker:
-        _usage_tracker[free_key]['pages_used_today'] = 0
+        _usage_tracker[free_key]['pdfs_used_today'] = 0
         logger.info(f"Reset usage for IP {ip_address} (key: {free_key[:8]})")
         return True
     return False
@@ -61,10 +61,10 @@ def get_all_usage_stats() -> dict:
     """
     return {
         "total_tracked_keys": len(_usage_tracker),
-        "max_pages_per_day": MAX_FREE_PAGES_PER_DAY,
+        "max_pdfs_per_day": MAX_FREE_PDFS_PER_DAY,
         "usage_by_key": {
             key[:8]: {
-                "pages_used": data['pages_used_today'],
+                "pdfs_used": data['pdfs_used_today'],
                 "last_reset": data['last_reset_timestamp']
             }
             for key, data in _usage_tracker.items()

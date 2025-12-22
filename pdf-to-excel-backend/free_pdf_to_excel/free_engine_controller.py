@@ -56,8 +56,8 @@ def process_pdf_to_excel_free(
         if file_size > 2 * 1024 * 1024:  # 2 MB limit
             return None, 0, 0.0, f"File too large. Maximum 2MB for free version."
         
-        # Check limits
-        allowed, message, pages_remaining = check_limits(free_key, requested_pages=1)
+        # Check limits (5 PDFs per day)
+        allowed, message, pdfs_remaining = check_limits(free_key, requested_pdfs=1)
         if not allowed:
             return None, 0, 0.0, message
         
@@ -137,8 +137,8 @@ def process_pdf_to_excel_free(
         if not success:
             return None, 0, 0.0, "Error creating Excel file"
         
-        # Record usage
-        record_usage(free_key, pages_to_process, file_size)
+        # Record usage (1 PDF converted)
+        record_usage(free_key, pdfs_used=1, file_size=file_size)
         
         # Calculate final confidence
         final_confidence = min(grid_confidence + 0.2, 1.0) if grid_confidence > 0 else 0.5
