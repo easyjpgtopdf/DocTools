@@ -1,0 +1,1873 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PDF to Excel Converter - Convert PDF to XLS Online Free | Extract Tables from PDF</title>
+    <meta name="description" content="Convert PDF to Excel spreadsheets online for free. Extract tables and data from PDF files. Maintain formatting and structure.">
+    <meta name="keywords" content="pdf to excel, convert pdf to excel, pdf to xls, pdf to xlsx, extract tables from pdf, pdf excel converter, free pdf to excel">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://easyjpgtopdf.com/pdf-to-excel-convert.html">
+<link href="css/footer.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="js/pdf-excel-visual-detector.js" defer></script>
+<style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    :root {
+      --primary: #4361ee;
+      --secondary: #3a0ca3;
+      --accent: #4cc9f0;
+      --light: #f8f9fa;
+      --dark: #0f172a;
+      --muted: #6b7280;
+      --surface: #ffffff;
+      --border: #e5e7eb;
+      --success: #0f9d58;
+      --danger: #dc2626;
+    }
+    body {
+      background: #f5f7ff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      color: var(--dark);
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 0 24px;
+      width: 100%;
+    }
+
+    .nav-links > a {
+      color: var(--dark);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .nav-links > a.active,
+    .nav-links > a:hover {
+      color: var(--primary);
+    }
+    
+    .dropdown > a {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      color: var(--dark);
+      text-decoration: none;
+    }
+    
+    .dropdown-content a {
+      display: block;
+      padding: 10px 18px;
+      color: var(--dark);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .dropdown-content a:hover {
+      background: #eef2ff;
+      color: var(--primary);
+    }
+    .dropdown:hover 
+    .auth-buttons { display: flex; gap: 10px; }
+    .auth-btn {
+      padding: 8px 16px;
+      border-radius: 24px;
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .auth-btn.signup { background: var(--primary); color: #fff; }
+
+    .hero {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff;
+      padding: 48px 0;
+      text-align: center;
+    }
+    .hero h1 { font-size: 2.5rem; margin-bottom: 10px; }
+    .hero p { color: rgba(255,255,255,0.86); max-width: 720px; margin: 0 auto; }
+
+    main { flex: 1; padding: 40px 0 70px; }
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+      gap: 24px;
+      align-items: flex-start;
+    }
+    .panel {
+      background: #fff;
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 16px 40px rgba(15,23,42,0.1);
+      border: 1px solid rgba(67,97,238,0.1);
+    }
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+    .preview-item {
+      position: relative;
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      aspect-ratio: 3/4;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .preview-item.selected {
+      border-color: var(--primary);
+      box-shadow: 0 12px 30px rgba(67,97,238,0.2);
+    }
+    .preview-item canvas { width: 100%; height: 100%; object-fit: contain; }
+    .check-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      box-shadow: 0 6px 18px rgba(67,97,238,0.35);
+    }
+    .right-panel { display: flex; flex-direction: column; gap: 18px; position: sticky; top: 96px; }
+    .section-title { font-size: 1.05rem; font-weight: 700; color: var(--primary); margin-bottom: 12px; }
+    .option-card {
+      border: 1px dashed rgba(67,97,238,0.25);
+      border-radius: 14px;
+      padding: 16px;
+      background: #fbfcff;
+      display: grid;
+      gap: 12px;
+    }
+    .option-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .option-row input[type="number"],
+    .option-row input[type="text"] {
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      min-width: 160px;
+    }
+    .muted { color: var(--muted); font-size: 0.92rem; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(67,97,238,0.12);
+      color: var(--primary);
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    .convert-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 28px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff;
+      box-shadow: 0 16px 32px rgba(67,97,238,0.22);
+      transition: transform 0.2s ease;
+    }
+    .btn.secondary {
+      background: #fff;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      box-shadow: none;
+    }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+    .btn:hover:not(:disabled) { transform: translateY(-2px); }
+    .table-preview {
+      margin-top: 18px;
+      border-radius: 16px;
+      border: 1px solid rgba(15,23,42,0.08);
+      background: #fff;
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: rgba(67,97,238,0.08); }
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(15,23,42,0.06);
+      font-size: 0.95rem;
+      text-align: left;
+      word-break: break-word;
+    }
+    th { font-weight: 700; color: var(--primary); }
+    .table-empty {
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+      font-style: italic;
+    }
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background: var(--success);
+      color: #fff;
+      padding: 14px 20px;
+      border-radius: 12px;
+      box-shadow: 0 18px 40px rgba(15,23,42,0.18);
+      display: none;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+    }
+    .toast.error { background: var(--danger); }
+    footer {
+      background: #0f172a;
+      color: #fff;
+      padding: 60px 0 30px;
+      margin-top: auto;
+    }
+    .footer-content {
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+      gap: 24px;
+      margin-bottom: 30px;
+    }
+    .footer-links { list-style: none; padding: 0; display: grid; gap: 8px; }
+    .footer-links a { color: rgba(255,255,255,0.74); text-decoration: none; }
+    .copyright {
+      text-align: center;
+      font-size: 0.88rem;
+      color: rgba(255,255,255,0.68);
+      border-top: 1px solid rgba(255,255,255,0.18);
+      padding-top: 16px;
+    }
+    @media (max-width: 1080px) {
+
+      .workspace { grid-template-columns: 1fr; }
+      .right-panel { position: static; }
+    }
+  </style>
+<link href="css/header.css" rel="stylesheet"/>
+<link href="css/theme-modern.css" rel="stylesheet"/>
+<link rel="stylesheet" href="css/voice-assistant.css">
+<script src="js/voice-assistant.js" defer></script>
+<!-- PDF to Excel FREE + PREMIUM Modules -->
+<script src="js/pdf-excel-user-type.js" defer></script>
+<script src="js/pdf-excel-analysis.js" defer></script>
+<script src="js/pdf-excel-free-converter.js" defer></script>
+<script src="js/pdf-excel-layout-reconstruction.js" defer></script>
+<script src="js/pdf-excel-visual-detector.js" defer></script>
+<script src="js/pdf-excel-visual-pdf-detector.js" defer></script>
+<script src="js/pdf-excel-free-enhancer.js" defer></script>
+<script src="js/pdf-excel-upgrade-popup.js" defer></script>
+            <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "PDF to Excel Converter - Convert PDF to XLS Online Free | Extract Tables from PDF",
+      "description": "Convert PDF to Excel spreadsheets online for free. Extract tables and data from PDF files. Maintain formatting and structure.",
+      "url": "https://easyjpgtopdf.com/pdf-to-excel-convert.html",
+      "inLanguage": "en-US",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "easyjpgtopdf",
+        "url": "https://easyjpgtopdf.com"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "easyjpgtopdf",
+        "url": "https://easyjpgtopdf.com"
+      }
+    }
+    </script>
+</head>
+<body>
+    <div id="global-header-placeholder"></div>
+
+    <nav aria-label="Breadcrumb" style="padding: 15px 0; background: #f8f9ff; border-bottom: 1px solid #e2e6ff;">
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 24px;">
+            <ol style="list-style: none; display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; align-items: center;">
+                <li><a href="feedback.html" style="color: #4361ee; text-decoration: none; font-weight: 500; transition: color 0.3s;" onmouseover="this.style.color='#3a0ca3'" onmouseout="this.style.color='#4361ee'">Home</a></li>
+                <li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
+                <li><a href="login.html" style="color: #56607a; font-weight: 500; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#4361ee'" onmouseout="this.style.color='#56607a'">Sign In</a></li>
+                <li><span style="margin: 0 8px; color: #9ca3af;">|</span></li>
+                <li><a href="signup.html" style="color: #56607a; font-weight: 500; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#4361ee'" onmouseout="this.style.color='#56607a'">Signup</a></li>
+            </ol>
+        </div>
+    </nav>
+<section class="hero">
+<div class="container">
+<span class="badge"><i class="fas fa-database"></i> Step 2 Â· Preview &amp; export</span>
+<h1>PDF to Excel Converter - Convert PDF to XLS/XLSX Online Free</h1>
+<p>Choose pages and export structured Excel sheets. Nothing leaves your browser.</p>
+</div>
+</section>
+<main>
+<div class="container workspace">
+<div class="panel">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+<div>
+<h2>Upload PDF File</h2>
+<p class="muted">Click a thumbnail to include/exclude it from the Excel export.</p>
+</div>
+<div class="badge" id="currentFile">Current file: <span id="pdfName">Loadingâ¦</span></div>
+</div>
+<div class="preview-grid" id="preview"></div>
+<div class="option-row" style="justify-content:flex-end;margin-top:16px">
+<button class="btn secondary" id="selectAll"><i class="fas fa-check-double"></i> Select all</button>
+<button class="btn secondary" id="clearSelection"><i class="fas fa-eraser"></i> Clear</button>
+</div>
+</div>
+<div class="right-panel">
+<div class="panel option-card">
+<div>
+<h3 class="section-title"><i class="fas fa-table-list"></i> Export options</h3>
+<p class="muted">Preview the detected table data before exporting as Excel.</p>
+</div>
+<div class="option-row">
+<label style="font-weight:600">Range:</label>
+<label><input checked="" name="range" type="radio" value="all"/> All pages</label>
+<label><input name="range" type="radio" value="custom"/> Only selected</label>
+</div>
+<div class="table-preview" id="tablePreview">
+<div class="table-empty">Select a page to inspect its table data.</div>
+</div>
+<div class="convert-actions">
+<!-- ID Card buttons (shown when ID card detected) -->
+<button class="btn" id="viewIdCardText" style="background: #4361ee; display: none;"><i class="fas fa-eye"></i> View Text</button>
+<button class="btn" id="downloadIdCardTemplate" style="background: #3a0ca3; display: none;"><i class="fas fa-download"></i> Download CSV Template</button>
+<!-- FREE: Basic Excel (Browser-based) -->
+<button class="btn" id="downloadExcelFree" style="background: #4361ee; font-size: 2.4em; padding: 30px 60px; font-weight: bold; transform: scale(1.0); min-width: 300px; min-height: 80px;"><i class="fas fa-file-excel"></i> Download Free</button>
+<!-- PREMIUM: OCR Excel (Document AI) - Locked for free users -->
+<button class="btn" id="downloadExcelPremium" style="background: #0f9d58; font-size: 2.4em; padding: 30px 60px; font-weight: bold; position: relative; min-width: 300px; min-height: 80px;" disabled><i class="fas fa-file-excel"></i> Download Pro Version <i class="fas fa-lock" style="margin-left: 8px; font-size: 12px;"></i></button>
+<!-- Legacy buttons (hidden, kept for backward compatibility) -->
+<button class="btn" id="downloadExcel" style="display: none;"><i class="fas fa-file-excel"></i> Download Excel (Textract)</button>
+<button class="btn" id="downloadExcelDocAI" style="display: none; background: #0f9d58;"><i class="fas fa-file-excel"></i> Download Excel (DocAI)</button>
+<button class="btn secondary" id="backBtn"><i class="fas fa-arrow-left"></i> Back</button>
+<button class="btn secondary" id="refreshBtn"><i class="fas fa-arrows-rotate"></i> Reload file</button>
+</div>
+</div>
+<div class="panel option-card" style="gap:10px">
+<h3 class="section-title"><i class="fas fa-lightbulb"></i> Tips</h3>
+<ul style="list-style:none;display:grid;gap:8px;color:var(--muted);font-size:0.93rem;padding-left:0">
+<li><i class="fas fa-check-circle" style="color:var(--primary);"></i> Multi-language text is preserved by SheetJS.</li>
+<li><i class="fas fa-check-circle" style="color:var(--primary);"></i> Selected pages export into separate sheets.</li>
+<li><i class="fas fa-check-circle" style="color:var(--primary);"></i> Use Reload if you need to re-open a recent file.</li>
+</ul>
+</div>
+</div>
+</div>
+</main>
+<div class="toast" id="toast"><i class="fas fa-check-circle"></i><span id="toastMessage">Exported successfully</span></div>
+<script>
+(function(){
+  const previewEl = document.getElementById('preview');
+  const pdfNameEl = document.getElementById('pdfName');
+  const selectAllBtn = document.getElementById('selectAll');
+  const clearBtn = document.getElementById('clearSelection');
+  // Get new FREE + PREMIUM buttons
+  const downloadBtnFree = document.getElementById('downloadExcelFree');
+  const downloadBtnPremium = document.getElementById('downloadExcelPremium');
+  // Legacy buttons (kept for backward compatibility)
+  const downloadBtn = document.getElementById('downloadExcel');
+  const downloadDocAIBtn = document.getElementById('downloadExcelDocAI');
+  const backBtn = document.getElementById('backBtn');
+  const refreshBtn = document.getElementById('refreshBtn');
+  const tablePreview = document.getElementById('tablePreview');
+  const toast = document.getElementById('toast');
+  const toastMessage = document.getElementById('toastMessage');
+  let pdfDoc = null;
+  let pageTables = new Map();
+  let selected = new Set();
+  let pdfAnalysis = null; // Store PDF analysis results
+  let isIdCard = false; // ID card detection flag
+  let userType = 'free'; // Default to free
+  let hasPremiumAccess = false; // Premium access status
+
+  function showToast(message, isError){
+    toastMessage.textContent = message;
+    toast.className = 'toast' + (isError ? ' error' : '');
+    toast.style.display = 'flex';
+    setTimeout(()=>{ toast.style.display = 'none'; }, 2600);
+  }
+
+  function idb(){
+    return new Promise((resolve,reject)=>{
+      const open = indexedDB.open('easyjpgtopdf',1);
+      open.onupgradeneeded = ()=>{
+        const db = open.result;
+        if(!db.objectStoreNames.contains('pdfstore')){
+          db.createObjectStore('pdfstore');
+        }
+      };
+      open.onsuccess = ()=>resolve(open.result);
+      open.onerror = ()=>reject(open.error);
+    });
+  }
+  async function getPdf(){
+    let record = null;
+    try {
+      const db = await idb();
+      record = await new Promise((res,rej)=>{
+        const tx = db.transaction('pdfstore','readonly');
+        const req = tx.objectStore('pdfstore').get('pdf2excel');
+        req.onsuccess = ()=>res(req.result||null);
+        req.onerror = ()=>rej(req.error);
+      });
+    } catch(err){ record = null; }
+    if(record && record.blob){
+      return record;
+    }
+    try{
+      const b64 = sessionStorage.getItem('pdf2excel_b64');
+      if(b64){
+        const resp = await fetch(b64);
+        const blob = await resp.blob();
+        const name = sessionStorage.getItem('pdf2excel_name') || 'document.pdf';
+        try {
+          const db = await idb();
+          await new Promise((res,rej)=>{
+            const tx = db.transaction('pdfstore','readwrite');
+            tx.objectStore('pdfstore').put({blob,name,ts:Date.now()},'pdf2excel');
+            tx.oncomplete = res; tx.onerror = ()=>rej(tx.error);
+          });
+        } catch(_){ }
+        return { blob, name };
+      }
+    }catch(err){ }
+    return null;
+  }
+
+  function clearSessionFallback(){
+    try {
+      sessionStorage.removeItem('pdf2excel_b64');
+      sessionStorage.removeItem('pdf2excel_name');
+    }catch(_){ }
+  }
+
+  function renderTablePreview(rows){
+    if(!rows || !rows.length){
+      tablePreview.innerHTML = '<div class="table-empty">No tables detected on this page.</div>';
+      return;
+    }
+    const header = rows[0];
+    const body = rows.slice(1);
+    const thead = header.map(cell => `<th>${cell ?? ''}</th>`).join('');
+    const tbody = body.map(row => `<tr>${row.map(cell => `<td>${cell ?? ''}</td>`).join('')}</tr>`).join('');
+    tablePreview.innerHTML = `<table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table>`;
+  }
+
+  function updateSelection(page, add){
+    if(add){ selected.add(page); }
+    else { selected.delete(page); }
+    if(selected.size === 1){
+      const firstPage = Array.from(selected)[0];
+      renderTablePreview(pageTables.get(firstPage));
+    } else if(selected.size === 0){
+      tablePreview.innerHTML = '<div class="table-empty">Select a page to inspect its table data.</div>';
+    }
+  }
+
+  async function renderPreview(){
+    previewEl.innerHTML = '';
+    const count = pdfDoc.numPages;
+    for(let pageNum=1; pageNum<=count; pageNum++){
+      const page = await pdfDoc.getPage(pageNum);
+      const viewport = page.getViewport({ scale: 0.35 });
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = Math.ceil(viewport.width);
+      canvas.height = Math.ceil(viewport.height);
+      await page.render({ canvasContext: ctx, viewport }).promise;
+
+      const thumb = document.createElement('div');
+      thumb.className = 'preview-item';
+      thumb.dataset.page = String(pageNum);
+      thumb.appendChild(canvas);
+      if(selected.has(pageNum)){
+        thumb.classList.add('selected');
+        const badge = document.createElement('div');
+        badge.className = 'check-badge';
+        badge.innerHTML = '<i class="fas fa-check"></i>';
+        thumb.appendChild(badge);
+      }
+      thumb.addEventListener('click', ()=>{
+        const isSelected = selected.has(pageNum);
+        updateSelection(pageNum, !isSelected);
+        renderPreview();
+      });
+      previewEl.appendChild(thumb);
+    }
+  }
+
+  async function detectTablesFromPage(pageNumber){
+    try {
+      const page = await pdfDoc.getPage(pageNumber);
+      const textContent = await page.getTextContent();
+      const rows = [];
+      let currentY = null;
+      let currentRow = [];
+      textContent.items.forEach(item => {
+        const y = Math.round(item.transform[5]);
+        if(currentY === null){ currentY = y; }
+        if(Math.abs(y - currentY) > 3){
+          if(currentRow.length){ rows.push(currentRow); }
+          currentRow = [];
+          currentY = y;
+        }
+        currentRow.push(item.str.trim());
+      });
+      if(currentRow.length){ rows.push(currentRow); }
+      return rows.length ? rows : null;
+    } catch(err){
+      console.error('Table detection failed', err);
+      return null;
+    }
+  }
+
+  async function loadPdf(){
+    const rec = await getPdf();
+    if(!rec){
+      alert('Uploaded PDF not found. Please upload again.');
+      location.href = 'pdf-to-excel.html';
+      return;
+    }
+    pdfNameEl.textContent = rec.name || 'document.pdf';
+    clearSessionFallback();
+    const buffer = await rec.blob.arrayBuffer();
+    const loadingTask = pdfjsLib.getDocument({ data: buffer });
+    pdfDoc = await loadingTask.promise;
+    pageTables = new Map();
+    selected = new Set(Array.from({length: pdfDoc.numPages}, (_,idx)=>idx+1));
+    renderTablePreview(null);
+    await renderPreview();
+    
+    // FREE + PREMIUM: Analyze PDF and check user type
+    await initializeFreePremiumSystem();
+  }
+  
+  /**
+   * Initialize FREE + PREMIUM system
+   */
+  async function initializeFreePremiumSystem() {
+    try {
+      // Wait for modules to load
+      await waitForModules();
+      
+      // Check user type and premium access
+      if (window.PDFExcelUserType) {
+        // hasPremiumAccess() checks credits and automatically sets userType to premium if credits >= 30
+        hasPremiumAccess = await window.PDFExcelUserType.hasPremiumAccess();
+        // Get user type after premium access check (may have been auto-set)
+        userType = window.PDFExcelUserType.getUserType();
+        
+        // Debug logging
+        console.log('User Type:', userType);
+        console.log('Has Premium Access:', hasPremiumAccess);
+        if (hasPremiumAccess) {
+          const credits = await window.PDFExcelUserType.getCreditBalance();
+          console.log('Credits:', credits);
+        }
+      }
+      
+      // Analyze PDF (browser-based, no AI)
+      if (window.PDFExcelAnalysis && pdfDoc) {
+        showToast('Analyzing PDF...', false);
+        pdfAnalysis = await window.PDFExcelAnalysis.analyzePdf(pdfDoc);
+        console.log('PDF Analysis:', pdfAnalysis);
+        
+        // Detect ID card (simple heuristic: few pages + low text density + no tables)
+        isIdCard = detectIdCardFromAnalysis(pdfAnalysis, pdfDoc);
+        console.log('ID Card Detection:', isIdCard);
+      }
+      
+      // Update UI based on user type and analysis
+      updateButtonVisibility();
+      
+    } catch (error) {
+      console.error('Error initializing FREE + PREMIUM system:', error);
+      // Fallback to showing all buttons
+      updateButtonVisibility();
+    }
+  }
+  
+  /**
+   * Wait for required modules to load
+   */
+  function waitForModules() {
+    return new Promise((resolve) => {
+      let attempts = 0;
+      const maxAttempts = 50; // 5 seconds max
+      const checkModules = setInterval(() => {
+        attempts++;
+        if (
+          window.PDFExcelUserType &&
+          window.PDFExcelAnalysis &&
+          window.PDFExcelFreeConverter &&
+          window.PDFExcelUpgradePopup
+        ) {
+          clearInterval(checkModules);
+          resolve();
+        } else if (attempts >= maxAttempts) {
+          clearInterval(checkModules);
+          resolve(); // Continue anyway
+        }
+      }, 100);
+    });
+  }
+  
+  /**
+   * Detect ID card from PDF analysis
+   */
+  function detectIdCardFromAnalysis(analysis, pdfDoc) {
+    if (!analysis || !pdfDoc) return false;
+    
+    // Simple heuristic: few pages (<=2) + low text density + no tables
+    const hasFewPages = pdfDoc.numPages <= 2;
+    const avgTextPerPage = analysis.totalTextLength / Math.max(1, pdfDoc.numPages);
+    const hasLowTextDensity = avgTextPerPage < 500;
+    const hasNoTables = analysis.pagesWithTables === 0;
+    
+    // If all conditions met, likely an ID card
+    return hasFewPages && hasLowTextDensity && hasNoTables;
+  }
+  
+  /**
+   * Update button visibility based on user type and PDF analysis
+   */
+  function updateButtonVisibility() {
+    if (!downloadBtnFree || !downloadBtnPremium) return;
+    
+    const isFreeUser = userType === 'free' || !hasPremiumAccess;
+    const confidenceHigh = pdfAnalysis && pdfAnalysis.confidence === 'high';
+    
+    // Get ID card buttons
+    const viewIdCardBtn = document.getElementById('viewIdCardText');
+    const downloadTemplateBtn = document.getElementById('downloadIdCardTemplate');
+    
+    // If ID card detected, show ID card UI and hide Excel buttons
+    if (isIdCard) {
+      // Hide Excel buttons
+      if (downloadBtnFree) downloadBtnFree.style.display = 'none';
+      if (downloadBtnPremium) downloadBtnPremium.style.display = 'none';
+      
+      // Show ID card buttons
+      if (viewIdCardBtn) viewIdCardBtn.style.display = 'inline-flex';
+      if (downloadTemplateBtn) downloadTemplateBtn.style.display = 'inline-flex';
+      
+      // Show message
+      showToast('ID card detected. Excel conversion is not suitable for ID cards.', false);
+      return;
+    }
+    
+    // Hide ID card buttons
+    if (viewIdCardBtn) viewIdCardBtn.style.display = 'none';
+    if (downloadTemplateBtn) downloadTemplateBtn.style.display = 'none';
+    
+    // Show Excel buttons
+    // FREE button: Always visible and enabled for all users
+    // User can try free conversion - popup will show only if conversion fails
+    downloadBtnFree.style.display = 'inline-flex';
+    downloadBtnFree.disabled = false;
+    downloadBtnFree.style.opacity = '1';
+    downloadBtnFree.style.cursor = 'pointer';
+    
+    // PREMIUM button: 
+    if (isFreeUser) {
+      // Free users: Show locked button
+      downloadBtnPremium.disabled = true;
+      downloadBtnPremium.style.display = 'inline-flex';
+      downloadBtnPremium.style.opacity = '0.7';
+      downloadBtnPremium.style.cursor = 'not-allowed';
+    } else {
+      // Premium users: Show enabled button
+      downloadBtnPremium.disabled = false;
+      downloadBtnPremium.style.display = 'inline-flex';
+      downloadBtnPremium.style.opacity = '1';
+      downloadBtnPremium.style.cursor = 'pointer';
+      downloadBtnPremium.innerHTML = '<i class="fas fa-file-excel"></i> Download Pro Version';
+    }
+  }
+
+  async function ensureTableData(pageNumbers){
+    for(const page of pageNumbers){
+      if(pageTables.has(page)) continue;
+      const rows = await detectTablesFromPage(page);
+      pageTables.set(page, rows);
+    }
+  }
+
+  // Backend API URL - Cloud Run deployment
+  const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
+  
+  async function exportExcel(){
+    if(!pdfDoc){
+      showToast('Load a PDF first.', true);
+      return;
+    }
+    
+    // Get PDF file from storage
+    const rec = await getPdf();
+    if(!rec || !rec.blob){
+      showToast('PDF file not found. Please upload again.', true);
+      location.href = 'pdf-to-excel.html';
+      return;
+    }
+    
+    // Show loading state
+    downloadBtn.disabled = true;
+    showToast('Converting PDF to Excel...', false);
+    
+    try {
+      // Create FormData with PDF file
+      const fd = new FormData();
+      const pdfFile = new File([rec.blob], rec.name || 'document.pdf', { type: 'application/pdf' });
+      fd.append('file', pdfFile);
+      
+      // Call backend API
+      const response = await fetch(`${API_BASE_URL}/api/pdf-to-excel`, {
+        method: 'POST',
+        body: fd
+      });
+      
+      const result = await response.json();
+      
+      // Check for insufficient credits
+      if(result.insufficient_credits){
+        alert(`Not enough credits. You need ${result.required} credits but only have ${result.available}. Please buy more credits.`);
+        downloadBtn.disabled = false;
+        return;
+      }
+      
+      // Check for errors
+      if(!response.ok || !result.success){
+        throw new Error(result.message || result.detail || 'Conversion failed');
+      }
+      
+      // Success - redirect to download URL
+      showToast(`Success! Converted ${result.pagesConverted} pages. Credits left: ${result.creditsLeft}`, false);
+      window.location.href = result.downloadUrl;
+      
+    } catch(err){
+      console.error('Conversion error:', err);
+      showToast('Failed to convert PDF to Excel: ' + err.message, true);
+      downloadBtn.disabled = false;
+    }
+  }
+
+  selectAllBtn.addEventListener('click', ()=>{
+    selected = new Set(Array.from({length: pdfDoc?.numPages||0}, (_,i)=>i+1));
+    renderPreview();
+    renderTablePreview(null);
+  });
+
+  clearBtn.addEventListener('click', ()=>{
+    selected.clear();
+    renderPreview();
+    tablePreview.innerHTML = '<div class="table-empty">Select a page to inspect its table data.</div>';
+  });
+
+  // Generate browser fingerprint for abuse control
+  function generateFingerprint() {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.textBaseline = 'top';
+      ctx.font = '14px Arial';
+      ctx.fillText('Fingerprint', 2, 2);
+      const fingerprint = canvas.toDataURL();
+      
+      const storageKey = 'pdf_excel_fingerprint';
+      let stored = localStorage.getItem(storageKey);
+      if (!stored) {
+        stored = fingerprint + '|' + navigator.userAgent + '|' + screen.width + 'x' + screen.height;
+        localStorage.setItem(storageKey, stored);
+      }
+      return stored;
+    } catch (e) {
+      return navigator.userAgent + '|' + screen.width + 'x' + screen.height;
+    }
+  }
+
+  // FREE conversion handler - Try server-side first, fallback to browser-based
+  if (downloadBtnFree) {
+    downloadBtnFree.addEventListener('click', async function() {
+      if (!pdfDoc) {
+        showToast('Load a PDF first.', true);
+        return;
+      }
+      
+      // Allow conversion attempt - popup will show only if conversion fails
+      try {
+        downloadBtnFree.disabled = true;
+        showToast('Converting PDF to Excel (Free)...', false);
+        
+        // Get PDF file data for server-side conversion
+        let pdfFile = null;
+        try {
+          const rec = await getPdf();
+          if (rec && rec.blob) {
+            pdfFile = new File([rec.blob], rec.name || 'document.pdf', { type: 'application/pdf' });
+          }
+        } catch (e) {
+          console.warn('Could not get PDF file for server conversion:', e);
+        }
+        
+        // Try server-side FREE conversion first (NEW Engine v1)
+        if (pdfFile && pdfFile.size <= 2 * 1024 * 1024) { // 2MB limit
+          try {
+            const API_BASE_URL = window.API_BASE_URL || 'https://pdf-to-excel-backend-564572183797.us-central1.run.app';
+            
+            // First, check current usage limits (for debugging)
+            try {
+              const debugResponse = await fetch(`${API_BASE_URL}/api/free-limits/debug`);
+              if (debugResponse.ok) {
+                const debugData = await debugResponse.json();
+                console.log('FREE Limits Debug:', JSON.stringify(debugData.usage_info, null, 2));
+                if (debugData.usage_info && debugData.usage_info.is_limit_reached) {
+                  console.warn('⚠️ Daily limit reached:', debugData.usage_info);
+                } else {
+                  console.log('✅ Limits OK:', debugData.usage_info);
+                }
+              } else {
+                console.warn('⚠️ Debug endpoint error:', debugResponse.status);
+              }
+            } catch (debugError) {
+              console.warn('Could not check limits:', debugError);
+            }
+            
+            const formData = new FormData();
+            formData.append('file', pdfFile);
+            formData.append('fingerprint', generateFingerprint());
+            
+            const serverResponse = await fetch(`${API_BASE_URL}/api/pdf-to-excel-free-server`, {
+              method: 'POST',
+              body: formData
+            });
+            
+            // Check response status
+            if (!serverResponse.ok) {
+              const errorData = await serverResponse.json().catch(() => ({}));
+              // Check if it's an upgrade required error (ONLY for specific cases)
+              // Only show upgrade popup if:
+              // 1. Server explicitly says upgrade_required = true
+              // 2. OR error message contains "Daily limit" (limit reached)
+              // 3. OR error message contains "scanned" AND "Upgrade to Pro" (scanned PDF)
+              // DO NOT show for other errors like "File too large", "No text found", etc.
+              const isUpgradeRequired = errorData.upgrade_required === true || 
+                (errorData.error && (
+                  errorData.error.includes('Daily limit') ||
+                  (errorData.error.includes('scanned') && errorData.error.includes('Upgrade to Pro'))
+                ));
+              
+              if (isUpgradeRequired) {
+                // Show upgrade popup ONLY for actual limit/upgrade cases
+                if (window.PDFExcelUpgradePopup) {
+                  window.PDFExcelUpgradePopup.showUpgradePopup(errorData.error || 'Daily limit reached. Upgrade to Pro for unlimited conversions.');
+                } else {
+                  showToast(errorData.error || 'Daily limit reached. Upgrade to Pro.', true);
+                }
+                downloadBtnFree.disabled = false;
+                return;
+              }
+              // Other error - fallback to browser-based (DO NOT show upgrade popup)
+              console.log('Server error (non-upgrade):', errorData.error || errorData.message);
+              throw new Error(errorData.error || errorData.message || `Server error: ${serverResponse.status}`);
+            }
+            
+            const serverResult = await serverResponse.json();
+            console.log('Server response:', serverResult);
+            
+            // Check for success response (support both formats)
+            if ((serverResult.status === 'success' || serverResult.success) && serverResult.downloadUrl) {
+              // Server-side conversion successful
+              showToast(`Converting ${serverResult.pagesProcessed || 1} pages using free server conversion...`, false);
+              
+              // Handle different download methods
+              if (serverResult.method === 'direct_download' && serverResult.downloadUrl.startsWith('data:')) {
+                // Base64 download
+                const link = document.createElement('a');
+                link.href = serverResult.downloadUrl;
+                link.download = `converted_${Date.now()}.xlsx`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              } else {
+                // GCS download
+                window.open(serverResult.downloadUrl, '_blank');
+              }
+              
+              showToast(`Success! Converted ${serverResult.pagesProcessed || 1} pages using free server conversion.`, false);
+              downloadBtnFree.disabled = false;
+              return;
+            } else if (serverResult.status === 'error' || serverResult.error) {
+              // Check if it's an upgrade required error (ONLY for specific cases)
+              // Only show upgrade popup if:
+              // 1. Server explicitly says upgrade_required = true
+              // 2. OR error message contains "Daily limit" (limit reached)
+              // 3. OR error message contains "scanned" AND "Upgrade to Pro" (scanned PDF)
+              // DO NOT show for other errors like "File too large", "No text found", etc.
+              const isUpgradeRequired = serverResult.upgrade_required === true || 
+                (serverResult.error && (
+                  serverResult.error.includes('Daily limit') ||
+                  (serverResult.error.includes('scanned') && serverResult.error.includes('Upgrade to Pro'))
+                ));
+              
+              if (isUpgradeRequired) {
+                // Show upgrade popup ONLY for actual limit/upgrade cases
+                if (window.PDFExcelUpgradePopup) {
+                  window.PDFExcelUpgradePopup.showUpgradePopup(serverResult.error || 'Daily limit reached. Upgrade to Pro for unlimited conversions.');
+                } else {
+                  showToast(serverResult.error || 'Daily limit reached. Upgrade to Pro.', true);
+                }
+                downloadBtnFree.disabled = false;
+                return;
+              } else {
+                // Other error - fallback to browser-based (DO NOT show upgrade popup)
+                console.log('Server conversion error (non-upgrade), falling back to browser-based:', serverResult.error);
+                // Continue to browser-based fallback below
+              }
+            } else {
+              // Unexpected response format - fallback
+              console.warn('Unexpected server response format:', serverResult);
+              // Continue to browser-based fallback below
+            }
+          } catch (serverError) {
+            console.warn('Server-side conversion failed, falling back to browser-based:', serverError);
+            // Fallback to browser-based - continue below
+          }
+        }
+        
+        // Fallback to browser-based conversion
+        await waitForModules();
+        
+        if (!window.PDFExcelFreeConverter) {
+          throw new Error('Free converter module not loaded');
+        }
+        
+        // Get selected pages
+        const pagesToConvert = Array.from(selected);
+        
+        // Convert using browser-based extraction
+        const result = await window.PDFExcelFreeConverter.convertPdfToExcelFree(
+          pdfDoc,
+          pagesToConvert.length > 0 ? pagesToConvert : null
+        );
+        
+        if (result.success) {
+          // Download the Excel file
+          const url = URL.createObjectURL(result.blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `converted_${Date.now()}.xlsx`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          
+          showToast(`Success! Converted ${result.pagesProcessed} pages using basic conversion.`, false);
+        } else {
+          // Check if it's a visual PDF detection
+          if (result.isVisualPDF && result.error === 'VISUAL_PDF_DETECTED') {
+            // Show visual PDF upgrade message
+            if (window.PDFExcelUpgradePopup) {
+              setTimeout(() => {
+                window.PDFExcelUpgradePopup.showUpgradePopup(
+                  result.message || 'This document contains complex visual layout. Use Premium for accurate Excel conversion.',
+                  'visual'
+                );
+              }, 100);
+            } else {
+              showToast(result.message || 'This document contains complex visual layout. Use Premium for accurate Excel conversion.', true);
+            }
+            return; // Don't throw error, just show message
+          }
+          
+          throw new Error(result.error || result.message || 'Conversion failed');
+        }
+        
+      } catch (error) {
+        console.error('Free conversion error:', error);
+        showToast('Failed to convert: ' + error.message, true);
+        
+        // Show upgrade popup ONLY when conversion fails (not for visual PDFs - handled above)
+        // This applies to any PDF that couldn't be converted with free resources (scanned/complex)
+        if (window.PDFExcelUpgradePopup && error.message !== 'VISUAL_PDF_DETECTED') {
+          setTimeout(() => {
+            window.PDFExcelUpgradePopup.showUpgradePopup(
+              'This PDF could not be converted with basic (free) conversion. It may be scanned or have complex formatting. Upgrade to Premium for OCR-powered high-accuracy conversion.'
+            );
+          }, 1000);
+        }
+      } finally {
+        downloadBtnFree.disabled = false;
+      }
+    });
+  }
+  
+  // PREMIUM conversion handler
+  if (downloadBtnPremium) {
+    downloadBtnPremium.addEventListener('click', async function() {
+      // Check if user has premium access
+      if (userType === 'free' || !hasPremiumAccess) {
+        // Show upgrade popup
+        if (window.PDFExcelUpgradePopup) {
+          window.PDFExcelUpgradePopup.showUpgradePopup(
+            'This file needs OCR for accurate Excel conversion. Upgrade to Premium to unlock high-accuracy conversion.'
+          );
+        }
+        return;
+      }
+      
+      // Check credits (minimum 30 for premium access) - UPDATED RULE
+      try {
+        await waitForModules();
+        const credits = await window.PDFExcelUserType.getCreditBalance();
+        const MIN_PREMIUM_CREDITS = 30; // Updated minimum
+        
+        // First check: Minimum 30 credits for premium access
+        if (credits < MIN_PREMIUM_CREDITS) {
+          if (window.PDFExcelUpgradePopup) {
+            window.PDFExcelUpgradePopup.showCreditInsufficientPopup(MIN_PREMIUM_CREDITS, credits);
+          } else {
+            alert(`Premium conversion requires at least ${MIN_PREMIUM_CREDITS} credits. You have ${credits}. Please purchase credits.`);
+          }
+          return;
+        }
+        
+        // Second check: Estimate required credits for this document
+        // (Actual calculation will be done by backend based on document type)
+        const estimatedPages = pdfDoc ? pdfDoc.numPages : 1;
+        const estimatedCredits = estimatedPages * 3; // Average 3 credits/page (backend will calculate exact)
+        
+        if (credits < estimatedCredits) {
+          if (window.PDFExcelUpgradePopup) {
+            window.PDFExcelUpgradePopup.showCreditInsufficientPopup(MIN_PREMIUM_CREDITS, credits);
+          } else {
+            alert(`Premium conversion requires at least ${MIN_PREMIUM_CREDITS} credits. You have ${credits}. Please purchase credits to continue.`);
+          }
+          return;
+        }
+      } catch (error) {
+        console.warn('Error checking credits:', error);
+      }
+      
+      // Redirect to premium page instead of processing here
+      // Save PDF data to sessionStorage for premium page
+      try {
+        const rec = await getPdf();
+        if (rec && rec.blob) {
+          // Convert blob to base64 for sessionStorage
+          const reader = new FileReader();
+          reader.onload = function() {
+            const base64 = reader.result.split(',')[1];
+            sessionStorage.setItem('pdfToExcelPremiumData', JSON.stringify({
+              filename: rec.name || 'document.pdf',
+              data: base64,
+              timestamp: Date.now()
+            }));
+            // Redirect to premium page
+            window.location.href = 'pdf-to-excel-premium.html';
+          };
+          reader.readAsDataURL(rec.blob);
+        } else {
+          // Fallback: process on same page
+          convertPdfToExcelPremium();
+        }
+      } catch (error) {
+        console.error('Error preparing premium redirect:', error);
+        // Fallback: process on same page
+        convertPdfToExcelPremium();
+      }
+    });
+  }
+  
+  /**
+   * Premium conversion using Document AI
+   */
+  async function convertPdfToExcelPremium() {
+    if (!pdfDoc) {
+      showToast('Load a PDF first.', true);
+      return;
+    }
+    
+    const rec = await getPdf();
+    if (!rec || !rec.blob) {
+      showToast('PDF file not found. Please upload again.', true);
+      location.href = 'pdf-to-excel.html';
+      return;
+    }
+    
+    downloadBtnPremium.disabled = true;
+    showToast('Converting PDF to Excel with OCR (Premium)...', false);
+    
+    try {
+      const fd = new FormData();
+      const pdfFile = new File([rec.blob], rec.name || 'document.pdf', { type: 'application/pdf' });
+      fd.append('file', pdfFile);
+      
+      const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
+      // Get user ID - must be async to properly fetch Firebase user ID
+      const userId = window.PDFExcelUserType ? await window.PDFExcelUserType.getUserId() : 'anonymous';
+      const currentUserType = window.PDFExcelUserType ? window.PDFExcelUserType.getUserType() : 'free';
+      
+      const response = await fetch(`${API_BASE_URL}/api/pdf-to-excel-docai`, {
+        method: 'POST',
+        headers: {
+          'X-User-ID': userId,
+          'X-User-Type': currentUserType  // Backend will block if 'free'
+        },
+        body: fd
+      });
+      
+      const result = await response.json();
+      
+      if (result.insufficient_credits) {
+        if (window.PDFExcelUpgradePopup) {
+          window.PDFExcelUpgradePopup.showCreditInsufficientPopup(
+            result.required || 0,
+            result.available || 0
+          );
+        } else {
+          alert(`Not enough credits. You need ${result.required} credits but only have ${result.available}.`);
+        }
+        downloadBtnPremium.disabled = false;
+        return;
+      }
+      
+      if (!response.ok || (result.status !== 'success' && !result.success)) {
+        throw new Error(result.error || result.detail || result.message || 'Conversion failed');
+      }
+      
+      const pages = result.pagesConverted || result.pagesProcessed || 0;
+      showToast(`Success! Converted ${pages} pages using OCR. Credits left: ${result.creditsLeft}`, false);
+      window.location.href = result.downloadUrl;
+      
+    } catch (err) {
+      console.error('Premium conversion error:', err);
+      showToast('Failed to convert: ' + err.message, true);
+      downloadBtnPremium.disabled = false;
+    }
+  }
+  
+  // ID Card handlers
+  const viewIdCardBtn = document.getElementById('viewIdCardText');
+  const downloadTemplateBtn = document.getElementById('downloadIdCardTemplate');
+  
+  if (viewIdCardBtn) {
+    viewIdCardBtn.addEventListener('click', async function() {
+      if (!pdfDoc) {
+        showToast('Load a PDF first.', true);
+        return;
+      }
+      
+      try {
+        showToast('Processing ID card...', false);
+        
+        // Get PDF file
+        const rec = await getPdf();
+        if (!rec || !rec.blob) {
+          throw new Error('PDF file not found');
+        }
+        
+        // Call ID card processing endpoint
+        const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
+        const fd = new FormData();
+        const pdfFile = new File([rec.blob], rec.name || 'document.pdf', { type: 'application/pdf' });
+        fd.append('file', pdfFile);
+        
+        // Add user type header
+        const headers = {};
+        if (window.PDFExcelUserType) {
+          const userTypeHeader = window.PDFExcelUserType.getUserType();
+          headers['X-User-Type'] = userTypeHeader;
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/api/id-card-process`, {
+          method: 'POST',
+          body: fd,
+          headers: headers
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'success' && result.text_extraction) {
+          // Show text in a modal or alert
+          const textContent = result.text_extraction.text || 'No text extracted.';
+          alert('Extracted Text:\n\n' + textContent.substring(0, 500) + (textContent.length > 500 ? '...' : ''));
+          showToast('Text extracted successfully', false);
+        } else {
+          throw new Error(result.message || 'Failed to process ID card');
+        }
+      } catch (error) {
+        console.error('ID card processing error:', error);
+        showToast('Error: ' + error.message, true);
+      }
+    });
+  }
+  
+  if (downloadTemplateBtn) {
+    downloadTemplateBtn.addEventListener('click', async function() {
+      if (!pdfDoc) {
+        showToast('Load a PDF first.', true);
+        return;
+      }
+      
+      try {
+        showToast('Downloading CSV template...', false);
+        
+        // Get PDF file
+        const rec = await getPdf();
+        if (!rec || !rec.blob) {
+          throw new Error('PDF file not found');
+        }
+        
+        // Call ID card processing endpoint
+        const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
+        const fd = new FormData();
+        const pdfFile = new File([rec.blob], rec.name || 'document.pdf', { type: 'application/pdf' });
+        fd.append('file', pdfFile);
+        
+        // Add user type header
+        const headers = {};
+        if (window.PDFExcelUserType) {
+          const userTypeHeader = window.PDFExcelUserType.getUserType();
+          headers['X-User-Type'] = userTypeHeader;
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/api/id-card-process`, {
+          method: 'POST',
+          body: fd,
+          headers: headers
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'success' && result.csv_template_url) {
+          // Download CSV template
+          window.location.href = result.csv_template_url;
+          showToast('CSV template downloaded', false);
+        } else {
+          throw new Error(result.message || 'Failed to get CSV template');
+        }
+      } catch (error) {
+        console.error('CSV template download error:', error);
+        showToast('Error: ' + error.message, true);
+      }
+    });
+  }
+  
+  // Legacy handlers (kept for backward compatibility)
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', ()=>{
+      exportExcel().catch(err=>{
+        console.error(err);
+        showToast('Failed to export Excel.', true);
+      });
+    });
+  }
+
+  // Document AI endpoint handler
+  if (downloadDocAIBtn) {
+    downloadDocAIBtn.addEventListener('click', async function convertPdfToExcelDocAI(){
+      if(!pdfDoc){
+        showToast('Load a PDF first.', true);
+        return;
+      }
+      
+      // Get PDF file from storage
+      const rec = await getPdf();
+      if(!rec || !rec.blob){
+        showToast('PDF file not found. Please upload again.', true);
+        location.href = 'pdf-to-excel.html';
+        return;
+      }
+      
+      // Show loading state
+      downloadDocAIBtn.disabled = true;
+      showToast('Converting PDF to Excel with Document AI...', false);
+      
+      try {
+        // Create FormData with PDF file
+        const fd = new FormData();
+        const pdfFile = new File([rec.blob], rec.name || 'document.pdf', { type: 'application/pdf' });
+        fd.append('file', pdfFile);
+        
+        // Call Document AI backend API
+        const response = await fetch(`${API_BASE_URL}/api/pdf-to-excel-docai`, {
+          method: 'POST',
+          body: fd
+        });
+        
+        const result = await response.json();
+        
+        // Check for insufficient credits
+        if(result.insufficient_credits){
+          alert(`Not enough credits. You need ${result.required} credits but only have ${result.available}. Please buy more credits.`);
+          downloadDocAIBtn.disabled = false;
+          return;
+        }
+        
+        // Check for errors
+        if(!response.ok || (result.status !== 'success' && !result.success)){
+          const errorMsg = result.error || result.detail || result.message || 'Conversion failed';
+          throw new Error(errorMsg);
+        }
+        
+        // Success - redirect to download URL
+        const pages = result.pagesConverted || result.pagesProcessed || 0;
+        showToast(`Success! Converted ${pages} pages using DocAI. Credits left: ${result.creditsLeft}`, false);
+        window.location.href = result.downloadUrl;
+        
+      } catch(err){
+        console.error('Document AI conversion error:', err);
+        showToast('Failed to convert PDF to Excel: ' + err.message, true);
+        downloadDocAIBtn.disabled = false;
+      }
+    });
+  }
+
+  backBtn.addEventListener('click', ()=>{
+    location.href = 'pdf-to-excel.html';
+  });
+
+  refreshBtn.addEventListener('click', ()=>{
+    loadPdf().catch(err=>{
+      console.error(err);
+      showToast('Could not reload the PDF.', true);
+    });
+  });
+
+  loadPdf().catch(err=>{
+    console.error('PDF loading error:', err);
+    showToast('Unable to open uploaded PDF. Please upload again.', true);
+    setTimeout(() => {
+      location.href = 'pdf-to-excel.html';
+    }, 2000);
+  });
+})();
+</script>
+    
+<script src="js/auth.js" type="module"></script>
+
+    <section class="explanatory-content" style="margin: 40px 0; padding: 40px; background: linear-gradient(135deg, #f8f9ff, #ffffff); border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <div class="container" style="max-width: 900px; margin: 0 auto;">
+            <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 20px; text-align: center;">
+                <i class="fas fa-info-circle" style="margin-right: 10px;"></i>
+                About PDF to Excel Converter
+            </h2>
+            <div class="content-text" style="font-size: 1.1rem; color: #56607a; line-height: 1.8; text-align: center; margin-bottom: 30px;">
+                <p>Our PDF to Excel converter is a powerful online tool designed to extract tables and data from PDF documents and convert them into editable Excel spreadsheets (XLS and XLSX formats). This essential tool is perfect for professionals, students, and businesses who need to work with data that's locked in PDF format. The converter meticulously preserves table structures, cell layouts, and data formatting, ensuring your Excel file looks exactly like the original PDF tables. It supports all versions of PDF files and can extract data from multiple pages, creating separate sheets for each page. The conversion process is fast and efficient, handling even large PDFs with complex table structures. Our tool is completely free to use, with no registration required and no watermarks on your converted Excel files. All file processing occurs securely in the cloud using SSL encryption, and your files are automatically deleted from our servers after conversion to ensure privacy. The resulting Excel files are compatible with all spreadsheet applications including Microsoft Excel, Google Sheets, and LibreOffice Calc. No software installation is required; simply upload your PDF file, select the pages you want to convert, and download your professional Excel spreadsheet instantly. Whether you're extracting financial data, converting reports, or working with tabular information, our PDF to Excel converter provides a reliable, fast, and free solution for all your PDF to Excel conversion needs.</p>
+            </div>
+            
+            <div class="features-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 30px;">
+                <div class="feature-item" style="padding: 20px; background: white; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <i class="fas fa-table" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                    <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px;">Table Detection</h3>
+                    <p style="color: #56607a; font-size: 0.95rem;">Automatically detects and extracts tables from PDF pages</p>
+                </div>
+                
+                <div class="feature-item" style="padding: 20px; background: white; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <i class="fas fa-file-excel" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                    <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px;">Excel Format</h3>
+                    <p style="color: #56607a; font-size: 0.95rem;">Outputs in standard XLSX format compatible with all Excel versions</p>
+                </div>
+                
+                <div class="feature-item" style="padding: 20px; background: white; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <i class="fas fa-shield-alt" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                    <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px;">Secure & Private</h3>
+                    <p style="color: #56607a; font-size: 0.95rem;">Your files are processed securely and deleted automatically</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="how-to-guide" style="margin: 40px 0; padding: 40px; background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
+            <i class="fas fa-book-open" style="margin-right: 10px;"></i>
+            How to Convert PDF to Excel
+        </h2>
+        <div class="steps-container" style="max-width: 800px; margin: 0 auto;">
+            <ol style="list-style: none; padding: 0; counter-reset: step-counter;">
+
+                <li style="counter-increment: step-counter; margin-bottom: 25px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee; position: relative; padding-left: 60px;">
+                    <span style="position: absolute; left: 15px; top: 20px; background: #4361ee; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">
+                        1
+                    </span>
+                    <p style="font-size: 1.1rem; color: #0b1630; line-height: 1.6; margin: 0;">
+                        Upload your PDF file on the previous page
+                    </p>
+                </li>
+
+                <li style="counter-increment: step-counter; margin-bottom: 25px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee; position: relative; padding-left: 60px;">
+                    <span style="position: absolute; left: 15px; top: 20px; background: #4361ee; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">
+                        2
+                    </span>
+                    <p style="font-size: 1.1rem; color: #0b1630; line-height: 1.6; margin: 0;">
+                        Select pages to convert by clicking on thumbnails
+                    </p>
+                </li>
+
+                <li style="counter-increment: step-counter; margin-bottom: 25px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee; position: relative; padding-left: 60px;">
+                    <span style="position: absolute; left: 15px; top: 20px; background: #4361ee; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">
+                        3
+                    </span>
+                    <p style="font-size: 1.1rem; color: #0b1630; line-height: 1.6; margin: 0;">
+                        Preview table data and click "Download Excel" to export
+                    </p>
+                </li>
+
+                <li style="counter-increment: step-counter; margin-bottom: 25px; padding: 20px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #4361ee; position: relative; padding-left: 60px;">
+                    <span style="position: absolute; left: 15px; top: 20px; background: #4361ee; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">
+                        4
+                    </span>
+                    <p style="font-size: 1.1rem; color: #0b1630; line-height: 1.6; margin: 0;">
+                        Open your Excel file and edit the extracted data
+                    </p>
+                </li>
+
+            </ol>
+        </div>
+    </section>
+
+    <section class="related-tools" style="margin: 40px 0; padding: 40px; background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
+            <i class="fas fa-tools" style="margin-right: 10px;"></i>
+            Related Tools
+        </h2>
+        <div class="tools-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+            <a href="excel-to-pdf.html" style="display: block; padding: 20px; background: #f8f9ff; border-radius: 12px; text-decoration: none; text-align: center; transition: transform 0.3s, box-shadow 0.3s; border: 2px solid transparent;" 
+               onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(67,97,238,0.2)'; this.style.borderColor='#4361ee';"
+               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.borderColor='transparent';">
+                <i class="fas fa-file-excel" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                <h3 style="font-size: 1.1rem; color: #0b1630; margin: 0;">Excel To PDF</h3>
+            </a>
+            <a href="pdf-to-word.html" style="display: block; padding: 20px; background: #f8f9ff; border-radius: 12px; text-decoration: none; text-align: center; transition: transform 0.3s, box-shadow 0.3s; border: 2px solid transparent;" 
+               onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(67,97,238,0.2)'; this.style.borderColor='#4361ee';"
+               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.borderColor='transparent';">
+                <i class="fas fa-file-word" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                <h3 style="font-size: 1.1rem; color: #0b1630; margin: 0;">PDF To Word</h3>
+            </a>
+            <a href="compress-pdf.html" style="display: block; padding: 20px; background: #f8f9ff; border-radius: 12px; text-decoration: none; text-align: center; transition: transform 0.3s, box-shadow 0.3s; border: 2px solid transparent;" 
+               onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(67,97,238,0.2)'; this.style.borderColor='#4361ee';"
+               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.borderColor='transparent';">
+                <i class="fas fa-file-compress" style="font-size: 2rem; color: #4361ee; margin-bottom: 10px;"></i>
+                <h3 style="font-size: 1.1rem; color: #0b1630; margin: 0;">Compress PDF</h3>
+            </a>
+        </div>
+    </section>
+
+    <section class="faq-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
+            <i class="fas fa-question-circle" style="margin-right: 10px;"></i>
+            Frequently Asked Questions
+        </h2>
+        <div class="faq-container" style="max-width: 800px; margin: 0 auto;">
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    How accurate is the conversion?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Our conversion tools maintain 99% accuracy, preserving all formatting, fonts, and layout from your original files.
+                </div>
+            </div>
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    What file sizes are supported?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Free users can convert files up to 10MB. Premium users can process files up to 100MB with faster processing.
+                </div>
+            </div>
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    Will my data be secure?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Yes, all files are processed securely and automatically deleted after conversion. We never store or share your documents.
+                </div>
+            </div>
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    Can I convert multiple files at once?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    Yes, premium users can convert multiple files simultaneously. Free users can process one file at a time.
+                </div>
+            </div>
+            <div class="faq-item" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; border-left: 4px solid #4361ee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 1.2rem; color: #0b1630; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleFaq(this)">
+                    <i class="fas fa-chevron-right" style="color: #4361ee; margin-right: 10px; transition: transform 0.3s;"></i>
+                    What formats are supported?
+                </h3>
+                <div class="faq-answer" style="font-size: 1rem; color: #56607a; line-height: 1.6; margin-top: 10px; display: none; padding-left: 30px;">
+                    We support all major file formats. Check the tool page for specific format compatibility.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+    function toggleFaq(element) {
+        const answer = element.nextElementSibling;
+        const icon = element.querySelector('i');
+        const isOpen = answer.style.display === 'block';
+
+        answer.style.display = isOpen ? 'none' : 'block';
+        icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+    }
+    </script>
+
+    <section class="feedback-section" style="margin: 40px 0; padding: 40px; background: #f8f9ff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">
+            <i class="fas fa-comments" style="margin-right: 10px;"></i>
+            Reviews & Comments
+        </h2>
+        <div style="text-align: center; margin-bottom: 30px;">
+            <a href="feedback.html" style="display: inline-flex; align-items: center; gap: 8px; color: #4361ee; text-decoration: none; font-weight: 600; font-size: 1rem; transition: color 0.3s;" onmouseover="this.style.color='#3a0ca3'" onmouseout="this.style.color='#4361ee'">
+                <i class="fas fa-external-link-alt"></i>
+                View All Comments
+            </a>
+        </div>
+        
+        <div class="feedback-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: flex-start; max-width: 1200px; margin: 0 auto;">
+            <!-- Left Side: Comments List -->
+            <div class="feedback-card" style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); min-height: 400px; max-height: 600px; overflow-y: auto;">
+                <div class="thread-header" style="margin-bottom: 20px; border-bottom: 2px solid #e2e6ff; padding-bottom: 12px;">
+                    <h3 style="font-size: 1.3rem; color: #0b1630; margin-bottom: 8px;">Live Comments</h3>
+                    <p class="feedback-hint" style="font-size: 0.85rem; color: #9ca3af; margin: 0;">Share your experience and see what others are saying.</p>
+                </div>
+                <ul class="comment-list" id="feedbackList" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 16px;">
+                    <li class="feedback-muted" id="feedback-empty-state" style="text-align: center; padding: 40px 20px; color: #9ca3af; font-size: 0.95rem;">No comments yet. Start the conversation!</li>
+                </ul>
+            </div>
+            
+            <!-- Right Side: Feedback Form -->
+            <div class="feedback-form-card" style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 20px;">
+                <h3 style="font-size: 1.3rem; color: #0b1630; margin-bottom: 20px;">
+                    <i class="fas fa-edit" style="color: #4361ee; margin-right: 8px;"></i>
+                    Share Your Feedback
+                </h3>
+                <form id="feedbackForm" style="display: flex; flex-direction: column; gap: 15px;">
+                    <div class="form-group">
+                        <label for="feedbackName" style="display: block; margin-bottom: 8px; color: #56607a; font-weight: 600; font-size: 0.9rem;">Your Name</label>
+                        <input type="text" id="feedbackName" placeholder="Enter your name" required style="width: 100%; padding: 12px 16px; border: 1px solid #e2e6ff; border-radius: 8px; font-size: 0.95rem; transition: border-color 0.3s; box-sizing: border-box;" onfocus="this.style.borderColor='#4361ee'" onblur="this.style.borderColor='#e2e6ff'">
+                    </div>
+                    <div class="form-group">
+                        <label for="feedbackMessage" style="display: block; margin-bottom: 8px; color: #56607a; font-weight: 600; font-size: 0.9rem;">Your Comment</label>
+                        <textarea id="feedbackMessage" placeholder="Write your feedback or comment here..." required rows="5" style="width: 100%; padding: 12px 16px; border: 1px solid #e2e6ff; border-radius: 8px; font-size: 0.95rem; resize: vertical; transition: border-color 0.3s; font-family: inherit; box-sizing: border-box;" onfocus="this.style.borderColor='#4361ee'" onblur="this.style.borderColor='#e2e6ff'"></textarea>
+                    </div>
+                    <button type="submit" style="background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; width: 100%;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(67, 97, 238, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                        <i class="fas fa-paper-plane" style="margin-right: 8px;"></i>
+                        Submit Feedback
+                    </button>
+                </form>
+                <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e6ff;">
+                    <a href="feedback.html" style="color: #4361ee; text-decoration: none; font-weight: 600; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px; transition: color 0.3s;" onmouseover="this.style.color='#3a0ca3'" onmouseout="this.style.color='#4361ee'">
+                        <i class="fas fa-arrow-right"></i>
+                        View All Feedback
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <style>
+    @media (max-width: 768px) {
+        .feedback-grid {
+            grid-template-columns: 1fr !important;
+        }
+        .feedback-form-card {
+            position: static !important;
+        }
+    }
+    </style>
+
+    <script>
+    // Store feedback in localStorage (in production, use backend API)
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    
+    // Load feedbacks for this page (max 3, only genuine user comments)
+    function loadFeedbacks() {
+        const storedFeedbacks = JSON.parse(localStorage.getItem('feedbacks') || '{}');
+        const pageFeedbacks = (storedFeedbacks[currentPage] || []).slice(0, 3);
+        const feedbackList = document.getElementById('feedbackList');
+        const emptyState = document.getElementById('feedback-empty-state');
+        
+        if (!feedbackList) return;
+        
+        // Clear existing content
+        feedbackList.innerHTML = '';
+        
+        if (pageFeedbacks.length === 0) {
+            // Show empty state
+            if (emptyState) {
+                feedbackList.appendChild(emptyState);
+            } else {
+                const empty = document.createElement('li');
+                empty.className = 'feedback-muted';
+                empty.id = 'feedback-empty-state';
+                empty.style.cssText = 'text-align: center; padding: 40px 20px; color: #9ca3af; font-size: 0.95rem;';
+                empty.textContent = 'No comments yet. Start the conversation!';
+                feedbackList.appendChild(empty);
+            }
+            return;
+        }
+        
+        // Remove empty state
+        if (emptyState) {
+            emptyState.remove();
+        }
+        
+        // Display genuine user feedbacks
+        pageFeedbacks.forEach(fb => {
+            const li = document.createElement('li');
+            li.className = 'live-comment';
+            li.style.cssText = 'background: #f8f9ff; padding: 16px; border-radius: 8px; border-left: 3px solid #4361ee; margin-bottom: 12px;';
+            
+            const header = document.createElement('div');
+            header.style.cssText = 'display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;';
+            
+            const nameDiv = document.createElement('div');
+            const name = document.createElement('h4');
+            name.style.cssText = 'font-size: 1rem; color: #0b1630; margin: 0 0 4px 0; font-weight: 600;';
+            name.textContent = fb.name || 'Anonymous';
+            
+            const time = document.createElement('span');
+            time.style.cssText = 'font-size: 0.8rem; color: #9ca3af;';
+            time.textContent = fb.date || 'Recently';
+            
+            nameDiv.appendChild(name);
+            nameDiv.appendChild(time);
+            header.appendChild(nameDiv);
+            
+            li.appendChild(header);
+            
+            const body = document.createElement('p');
+            body.style.cssText = 'color: #56607a; line-height: 1.6; margin: 0 0 12px 0; font-size: 0.9rem;';
+            body.textContent = fb.message || '';
+            li.appendChild(body);
+            
+            // Add reply if exists
+            if (fb.reply) {
+                const replyDiv = document.createElement('div');
+                replyDiv.style.cssText = 'margin-left: 20px; padding: 12px; background: white; border-radius: 6px; margin-top: 10px; border-left: 2px solid #4361ee;';
+                
+                const replyHeader = document.createElement('div');
+                replyHeader.style.cssText = 'display: flex; align-items: center; gap: 8px; margin-bottom: 6px;';
+                
+                const replyIcon = document.createElement('i');
+                replyIcon.className = 'fas fa-reply';
+                replyIcon.style.cssText = 'color: #4361ee; font-size: 0.85rem;';
+                
+                const replyLabel = document.createElement('strong');
+                replyLabel.style.cssText = 'color: #4361ee; font-size: 0.85rem;';
+                replyLabel.textContent = 'Admin Reply:';
+                
+                replyHeader.appendChild(replyIcon);
+                replyHeader.appendChild(replyLabel);
+                replyDiv.appendChild(replyHeader);
+                
+                const replyText = document.createElement('p');
+                replyText.style.cssText = 'color: #56607a; font-size: 0.85rem; line-height: 1.5; margin: 0;';
+                replyText.textContent = fb.reply;
+                replyDiv.appendChild(replyText);
+                
+                li.appendChild(replyDiv);
+            }
+            
+            feedbackList.appendChild(li);
+        });
+    }
+    
+    // Handle feedback form submission
+    const feedbackForm = document.getElementById('feedbackForm');
+    if (feedbackForm) {
+        feedbackForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('feedbackName').value.trim();
+            const message = document.getElementById('feedbackMessage').value.trim();
+            
+            if (!name || !message) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            const feedback = {
+                name: name,
+                message: message,
+                date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+                page: currentPage
+            };
+            
+            // Store in localStorage
+            const storedFeedbacks = JSON.parse(localStorage.getItem('feedbacks') || '{}');
+            if (!storedFeedbacks[currentPage]) {
+                storedFeedbacks[currentPage] = [];
+            }
+            storedFeedbacks[currentPage].unshift(feedback);
+            localStorage.setItem('feedbacks', JSON.stringify(storedFeedbacks));
+            
+            // Reset form
+            this.reset();
+            
+            // Reload feedbacks
+            loadFeedbacks();
+            
+            alert('Thank you for your feedback!');
+        });
+    }
+    
+    // Load feedbacks on page load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadFeedbacks);
+    } else {
+        loadFeedbacks();
+    }
+    </script>
+
+    <div class="trust-badges" style="text-align: center; padding: 20px; background: linear-gradient(135deg, #f8f9ff, #ffffff); border-radius: 12px; margin: 30px 0; border: 2px solid #e2e6ff; max-width: 1400px; margin-left: auto; margin-right: auto;">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 40px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-shield-alt" style="font-size: 2rem; color: #4361ee;"></i>
+                <div style="text-align: left;">
+                    <div style="color: #0b1630; font-weight: 600; font-size: 1.1rem;">SSL Secured</div>
+                    <div style="color: #56607a; font-size: 0.9rem;">256-bit Encryption</div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-lock" style="font-size: 2rem; color: #4361ee;"></i>
+                <div style="text-align: left;">
+                    <div style="color: #0b1630; font-weight: 600; font-size: 1.1rem;">100% Secure</div>
+                    <div style="color: #56607a; font-size: 0.9rem;">Files Auto-Deleted</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="global-footer-placeholder"></div>
+    <script src="js/global-components.js"></script>
+    <script>
+    // Ensure header and footer load - multiple attempts to guarantee it works
+    (function() {
+        function tryLoadHeader() {
+            if (typeof loadGlobalHeader === 'function') {
+                try {
+                    loadGlobalHeader();
+                    return true;
+                } catch (e) {
+                    console.error('Error calling loadGlobalHeader:', e);
+                }
+            }
+            return false;
+        }
+        
+        function tryLoadFooter() {
+            if (typeof loadGlobalFooter === 'function') {
+                try {
+                    loadGlobalFooter();
+                    return true;
+                } catch (e) {
+                    console.error('Error calling loadGlobalFooter:', e);
+                }
+            }
+            return false;
+        }
+        
+        // Try immediately if script already loaded
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            if (!tryLoadHeader()) {
+                var attempts = 0;
+                var maxAttempts = 60;
+                var checkHeader = setInterval(function() {
+                    attempts++;
+                    if (tryLoadHeader() || attempts >= maxAttempts) {
+                        clearInterval(checkHeader);
+                    }
+                }, 50);
+            }
+            if (!tryLoadFooter()) {
+                var attempts = 0;
+                var maxAttempts = 60;
+                var checkFooter = setInterval(function() {
+                    attempts++;
+                    if (tryLoadFooter() || attempts >= maxAttempts) {
+                        clearInterval(checkFooter);
+                    }
+                }, 50);
+            }
+        } else {
+            document.addEventListener('DOMContentLoaded', function() {
+                if (!tryLoadHeader()) {
+                    var attempts = 0;
+                    var maxAttempts = 40;
+                    var checkHeader = setInterval(function() {
+                        attempts++;
+                        if (tryLoadHeader() || attempts >= maxAttempts) {
+                            clearInterval(checkHeader);
+                        }
+                    }, 50);
+                }
+                if (!tryLoadFooter()) {
+                    var attempts = 0;
+                    var maxAttempts = 40;
+                    var checkFooter = setInterval(function() {
+                        attempts++;
+                        if (tryLoadFooter() || attempts >= maxAttempts) {
+                            clearInterval(checkFooter);
+                        }
+                    }, 50);
+                }
+            });
+        }
+        
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (!document.querySelector('header') && typeof loadGlobalHeader === 'function') {
+                    loadGlobalHeader();
+                }
+                if (!document.querySelector('footer') && typeof loadGlobalFooter === 'function') {
+                    loadGlobalFooter();
+                }
+            }, 100);
+        });
+    })();
+    </script>
+</body>
+</html>
