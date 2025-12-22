@@ -443,7 +443,7 @@ function applyFormattingToWorksheet(ws, table, visualElements = null, cellMappin
                     }
                 } else if (language && language !== 'latin' && language !== 'unknown') {
                     // Language detected - use appropriate font
-                    fontName = getFontForLanguage(language, fontName);
+                    fontName = window.PDFExcelFreeConverter.getFontForLanguage(language, fontName);
                 }
                 
                 // First row is typically header - make it bold
@@ -593,29 +593,8 @@ function applyFormattingToWorksheet(ws, table, visualElements = null, cellMappin
 }
 
 /**
- * Get appropriate font for language (helper function)
+ * Helper function to get font for language (uses layout reconstruction if available)
  */
-function getFontForLanguage(language, originalFont) {
-    const fontMap = {
-        'devanagari': 'Arial Unicode MS', // Hindi, Marathi, etc.
-        'arabic': 'Arial Unicode MS',
-        'cjk': 'Arial Unicode MS', // Chinese, Japanese, Korean
-        'thai': 'Arial Unicode MS',
-        'latin': originalFont || 'Calibri',
-        'mixed': 'Arial Unicode MS',
-        'unknown': 'Arial Unicode MS'
-    };
-    
-    // If original font already supports Unicode, keep it
-    const unicodeFonts = ['Arial Unicode MS', 'Calibri', 'Times New Roman', 'Tahoma', 'Microsoft Sans Serif'];
-    if (unicodeFonts.includes(originalFont)) {
-        return originalFont;
-    }
-    
-    return fontMap[language] || 'Arial Unicode MS';
-}
-
-// Helper function to get font for language (uses layout reconstruction if available)
 function getFontForLanguage(language, originalFont) {
     // Try to use layout reconstruction module's function if available
     if (window.PDFExcelLayoutReconstruction && window.PDFExcelLayoutReconstruction.getFontForLanguage) {
