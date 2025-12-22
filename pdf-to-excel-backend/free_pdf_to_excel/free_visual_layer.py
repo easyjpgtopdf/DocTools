@@ -48,25 +48,30 @@ def extract_lines(pdf_bytes: bytes, page_num: int = 0) -> List[Dict]:
             
             for element in page_layout:
                 if isinstance(element, LTLine):
-                    x0, y0, x1, y1 = element.bbox
-                    
-                    # Determine if horizontal or vertical
-                    width = abs(x1 - x0)
-                    height = abs(y1 - y0)
-                    is_horizontal = height < width * 0.1  # Height is much smaller than width
-                    is_vertical = width < height * 0.1    # Width is much smaller than height
-                    
-                    # Only include straight lines (horizontal or vertical)
-                    if is_horizontal or is_vertical:
-                        lines.append({
-                            'x0': float(x0),
-                            'y0': float(y0),
-                            'x1': float(x1),
-                            'y1': float(y1),
-                            'is_horizontal': is_horizontal,
-                            'is_vertical': is_vertical,
-                            'page': page_idx
-                        })
+                    try:
+                        if not hasattr(element, 'bbox'):
+                            continue
+                        x0, y0, x1, y1 = element.bbox
+                        
+                        # Determine if horizontal or vertical
+                        width = abs(x1 - x0)
+                        height = abs(y1 - y0)
+                        is_horizontal = height < width * 0.1  # Height is much smaller than width
+                        is_vertical = width < height * 0.1    # Width is much smaller than height
+                        
+                        # Only include straight lines (horizontal or vertical)
+                        if is_horizontal or is_vertical:
+                            lines.append({
+                                'x0': float(x0),
+                                'y0': float(y0),
+                                'x1': float(x1),
+                                'y1': float(y1),
+                                'is_horizontal': is_horizontal,
+                                'is_vertical': is_vertical,
+                                'page': page_idx
+                            })
+                    except (AttributeError, ValueError, TypeError):
+                        continue
             
             break  # Only process first page
     
@@ -109,22 +114,22 @@ def extract_rectangles(pdf_bytes: bytes, page_num: int = 0) -> List[Dict]:
                         if not hasattr(element, 'bbox'):
                             continue
                         x0, y0, x1, y1 = element.bbox
+                        width = abs(x1 - x0)
+                        height = abs(y1 - y0)
+                        
+                        # Only include substantial rectangles (not tiny decorative elements)
+                        if width > 10 and height > 10:
+                            rectangles.append({
+                                'x0': float(x0),
+                                'y0': float(y0),
+                                'x1': float(x1),
+                                'y1': float(y1),
+                                'width': float(width),
+                                'height': float(height),
+                                'page': page_idx
+                            })
                     except (AttributeError, ValueError, TypeError):
                         continue
-                    width = abs(x1 - x0)
-                    height = abs(y1 - y0)
-                    
-                    # Only include substantial rectangles (not tiny decorative elements)
-                    if width > 10 and height > 10:
-                        rectangles.append({
-                            'x0': float(x0),
-                            'y0': float(y0),
-                            'x1': float(x1),
-                            'y1': float(y1),
-                            'width': float(width),
-                            'height': float(height),
-                            'page': page_idx
-                        })
             
             break  # Only process first page
     
