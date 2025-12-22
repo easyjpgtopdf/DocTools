@@ -165,89 +165,101 @@ def _extract_images_with_pypdf2(pdf_bytes: bytes, page_num: int = 0, max_size_by
             page_width = float(page.mediabox.width)
             page_height = float(page.mediabox.height)
         
-        # Extract images from page
-        if hasattr(page, 'images'):
-            for img_idx, img_obj in enumerate(page.images):
-                try:
-                    # Get image data
-                    if hasattr(img_obj, 'get_data'):
-                        image_data = img_obj.get_data()
-                    elif hasattr(img_obj, 'data'):
-                        image_data = img_obj.data
-                    else:
-                        continue
-                    
-                    if not image_data or len(image_data) == 0:
-                        continue
-                    
-                    size_bytes = len(image_data)
-                    
-                    # Skip if too large
-                    if size_bytes > max_size_bytes:
-                        continue
-                    
-                    # Detect image format
-                    image_format = None
-                    if len(image_data) >= 8 and image_data[:8] == b'\x89PNG\r\n\x1a\n':
-                        image_format = 'png'
-                    elif len(image_data) >= 2 and image_data[:2] == b'\xff\xd8':
-                        image_format = 'jpeg'
-                    elif len(image_data) >= 6 and image_data[:6] in [b'GIF87a', b'GIF89a']:
-                        image_format = 'gif'
-                    else:
-                        # Try to detect from image object name
-                        if hasattr(img_obj, 'name'):
-                            name_lower = img_obj.name.lower()
-                            if 'png' in name_lower or 'image/png' in name_lower:
+        # Extract images from page - PyPDF2 v3.0+ uses different API
+        try:
+            # Method 1: Try page.images (PyPDF2 v3.0+)
+            if hasattr(page, 'images') and page.images:
+                for img_name, img_obj in page.images.items():
+                    try:
+                        # Get image data
+                        image_data = None
+                        if hasattr(img_obj, 'get_data'):
+                            image_data = img_obj.get_data()
+                        elif hasattr(img_obj, 'data'):
+                            image_data = img_obj.data
+                        elif hasattr(img_obj, 'get_object'):
+                            # Try to get raw object
+                            img_raw = img_obj.get_object()
+                            if hasattr(img_raw, 'get_data'):
+                                image_data = img_raw.get_data()
+                            elif hasattr(img_raw, 'get_data'):
+                                image_data = img_raw.get_data()
+                        
+                        if not image_data or len(image_data) == 0:
+                            continue
+                        
+                        size_bytes = len(image_data)
+                        
+                        # Skip if too large
+                        if size_bytes > max_size_bytes:
+                            logger.info(f"Skipping large image: {size_bytes} bytes")
+                            continue
+                        
+                        # Detect image format
+                        image_format = None
+                        if len(image_data) >= 8 and image_data[:8] == b'\x89PNG\r\n\x1a\n':
+                            image_format = 'png'
+                        elif len(image_data) >= 2 and image_data[:2] == b'\xff\xd8':
+                            image_format = 'jpeg'
+                        elif len(image_data) >= 6 and image_data[:6] in [b'GIF87a', b'GIF89a']:
+                            image_format = 'gif'
+                        else:
+                            # Try to detect from image object name
+                            if 'png' in img_name.lower() or 'image/png' in img_name.lower():
                                 image_format = 'png'
-                            elif 'jpeg' in name_lower or 'jpg' in name_lower or 'image/jpeg' in name_lower:
+                            elif 'jpeg' in img_name.lower() or 'jpg' in img_name.lower() or 'image/jpeg' in img_name.lower():
                                 image_format = 'jpeg'
-                            elif 'gif' in name_lower:
+                            elif 'gif' in img_name.lower():
                                 image_format = 'gif'
+                        
+                        if not image_format:
+                            image_format = 'png'  # Default
+                        
+                        # Get image dimensions
+                        width = 100  # Default
+                        height = 100  # Default
+                        
+                        if hasattr(img_obj, 'width') and hasattr(img_obj, 'height'):
+                            width = float(img_obj.width) if img_obj.width else 100
+                            height = float(img_obj.height) if img_obj.height else 100
+                        elif hasattr(img_obj, 'get_object'):
+                            img_raw = img_obj.get_object()
+                            if hasattr(img_raw, 'width') and hasattr(img_raw, 'height'):
+                                width = float(img_raw.width) if img_raw.width else 100
+                                height = float(img_raw.height) if img_raw.height else 100
+                        
+                        # Estimate position (PyPDF2 doesn't provide exact coordinates)
+                        x0 = 50.0  # Default left margin
+                        y0 = page_height - height - 50.0  # Default top margin
+                        x1 = x0 + width
+                        y1 = y0 + height
+                        
+                        # Check if full-page or too small
+                        is_full_page = (width > page_width * 0.9 and height > page_height * 0.9)
+                        is_too_small = width < 30 or height < 30
+                        
+                        if not is_full_page and not is_too_small:
+                            images.append({
+                                'x0': float(x0),
+                                'y0': float(y0),
+                                'x1': float(x1),
+                                'y1': float(y1),
+                                'width': float(width),
+                                'height': float(height),
+                                'size_bytes': size_bytes,
+                                'image_data': image_data,
+                                'image_format': image_format,
+                                'page': page_num
+                            })
+                            logger.info(f"✅ PyPDF2 extracted image '{img_name}': {size_bytes} bytes, format: {image_format}, size: {width}x{height}")
                     
-                    if not image_format:
-                        image_format = 'png'  # Default
-                    
-                    # Get image dimensions from PDF
-                    # PyPDF2 doesn't always provide coordinates, so we estimate
-                    # Try to get from image object if available
-                    width = 100  # Default
-                    height = 100  # Default
-                    x0, y0 = 0, 0
-                    
-                    if hasattr(img_obj, 'width') and hasattr(img_obj, 'height'):
-                        width = float(img_obj.width) if img_obj.width else 100
-                        height = float(img_obj.height) if img_obj.height else 100
-                    
-                    # Estimate position (PyPDF2 doesn't provide exact coordinates)
-                    # We'll use a reasonable default position
-                    x0 = 50.0  # Default left margin
-                    y0 = page_height - height - 50.0  # Default top margin (PDF coordinates are bottom-up)
-                    x1 = x0 + width
-                    y1 = y0 + height
-                    
-                    # Check if full-page or too small
-                    is_full_page = (width > page_width * 0.9 and height > page_height * 0.9)
-                    is_too_small = width < 50 or height < 50
-                    
-                    if not is_full_page and not is_too_small:
-                        images.append({
-                            'x0': float(x0),
-                            'y0': float(y0),
-                            'x1': float(x1),
-                            'y1': float(y1),
-                            'width': float(width),
-                            'height': float(height),
-                            'size_bytes': size_bytes,
-                            'image_data': image_data,
-                            'image_format': image_format,
-                            'page': page_num
-                        })
-                        logger.info(f"✅ PyPDF2 extracted image {img_idx}: {size_bytes} bytes, format: {image_format}")
-                
-                except Exception as img_e:
-                    logger.warning(f"Error extracting image {img_idx} with PyPDF2: {img_e}")
-                    continue
+                    except Exception as img_e:
+                        logger.warning(f"Error extracting image '{img_name}' with PyPDF2: {img_e}")
+                        import traceback
+                        logger.debug(traceback.format_exc())
+                        continue
+        except Exception as e:
+            logger.warning(f"PyPDF2 page.images access failed: {e}")
         
     except Exception as e:
         logger.warning(f"PyPDF2 image extraction failed: {e}")

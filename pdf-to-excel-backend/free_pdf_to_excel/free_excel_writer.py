@@ -64,9 +64,19 @@ def create_excel_workbook(
                 # Apply formatting
                 cell_obj = ws[cell_address]
                 
-                # Font
+                # Font - Use Unicode-friendly font for better Unicode support
+                font_name = cell.get('font_name', 'Arial')
+                # Replace non-Unicode fonts with Unicode-friendly alternatives
+                if font_name and not any(unicode_font in font_name for unicode_font in ['Arial Unicode', 'Calibri', 'Times New Roman', 'DejaVu']):
+                    # Check if text contains Unicode characters
+                    cell_text = cell.get('text', '')
+                    has_unicode = any(ord(char) > 127 for char in str(cell_text))
+                    if has_unicode:
+                        # Use Unicode-friendly font
+                        font_name = 'Arial Unicode MS' if 'Arial' in font_name else 'Calibri'
+                
                 font = Font(
-                    name=cell.get('font_name', 'Arial'),
+                    name=font_name,
                     size=cell.get('font_size', 10),
                     bold=cell.get('is_bold', False) or (row_idx in header_rows)
                 )
@@ -184,15 +194,21 @@ def create_excel_workbook(
                             logger.error(f"Could not fix image data: {fix_e}")
                             continue
                     
-                    # Scale image to fit (max 100x100 pixels for Excel cells)
-                    max_cell_size = 100
+                    # Scale image to fit (max 150x150 pixels for better visibility)
+                    max_cell_size = 150
                     img_width = img.get('width', 100)
                     img_height = img.get('height', 100)
                     
                     # Calculate scale to fit within max_cell_size
-                    scale = min(max_cell_size / max(img_width, img_height), 1.0)
-                    img_obj.width = int(img_width * scale)
-                    img_obj.height = int(img_height * scale)
+                    # Preserve aspect ratio
+                    if img_width > 0 and img_height > 0:
+                        scale = min(max_cell_size / max(img_width, img_height), 1.0)
+                        img_obj.width = int(img_width * scale)
+                        img_obj.height = int(img_height * scale)
+                    else:
+                        # Default size if dimensions unknown
+                        img_obj.width = 100
+                        img_obj.height = 100
                     
                     # Anchor image to cell (top-left corner)
                     cell_address = f"{get_column_letter(col_idx + 1)}{row_idx + 1}"

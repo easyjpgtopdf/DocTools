@@ -166,13 +166,57 @@ def snap_text_to_grid(
                 min_row_dist = dist
                 row_idx = i
         
-        # Assign to cell (merge if already has text)
+        # Assign to cell - IMPROVED: Better column separation for Unicode
         if row_idx < len(grid) and col_idx < len(grid[row_idx]):
             cell = grid[row_idx][col_idx]
+            obj_text = obj.get('text', '').strip()
+            
+            if not obj_text:
+                continue
+            
+            # Check if text should go to a different column (better X-axis separation)
+            # If text is far from current column center, check if it belongs to adjacent column
+            if column_boundaries and len(column_boundaries) > col_idx + 1:
+                col_center = column_boundaries[col_idx]
+                next_col_center = column_boundaries[col_idx + 1]
+                mid_point = (col_center + next_col_center) / 2
+                
+                # If text X position is closer to next column, use next column
+                if obj['x'] > mid_point and col_idx + 1 < len(grid[row_idx]):
+                    # Check if next column is empty or has less text
+                    next_cell = grid[row_idx][col_idx + 1]
+                    if not next_cell['text'] or len(next_cell['text']) < len(obj_text):
+                        cell = next_cell
+                        col_idx = col_idx + 1
+            
+            # Assign text to cell
             if cell['text']:
-                cell['text'] += ' ' + obj['text']
+                # Only merge if text is on same X position (same column)
+                # Don't merge if X positions are different (different columns)
+                cell_x = column_boundaries[col_idx] if column_boundaries and col_idx < len(column_boundaries) else 0
+                if abs(obj['x'] - cell_x) < 20:  # Same column (within 20 points)
+                    cell['text'] += ' ' + obj_text
+                else:
+                    # Different column - don't merge, find correct column
+                    best_col = col_idx
+                    min_dist = abs(obj['x'] - cell_x)
+                    for i, col_x in enumerate(column_boundaries):
+                        dist = abs(obj['x'] - col_x)
+                        if dist < min_dist:
+                            min_dist = dist
+                            best_col = i
+                    
+                    if best_col < len(grid[row_idx]):
+                        cell = grid[row_idx][best_col]
+                        if cell['text']:
+                            cell['text'] += ' ' + obj_text
+                        else:
+                            cell['text'] = obj_text
+                            cell['font_name'] = obj.get('font_name', 'Arial')
+                            cell['font_size'] = obj.get('font_size', 10)
+                            cell['is_bold'] = obj.get('is_bold', False)
             else:
-                cell['text'] = obj['text']
+                cell['text'] = obj_text
                 cell['font_name'] = obj.get('font_name', 'Arial')
                 cell['font_size'] = obj.get('font_size', 10)
                 cell['is_bold'] = obj.get('is_bold', False)
