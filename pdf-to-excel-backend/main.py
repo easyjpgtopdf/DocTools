@@ -13,10 +13,16 @@ import traceback
 
 from credit import get_user_id, get_credits, deduct_credits, check_sufficient_credits, get_credit_info
 from pricing import MIN_PREMIUM_CREDITS, get_credit_cost_for_document_type, can_access_premium, get_pricing_info
-from storage_gcs import upload_excel_to_gcs
+from storage_gcs import upload_excel_to_gcs, upload_file_to_gcs
 from id_card_detector import detect_id_card
 # Lazy import for docai_service to avoid startup errors
 # from docai_service import process_pdf_to_excel_docai
+# FREE Option-B server-side conversion
+from pdf_to_excel_free_option_b import (
+    process_pdf_to_excel_free_option_b,
+    generate_free_key,
+    check_abuse_limits
+)
 
 # Configure logging FIRST
 logging.basicConfig(
@@ -703,6 +709,139 @@ async def id_card_process_endpoint(request: Request, file: UploadFile = File(...
         raise HTTPException(
             status_code=500,
             detail=f"ID card processing failed: {str(e)}"
+        )
+
+
+@app.post("/api/pdf-to-excel-free-server")
+async def pdf_to_excel_free_server_endpoint(
+    request: Request,
+    file: UploadFile = File(...),
+    fingerprint: Optional[str] = None
+):
+    """
+    FREE Server-Side PDF to Excel Conversion (Option-B).
+    Visual + Data Hybrid Pipeline.
+    NO Document AI, NO OCR - CPU-only processing.
+    
+    Limits (hidden):
+    - Max 1 page per device/IP per 24 hours
+    - Max file size: 2 MB
+    """
+    try:
+        # Get client info for abuse control
+        ip_address = request.client.host if request.client else "unknown"
+        user_agent = request.headers.get("user-agent", "")
+        fingerprint = fingerprint or request.headers.get("x-fingerprint", "")
+        
+        # Generate free key
+        free_key = generate_free_key(ip_address, user_agent, fingerprint)
+        
+        # Validate file
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="No file provided")
+        
+        if not file.filename.lower().endswith('.pdf'):
+            raise HTTPException(status_code=400, detail="File must be a PDF")
+        
+        # Read file content
+        file_content = await file.read()
+        file_size = len(file_content)
+        
+        logger.info(f"FREE server conversion request: {file.filename}, size: {file_size} bytes, key: {free_key[:8]}")
+        
+        # Process PDF to Excel
+        excel_path, pages_processed, confidence, error_message = process_pdf_to_excel_free_option_b(
+            file_content,
+            file.filename,
+            free_key,
+            ip_address
+        )
+        
+        if error_message:
+            # If confidence is low or error, return error (frontend will show upgrade popup)
+            if "limit" in error_message.lower() or "upgrade" in error_message.lower():
+                return JSONResponse(
+                    status_code=403,
+                    content={
+                        "success": False,
+                        "error": error_message,
+                        "upgrade_required": True
+                    }
+                )
+            else:
+                return JSONResponse(
+                    status_code=400,
+                    content={
+                        "success": False,
+                        "error": error_message,
+                        "fallback_available": True  # Frontend can fallback to browser-based
+                    }
+                )
+        
+        if not excel_path or pages_processed == 0:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "error": "Conversion failed. Try Premium for better accuracy.",
+                    "fallback_available": True
+                }
+            )
+        
+        # Read Excel file
+        with open(excel_path, 'rb') as f:
+            excel_content = f.read()
+        
+        # Clean up temp file
+        try:
+            os.unlink(excel_path)
+        except:
+            pass
+        
+        # Upload to GCS and get signed URL
+        try:
+            download_url = upload_file_to_gcs(excel_content, file.filename.replace('.pdf', '.xlsx'), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        except Exception as e:
+            logger.error(f"Error uploading to GCS: {e}")
+            # Return file directly if GCS fails
+            import base64
+            excel_b64 = base64.b64encode(excel_content).decode('utf-8')
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "success": True,
+                    "engine": "free-server-option-b",
+                    "downloadUrl": f"data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{excel_b64}",
+                    "pagesProcessed": pages_processed,
+                    "confidence": confidence,
+                    "method": "direct_download"
+                }
+            )
+        
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "engine": "free-server-option-b",
+                "downloadUrl": download_url,
+                "pagesProcessed": pages_processed,
+                "confidence": confidence,
+                "method": "gcs_download"
+            }
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"FREE server conversion error: {e}")
+        logger.error(traceback.format_exc())
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": f"Conversion failed: {str(e)}",
+                "fallback_available": True
+            }
         )
 
 

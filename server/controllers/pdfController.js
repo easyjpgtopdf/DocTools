@@ -2228,8 +2228,8 @@ module.exports = {
   getStatus,
   getOCRStatus,
   getOCRJobStatus,
-  searchText: asyncHandler(searchText),
-  replaceAllText: asyncHandler(replaceAllText),
+  // searchText: asyncHandler(searchText), // TODO: Implement searchText function
+  // replaceAllText: asyncHandler(replaceAllText), // TODO: Implement replaceAllText function
   compressPDF: asyncHandler(compressPDF),
   protectPDF: asyncHandler(protectPDF),
   detectFormFields: asyncHandler(detectFormFields),

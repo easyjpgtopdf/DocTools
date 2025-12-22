@@ -31,16 +31,15 @@ RUN pip3 install --no-cache-dir rembg==2.0.50
 RUN useradd --create-home --shell /bin/bash appuser
 WORKDIR /home/appuser/app
 
-# Install Node dependencies (Render uses render-build script but Docker caching helps)
+# Install Node dependencies
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
 # Copy server source
 COPY . .
 
-# Expose Render default port
-ENV PORT=10000
-EXPOSE 10000
+# Cloud Run automatically sets PORT environment variable
+EXPOSE 8080
 
 # Adjust ownership and drop privileges
 RUN chown -R appuser:appuser /home/appuser/app

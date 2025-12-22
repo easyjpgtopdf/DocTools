@@ -1,11 +1,18 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 
-// Initialize Razorpay with your API keys
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET
-});
+// Initialize Razorpay (only if keys are available)
+let razorpay = null;
+if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+  try {
+    razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET
+    });
+  } catch (error) {
+    console.error('Failed to initialize Razorpay:', error);
+  }
+}
 
 // Create a new order
 const createOrder = async (req, res) => {
@@ -26,6 +33,13 @@ const createOrder = async (req, res) => {
       payment_capture: 1 // Auto capture payment
     };
 
+    if (!razorpay) {
+      return res.status(503).json({
+        success: false,
+        message: 'Payment service not configured'
+      });
+    }
+    
     const order = await razorpay.orders.create(options);
     
     res.status(200).json({
@@ -87,6 +101,13 @@ const verifyPayment = (req, res) => {
 const getPaymentDetails = async (req, res) => {
   try {
     const { paymentId } = req.params;
+    
+    if (!razorpay) {
+      return res.status(503).json({
+        success: false,
+        message: 'Payment service not configured'
+      });
+    }
     
     const payment = await razorpay.payments.fetch(paymentId);
     

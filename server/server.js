@@ -415,8 +415,8 @@ app.get('/api/background-remove-birefnet/health', async (req, res) => {
 });
 
 // Admin endpoint to add test credits (SECURE - should add admin auth in production)
-const addTestCreditsHandler = require('../api/admin/add-test-credits.js');
-app.post('/api/admin/add-test-credits', addTestCreditsHandler);
+// const addTestCreditsHandler = require('../api/admin/add-test-credits.js'); // File not found - commented out
+// app.post('/api/admin/add-test-credits', addTestCreditsHandler);
 
 // GET /api/background-remove-birefnet/usage - Usage statistics (stub endpoint)
 app.get('/api/background-remove-birefnet/usage', async (req, res) => {
@@ -477,15 +477,23 @@ app.use((req, res) => {
 // Initialize database and start server
 async function startServer() {
   try {
-    // Connect to MongoDB
+    // Connect to MongoDB (non-blocking - don't fail server if DB connection fails)
     if (process.env.MONGODB_URI) {
-      await connectDatabase();
+      try {
+        await connectDatabase();
+      } catch (dbError) {
+        // Sanitize error message to hide passwords
+        const sanitizedMessage = dbError.message ? dbError.message.replace(/mongodb\+srv:\/\/[^:]+:[^@]+@/g, 'mongodb+srv://***:***@') : dbError.message;
+        console.error('⚠️ MongoDB connection failed, but continuing server startup:', sanitizedMessage);
+        console.warn('⚠️ Database features will be disabled until connection is restored.');
+        console.warn('💡 Check: 1) MongoDB Atlas cluster name, 2) Network access (0.0.0.0/0), 3) Connection string format');
+      }
     } else {
       console.warn('⚠️ MongoDB URI not set. Database features will be disabled.');
     }
     
-    // Start server
-    app.listen(PORT, () => {
+    // Start server - listen on 0.0.0.0 for Cloud Run
+    app.listen(PORT, '0.0.0.0', () => {
       console.log('\n' + '='.repeat(50));
       console.log('PDF Editor Backend Server');
       console.log('='.repeat(50));

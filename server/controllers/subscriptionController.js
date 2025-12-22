@@ -9,11 +9,18 @@ const AuditLog = require('../models/AuditLog');
 const Razorpay = require('razorpay');
 const { asyncHandler } = require('../middleware/errorHandler');
 
-// Initialize Razorpay
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || '',
-  key_secret: process.env.RAZORPAY_KEY_SECRET || ''
-});
+// Initialize Razorpay (only if keys are available)
+let razorpay = null;
+if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+  try {
+    razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET
+    });
+  } catch (error) {
+    console.error('Failed to initialize Razorpay:', error);
+  }
+}
 
 // Subscription plans - Similar structure to industry leaders but with unique features
 const SUBSCRIPTION_PLANS = {
@@ -445,8 +452,7 @@ async function getUsageTracking(req, res) {
       });
     }
     
-    // Get image remover limits based on plan
-    const plan = SUBSCRIPTION_PLANS[user.subscriptionPlan] || SUBSCRIPTION_PLANS.free;
+    // Get image remover limits based on plan (plan already declared above)
     let imageRemoverLimit = 100; // Default for free (temporarily increased, will reduce to 40 later)
     let imageRemoverUploadLimit = 10; // 10 MB for free
     let imageRemoverDownloadLimit = 2; // 2 MB for free
