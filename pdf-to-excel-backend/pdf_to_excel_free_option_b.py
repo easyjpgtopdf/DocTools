@@ -68,7 +68,7 @@ def check_abuse_limits(free_key: str) -> Tuple[bool, str]:
     
     # Check page limit
     if user_data['pages_used_today'] >= MAX_FREE_PAGES_PER_DAY:
-        return False, "Daily limit reached. Upgrade to Pro for unlimited conversions."
+        return False, f"Daily limit reached. You can convert up to {MAX_FREE_PAGES_PER_DAY} pages per day. Upgrade to Pro for unlimited conversions."
     
     return True, ""
 
@@ -86,9 +86,9 @@ def record_usage(free_key: str, pages: int, file_size: int):
     _abuse_control[free_key]['last_file_size'] = file_size
 
 
-def extract_text_with_coordinates(pdf_bytes: bytes, max_pages: int = 10) -> List[Dict]:
+def extract_text_with_coordinates_for_page(pdf_bytes: bytes, page_num: int) -> List[Dict]:
     """
-    Extract text with coordinates from PDF using pdfminer.
+    Extract text with coordinates from a specific PDF page.
     Returns list of text objects with x, y, width, height, text.
     """
     text_objects = []
@@ -96,57 +96,56 @@ def extract_text_with_coordinates(pdf_bytes: bytes, max_pages: int = 10) -> List
     try:
         pdf_file = io.BytesIO(pdf_bytes)
         
-        for page_num, page_layout in enumerate(extract_pages(pdf_file)):
-            if page_num >= max_pages:  # Process up to max_pages for FREE
+        for page_idx, page_layout in enumerate(extract_pages(pdf_file)):
+            if page_idx == page_num:
+                for element in page_layout:
+                    if isinstance(element, LTTextContainer):
+                        # Extract text and position
+                        text = element.get_text().strip()
+                        if not text:
+                            continue
+                        
+                        # Get bounding box
+                        x0, y0, x1, y1 = element.bbox
+                        width = x1 - x0
+                        height = y1 - y0
+                        
+                        # Get font info
+                        font_name = "Arial"
+                        font_size = 10
+                        is_bold = False
+                        
+                        for text_line in element:
+                            if isinstance(text_line, LTChar):
+                                font_name = text_line.fontname or "Arial"
+                                font_size = text_line.size or 10
+                                if 'bold' in font_name.lower() or 'Bold' in font_name:
+                                    is_bold = True
+                                break
+                        
+                        text_objects.append({
+                            'text': text,
+                            'x': x0,
+                            'y': y0,
+                            'width': width,
+                            'height': height,
+                            'font_name': font_name,
+                            'font_size': font_size,
+                            'is_bold': is_bold,
+                            'page': page_idx
+                        })
                 break
-            
-            for element in page_layout:
-                if isinstance(element, LTTextContainer):
-                    # Extract text and position
-                    text = element.get_text().strip()
-                    if not text:
-                        continue
-                    
-                    # Get bounding box
-                    x0, y0, x1, y1 = element.bbox
-                    width = x1 - x0
-                    height = y1 - y0
-                    
-                    # Get font info
-                    font_name = "Arial"
-                    font_size = 10
-                    is_bold = False
-                    
-                    for text_line in element:
-                        if isinstance(text_line, LTChar):
-                            font_name = text_line.fontname or "Arial"
-                            font_size = text_line.size or 10
-                            if 'bold' in font_name.lower() or 'Bold' in font_name:
-                                is_bold = True
-                            break
-                    
-                    text_objects.append({
-                        'text': text,
-                        'x': x0,
-                        'y': y0,
-                        'width': width,
-                        'height': height,
-                        'font_name': font_name,
-                        'font_size': font_size,
-                        'is_bold': is_bold,
-                        'page': page_num
-                    })
     
     except Exception as e:
-        logger.error(f"Error extracting text: {e}")
+        logger.error(f"Error extracting text from page {page_num}: {e}")
         logger.error(traceback.format_exc())
     
     return text_objects
 
 
-def extract_lines_and_rectangles(pdf_bytes: bytes, max_pages: int = 10) -> Tuple[List[Dict], List[Dict]]:
+def extract_lines_and_rectangles_for_page(pdf_bytes: bytes, page_num: int) -> Tuple[List[Dict], List[Dict]]:
     """
-    Extract lines and rectangles from PDF.
+    Extract lines and rectangles from a specific PDF page.
     Returns: (lines, rectangles)
     """
     lines = []
@@ -155,39 +154,38 @@ def extract_lines_and_rectangles(pdf_bytes: bytes, max_pages: int = 10) -> Tuple
     try:
         pdf_file = io.BytesIO(pdf_bytes)
         
-        for page_num, page_layout in enumerate(extract_pages(pdf_file)):
-            if page_num >= max_pages:  # Process up to max_pages
+        for page_idx, page_layout in enumerate(extract_pages(pdf_file)):
+            if page_idx == page_num:
+                for element in page_layout:
+                    if isinstance(element, LTLine):
+                        # Extract line coordinates
+                        x0, y0, x1, y1 = element.bbox
+                        lines.append({
+                            'x0': x0,
+                            'y0': y0,
+                            'x1': x1,
+                            'y1': y1,
+                            'page': page_idx,
+                            'is_horizontal': abs(y1 - y0) < abs(x1 - x0),
+                            'is_vertical': abs(x1 - x0) < abs(y1 - y0)
+                        })
+                    
+                    elif isinstance(element, LTRect):
+                        # Extract rectangle
+                        x0, y0, x1, y1 = element.bbox
+                        rectangles.append({
+                            'x0': x0,
+                            'y0': y0,
+                            'x1': x1,
+                            'y1': y1,
+                            'width': x1 - x0,
+                            'height': y1 - y0,
+                            'page': page_idx
+                        })
                 break
-            
-            for element in page_layout:
-                if isinstance(element, LTLine):
-                    # Extract line coordinates
-                    x0, y0, x1, y1 = element.bbox
-                    lines.append({
-                        'x0': x0,
-                        'y0': y0,
-                        'x1': x1,
-                        'y1': y1,
-                        'page': page_num,
-                        'is_horizontal': abs(y1 - y0) < abs(x1 - x0),
-                        'is_vertical': abs(x1 - x0) < abs(y1 - y0)
-                    })
-                
-                elif isinstance(element, LTRect):
-                    # Extract rectangle
-                    x0, y0, x1, y1 = element.bbox
-                    rectangles.append({
-                        'x0': x0,
-                        'y0': y0,
-                        'x1': x1,
-                        'y1': y1,
-                        'width': x1 - x0,
-                        'height': y1 - y0,
-                        'page': page_num
-                    })
     
     except Exception as e:
-        logger.error(f"Error extracting lines/rectangles: {e}")
+        logger.error(f"Error extracting lines/rectangles from page {page_num}: {e}")
     
     return lines, rectangles
 
@@ -305,15 +303,11 @@ def detect_header_rows(grid: List[List[Dict]], rectangles: List[Dict], row_bound
     return header_rows
 
 
-def create_excel_from_grid(grid: List[List[Dict]], header_rows: List[int], output_path: str) -> bool:
+def create_excel_from_grid(grid: List[List[Dict]], header_rows: List[int], ws) -> bool:
     """
-    Create Excel file from grid with formatting.
+    Create Excel worksheet from grid with formatting.
     """
     try:
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "Page1"
-        
         # Write data
         for row_idx, row in enumerate(grid):
             for col_idx, cell in enumerate(row):
@@ -358,11 +352,10 @@ def create_excel_from_grid(grid: List[List[Dict]], header_rows: List[int], outpu
                     max_length = max(max_length, len(cell_text))
             ws.column_dimensions[col_letter].width = min(max_length + 2, 50)
         
-        wb.save(output_path)
         return True
     
     except Exception as e:
-        logger.error(f"Error creating Excel: {e}")
+        logger.error(f"Error creating Excel worksheet: {e}")
         logger.error(traceback.format_exc())
         return False
 
@@ -392,7 +385,7 @@ def process_pdf_to_excel_free_option_b(
         if not allowed:
             return None, 0, 0.0, message
         
-        # Get page count (only first page for FREE)
+        # Get page count
         try:
             pdf_file = io.BytesIO(pdf_bytes)
             reader = PdfReader(pdf_file)
@@ -401,89 +394,115 @@ def process_pdf_to_excel_free_option_b(
             if total_pages == 0:
                 return None, 0, 0.0, "PDF has no pages"
             
-            # FREE version: only process first page
-            pages_to_process = 1
+            # FREE version: process up to 10 pages (daily limit)
+            # Check remaining pages in daily limit
+            if free_key in _abuse_control:
+                pages_used = _abuse_control[free_key].get('pages_used_today', 0)
+                pages_remaining = MAX_FREE_PAGES_PER_DAY - pages_used
+                if pages_remaining <= 0:
+                    return None, 0, 0.0, f"Daily limit reached. You can convert up to {MAX_FREE_PAGES_PER_DAY} pages per day. Upgrade to Pro for unlimited conversions."
+                pages_to_process = min(total_pages, pages_remaining)
+            else:
+                pages_to_process = min(total_pages, MAX_FREE_PAGES_PER_DAY)
             
         except Exception as e:
             logger.error(f"Error reading PDF: {e}")
             return None, 0, 0.0, "Invalid PDF file"
         
-        # Get page dimensions (approximate)
-        page_width = 612  # Default US Letter width in points
-        page_height = 792  # Default US Letter height in points
-        
-        try:
-            if reader.pages:
-                page = reader.pages[0]
-                if hasattr(page, 'mediabox'):
-                    page_width = float(page.mediabox.width)
-                    page_height = float(page.mediabox.height)
-        except:
-            pass
-        
-        # STEP 1: Extract text with coordinates
-        text_objects = extract_text_with_coordinates(pdf_bytes)
-        
-        if not text_objects:
-            return None, 0, 0.0, "No text found in PDF. This may be a scanned document."
-        
-        # STEP 2: Extract lines and rectangles
-        lines, rectangles = extract_lines_and_rectangles(pdf_bytes)
-        
-        # STEP 3: Detect table grid
-        column_boundaries, row_boundaries, grid_confidence = detect_table_grid(
-            lines, rectangles, page_width, page_height
-        )
-        
-        # If confidence is too low, fallback
-        if grid_confidence < 0.2 and not column_boundaries and not row_boundaries:
-            # Try to infer from text positions
-            if text_objects:
-                # Simple column detection from text X positions
-                x_positions = sorted(set([obj['x'] for obj in text_objects]))
-                # Cluster nearby X positions
-                column_boundaries = []
-                for x in x_positions:
-                    if not column_boundaries or x - column_boundaries[-1] > 30:
-                        column_boundaries.append(x)
-                
-                # Simple row detection from text Y positions
-                y_positions = sorted(set([obj['y'] for obj in text_objects]), reverse=True)
-                row_boundaries = []
-                for y in y_positions:
-                    if not row_boundaries or abs(y - row_boundaries[-1]) > 10:
-                        row_boundaries.append(y)
-        
-        # STEP 4: Snap text to grid
-        grid = snap_text_to_grid(text_objects, column_boundaries, row_boundaries)
-        
-        if not grid or not any(any(cell['text'] for cell in row) for row in grid):
-            return None, 0, 0.0, "Could not extract table structure. Try Premium for better accuracy."
-        
-        # STEP 5: Detect header rows
-        header_rows = detect_header_rows(grid, rectangles, row_boundaries)
-        
-        # STEP 6: Create Excel
+        # Create Excel workbook
         import tempfile
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx')
         temp_path = temp_file.name
         temp_file.close()
         
-        success = create_excel_from_grid(grid, header_rows, temp_path)
+        wb = openpyxl.Workbook()
+        # Remove default sheet
+        if wb.active:
+            wb.remove(wb.active)
         
-        if not success:
+        total_confidence = 0.0
+        pages_processed = 0
+        
+        # Process each page
+        for page_idx in range(pages_to_process):
+            try:
+                # Get page dimensions
+                page = reader.pages[page_idx]
+                page_width = 612  # Default
+                page_height = 792  # Default
+                if hasattr(page, 'mediabox'):
+                    page_width = float(page.mediabox.width)
+                    page_height = float(page.mediabox.height)
+                
+                # STEP 1: Extract text with coordinates for this page
+                page_text_objects = extract_text_with_coordinates_for_page(pdf_bytes, page_idx)
+                
+                if not page_text_objects:
+                    continue  # Skip empty pages
+                
+                # STEP 2: Extract lines and rectangles for this page
+                page_lines, page_rectangles = extract_lines_and_rectangles_for_page(pdf_bytes, page_idx)
+                
+                # STEP 3: Detect table grid for this page
+                column_boundaries, row_boundaries, grid_confidence = detect_table_grid(
+                    page_lines, page_rectangles, page_width, page_height
+                )
+                
+                # If confidence is too low, try to infer from text positions
+                if grid_confidence < 0.2 and not column_boundaries and not row_boundaries:
+                    if page_text_objects:
+                        x_positions = sorted(set([obj['x'] for obj in page_text_objects]))
+                        column_boundaries = []
+                        for x in x_positions:
+                            if not column_boundaries or x - column_boundaries[-1] > 30:
+                                column_boundaries.append(x)
+                        y_positions = sorted(set([obj['y'] for obj in page_text_objects]), reverse=True)
+                        row_boundaries = []
+                        for y in y_positions:
+                            if not row_boundaries or abs(y - row_boundaries[-1]) > 10:
+                                row_boundaries.append(y)
+                
+                # STEP 4: Snap text to grid
+                grid = snap_text_to_grid(page_text_objects, column_boundaries, row_boundaries)
+                
+                if not grid or not any(any(cell['text'] for cell in row) for row in grid):
+                    continue  # Skip pages without tables
+                
+                # STEP 5: Detect header rows
+                header_rows = detect_header_rows(grid, page_rectangles, row_boundaries)
+                
+                # STEP 6: Add to Excel workbook
+                ws = wb.create_sheet(title=f"Page{page_idx + 1}")
+                
+                # Create worksheet from grid
+                if create_excel_from_grid(grid, header_rows, ws):
+                    total_confidence += grid_confidence
+                    pages_processed += 1
+                
+            except Exception as e:
+                logger.error(f"Error processing page {page_idx + 1}: {e}")
+                logger.error(traceback.format_exc())
+                continue  # Continue with next page
+        
+        if pages_processed == 0:
+            return None, 0, 0.0, "Could not extract table structure from any page. Try Premium for better accuracy."
+        
+        # Save workbook
+        try:
+            wb.save(temp_path)
+        except Exception as e:
+            logger.error(f"Error saving Excel: {e}")
             return None, 0, 0.0, "Error creating Excel file"
         
         # Record usage
-        record_usage(free_key, pages_to_process, file_size)
+        record_usage(free_key, pages_processed, file_size)
         
-        # Calculate final confidence
-        final_confidence = min(grid_confidence + 0.3, 1.0) if grid_confidence > 0 else 0.5
+        # Calculate final confidence (average)
+        final_confidence = min((total_confidence / pages_processed) + 0.3, 1.0) if pages_processed > 0 else 0.5
         
-        return temp_path, pages_to_process, final_confidence, ""
+        return temp_path, pages_processed, final_confidence, ""
     
     except Exception as e:
         logger.error(f"Error in free option B processing: {e}")
         logger.error(traceback.format_exc())
         return None, 0, 0.0, f"Processing error: {str(e)}"
-
