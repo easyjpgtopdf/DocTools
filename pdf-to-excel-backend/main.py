@@ -809,6 +809,7 @@ async def pdf_to_excel_free_server_endpoint(
             return JSONResponse(
                 status_code=200,
                 content={
+                    "status": "success",
                     "success": True,
                     "engine": "free-server-option-b",
                     "downloadUrl": f"data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{excel_b64}",
@@ -821,12 +822,13 @@ async def pdf_to_excel_free_server_endpoint(
         return JSONResponse(
             status_code=200,
             content={
+                "status": "success",
                 "success": True,
                 "engine": "free-server-option-b",
                 "downloadUrl": download_url,
                 "pagesProcessed": pages_processed,
                 "confidence": confidence,
-                "method": "gcs_download"
+                "method": "gcs"
             }
         )
     
