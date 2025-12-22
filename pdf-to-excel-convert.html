@@ -798,7 +798,29 @@
     tablePreview.innerHTML = '<div class="table-empty">Select a page to inspect its table data.</div>';
   });
 
-  // FREE conversion handler
+  // Generate browser fingerprint for abuse control
+  function generateFingerprint() {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.textBaseline = 'top';
+      ctx.font = '14px Arial';
+      ctx.fillText('Fingerprint', 2, 2);
+      const fingerprint = canvas.toDataURL();
+      
+      const storageKey = 'pdf_excel_fingerprint';
+      let stored = localStorage.getItem(storageKey);
+      if (!stored) {
+        stored = fingerprint + '|' + navigator.userAgent + '|' + screen.width + 'x' + screen.height;
+        localStorage.setItem(storageKey, stored);
+      }
+      return stored;
+    } catch (e) {
+      return navigator.userAgent + '|' + screen.width + 'x' + screen.height;
+    }
+  }
+
+  // FREE conversion handler - Try server-side first, fallback to browser-based
   if (downloadBtnFree) {
     downloadBtnFree.addEventListener('click', async function() {
       if (!pdfDoc) {
@@ -809,9 +831,72 @@
       // Allow conversion attempt - popup will show only if conversion fails
       try {
         downloadBtnFree.disabled = true;
-        showToast('Converting PDF to Excel (Basic)...', false);
+        showToast('Converting PDF to Excel (Free)...', false);
         
-        // Wait for free converter module
+        // Get PDF file data for server-side conversion
+        let pdfFile = null;
+        try {
+          const rec = await getPdf();
+          if (rec && rec.blob) {
+            pdfFile = new File([rec.blob], rec.name || 'document.pdf', { type: 'application/pdf' });
+          }
+        } catch (e) {
+          console.warn('Could not get PDF file for server conversion:', e);
+        }
+        
+        // Try server-side FREE conversion first (Option-B)
+        if (pdfFile && pdfFile.size <= 2 * 1024 * 1024) { // 2MB limit
+          try {
+            const API_BASE_URL = window.API_BASE_URL || 'https://pdf-to-excel-backend-564572183797.us-central1.run.app';
+            const formData = new FormData();
+            formData.append('file', pdfFile);
+            formData.append('fingerprint', generateFingerprint());
+            
+            const serverResponse = await fetch(`${API_BASE_URL}/api/pdf-to-excel-free-server`, {
+              method: 'POST',
+              body: formData
+            });
+            
+            const serverResult = await serverResponse.json();
+            
+            if (serverResult.success && serverResult.downloadUrl) {
+              // Server-side conversion successful
+              if (serverResult.method === 'direct_download' && serverResult.downloadUrl.startsWith('data:')) {
+                // Base64 download
+                const link = document.createElement('a');
+                link.href = serverResult.downloadUrl;
+                link.download = `converted_${Date.now()}.xlsx`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              } else {
+                // GCS download
+                window.open(serverResult.downloadUrl, '_blank');
+              }
+              
+              showToast(`Success! Converted ${serverResult.pagesProcessed} pages using free server conversion.`, false);
+              downloadBtnFree.disabled = false;
+              return;
+            } else if (serverResult.upgrade_required) {
+              // Show upgrade popup
+              if (window.PDFExcelUpgradePopup) {
+                window.PDFExcelUpgradePopup.showUpgradePopup(serverResult.error || 'Daily limit reached. Upgrade to Pro for unlimited conversions.');
+              } else {
+                showToast(serverResult.error || 'Daily limit reached. Upgrade to Pro.', true);
+              }
+              downloadBtnFree.disabled = false;
+              return;
+            } else if (serverResult.fallback_available) {
+              // Fallback to browser-based - continue below
+              console.log('Server conversion failed, falling back to browser-based:', serverResult.error);
+            }
+          } catch (serverError) {
+            console.warn('Server-side conversion failed, falling back to browser-based:', serverError);
+            // Fallback to browser-based - continue below
+          }
+        }
+        
+        // Fallback to browser-based conversion
         await waitForModules();
         
         if (!window.PDFExcelFreeConverter) {
