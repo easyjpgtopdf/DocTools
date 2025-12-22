@@ -782,7 +782,7 @@ async def pdf_to_excel_free_server_endpoint(
                     content=build_error_response(
                         error_message,
                         upgrade_required=False,
-                        fallback_available=True
+                        fallback_available=fallback_available
                     )
                 )
         
@@ -844,6 +844,42 @@ async def pdf_to_excel_free_server_endpoint(
                 upgrade_required=False,
                 fallback_available=True
             )
+        )
+
+
+# Debug endpoint for FREE limits (for troubleshooting)
+from free_pdf_to_excel.free_limits_debug import get_usage_by_ip, reset_usage_for_ip, get_all_usage_stats
+
+@app.get("/api/free-limits/debug")
+async def debug_free_limits(
+    request: Request,
+    ip: Optional[str] = None
+):
+    """
+    Debug endpoint to check FREE limits for an IP address.
+    """
+    try:
+        ip_address = ip or (request.client.host if request.client else "unknown")
+        user_agent = request.headers.get("user-agent", "")
+        fingerprint = request.headers.get("x-fingerprint", "")
+        
+        usage_info = get_usage_by_ip(ip_address, user_agent, fingerprint)
+        
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "success",
+                "usage_info": usage_info
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error in debug endpoint: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "error",
+                "error": str(e)
+            }
         )
 
 

@@ -146,7 +146,9 @@ def detect_scanned_pdf(pdf_bytes: bytes) -> Tuple[bool, float]:
                 text_density = total_text_length / max(page_area, 1)
                 
                 # If density is very low (< 0.01 chars/point²), likely scanned
-                is_scanned = text_density < 0.01
+                # But be more lenient - only mark as scanned if density is extremely low
+                # Digital PDFs with sparse text should not be marked as scanned
+                is_scanned = text_density < 0.005  # More strict threshold (was 0.01)
                 return is_scanned, text_density
         
         # If we can't determine, assume not scanned if we have text

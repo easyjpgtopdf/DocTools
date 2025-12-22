@@ -848,6 +848,21 @@
         if (pdfFile && pdfFile.size <= 2 * 1024 * 1024) { // 2MB limit
           try {
             const API_BASE_URL = window.API_BASE_URL || 'https://pdf-to-excel-backend-564572183797.us-central1.run.app';
+            
+            // First, check current usage limits (for debugging)
+            try {
+              const debugResponse = await fetch(`${API_BASE_URL}/api/free-limits/debug`);
+              if (debugResponse.ok) {
+                const debugData = await debugResponse.json();
+                console.log('FREE Limits Debug:', debugData.usage_info);
+                if (debugData.usage_info && debugData.usage_info.is_limit_reached) {
+                  console.warn('Daily limit reached:', debugData.usage_info);
+                }
+              }
+            } catch (debugError) {
+              console.warn('Could not check limits:', debugError);
+            }
+            
             const formData = new FormData();
             formData.append('file', pdfFile);
             formData.append('fingerprint', generateFingerprint());

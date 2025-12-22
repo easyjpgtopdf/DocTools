@@ -77,7 +77,9 @@ def process_pdf_to_excel_free(
         # STEP 3: TEXT EXTRACTION
         text_objects = extract_text_with_coordinates(pdf_bytes, page_num=0)
         if not text_objects:
-            return None, 0, 0.0, "No text found in PDF. This may be a scanned document. Upgrade to Pro for OCR."
+            # No text found - don't block, let browser-based fallback handle it
+            # This allows free users to try browser-based conversion
+            return None, 0, 0.0, "No text found in PDF. Trying browser-based conversion..."
         
         # Get page dimensions
         from PyPDF2 import PdfReader
