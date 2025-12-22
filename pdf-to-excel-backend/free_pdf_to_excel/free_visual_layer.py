@@ -154,6 +154,8 @@ def extract_small_images(pdf_bytes: bytes, page_num: int = 0, max_size_kb: int =
         - x0, y0, x1, y1: Image coordinates
         - width, height: Dimensions
         - size_bytes: Image size in bytes
+        - image_data: Raw image bytes (PNG/JPEG)
+        - image_format: Image format ('png', 'jpeg', etc.)
         - page: Page number
     """
     if not HAS_PDF_LIBS:
@@ -189,24 +191,55 @@ def extract_small_images(pdf_bytes: bytes, page_num: int = 0, max_size_kb: int =
                         width = abs(x1 - x0)
                         height = abs(y1 - y0)
                         
-                        # Get image size
+                        # Get image data and size
                         size_bytes = 0
+                        image_data = None
+                        image_format = None
+                        
                         if isinstance(element, LTImage):
-                            # Try to get image data size
+                            # Try to get image data
                             try:
                                 if hasattr(element, 'stream') and hasattr(element.stream, 'get_data'):
-                                    size_bytes = len(element.stream.get_data())
-                            except (AttributeError, TypeError):
+                                    image_data = element.stream.get_data()
+                                    size_bytes = len(image_data) if image_data else 0
+                                    
+                                    # Detect image format from stream
+                                    if hasattr(element, 'name'):
+                                        name_lower = element.name.lower()
+                                        if 'png' in name_lower or 'image/png' in name_lower:
+                                            image_format = 'png'
+                                        elif 'jpeg' in name_lower or 'jpg' in name_lower or 'image/jpeg' in name_lower:
+                                            image_format = 'jpeg'
+                                        elif 'gif' in name_lower:
+                                            image_format = 'gif'
+                                    
+                                    # Try to detect format from data signature
+                                    if not image_format and image_data:
+                                        if image_data[:8] == b'\x89PNG\r\n\x1a\n':
+                                            image_format = 'png'
+                                        elif image_data[:2] == b'\xff\xd8':
+                                            image_format = 'jpeg'
+                                        elif image_data[:6] in [b'GIF87a', b'GIF89a']:
+                                            image_format = 'gif'
+                                    
+                                    # Default to PNG if format unknown but data exists
+                                    if image_data and not image_format:
+                                        image_format = 'png'
+                                        
+                            except (AttributeError, TypeError) as e:
+                                logger.warning(f"Could not extract image data: {e}")
                                 size_bytes = 0
+                                image_data = None
                         
                         # Filter criteria:
                         # 1. Size must be < max_size_bytes
                         # 2. Not full-page (must be < 90% of page size)
                         # 3. Not too small (must be > 50x50 points)
+                        # 4. Must have image data
                         is_full_page = (width > page_width * 0.9 and height > page_height * 0.9)
                         is_too_small = width < 50 or height < 50
                         
-                        if (size_bytes == 0 or size_bytes < max_size_bytes) and not is_full_page and not is_too_small:
+                        if (size_bytes == 0 or size_bytes < max_size_bytes) and not is_full_page and not is_too_small and image_data:
                             images.append({
                                 'x0': float(x0),
                                 'y0': float(y0),
@@ -215,6 +248,8 @@ def extract_small_images(pdf_bytes: bytes, page_num: int = 0, max_size_kb: int =
                                 'width': float(width),
                                 'height': float(height),
                                 'size_bytes': size_bytes,
+                                'image_data': image_data,
+                                'image_format': image_format or 'png',
                                 'page': page_idx
                             })
                     except Exception as e:

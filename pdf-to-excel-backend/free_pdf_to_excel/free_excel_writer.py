@@ -114,37 +114,92 @@ def create_excel_workbook(
                         max_length = max(max_length, len(cell_text))
                 ws.column_dimensions[col_letter].width = min(max_length + 2, 50)
         
-        # Place images (logos) as floating objects
-        # Note: openpyxl image placement is limited, we'll add comments instead
+        # Place images (logos) as floating objects in Excel
         for img in images:
-            # Find nearest cell
-            if column_boundaries and row_boundaries:
-                col_idx = 0
-                min_col_dist = float('inf')
-                for i, col_x in enumerate(column_boundaries):
-                    dist = abs(img['x0'] - col_x)
-                    if dist < min_col_dist:
-                        min_col_dist = dist
-                        col_idx = i
+            try:
+                # Check if image data is available
+                image_data = img.get('image_data')
+                if not image_data:
+                    logger.warning(f"Image at ({img['x0']}, {img['y0']}) has no image data, skipping")
+                    continue
                 
-                row_idx = 0
-                min_row_dist = float('inf')
-                for i, row_y in enumerate(row_boundaries):
-                    dist = abs(img['y0'] - row_y)
-                    if dist < min_row_dist:
-                        min_row_dist = dist
-                        row_idx = i
-                
-                # Add comment indicating image presence
-                if row_idx < len(grid) and col_idx < len(grid[row_idx]):
+                # Find nearest cell for anchor
+                if column_boundaries and row_boundaries:
+                    col_idx = 0
+                    min_col_dist = float('inf')
+                    for i, col_x in enumerate(column_boundaries):
+                        dist = abs(img['x0'] - col_x)
+                        if dist < min_col_dist:
+                            min_col_dist = dist
+                            col_idx = i
+                    
+                    row_idx = 0
+                    min_row_dist = float('inf')
+                    for i, row_y in enumerate(row_boundaries):
+                        dist = abs(img['y0'] - row_y)
+                        if dist < min_row_dist:
+                            min_row_dist = dist
+                            row_idx = i
+                    
+                    # Create image from bytes
+                    from io import BytesIO
+                    image_stream = BytesIO(image_data)
+                    
+                    # Create openpyxl Image object
+                    img_obj = OpenpyxlImage(image_stream)
+                    
+                    # Scale image to fit (max 100x100 pixels for Excel cells)
+                    max_cell_size = 100
+                    img_width = img.get('width', 100)
+                    img_height = img.get('height', 100)
+                    
+                    # Calculate scale to fit within max_cell_size
+                    scale = min(max_cell_size / max(img_width, img_height), 1.0)
+                    img_obj.width = int(img_width * scale)
+                    img_obj.height = int(img_height * scale)
+                    
+                    # Anchor image to cell (top-left corner)
                     cell_address = f"{get_column_letter(col_idx + 1)}{row_idx + 1}"
-                    cell_obj = ws[cell_address]
-                    if not cell_obj.comment:
-                        from openpyxl.comments import Comment
-                        cell_obj.comment = Comment("Image/Logo detected at this position", "PDF Converter")
-                        # Light yellow background to indicate image
-                        fill = PatternFill(start_color="FFFFE0", end_color="FFFFE0", fill_type="solid")
-                        cell_obj.fill = fill
+                    img_obj.anchor = cell_address
+                    
+                    # Add image to worksheet
+                    ws.add_image(img_obj)
+                    
+                    logger.info(f"Image inserted at cell {cell_address} (size: {img_obj.width}x{img_obj.height})")
+                    
+            except Exception as e:
+                logger.error(f"Error inserting image at ({img.get('x0', 0)}, {img.get('y0', 0)}): {e}")
+                import traceback
+                logger.error(traceback.format_exc())
+                # Fallback: add comment if image insertion fails
+                try:
+                    if column_boundaries and row_boundaries:
+                        col_idx = 0
+                        min_col_dist = float('inf')
+                        for i, col_x in enumerate(column_boundaries):
+                            dist = abs(img['x0'] - col_x)
+                            if dist < min_col_dist:
+                                min_col_dist = dist
+                                col_idx = i
+                        
+                        row_idx = 0
+                        min_row_dist = float('inf')
+                        for i, row_y in enumerate(row_boundaries):
+                            dist = abs(img['y0'] - row_y)
+                            if dist < min_row_dist:
+                                min_row_dist = dist
+                                row_idx = i
+                        
+                        if row_idx < len(grid) and col_idx < len(grid[row_idx]):
+                            cell_address = f"{get_column_letter(col_idx + 1)}{row_idx + 1}"
+                            cell_obj = ws[cell_address]
+                            if not cell_obj.comment:
+                                from openpyxl.comments import Comment
+                                cell_obj.comment = Comment("Image/Logo detected (insertion failed)", "PDF Converter")
+                                fill = PatternFill(start_color="FFFFE0", end_color="FFFFE0", fill_type="solid")
+                                cell_obj.fill = fill
+                except Exception as fallback_error:
+                    logger.error(f"Fallback comment also failed: {fallback_error}")
         
         wb.save(output_path)
         return True

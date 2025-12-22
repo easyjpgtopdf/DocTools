@@ -11,7 +11,8 @@ const mongoose = require('mongoose');
 const UserCredits = require('../models/UserCredits');
 const User = require('../models/User');
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/pdf-editor-enterprise';
+// Use Cloud Run MongoDB URI directly if not in .env
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://easyjpgtopdf_db_user:DPLGobttWhnOKm09@easyjpgtopdf-cluster.0ldmrbi.mongodb.net/pdf-editor-enterprise?retryWrites=true&w=majority';
 
 async function addCreditsToUser(userId, creditsToAdd) {
   try {
