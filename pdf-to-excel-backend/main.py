@@ -756,16 +756,17 @@ async def pdf_to_excel_free_server_endpoint(
             ip_address
         )
         
-        if error_message:
-            # Check if upgrade is required (ONLY for specific cases)
-            # Only mark as upgrade_required for:
-            # 1. Daily limit reached messages
-            # 2. Scanned PDF messages (explicitly asking for upgrade)
-            # DO NOT mark for: "File too large", "No text found", "PDF has no pages", etc.
-            upgrade_required = (
-                "Daily limit" in error_message or
-                ("scanned" in error_message.lower() and "Upgrade to Pro" in error_message)
-            )
+            if error_message:
+                # Check if upgrade is required (ONLY for specific cases)
+                # Only mark as upgrade_required for:
+                # 1. Daily limit reached messages
+                # 2. Scanned PDF messages (explicitly asking for upgrade)
+                # DO NOT mark for: "File too large", "No text found", "PDF has no pages", etc.
+                upgrade_required = (
+                    "Daily limit" in error_message or
+                    ("scanned" in error_message.lower() and "Upgrade to Pro" in error_message) or
+                    ("scanned" in error_message.lower() and "OCR" in error_message)
+                )
             
             if upgrade_required:
                 return JSONResponse(
