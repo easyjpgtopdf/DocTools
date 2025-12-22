@@ -860,13 +860,20 @@
             // Check response status
             if (!serverResponse.ok) {
               const errorData = await serverResponse.json().catch(() => ({}));
-              // Check if it's an upgrade required error
-              if (errorData.upgrade_required || (errorData.error && (
-                errorData.error.includes('limit') || 
-                errorData.error.includes('upgrade') ||
-                errorData.error.includes('Upgrade')
-              ))) {
-                // Show upgrade popup
+              // Check if it's an upgrade required error (ONLY for specific cases)
+              // Only show upgrade popup if:
+              // 1. Server explicitly says upgrade_required = true
+              // 2. OR error message contains "Daily limit" (limit reached)
+              // 3. OR error message contains "scanned" AND "Upgrade to Pro" (scanned PDF)
+              // DO NOT show for other errors like "File too large", "No text found", etc.
+              const isUpgradeRequired = errorData.upgrade_required === true || 
+                (errorData.error && (
+                  errorData.error.includes('Daily limit') ||
+                  (errorData.error.includes('scanned') && errorData.error.includes('Upgrade to Pro'))
+                ));
+              
+              if (isUpgradeRequired) {
+                // Show upgrade popup ONLY for actual limit/upgrade cases
                 if (window.PDFExcelUpgradePopup) {
                   window.PDFExcelUpgradePopup.showUpgradePopup(errorData.error || 'Daily limit reached. Upgrade to Pro for unlimited conversions.');
                 } else {
@@ -875,7 +882,8 @@
                 downloadBtnFree.disabled = false;
                 return;
               }
-              // Other error - fallback to browser-based
+              // Other error - fallback to browser-based (DO NOT show upgrade popup)
+              console.log('Server error (non-upgrade):', errorData.error || errorData.message);
               throw new Error(errorData.error || errorData.message || `Server error: ${serverResponse.status}`);
             }
             
@@ -905,13 +913,20 @@
               downloadBtnFree.disabled = false;
               return;
             } else if (serverResult.status === 'error' || serverResult.error) {
-              // Check if it's an upgrade required error
-              if (serverResult.upgrade_required || (serverResult.error && (
-                serverResult.error.includes('limit') || 
-                serverResult.error.includes('upgrade') ||
-                serverResult.error.includes('Upgrade')
-              ))) {
-                // Show upgrade popup
+              // Check if it's an upgrade required error (ONLY for specific cases)
+              // Only show upgrade popup if:
+              // 1. Server explicitly says upgrade_required = true
+              // 2. OR error message contains "Daily limit" (limit reached)
+              // 3. OR error message contains "scanned" AND "Upgrade to Pro" (scanned PDF)
+              // DO NOT show for other errors like "File too large", "No text found", etc.
+              const isUpgradeRequired = serverResult.upgrade_required === true || 
+                (serverResult.error && (
+                  serverResult.error.includes('Daily limit') ||
+                  (serverResult.error.includes('scanned') && serverResult.error.includes('Upgrade to Pro'))
+                ));
+              
+              if (isUpgradeRequired) {
+                // Show upgrade popup ONLY for actual limit/upgrade cases
                 if (window.PDFExcelUpgradePopup) {
                   window.PDFExcelUpgradePopup.showUpgradePopup(serverResult.error || 'Daily limit reached. Upgrade to Pro for unlimited conversions.');
                 } else {
@@ -920,8 +935,8 @@
                 downloadBtnFree.disabled = false;
                 return;
               } else {
-                // Other error - fallback to browser-based
-                console.log('Server conversion error, falling back to browser-based:', serverResult.error);
+                // Other error - fallback to browser-based (DO NOT show upgrade popup)
+                console.log('Server conversion error (non-upgrade), falling back to browser-based:', serverResult.error);
                 // Continue to browser-based fallback below
               }
             } else {
