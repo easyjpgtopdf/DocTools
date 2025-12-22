@@ -196,12 +196,14 @@ def extract_small_images(pdf_bytes: bytes, page_num: int = 0, max_size_kb: int =
                         image_data = None
                         image_format = None
                         
+                        # Try LTImage first (direct image)
                         if isinstance(element, LTImage):
                             # Try to get image data
                             try:
                                 if hasattr(element, 'stream') and hasattr(element.stream, 'get_data'):
                                     image_data = element.stream.get_data()
                                     size_bytes = len(image_data) if image_data else 0
+                                    logger.info(f"Extracted LTImage: {size_bytes} bytes at ({x0}, {y0})")
                                     
                                     # Detect image format from stream
                                     if hasattr(element, 'name'):
@@ -215,11 +217,11 @@ def extract_small_images(pdf_bytes: bytes, page_num: int = 0, max_size_kb: int =
                                     
                                     # Try to detect format from data signature
                                     if not image_format and image_data:
-                                        if image_data[:8] == b'\x89PNG\r\n\x1a\n':
+                                        if len(image_data) >= 8 and image_data[:8] == b'\x89PNG\r\n\x1a\n':
                                             image_format = 'png'
-                                        elif image_data[:2] == b'\xff\xd8':
+                                        elif len(image_data) >= 2 and image_data[:2] == b'\xff\xd8':
                                             image_format = 'jpeg'
-                                        elif image_data[:6] in [b'GIF87a', b'GIF89a']:
+                                        elif len(image_data) >= 6 and image_data[:6] in [b'GIF87a', b'GIF89a']:
                                             image_format = 'gif'
                                     
                                     # Default to PNG if format unknown but data exists
@@ -227,9 +229,52 @@ def extract_small_images(pdf_bytes: bytes, page_num: int = 0, max_size_kb: int =
                                         image_format = 'png'
                                         
                             except (AttributeError, TypeError) as e:
-                                logger.warning(f"Could not extract image data: {e}")
+                                logger.warning(f"Could not extract LTImage data: {e}")
                                 size_bytes = 0
                                 image_data = None
+                        
+                        # Try LTFigure (may contain images)
+                        elif isinstance(element, LTFigure):
+                            try:
+                                # LTFigure might contain nested LTImage
+                                if hasattr(element, 'stream') and hasattr(element.stream, 'get_data'):
+                                    image_data = element.stream.get_data()
+                                    size_bytes = len(image_data) if image_data else 0
+                                    logger.info(f"Extracted LTFigure image: {size_bytes} bytes at ({x0}, {y0})")
+                                    
+                                    # Detect format from data
+                                    if image_data:
+                                        if len(image_data) >= 8 and image_data[:8] == b'\x89PNG\r\n\x1a\n':
+                                            image_format = 'png'
+                                        elif len(image_data) >= 2 and image_data[:2] == b'\xff\xd8':
+                                            image_format = 'jpeg'
+                                        elif len(image_data) >= 6 and image_data[:6] in [b'GIF87a', b'GIF89a']:
+                                            image_format = 'gif'
+                                        else:
+                                            image_format = 'png'  # Default
+                                            
+                            except (AttributeError, TypeError) as e:
+                                logger.warning(f"Could not extract LTFigure image data: {e}")
+                                # Try to iterate through LTFigure children
+                                try:
+                                    if hasattr(element, '__iter__'):
+                                        for child in element:
+                                            if isinstance(child, LTImage):
+                                                if hasattr(child, 'stream') and hasattr(child.stream, 'get_data'):
+                                                    image_data = child.stream.get_data()
+                                                    size_bytes = len(image_data) if image_data else 0
+                                                    logger.info(f"Extracted nested LTImage from LTFigure: {size_bytes} bytes")
+                                                    if image_data:
+                                                        if len(image_data) >= 8 and image_data[:8] == b'\x89PNG\r\n\x1a\n':
+                                                            image_format = 'png'
+                                                        elif len(image_data) >= 2 and image_data[:2] == b'\xff\xd8':
+                                                            image_format = 'jpeg'
+                                                        else:
+                                                            image_format = 'png'
+                                                    break
+                                except Exception as nested_e:
+                                    logger.warning(f"Could not extract nested image from LTFigure: {nested_e}")
+                                size_bytes = 0 if not image_data else size_bytes
                         
                         # Filter criteria:
                         # 1. Size must be < max_size_bytes

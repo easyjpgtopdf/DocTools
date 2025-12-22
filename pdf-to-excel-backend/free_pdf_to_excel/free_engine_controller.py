@@ -99,6 +99,7 @@ def process_pdf_to_excel_free(
         lines = extract_lines(pdf_bytes, page_num=0)
         rectangles = extract_rectangles(pdf_bytes, page_num=0)
         images = extract_small_images(pdf_bytes, page_num=0, max_size_kb=200)
+        logger.info(f"Extracted {len(images)} images, {len(lines)} lines, {len(rectangles)} rectangles")
         
         # STEP 5: TABLE GRID INFERENCE
         column_boundaries, row_boundaries, grid_confidence = detect_table_grid(

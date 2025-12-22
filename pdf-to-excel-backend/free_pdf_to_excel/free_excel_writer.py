@@ -115,6 +115,8 @@ def create_excel_workbook(
                 ws.column_dimensions[col_letter].width = min(max_length + 2, 50)
         
         # Place images (logos) as floating objects in Excel
+        logger.info(f"Attempting to insert {len(images)} images into Excel")
+        images_inserted = 0
         for img in images:
             try:
                 # Check if image data is available
@@ -164,8 +166,9 @@ def create_excel_workbook(
                     
                     # Add image to worksheet
                     ws.add_image(img_obj)
+                    images_inserted += 1
                     
-                    logger.info(f"Image inserted at cell {cell_address} (size: {img_obj.width}x{img_obj.height})")
+                    logger.info(f"✅ Image {images_inserted} inserted at cell {cell_address} (size: {img_obj.width}x{img_obj.height}, format: {img.get('image_format', 'unknown')})")
                     
             except Exception as e:
                 logger.error(f"Error inserting image at ({img.get('x0', 0)}, {img.get('y0', 0)}): {e}")
@@ -201,6 +204,7 @@ def create_excel_workbook(
                 except Exception as fallback_error:
                     logger.error(f"Fallback comment also failed: {fallback_error}")
         
+        logger.info(f"Excel creation complete: {images_inserted}/{len(images)} images inserted successfully")
         wb.save(output_path)
         return True
     
