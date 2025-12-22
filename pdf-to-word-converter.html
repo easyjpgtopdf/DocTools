@@ -455,13 +455,13 @@
                             </a>
                         </div>
                         
-                        <div class="download-card" id="premiumCard" style="margin-top: 12px; border: 2px solid var(--primary); background: linear-gradient(135deg, rgba(67, 97, 238, 0.05), rgba(67, 97, 238, 0.02));">
+                        <div class="download-card" id="premiumCard" style="display: block; margin-top: 12px; border: 2px solid var(--primary); background: linear-gradient(135deg, rgba(67, 97, 238, 0.05), rgba(67, 97, 238, 0.02));">
                             <h3 style="font-size: 1rem; font-weight: 700; color: var(--primary); margin-bottom: 8px;">
                                 <i class="fas fa-crown"></i> OCR Pro Version
                             </h3>
                             <span class="method-badge" style="background: var(--primary); color: white;">Premium OCR</span>
                             <p class="muted" style="margin: 8px 0;">High-accuracy OCR with Google Document AI. Requires credits.</p>
-                            <button id="downloadOCRPro" class="download-link" style="cursor: pointer; border: none; width: 100%; text-align: center;">
+                            <button id="downloadOCRPro" class="download-link" style="cursor: pointer; border: none; width: 100%; text-align: center; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; padding: 12px 24px; border-radius: 8px; font-weight: 600;">
                                 <i class="fas fa-arrow-right"></i> Download OCR Pro Version
                             </button>
                         </div>
@@ -830,6 +830,28 @@
             } finally {
                 convertBtn.disabled = false;
             }
+        }
+        
+        // Handle OCR Pro button click - redirect to premium page
+        if (downloadOCRPro) {
+            downloadOCRPro.addEventListener('click', () => {
+                // Store current file for premium page
+                if (currentFile) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const fileData = {
+                            name: currentFile.name,
+                            data: e.target.result.split(',')[1]
+                        };
+                        sessionStorage.setItem('pdfFileForPremium', JSON.stringify(fileData));
+                        window.location.href = '/pdf-to-word-premium.html';
+                    };
+                    reader.readAsDataURL(currentFile);
+                } else {
+                    // No file, just redirect to premium page
+                    window.location.href = '/pdf-to-word-premium.html';
+                }
+            });
         }
         
         /**
