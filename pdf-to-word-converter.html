@@ -832,26 +832,42 @@
             }
         }
         
-        // Handle OCR Pro button click - redirect to premium page
-        if (downloadOCRPro) {
-            downloadOCRPro.addEventListener('click', () => {
-                // Store current file for premium page
-                if (currentFile) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const fileData = {
-                            name: currentFile.name,
-                            data: e.target.result.split(',')[1]
+        // Handle OCR Pro button click - redirect to premium page (setup after DOM is ready)
+        function setupOCRProButton() {
+            const ocrProBtn = document.getElementById('downloadOCRPro');
+            if (ocrProBtn) {
+                ocrProBtn.addEventListener('click', () => {
+                    console.log('OCR Pro button clicked');
+                    // Store current file for premium page
+                    if (currentFile) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const fileData = {
+                                name: currentFile.name,
+                                data: e.target.result.split(',')[1]
+                            };
+                            sessionStorage.setItem('pdfFileForPremium', JSON.stringify(fileData));
+                            console.log('Redirecting to premium page with file:', currentFile.name);
+                            window.location.href = '/pdf-to-word-premium.html';
                         };
-                        sessionStorage.setItem('pdfFileForPremium', JSON.stringify(fileData));
+                        reader.readAsDataURL(currentFile);
+                    } else {
+                        // No file, just redirect to premium page
+                        console.log('Redirecting to premium page without file');
                         window.location.href = '/pdf-to-word-premium.html';
-                    };
-                    reader.readAsDataURL(currentFile);
-                } else {
-                    // No file, just redirect to premium page
-                    window.location.href = '/pdf-to-word-premium.html';
-                }
-            });
+                    }
+                });
+                console.log('OCR Pro button handler attached');
+            } else {
+                console.warn('OCR Pro button not found');
+            }
+        }
+        
+        // Setup button handler when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupOCRProButton);
+        } else {
+            setupOCRProButton();
         }
         
         /**
