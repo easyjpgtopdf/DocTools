@@ -69,9 +69,11 @@ def process_pdf_to_excel_free(
         # FREE version: only process first page
         pages_to_process = 1
         
-        # STEP 2: Detect scanned PDF
+        # STEP 2: Detect scanned PDF (very lenient - only block if absolutely no text)
         is_scanned, text_density = detect_scanned_pdf(pdf_bytes)
+        logger.info(f"Scanned PDF detection: is_scanned={is_scanned}, text_density={text_density}")
         if is_scanned:
+            # Only block if we're absolutely sure it's scanned (very few text objects)
             return None, 0, 0.0, "This PDF appears to be scanned. Upgrade to Pro for OCR-powered conversion."
         
         # STEP 3: TEXT EXTRACTION
