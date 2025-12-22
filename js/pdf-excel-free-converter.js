@@ -615,6 +615,32 @@ function getFontForLanguage(language, originalFont) {
     return fontMap[language] || 'Arial Unicode MS';
 }
 
+// Helper function to get font for language (uses layout reconstruction if available)
+function getFontForLanguage(language, originalFont) {
+    // Try to use layout reconstruction module's function if available
+    if (window.PDFExcelLayoutReconstruction && window.PDFExcelLayoutReconstruction.getFontForLanguage) {
+        return window.PDFExcelLayoutReconstruction.getFontForLanguage(language, originalFont);
+    }
+    
+    // Fallback font mapping
+    const fontMap = {
+        'devanagari': 'Arial Unicode MS',
+        'arabic': 'Arial Unicode MS',
+        'cjk': 'Arial Unicode MS',
+        'thai': 'Arial Unicode MS',
+        'latin': originalFont || 'Calibri',
+        'mixed': 'Arial Unicode MS',
+        'unknown': 'Arial Unicode MS'
+    };
+    
+    const unicodeFonts = ['Arial Unicode MS', 'Calibri', 'Times New Roman', 'Tahoma', 'Microsoft Sans Serif'];
+    if (unicodeFonts.includes(originalFont)) {
+        return originalFont;
+    }
+    
+    return fontMap[language] || 'Arial Unicode MS';
+}
+
 // Export for use in other scripts
 if (typeof window !== 'undefined') {
     window.PDFExcelFreeConverter = {
@@ -623,7 +649,7 @@ if (typeof window !== 'undefined') {
         applyFormattingToWorksheet,
         calculateFontSize,
         detectBoldFont,
-        getFontForLanguage: typeof getFontForLanguage !== 'undefined' ? getFontForLanguage : function(lang, orig) { return 'Arial Unicode MS'; }
+        getFontForLanguage
     };
 }
 
