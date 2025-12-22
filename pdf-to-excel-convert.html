@@ -844,7 +844,7 @@
           console.warn('Could not get PDF file for server conversion:', e);
         }
         
-        // Try server-side FREE conversion first (Option-B)
+        // Try server-side FREE conversion first (NEW Engine v1)
         if (pdfFile && pdfFile.size <= 2 * 1024 * 1024) { // 2MB limit
           try {
             const API_BASE_URL = window.API_BASE_URL || 'https://pdf-to-excel-backend-564572183797.us-central1.run.app';
