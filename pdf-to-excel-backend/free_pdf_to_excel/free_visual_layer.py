@@ -139,9 +139,127 @@ def extract_rectangles(pdf_bytes: bytes, page_num: int = 0) -> List[Dict]:
     return rectangles
 
 
+def _extract_images_with_pypdf2(pdf_bytes: bytes, page_num: int = 0, max_size_bytes: int = 200 * 1024) -> List[Dict]:
+    """
+    Extract images using PyPDF2 (PRIMARY METHOD).
+    This is more reliable for image extraction.
+    
+    Returns same format as extract_small_images().
+    """
+    images = []
+    
+    try:
+        from PyPDF2 import PdfReader
+        
+        pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
+        
+        if page_num >= len(pdf_reader.pages):
+            return []
+        
+        page = pdf_reader.pages[page_num]
+        
+        # Get page dimensions
+        page_width = 612  # Default
+        page_height = 792  # Default
+        if hasattr(page, 'mediabox'):
+            page_width = float(page.mediabox.width)
+            page_height = float(page.mediabox.height)
+        
+        # Extract images from page
+        if hasattr(page, 'images'):
+            for img_idx, img_obj in enumerate(page.images):
+                try:
+                    # Get image data
+                    if hasattr(img_obj, 'get_data'):
+                        image_data = img_obj.get_data()
+                    elif hasattr(img_obj, 'data'):
+                        image_data = img_obj.data
+                    else:
+                        continue
+                    
+                    if not image_data or len(image_data) == 0:
+                        continue
+                    
+                    size_bytes = len(image_data)
+                    
+                    # Skip if too large
+                    if size_bytes > max_size_bytes:
+                        continue
+                    
+                    # Detect image format
+                    image_format = None
+                    if len(image_data) >= 8 and image_data[:8] == b'\x89PNG\r\n\x1a\n':
+                        image_format = 'png'
+                    elif len(image_data) >= 2 and image_data[:2] == b'\xff\xd8':
+                        image_format = 'jpeg'
+                    elif len(image_data) >= 6 and image_data[:6] in [b'GIF87a', b'GIF89a']:
+                        image_format = 'gif'
+                    else:
+                        # Try to detect from image object name
+                        if hasattr(img_obj, 'name'):
+                            name_lower = img_obj.name.lower()
+                            if 'png' in name_lower or 'image/png' in name_lower:
+                                image_format = 'png'
+                            elif 'jpeg' in name_lower or 'jpg' in name_lower or 'image/jpeg' in name_lower:
+                                image_format = 'jpeg'
+                            elif 'gif' in name_lower:
+                                image_format = 'gif'
+                    
+                    if not image_format:
+                        image_format = 'png'  # Default
+                    
+                    # Get image dimensions from PDF
+                    # PyPDF2 doesn't always provide coordinates, so we estimate
+                    # Try to get from image object if available
+                    width = 100  # Default
+                    height = 100  # Default
+                    x0, y0 = 0, 0
+                    
+                    if hasattr(img_obj, 'width') and hasattr(img_obj, 'height'):
+                        width = float(img_obj.width) if img_obj.width else 100
+                        height = float(img_obj.height) if img_obj.height else 100
+                    
+                    # Estimate position (PyPDF2 doesn't provide exact coordinates)
+                    # We'll use a reasonable default position
+                    x0 = 50.0  # Default left margin
+                    y0 = page_height - height - 50.0  # Default top margin (PDF coordinates are bottom-up)
+                    x1 = x0 + width
+                    y1 = y0 + height
+                    
+                    # Check if full-page or too small
+                    is_full_page = (width > page_width * 0.9 and height > page_height * 0.9)
+                    is_too_small = width < 50 or height < 50
+                    
+                    if not is_full_page and not is_too_small:
+                        images.append({
+                            'x0': float(x0),
+                            'y0': float(y0),
+                            'x1': float(x1),
+                            'y1': float(y1),
+                            'width': float(width),
+                            'height': float(height),
+                            'size_bytes': size_bytes,
+                            'image_data': image_data,
+                            'image_format': image_format,
+                            'page': page_num
+                        })
+                        logger.info(f"✅ PyPDF2 extracted image {img_idx}: {size_bytes} bytes, format: {image_format}")
+                
+                except Exception as img_e:
+                    logger.warning(f"Error extracting image {img_idx} with PyPDF2: {img_e}")
+                    continue
+        
+    except Exception as e:
+        logger.warning(f"PyPDF2 image extraction failed: {e}")
+        return []
+    
+    return images
+
+
 def extract_small_images(pdf_bytes: bytes, page_num: int = 0, max_size_kb: int = 200) -> List[Dict]:
     """
     Extract small images (<200 KB, first page only).
+    Uses PyPDF2 as PRIMARY method, pdfminer as FALLBACK.
     Ignores background and full-page images.
     
     Args:
@@ -164,6 +282,18 @@ def extract_small_images(pdf_bytes: bytes, page_num: int = 0, max_size_kb: int =
     images = []
     max_size_bytes = max_size_kb * 1024
     
+    # METHOD 1: Try PyPDF2 first (more reliable for images)
+    try:
+        pypdf2_images = _extract_images_with_pypdf2(pdf_bytes, page_num, max_size_bytes)
+        if pypdf2_images:
+            logger.info(f"✅ PyPDF2 extracted {len(pypdf2_images)} images successfully")
+            return pypdf2_images
+        else:
+            logger.info("PyPDF2 found no images, trying pdfminer fallback...")
+    except Exception as pypdf2_e:
+        logger.warning(f"PyPDF2 extraction failed, using pdfminer fallback: {pypdf2_e}")
+    
+    # METHOD 2: Fallback to pdfminer (original method)
     try:
         pdf_file = io.BytesIO(pdf_bytes)
         
@@ -203,7 +333,7 @@ def extract_small_images(pdf_bytes: bytes, page_num: int = 0, max_size_kb: int =
                                 if hasattr(element, 'stream') and hasattr(element.stream, 'get_data'):
                                     image_data = element.stream.get_data()
                                     size_bytes = len(image_data) if image_data else 0
-                                    logger.info(f"Extracted LTImage: {size_bytes} bytes at ({x0}, {y0})")
+                                    logger.info(f"Extracted LTImage (pdfminer): {size_bytes} bytes at ({x0}, {y0})")
                                     
                                     # Detect image format from stream
                                     if hasattr(element, 'name'):
@@ -240,7 +370,7 @@ def extract_small_images(pdf_bytes: bytes, page_num: int = 0, max_size_kb: int =
                                 if hasattr(element, 'stream') and hasattr(element.stream, 'get_data'):
                                     image_data = element.stream.get_data()
                                     size_bytes = len(image_data) if image_data else 0
-                                    logger.info(f"Extracted LTFigure image: {size_bytes} bytes at ({x0}, {y0})")
+                                    logger.info(f"Extracted LTFigure image (pdfminer): {size_bytes} bytes at ({x0}, {y0})")
                                     
                                     # Detect format from data
                                     if image_data:
@@ -263,7 +393,7 @@ def extract_small_images(pdf_bytes: bytes, page_num: int = 0, max_size_kb: int =
                                                 if hasattr(child, 'stream') and hasattr(child.stream, 'get_data'):
                                                     image_data = child.stream.get_data()
                                                     size_bytes = len(image_data) if image_data else 0
-                                                    logger.info(f"Extracted nested LTImage from LTFigure: {size_bytes} bytes")
+                                                    logger.info(f"Extracted nested LTImage from LTFigure (pdfminer): {size_bytes} bytes")
                                                     if image_data:
                                                         if len(image_data) >= 8 and image_data[:8] == b'\x89PNG\r\n\x1a\n':
                                                             image_format = 'png'
