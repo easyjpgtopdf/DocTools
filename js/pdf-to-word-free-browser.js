@@ -294,26 +294,37 @@ async function convertPdfToWordBrowser(pdfDoc, progressCallback) {
     
     progressCallback(40, 'Loading Word library...');
     
-    // Try to load docx library
-    let docx;
-    try {
-        docx = await import('https://unpkg.com/docx@8.5.0/build/index.js');
-    } catch (e) {
-        throw new Error('Failed to load Word library. Please check your internet connection.');
+    // Load JSZip for creating DOCX
+    let JSZip;
+    if (typeof window.JSZip !== 'undefined') {
+        JSZip = window.JSZip;
+    } else {
+        // Load JSZip from CDN
+        await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+            script.onload = () => {
+                JSZip = window.JSZip;
+                resolve();
+            };
+            script.onerror = () => reject(new Error('Failed to load JSZip library'));
+            document.head.appendChild(script);
+        });
     }
     
     progressCallback(50, 'Creating Word document...');
     
-    const children = [];
+    // Create DOCX content using JSZip
+    const zip = new JSZip();
+    
+    // Create basic DOCX structure
+    const relationships = [];
+    const documentXmlParts = [];
     
     for (let pageIdx = 0; pageIdx < allPages.length; pageIdx++) {
         const pageNum = allPages[pageIdx];
         const progress = 50 + (pageIdx / allPages.length) * 40;
         progressCallback(progress, `Processing page ${pageNum}/${allPages.length}...`);
-        
-        if (pageIdx > 0) {
-            children.push(new docx.Paragraph({ text: '', pageBreakBefore: true }));
-        }
         
         const pageItems = textItems.filter(item => 
             item.pageNum === pageNum &&
@@ -327,6 +338,7 @@ async function convertPdfToWordBrowser(pdfDoc, progressCallback) {
         const rows = detectRows(pageItems, pageNum);
         
         if (columns.length && rows.length) {
+            // Create table structure
             const cells = [];
             for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
                 const row = rows[rowIdx];
@@ -348,43 +360,78 @@ async function convertPdfToWordBrowser(pdfDoc, progressCallback) {
                 const maxCol = Math.max(...mergedCells.map(c => c.colIndex));
                 const maxRow = Math.max(...mergedCells.map(c => c.rowIndex));
                 
-                const tableRows = [];
+                // Build table XML
+                let tableXml = '<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/></w:tblPr><w:tblGrid>';
+                for (let c = 0; c <= maxCol; c++) {
+                    tableXml += `<w:gridCol w:w="1000"/>`;
+                }
+                tableXml += '</w:tblGrid>';
+                
                 for (let r = 0; r <= maxRow; r++) {
-                    const rowCells = [];
+                    tableXml += '<w:tr>';
                     for (let c = 0; c <= maxCol; c++) {
                         const cell = mergedCells.find(ce => ce.rowIndex === r && ce.colIndex === c);
-                        rowCells.push(new docx.TableCell({
-                            children: [new docx.Paragraph({ text: cell ? cell.text : '' })]
-                        }));
+                        const cellText = cell ? cell.text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+                        tableXml += `<w:tc><w:tcPr><w:tcW w:w="1000" w:type="dxa"/></w:tcPr><w:p><w:r><w:t>${cellText}</w:t></w:r></w:p></w:tc>`;
                     }
-                    tableRows.push(new docx.TableRow({ children: rowCells }));
+                    tableXml += '</w:tr>';
                 }
-                
-                children.push(new docx.Table({ rows: tableRows }));
+                tableXml += '</w:tbl>';
+                documentXmlParts.push(tableXml);
             } else {
+                // Add as paragraphs
                 const sorted = pageItems.sort((a, b) => b.y0 - a.y0);
                 for (const item of sorted) {
-                    children.push(new docx.Paragraph({ text: item.text }));
+                    const text = item.text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    documentXmlParts.push(`<w:p><w:r><w:t>${text}</w:t></w:r></w:p>`);
                 }
             }
         } else {
+            // Add as paragraphs
             const sorted = pageItems.sort((a, b) => b.y0 - a.y0);
             for (const item of sorted) {
-                children.push(new docx.Paragraph({ text: item.text }));
+                const text = item.text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                documentXmlParts.push(`<w:p><w:r><w:t>${text}</w:t></w:r></w:p>`);
             }
+        }
+        
+        // Add page break (except last page)
+        if (pageIdx < allPages.length - 1) {
+            documentXmlParts.push('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
         }
     }
     
     progressCallback(95, 'Generating Word document...');
     
-    const doc = new docx.Document({
-        sections: [{
-            properties: {},
-            children: children
-        }]
-    });
+    // Build document.xml
+    const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    ${documentXmlParts.join('')}
+  </w:body>
+</w:document>`;
     
-    const blob = await docx.Packer.toBlob(doc);
+    // Create minimal DOCX structure
+    zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`);
+    
+    zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`);
+    
+    zip.file('word/_rels/document.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+</Relationships>`);
+    
+    zip.file('word/document.xml', documentXml);
+    
+    // Generate blob
+    const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
     
     progressCallback(100, 'Conversion complete!');
     

@@ -46,6 +46,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
     
+    <!-- JSZip for DOCX creation (FREE Browser-Based Converter) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <!-- FREE Browser-Based Converter (Zero Server Costs) -->
     <script src="/js/pdf-to-word-free-browser.js"></script>
     
@@ -444,24 +446,24 @@
                     <div id="resultsSection" style="display: none;">
                         <div class="download-card recommended" id="primaryCard">
                             <h3 style="font-size: 1rem; font-weight: 700; color: var(--primary); margin-bottom: 8px;">
-                                <i class="fas fa-star"></i> Recommended Version
+                                <i class="fas fa-star"></i> Free Version
                             </h3>
-                            <span class="method-badge" id="primaryMethod"></span>
-                            <p class="muted" style="margin: 8px 0;">Best conversion quality</p>
+                            <span class="method-badge" id="primaryMethod">Browser-Based</span>
+                            <p class="muted" style="margin: 8px 0;">Converted with browser-based free conversion</p>
                             <a href="#" id="primaryDownload" class="download-link" download>
-                                <i class="fas fa-download"></i> Download Recommended
+                                <i class="fas fa-download"></i> Download Free Version
                             </a>
                         </div>
                         
-                        <div class="download-card" id="altCard" style="display: none; margin-top: 12px;">
+                        <div class="download-card" id="premiumCard" style="margin-top: 12px; border: 2px solid var(--primary); background: linear-gradient(135deg, rgba(67, 97, 238, 0.05), rgba(67, 97, 238, 0.02));">
                             <h3 style="font-size: 1rem; font-weight: 700; color: var(--primary); margin-bottom: 8px;">
-                                <i class="fas fa-adjust"></i> Alternative Version
+                                <i class="fas fa-crown"></i> OCR Pro Version
                             </h3>
-                            <span class="method-badge" id="altMethod"></span>
-                            <p class="muted" style="margin: 8px 0;">Alternative conversion method</p>
-                            <a href="#" id="altDownload" class="download-link" download style="background: #6c757d;">
-                                <i class="fas fa-download"></i> Download Alternative
-                            </a>
+                            <span class="method-badge" style="background: var(--primary); color: white;">Premium OCR</span>
+                            <p class="muted" style="margin: 8px 0;">High-accuracy OCR with Google Document AI. Requires credits.</p>
+                            <button id="downloadOCRPro" class="download-link" style="cursor: pointer; border: none; width: 100%; text-align: center;">
+                                <i class="fas fa-arrow-right"></i> Download OCR Pro Version
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -551,6 +553,7 @@
         const selectAllBtn = document.getElementById('selectAll');
         const clearBtn = document.getElementById('clearSelection');
         const backBtn = document.getElementById('backBtn');
+        const downloadOCRPro = document.getElementById('downloadOCRPro');
         
         let currentFile = null;
         let pdfDoc = null;
@@ -765,7 +768,7 @@
             
             try {
                 // Check if browser converter is available
-                if (typeof convertPdfToWordBrowser === 'undefined') {
+                if (typeof window.convertPdfToWordBrowser === 'undefined') {
                     throw new Error('Browser converter not loaded. Please refresh the page.');
                 }
                 
@@ -778,7 +781,7 @@
                     showStatus(message, 'info');
                 };
                 
-                const blob = await convertPdfToWordBrowser(pdfDoc, progressCallback);
+                const blob = await window.convertPdfToWordBrowser(pdfDoc, progressCallback);
                 
                 // Create download link
                 const url = URL.createObjectURL(blob);
@@ -787,7 +790,10 @@
                 primaryMethod.textContent = 'Browser-Based (Free)';
                 primaryMethod.className = 'method-badge libreoffice';
                 
-                // Hide alternative card
+                // Show premium card and hide alternative card
+                if (document.getElementById('premiumCard')) {
+                    document.getElementById('premiumCard').style.display = 'block';
+                }
                 altCard.style.display = 'none';
                 
                 progressFill.style.width = '100%';
