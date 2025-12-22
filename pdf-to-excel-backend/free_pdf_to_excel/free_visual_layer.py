@@ -105,7 +105,12 @@ def extract_rectangles(pdf_bytes: bytes, page_num: int = 0) -> List[Dict]:
             
             for element in page_layout:
                 if isinstance(element, LTRect):
-                    x0, y0, x1, y1 = element.bbox
+                    try:
+                        if not hasattr(element, 'bbox'):
+                            continue
+                        x0, y0, x1, y1 = element.bbox
+                    except (AttributeError, ValueError, TypeError):
+                        continue
                     width = abs(x1 - x0)
                     height = abs(y1 - y0)
                     
@@ -173,6 +178,8 @@ def extract_small_images(pdf_bytes: bytes, page_num: int = 0, max_size_kb: int =
             for element in page_layout:
                 if isinstance(element, (LTImage, LTFigure)):
                     try:
+                        if not hasattr(element, 'bbox'):
+                            continue
                         x0, y0, x1, y1 = element.bbox
                         width = abs(x1 - x0)
                         height = abs(y1 - y0)
@@ -181,8 +188,11 @@ def extract_small_images(pdf_bytes: bytes, page_num: int = 0, max_size_kb: int =
                         size_bytes = 0
                         if isinstance(element, LTImage):
                             # Try to get image data size
-                            if hasattr(element, 'stream'):
-                                size_bytes = len(element.stream.get_data()) if hasattr(element.stream, 'get_data') else 0
+                            try:
+                                if hasattr(element, 'stream') and hasattr(element.stream, 'get_data'):
+                                    size_bytes = len(element.stream.get_data())
+                            except (AttributeError, TypeError):
+                                size_bytes = 0
                         
                         # Filter criteria:
                         # 1. Size must be < max_size_bytes

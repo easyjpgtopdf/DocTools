@@ -91,12 +91,17 @@ def detect_table_grid(
         # Check how many text objects align with grid
         aligned_count = 0
         for obj in text_objects:
-            # Find nearest column
-            nearest_col = min(column_boundaries, key=lambda cx: abs(cx - obj['x']))
-            nearest_row = min(row_boundaries, key=lambda ry: abs(ry - obj['y']))
-            
-            if abs(nearest_col - obj['x']) < 50 and abs(nearest_row - obj['y']) < 20:
-                aligned_count += 1
+            # Find nearest column (with safety check)
+            if column_boundaries and row_boundaries:
+                try:
+                    nearest_col = min(column_boundaries, key=lambda cx: abs(cx - obj['x']))
+                    nearest_row = min(row_boundaries, key=lambda ry: abs(ry - obj['y']))
+                    
+                    if abs(nearest_col - obj['x']) < 50 and abs(nearest_row - obj['y']) < 20:
+                        aligned_count += 1
+                except (ValueError, KeyError):
+                    # Skip if boundaries are invalid
+                    continue
         
         text_alignment_score = aligned_count / len(text_objects) if text_objects else 0.0
     
@@ -124,7 +129,7 @@ def snap_text_to_grid(
     Returns:
         2D grid: grid[row][col] = cell content
     """
-    if not column_boundaries or not row_boundaries:
+    if not column_boundaries or not row_boundaries or len(column_boundaries) == 0 or len(row_boundaries) == 0:
         return []
     
     # Initialize grid

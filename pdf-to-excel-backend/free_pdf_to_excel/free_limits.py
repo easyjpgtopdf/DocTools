@@ -5,7 +5,7 @@ Tracks usage per device/IP with 24-hour reset.
 
 import hashlib
 import time
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple
 
 # Constants
 MAX_FREE_PAGES_PER_DAY = 20  # Updated: 20 pages per day

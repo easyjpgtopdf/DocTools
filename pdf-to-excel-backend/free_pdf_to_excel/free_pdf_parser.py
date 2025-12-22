@@ -58,10 +58,15 @@ def extract_text_with_coordinates(pdf_bytes: bytes, page_num: int = 0) -> List[D
                     if not text or not text.strip():
                         continue
                     
-                    # Get bounding box
-                    x0, y0, x1, y1 = element.bbox
-                    width = x1 - x0
-                    height = y1 - y0
+                    # Get bounding box (with safety check)
+                    try:
+                        if not hasattr(element, 'bbox'):
+                            continue
+                        x0, y0, x1, y1 = element.bbox
+                        width = x1 - x0
+                        height = y1 - y0
+                    except (AttributeError, ValueError, TypeError):
+                        continue
                     
                     # Extract font information
                     font_name = "Arial"

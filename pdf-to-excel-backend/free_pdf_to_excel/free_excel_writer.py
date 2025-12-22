@@ -104,14 +104,15 @@ def create_excel_workbook(
                 cell_obj.border = thin_border
         
         # Auto-size columns
-        for col_idx in range(len(grid[0]) if grid else 0):
-            col_letter = get_column_letter(col_idx + 1)
-            max_length = 0
-            for row in grid:
-                if col_idx < len(row):
-                    cell_text = str(row[col_idx].get('text', ''))
-                    max_length = max(max_length, len(cell_text))
-            ws.column_dimensions[col_letter].width = min(max_length + 2, 50)
+        if grid and len(grid) > 0 and len(grid[0]) > 0:
+            for col_idx in range(len(grid[0])):
+                col_letter = get_column_letter(col_idx + 1)
+                max_length = 0
+                for row in grid:
+                    if col_idx < len(row):
+                        cell_text = str(row[col_idx].get('text', ''))
+                        max_length = max(max_length, len(cell_text))
+                ws.column_dimensions[col_letter].width = min(max_length + 2, 50)
         
         # Place images (logos) as floating objects
         # Note: openpyxl image placement is limited, we'll add comments instead
