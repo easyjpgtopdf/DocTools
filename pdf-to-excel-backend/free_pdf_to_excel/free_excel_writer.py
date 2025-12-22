@@ -145,10 +145,44 @@ def create_excel_workbook(
                     
                     # Create image from bytes
                     from io import BytesIO
+                    
+                    # Validate image data
+                    if not isinstance(image_data, bytes):
+                        logger.warning(f"Image data is not bytes, converting...")
+                        try:
+                            image_data = bytes(image_data)
+                        except Exception as conv_e:
+                            logger.error(f"Cannot convert image data to bytes: {conv_e}")
+                            continue
+                    
+                    # Check if image data is valid
+                    if len(image_data) < 10:  # Too small to be a valid image
+                        logger.warning(f"Image data too small ({len(image_data)} bytes), skipping")
+                        continue
+                    
                     image_stream = BytesIO(image_data)
                     
                     # Create openpyxl Image object
-                    img_obj = OpenpyxlImage(image_stream)
+                    try:
+                        img_obj = OpenpyxlImage(image_stream)
+                    except Exception as img_create_e:
+                        logger.error(f"Failed to create openpyxl Image object: {img_create_e}")
+                        # Try to fix image data - maybe it needs decoding
+                        try:
+                            # Some PDF images are compressed, try to decompress
+                            import zlib
+                            try:
+                                decompressed = zlib.decompress(image_data)
+                                image_stream = BytesIO(decompressed)
+                                img_obj = OpenpyxlImage(image_stream)
+                                logger.info(f"✅ Image decompressed successfully")
+                            except:
+                                # If decompression fails, try as-is with different format
+                                image_stream = BytesIO(image_data)
+                                img_obj = OpenpyxlImage(image_stream)
+                        except Exception as fix_e:
+                            logger.error(f"Could not fix image data: {fix_e}")
+                            continue
                     
                     # Scale image to fit (max 100x100 pixels for Excel cells)
                     max_cell_size = 100

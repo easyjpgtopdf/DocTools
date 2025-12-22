@@ -171,16 +171,16 @@ def extract_small_images(pdf_bytes: bytes, page_num: int = 0, max_size_kb: int =
             if page_idx != page_num:
                 continue
             
-            # Get page dimensions to detect full-page images
-            from PyPDF2 import PdfReader
-            pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
-            page_width = 612  # Default
-            page_height = 792  # Default
-            if pdf_reader.pages:
-                page_obj = pdf_reader.pages[page_idx]
-                if hasattr(page_obj, 'mediabox'):
-                    page_width = float(page_obj.mediabox.width)
-                    page_height = float(page_obj.mediabox.height)
+        # Get page dimensions to detect full-page images
+        from PyPDF2 import PdfReader
+        pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
+        page_width = 612  # Default
+        page_height = 792  # Default
+        if pdf_reader.pages and page_idx < len(pdf_reader.pages):
+            page_obj = pdf_reader.pages[page_idx]
+            if hasattr(page_obj, 'mediabox'):
+                page_width = float(page_obj.mediabox.width)
+                page_height = float(page_obj.mediabox.height)
             
             for element in page_layout:
                 if isinstance(element, (LTImage, LTFigure)):
