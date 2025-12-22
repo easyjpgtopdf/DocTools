@@ -975,6 +975,59 @@
         console.log('API URL:', `${API_BASE_URL}/api/credits/create-order`);
         console.log('Token available:', !!token);
         
+        // Detect user's currency
+        function detectUserCurrency() {
+          // Check if currency is stored in session
+          const storedCurrency = sessionStorage.getItem('userCurrency');
+          if (storedCurrency) {
+            return storedCurrency;
+          }
+          
+          // Detect from browser language
+          const locale = navigator.language || navigator.userLanguage || 'en-US';
+          
+          if (locale.includes('en-IN') || locale.includes('hi')) {
+            return 'INR';
+          }
+          if (locale.includes('en-US') || (locale.includes('en') && !locale.includes('en-IN') && !locale.includes('en-GB'))) {
+            return 'USD';
+          }
+          if (locale.includes('en-GB')) {
+            return 'GBP';
+          }
+          if (locale.includes('ja')) {
+            return 'JPY';
+          }
+          if (locale.includes('ru')) {
+            return 'RUB';
+          }
+          if (locale.includes('en-AU')) {
+            return 'AUD';
+          }
+          if (locale.includes('en-CA') || locale.includes('fr-CA')) {
+            return 'CAD';
+          }
+          if (locale.includes('en-SG') || locale.includes('zh-SG')) {
+            return 'SGD';
+          }
+          if (locale.includes('ar-AE')) {
+            return 'AED';
+          }
+          if (locale.includes('ar-SA')) {
+            return 'SAR';
+          }
+          // European languages
+          if (locale.includes('de') || locale.includes('fr') || locale.includes('es') || locale.includes('it') || locale.includes('nl') || locale.includes('pt') || locale.includes('pl')) {
+            return 'EUR';
+          }
+          
+          // Default to USD
+          return 'USD';
+        }
+        
+        const userCurrency = detectUserCurrency();
+        console.log('Detected user currency:', userCurrency);
+
         const response = await fetch(`${API_BASE_URL}/api/credits/create-order`, {
           method: 'POST',
           headers: {
@@ -985,7 +1038,7 @@
             plan,
             credits,
             amount: price,
-            currency: 'USD'
+            currency: userCurrency // Send detected currency
           })
         });
 

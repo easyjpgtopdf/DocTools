@@ -8,6 +8,60 @@
  * 3. System will automatically work with new prices
  */
 
+/**
+ * Currency Exchange Rates (Base: USD)
+ * Update these rates regularly for accurate pricing
+ * Last updated: 2025-12-22
+ */
+const CURRENCY_RATES = {
+  USD: 1,        // Base currency
+  INR: 95,       // 1 USD = 95 INR
+  EUR: 0.92,     // 1 USD = 0.92 EUR
+  GBP: 0.79,     // 1 USD = 0.79 GBP
+  JPY: 150.5,    // 1 USD = 150.5 JPY
+  AUD: 1.52,     // 1 USD = 1.52 AUD
+  CAD: 1.35,     // 1 USD = 1.35 CAD
+  SGD: 1.34,     // 1 USD = 1.34 SGD
+  AED: 3.67,     // 1 USD = 3.67 AED
+  SAR: 3.75,     // 1 USD = 3.75 SAR
+  RUB: 92.0      // 1 USD = 92.0 RUB
+};
+
+/**
+ * Razorpay Supported Currencies
+ * These currencies can be used directly in Razorpay orders
+ */
+const RAZORPAY_SUPPORTED_CURRENCIES = [
+  'INR',  // Primary
+  'USD',
+  'EUR',
+  'GBP',
+  'JPY',
+  'AUD',
+  'CAD',
+  'SGD',
+  'AED',
+  'SAR',
+  'RUB'
+];
+
+/**
+ * Currency Symbols for Display
+ */
+const CURRENCY_SYMBOLS = {
+  USD: '$',
+  INR: '₹',
+  EUR: '€',
+  GBP: '£',
+  JPY: '¥',
+  AUD: 'A$',
+  CAD: 'C$',
+  SGD: 'S$',
+  AED: 'د.إ',
+  SAR: '﷼',
+  RUB: '₽'
+};
+
 const PRICING_PLANS = {
   free: {
     name: 'Free',
@@ -174,15 +228,59 @@ function updatePricingPlan(planId, updates) {
   return true;
 }
 
+/**
+ * Convert USD price to target currency
+ */
+function convertPrice(usdPrice, targetCurrency) {
+  const rate = CURRENCY_RATES[targetCurrency] || 1;
+  return Math.round(usdPrice * rate * 100) / 100; // Round to 2 decimal places
+}
+
+/**
+ * Get currency symbol for display
+ */
+function getCurrencySymbol(currency) {
+  return CURRENCY_SYMBOLS[currency] || currency;
+}
+
+/**
+ * Check if currency is supported by Razorpay
+ */
+function isRazorpaySupported(currency) {
+  return RAZORPAY_SUPPORTED_CURRENCIES.includes(currency.toUpperCase());
+}
+
+/**
+ * Get all supported currencies
+ */
+function getSupportedCurrencies() {
+  return RAZORPAY_SUPPORTED_CURRENCIES;
+}
+
+/**
+ * Get currency rates
+ */
+function getCurrencyRates() {
+  return CURRENCY_RATES;
+}
+
 module.exports = {
   PRICING_PLANS,
   TOOL_CREDIT_COSTS,
+  CURRENCY_RATES,
+  CURRENCY_SYMBOLS,
+  RAZORPAY_SUPPORTED_CURRENCIES,
   getPricingPlan,
   getAllPricingPlans,
   getToolCreditCost,
   getAllToolCreditCosts,
   updateToolCreditCost,
   addPricingPlan,
-  updatePricingPlan
+  updatePricingPlan,
+  convertPrice,
+  getCurrencySymbol,
+  isRazorpaySupported,
+  getSupportedCurrencies,
+  getCurrencyRates
 };
 

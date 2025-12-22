@@ -10,7 +10,8 @@ const CreditTransaction = require('../models/CreditTransaction');
 const PageVisit = require('../models/PageVisit');
 const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
-const { getPricingPlan } = require('../config/pricingConfig');
+const { getPricingPlan, convertPrice, isRazorpaySupported, getCurrencySymbol } = require('../config/pricingConfig');
+const { detectUserCurrency } = require('../utils/currencyDetector');
 
 // Initialize Razorpay (only if keys are available)
 let razorpay = null;
@@ -51,7 +52,7 @@ async function createCreditOrder(req, res) {
       });
     }
 
-    const { plan, credits, amount, currency = 'USD' } = req.body;
+    const { plan, credits, amount, currency } = req.body;
     const userId = req.userId;
     
     if (!userId) {
@@ -63,17 +64,18 @@ async function createCreditOrder(req, res) {
       });
     }
 
-    console.log(`Creating order for user ${userId}, plan: ${plan}, credits: ${credits}, amount: ${amount}`);
+    // Detect user's preferred currency
+    const userCurrency = currency || detectUserCurrency(req);
+    console.log(`Creating order for user ${userId}, plan: ${plan}, credits: ${credits}, detected currency: ${userCurrency}`);
 
     // Try to get plan from config (if exists)
     const planConfig = getPricingPlan(plan);
     
     // Use config values if available, otherwise use request body
     const finalCredits = planConfig ? planConfig.credits : credits;
-    const finalAmount = planConfig ? planConfig.price : amount;
-    const finalCurrency = planConfig ? planConfig.currency : currency;
+    const baseAmountUSD = planConfig ? planConfig.price : amount; // Always in USD
 
-    if (!plan || (!finalCredits && !credits) || (!finalAmount && !amount)) {
+    if (!plan || (!finalCredits && !credits) || (!baseAmountUSD && !amount)) {
       return res.status(400).json({
         success: false,
         error: 'Missing required fields',
@@ -81,23 +83,51 @@ async function createCreditOrder(req, res) {
       });
     }
 
-    // Convert USD to INR (1 USD = 95 INR as per user requirement)
-    const USD_TO_INR = 95;
-    const amountInINR = finalCurrency === 'USD' ? finalAmount * USD_TO_INR : finalAmount;
-    
-    // Convert amount to paise (Razorpay expects amount in smallest currency unit)
-    const amountInPaise = Math.round(amountInINR * 100);
+    // Convert USD price to user's currency
+    let finalCurrency = userCurrency;
+    let finalAmount = baseAmountUSD;
+
+    // Check if currency is supported by Razorpay
+    if (!isRazorpaySupported(finalCurrency)) {
+      console.warn(`Currency ${finalCurrency} not supported by Razorpay, falling back to INR`);
+      finalCurrency = 'INR';
+      finalAmount = convertPrice(baseAmountUSD, 'INR');
+    } else {
+      // Convert to user's currency
+      finalAmount = convertPrice(baseAmountUSD, finalCurrency);
+    }
+
+    // Convert amount to smallest currency unit (paise for INR, cents for USD, etc.)
+    // Razorpay expects amount in smallest currency unit
+    const currencyMultipliers = {
+      'INR': 100,  // 1 INR = 100 paise
+      'USD': 100,  // 1 USD = 100 cents
+      'EUR': 100,  // 1 EUR = 100 cents
+      'GBP': 100,  // 1 GBP = 100 pence
+      'JPY': 1,    // 1 JPY = 1 yen (no smaller unit)
+      'AUD': 100,
+      'CAD': 100,
+      'SGD': 100,
+      'AED': 100,
+      'SAR': 100,
+      'RUB': 100
+    };
+
+    const multiplier = currencyMultipliers[finalCurrency] || 100;
+    const amountInSmallestUnit = Math.round(finalAmount * multiplier);
 
     const orderOptions = {
-      amount: amountInPaise,
-      currency: 'INR', // Razorpay primarily uses INR
+      amount: amountInSmallestUnit,
+      currency: finalCurrency, // User's currency or INR fallback
       receipt: `credit_${plan}_${Date.now()}`,
       payment_capture: 1,
       notes: {
         userId: userId.toString(),
         plan,
         credits: finalCredits.toString(),
-        type: 'credit_purchase'
+        type: 'credit_purchase',
+        originalCurrency: 'USD',
+        originalAmount: baseAmountUSD.toString()
       }
     };
 
@@ -112,8 +142,10 @@ async function createCreditOrder(req, res) {
       metadata: {
         orderId: order.id,
         plan,
+        currency: finalCurrency,
         amount: finalAmount,
-        currency: finalCurrency
+        originalCurrency: 'USD',
+        originalAmount: baseAmountUSD
       }
     });
 
@@ -122,7 +154,12 @@ async function createCreditOrder(req, res) {
       order,
       key_id: process.env.RAZORPAY_KEY_ID,
       credits: finalCredits,
-      plan
+      plan,
+      currency: finalCurrency,
+      amount: finalAmount,
+      currency_symbol: getCurrencySymbol(finalCurrency),
+      original_currency: 'USD',
+      original_amount: baseAmountUSD
     });
   } catch (error) {
     console.error('Error creating credit order:', error);
