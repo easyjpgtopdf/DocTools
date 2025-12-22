@@ -123,36 +123,47 @@ async def process_pdf_with_processor(
         client = get_document_ai_client()
         
         # Configure the process request
-        # Try different import approaches for compatibility
+        # Use the correct Document AI v1 API structure
         try:
-            from google.cloud.documentai_v1.types import document_processor_service
-            GcsDocument = document_processor_service.GcsDocument
-            InputConfig = document_processor_service.InputConfig
-            ProcessRequest = document_processor_service.ProcessRequest
-        except ImportError:
-            # Fallback: try alternative import path
+            # Import the types module
+            from google.cloud.documentai_v1 import types
+            
+            # Construct GcsDocument
+            gcs_document = types.GcsDocument(
+                gcs_uri=gcs_temp_uri,
+                mime_type="application/pdf"
+            )
+            
+            # Construct InputConfig
+            input_config = types.InputConfig(
+                gcs_document=gcs_document,
+                mime_type="application/pdf"
+            )
+            
+            # Construct ProcessRequest
+            request = types.ProcessRequest(
+                name=processor_name,
+                input_config=input_config
+            )
+        except (ImportError, AttributeError) as e:
+            # Fallback: try alternative import structure
             try:
-                from google.cloud import documentai_v1
-                GcsDocument = documentai_v1.types.GcsDocument
-                InputConfig = documentai_v1.types.InputConfig
-                ProcessRequest = documentai_v1.types.ProcessRequest
-            except (ImportError, AttributeError) as e:
-                raise ImportError(f"Could not import Document AI types: {e}. Please check google-cloud-documentai installation.")
-        
-        gcs_document = GcsDocument(
-            gcs_uri=gcs_temp_uri,
-            mime_type="application/pdf"
-        )
-        
-        input_config = InputConfig(
-            gcs_document=gcs_document,
-            mime_type="application/pdf"
-        )
-        
-        request = ProcessRequest(
-            name=processor_name,
-            input_config=input_config
-        )
+                from google.cloud.documentai_v1.types import document_processor_service
+                # Use the types from document_processor_service
+                gcs_document = document_processor_service.GcsDocument(
+                    gcs_uri=gcs_temp_uri,
+                    mime_type="application/pdf"
+                )
+                input_config = document_processor_service.InputConfig(
+                    gcs_document=gcs_document,
+                    mime_type="application/pdf"
+                )
+                request = document_processor_service.ProcessRequest(
+                    name=processor_name,
+                    input_config=input_config
+                )
+            except (ImportError, AttributeError) as e2:
+                raise ImportError(f"Could not import Document AI types. Error 1: {e}, Error 2: {e2}. Please check google-cloud-documentai installation.")
         
         # Process the document
         result = client.process_document(request=request)

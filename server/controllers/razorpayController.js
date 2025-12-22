@@ -1,5 +1,7 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
+const { convertPrice, isRazorpaySupported, getCurrencySymbol } = require('../config/pricingConfig');
+const { detectUserCurrency } = require('../utils/currencyDetector');
 
 // Initialize Razorpay (only if keys are available)
 let razorpay = null;
@@ -14,10 +16,18 @@ if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
   }
 }
 
-// Create a new order
+// Create a new order (for donations and general payments)
 const createOrder = async (req, res) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return res.status(200).end();
+  }
+
   try {
-    const { amount, currency = 'INR', receipt = 'receipt#1' } = req.body;
+    const { amount, currency, receipt, name, email, firebaseUid, donationType } = req.body;
     
     if (!amount) {
       return res.status(400).json({ 
@@ -26,11 +36,66 @@ const createOrder = async (req, res) => {
       });
     }
 
+    // Detect user currency if not provided
+    let userCurrency = currency || detectUserCurrency(req);
+    
+    // Validate and convert amount if needed
+    let finalCurrency = userCurrency;
+    let finalAmount = parseFloat(amount);
+
+    // If amount is in USD but currency is different, convert
+    if (currency && currency !== userCurrency) {
+      // Amount is already in requested currency
+      finalCurrency = currency;
+    } else if (!currency) {
+      // No currency specified - assume amount is in user's currency
+      finalCurrency = userCurrency;
+    }
+
+    // Check if currency is supported by Razorpay
+    if (!isRazorpaySupported(finalCurrency)) {
+      console.warn(`Currency ${finalCurrency} not supported by Razorpay, falling back to INR`);
+      finalCurrency = 'INR';
+      // Convert to INR if amount was in different currency
+      if (userCurrency !== 'INR') {
+        finalAmount = convertPrice(finalAmount, 'INR');
+      }
+    }
+
+    // Convert amount to smallest currency unit
+    const currencyMultipliers = {
+      'INR': 100,  // 1 INR = 100 paise
+      'USD': 100,  // 1 USD = 100 cents
+      'EUR': 100,  // 1 EUR = 100 cents
+      'GBP': 100,  // 1 GBP = 100 pence
+      'JPY': 1,    // 1 JPY = 1 yen (no smaller unit)
+      'AUD': 100,
+      'CAD': 100,
+      'SGD': 100,
+      'AED': 100,
+      'SAR': 100,
+      'RUB': 100
+    };
+
+    const multiplier = currencyMultipliers[finalCurrency] || 100;
+    const amountInSmallestUnit = Math.round(finalAmount * multiplier);
+
+    // Generate receipt ID
+    const receiptId = receipt || `donation_${Date.now()}`;
+
     const options = {
-      amount: amount * 100, // Razorpay expects amount in paise
-      currency,
-      receipt,
-      payment_capture: 1 // Auto capture payment
+      amount: amountInSmallestUnit,
+      currency: finalCurrency,
+      receipt: receiptId,
+      payment_capture: 1, // Auto capture payment
+      notes: {
+        type: donationType || 'donation',
+        name: name || '',
+        email: email || '',
+        firebaseUid: firebaseUid || '',
+        originalAmount: amount.toString(),
+        originalCurrency: currency || userCurrency
+      }
     };
 
     if (!razorpay) {
@@ -42,10 +107,25 @@ const createOrder = async (req, res) => {
     
     const order = await razorpay.orders.create(options);
     
+    // Return response in format expected by donate.js
     res.status(200).json({
       success: true,
-      order,
-      key_id: process.env.RAZORPAY_KEY_ID
+      data: {
+        id: order.id,
+        amount: order.amount,
+        currency: order.currency,
+        receipt: order.receipt,
+        status: order.status,
+        created_at: order.created_at,
+        key: process.env.RAZORPAY_KEY_ID, // Required by donate.js
+        key_id: process.env.RAZORPAY_KEY_ID
+      },
+      // Also include direct properties for compatibility
+      id: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key: process.env.RAZORPAY_KEY_ID
     });
 
   } catch (error) {
