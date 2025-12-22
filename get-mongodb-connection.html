@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MongoDB Connection String Helper</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        .step {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        .step-number {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .step h3 {
+            color: #333;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+        .step p {
+            color: #666;
+            line-height: 1.6;
+            margin-left: 40px;
+        }
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-size: 14px;
+        }
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .input-group {
+            margin: 20px 0;
+        }
+        .input-group label {
+            display: block;
+            color: #333;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .button {
+            background: #667eea;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+        .button:hover {
+            background: #5568d3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            background: #d4edda;
+            border: 2px solid #28a745;
+            border-radius: 8px;
+            display: none;
+        }
+        .result.show {
+            display: block;
+        }
+        .result h3 {
+            color: #155724;
+            margin-bottom: 10px;
+        }
+        .result .connection-string {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+        .copy-btn {
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .copy-btn:hover {
+            background: #218838;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .warning strong {
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 MongoDB Connection String Helper</h1>
+        <p class="subtitle">MongoDB Atlas se connection string kaise milega - Step by Step Guide</p>
+
+        <div class="step">
+            <h3><span class="step-number">1</span>MongoDB Atlas Dashboard Kholo</h3>
+            <p>https://cloud.mongodb.com/ par login karo aur apna project select karo</p>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">2</span>Database Section Mein Jao</h3>
+            <p>Left sidebar mein <span class="highlight">"Database"</span> ya <span class="highlight">"Clusters"</span> click karo</p>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">3</span>Connect Button Click Karo</h3>
+            <p>Apne cluster ke saamne <span class="highlight">"Connect"</span> button click karo</p>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">4</span>Connection Method Select Karo</h3>
+            <p><span class="highlight">"Connect your application"</span> option select karo (pehla option)</p>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">5</span>Connection String Copy Karo</h3>
+            <p>
+                <strong>Driver:</strong> Node.js<br>
+                <strong>Version:</strong> 5.5 or later<br>
+                Connection string dikhega, use copy karo
+            </p>
+            <div class="code-block">
+mongodb+srv://&lt;username&gt;:&lt;password&gt;@&lt;cluster-name&gt;.mongodb.net/...
+            </div>
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ Important:</strong> Connection string mein <code>&lt;username&gt;</code> aur <code>&lt;password&gt;</code> ko apne actual credentials se replace karna hoga!
+        </div>
+
+        <h2 style="margin-top: 40px; margin-bottom: 20px;">Connection String Yahan Paste Karein:</h2>
+        
+        <div class="input-group">
+            <label for="connectionString">MongoDB Connection String (MongoDB Atlas se copy karke yahan paste karein):</label>
+            <input type="text" id="connectionString" placeholder="mongodb+srv://username:password@cluster.mongodb.net/..." />
+        </div>
+
+        <div class="input-group">
+            <label for="databaseName">Database Name (Optional - agar connection string mein nahi hai):</label>
+            <input type="text" id="databaseName" placeholder="pdf-editor-enterprise" value="pdf-editor-enterprise" />
+        </div>
+
+        <button class="button" onclick="generateConnectionString()">✅ Final Connection String Generate Karo</button>
+
+        <div class="result" id="result">
+            <h3>✅ Final Connection String (Cloud Run mein use karein):</h3>
+            <div class="connection-string" id="finalString"></div>
+            <button class="copy-btn" onclick="copyToClipboard()">📋 Copy to Clipboard</button>
+            <p style="margin-top: 15px; color: #155724;">
+                <strong>Next Step:</strong> Is connection string ko Cloud Run environment variable mein add karein:<br>
+                <code style="background: #f8f9fa; padding: 5px; border-radius: 4px;">MONGODB_URI</code>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function generateConnectionString() {
+            const connectionString = document.getElementById('connectionString').value.trim();
+            const databaseName = document.getElementById('databaseName').value.trim();
+
+            if (!connectionString) {
+                alert('❌ Please paste MongoDB connection string from Atlas dashboard!');
+                return;
+            }
+
+            let finalString = connectionString;
+
+            // Ensure database name is included
+            if (databaseName) {
+                // Check if database name is already in the connection string
+                if (!finalString.includes('/' + databaseName + '?') && !finalString.includes('/' + databaseName + '/')) {
+                    // Add database name before query parameters
+                    if (finalString.includes('?')) {
+                        finalString = finalString.replace('?', '/' + databaseName + '?');
+                    } else {
+                        finalString = finalString + '/' + databaseName;
+                    }
+                }
+            }
+
+            // Ensure retryWrites and w=majority are present
+            if (!finalString.includes('retryWrites=true')) {
+                if (finalString.includes('?')) {
+                    finalString += '&retryWrites=true';
+                } else {
+                    finalString += '?retryWrites=true';
+                }
+            }
+            if (!finalString.includes('w=majority')) {
+                finalString += '&w=majority';
+            }
+
+            document.getElementById('finalString').textContent = finalString;
+            document.getElementById('result').classList.add('show');
+        }
+
+        function copyToClipboard() {
+            const text = document.getElementById('finalString').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Connection string copied to clipboard!');
+            }).catch(err => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('✅ Connection string copied to clipboard!');
+            });
+        }
+    </script>
+</body>
+</html>
+

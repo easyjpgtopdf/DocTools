@@ -17,12 +17,10 @@ from storage_gcs import upload_excel_to_gcs, upload_file_to_gcs
 from id_card_detector import detect_id_card
 # Lazy import for docai_service to avoid startup errors
 # from docai_service import process_pdf_to_excel_docai
-# FREE Option-B server-side conversion
-from pdf_to_excel_free_option_b import (
-    process_pdf_to_excel_free_option_b,
-    generate_free_key,
-    check_abuse_limits
-)
+# NEW FREE Engine (completely isolated)
+from free_pdf_to_excel.free_engine_controller import process_pdf_to_excel_free
+from free_pdf_to_excel.free_limits import generate_free_key
+from free_pdf_to_excel.free_response_builder import build_success_response, build_error_response
 
 # Configure logging FIRST
 logging.basicConfig(
@@ -719,13 +717,14 @@ async def pdf_to_excel_free_server_endpoint(
     fingerprint: Optional[str] = None
 ):
     """
-    FREE Server-Side PDF to Excel Conversion (Option-B).
-    Visual + Data Hybrid Pipeline.
-    NO Document AI, NO OCR - CPU-only processing.
+    FREE Server-Side PDF to Excel Conversion (NEW ENGINE v1).
+    Completely isolated from Premium/Document AI.
+    CPU-only processing, NO OCR, NO GPU.
     
     Limits (hidden):
-    - Max 1 page per device/IP per 24 hours
+    - Max 20 pages per device/IP per 24 hours
     - Max file size: 2 MB
+    - Only first page processed
     """
     try:
         # Get client info for abuse control
@@ -758,34 +757,37 @@ async def pdf_to_excel_free_server_endpoint(
         )
         
         if error_message:
-            # If confidence is low or error, return error (frontend will show upgrade popup)
-            if "limit" in error_message.lower() or "upgrade" in error_message.lower():
+            # Check if upgrade is required
+            upgrade_keywords = ["limit", "upgrade", "scanned", "ocr", "pro"]
+            upgrade_required = any(keyword in error_message.lower() for keyword in upgrade_keywords)
+            
+            if upgrade_required:
                 return JSONResponse(
                     status_code=403,
-                    content={
-                        "success": False,
-                        "error": error_message,
-                        "upgrade_required": True
-                    }
+                    content=build_error_response(
+                        error_message,
+                        upgrade_required=True,
+                        fallback_available=False
+                    )
                 )
             else:
                 return JSONResponse(
                     status_code=400,
-                    content={
-                        "success": False,
-                        "error": error_message,
-                        "fallback_available": True  # Frontend can fallback to browser-based
-                    }
+                    content=build_error_response(
+                        error_message,
+                        upgrade_required=False,
+                        fallback_available=True
+                    )
                 )
         
         if not excel_path or pages_processed == 0:
             return JSONResponse(
                 status_code=400,
-                content={
-                    "success": False,
-                    "error": "Conversion failed. Try Premium for better accuracy.",
-                    "fallback_available": True
-                }
+                content=build_error_response(
+                    "Conversion failed. Try Premium for better accuracy.",
+                    upgrade_required=False,
+                    fallback_available=True
+                )
             )
         
         # Read Excel file
@@ -800,50 +802,42 @@ async def pdf_to_excel_free_server_endpoint(
         
         # Upload to GCS and get signed URL
         try:
-            download_url = upload_file_to_gcs(excel_content, file.filename.replace('.pdf', '.xlsx'), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            download_url = upload_file_to_gcs(
+                excel_content,
+                file.filename.replace('.pdf', '.xlsx'),
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            method = "gcs"
         except Exception as e:
             logger.error(f"Error uploading to GCS: {e}")
             # Return file directly if GCS fails
             import base64
             excel_b64 = base64.b64encode(excel_content).decode('utf-8')
-            return JSONResponse(
-                status_code=200,
-                content={
-                    "status": "success",
-                    "success": True,
-                    "engine": "free-server-option-b",
-                    "downloadUrl": f"data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{excel_b64}",
-                    "pagesProcessed": pages_processed,
-                    "confidence": confidence,
-                    "method": "direct_download"
-                }
-            )
+            download_url = f"data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{excel_b64}"
+            method = "direct_download"
         
         return JSONResponse(
             status_code=200,
-            content={
-                "status": "success",
-                "success": True,
-                "engine": "free-server-option-b",
-                "downloadUrl": download_url,
-                "pagesProcessed": pages_processed,
-                "confidence": confidence,
-                "method": "gcs"
-            }
+            content=build_success_response(
+                download_url,
+                pages_processed,
+                confidence,
+                method
+            )
         )
     
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"FREE server conversion error: {e}")
+        logger.error(f"Error in FREE v1 server conversion endpoint: {e}")
         logger.error(traceback.format_exc())
         return JSONResponse(
             status_code=500,
-            content={
-                "success": False,
-                "error": f"Conversion failed: {str(e)}",
-                "fallback_available": True
-            }
+            content=build_error_response(
+                f"Internal server error: {str(e)}",
+                upgrade_required=False,
+                fallback_available=True
+            )
         )
 
 
