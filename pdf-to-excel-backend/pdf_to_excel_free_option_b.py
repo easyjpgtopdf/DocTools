@@ -24,6 +24,7 @@ try:
     HAS_PDF_LIBS = True
 except ImportError as e:
     HAS_PDF_LIBS = False
+    import logging
     logging.warning(f"PDF libraries not available: {e}")
 
 logger = logging.getLogger(__name__)
@@ -33,7 +34,7 @@ _abuse_control = {}
 
 # Constants
 MAX_FREE_FILE_SIZE = 2 * 1024 * 1024  # 2 MB
-MAX_FREE_PAGES_PER_DAY = 1
+MAX_FREE_PAGES_PER_DAY = 10  # Updated: 10 pages per day
 FREE_RESET_HOURS = 24
 
 
@@ -85,7 +86,7 @@ def record_usage(free_key: str, pages: int, file_size: int):
     _abuse_control[free_key]['last_file_size'] = file_size
 
 
-def extract_text_with_coordinates(pdf_bytes: bytes) -> List[Dict]:
+def extract_text_with_coordinates(pdf_bytes: bytes, max_pages: int = 10) -> List[Dict]:
     """
     Extract text with coordinates from PDF using pdfminer.
     Returns list of text objects with x, y, width, height, text.
@@ -96,7 +97,7 @@ def extract_text_with_coordinates(pdf_bytes: bytes) -> List[Dict]:
         pdf_file = io.BytesIO(pdf_bytes)
         
         for page_num, page_layout in enumerate(extract_pages(pdf_file)):
-            if page_num >= 1:  # Only process first page for FREE
+            if page_num >= max_pages:  # Process up to max_pages for FREE
                 break
             
             for element in page_layout:
@@ -143,7 +144,7 @@ def extract_text_with_coordinates(pdf_bytes: bytes) -> List[Dict]:
     return text_objects
 
 
-def extract_lines_and_rectangles(pdf_bytes: bytes) -> Tuple[List[Dict], List[Dict]]:
+def extract_lines_and_rectangles(pdf_bytes: bytes, max_pages: int = 10) -> Tuple[List[Dict], List[Dict]]:
     """
     Extract lines and rectangles from PDF.
     Returns: (lines, rectangles)
@@ -155,7 +156,7 @@ def extract_lines_and_rectangles(pdf_bytes: bytes) -> Tuple[List[Dict], List[Dic
         pdf_file = io.BytesIO(pdf_bytes)
         
         for page_num, page_layout in enumerate(extract_pages(pdf_file)):
-            if page_num >= 1:  # Only first page
+            if page_num >= max_pages:  # Process up to max_pages
                 break
             
             for element in page_layout:
