@@ -109,7 +109,7 @@ def extract_text_with_coordinates(pdf_bytes: bytes, page_num: int = 0) -> List[D
     return text_objects
 
 
-def detect_scanned_pdf(pdf_bytes: bytes) -> Tuple[bool, float]:
+def detect_scanned_pdf(pdf_bytes: bytes) -> Tuple[bool, float, int]:
     """
     Detect if PDF is scanned/image-only.
     
@@ -117,17 +117,17 @@ def detect_scanned_pdf(pdf_bytes: bytes) -> Tuple[bool, float]:
         pdf_bytes: PDF file content
         
     Returns:
-        (is_scanned, text_density_ratio)
+        (is_scanned, text_density_ratio, text_object_count)
     """
     if not HAS_PDF_LIBS:
-        return True, 0.0
+        return True, 0.0, 0
     
     try:
         # Extract text from first page
         text_objects = extract_text_with_coordinates(pdf_bytes, page_num=0)
         
         if not text_objects:
-            return True, 0.0  # No text = scanned
+            return True, 0.0, 0  # No text = scanned
         
         # Calculate text density
         total_text_length = sum(len(obj['text']) for obj in text_objects)

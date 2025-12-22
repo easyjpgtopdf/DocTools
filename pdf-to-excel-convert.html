@@ -943,7 +943,8 @@
               const isUpgradeRequired = serverResult.upgrade_required === true || 
                 (serverResult.error && (
                   serverResult.error.includes('Daily limit') ||
-                  (serverResult.error.includes('scanned') && serverResult.error.includes('Upgrade to Pro'))
+                  (serverResult.error.includes('scanned') && (serverResult.error.includes('Upgrade to Pro') || serverResult.error.includes('Upgrade to convert'))) ||
+                  (serverResult.error.includes('scanned') && serverResult.error.includes('Free version does not support OCR'))
                 ));
               
               if (isUpgradeRequired) {
