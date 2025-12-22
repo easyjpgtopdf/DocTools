@@ -746,10 +746,10 @@ async def pdf_to_excel_free_server_endpoint(
         file_content = await file.read()
         file_size = len(file_content)
         
-        logger.info(f"FREE server conversion request: {file.filename}, size: {file_size} bytes, key: {free_key[:8]}")
+        logger.info(f"FREE v1 engine request: {file.filename}, size: {file_size} bytes, key: {free_key[:8]}")
         
-        # Process PDF to Excel
-        excel_path, pages_processed, confidence, error_message = process_pdf_to_excel_free_option_b(
+        # Process PDF to Excel using NEW FREE engine (completely isolated)
+        excel_path, pages_processed, confidence, error_message = process_pdf_to_excel_free(
             file_content,
             file.filename,
             free_key,
