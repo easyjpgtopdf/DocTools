@@ -137,6 +137,23 @@ def process_pdf_to_excel_free(
         if not success:
             return None, 0, 0.0, "Error creating Excel file"
         
+        # HEURISTIC LAYER HOOK (FULLY REVERSIBLE)
+        # Apply heuristic table-fix and document-type classification if enabled
+        try:
+            from free_heuristic.free_layout_guard import apply_heuristic_layer_if_enabled
+            heuristic_applied, heuristic_error = apply_heuristic_layer_if_enabled(temp_path)
+            if heuristic_applied:
+                logger.info("Heuristic layer applied successfully")
+            elif heuristic_error:
+                logger.warning(f"Heuristic layer warning: {heuristic_error}")
+                # Continue with original Excel - heuristic failure is non-fatal
+        except ImportError:
+            # Heuristic module not available - continue normally
+            logger.debug("Heuristic module not available - skipping")
+        except Exception as heuristic_e:
+            # Heuristic error is non-fatal - continue with original Excel
+            logger.warning(f"Heuristic layer error (non-fatal): {heuristic_e}")
+        
         # Record usage (1 PDF converted)
         record_usage(free_key, pdfs_used=1, file_size=file_size)
         
