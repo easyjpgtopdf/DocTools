@@ -731,7 +731,7 @@
   }
 
   // Backend API URL - Cloud Run deployment
-  const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
+  const API_BASE_URL = 'https://pdf-to-excel-backend-564572183797.us-central1.run.app';
   
   async function exportExcel(){
     if(!pdfDoc){
@@ -1140,7 +1140,7 @@
       const pdfFile = new File([rec.blob], rec.name || 'document.pdf', { type: 'application/pdf' });
       fd.append('file', pdfFile);
       
-      const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
+      const API_BASE_URL = 'https://pdf-to-excel-backend-564572183797.us-central1.run.app';
       // Get user ID - must be async to properly fetch Firebase user ID
       const userId = window.PDFExcelUserType ? await window.PDFExcelUserType.getUserId() : 'anonymous';
       const currentUserType = window.PDFExcelUserType ? window.PDFExcelUserType.getUserType() : 'free';
@@ -1205,7 +1205,7 @@
         }
         
         // Call ID card processing endpoint
-        const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
+        const API_BASE_URL = 'https://pdf-to-excel-backend-564572183797.us-central1.run.app';
         const fd = new FormData();
         const pdfFile = new File([rec.blob], rec.name || 'document.pdf', { type: 'application/pdf' });
         fd.append('file', pdfFile);
@@ -1257,7 +1257,7 @@
         }
         
         // Call ID card processing endpoint
-        const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
+        const API_BASE_URL = 'https://pdf-to-excel-backend-564572183797.us-central1.run.app';
         const fd = new FormData();
         const pdfFile = new File([rec.blob], rec.name || 'document.pdf', { type: 'application/pdf' });
         fd.append('file', pdfFile);
