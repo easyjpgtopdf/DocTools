@@ -22,11 +22,16 @@ from .free_table_inference import (
     snap_text_to_grid,
     detect_header_rows
 )
-from ..free_heuristic.pre_grid_layout_inference import (
-    infer_document_type_from_text,
-    infer_pre_grid_from_text,
-    should_apply_pre_grid_heuristic
-)
+try:
+    from free_heuristic.pre_grid_layout_inference import (
+        infer_document_type_from_text,
+        infer_pre_grid_from_text,
+        should_apply_pre_grid_heuristic
+    )
+    PRE_GRID_AVAILABLE = True
+except ImportError:
+    PRE_GRID_AVAILABLE = False
+    logger.warning("Pre-grid heuristic module not available - will use standard grid detection")
 from .free_excel_writer import create_excel_workbook, create_excel_workbook_multi_page
 from .free_response_builder import build_success_response, build_error_response
 from .free_libreoffice_converter import convert_with_libreoffice, is_libreoffice_available, LIBREOFFICE_ENABLED
