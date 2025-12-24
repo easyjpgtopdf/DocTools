@@ -27,7 +27,7 @@ def classify_document_type(excel_path: str) -> str:
         excel_path: Path to Excel file
         
     Returns:
-        Document type: 'invoice' | 'bank' | 'resume' | 'certificate' | 'form' | 'letter' | 'unknown'
+        Document type: 'invoice' | 'bank_statement' | 'bill_or_receipt' | 'resume' | 'certificate' | 'id_card' | 'letter' | 'generic_form' | 'unknown'
     """
     if not HAS_OPENPYXL:
         return 'unknown'
@@ -52,29 +52,42 @@ def classify_document_type(excel_path: str) -> str:
         full_text = ' '.join(text_content)
         
         # Classification rules (simple keyword-based, O(n))
-        invoice_keywords = ['invoice', 'bill', 'amount due', 'total', 'subtotal', 'tax', 'invoice no', 'invoice number']
-        bank_keywords = ['account', 'balance', 'transaction', 'debit', 'credit', 'statement', 'bank', 'account number']
-        resume_keywords = ['resume', 'cv', 'curriculum vitae', 'education', 'experience', 'skills', 'objective', 'summary']
-        certificate_keywords = ['certificate', 'certified', 'award', 'achievement', 'diploma', 'degree', 'issued']
-        form_keywords = ['form', 'application', 'please fill', 'signature', 'date', 'name', 'address', 'phone']
-        letter_keywords = ['dear', 'sincerely', 'yours', 'regards', 'letter', 'to whom it may concern']
+        invoice_keywords = ['invoice', 'invoice no', 'invoice number', 'invoice date', 'billing address', 'shipping address']
+        bank_statement_keywords = ['bank statement', 'account statement', 'account summary', 'statement period', 'opening balance', 'closing balance', 'bank name']
+        bill_or_receipt_keywords = ['receipt', 'bill', 'payment receipt', 'transaction receipt', 'bill payment receipt', 
+                                    'bill number', 'receipt number', 'paid amount', 'payment method', 'transaction id',
+                                    'biller name', 'biller id', 'b-connect txn id', 'approval ref no', 'consumer number',
+                                    'mobile number', 'payment mode', 'payment status', 'payment channel', 'bill date',
+                                    'bill amount', 'total amount', 'platform fee', 'convenience fee', 'spice money']
+        resume_keywords = ['resume', 'cv', 'curriculum vitae', 'education', 'experience', 'skills', 'objective', 'summary', 'work history', 'employment']
+        certificate_keywords = ['certificate', 'certified', 'award', 'achievement', 'diploma', 'degree', 'issued', 'certification', 'awarded']
+        id_card_keywords = ['id card', 'identity card', 'identification', 'photo id', 'government id', 'national id', 'driving license', 'license number']
+        letter_keywords = ['dear', 'sincerely', 'yours', 'regards', 'letter', 'to whom it may concern', 'subject', 'reference']
+        generic_form_keywords = ['form', 'application', 'please fill', 'signature', 'date', 'name', 'address', 'phone', 
+                        'registration number', 'gst', 'website url', 'agent name', 'agent id', 'transaction date',
+                        'total amount', 'biller', 'platform fee', 'convenience fee', 'bill amount', 'bill date',
+                        'payment channel', 'payment status', 'details', 'field', 'fill in']
         
         # Count keyword matches
         invoice_score = sum(1 for kw in invoice_keywords if kw in full_text)
-        bank_score = sum(1 for kw in bank_keywords if kw in full_text)
+        bank_statement_score = sum(1 for kw in bank_statement_keywords if kw in full_text)
+        bill_or_receipt_score = sum(1 for kw in bill_or_receipt_keywords if kw in full_text)
         resume_score = sum(1 for kw in resume_keywords if kw in full_text)
         certificate_score = sum(1 for kw in certificate_keywords if kw in full_text)
-        form_score = sum(1 for kw in form_keywords if kw in full_text)
+        id_card_score = sum(1 for kw in id_card_keywords if kw in full_text)
         letter_score = sum(1 for kw in letter_keywords if kw in full_text)
+        generic_form_score = sum(1 for kw in generic_form_keywords if kw in full_text)
         
         # Find highest score
         scores = {
             'invoice': invoice_score,
-            'bank': bank_score,
+            'bank_statement': bank_statement_score,
+            'bill_or_receipt': bill_or_receipt_score,
             'resume': resume_score,
             'certificate': certificate_score,
-            'form': form_score,
-            'letter': letter_score
+            'id_card': id_card_score,
+            'letter': letter_score,
+            'generic_form': generic_form_score
         }
         
         max_score = max(scores.values())
@@ -101,12 +114,14 @@ def get_classification_rules() -> Dict[str, bool]:
         Dictionary mapping document type to whether heuristic should be applied
     """
     return {
-        'invoice': False,      # Do nothing - LibreOffice output trusted
-        'bank': False,          # Do nothing - LibreOffice output trusted
-        'resume': True,         # Apply heuristic
-        'certificate': True,    # Apply heuristic
-        'form': True,           # Apply heuristic
-        'letter': True,         # Apply heuristic
-        'unknown': False        # Skip heuristic
+        'invoice': True,           # Apply minimal fixes (merged rows, empty gaps, numeric alignment)
+        'bank_statement': True,   # Apply minimal fixes (merged rows, empty gaps, numeric alignment)
+        'bill_or_receipt': True,  # Apply label-value inference
+        'resume': True,           # Apply section-to-rows conversion
+        'certificate': True,      # Apply 2-column layout
+        'id_card': True,          # Apply 2-column layout
+        'letter': True,           # Apply paragraph-to-rows
+        'generic_form': True,     # Apply form layout fixes
+        'unknown': False          # Skip heuristic
     }
 
