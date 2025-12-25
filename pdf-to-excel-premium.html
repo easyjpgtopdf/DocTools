@@ -512,6 +512,8 @@
 <div id="footer-placeholder"></div>
 
 <script src="js/global-components.js" defer></script>
+<!-- Firebase Authentication - Required for user login and credits -->
+<script src="js/auth.js" type="module"></script>
 <script>
 // Load header and footer via global-components.js
 document.addEventListener('DOMContentLoaded', async function() {
@@ -582,9 +584,47 @@ async function checkCredits() {
         const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
         const MIN_REQUIRED_CREDITS = 30;
         
-        // Get user ID
+        // Wait for Firebase auth to initialize (max 2 seconds)
+        let authReady = false;
+        if (window.auth) {
+            authReady = true;
+        } else {
+            // Wait for auth.js to load and set window.auth
+            for (let i = 0; i < 20; i++) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                if (window.auth) {
+                    authReady = true;
+                    break;
+                }
+            }
+        }
+        
+        // Get user ID - prefer Firebase auth, fallback to PDFExcelUserType
         let userId = 'anonymous';
-        if (window.PDFExcelUserType) {
+        
+        // First try Firebase auth (most reliable)
+        if (window.auth && window.auth.currentUser) {
+            userId = window.auth.currentUser.uid;
+        } else if (authReady && window.auth) {
+            // Wait for auth state if auth is ready but user not loaded yet
+            const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js");
+            await new Promise((resolve) => {
+                const unsubscribe = onAuthStateChanged(window.auth, (user) => {
+                    unsubscribe();
+                    if (user && user.uid) {
+                        userId = user.uid;
+                    }
+                    resolve();
+                });
+                setTimeout(() => {
+                    unsubscribe();
+                    resolve();
+                }, 1000);
+            });
+        }
+        
+        // Fallback to PDFExcelUserType if Firebase auth didn't provide user ID
+        if (userId === 'anonymous' && window.PDFExcelUserType) {
             userId = await window.PDFExcelUserType.getUserId();
         }
         
@@ -794,10 +834,33 @@ if (convertBtn) {
     try {
         const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
         
-        // Get user ID
+        // Get user ID - prefer Firebase auth
         let userId = 'anonymous';
         let userType = null; // Don't default to 'free' - let backend handle
-        if (window.PDFExcelUserType) {
+        
+        // First try Firebase auth (most reliable)
+        if (window.auth && window.auth.currentUser) {
+            userId = window.auth.currentUser.uid;
+        } else if (window.auth) {
+            // Wait for auth state if auth is ready but user not loaded yet
+            const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js");
+            await new Promise((resolve) => {
+                const unsubscribe = onAuthStateChanged(window.auth, (user) => {
+                    unsubscribe();
+                    if (user && user.uid) {
+                        userId = user.uid;
+                    }
+                    resolve();
+                });
+                setTimeout(() => {
+                    unsubscribe();
+                    resolve();
+                }, 1000);
+            });
+        }
+        
+        // Fallback to PDFExcelUserType if Firebase auth didn't provide user ID
+        if (userId === 'anonymous' && window.PDFExcelUserType) {
             userId = await window.PDFExcelUserType.getUserId();
             userType = window.PDFExcelUserType.getUserType();
         }
