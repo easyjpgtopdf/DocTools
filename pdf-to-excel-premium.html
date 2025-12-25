@@ -514,7 +514,7 @@
 <script src="js/global-components.js" defer></script>
 <script>
 // Load header and footer via global-components.js
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     // Global header is loaded by global-components.js
     // Footer is loaded separately
     fetch('footer.html')
@@ -524,11 +524,17 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(err => console.warn('Footer not found'));
     
-    // Load PDF from sessionStorage if available
-    loadPdfFromSession();
+    // CRITICAL: Check credits FIRST before enabling any features
+    creditsCheckPassed = await checkCredits();
     
-    // Check credits
-    checkCredits();
+    // Only load PDF and initialize handlers if credits check passed
+    if (creditsCheckPassed) {
+        // Load PDF from sessionStorage if available
+        loadPdfFromSession();
+        
+        // Initialize upload handlers
+        await initializeUploadHandlers();
+    }
 });
 
 // Load PDF from sessionStorage
@@ -570,10 +576,11 @@ async function loadPdfFromSession() {
     }
 }
 
-// Check user credits
+// Check user credits and block access if insufficient
 async function checkCredits() {
     try {
         const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
+        const MIN_REQUIRED_CREDITS = 30;
         
         // Get user ID
         let userId = 'anonymous';
@@ -595,46 +602,147 @@ async function checkCredits() {
             document.getElementById('creditBalance').textContent = credits;
             document.getElementById('creditInfo').style.display = 'block';
             
-            if (credits < 30) {
-                showStatus('Premium conversion requires at least 30 credits. You have ' + credits + '. Please purchase credits.', 'error');
+            // CRITICAL: Block page access if credits < 30
+            if (credits < MIN_REQUIRED_CREDITS) {
+                // Hide all premium features
+                const premiumCard = document.querySelector('.premium-card');
+                if (premiumCard) {
+                    premiumCard.style.display = 'none';
+                }
+                
+                // Show access denied message
+                const accessDeniedHTML = `
+                    <div class="premium-card" style="text-align: center; padding: 60px 40px;">
+                        <i class="fas fa-lock" style="font-size: 4rem; color: var(--danger); margin-bottom: 24px;"></i>
+                        <h2 style="color: var(--danger); margin-bottom: 16px;">Access Restricted</h2>
+                        <p style="font-size: 1.1rem; margin-bottom: 24px; color: var(--muted);">
+                            Premium conversion requires minimum <strong>${MIN_REQUIRED_CREDITS} credits</strong>.
+                            <br>Your current balance: <strong>${credits} credits</strong>
+                        </p>
+                        <p style="margin-bottom: 32px; color: var(--muted);">
+                            Please purchase credits to access premium features.
+                        </p>
+                        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                            <a href="pricing.html" class="btn btn-primary" style="text-decoration: none;">
+                                <i class="fas fa-shopping-cart"></i> Purchase Credits
+                            </a>
+                            <a href="pdf-to-excel-convert.html" class="btn btn-secondary" style="text-decoration: none;">
+                                <i class="fas fa-arrow-left"></i> Back to Basic Conversion
+                            </a>
+                        </div>
+                    </div>
+                `;
+                
+                // Insert access denied message before premium card
+                const premiumSection = document.querySelector('.premium-section');
+                if (premiumSection) {
+                    premiumSection.insertAdjacentHTML('afterbegin', accessDeniedHTML);
+                }
+                
+                // Disable all upload and conversion features
+                const uploadArea = document.getElementById('uploadArea');
+                const fileInput = document.getElementById('fileInput');
+                const convertBtn = document.getElementById('convertBtn');
+                
+                if (uploadArea) uploadArea.style.pointerEvents = 'none';
+                if (fileInput) fileInput.disabled = true;
+                if (convertBtn) convertBtn.disabled = true;
+                
+                showStatus(`Insufficient credits. Minimum ${MIN_REQUIRED_CREDITS} credits required. You have ${credits}. Please purchase credits to continue.`, 'error');
+                
+                // Log access attempt
+                console.warn(`Premium page access denied: User ${userId} has ${credits} credits (minimum ${MIN_REQUIRED_CREDITS} required)`);
+                
+                return false; // Access denied
+            } else {
+                // Credits sufficient - allow access
+                console.log(`Premium page access granted: User ${userId} has ${credits} credits`);
+                return true; // Access granted
             }
+        } else {
+            // If credits API fails, still block access for safety
+            console.error('Failed to check credits, blocking access for safety');
+            const premiumCard = document.querySelector('.premium-card');
+            if (premiumCard) {
+                premiumCard.style.display = 'none';
+            }
+            showStatus('Unable to verify credits. Please refresh the page or contact support.', 'error');
+            return false;
         }
     } catch (error) {
-        console.warn('Error checking credits:', error);
+        console.error('Error checking credits:', error);
+        // On error, block access for safety
+        const premiumCard = document.querySelector('.premium-card');
+        if (premiumCard) {
+            premiumCard.style.display = 'none';
+        }
+        showStatus('Error checking credits. Please refresh the page or contact support.', 'error');
+        return false;
     }
 }
 
-// File upload handlers
-const uploadArea = document.getElementById('uploadArea');
-const fileInput = document.getElementById('fileInput');
-const convertBtn = document.getElementById('convertBtn');
-const cancelBtn = document.getElementById('cancelBtn');
+// File upload handlers (only enable if credits check passes)
+let creditsCheckPassed = false;
 
-uploadArea.addEventListener('click', () => fileInput.click());
-
-uploadArea.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    uploadArea.classList.add('dragover');
-});
-
-uploadArea.addEventListener('dragleave', () => {
-    uploadArea.classList.remove('dragover');
-});
-
-uploadArea.addEventListener('drop', (e) => {
-    e.preventDefault();
-    uploadArea.classList.remove('dragover');
-    const files = e.dataTransfer.files;
-    if (files.length > 0 && files[0].type === 'application/pdf') {
-        handleFileSelect(files[0]);
+// Initialize upload handlers after credits check
+async function initializeUploadHandlers() {
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const convertBtn = document.getElementById('convertBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    
+    if (!uploadArea || !fileInput) return;
+    
+    // Only enable if credits check passed
+    if (creditsCheckPassed) {
+        // Click handler
+        uploadArea.addEventListener('click', () => {
+            if (creditsCheckPassed) {
+                fileInput.click();
+            }
+        });
+        
+        // Drag and drop handlers
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            if (!creditsCheckPassed) {
+                showStatus('Insufficient credits. Please purchase credits to use premium features.', 'error');
+                return;
+            }
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type === 'application/pdf') {
+                handleFileSelect(files[0]);
+            }
+        });
+        
+        // File input change handler
+        fileInput.addEventListener('change', (e) => {
+            if (!creditsCheckPassed) {
+                showStatus('Insufficient credits. Please purchase credits to use premium features.', 'error');
+                return;
+            }
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+    } else {
+        // Disable all features if credits insufficient
+        uploadArea.style.pointerEvents = 'none';
+        uploadArea.style.opacity = '0.5';
+        fileInput.disabled = true;
+        if (convertBtn) convertBtn.disabled = true;
     }
-});
-
-fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-        handleFileSelect(e.target.files[0]);
-    }
-});
+}
 
 function handleFileSelect(file) {
     if (file.type !== 'application/pdf') {
@@ -647,21 +755,36 @@ function handleFileSelect(file) {
         return;
     }
     
+    // Check credits before allowing file selection
+    if (!creditsCheckPassed) {
+        showStatus('Insufficient credits. Minimum 30 credits required. Please purchase credits to continue.', 'error');
+        return;
+    }
+    
     window.premiumPdfBlob = file;
     window.premiumPdfFilename = file.name;
     
     document.getElementById('fileName').textContent = file.name;
     document.getElementById('fileSize').textContent = formatFileSize(file.size);
     document.getElementById('fileInfo').classList.add('show');
-    convertBtn.disabled = false;
+    const convertBtn = document.getElementById('convertBtn');
+    if (convertBtn) convertBtn.disabled = false;
 }
 
 // Convert button handler
-convertBtn.addEventListener('click', async function() {
-    if (!window.premiumPdfBlob) {
-        showStatus('Please select a PDF file first.', 'error');
-        return;
-    }
+const convertBtn = document.getElementById('convertBtn');
+if (convertBtn) {
+    convertBtn.addEventListener('click', async function() {
+        // Double-check credits before conversion
+        if (!creditsCheckPassed) {
+            showStatus('Insufficient credits. Minimum 30 credits required. Please purchase credits to continue.', 'error');
+            return;
+        }
+        
+        if (!window.premiumPdfBlob) {
+            showStatus('Please select a PDF file first.', 'error');
+            return;
+        }
     
     convertBtn.disabled = true;
     cancelBtn.style.display = 'inline-flex';
@@ -673,7 +796,7 @@ convertBtn.addEventListener('click', async function() {
         
         // Get user ID
         let userId = 'anonymous';
-        let userType = 'free';
+        let userType = null; // Don't default to 'free' - let backend handle
         if (window.PDFExcelUserType) {
             userId = await window.PDFExcelUserType.getUserId();
             userType = window.PDFExcelUserType.getUserType();
@@ -686,13 +809,20 @@ convertBtn.addEventListener('click', async function() {
         
         showProgress(30);
         
+        // Build headers - only send X-User-Type if explicitly 'premium'
+        // Don't send 'free' as it will block the request
+        const headers = {
+            'X-User-ID': userId
+        };
+        if (userType === 'premium') {
+            headers['X-User-Type'] = 'premium';
+        }
+        // If userType is null or 'free', don't send header - backend will check credits instead
+        
         // Call premium endpoint
         const response = await fetch(`${API_BASE_URL}/api/pdf-to-excel-docai`, {
             method: 'POST',
-            headers: {
-                'X-User-ID': userId,
-                'X-User-Type': userType
-            },
+            headers: headers,
             body: fd
         });
         
@@ -729,10 +859,22 @@ convertBtn.addEventListener('click', async function() {
     }
 });
 
-// Cancel button
-cancelBtn.addEventListener('click', () => {
-    window.location.href = 'pdf-to-excel-convert.html';
-});
+// Cancel button handler (already defined in initializeUploadHandlers, but adding here for safety)
+if (typeof cancelBtn !== 'undefined' && cancelBtn) {
+    cancelBtn.addEventListener('click', () => {
+        window.premiumPdfBlob = null;
+        window.premiumPdfFilename = null;
+        const fileInfo = document.getElementById('fileInfo');
+        if (fileInfo) fileInfo.classList.remove('show');
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput) fileInput.value = '';
+        const convertBtn = document.getElementById('convertBtn');
+        if (convertBtn) convertBtn.disabled = true;
+        cancelBtn.style.display = 'none';
+        hideProgress();
+        showStatus('', '');
+    });
+}
 
 // Helper functions
 function showStatus(message, type) {
