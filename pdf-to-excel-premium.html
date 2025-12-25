@@ -536,6 +536,23 @@ document.addEventListener('DOMContentLoaded', async function() {
         }, 100);
     }
     
+    // Ensure auth UI is initialized (for account section visibility)
+    if (typeof window.initializeAuthUI === 'function') {
+        window.initializeAuthUI();
+    } else {
+        // Wait for auth.js to load
+        let attempts = 0;
+        const checkAuthUI = setInterval(() => {
+            attempts++;
+            if (typeof window.initializeAuthUI === 'function') {
+                window.initializeAuthUI();
+                clearInterval(checkAuthUI);
+            } else if (attempts >= 30) {
+                clearInterval(checkAuthUI);
+            }
+        }, 100);
+    }
+    
     // Global header is loaded by global-components.js
     // Footer is loaded separately
     fetch('footer.html')
@@ -545,8 +562,58 @@ document.addEventListener('DOMContentLoaded', async function() {
         })
         .catch(err => console.warn('Footer not found'));
     
-    // CRITICAL: Check credits FIRST before enabling any features
+    // CRITICAL: Wait for auth to be ready before checking credits
+    // This ensures we get the correct user ID
+    let authReady = false;
+    if (window.auth && window.auth.currentUser) {
+        authReady = true;
+    } else {
+        // Wait for auth.js to load and set window.auth
+        for (let i = 0; i < 30; i++) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            if (window.auth) {
+                // Wait for auth state to be determined
+                if (window.auth.currentUser) {
+                    authReady = true;
+                    break;
+                } else {
+                    // Wait for onAuthStateChanged to fire
+                    const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js");
+                    await new Promise((resolve) => {
+                        const unsubscribe = onAuthStateChanged(window.auth, (user) => {
+                            unsubscribe();
+                            authReady = true;
+                            resolve();
+                        });
+                        setTimeout(() => {
+                            unsubscribe();
+                            resolve();
+                        }, 2000);
+                    });
+                    if (authReady) break;
+                }
+            }
+        }
+    }
+    
+    // CRITICAL: Check credits AFTER auth is ready
     creditsCheckPassed = await checkCredits();
+    
+    // Force account section to show if user is logged in
+    if (window.auth && window.auth.currentUser) {
+        const accountSection = document.getElementById('account-section');
+        if (accountSection) {
+            accountSection.style.display = 'block';
+            accountSection.style.visibility = 'visible';
+            accountSection.removeAttribute('hidden');
+        }
+        // Force update UI
+        if (typeof window.updateUI === 'function') {
+            window.updateUI(window.auth.currentUser);
+        } else if (typeof window.forceUpdateUI === 'function') {
+            window.forceUpdateUI();
+        }
+    }
     
     // Only load PDF and initialize handlers if credits check passed
     if (creditsCheckPassed) {
@@ -555,6 +622,17 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Initialize upload handlers
         await initializeUploadHandlers();
+    } else {
+        // Even if credits check failed, ensure upload area is properly disabled
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const convertBtn = document.getElementById('convertBtn');
+        if (uploadArea) {
+            uploadArea.style.pointerEvents = 'none';
+            uploadArea.style.opacity = '0.5';
+        }
+        if (fileInput) fileInput.disabled = true;
+        if (convertBtn) convertBtn.disabled = true;
     }
 });
 
@@ -603,49 +681,48 @@ async function checkCredits() {
         const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
         const MIN_REQUIRED_CREDITS = 30;
         
-        // Wait for Firebase auth to initialize (max 2 seconds)
-        let authReady = false;
-        if (window.auth) {
-            authReady = true;
-        } else {
-            // Wait for auth.js to load and set window.auth
-            for (let i = 0; i < 20; i++) {
-                await new Promise(resolve => setTimeout(resolve, 100));
-                if (window.auth) {
-                    authReady = true;
-                    break;
-                }
-            }
-        }
-        
         // Get user ID - prefer Firebase auth, fallback to PDFExcelUserType
         let userId = 'anonymous';
         
         // First try Firebase auth (most reliable)
         if (window.auth && window.auth.currentUser) {
             userId = window.auth.currentUser.uid;
-        } else if (authReady && window.auth) {
+            console.log('Using Firebase auth user ID:', userId);
+        } else if (window.auth) {
             // Wait for auth state if auth is ready but user not loaded yet
             const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js");
             await new Promise((resolve) => {
+                let resolved = false;
                 const unsubscribe = onAuthStateChanged(window.auth, (user) => {
-                    unsubscribe();
-                    if (user && user.uid) {
-                        userId = user.uid;
+                    if (!resolved) {
+                        resolved = true;
+                        unsubscribe();
+                        if (user && user.uid) {
+                            userId = user.uid;
+                            console.log('Got user ID from auth state change:', userId);
+                        }
+                        resolve();
                     }
-                    resolve();
                 });
                 setTimeout(() => {
-                    unsubscribe();
-                    resolve();
-                }, 1000);
+                    if (!resolved) {
+                        resolved = true;
+                        unsubscribe();
+                        console.warn('Auth state change timeout, using fallback');
+                        resolve();
+                    }
+                }, 2000);
             });
         }
         
         // Fallback to PDFExcelUserType if Firebase auth didn't provide user ID
         if (userId === 'anonymous' && window.PDFExcelUserType) {
             userId = await window.PDFExcelUserType.getUserId();
+            console.log('Using PDFExcelUserType user ID:', userId);
         }
+        
+        // Log final user ID for debugging
+        console.log('Final user ID for credits check:', userId);
         
         const response = await fetch(`${API_BASE_URL}/api/credits`, {
             method: 'GET',
@@ -754,6 +831,14 @@ async function initializeUploadHandlers() {
     
     // Only enable if credits check passed
     if (creditsCheckPassed) {
+        // Enable upload area visually
+        uploadArea.style.pointerEvents = 'auto';
+        uploadArea.style.opacity = '1';
+        fileInput.disabled = false;
+        if (convertBtn) convertBtn.disabled = false;
+        
+        console.log('Upload handlers enabled - credits check passed');
+        
         // Click handler
         uploadArea.addEventListener('click', () => {
             if (creditsCheckPassed) {
