@@ -9,7 +9,10 @@
     <link rel="canonical" href="https://easyjpgtopdf.com/feedback.html">
     <link href="css/footer.css" rel="stylesheet"/>
     <link href="css/header.css" rel="stylesheet"/>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+    <!-- Font Awesome - Load synchronously to ensure icons render properly -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" crossorigin="anonymous" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="/>
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <style>
         * {
             margin: 0;
@@ -428,42 +431,178 @@
                 }, 100);
             });
         })();
+    </script>
 
-        // Load all feedbacks
+    <script>
+        // Load all feedbacks from Firebase Firestore
         let allFeedbacks = [];
         let currentFilter = 'all';
+        
+        // IMMEDIATE EXECUTION - Force console log to verify script runs
+        (function() {
+            console.log('[FEEDBACK] ============================================');
+            console.log('[FEEDBACK] SCRIPT BLOCK EXECUTING NOW');
+            console.log('[FEEDBACK] ============================================');
+        })();
+        
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBch3tJoeFqio3IA4MbPoh2GHZE2qKVzGc",
+            authDomain: "easyjpgtopdf-de346.firebaseapp.com",
+            projectId: "easyjpgtopdf-de346",
+            storageBucket: "easyjpgtopdf-de346.appspot.com",
+            messagingSenderId: "564572183797",
+            appId: "1:564572183797:web:9c204df018c150f02f79bc"
+        };
 
-        function loadAllFeedbacks() {
-            const storedFeedbacks = JSON.parse(localStorage.getItem('feedbacks') || '{}');
-            allFeedbacks = [];
-            
-            // Collect all feedbacks from all pages
-            Object.keys(storedFeedbacks).forEach(page => {
-                storedFeedbacks[page].forEach(fb => {
-                    allFeedbacks.push({
-                        ...fb,
-                        page: page
-                    });
+        async function loadAllFeedbacks() {
+            console.log('[FEEDBACK] ========== loadAllFeedbacks() STARTED ==========');
+            try {
+                // Show loading state
+                const feedbackList = document.getElementById('feedbackList');
+                if (!feedbackList) {
+                    console.error('[FEEDBACK] ERROR: feedbackList element not found!');
+                    console.error('[FEEDBACK] Available elements:', document.querySelectorAll('[id*="feedback"]').length);
+                    return;
+                }
+                console.log('[FEEDBACK] ✓ feedbackList element found');
+                
+                feedbackList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <h3>Loading feedback...</h3>
+                    </div>
+                `;
+
+                console.log('Starting feedback load from Firebase...');
+                console.log('Firebase config projectId:', firebaseConfig?.projectId);
+
+                // Import Firebase modules
+                const { initializeApp, getApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js');
+                const { getFirestore, collection, getDocs, query, orderBy, limit } = await import('https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js');
+
+                // Initialize Firebase
+                const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+                const db = getFirestore(app);
+
+                // Fetch all feedback from Firestore
+                const feedbackRef = collection(db, 'feedback');
+                console.log('Feedback collection reference:', feedbackRef);
+                
+                // Try with createdAt ordering first, fallback to any docs if no createdAt index
+                let snapshot;
+                try {
+                    console.log('Attempting query with createdAt ordering...');
+                    const feedbackQuery = query(feedbackRef, orderBy('createdAt', 'desc'), limit(500));
+                    snapshot = await getDocs(feedbackQuery);
+                    console.log('Query successful, docs found:', snapshot.size);
+                } catch (error) {
+                    // If createdAt index doesn't exist, get all docs and sort manually
+                    console.warn('createdAt index may not exist, fetching all docs:', error);
+                    console.log('Error details:', error.code, error.message);
+                    try {
+                        snapshot = await getDocs(feedbackRef);
+                        console.log('Fallback query successful, docs found:', snapshot.size);
+                    } catch (fallbackError) {
+                        console.error('Both queries failed:', fallbackError);
+                        throw fallbackError;
+                    }
+                }
+
+                console.log('Total documents in snapshot:', snapshot.size);
+                console.log('Is snapshot empty?', snapshot.empty);
+
+                if (snapshot.empty) {
+                    console.log('No feedback documents found in Firestore');
+                    feedbackList.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-comments"></i>
+                            <h3>No feedback yet</h3>
+                            <p>Be the first to share your experience!</p>
+                            <p style="font-size: 0.85rem; margin-top: 10px; color: #9ca3af;">Firebase connected successfully, but no feedback found.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                console.log('Processing documents...');
+                allFeedbacks = snapshot.docs.map((doc, index) => {
+                    const data = doc.data();
+                    console.log(`Processing doc ${index + 1}/${snapshot.size}:`, doc.id, data);
+                    
+                    // Handle timestamp conversion
+                    let createdAtDate;
+                    if (data.createdAt) {
+                        if (data.createdAt.toDate && typeof data.createdAt.toDate === 'function') {
+                            createdAtDate = data.createdAt.toDate();
+                        } else if (data.createdAt.seconds) {
+                            createdAtDate = new Date(data.createdAt.seconds * 1000);
+                        } else if (data.createdAt instanceof Date) {
+                            createdAtDate = data.createdAt;
+                        } else {
+                            createdAtDate = new Date(data.createdAt);
+                        }
+                    } else {
+                        createdAtDate = new Date();
+                    }
+
+                    const feedback = {
+                        id: doc.id,
+                        name: data.name || 'Anonymous',
+                        email: data.email || null,
+                        rating: data.rating || null,
+                        comment: data.comment || '',
+                        message: data.comment || '',
+                        page: data.page || 'index.html',
+                        pageName: data.pageName || (data.page ? data.page.replace('.html', '').replace(/-/g, ' ') : 'Home'),
+                        replies: data.replies || [],
+                        createdAt: createdAtDate,
+                        date: createdAtDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+                    };
+                    console.log('Processed feedback:', feedback);
+                    return feedback;
+                }).sort((a, b) => b.createdAt - a.createdAt); // Sort by date descending
+                
+                console.log('Total feedbacks processed:', allFeedbacks.length);
+
+                // Get unique pages for filter buttons
+                const pageMap = {};
+                allFeedbacks.forEach(fb => {
+                    if (!pageMap[fb.page]) {
+                        pageMap[fb.page] = [];
+                    }
+                    pageMap[fb.page].push(fb);
                 });
-            });
-            
-            // Sort by date (newest first)
-            allFeedbacks.sort((a, b) => {
-                const dateA = new Date(a.date);
-                const dateB = new Date(b.date);
-                return dateB - dateA;
-            });
-            
-            // Update filter buttons
-            updateFilterButtons(storedFeedbacks);
-            
-            // Display feedbacks
-            displayFeedbacks();
+
+                console.log('Page map:', pageMap);
+                console.log('Unique pages:', Object.keys(pageMap));
+
+                // Update filter buttons
+                updateFilterButtons(pageMap);
+                
+                // Display feedbacks
+                console.log('Displaying feedbacks...');
+                displayFeedbacks();
+                console.log('Feedbacks displayed successfully!');
+            } catch (error) {
+                console.error('Error loading feedback:', error);
+                const feedbackList = document.getElementById('feedbackList');
+                feedbackList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h3>Unable to load feedback</h3>
+                        <p>Please try again later.</p>
+                        <p style="font-size: 0.85rem; margin-top: 10px; color: #9ca3af;">Error: ${error.message || 'Unknown error'}</p>
+                        <button onclick="location.reload()" style="margin-top: 15px; padding: 8px 16px; background: #4361ee; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                            Retry
+                        </button>
+                    </div>
+                `;
+            }
         }
 
-        function updateFilterButtons(feedbacks) {
+        async function updateFilterButtons(pageMap) {
             const filterContainer = document.getElementById('filterButtons');
-            const pages = Object.keys(feedbacks);
             
             // Remove all except "All Pages"
             const allBtn = filterContainer.querySelector('[data-filter="all"]');
@@ -471,12 +610,13 @@
             filterContainer.appendChild(allBtn);
             
             // Add page filters
-            pages.forEach(page => {
-                if (feedbacks[page].length > 0) {
+            Object.keys(pageMap).forEach(page => {
+                if (pageMap[page].length > 0) {
                     const btn = document.createElement('button');
                     btn.className = 'filter-btn';
                     btn.setAttribute('data-filter', page);
-                    btn.textContent = page.replace('.html', '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    const pageName = page.replace('.html', '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    btn.textContent = `${pageName} (${pageMap[page].length})`;
                     btn.addEventListener('click', () => {
                         currentFilter = page;
                         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -512,7 +652,9 @@
             
             feedbackList.innerHTML = filteredFeedbacks.map(fb => {
                 const initials = (fb.name || 'Anonymous').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-                const pageName = fb.page.replace('.html', '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                const pageName = fb.pageName || fb.page?.replace('.html', '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Home';
+                const pageUrl = fb.page?.startsWith('http') ? fb.page : (fb.page || 'index.html');
+                const ratingStars = fb.rating ? renderStars(fb.rating) : '';
                 
                 return `
                     <div class="feedback-item">
@@ -520,33 +662,65 @@
                             <div class="feedback-user-info">
                                 <div class="user-avatar">${initials}</div>
                                 <div class="user-details">
-                                    <h4>${fb.name || 'Anonymous'}</h4>
-                                    <a href="${fb.page}" class="page-name">
+                                    <h4>${fb.name || 'Anonymous'}<span style="margin-left: 8px;">${ratingStars}</span></h4>
+                                    <a href="${pageUrl}" class="page-name">
                                         <i class="fas fa-link" style="font-size: 0.7rem;"></i> ${pageName}
                                     </a>
                                 </div>
                             </div>
-                            <div class="feedback-date">${fb.date || 'Recently'}</div>
+                            <div class="feedback-date">${fb.date || formatDate(fb.createdAt) || 'Recently'}</div>
                         </div>
-                        <div class="feedback-message">${escapeHtml(fb.message || '')}</div>
-                        ${fb.reply ? `
+                        <div class="feedback-message">${escapeHtml(fb.message || fb.comment || '')}</div>
+                        ${Array.isArray(fb.replies) && fb.replies.length > 0 ? fb.replies.map(reply => `
                             <div class="feedback-reply">
                                 <div class="feedback-reply-header">
                                     <i class="fas fa-reply"></i>
-                                    <strong>Admin Reply:</strong>
+                                    <strong>${reply.name || 'Admin'} Reply:</strong>
                                 </div>
-                                <div class="feedback-reply-text">${escapeHtml(fb.reply)}</div>
+                                <div class="feedback-reply-text">${escapeHtml(reply.comment || '')}</div>
                             </div>
-                        ` : ''}
+                        `).join('') : ''}
                     </div>
                 `;
             }).join('');
         }
 
         function escapeHtml(text) {
+            if (!text) return '';
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function renderStars(rating) {
+            if (!rating || rating === 0) return '';
+            const max = 5;
+            const filledCount = Math.max(0, Math.min(max, Math.round(rating)));
+            const emptyCount = max - filledCount;
+            
+            // Use Font Awesome icons for reliable cross-browser display
+            let starsHTML = '';
+            for (let i = 0; i < filledCount; i++) {
+                starsHTML += '<i class="fas fa-star" style="color: #f5a623; font-size: 0.9rem;"></i>';
+            }
+            for (let i = 0; i < emptyCount; i++) {
+                starsHTML += '<i class="far fa-star" style="color: #d0d0d0; font-size: 0.9rem;"></i>';
+            }
+            return ' ' + starsHTML;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return null;
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            } catch (e) {
+                return null;
+            }
         }
 
         // Filter button handlers
@@ -559,12 +733,49 @@
             });
         });
 
-        // Load feedbacks on page load
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', loadAllFeedbacks);
-        } else {
-            loadAllFeedbacks();
+        // Load feedbacks on page load - Multiple triggers to ensure execution
+        console.log('[FEEDBACK] Script section loaded');
+        console.log('[FEEDBACK] Document readyState:', document.readyState);
+        console.log('[FEEDBACK] feedbackList element exists:', !!document.getElementById('feedbackList'));
+        
+        function initFeedbackLoad() {
+            console.log('[FEEDBACK] initFeedbackLoad() called');
+            try {
+                loadAllFeedbacks();
+            } catch (err) {
+                console.error('[FEEDBACK] Error in initFeedbackLoad:', err);
+            }
         }
+        
+        // Immediate execution if DOM ready
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            console.log('[FEEDBACK] DOM ready, calling initFeedbackLoad immediately');
+            setTimeout(initFeedbackLoad, 100);
+        }
+        
+        // Also listen for DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('[FEEDBACK] DOMContentLoaded event fired');
+            setTimeout(initFeedbackLoad, 100);
+        });
+        
+        // Also listen for window load as backup
+        window.addEventListener('load', function() {
+            console.log('[FEEDBACK] Window load event fired');
+            if (allFeedbacks.length === 0) {
+                console.log('[FEEDBACK] No feedback loaded yet, retrying...');
+                setTimeout(initFeedbackLoad, 200);
+            }
+        });
+        
+        // Force execution after 1 second as last resort
+        setTimeout(function() {
+            console.log('[FEEDBACK] 1-second timeout check');
+            if (allFeedbacks.length === 0 && document.getElementById('feedbackList')) {
+                console.log('[FEEDBACK] Still no feedback, force loading...');
+                initFeedbackLoad();
+            }
+        }, 1000);
     </script>
 </body>
 </html>

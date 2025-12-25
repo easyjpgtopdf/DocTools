@@ -19,8 +19,9 @@
     
     <link rel="stylesheet" href="/css/footer.css">
     <link rel="stylesheet" href="/css/header.css">
-    <!-- Defer Font Awesome to prevent render blocking -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+    <!-- Font Awesome - Load synchronously to ensure icons render properly -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="/>
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <style>
         /* Reset and Base Styles */
@@ -662,6 +663,9 @@
         .live-comment-rating {
             font-size: 0.85rem;
             color: #f5a623;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, 'Arial Unicode MS', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+            white-space: nowrap;
+            display: inline-block;
         }
 
         .live-comment-text {
@@ -2086,11 +2090,11 @@
                                 <label for="feedback-rating">Rating</label>
                                 <select id="feedback-rating" class="form-control" required>
                                     <option value="">Select rating</option>
-                                    <option value="5">★★★★★ Loved it</option>
-                                    <option value="4">★★★★☆ Pretty good</option>
-                                    <option value="3">★★★☆☆ It works</option>
-                                    <option value="2">★★☆☆☆ Needs improvements</option>
-                                    <option value="1">★☆☆☆☆ Not great</option>
+                                    <option value="5">&#9733;&#9733;&#9733;&#9733;&#9733; Loved it</option>
+                                    <option value="4">&#9733;&#9733;&#9733;&#9733;&#9734; Pretty good</option>
+                                    <option value="3">&#9733;&#9733;&#9733;&#9734;&#9734; It works</option>
+                                    <option value="2">&#9733;&#9733;&#9734;&#9734;&#9734; Needs improvements</option>
+                                    <option value="1">&#9733;&#9734;&#9734;&#9734;&#9734; Not great</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -4399,7 +4403,9 @@
                     };
 
                     try {
+                        // Save to Firebase
                         await addDoc(feedbackRef, payload);
+                        
                         if (ui.form) {
                             ui.form.reset();
                         }
@@ -4454,7 +4460,8 @@
 
                 const rating = document.createElement('span');
                 rating.className = 'live-comment-rating';
-                rating.textContent = renderStars(Number(entry.rating) || 0);
+                // Use innerHTML to properly render star characters
+                rating.innerHTML = renderStars(Number(entry.rating) || 0);
 
                 const time = document.createElement('span');
                 time.className = 'live-comment-time';
@@ -4509,10 +4516,20 @@
         }
 
         function renderStars(rating) {
+            if (!rating || rating === 0) return '';
             const max = 5;
-            const filled = 'â˜…'.repeat(Math.max(0, Math.min(max, Math.round(rating))));
-            const empty = 'â˜†'.repeat(Math.max(0, max - filled.length));
-            return `${filled}${empty}`;
+            const filledCount = Math.max(0, Math.min(max, Math.round(rating)));
+            const emptyCount = max - filledCount;
+            
+            // Use Font Awesome icons for reliable cross-browser display
+            let starsHTML = '';
+            for (let i = 0; i < filledCount; i++) {
+                starsHTML += '<i class="fas fa-star" style="color: #f5a623;"></i>';
+            }
+            for (let i = 0; i < emptyCount; i++) {
+                starsHTML += '<i class="far fa-star" style="color: #d0d0d0;"></i>';
+            }
+            return starsHTML;
         }
 
         function formatTimestamp(timestamp) {
@@ -4629,6 +4646,12 @@
                         createdAt: serverTimestamp()
                     })
                 });
+
+                // Refresh the comment list to show the new reply
+                if (hasValidConfig) {
+                    const entries = await loadFirestoreFeedback();
+                    updateCommentList(entries);
+                }
 
                 closeReplyPanel('Reply posted successfully!');
                 activeReplyTarget = null;
