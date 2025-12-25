@@ -364,6 +364,8 @@
 </script>
 </head>
 <body>
+<!-- Account Section (loaded by global-components.js) -->
+<div id="account-section"></div>
 <!-- Global Header with Account Bar -->
 <div id="global-header-placeholder"></div>
 
@@ -517,6 +519,23 @@
 <script>
 // Load header and footer via global-components.js
 document.addEventListener('DOMContentLoaded', async function() {
+    // Ensure account section loads (before header)
+    if (typeof window.loadAccountSection === 'function') {
+        window.loadAccountSection();
+    } else {
+        // Wait for global-components.js to load
+        let attempts = 0;
+        const checkAccountSection = setInterval(() => {
+            attempts++;
+            if (typeof window.loadAccountSection === 'function') {
+                window.loadAccountSection();
+                clearInterval(checkAccountSection);
+            } else if (attempts >= 20) {
+                clearInterval(checkAccountSection);
+            }
+        }, 100);
+    }
+    
     // Global header is loaded by global-components.js
     // Footer is loaded separately
     fetch('footer.html')
