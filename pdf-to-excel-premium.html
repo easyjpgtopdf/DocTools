@@ -943,14 +943,17 @@ async function initializeUploadHandlers() {
     console.log('Initializing upload handlers, creditsCheckPassed:', creditsCheckPassed);
     
     // Always add event handlers, but check credits inside
-    // Click handler
+    // Click handler - Remove preventDefault to allow native file dialog
     uploadArea.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
         console.log('Upload area clicked, creditsCheckPassed:', creditsCheckPassed);
+        // Don't prevent default - let the click work naturally
         if (creditsCheckPassed) {
+            // Trigger file input click
+            e.stopPropagation();
             fileInput.click();
         } else {
+            e.preventDefault();
+            e.stopPropagation();
             showStatus('Insufficient credits. Minimum 30 credits required. Please purchase credits to continue.', 'error');
         }
     });
@@ -1004,14 +1007,18 @@ async function initializeUploadHandlers() {
     
     // File input change handler (always add, check credits inside)
     fileInput.addEventListener('change', (e) => {
-        console.log('File input changed, creditsCheckPassed:', creditsCheckPassed);
+        console.log('File input changed, creditsCheckPassed:', creditsCheckPassed, 'Files:', e.target.files.length);
+        // Re-check credits at the time of file selection (in case it changed)
         if (!creditsCheckPassed) {
             showStatus('Insufficient credits. Minimum 30 credits required. Please purchase credits to continue.', 'error');
             e.target.value = ''; // Clear selection
             return;
         }
-        if (e.target.files.length > 0) {
+        if (e.target.files && e.target.files.length > 0) {
+            console.log('Calling handleFileSelect with file:', e.target.files[0].name);
             handleFileSelect(e.target.files[0]);
+        } else {
+            console.warn('No files selected');
         }
     });
 }
