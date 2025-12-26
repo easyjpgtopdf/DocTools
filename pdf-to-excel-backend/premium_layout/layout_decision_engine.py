@@ -142,98 +142,120 @@ class LayoutDecisionEngine:
             page_table_confidence = 0.0
 
             # Pre-table decision layer (premium only)
-            category, page_table_confidence = self._determine_layout_category(
+            category_str, page_table_confidence = self._determine_layout_category(
                 doc_type=doc_type,
                 page_tables=page_tables,
                 page_structure=page_structure,
                 has_form_fields=has_form_fields,
                 has_blocks=has_blocks
             )
+            
+            # Use document-level category (PremiumDocCategory enum) for routing
+            # This ensures consistent routing across all pages based on document classification
+            category = self.document_category  # This is PremiumDocCategory enum from _classify_premium_category
+            
             # For TYPE_A, compute advanced table confidence
             if category == PremiumDocCategory.TYPE_A_TRUE_TABULAR and page_tables:
                 page_table_confidence = self._compute_table_confidence_signals(page_tables)
-            logger.info(f"Page {page_idx + 1}: Category={category}, table_confidence={page_table_confidence:.2f}")
+            logger.info(f"Page {page_idx + 1}: Document category={category.value}, page category={category_str}, table_confidence={page_table_confidence:.2f}")
             self.table_confidence = page_table_confidence
             
-            if has_native_tables and allows_table_processing:
-                # Only process tables if document type allows it
-                layout_strategy = "native_tables"
-                logger.info(f"Page {page_idx + 1}: Strategy={layout_strategy}, Using {len(page_tables)} native tables")
-                
-                # Check if these are actual Document AI table objects (for premium post-processing)
-                # vs enhanced table dictionaries (from full OCR)
-                is_native_docai_table = (
-                    page_tables and 
-                    hasattr(page_tables[0], 'header_rows') or hasattr(page_tables[0], 'body_rows')
-                )
-                
-                if is_native_docai_table:
-                    # Process only if true table and confidence passes threshold
-                    if category == PremiumDocCategory.TYPE_A_TRUE_TABULAR and page_table_confidence >= 0.65:
-                        logger.info(f"Page {page_idx + 1}: Using premium post-processing for native Document AI tables")
-                        page_layout = self._convert_native_tables_to_layout(
-                            page_tables, 
-                            document_text, 
-                            page_idx,
-                            page=page,
-                            doc_type=doc_type,
-                            table_confidence=page_table_confidence
+            # DECISION ROUTING: Route by category FIRST (not by data availability)
+            try:
+                if category == PremiumDocCategory.TYPE_A_TRUE_TABULAR:
+                    # TYPE_A: TRUE_TABULAR - Only proceed if table_confidence >= 0.65
+                    layout_strategy = "type_a_tabular"
+                    if has_native_tables and allows_table_processing:
+                        is_native_docai_table = (
+                            page_tables and 
+                            hasattr(page_tables[0], 'header_rows') or hasattr(page_tables[0], 'body_rows')
                         )
-                        page_layout.metadata['table_confidence'] = page_table_confidence
-                        # Final cleanup and normalization (only for TYPE_A with proper conditions)
-                        page_layout = self._final_cleanup_and_normalize(
-                            page_layout,
-                            category=category,
-                            table_confidence=page_table_confidence
-                        )
+                        
+                        if is_native_docai_table and page_table_confidence >= 0.65:
+                            logger.info(f"Page {page_idx + 1}: TYPE_A - Using premium 7-step table pipeline (confidence: {page_table_confidence:.2f})")
+                            page_layout = self._convert_native_tables_to_layout(
+                                page_tables, 
+                                document_text, 
+                                page_idx,
+                                page=page,
+                                doc_type=doc_type,
+                                table_confidence=page_table_confidence
+                            )
+                            page_layout.metadata['table_confidence'] = page_table_confidence
+                            page_layout = self._final_cleanup_and_normalize(
+                                page_layout,
+                                category=category,
+                                table_confidence=page_table_confidence
+                            )
+                        else:
+                            # Confidence too low - downgrade safely
+                            logger.warning(f"Page {page_idx + 1}: TYPE_A - Table confidence {page_table_confidence:.2f} < 0.65, downgrading to simple row-wise")
+                            page_layout = self._convert_to_simple_rowwise(page_tables, document_text, page_idx, doc_type)
+                            page_layout.metadata['table_confidence_status'] = 'LOW_CONFIDENCE_TABLE'
+                            page_layout.metadata['table_confidence'] = page_table_confidence
                     else:
-                        logger.warning(f"Page {page_idx + 1}: Table confidence low or category not true_table, using simple row-wise export")
-                        page_layout = self._convert_to_simple_rowwise(page_tables, document_text, page_idx, doc_type)
-                        page_layout.metadata['table_confidence_status'] = 'LOW_CONFIDENCE_TABLE'
-                        page_layout.metadata['table_confidence'] = page_table_confidence
+                        # No tables or not allowed - downgrade
+                        logger.warning(f"Page {page_idx + 1}: TYPE_A - No tables or table processing not allowed, downgrading")
+                        page_layout = self._convert_to_simple_rowwise(page_tables if page_tables else [], document_text, page_idx, doc_type)
+                
+                elif category == PremiumDocCategory.TYPE_B_KEY_VALUE:
+                    # TYPE_B: KEY_VALUE - Dedicated 2-column layout, NEVER send through table pipeline
+                    layout_strategy = "type_b_key_value"
+                    logger.info(f"Page {page_idx + 1}: TYPE_B - Using dedicated key-value layout (2 columns: Label | Value)")
+                    page_layout = self._convert_to_key_value_layout(
+                        page=page,
+                        document_text=document_text,
+                        page_idx=page_idx,
+                        form_fields=form_fields_list,
+                        page_structure=page_structure,
+                        page_tables=page_tables  # Line-item tables as separate sheet
+                    )
+                
+                elif category == PremiumDocCategory.TYPE_C_MIXED_LAYOUT:
+                    # TYPE_C: MIXED_LAYOUT - Do NOT fail, export page-wise blocks or controlled output
+                    layout_strategy = "type_c_mixed_layout"
+                    logger.info(f"Page {page_idx + 1}: TYPE_C - Exporting page-wise text blocks (no forced table)")
+                    if has_blocks:
+                        page_layout = self._build_layout_from_blocks(blocks_list, doc_type.value, page_idx, force_sequential=True)
+                    elif has_form_fields:
+                        page_layout = self._convert_form_fields_to_layout(form_fields_list, page_idx)
+                    else:
+                        # Controlled output - page-wise text blocks
+                        page_layout = self._build_layout_from_full_ocr(page_structure, page, document_text, doc_type.value, page_idx)
+                    # Ensure it doesn't look like a failed table
+                    page_layout.metadata['layout_type'] = 'mixed_layout_export'
+                
+                elif category == PremiumDocCategory.TYPE_D_PLAIN_TEXT:
+                    # TYPE_D: PLAIN_TEXT - Single-column Excel
+                    layout_strategy = "type_d_plain_text"
+                    logger.info(f"Page {page_idx + 1}: TYPE_D - Using single-column plain text layout")
+                    page_layout = self._convert_to_plain_text_layout(
+                        page=page,
+                        document_text=document_text,
+                        page_idx=page_idx,
+                        page_structure=page_structure
+                    )
+                
                 else:
-                    # Use enhanced tables conversion (dictionaries from full OCR)
-                    page_layout = self._convert_enhanced_tables_to_layout(page_tables, document_text, page_idx, page_structure)
-                    page_layout = self._trim_empty_rows_columns(page_layout)
-            elif has_native_tables and not allows_table_processing:
-                # Document type doesn't allow table processing - use simple row-wise export
-                logger.info(f"Page {page_idx + 1}: Document type {doc_type.value} doesn't allow table processing, using simple export")
-                layout_strategy = "simple_rowwise"
-                page_layout = self._convert_to_simple_rowwise(page_tables, document_text, page_idx, doc_type)
-            elif has_form_fields:
-                layout_strategy = "form_fields"
-                logger.info(f"Page {page_idx + 1}: Strategy={layout_strategy}, Using {len(form_fields_list)} form fields")
-                page_layout = self._convert_form_fields_to_layout(form_fields_list, page_idx)
-            elif has_blocks:
-                if category == "mixed_layout":
-                    layout_strategy = "mixed_blocks"
-                    logger.info(f"Page {page_idx + 1}: Strategy={layout_strategy}, Using {len(blocks_list)} blocks (no fake grid)")
-                    page_layout = self._build_layout_from_blocks(blocks_list, doc_type.value, page_idx, force_sequential=True)
-                else:
-                    layout_strategy = "blocks_reconstruction"
-                    logger.info(f"Page {page_idx + 1}: Strategy={layout_strategy}, Using {len(blocks_list)} blocks for structure reconstruction")
-                    page_layout = self._build_layout_from_blocks(blocks_list, doc_type.value, page_idx)
-            else:
-                # Last resort: Use heuristic builder with page object (will extract text blocks)
-                layout_strategy = "heuristic_inference"
-                logger.info(f"Page {page_idx + 1}: Strategy={layout_strategy}, Using heuristic inference from page structure")
-                page_layout = self._build_layout_from_full_ocr(page_structure, page, document_text, doc_type.value, page_idx)
+                    # Unknown category - fail-safe: use minimal structured layout
+                    logger.warning(f"Page {page_idx + 1}: Unknown category, using fail-safe minimal layout")
+                    layout_strategy = "fail_safe_minimal"
+                    page_layout = self._create_minimal_structured_layout(page, document_text, page_idx)
             
-            # CRITICAL: Ensure layout has at least 2 columns for table-like documents
-            if doc_type.value in ['invoice', 'bank', 'bill', 'statement', 'unknown']:
-                max_cols = page_layout.get_max_column()
-                if max_cols < 2:
-                    logger.warning(f"Page {page_idx + 1}: Layout has only {max_cols} column(s), attempting key-value reconstruction")
-                    # Try to reconstruct as key-value pairs
-                    page_layout = self._reconstruct_key_value_layout(page, document_text, page_idx, page_structure)
-                    layout_strategy = f"{layout_strategy}_keyvalue_reconstruction"
-            
-            # Ensure layout is not empty
-            if page_layout.is_empty():
-                logger.error(f"Page {page_idx + 1}: Layout is empty after {layout_strategy}")
-                # Create minimal structure with document text as fallback (but still structured)
+            except Exception as routing_error:
+                # FAIL-SAFE RULE: No document type should cause API failure
+                logger.error(f"Page {page_idx + 1}: Routing error for category {category}: {routing_error}")
+                logger.info(f"Page {page_idx + 1}: Applying fail-safe: minimal valid Excel")
+                layout_strategy = "fail_safe_error_recovery"
                 page_layout = self._create_minimal_structured_layout(page, document_text, page_idx)
-                layout_strategy = f"{layout_strategy}_minimal_structure"
+                page_layout.metadata['error_recovered'] = True
+                page_layout.metadata['error_message'] = str(routing_error)
+            
+            # FAIL-SAFE: Ensure layout is never empty (always return valid Excel)
+            if page_layout.is_empty():
+                logger.warning(f"Page {page_idx + 1}: Layout is empty after {layout_strategy}, applying fail-safe")
+                page_layout = self._create_minimal_structured_layout(page, document_text, page_idx)
+                layout_strategy = f"{layout_strategy}_fail_safe"
             
             logger.info(f"Page {page_idx + 1}: Final layout - {page_layout.get_max_row()} rows, {page_layout.get_max_column()} columns, strategy: {layout_strategy}")
             page_layouts.append(page_layout)
@@ -1482,4 +1504,213 @@ class LayoutDecisionEngine:
                 normalized.add_row(normalized_cells)
         
         return normalized
-
+    
+    def _convert_to_simple_rowwise(
+        self,
+        tables: List,
+        document_text: str,
+        page_idx: int,
+        doc_type: Optional[DocumentType] = None
+    ) -> UnifiedLayout:
+        """
+        Convert tables to simple row-wise layout (downgrade for low confidence).
+        Used when TYPE_A confidence < 0.65 or when table processing is not allowed.
+        """
+        layout = UnifiedLayout(page_index=page_idx)
+        row_idx = 0
+        
+        for table in tables:
+            # Extract rows from table
+            all_rows = []
+            if hasattr(table, 'header_rows') and table.header_rows:
+                all_rows.extend(table.header_rows)
+            if hasattr(table, 'body_rows') and table.body_rows:
+                all_rows.extend(table.body_rows)
+            
+            for table_row in all_rows:
+                if hasattr(table_row, 'cells') and table_row.cells:
+                    row_cells = []
+                    for col_idx, cell in enumerate(table_row.cells):
+                        cell_text = self._extract_cell_text(cell, document_text)
+                        if cell_text:
+                            cell_obj = Cell(
+                                row=row_idx,
+                                column=col_idx,
+                                value=cell_text,
+                                style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                            )
+                            row_cells.append(cell_obj)
+                    
+                    if row_cells:
+                        layout.add_row(row_cells)
+                        row_idx += 1
+        
+        return layout
+    
+    def _convert_to_key_value_layout(
+        self,
+        page: Any,
+        document_text: str,
+        page_idx: int,
+        form_fields: List[Dict],
+        page_structure: Optional[Dict] = None,
+        page_tables: Optional[List] = None
+    ) -> UnifiedLayout:
+        """
+        TYPE_B: KEY_VALUE layout - Exactly 2 columns: Label | Value
+        Preserves order of appearance.
+        NEVER sends through table pipeline.
+        """
+        layout = UnifiedLayout(page_index=page_idx)
+        layout.metadata['layout_type'] = 'key_value'
+        row_idx = 0
+        
+        # Priority 1: Use form fields if available (most reliable for key-value)
+        if form_fields:
+            logger.info(f"Page {page_idx + 1}: TYPE_B - Using {len(form_fields)} form fields for key-value layout")
+            for field in form_fields:
+                field_name = field.get('name', '').strip()
+                field_value = field.get('value', '').strip()
+                
+                if field_name or field_value:
+                    label_cell = Cell(
+                        row=row_idx,
+                        column=0,
+                        value=field_name,
+                        style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
+                    )
+                    value_cell = Cell(
+                        row=row_idx,
+                        column=1,
+                        value=field_value,
+                        style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                    )
+                    layout.add_row([label_cell, value_cell])
+                    row_idx += 1
+        
+        # Priority 2: Extract key-value pairs from text (preserve order)
+        if row_idx == 0 and document_text:
+            logger.info(f"Page {page_idx + 1}: TYPE_B - Extracting key-value pairs from text")
+            lines = [line.strip() for line in document_text.split('\n') if line.strip()]
+            
+            for line in lines[:200]:  # Limit to first 200 lines
+                # Look for key-value separators (preserve order)
+                separators = [':', '|', '\t', ' - ', ' – ', ' — ']
+                found = False
+                
+                for sep in separators:
+                    if sep in line:
+                        parts = line.split(sep, 1)  # Split only on first occurrence
+                        if len(parts) == 2:
+                            label = parts[0].strip()
+                            value = parts[1].strip()
+                            
+                            if label:  # Label is required, value can be empty
+                                label_cell = Cell(
+                                    row=row_idx,
+                                    column=0,
+                                    value=label,
+                                    style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
+                                )
+                                value_cell = Cell(
+                                    row=row_idx,
+                                    column=1,
+                                    value=value,
+                                    style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                                )
+                                layout.add_row([label_cell, value_cell])
+                                row_idx += 1
+                                found = True
+                                break
+                
+                # If no separator found, treat entire line as label (value empty)
+                if not found and line:
+                    label_cell = Cell(
+                        row=row_idx,
+                        column=0,
+                        value=line,
+                        style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
+                    )
+                    value_cell = Cell(
+                        row=row_idx,
+                        column=1,
+                        value='',
+                        style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                    )
+                    layout.add_row([label_cell, value_cell])
+                    row_idx += 1
+        
+        # Note: Line-item tables (page_tables) are handled separately as additional sheets
+        # This is done at the document level, not per-page
+        
+        if row_idx == 0:
+            # Fail-safe: Create minimal key-value layout
+            logger.warning(f"Page {page_idx + 1}: TYPE_B - No key-value pairs found, creating minimal layout")
+            label_cell = Cell(
+                row=0,
+                column=0,
+                value="Content",
+                style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
+            )
+            value_cell = Cell(
+                row=0,
+                column=1,
+                value=document_text[:100] if document_text else "No content extracted",
+                style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+            )
+            layout.add_row([label_cell, value_cell])
+        
+        logger.info(f"Page {page_idx + 1}: TYPE_B - Created key-value layout with {row_idx} rows (2 columns: Label | Value)")
+        return layout
+    
+    def _convert_to_plain_text_layout(
+        self,
+        page: Any,
+        document_text: str,
+        page_idx: int,
+        page_structure: Optional[Dict] = None
+    ) -> UnifiedLayout:
+        """
+        TYPE_D: PLAIN_TEXT layout - Single-column Excel
+        No table logic, just sequential text lines.
+        """
+        layout = UnifiedLayout(page_index=page_idx)
+        layout.metadata['layout_type'] = 'plain_text'
+        row_idx = 0
+        
+        if not document_text:
+            # Empty content
+            empty_cell = Cell(
+                row=0,
+                column=0,
+                value="No content extracted",
+                style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+            )
+            layout.add_row([empty_cell])
+            return layout
+        
+        # Split text into lines and place each line in single column
+        lines = [line.strip() for line in document_text.split('\n') if line.strip()]
+        
+        for line in lines[:500]:  # Limit to first 500 lines
+            text_cell = Cell(
+                row=row_idx,
+                column=0,  # Always column 0 (single column)
+                value=line,
+                style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=True)
+            )
+            layout.add_row([text_cell])
+            row_idx += 1
+        
+        if row_idx == 0:
+            # Fail-safe: At least one row
+            text_cell = Cell(
+                row=0,
+                column=0,
+                value=document_text[:200] if document_text else "No content extracted",
+                style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=True)
+            )
+            layout.add_row([text_cell])
+        
+        logger.info(f"Page {page_idx + 1}: TYPE_D - Created plain text layout with {row_idx} rows (single column)")
+        return layout
