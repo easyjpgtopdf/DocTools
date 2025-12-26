@@ -268,6 +268,11 @@ async def process_pdf_to_excel_docai(file_bytes: bytes, filename: str) -> Tuple[
         excel_bytes = None
         layout_strategy = "unknown"
         
+        # Initialize unified_layouts to empty list (will be set in try block)
+        unified_layouts = []
+        excel_bytes = None
+        layout_strategy = "unknown"
+        
         try:
             from premium_layout.layout_decision_engine import LayoutDecisionEngine
             from premium_layout.excel_word_renderer import ExcelWordRenderer
@@ -342,7 +347,7 @@ async def process_pdf_to_excel_docai(file_bytes: bytes, filename: str) -> Tuple[
                     style=CellStyle(
                         bold=True,
                         alignment_horizontal=CellAlignment.CENTER,
-                        background_color='#E0E0E0'
+                        background_color='FFE0E0E0'  # aRGB format (alpha + RGB)
                     )
                 )
                 minimal_layout.add_row([minimal_cell])
@@ -374,7 +379,7 @@ async def process_pdf_to_excel_docai(file_bytes: bytes, filename: str) -> Tuple[
                 style=CellStyle(
                     bold=True,
                     alignment_horizontal=CellAlignment.CENTER,
-                    background_color='#E0E0E0'
+                    background_color='FFE0E0E0'  # aRGB format (alpha + RGB)
                 )
             )
             minimal_layout.add_row([minimal_cell])
@@ -385,6 +390,7 @@ async def process_pdf_to_excel_docai(file_bytes: bytes, filename: str) -> Tuple[
             try:
                 renderer = ExcelWordRenderer()
                 excel_bytes = renderer.render_to_excel([minimal_layout], [])
+                unified_layouts = [minimal_layout]  # Set unified_layouts for return
                 logger.info(f"Generated minimal Excel after error: {len(excel_bytes)} bytes")
             except Exception as render_error:
                 # Last resort: create absolute minimal Excel
@@ -406,7 +412,7 @@ async def process_pdf_to_excel_docai(file_bytes: bytes, filename: str) -> Tuple[
                 style=CellStyle(
                     bold=True,
                     alignment_horizontal=CellAlignment.CENTER,
-                    background_color='#E0E0E0'
+                    background_color='FFE0E0E0'  # aRGB format (alpha + RGB)
                 )
             )
             minimal_layout.add_row([minimal_cell])
@@ -439,6 +445,9 @@ async def process_pdf_to_excel_docai(file_bytes: bytes, filename: str) -> Tuple[
         
         # ENTERPRISE RESPONSE: Return unified_layouts for metadata extraction
         # main.py will extract mode, confidence, message from unified_layouts metadata
+        # Ensure unified_layouts is always a list (even if empty)
+        if unified_layouts is None:
+            unified_layouts = []
         return download_url, pages_processed, unified_layouts
         
     except gcp_exceptions.GoogleAPIError as e:
