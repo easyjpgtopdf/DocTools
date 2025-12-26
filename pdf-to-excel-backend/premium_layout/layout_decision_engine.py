@@ -207,7 +207,24 @@ class LayoutDecisionEngine:
                                 page_layout.metadata['table_confidence_status'] = 'SOFT_TABLE_MODE'
                                 page_layout.metadata['table_confidence'] = page_table_confidence
                                 page_layout.metadata['user_message'] = 'Multi-column table detected with weak headers - using soft column inference from body rows'
+                            elif body_rows_count >= 2 and distinct_x_clusters >= 2:
+                                # RELAXED TRIGGER: Even with 2 body rows, if we have distinct X-clusters, try SOFT TABLE MODE
+                                logger.info(f"Page {page_idx + 1}: TYPE_A - Table confidence {page_table_confidence:.2f} < 0.65, but {body_rows_count} body rows with {distinct_x_clusters} X-clusters detected (relaxed trigger). Using SOFT TABLE MODE")
+                                page_layout = self._convert_to_soft_table_mode(
+                                    page_tables=page_tables,
+                                    document_text=document_text,
+                                    page_idx=page_idx,
+                                    page_structure=page_structure,
+                                    page=page
+                                )
+                                page_layout.metadata['body_rows_count'] = body_rows_count
+                                page_layout.metadata['distinct_x_clusters'] = distinct_x_clusters
+                                page_layout.metadata['table_confidence_status'] = 'SOFT_TABLE_MODE_RELAXED'
+                                page_layout.metadata['table_confidence'] = page_table_confidence
+                                page_layout.metadata['user_message'] = 'Multi-column table detected with weak headers - using soft column inference from body rows (relaxed trigger)'
                             else:
+                                # Log why SOFT TABLE MODE didn't trigger
+                                logger.warning(f"Page {page_idx + 1}: TYPE_A - Table confidence {page_table_confidence:.2f} < 0.65, but SOFT TABLE MODE not triggered. body_rows={body_rows_count}, distinct_x_clusters={distinct_x_clusters}")
                                 # USER-VISIBLE BEHAVIOR: TYPE_A with low confidence = "Template/Incomplete Table"
                                 # Output minimal Excel (headers only), do NOT attempt full reconstruction
                                 logger.warning(f"Page {page_idx + 1}: TYPE_A - Table confidence {page_table_confidence:.2f} < 0.65, treating as Template/Incomplete Table (headers only)")
@@ -2010,11 +2027,12 @@ class LayoutDecisionEngine:
             return (0, 0)
         
         # Group blocks by Y-position (rows)
+        # RELAXED precision for Hindi/Devanagari tables (0.02 instead of 0.01)
         blocks_by_y = {}
         for block in blocks:
             bbox = block.get('bounding_box', {})
             y_center = (bbox.get('y_min', 0) + bbox.get('y_max', 0)) / 2
-            y_key = round(y_center * 100) / 100  # Round to 0.01 precision
+            y_key = round(y_center * 50) / 50  # Round to 0.02 precision (more relaxed for Hindi)
             if y_key not in blocks_by_y:
                 blocks_by_y[y_key] = []
             blocks_by_y[y_key].append(block)
@@ -2054,9 +2072,10 @@ class LayoutDecisionEngine:
             return (body_rows_count, 0)
         
         # Cluster X-positions to count distinct clusters
+        # RELAXED tolerance for Hindi/Devanagari tables (0.08 = 8% instead of 5%)
         x_positions = sorted(set(x_positions))
         clusters = []
-        cluster_tolerance = 0.05  # 5% tolerance
+        cluster_tolerance = 0.08  # 8% tolerance (more relaxed for Hindi tables)
         
         for x_pos in x_positions:
             assigned = False
@@ -2152,11 +2171,12 @@ class LayoutDecisionEngine:
         logger.info(f"Page {page_idx + 1}: SOFT TABLE MODE - Merged {len(body_blocks)} body blocks to {len(merged_body_blocks)} after Hindi multi-line handling")
         
         # Step 3: Group merged BODY blocks by Y-position (BODY rows only)
+        # RELAXED precision for Hindi/Devanagari tables (0.02 instead of 0.01)
         body_blocks_by_y = {}
         for block in merged_body_blocks:
             bbox = block.get('bounding_box', {})
             y_center = (bbox.get('y_min', 0) + bbox.get('y_max', 0)) / 2
-            y_key = round(y_center * 100) / 100  # Round to 0.01 precision
+            y_key = round(y_center * 50) / 50  # Round to 0.02 precision (more relaxed for Hindi)
             if y_key not in body_blocks_by_y:
                 body_blocks_by_y[y_key] = []
             body_blocks_by_y[y_key].append(block)
@@ -2402,9 +2422,10 @@ class LayoutDecisionEngine:
         
         # Cluster X-positions (simple k-means-like approach)
         # Group X-positions that are close together
+        # RELAXED tolerance for Hindi/Devanagari tables (0.08 = 8% instead of 5%)
         x_positions = sorted(set(x_positions))
         clusters = []
-        cluster_tolerance = 0.05  # 5% tolerance
+        cluster_tolerance = 0.08  # 8% tolerance (more relaxed for Hindi tables)
         
         for x_pos in x_positions:
             # Find existing cluster or create new one
