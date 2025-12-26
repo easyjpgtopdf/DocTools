@@ -1347,13 +1347,12 @@ async function updateNavbarCreditBalance(user) {
   if (!creditBalanceNav || !creditBalanceValue) return;
   
   try {
-    // Get auth token
-    const token = await user.getIdToken();
-    
-    // Fetch credit balance
-    const response = await fetch('https://pdf-to-word-converter-iwumaktavq-uc.a.run.app/api/user/credits', {
+    // Fetch credit balance from new backend
+    const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
+    const response = await fetch(`${API_BASE_URL}/api/credits`, {
+      method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token}`
+        'X-User-ID': user.uid
       }
     });
     
