@@ -14,7 +14,15 @@ function storeFilesForConversion(files, toolType) {
                 // Convert ArrayBuffer to base64 for storage
                 const arrayBuffer = e.target.result;
                 const uint8Array = new Uint8Array(arrayBuffer);
-                const base64 = btoa(String.fromCharCode.apply(null, uint8Array));
+                
+                // Convert to base64 in chunks to avoid call stack overflow
+                let base64 = '';
+                const chunkSize = 8192; // Process 8KB at a time
+                for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                    const chunk = uint8Array.subarray(i, i + chunkSize);
+                    base64 += String.fromCharCode.apply(null, chunk);
+                }
+                base64 = btoa(base64);
                 
                 fileData.push({
                     name: file.name,
@@ -312,7 +320,15 @@ async function enhancePhoto(files) {
     throw new Error('Photo enhancement requires advanced processing. This feature will be available soon.');
 }
 
-// Export functions
+// Export functions for ES6 modules (browser)
+export {
+    storeFilesForConversion,
+    getStoredFiles,
+    downloadFile,
+    convertFile
+};
+
+// Also support CommonJS for Node.js (if needed)
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         storeFilesForConversion,
@@ -321,4 +337,3 @@ if (typeof module !== 'undefined' && module.exports) {
         convertFile
     };
 }
-
