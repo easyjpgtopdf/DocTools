@@ -574,49 +574,6 @@ class LayoutDecisionEngine:
         density = len(cells) / expected
         return min(1.0, density)
 
-    def _classify_premium_category(self, full_structure: Dict, doc_type: DocumentType) -> PremiumDocCategory:
-        """
-        Classify document into premium categories:
-        TYPE_A: TRUE_TABULAR
-        TYPE_B: KEY_VALUE
-        TYPE_C: MIXED_LAYOUT
-        TYPE_D: PLAIN_TEXT
-        """
-        tables = full_structure.get("tables", []) if full_structure else []
-        blocks = full_structure.get("blocks", []) if full_structure else []
-        form_fields = full_structure.get("form_fields", []) if full_structure else []
-
-        # Helper to estimate columns from table object
-        def table_cols(t):
-            cols = 0
-            if hasattr(t, "header_rows") and t.header_rows:
-                cols = max(cols, len(t.header_rows[0].cells) if hasattr(t.header_rows[0], "cells") else 0)
-            if hasattr(t, "body_rows") and t.body_rows:
-                cols = max(cols, len(t.body_rows[0].cells) if hasattr(t.body_rows[0], "cells") else 0)
-            return cols
-
-        # Compute table confidence
-        table_conf = self._compute_table_confidence_from_tables(tables)
-        max_cols = max([table_cols(t) for t in tables], default=0)
-        total_tables = len(tables)
-
-        # TYPE_A TRUE_TABULAR
-        if total_tables >= 1 and max_cols >= 3:
-            return PremiumDocCategory.TYPE_A_TRUE_TABULAR
-
-        # TYPE_B KEY_VALUE (bills/receipts/invoices, 2-column logical)
-        if form_fields or max_cols == 2 or doc_type in [DocumentType.BILL, DocumentType.INVOICE, DocumentType.BANK_STATEMENT]:
-            return PremiumDocCategory.TYPE_B_KEY_VALUE
-
-        # TYPE_C MIXED_LAYOUT (tables + paragraphs/forms mixed)
-        if total_tables >= 1 and blocks:
-            return PremiumDocCategory.TYPE_C_MIXED_LAYOUT
-        if blocks and form_fields:
-            return PremiumDocCategory.TYPE_C_MIXED_LAYOUT
-
-        # TYPE_D PLAIN_TEXT default
-        return PremiumDocCategory.TYPE_D_PLAIN_TEXT
-    
     def _convert_native_tables_to_layout(
         self,
         native_tables: List,
@@ -1240,66 +1197,6 @@ class LayoutDecisionEngine:
         logger.info(f"Trimmed layout: {len(rows_with_content)} rows, {len(cols_with_content)} columns")
         return trimmed
     
-    def _final_cleanup_and_normalize(
-        self,
-        layout: UnifiedLayout,
-        category: PremiumDocCategory,
-        table_confidence: float
-    ) -> UnifiedLayout:
-        """
-        Final cleanup and normalization for premium PDF-to-Excel.
-        
-        Only executes if:
-        - document_type == TYPE_A (TRUE_TABULAR)
-        - table_confidence >= 0.65
-        - HEADER_NOT_FOUND is false
-        - SPAN_CONFLICT is false
-        """
-        # Scope protection: Only run for TYPE_A with proper conditions
-        if category != PremiumDocCategory.TYPE_A_TRUE_TABULAR:
-            logger.debug("Skipping final cleanup: not TYPE_A")
-            return layout
-        
-        if table_confidence < 0.65:
-            logger.debug("Skipping final cleanup: table confidence too low")
-            return layout
-        
-        # Check for abort flags
-        if layout.metadata.get('header_not_found', False):
-            logger.debug("Skipping final cleanup: HEADER_NOT_FOUND flag set")
-            return layout
-        
-        if layout.metadata.get('span_conflict', False):
-            logger.debug("Skipping final cleanup: SPAN_CONFLICT flag set")
-            return layout
-        
-        logger.info("Starting final cleanup and normalization for TYPE_A table...")
-        
-        try:
-            # Step 1: Empty Row Cleanup
-            layout = self._cleanup_empty_rows(layout)
-            
-            # Step 2: Empty Column Cleanup (respecting header order)
-            layout = self._cleanup_empty_columns(layout)
-            
-            # Step 3: Font Normalization
-            layout = self._normalize_fonts(layout)
-            
-            # Step 4: Alignment Normalization
-            layout = self._normalize_alignments(layout)
-            
-            # Step 5: Header Finalization (already handled in Excel renderer)
-            # Just ensure metadata is set
-            if layout.metadata.get('header_row_count', 0) > 0:
-                layout.metadata['header_frozen'] = True
-            
-            logger.info("Final cleanup and normalization complete")
-            return layout
-            
-        except Exception as e:
-            logger.error(f"Final cleanup detected structural inconsistency: {e}. Preserving pre-clean state.")
-            # Return original layout if cleanup fails
-            return layout
     
     def _cleanup_empty_rows(self, layout: UnifiedLayout) -> UnifiedLayout:
         """Remove rows where ALL cells are empty"""

@@ -1149,6 +1149,29 @@ if (convertBtn) {
         
         showProgress(70);
         
+        // Check if response is ok before parsing JSON
+        if (!response.ok) {
+            let errorMessage = 'Conversion failed. Please try again.';
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.detail?.message || errorData.detail?.error || errorData.message || errorData.error || errorMessage;
+                if (errorData.detail && typeof errorData.detail === 'string') {
+                    errorMessage = errorData.detail;
+                }
+            } catch (e) {
+                // If response is not JSON, try to get text
+                try {
+                    const errorText = await response.text();
+                    if (errorText) {
+                        errorMessage = errorText;
+                    }
+                } catch (e2) {
+                    errorMessage = `Server error (${response.status}): ${response.statusText}`;
+                }
+            }
+            throw new Error(errorMessage);
+        }
+        
         const result = await response.json();
         
         if (result.insufficient_credits) {
@@ -1159,7 +1182,7 @@ if (convertBtn) {
             return;
         }
         
-        if (!response.ok || (result.status !== 'success' && !result.success)) {
+        if (result.status !== 'success' && !result.success) {
             throw new Error(result.error || result.detail || result.message || 'Conversion failed');
         }
         
@@ -1208,12 +1231,35 @@ if (convertBtn) {
         
     } catch (error) {
         console.error('Premium conversion error:', error);
-        // ENTERPRISE ERROR HANDLING: Never show "invalid object" or generic failure
-        let errorMessage = 'Conversion completed with limited accuracy.';
-        if (error.message && !error.message.includes('invalid') && !error.message.includes('object failed')) {
-            errorMessage = `Conversion completed: ${error.message}`;
+        // ENTERPRISE ERROR HANDLING: Extract proper error message
+        let errorMessage = 'Conversion failed. Please try again or contact support.';
+        
+        // Try to extract error message from response
+        if (error.response) {
+            try {
+                const errorData = await error.response.json();
+                errorMessage = errorData.detail?.message || errorData.message || errorData.error || errorMessage;
+            } catch (e) {
+                // If response is not JSON, try to get text
+                try {
+                    const errorText = await error.response.text();
+                    if (errorText) {
+                        errorMessage = errorText;
+                    }
+                } catch (e2) {
+                    // Fallback to default message
+                }
+            }
+        } else if (error.message) {
+            // Check if error.message is a string or object
+            if (typeof error.message === 'string' && error.message !== '[object Object]') {
+                errorMessage = `Conversion failed: ${error.message}`;
+            } else if (error.message.toString && error.message.toString() !== '[object Object]') {
+                errorMessage = `Conversion failed: ${error.message.toString()}`;
+            }
         }
-        showStatus(errorMessage, 'info');
+        
+        showStatus(errorMessage, 'error');
         convertBtn.disabled = false;
         cancelBtn.style.display = 'none';
         hideProgress();
