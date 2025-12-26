@@ -188,13 +188,32 @@ class LayoutDecisionEngine:
                                 table_confidence=page_table_confidence
                             )
                         else:
-                            # USER-VISIBLE BEHAVIOR: TYPE_A with low confidence = "Template/Incomplete Table"
-                            # Output minimal Excel (headers only), do NOT attempt full reconstruction
-                            logger.warning(f"Page {page_idx + 1}: TYPE_A - Table confidence {page_table_confidence:.2f} < 0.65, treating as Template/Incomplete Table (headers only)")
-                            page_layout = self._convert_to_template_headers_only(page_tables, document_text, page_idx)
-                            page_layout.metadata['table_confidence_status'] = 'TEMPLATE_INCOMPLETE_TABLE'
-                            page_layout.metadata['table_confidence'] = page_table_confidence
-                            page_layout.metadata['user_message'] = 'Template or incomplete table detected - showing headers only'
+                            # SOFT TABLE MODE: TYPE_A with low confidence but repeated rows >= 3
+                            # Check if we should use soft table mode instead of headers-only
+                            repeated_rows = self._count_repeated_rows(page_tables, page_structure, document_text)
+                            
+                            if repeated_rows >= 3:
+                                # SOFT TABLE MODE: Infer columns using text alignment, ignore header corruption
+                                logger.info(f"Page {page_idx + 1}: TYPE_A - Table confidence {page_table_confidence:.2f} < 0.65, but {repeated_rows} repeated rows detected. Using SOFT TABLE MODE")
+                                page_layout = self._convert_to_soft_table_mode(
+                                    page_tables=page_tables,
+                                    document_text=document_text,
+                                    page_idx=page_idx,
+                                    page_structure=page_structure,
+                                    page=page
+                                )
+                                page_layout.metadata['repeated_rows_count'] = repeated_rows
+                                page_layout.metadata['table_confidence_status'] = 'SOFT_TABLE_MODE'
+                                page_layout.metadata['table_confidence'] = page_table_confidence
+                                page_layout.metadata['user_message'] = 'Multi-column table detected with weak headers - using soft column inference'
+                            else:
+                                # USER-VISIBLE BEHAVIOR: TYPE_A with low confidence = "Template/Incomplete Table"
+                                # Output minimal Excel (headers only), do NOT attempt full reconstruction
+                                logger.warning(f"Page {page_idx + 1}: TYPE_A - Table confidence {page_table_confidence:.2f} < 0.65, treating as Template/Incomplete Table (headers only)")
+                                page_layout = self._convert_to_template_headers_only(page_tables, document_text, page_idx)
+                                page_layout.metadata['table_confidence_status'] = 'TEMPLATE_INCOMPLETE_TABLE'
+                                page_layout.metadata['table_confidence'] = page_table_confidence
+                                page_layout.metadata['user_message'] = 'Template or incomplete table detected - showing headers only'
                     else:
                         # No tables or not allowed - treat as template/blank
                         logger.warning(f"Page {page_idx + 1}: TYPE_A - No tables or table processing not allowed, treating as template/blank")
@@ -1964,4 +1983,355 @@ class LayoutDecisionEngine:
             layout.add_row([header_cell])
         
         logger.info(f"Page {page_idx + 1}: Created template headers-only layout with {row_idx} header row(s)")
+        return layout
+    
+    def _count_repeated_rows(
+        self,
+        page_tables: Optional[List],
+        page_structure: Optional[Dict],
+        document_text: str
+    ) -> int:
+        """
+        Count how many rows have similar structure (repeated pattern).
+        Used to determine if SOFT TABLE MODE should be triggered.
+        """
+        if not page_structure or 'blocks' not in page_structure:
+            return 0
+        
+        blocks = [b for b in page_structure['blocks'] if b.get('bounding_box') and b.get('text', '').strip()]
+        if len(blocks) < 3:
+            return 0
+        
+        # Group blocks by Y-position (rows)
+        blocks_by_y = {}
+        for block in blocks:
+            bbox = block.get('bounding_box', {})
+            y_center = (bbox.get('y_min', 0) + bbox.get('y_max', 0)) / 2
+            y_key = round(y_center * 100) / 100  # Round to 0.01 precision
+            if y_key not in blocks_by_y:
+                blocks_by_y[y_key] = []
+            blocks_by_y[y_key].append(block)
+        
+        # Count rows with multiple blocks (likely tabular)
+        rows_with_multiple_blocks = sum(1 for row_blocks in blocks_by_y.values() if len(row_blocks) >= 2)
+        return rows_with_multiple_blocks
+    
+    def _convert_to_soft_table_mode(
+        self,
+        page_tables: Optional[List],
+        document_text: str,
+        page_idx: int,
+        page_structure: Optional[Dict],
+        page: Any
+    ) -> UnifiedLayout:
+        """
+        SOFT TABLE MODE for TYPE_A documents with low confidence but repeated rows.
+        
+        Rules:
+        1. DO NOT collapse into single column
+        2. Infer columns using TEXT ALIGNMENT instead of headers
+        3. Cluster text blocks by X-position across rows
+        4. If same X-range repeats in ≥ 3 rows → treat as a column
+        5. Ignore header row corruption
+        6. Aadhaar/Numeric Protection: Force long numeric sequences into single column
+        7. Hindi Multi-line Name Handling: Merge vertically close blocks BEFORE column assignment
+        8. Safety: Never create more than 10 columns
+        9. Fallback: If column inference fails, use 2-column (Index | Content), NOT single-column
+        10. Output Guarantee: TYPE_A documents with visible multi-column data must NEVER collapse entirely into Column A
+        """
+        layout = UnifiedLayout(page_index=page_idx)
+        layout.metadata['layout_type'] = 'soft_table_mode'
+        
+        if not page_structure or 'blocks' not in page_structure:
+            # Fallback to 2-column if no blocks available
+            logger.warning(f"Page {page_idx + 1}: SOFT TABLE MODE - No blocks available, using 2-column fallback")
+            return self._soft_table_fallback_2column(document_text, page_idx)
+        
+        blocks = [b for b in page_structure['blocks'] if b.get('bounding_box') and b.get('text', '').strip()]
+        if not blocks:
+            return self._soft_table_fallback_2column(document_text, page_idx)
+        
+        # Step 1: Hindi Multi-line Name Handling - Merge vertically close blocks BEFORE column assignment
+        # Use relaxed Y-threshold for Devanagari
+        merged_blocks = self._merge_vertically_close_blocks(blocks)
+        logger.info(f"Page {page_idx + 1}: SOFT TABLE MODE - Merged {len(blocks)} blocks to {len(merged_blocks)} after Hindi multi-line handling")
+        
+        # Step 2: Group merged blocks by Y-position (rows)
+        blocks_by_y = {}
+        for block in merged_blocks:
+            bbox = block.get('bounding_box', {})
+            y_center = (bbox.get('y_min', 0) + bbox.get('y_max', 0)) / 2
+            y_key = round(y_center * 100) / 100  # Round to 0.01 precision
+            if y_key not in blocks_by_y:
+                blocks_by_y[y_key] = []
+            blocks_by_y[y_key].append(block)
+        
+        # Step 3: Soft Column Detection - Cluster text blocks by X-position across rows
+        # If same X-range repeats in ≥ 3 rows → treat as a column
+        column_anchors = self._infer_soft_columns(blocks_by_y)
+        
+        # Safety: Never create more than 10 columns
+        if len(column_anchors) > 10:
+            logger.warning(f"Page {page_idx + 1}: SOFT TABLE MODE - Too many columns ({len(column_anchors)}), limiting to 10")
+            column_anchors = sorted(column_anchors)[:10]
+        
+        # Step 4: If column inference fails, fallback to 2-column
+        if len(column_anchors) < 2:
+            logger.warning(f"Page {page_idx + 1}: SOFT TABLE MODE - Column inference failed ({len(column_anchors)} columns), using 2-column fallback")
+            return self._soft_table_fallback_2column(document_text, page_idx)
+        
+        # Step 5: Assign blocks to columns and build layout
+        row_idx = 0
+        for y_pos in sorted(blocks_by_y.keys()):
+            row_blocks = sorted(blocks_by_y[y_pos], key=lambda b: b.get('bounding_box', {}).get('x_min', 0))
+            row_cells = [None] * len(column_anchors)  # Initialize row with empty cells
+            
+            for block in row_blocks:
+                bbox = block.get('bounding_box', {})
+                x_center = (bbox.get('x_min', 0) + bbox.get('x_max', 0)) / 2
+                text = block.get('text', '').strip()
+                
+                if not text:
+                    continue
+                
+                # Step 6: Aadhaar/Numeric Protection - Detect long numeric sequences
+                is_aadhaar = self._is_aadhaar_or_long_numeric(text)
+                if is_aadhaar:
+                    # Force into first available column (prefer leftmost)
+                    target_col = 0
+                    for col_idx in range(len(column_anchors)):
+                        if row_cells[col_idx] is None or not row_cells[col_idx].value:
+                            target_col = col_idx
+                            break
+                    
+                    # Combine with existing cell if present
+                    if row_cells[target_col] is not None:
+                        existing_text = row_cells[target_col].value or ''
+                        text = (existing_text + ' ' + text).strip()
+                    
+                    row_cells[target_col] = Cell(
+                        row=row_idx,
+                        column=target_col,
+                        value=text,
+                        style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                    )
+                else:
+                    # Find nearest column anchor
+                    nearest_col = min(range(len(column_anchors)), key=lambda i: abs(column_anchors[i] - x_center))
+                    
+                    # Combine with existing cell if present
+                    if row_cells[nearest_col] is not None:
+                        existing_text = row_cells[nearest_col].value or ''
+                        row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
+                    else:
+                        row_cells[nearest_col] = Cell(
+                            row=row_idx,
+                            column=nearest_col,
+                            value=text,
+                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                        )
+            
+            # Add row with all cells (fill empty cells)
+            final_row_cells = []
+            for col_idx in range(len(column_anchors)):
+                if row_cells[col_idx] is not None:
+                    final_row_cells.append(row_cells[col_idx])
+                else:
+                    # Empty cell
+                    final_row_cells.append(Cell(
+                        row=row_idx,
+                        column=col_idx,
+                        value='',
+                        style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                    ))
+            
+            if final_row_cells:
+                layout.add_row(final_row_cells)
+                row_idx += 1
+        
+        # Output Guarantee: Ensure at least 2 columns
+        if layout.get_max_column() < 2:
+            logger.warning(f"Page {page_idx + 1}: SOFT TABLE MODE - Layout has < 2 columns, using 2-column fallback")
+            return self._soft_table_fallback_2column(document_text, page_idx)
+        
+        logger.info(f"Page {page_idx + 1}: SOFT TABLE MODE - Created layout with {row_idx} rows, {layout.get_max_column()} columns")
+        return layout
+    
+    def _merge_vertically_close_blocks(self, blocks: List[Dict]) -> List[Dict]:
+        """
+        Merge vertically close text blocks (Hindi multi-line name handling).
+        Use relaxed Y-threshold for Devanagari.
+        """
+        if not blocks:
+            return []
+        
+        # Sort by Y-position
+        sorted_blocks = sorted(blocks, key=lambda b: (
+            b.get('bounding_box', {}).get('y_min', 0),
+            b.get('bounding_box', {}).get('x_min', 0)
+        ))
+        
+        merged = []
+        current_group = [sorted_blocks[0]]
+        
+        for block in sorted_blocks[1:]:
+            last_block = current_group[-1]
+            last_bbox = last_block.get('bounding_box', {})
+            curr_bbox = block.get('bounding_box', {})
+            
+            last_y_max = last_bbox.get('y_max', 0)
+            curr_y_min = curr_bbox.get('y_min', 1)
+            last_x_center = (last_bbox.get('x_min', 0) + last_bbox.get('x_max', 0)) / 2
+            curr_x_center = (curr_bbox.get('x_min', 0) + curr_bbox.get('x_max', 0)) / 2
+            
+            # Calculate dynamic Y-threshold (relaxed for Devanagari)
+            last_height = last_bbox.get('y_max', 0) - last_bbox.get('y_min', 0)
+            y_threshold = last_height * 0.8  # Relaxed threshold (80% of height)
+            
+            # Check if blocks are vertically close and horizontally aligned
+            y_distance = curr_y_min - last_y_max
+            x_overlap = abs(curr_x_center - last_x_center) < (last_bbox.get('x_max', 1) - last_bbox.get('x_min', 0)) * 0.5
+            
+            if y_distance <= y_threshold and x_overlap:
+                # Merge: combine text and expand bounding box
+                merged_text = (last_block.get('text', '') + ' ' + block.get('text', '')).strip()
+                merged_bbox = {
+                    'x_min': min(last_bbox.get('x_min', 0), curr_bbox.get('x_min', 0)),
+                    'x_max': max(last_bbox.get('x_max', 0), curr_bbox.get('x_max', 0)),
+                    'y_min': min(last_bbox.get('y_min', 0), curr_bbox.get('y_min', 0)),
+                    'y_max': max(last_bbox.get('y_max', 0), curr_bbox.get('y_max', 0))
+                }
+                merged_block = {
+                    'text': merged_text,
+                    'bounding_box': merged_bbox
+                }
+                current_group[-1] = merged_block
+            else:
+                # Start new group
+                merged.append(current_group[0])
+                current_group = [block]
+        
+        # Add last group
+        if current_group:
+            merged.append(current_group[0])
+        
+        return merged
+    
+    def _infer_soft_columns(self, blocks_by_y: Dict[float, List[Dict]]) -> List[float]:
+        """
+        Infer column anchors by clustering text blocks by X-position across rows.
+        If same X-range repeats in ≥ 3 rows → treat as a column.
+        """
+        if not blocks_by_y:
+            return []
+        
+        # Collect all X-center positions
+        x_positions = []
+        for row_blocks in blocks_by_y.values():
+            for block in row_blocks:
+                bbox = block.get('bounding_box', {})
+                x_center = (bbox.get('x_min', 0) + bbox.get('x_max', 0)) / 2
+                x_positions.append(x_center)
+        
+        if not x_positions:
+            return []
+        
+        # Cluster X-positions (simple k-means-like approach)
+        # Group X-positions that are close together
+        x_positions = sorted(set(x_positions))
+        clusters = []
+        cluster_tolerance = 0.05  # 5% tolerance
+        
+        for x_pos in x_positions:
+            # Find existing cluster or create new one
+            assigned = False
+            for cluster in clusters:
+                cluster_center = sum(cluster) / len(cluster)
+                if abs(x_pos - cluster_center) <= cluster_tolerance:
+                    cluster.append(x_pos)
+                    assigned = True
+                    break
+            
+            if not assigned:
+                clusters.append([x_pos])
+        
+        # Count how many rows have blocks in each cluster
+        column_anchors = []
+        for cluster in clusters:
+            cluster_center = sum(cluster) / len(cluster)
+            row_count = 0
+            
+            for row_blocks in blocks_by_y.values():
+                for block in row_blocks:
+                    bbox = block.get('bounding_box', {})
+                    x_center = (bbox.get('x_min', 0) + bbox.get('x_max', 0)) / 2
+                    if abs(x_center - cluster_center) <= cluster_tolerance:
+                        row_count += 1
+                        break  # Count each row only once
+            
+            # If same X-range repeats in ≥ 3 rows → treat as a column
+            if row_count >= 3:
+                column_anchors.append(cluster_center)
+        
+        # Sort column anchors by X-position
+        column_anchors.sort()
+        
+        return column_anchors
+    
+    def _is_aadhaar_or_long_numeric(self, text: str) -> bool:
+        """
+        Detect long numeric sequences (10-12 digits with spaces) - Aadhaar protection.
+        """
+        # Remove spaces and check if it's a long numeric sequence
+        digits_only = ''.join(c for c in text if c.isdigit())
+        if 10 <= len(digits_only) <= 12:
+            # Check if original text has spaces (Aadhaar format: XXXX XXXX XXXX)
+            if ' ' in text:
+                return True
+        return False
+    
+    def _soft_table_fallback_2column(self, document_text: str, page_idx: int) -> UnifiedLayout:
+        """
+        Fallback to 2-column layout (Index | Content) if column inference fails.
+        NEVER use single-column text dump.
+        """
+        layout = UnifiedLayout(page_index=page_idx)
+        layout.metadata['layout_type'] = 'soft_table_fallback_2column'
+        
+        if not document_text:
+            # Empty - create minimal 2-column structure
+            index_cell = Cell(
+                row=0,
+                column=0,
+                value="Index",
+                style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
+            )
+            content_cell = Cell(
+                row=0,
+                column=1,
+                value="Content",
+                style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
+            )
+            layout.add_row([index_cell, content_cell])
+            return layout
+        
+        # Split text into lines and create 2-column layout
+        lines = [line.strip() for line in document_text.split('\n') if line.strip()]
+        
+        for row_idx, line in enumerate(lines[:500]):  # Limit to 500 lines
+            index_cell = Cell(
+                row=row_idx,
+                column=0,  # Column A = Index
+                value=str(row_idx + 1),
+                style=CellStyle(alignment_horizontal=CellAlignment.RIGHT)
+            )
+            content_cell = Cell(
+                row=row_idx,
+                column=1,  # Column B = Content
+                value=line,
+                style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+            )
+            layout.add_row([index_cell, content_cell])
+        
+        logger.info(f"Page {page_idx + 1}: SOFT TABLE MODE - Using 2-column fallback with {len(lines)} rows")
         return layout
