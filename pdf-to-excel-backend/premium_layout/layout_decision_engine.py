@@ -225,13 +225,43 @@ class LayoutDecisionEngine:
                             else:
                                 # Log why SOFT TABLE MODE didn't trigger
                                 logger.warning(f"Page {page_idx + 1}: TYPE_A - Table confidence {page_table_confidence:.2f} < 0.65, but SOFT TABLE MODE not triggered. body_rows={body_rows_count}, distinct_x_clusters={distinct_x_clusters}")
-                                # USER-VISIBLE BEHAVIOR: TYPE_A with low confidence = "Template/Incomplete Table"
-                                # Output minimal Excel (headers only), do NOT attempt full reconstruction
-                                logger.warning(f"Page {page_idx + 1}: TYPE_A - Table confidence {page_table_confidence:.2f} < 0.65, treating as Template/Incomplete Table (headers only)")
-                                page_layout = self._convert_to_template_headers_only(page_tables, document_text, page_idx)
-                                page_layout.metadata['table_confidence_status'] = 'TEMPLATE_INCOMPLETE_TABLE'
-                                page_layout.metadata['table_confidence'] = page_table_confidence
-                                page_layout.metadata['user_message'] = 'Template or incomplete table detected - showing headers only'
+                                
+                                # OPTIONAL VISUAL GRID RECONSTRUCTION MODE (fallback when all else fails)
+                                # Trigger: no native tables AND stable X-position bands across >= 5 rows
+                                if not has_native_tables:
+                                    visual_grid_eligible, stable_rows = self._check_visual_grid_reconstruction_trigger(page_structure, document_text)
+                                    if visual_grid_eligible and stable_rows >= 5:
+                                        logger.info(f"Page {page_idx + 1}: TYPE_A - OPTIONAL VISUAL GRID RECONSTRUCTION MODE triggered ({stable_rows} stable rows with X-position bands)")
+                                        page_layout = self._convert_to_visual_grid_reconstruction_mode(
+                                            page_tables=page_tables,
+                                            document_text=document_text,
+                                            page_idx=page_idx,
+                                            page_structure=page_structure,
+                                            page=page
+                                        )
+                                        page_layout.metadata['table_confidence_status'] = 'VISUAL_GRID_RECONSTRUCTION'
+                                        page_layout.metadata['table_confidence'] = page_table_confidence
+                                        page_layout.metadata['stable_rows_count'] = stable_rows
+                                        page_layout.metadata['user_message'] = 'Visual grid reconstruction mode - reconstructed from text block alignment'
+                                    else:
+                                        # Visual grid reconstruction not eligible, fall back to template headers
+                                        logger.warning(f"Page {page_idx + 1}: TYPE_A - Visual grid reconstruction not eligible (eligible={visual_grid_eligible}, stable_rows={stable_rows})")
+                                        # USER-VISIBLE BEHAVIOR: TYPE_A with low confidence = "Template/Incomplete Table"
+                                        # Output minimal Excel (headers only), do NOT attempt full reconstruction
+                                        logger.warning(f"Page {page_idx + 1}: TYPE_A - Table confidence {page_table_confidence:.2f} < 0.65, treating as Template/Incomplete Table (headers only)")
+                                        page_layout = self._convert_to_template_headers_only(page_tables, document_text, page_idx)
+                                        page_layout.metadata['table_confidence_status'] = 'TEMPLATE_INCOMPLETE_TABLE'
+                                        page_layout.metadata['table_confidence'] = page_table_confidence
+                                        page_layout.metadata['user_message'] = 'Template or incomplete table detected - showing headers only'
+                                else:
+                                    # Native tables exist, so visual grid reconstruction not applicable
+                                    # USER-VISIBLE BEHAVIOR: TYPE_A with low confidence = "Template/Incomplete Table"
+                                    # Output minimal Excel (headers only), do NOT attempt full reconstruction
+                                    logger.warning(f"Page {page_idx + 1}: TYPE_A - Table confidence {page_table_confidence:.2f} < 0.65, treating as Template/Incomplete Table (headers only)")
+                                    page_layout = self._convert_to_template_headers_only(page_tables, document_text, page_idx)
+                                    page_layout.metadata['table_confidence_status'] = 'TEMPLATE_INCOMPLETE_TABLE'
+                                    page_layout.metadata['table_confidence'] = page_table_confidence
+                                    page_layout.metadata['user_message'] = 'Template or incomplete table detected - showing headers only'
                     else:
                         # No tables or not allowed - treat as template/blank
                         logger.warning(f"Page {page_idx + 1}: TYPE_A - No tables or table processing not allowed, treating as template/blank")
@@ -2520,3 +2550,373 @@ class LayoutDecisionEngine:
         
         logger.info(f"Page {page_idx + 1}: SOFT TABLE MODE - Using 2-column fallback with {len(lines)} rows")
         return layout
+    
+    def _check_visual_grid_reconstruction_trigger(
+        self,
+        page_structure: Optional[Dict],
+        document_text: str
+    ) -> Tuple[bool, int]:
+        """
+        Check if VISUAL GRID RECONSTRUCTION MODE should be triggered.
+        
+        Returns:
+            Tuple[eligible, stable_rows]
+            - eligible: True if visual grid reconstruction is eligible
+            - stable_rows: Number of rows showing stable X-position bands (>= 5 required)
+        
+        Trigger conditions:
+        - document_type == TYPE_A (checked by caller)
+        - table_confidence < threshold (checked by caller)
+        - no native table objects detected (checked by caller)
+        - visible text blocks show stable X-position bands across >= 5 rows
+        """
+        if not page_structure or 'blocks' not in page_structure:
+            return (False, 0)
+        
+        blocks = [b for b in page_structure['blocks'] if b.get('bounding_box') and b.get('text', '').strip()]
+        if len(blocks) < 10:  # Need at least 10 blocks for meaningful grid
+            return (False, 0)
+        
+        # Group blocks by Y-position (rows) - use relaxed precision for visual alignment
+        blocks_by_y = {}
+        for block in blocks:
+            bbox = block.get('bounding_box', {})
+            y_center = (bbox.get('y_min', 0) + bbox.get('y_max', 0)) / 2
+            y_key = round(y_center * 50) / 50  # 0.02 precision (relaxed for visual alignment)
+            if y_key not in blocks_by_y:
+                blocks_by_y[y_key] = []
+            blocks_by_y[y_key].append(block)
+        
+        # Count rows with stable X-position bands
+        # A row has "stable X-position bands" if it has >= 2 blocks with distinct X-positions
+        stable_rows = 0
+        x_bands_all_rows = []  # Collect all X-positions across rows
+        
+        for y_pos, row_blocks in blocks_by_y.items():
+            if len(row_blocks) >= 2:  # At least 2 blocks in row
+                x_positions = []
+                for block in row_blocks:
+                    bbox = block.get('bounding_box', {})
+                    x_center = (bbox.get('x_min', 0) + bbox.get('x_max', 0)) / 2
+                    x_positions.append(x_center)
+                
+                # Check if X-positions are distinct (not all clustered together)
+                x_positions = sorted(set(x_positions))
+                if len(x_positions) >= 2:
+                    # Check if positions are reasonably separated (at least 5% of page width)
+                    min_separation = 0.05
+                    has_separation = False
+                    for i in range(len(x_positions) - 1):
+                        if x_positions[i + 1] - x_positions[i] >= min_separation:
+                            has_separation = True
+                            break
+                    
+                    if has_separation:
+                        stable_rows += 1
+                        x_bands_all_rows.extend(x_positions)
+        
+        # Check if X-position bands are consistent across rows (visual grid pattern)
+        if stable_rows >= 5 and len(x_bands_all_rows) >= 10:
+            # Cluster X-positions to see if there are stable column bands
+            x_bands_all_rows = sorted(set(x_bands_all_rows))
+            clusters = []
+            cluster_tolerance = 0.08  # 8% tolerance for visual alignment
+            
+            for x_pos in x_bands_all_rows:
+                assigned = False
+                for cluster in clusters:
+                    cluster_center = sum(cluster) / len(cluster)
+                    if abs(x_pos - cluster_center) <= cluster_tolerance:
+                        cluster.append(x_pos)
+                        assigned = True
+                        break
+                if not assigned:
+                    clusters.append([x_pos])
+            
+            # If we have at least 2 distinct column bands, visual grid is eligible
+            distinct_bands = len([c for c in clusters if len(c) >= 2])  # Bands that appear in multiple rows
+            eligible = distinct_bands >= 2
+            
+            return (eligible, stable_rows)
+        
+        return (False, stable_rows)
+    
+    def _convert_to_visual_grid_reconstruction_mode(
+        self,
+        page_tables: Optional[List],
+        document_text: str,
+        page_idx: int,
+        page_structure: Optional[Dict],
+        page: Any
+    ) -> UnifiedLayout:
+        """
+        OPTIONAL VISUAL GRID RECONSTRUCTION MODE for TYPE_A documents.
+        
+        This mode:
+        1. IGNORES Document AI table semantics completely
+        2. Clusters text blocks by X-position into columns
+        3. Clusters text blocks by Y-position into rows
+        4. Reconstructs a grid purely from visual alignment
+        5. Merges numeric blocks (e.g. Aadhaar) into single cells
+        6. Allows slight misalignment rather than collapsing to one column
+        
+        Safety rules:
+        - Max columns = 10
+        - If clustering confidence is low → fallback to 2-column (Index | Content)
+        - This mode must be clearly marked as "Visual reconstruction"
+        """
+        layout = UnifiedLayout(page_index=page_idx)
+        layout.metadata['layout_type'] = 'visual_grid_reconstruction'
+        layout.metadata['reconstruction_mode'] = 'VISUAL_GRID'
+        
+        if not page_structure or 'blocks' not in page_structure:
+            logger.warning(f"Page {page_idx + 1}: VISUAL GRID RECONSTRUCTION - No blocks available, using 2-column fallback")
+            return self._soft_table_fallback_2column(document_text, page_idx)
+        
+        all_blocks = [b for b in page_structure['blocks'] if b.get('bounding_box') and b.get('text', '').strip()]
+        if not all_blocks:
+            return self._soft_table_fallback_2column(document_text, page_idx)
+        
+        logger.info(f"Page {page_idx + 1}: VISUAL GRID RECONSTRUCTION - Processing {len(all_blocks)} text blocks")
+        
+        # Step 1: Merge numeric blocks (Aadhaar) into single cells BEFORE clustering
+        merged_blocks = self._merge_numeric_blocks(all_blocks)
+        logger.info(f"Page {page_idx + 1}: VISUAL GRID RECONSTRUCTION - Merged {len(all_blocks)} blocks to {len(merged_blocks)} after numeric merging")
+        
+        # Step 2: Cluster by Y-position into rows (relaxed precision)
+        blocks_by_y = {}
+        for block in merged_blocks:
+            bbox = block.get('bounding_box', {})
+            y_center = (bbox.get('y_min', 0) + bbox.get('y_max', 0)) / 2
+            y_key = round(y_center * 50) / 50  # 0.02 precision (relaxed for visual alignment)
+            if y_key not in blocks_by_y:
+                blocks_by_y[y_key] = []
+            blocks_by_y[y_key].append(block)
+        
+        # Step 3: Cluster by X-position into columns (visual column bands)
+        column_anchors = self._infer_visual_grid_columns(blocks_by_y)
+        
+        # Safety: Max 10 columns
+        if len(column_anchors) > 10:
+            logger.warning(f"Page {page_idx + 1}: VISUAL GRID RECONSTRUCTION - Too many columns ({len(column_anchors)}), limiting to 10")
+            column_anchors = sorted(column_anchors)[:10]
+        
+        # Step 4: Check clustering confidence
+        if len(column_anchors) < 2:
+            logger.warning(f"Page {page_idx + 1}: VISUAL GRID RECONSTRUCTION - Low clustering confidence ({len(column_anchors)} columns), using 2-column fallback")
+            return self._soft_table_fallback_2column(document_text, page_idx)
+        
+        # Step 5: Reconstruct grid from visual alignment
+        row_idx = 0
+        for y_pos in sorted(blocks_by_y.keys()):
+            row_blocks = sorted(blocks_by_y[y_pos], key=lambda b: b.get('bounding_box', {}).get('x_min', 0))
+            row_cells = [None] * len(column_anchors)  # Initialize row with empty cells
+            
+            for block in row_blocks:
+                bbox = block.get('bounding_box', {})
+                x_center = (bbox.get('x_min', 0) + bbox.get('x_max', 0)) / 2
+                text = block.get('text', '').strip()
+                
+                if not text:
+                    continue
+                
+                # Find nearest column anchor (allow slight misalignment)
+                nearest_col = min(range(len(column_anchors)), key=lambda i: abs(column_anchors[i] - x_center))
+                
+                # Check if misalignment is acceptable (within 10% of page width)
+                misalignment_threshold = 0.10
+                distance_to_anchor = abs(column_anchors[nearest_col] - x_center)
+                
+                if distance_to_anchor <= misalignment_threshold:
+                    # Acceptable misalignment - assign to column
+                    if row_cells[nearest_col] is not None:
+                        # Combine with existing cell (slight overlap)
+                        existing_text = row_cells[nearest_col].value or ''
+                        row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
+                    else:
+                        row_cells[nearest_col] = Cell(
+                            row=row_idx,
+                            column=nearest_col,
+                            value=text,
+                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                        )
+                else:
+                    # Too much misalignment - try next nearest column or create new if within limit
+                    if len(column_anchors) < 10:
+                        # Try second nearest
+                        sorted_cols = sorted(range(len(column_anchors)), key=lambda i: abs(column_anchors[i] - x_center))
+                        if len(sorted_cols) > 1:
+                            second_nearest = sorted_cols[1]
+                            distance_2 = abs(column_anchors[second_nearest] - x_center)
+                            if distance_2 <= misalignment_threshold:
+                                if row_cells[second_nearest] is not None:
+                                    existing_text = row_cells[second_nearest].value or ''
+                                    row_cells[second_nearest].value = (existing_text + ' ' + text).strip()
+                                else:
+                                    row_cells[second_nearest] = Cell(
+                                        row=row_idx,
+                                        column=second_nearest,
+                                        value=text,
+                                        style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                                    )
+                            else:
+                                # Still too misaligned - append to nearest anyway (allow slight misalignment)
+                                if row_cells[nearest_col] is not None:
+                                    existing_text = row_cells[nearest_col].value or ''
+                                    row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
+                                else:
+                                    row_cells[nearest_col] = Cell(
+                                        row=row_idx,
+                                        column=nearest_col,
+                                        value=text,
+                                        style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                                    )
+            
+            # Add row with all cells (fill empty cells)
+            final_row_cells = []
+            for col_idx in range(len(column_anchors)):
+                if row_cells[col_idx] is not None:
+                    final_row_cells.append(row_cells[col_idx])
+                else:
+                    # Empty cell
+                    final_row_cells.append(Cell(
+                        row=row_idx,
+                        column=col_idx,
+                        value='',
+                        style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                    ))
+            
+            if final_row_cells:
+                layout.add_row(final_row_cells)
+                row_idx += 1
+        
+        # Output Guarantee: Ensure at least 2 columns
+        if layout.get_max_column() < 2:
+            logger.warning(f"Page {page_idx + 1}: VISUAL GRID RECONSTRUCTION - Layout has < 2 columns, using 2-column fallback")
+            return self._soft_table_fallback_2column(document_text, page_idx)
+        
+        logger.info(f"Page {page_idx + 1}: VISUAL GRID RECONSTRUCTION - Created layout with {row_idx} rows, {layout.get_max_column()} columns")
+        return layout
+    
+    def _merge_numeric_blocks(self, blocks: List[Dict]) -> List[Dict]:
+        """
+        Merge numeric blocks (e.g. Aadhaar) that are horizontally close into single cells.
+        This prevents splitting long numeric sequences across columns.
+        """
+        if not blocks:
+            return []
+        
+        # Sort by Y-position, then X-position
+        sorted_blocks = sorted(blocks, key=lambda b: (
+            b.get('bounding_box', {}).get('y_min', 0),
+            b.get('bounding_box', {}).get('x_min', 0)
+        ))
+        
+        merged = []
+        current_group = [sorted_blocks[0]]
+        
+        for block in sorted_blocks[1:]:
+            last_block = current_group[-1]
+            last_bbox = last_block.get('bounding_box', {})
+            curr_bbox = block.get('bounding_box', {})
+            
+            last_y_center = (last_bbox.get('y_min', 0) + last_bbox.get('y_max', 0)) / 2
+            curr_y_center = (curr_bbox.get('y_min', 0) + curr_bbox.get('y_max', 0)) / 2
+            last_x_max = last_bbox.get('x_max', 0)
+            curr_x_min = curr_bbox.get('x_min', 1)
+            
+            # Check if blocks are on same row and horizontally close
+            y_distance = abs(curr_y_center - last_y_center)
+            y_threshold = (last_bbox.get('y_max', 0) - last_bbox.get('y_min', 0)) * 0.5
+            x_gap = curr_x_min - last_x_max
+            
+            # Check if text is numeric (Aadhaar pattern: digits with spaces)
+            last_text = last_block.get('text', '')
+            curr_text = block.get('text', '')
+            last_is_numeric = self._is_aadhaar_or_long_numeric(last_text)
+            curr_is_numeric = self._is_aadhaar_or_long_numeric(curr_text)
+            
+            if (y_distance <= y_threshold and 
+                x_gap <= 0.05 and  # Very close horizontally (5% of page width)
+                (last_is_numeric or curr_is_numeric)):  # At least one is numeric
+                # Merge: combine text and expand bounding box
+                merged_text = (last_text + ' ' + curr_text).strip()
+                merged_bbox = {
+                    'x_min': min(last_bbox.get('x_min', 0), curr_bbox.get('x_min', 0)),
+                    'x_max': max(last_bbox.get('x_max', 0), curr_bbox.get('x_max', 0)),
+                    'y_min': min(last_bbox.get('y_min', 0), curr_bbox.get('y_min', 0)),
+                    'y_max': max(last_bbox.get('y_max', 0), curr_bbox.get('y_max', 0))
+                }
+                merged_block = {
+                    'text': merged_text,
+                    'bounding_box': merged_bbox
+                }
+                current_group[-1] = merged_block
+            else:
+                # Start new group
+                merged.append(current_group[0])
+                current_group = [block]
+        
+        # Add last group
+        if current_group:
+            merged.append(current_group[0])
+        
+        return merged
+    
+    def _infer_visual_grid_columns(self, blocks_by_y: Dict[float, List[Dict]]) -> List[float]:
+        """
+        Infer column anchors by clustering text blocks by X-position across rows.
+        This is purely visual alignment - ignores Document AI table semantics.
+        """
+        if not blocks_by_y:
+            return []
+        
+        # Collect all X-center positions from all rows
+        x_positions = []
+        for row_blocks in blocks_by_y.values():
+            for block in row_blocks:
+                bbox = block.get('bounding_box', {})
+                x_center = (bbox.get('x_min', 0) + bbox.get('x_max', 0)) / 2
+                x_positions.append(x_center)
+        
+        if not x_positions:
+            return []
+        
+        # Cluster X-positions (visual column bands)
+        x_positions = sorted(set(x_positions))
+        clusters = []
+        cluster_tolerance = 0.08  # 8% tolerance for visual alignment
+        
+        for x_pos in x_positions:
+            assigned = False
+            for cluster in clusters:
+                cluster_center = sum(cluster) / len(cluster)
+                if abs(x_pos - cluster_center) <= cluster_tolerance:
+                    cluster.append(x_pos)
+                    assigned = True
+                    break
+            if not assigned:
+                clusters.append([x_pos])
+        
+        # Count how many rows have blocks in each cluster
+        column_anchors = []
+        for cluster in clusters:
+            cluster_center = sum(cluster) / len(cluster)
+            row_count = 0
+            
+            for row_blocks in blocks_by_y.values():
+                for block in row_blocks:
+                    bbox = block.get('bounding_box', {})
+                    x_center = (bbox.get('x_min', 0) + bbox.get('x_max', 0)) / 2
+                    if abs(x_center - cluster_center) <= cluster_tolerance:
+                        row_count += 1
+                        break  # Count each row only once
+            
+            # If same X-range appears in >= 2 rows → treat as a column (visual grid pattern)
+            if row_count >= 2:
+                column_anchors.append(cluster_center)
+        
+        # Sort column anchors by X-position
+        column_anchors.sort()
+        
+        return column_anchors
