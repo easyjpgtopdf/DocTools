@@ -682,24 +682,40 @@ document.addEventListener('DOMContentLoaded', async function() {
     // This ensures upload area is clickable even if credits check is delayed
     await initializeUploadHandlers();
     
-    // Load PDF from sessionStorage if available (only if credits passed)
+    // After credits check, update upload handlers state
     if (creditsCheckPassed) {
+        console.log('✅ Credits check passed - enabling upload features');
+        // Re-enable upload area
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const convertBtn = document.getElementById('convertBtn');
+        
+        if (uploadArea) {
+            uploadArea.style.pointerEvents = 'auto';
+            uploadArea.style.opacity = '1';
+            uploadArea.style.cursor = 'pointer';
+            uploadArea.classList.remove('disabled');
+        }
+        if (fileInput) {
+            fileInput.disabled = false;
+        }
+        if (convertBtn) {
+            convertBtn.disabled = false;
+        }
+        
+        // Load PDF from sessionStorage if available
         loadPdfFromSession();
-    }
-    
-    // If credits check failed, show message but keep handlers initialized
-    if (!creditsCheckPassed) {
+    } else {
+        console.warn('❌ Credits check failed - upload disabled');
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
         const convertBtn = document.getElementById('convertBtn');
         if (uploadArea) {
             uploadArea.style.opacity = '0.7';
+            uploadArea.style.cursor = 'not-allowed';
         }
         if (fileInput) fileInput.disabled = true;
         if (convertBtn) convertBtn.disabled = true;
-        console.warn('Credits check failed - upload disabled');
-    } else {
-        console.log('Credits check passed - upload enabled');
     }
 });
 
@@ -791,6 +807,8 @@ async function checkCredits() {
         // Log final user ID for debugging
         console.log('Final user ID for credits check:', userId);
         
+        console.log(`Checking credits for user: ${userId}, API: ${API_BASE_URL}/api/credits`);
+        
         const response = await fetch(`${API_BASE_URL}/api/credits`, {
             method: 'GET',
             headers: {
@@ -798,15 +816,28 @@ async function checkCredits() {
             }
         });
         
+        console.log('Credits API response status:', response.status, response.statusText);
+        
         if (response.ok) {
             const data = await response.json();
+            console.log('Credits API response data:', data);
             const credits = data.credits || 0;
             
-            document.getElementById('creditBalance').textContent = credits;
-            document.getElementById('creditInfo').style.display = 'block';
+            console.log(`User has ${credits} credits, minimum required: ${MIN_REQUIRED_CREDITS}`);
+            
+            // Update credit display
+            const creditBalanceEl = document.getElementById('creditBalance');
+            const creditInfoEl = document.getElementById('creditInfo');
+            if (creditBalanceEl) {
+                creditBalanceEl.textContent = credits;
+            }
+            if (creditInfoEl) {
+                creditInfoEl.style.display = 'block';
+            }
             
             // CRITICAL: Block page access if credits < 30
             if (credits < MIN_REQUIRED_CREDITS) {
+                console.warn(`Access denied: User has ${credits} credits, need ${MIN_REQUIRED_CREDITS}`);
                 // Hide all premium features
                 const premiumCard = document.querySelector('.premium-card');
                 if (premiumCard) {
@@ -859,7 +890,8 @@ async function checkCredits() {
                 return false; // Access denied
             } else {
                 // Credits sufficient - allow access
-                console.log(`Premium page access granted: User ${userId} has ${credits} credits`);
+                console.log(`✅ Premium page access granted: User ${userId} has ${credits} credits (>= ${MIN_REQUIRED_CREDITS})`);
+                console.log('Setting creditsCheckPassed = true');
                 return true; // Access granted
             }
         } else {
@@ -930,56 +962,49 @@ async function initializeUploadHandlers() {
         if (convertBtn) convertBtn.disabled = true;
         console.log('Upload handlers initialized but disabled - credits check failed');
     }
-        
-        // Drag and drop handlers
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            uploadArea.classList.add('dragover');
-        });
-        
-        uploadArea.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            uploadArea.classList.remove('dragover');
-        });
-        
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            uploadArea.classList.remove('dragover');
-            console.log('File dropped, creditsCheckPassed:', creditsCheckPassed);
-            if (!creditsCheckPassed) {
-                showStatus('Insufficient credits. Minimum 30 credits required. Please purchase credits to continue.', 'error');
-                return;
-            }
-            const files = e.dataTransfer.files;
-            if (files.length > 0 && files[0].type === 'application/pdf') {
-                handleFileSelect(files[0]);
-            } else {
-                showStatus('Please drop a PDF file.', 'error');
-            }
-        });
-        
-        // File input change handler
-        fileInput.addEventListener('change', (e) => {
-            console.log('File input changed, creditsCheckPassed:', creditsCheckPassed);
-            if (!creditsCheckPassed) {
-                showStatus('Insufficient credits. Minimum 30 credits required. Please purchase credits to continue.', 'error');
-                e.target.value = ''; // Clear selection
-                return;
-            }
-            if (e.target.files.length > 0) {
-                handleFileSelect(e.target.files[0]);
-            }
-        });
-    } else {
-        // Disable all features if credits insufficient
-        uploadArea.style.pointerEvents = 'none';
-        uploadArea.style.opacity = '0.5';
-        fileInput.disabled = true;
-        if (convertBtn) convertBtn.disabled = true;
-    }
+    
+    // Drag and drop handlers (always add, check credits inside)
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadArea.classList.add('dragover');
+    });
+    
+    uploadArea.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadArea.classList.remove('dragover');
+    });
+    
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadArea.classList.remove('dragover');
+        console.log('File dropped, creditsCheckPassed:', creditsCheckPassed);
+        if (!creditsCheckPassed) {
+            showStatus('Insufficient credits. Minimum 30 credits required. Please purchase credits to continue.', 'error');
+            return;
+        }
+        const files = e.dataTransfer.files;
+        if (files.length > 0 && files[0].type === 'application/pdf') {
+            handleFileSelect(files[0]);
+        } else {
+            showStatus('Please drop a PDF file.', 'error');
+        }
+    });
+    
+    // File input change handler (always add, check credits inside)
+    fileInput.addEventListener('change', (e) => {
+        console.log('File input changed, creditsCheckPassed:', creditsCheckPassed);
+        if (!creditsCheckPassed) {
+            showStatus('Insufficient credits. Minimum 30 credits required. Please purchase credits to continue.', 'error');
+            e.target.value = ''; // Clear selection
+            return;
+        }
+        if (e.target.files.length > 0) {
+            handleFileSelect(e.target.files[0]);
+        }
+    });
 }
 
 function handleFileSelect(file) {
