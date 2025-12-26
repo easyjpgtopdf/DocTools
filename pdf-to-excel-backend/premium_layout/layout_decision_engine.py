@@ -188,13 +188,13 @@ class LayoutDecisionEngine:
                                 table_confidence=page_table_confidence
                             )
                         else:
-                            # SOFT TABLE MODE: TYPE_A with low confidence but repeated rows >= 3
-                            # Check if we should use soft table mode instead of headers-only
-                            repeated_rows = self._count_repeated_rows(page_tables, page_structure, document_text)
+                            # SOFT TABLE MODE: TYPE_A with low confidence but visible body rows >= 3
+                            # NEW TRIGGER: Check body rows (NOT headers) for multi-column pattern
+                            body_rows_count, distinct_x_clusters = self._check_body_rows_for_soft_mode(page_structure, document_text)
                             
-                            if repeated_rows >= 3:
-                                # SOFT TABLE MODE: Infer columns using text alignment, ignore header corruption
-                                logger.info(f"Page {page_idx + 1}: TYPE_A - Table confidence {page_table_confidence:.2f} < 0.65, but {repeated_rows} repeated rows detected. Using SOFT TABLE MODE")
+                            if body_rows_count >= 3 and distinct_x_clusters >= 2:
+                                # SOFT TABLE MODE: Infer columns using text alignment from BODY rows ONLY, ignore header completely
+                                logger.info(f"Page {page_idx + 1}: TYPE_A - Table confidence {page_table_confidence:.2f} < 0.65, but {body_rows_count} body rows with {distinct_x_clusters} X-clusters detected. Using SOFT TABLE MODE")
                                 page_layout = self._convert_to_soft_table_mode(
                                     page_tables=page_tables,
                                     document_text=document_text,
@@ -202,10 +202,11 @@ class LayoutDecisionEngine:
                                     page_structure=page_structure,
                                     page=page
                                 )
-                                page_layout.metadata['repeated_rows_count'] = repeated_rows
+                                page_layout.metadata['body_rows_count'] = body_rows_count
+                                page_layout.metadata['distinct_x_clusters'] = distinct_x_clusters
                                 page_layout.metadata['table_confidence_status'] = 'SOFT_TABLE_MODE'
                                 page_layout.metadata['table_confidence'] = page_table_confidence
-                                page_layout.metadata['user_message'] = 'Multi-column table detected with weak headers - using soft column inference'
+                                page_layout.metadata['user_message'] = 'Multi-column table detected with weak headers - using soft column inference from body rows'
                             else:
                                 # USER-VISIBLE BEHAVIOR: TYPE_A with low confidence = "Template/Incomplete Table"
                                 # Output minimal Excel (headers only), do NOT attempt full reconstruction
@@ -1985,22 +1986,28 @@ class LayoutDecisionEngine:
         logger.info(f"Page {page_idx + 1}: Created template headers-only layout with {row_idx} header row(s)")
         return layout
     
-    def _count_repeated_rows(
+    def _check_body_rows_for_soft_mode(
         self,
-        page_tables: Optional[List],
         page_structure: Optional[Dict],
         document_text: str
-    ) -> int:
+    ) -> Tuple[int, int]:
         """
-        Count how many rows have similar structure (repeated pattern).
-        Used to determine if SOFT TABLE MODE should be triggered.
+        Check if body rows (excluding header) meet SOFT TABLE MODE criteria.
+        
+        Returns:
+            Tuple[body_rows_count, distinct_x_clusters]
+            - body_rows_count: Number of visible body rows (>= 3 required)
+            - distinct_x_clusters: Number of distinct X-position clusters in body rows (>= 2 required)
+        
+        MANDATORY: This check IGNORES header rows completely.
+        Only body rows are analyzed for multi-column pattern detection.
         """
         if not page_structure or 'blocks' not in page_structure:
-            return 0
+            return (0, 0)
         
         blocks = [b for b in page_structure['blocks'] if b.get('bounding_box') and b.get('text', '').strip()]
         if len(blocks) < 3:
-            return 0
+            return (0, 0)
         
         # Group blocks by Y-position (rows)
         blocks_by_y = {}
@@ -2012,9 +2019,59 @@ class LayoutDecisionEngine:
                 blocks_by_y[y_key] = []
             blocks_by_y[y_key].append(block)
         
-        # Count rows with multiple blocks (likely tabular)
-        rows_with_multiple_blocks = sum(1 for row_blocks in blocks_by_y.values() if len(row_blocks) >= 2)
-        return rows_with_multiple_blocks
+        # Identify header row (top-most row, typically has different characteristics)
+        # Heuristic: Header is usually the top 1-2 rows with fewer blocks or different formatting
+        sorted_y_positions = sorted(blocks_by_y.keys())
+        if len(sorted_y_positions) < 3:
+            return (0, 0)
+        
+        # Assume top 1-2 rows might be headers, rest are body rows
+        # More conservative: exclude only top row as potential header
+        header_y_positions = set(sorted_y_positions[:1])  # Top row only
+        
+        # Extract BODY rows only (exclude header)
+        body_rows_blocks = {}
+        for y_pos, row_blocks in blocks_by_y.items():
+            if y_pos not in header_y_positions:
+                # Only count rows with multiple blocks (likely tabular)
+                if len(row_blocks) >= 2:
+                    body_rows_blocks[y_pos] = row_blocks
+        
+        body_rows_count = len(body_rows_blocks)
+        
+        if body_rows_count < 3:
+            return (body_rows_count, 0)
+        
+        # Count distinct X-position clusters in BODY rows only
+        x_positions = []
+        for row_blocks in body_rows_blocks.values():
+            for block in row_blocks:
+                bbox = block.get('bounding_box', {})
+                x_center = (bbox.get('x_min', 0) + bbox.get('x_max', 0)) / 2
+                x_positions.append(x_center)
+        
+        if not x_positions:
+            return (body_rows_count, 0)
+        
+        # Cluster X-positions to count distinct clusters
+        x_positions = sorted(set(x_positions))
+        clusters = []
+        cluster_tolerance = 0.05  # 5% tolerance
+        
+        for x_pos in x_positions:
+            assigned = False
+            for cluster in clusters:
+                cluster_center = sum(cluster) / len(cluster)
+                if abs(x_pos - cluster_center) <= cluster_tolerance:
+                    cluster.append(x_pos)
+                    assigned = True
+                    break
+            if not assigned:
+                clusters.append([x_pos])
+        
+        distinct_x_clusters = len(clusters)
+        
+        return (body_rows_count, distinct_x_clusters)
     
     def _convert_to_soft_table_mode(
         self,
@@ -2025,19 +2082,23 @@ class LayoutDecisionEngine:
         page: Any
     ) -> UnifiedLayout:
         """
-        SOFT TABLE MODE for TYPE_A documents with low confidence but repeated rows.
+        SOFT TABLE MODE for TYPE_A documents with low confidence but visible body rows.
+        
+        MANDATORY EXECUTION ORDER:
+        1. IGNORE header completely for anchor detection
+        2. Build column anchors ONLY from BODY rows
+        3. Header row is attached AFTER anchors are built
         
         Rules:
         1. DO NOT collapse into single column
-        2. Infer columns using TEXT ALIGNMENT instead of headers
-        3. Cluster text blocks by X-position across rows
-        4. If same X-range repeats in ≥ 3 rows → treat as a column
-        5. Ignore header row corruption
-        6. Aadhaar/Numeric Protection: Force long numeric sequences into single column
-        7. Hindi Multi-line Name Handling: Merge vertically close blocks BEFORE column assignment
-        8. Safety: Never create more than 10 columns
-        9. Fallback: If column inference fails, use 2-column (Index | Content), NOT single-column
-        10. Output Guarantee: TYPE_A documents with visible multi-column data must NEVER collapse entirely into Column A
+        2. Infer columns using TEXT ALIGNMENT from BODY rows ONLY (ignore header)
+        3. Cluster text blocks by X-position across BODY rows
+        4. If same X-range repeats in ≥ 3 BODY rows → treat as a column
+        5. Aadhaar/Numeric Protection: Force long numeric sequences into single column
+        6. Hindi Multi-line Name Handling: Merge vertically close blocks BEFORE column assignment
+        7. Safety: Never create more than 10 columns
+        8. Fallback: If column inference fails, use 2-column (Index | Content), NOT single-column
+        9. Output Guarantee: TYPE_A documents with visible multi-column body data must NEVER collapse entirely into Column A
         """
         layout = UnifiedLayout(page_index=page_idx)
         layout.metadata['layout_type'] = 'soft_table_mode'
@@ -2047,28 +2108,63 @@ class LayoutDecisionEngine:
             logger.warning(f"Page {page_idx + 1}: SOFT TABLE MODE - No blocks available, using 2-column fallback")
             return self._soft_table_fallback_2column(document_text, page_idx)
         
-        blocks = [b for b in page_structure['blocks'] if b.get('bounding_box') and b.get('text', '').strip()]
-        if not blocks:
+        all_blocks = [b for b in page_structure['blocks'] if b.get('bounding_box') and b.get('text', '').strip()]
+        if not all_blocks:
             return self._soft_table_fallback_2column(document_text, page_idx)
         
-        # Step 1: Hindi Multi-line Name Handling - Merge vertically close blocks BEFORE column assignment
-        # Use relaxed Y-threshold for Devanagari
-        merged_blocks = self._merge_vertically_close_blocks(blocks)
-        logger.info(f"Page {page_idx + 1}: SOFT TABLE MODE - Merged {len(blocks)} blocks to {len(merged_blocks)} after Hindi multi-line handling")
-        
-        # Step 2: Group merged blocks by Y-position (rows)
-        blocks_by_y = {}
-        for block in merged_blocks:
+        # Step 1: Separate HEADER rows from BODY rows
+        # Group all blocks by Y-position first
+        all_blocks_by_y = {}
+        for block in all_blocks:
             bbox = block.get('bounding_box', {})
             y_center = (bbox.get('y_min', 0) + bbox.get('y_max', 0)) / 2
             y_key = round(y_center * 100) / 100  # Round to 0.01 precision
-            if y_key not in blocks_by_y:
-                blocks_by_y[y_key] = []
-            blocks_by_y[y_key].append(block)
+            if y_key not in all_blocks_by_y:
+                all_blocks_by_y[y_key] = []
+            all_blocks_by_y[y_key].append(block)
         
-        # Step 3: Soft Column Detection - Cluster text blocks by X-position across rows
-        # If same X-range repeats in ≥ 3 rows → treat as a column
-        column_anchors = self._infer_soft_columns(blocks_by_y)
+        sorted_y_positions = sorted(all_blocks_by_y.keys())
+        if len(sorted_y_positions) < 3:
+            # Not enough rows, fallback
+            return self._soft_table_fallback_2column(document_text, page_idx)
+        
+        # Identify header rows (top 1-2 rows, heuristic)
+        header_y_positions = set(sorted_y_positions[:1])  # Top row only
+        
+        # Extract BODY blocks only (exclude header)
+        body_blocks = []
+        header_blocks = []
+        for y_pos, row_blocks in all_blocks_by_y.items():
+            if y_pos in header_y_positions:
+                header_blocks.extend(row_blocks)
+            else:
+                body_blocks.extend(row_blocks)
+        
+        if not body_blocks:
+            # No body blocks, fallback
+            return self._soft_table_fallback_2column(document_text, page_idx)
+        
+        logger.info(f"Page {page_idx + 1}: SOFT TABLE MODE - Separated {len(header_blocks)} header blocks from {len(body_blocks)} body blocks")
+        
+        # Step 2: Hindi Multi-line Name Handling - Merge vertically close BODY blocks BEFORE column assignment
+        # Use relaxed Y-threshold for Devanagari
+        merged_body_blocks = self._merge_vertically_close_blocks(body_blocks)
+        logger.info(f"Page {page_idx + 1}: SOFT TABLE MODE - Merged {len(body_blocks)} body blocks to {len(merged_body_blocks)} after Hindi multi-line handling")
+        
+        # Step 3: Group merged BODY blocks by Y-position (BODY rows only)
+        body_blocks_by_y = {}
+        for block in merged_body_blocks:
+            bbox = block.get('bounding_box', {})
+            y_center = (bbox.get('y_min', 0) + bbox.get('y_max', 0)) / 2
+            y_key = round(y_center * 100) / 100  # Round to 0.01 precision
+            if y_key not in body_blocks_by_y:
+                body_blocks_by_y[y_key] = []
+            body_blocks_by_y[y_key].append(block)
+        
+        # Step 4: Soft Column Detection - Cluster text blocks by X-position across BODY rows ONLY
+        # If same X-range repeats in ≥ 3 BODY rows → treat as a column
+        # CRITICAL: This uses ONLY body rows, header is completely ignored
+        column_anchors = self._infer_soft_columns(body_blocks_by_y)
         
         # Safety: Never create more than 10 columns
         if len(column_anchors) > 10:
@@ -2080,10 +2176,78 @@ class LayoutDecisionEngine:
             logger.warning(f"Page {page_idx + 1}: SOFT TABLE MODE - Column inference failed ({len(column_anchors)} columns), using 2-column fallback")
             return self._soft_table_fallback_2column(document_text, page_idx)
         
-        # Step 5: Assign blocks to columns and build layout
+        # Step 5: Attach HEADER row FIRST (after anchors are built)
         row_idx = 0
-        for y_pos in sorted(blocks_by_y.keys()):
-            row_blocks = sorted(blocks_by_y[y_pos], key=lambda b: b.get('bounding_box', {}).get('x_min', 0))
+        header_row_added = False
+        
+        if header_blocks:
+            # Process header blocks and attach to layout
+            header_blocks_by_y = {}
+            for block in header_blocks:
+                bbox = block.get('bounding_box', {})
+                y_center = (bbox.get('y_min', 0) + bbox.get('y_max', 0)) / 2
+                y_key = round(y_center * 100) / 100
+                if y_key not in header_blocks_by_y:
+                    header_blocks_by_y[y_key] = []
+                header_blocks_by_y[y_key].append(block)
+            
+            # Add header rows (sorted by Y-position, top to bottom)
+            for y_pos in sorted(header_blocks_by_y.keys()):
+                header_row_blocks = sorted(header_blocks_by_y[y_pos], key=lambda b: b.get('bounding_box', {}).get('x_min', 0))
+                header_row_cells = [None] * len(column_anchors)  # Initialize with same column count
+                
+                for block in header_row_blocks:
+                    bbox = block.get('bounding_box', {})
+                    x_center = (bbox.get('x_min', 0) + bbox.get('x_max', 0)) / 2
+                    text = block.get('text', '').strip()
+                    
+                    if not text:
+                        continue
+                    
+                    # Find nearest column anchor for header
+                    nearest_col = min(range(len(column_anchors)), key=lambda i: abs(column_anchors[i] - x_center))
+                    
+                    # Combine with existing cell if present
+                    if header_row_cells[nearest_col] is not None:
+                        existing_text = header_row_cells[nearest_col].value or ''
+                        header_row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
+                    else:
+                        header_row_cells[nearest_col] = Cell(
+                            row=row_idx,
+                            column=nearest_col,
+                            value=text,
+                            style=CellStyle(
+                                bold=True,
+                                alignment_horizontal=CellAlignment.LEFT,
+                                background_color='#E0E0E0'  # Light gray for headers
+                            )
+                        )
+                
+                # Fill empty header cells and add row
+                final_header_row_cells = []
+                for col_idx in range(len(column_anchors)):
+                    if header_row_cells[col_idx] is not None:
+                        final_header_row_cells.append(header_row_cells[col_idx])
+                    else:
+                        final_header_row_cells.append(Cell(
+                            row=row_idx,
+                            column=col_idx,
+                            value='',
+                            style=CellStyle(
+                                bold=True,
+                                alignment_horizontal=CellAlignment.LEFT,
+                                background_color='#E0E0E0'
+                            )
+                        ))
+                
+                if final_header_row_cells:
+                    layout.add_row(final_header_row_cells)
+                    row_idx += 1
+                    header_row_added = True
+        
+        # Step 6: Assign BODY blocks to columns and build layout
+        for y_pos in sorted(body_blocks_by_y.keys()):
+            row_blocks = sorted(body_blocks_by_y[y_pos], key=lambda b: b.get('bounding_box', {}).get('x_min', 0))
             row_cells = [None] * len(column_anchors)  # Initialize row with empty cells
             
             for block in row_blocks:
