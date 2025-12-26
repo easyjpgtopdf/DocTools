@@ -230,26 +230,38 @@ class TablePostProcessor:
         raw_cells = []
         row_idx = 0
         
+        logger.debug(f"Table has 'header_rows': {hasattr(table, 'header_rows')}")
+        logger.debug(f"Table has 'body_rows': {hasattr(table, 'body_rows')}")
+        
         # Process header rows
         if hasattr(table, 'header_rows') and table.header_rows:
+            logger.debug(f"Processing {len(table.header_rows)} header rows")
             for header_row in table.header_rows:
                 if hasattr(header_row, 'cells') and header_row.cells:
+                    logger.debug(f"Header row {row_idx} has {len(header_row.cells)} cells")
                     for col_idx, cell in enumerate(header_row.cells):
                         cell_data = self._extract_cell_data(cell, document_text, row_idx, col_idx, is_header=True)
                         if cell_data:
                             raw_cells.append(cell_data)
+                        else:
+                            logger.debug(f"Header cell ({row_idx},{col_idx}) returned None")
                 row_idx += 1
         
         # Process body rows
         if hasattr(table, 'body_rows') and table.body_rows:
+            logger.debug(f"Processing {len(table.body_rows)} body rows")
             for body_row in table.body_rows:
                 if hasattr(body_row, 'cells') and body_row.cells:
+                    logger.debug(f"Body row {row_idx} has {len(body_row.cells)} cells")
                     for col_idx, cell in enumerate(body_row.cells):
                         cell_data = self._extract_cell_data(cell, document_text, row_idx, col_idx, is_header=False)
                         if cell_data:
                             raw_cells.append(cell_data)
+                        else:
+                            logger.debug(f"Body cell ({row_idx},{col_idx}) returned None")
                 row_idx += 1
         
+        logger.info(f"Extracted {len(raw_cells)} raw cells from table (from {row_idx} total rows)")
         return raw_cells
     
     def _extract_cell_data(
@@ -262,6 +274,7 @@ class TablePostProcessor:
     ) -> Optional[ProcessedCell]:
         """Extract cell data including text, bounding box, and style"""
         if not hasattr(cell, 'layout'):
+            logger.debug(f"Cell ({row},{column}) has no 'layout' attribute")
             return None
         
         layout = cell.layout
@@ -272,6 +285,7 @@ class TablePostProcessor:
         # Extract bounding box
         bounding_box = self._extract_bounding_box(layout)
         if not bounding_box:
+            logger.debug(f"Cell ({row},{column}) has no bounding box, text: '{text[:30] if text else 'empty'}'")
             return None
         
         # Extract style information
