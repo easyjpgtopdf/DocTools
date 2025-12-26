@@ -188,28 +188,45 @@ class LayoutDecisionEngine:
                                 table_confidence=page_table_confidence
                             )
                         else:
-                            # Confidence too low - downgrade safely
-                            logger.warning(f"Page {page_idx + 1}: TYPE_A - Table confidence {page_table_confidence:.2f} < 0.65, downgrading to simple row-wise")
-                            page_layout = self._convert_to_simple_rowwise(page_tables, document_text, page_idx, doc_type)
-                            page_layout.metadata['table_confidence_status'] = 'LOW_CONFIDENCE_TABLE'
+                            # USER-VISIBLE BEHAVIOR: TYPE_A with low confidence = "Template/Incomplete Table"
+                            # Output minimal Excel (headers only), do NOT attempt full reconstruction
+                            logger.warning(f"Page {page_idx + 1}: TYPE_A - Table confidence {page_table_confidence:.2f} < 0.65, treating as Template/Incomplete Table (headers only)")
+                            page_layout = self._convert_to_template_headers_only(page_tables, document_text, page_idx)
+                            page_layout.metadata['table_confidence_status'] = 'TEMPLATE_INCOMPLETE_TABLE'
                             page_layout.metadata['table_confidence'] = page_table_confidence
+                            page_layout.metadata['user_message'] = 'Template or incomplete table detected - showing headers only'
                     else:
-                        # No tables or not allowed - downgrade
-                        logger.warning(f"Page {page_idx + 1}: TYPE_A - No tables or table processing not allowed, downgrading")
-                        page_layout = self._convert_to_simple_rowwise(page_tables if page_tables else [], document_text, page_idx, doc_type)
+                        # No tables or not allowed - treat as template/blank
+                        logger.warning(f"Page {page_idx + 1}: TYPE_A - No tables or table processing not allowed, treating as template/blank")
+                        if page_tables:
+                            page_layout = self._convert_to_template_headers_only(page_tables, document_text, page_idx)
+                            page_layout.metadata['table_confidence_status'] = 'NO_TABLE_PROCESSING'
+                        else:
+                            # Blank document - return minimal valid Excel
+                            page_layout = self._create_minimal_structured_layout(page, document_text, page_idx)
+                            page_layout.metadata['document_type'] = 'blank_template'
+                            page_layout.metadata['user_message'] = 'Blank or template document - minimal structure returned'
                 
                 elif category == PremiumDocCategory.TYPE_B_KEY_VALUE:
                     # TYPE_B: KEY_VALUE - Dedicated 2-column layout, NEVER send through table pipeline
                     layout_strategy = "type_b_key_value"
                     logger.info(f"Page {page_idx + 1}: TYPE_B - Using dedicated key-value layout (2 columns: Label | Value)")
-                    page_layout = self._convert_to_key_value_layout(
-                        page=page,
-                        document_text=document_text,
-                        page_idx=page_idx,
-                        form_fields=form_fields_list,
-                        page_structure=page_structure,
-                        page_tables=page_tables  # Line-item tables as separate sheet
-                    )
+                    
+                    # Check if blank/template document
+                    if self._is_blank_or_template(document_text, form_fields_list, page_structure):
+                        logger.info(f"Page {page_idx + 1}: TYPE_B - Blank/template detected, returning minimal valid Excel")
+                        page_layout = self._create_minimal_structured_layout(page, document_text, page_idx)
+                        page_layout.metadata['document_type'] = 'blank_template'
+                        page_layout.metadata['user_message'] = 'Blank or template document - minimal structure returned'
+                    else:
+                        page_layout = self._convert_to_key_value_layout(
+                            page=page,
+                            document_text=document_text,
+                            page_idx=page_idx,
+                            form_fields=form_fields_list,
+                            page_structure=page_structure,
+                            page_tables=page_tables  # Line-item tables as separate sheet
+                        )
                 
                 elif category == PremiumDocCategory.TYPE_C_MIXED_LAYOUT:
                     # TYPE_C: MIXED_LAYOUT - Do NOT fail, export page-wise blocks or controlled output
@@ -229,12 +246,20 @@ class LayoutDecisionEngine:
                     # TYPE_D: PLAIN_TEXT - Single-column Excel
                     layout_strategy = "type_d_plain_text"
                     logger.info(f"Page {page_idx + 1}: TYPE_D - Using single-column plain text layout")
-                    page_layout = self._convert_to_plain_text_layout(
-                        page=page,
-                        document_text=document_text,
-                        page_idx=page_idx,
-                        page_structure=page_structure
-                    )
+                    
+                    # Check if blank/template document
+                    if self._is_blank_or_template(document_text, form_fields_list, page_structure):
+                        logger.info(f"Page {page_idx + 1}: TYPE_D - Blank/template detected, returning minimal valid Excel")
+                        page_layout = self._create_minimal_structured_layout(page, document_text, page_idx)
+                        page_layout.metadata['document_type'] = 'blank_template'
+                        page_layout.metadata['user_message'] = 'Blank or template document - minimal structure returned'
+                    else:
+                        page_layout = self._convert_to_plain_text_layout(
+                            page=page,
+                            document_text=document_text,
+                            page_idx=page_idx,
+                            page_structure=page_structure
+                        )
                 
                 else:
                     # Unknown category - fail-safe: use minimal structured layout
@@ -1713,4 +1738,94 @@ class LayoutDecisionEngine:
             layout.add_row([text_cell])
         
         logger.info(f"Page {page_idx + 1}: TYPE_D - Created plain text layout with {row_idx} rows (single column)")
+        return layout
+    
+    def _is_blank_or_template(self, document_text: str, form_fields: List[Dict], page_structure: Optional[Dict] = None) -> bool:
+        """
+        Detect if document is blank or template-style (no meaningful content).
+        Never mark as conversion failure - always return valid Excel.
+        """
+        # Check if document text is empty or very short
+        if not document_text or len(document_text.strip()) < 10:
+            return True
+        
+        # Check if text is mostly whitespace or placeholder text
+        text_ratio = len(document_text.strip()) / len(document_text) if document_text else 0
+        if text_ratio < 0.1:
+            return True
+        
+        # Check for common template indicators (placeholder text)
+        placeholder_patterns = [
+            'enter', 'type here', 'click to', 'placeholder', 'sample text',
+            'lorem ipsum', 'example', 'template', 'form', 'fill in'
+        ]
+        text_lower = document_text.lower()
+        placeholder_count = sum(1 for pattern in placeholder_patterns if pattern in text_lower)
+        if placeholder_count >= 2:  # Multiple placeholder indicators
+            return True
+        
+        # Check if form fields exist but are all empty
+        if form_fields:
+            filled_fields = sum(1 for field in form_fields if field.get('value', '').strip())
+            if filled_fields == 0:
+                return True
+        
+        return False
+    
+    def _convert_to_template_headers_only(
+        self,
+        tables: List,
+        document_text: str,
+        page_idx: int
+    ) -> UnifiedLayout:
+        """
+        Convert tables to headers-only layout for template/incomplete table case.
+        USER-VISIBLE BEHAVIOR: Explicitly treat as "Template/Incomplete Table".
+        Output minimal Excel (headers only), do NOT attempt full reconstruction.
+        """
+        layout = UnifiedLayout(page_index=page_idx)
+        layout.metadata['layout_type'] = 'template_headers_only'
+        row_idx = 0
+        
+        for table in tables:
+            # Extract ONLY header rows (no body rows)
+            if hasattr(table, 'header_rows') and table.header_rows:
+                for header_row in table.header_rows:
+                    if hasattr(header_row, 'cells') and header_row.cells:
+                        row_cells = []
+                        for col_idx, cell in enumerate(header_row.cells):
+                            cell_text = self._extract_cell_text(cell, document_text)
+                            # Include header even if empty (preserves column structure)
+                            cell_obj = Cell(
+                                row=row_idx,
+                                column=col_idx,
+                                value=cell_text if cell_text else f'Column {col_idx + 1}',
+                                style=CellStyle(
+                                    bold=True,
+                                    alignment_horizontal=CellAlignment.LEFT,
+                                    background_color='#E0E0E0'  # Light gray for headers
+                                )
+                            )
+                            row_cells.append(cell_obj)
+                        
+                        if row_cells:
+                            layout.add_row(row_cells)
+                            row_idx += 1
+        
+        # If no headers found, create minimal structure
+        if row_idx == 0:
+            logger.warning(f"Page {page_idx + 1}: No headers found in template, creating minimal structure")
+            header_cell = Cell(
+                row=0,
+                column=0,
+                value="Template/Incomplete Table",
+                style=CellStyle(
+                    bold=True,
+                    alignment_horizontal=CellAlignment.CENTER,
+                    background_color='#E0E0E0'
+                )
+            )
+            layout.add_row([header_cell])
+        
+        logger.info(f"Page {page_idx + 1}: Created template headers-only layout with {row_idx} header row(s)")
         return layout
