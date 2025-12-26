@@ -2515,6 +2515,137 @@ class LayoutDecisionEngine:
         
         return column_anchors
     
+    def _check_visual_table_candidate(self, full_structure: Dict) -> bool:
+        """
+        Check if a TYPE_D document should be promoted to TYPE_A_CANDIDATE (visual table).
+        
+        Visual Table Candidate Rules:
+        1. blocks >= 30
+        2. repeated horizontal alignment across >= 3 rows
+        3. >= 2 distinct X-position clusters repeating vertically
+        4. presence of numeric columns (IDs, Aadhaar, serial numbers)
+        
+        Safety:
+        - Promotion allowed ONLY for digital_pdf (checked by caller)
+        - Promotion forbidden for scanned images, letters, paragraphs (checked by caller)
+        """
+        if not full_structure or 'blocks' not in full_structure:
+            return False
+        
+        blocks = [b for b in full_structure['blocks'] if b.get('bounding_box') and b.get('text', '').strip()]
+        
+        # Rule 1: blocks >= 30
+        if len(blocks) < 30:
+            logger.debug(f"Visual table candidate check: Only {len(blocks)} blocks, need >= 30")
+            return False
+        
+        # Group blocks by Y-position (rows) - use relaxed precision
+        blocks_by_y = {}
+        for block in blocks:
+            bbox = block.get('bounding_box', {})
+            y_center = (bbox.get('y_min', 0) + bbox.get('y_max', 0)) / 2
+            y_key = round(y_center * 50) / 50  # 0.02 precision (relaxed)
+            if y_key not in blocks_by_y:
+                blocks_by_y[y_key] = []
+            blocks_by_y[y_key].append(block)
+        
+        # Rule 2: repeated horizontal alignment across >= 3 rows
+        rows_with_horizontal_alignment = 0
+        x_clusters_all_rows = []  # Collect all X-positions
+        numeric_blocks_count = 0  # Count numeric blocks (Rule 4)
+        
+        for y_pos, row_blocks in blocks_by_y.items():
+            if len(row_blocks) >= 2:  # At least 2 blocks in row (horizontal alignment)
+                x_positions = []
+                for block in row_blocks:
+                    bbox = block.get('bounding_box', {})
+                    x_center = (bbox.get('x_min', 0) + bbox.get('x_max', 0)) / 2
+                    x_positions.append(x_center)
+                    
+                    # Check for numeric content (Rule 4)
+                    text = block.get('text', '').strip()
+                    if self._is_aadhaar_or_long_numeric(text):
+                        numeric_blocks_count += 1
+                    # Also check for short numeric sequences (serial numbers, IDs)
+                    digits_only = ''.join(c for c in text if c.isdigit())
+                    if 4 <= len(digits_only) <= 9 and len(text) <= 20:  # Short numeric IDs
+                        numeric_blocks_count += 1
+                
+                # Check if X-positions are distinct and separated
+                x_positions = sorted(set(x_positions))
+                if len(x_positions) >= 2:
+                    # Check if positions are reasonably separated (at least 5% of page width)
+                    min_separation = 0.05
+                    has_separation = False
+                    for i in range(len(x_positions) - 1):
+                        if x_positions[i + 1] - x_positions[i] >= min_separation:
+                            has_separation = True
+                            break
+                    
+                    if has_separation:
+                        rows_with_horizontal_alignment += 1
+                        x_clusters_all_rows.extend(x_positions)
+        
+        # Rule 2: Need >= 3 rows with horizontal alignment
+        if rows_with_horizontal_alignment < 3:
+            logger.debug(f"Visual table candidate check: Only {rows_with_horizontal_alignment} rows with horizontal alignment, need >= 3")
+            return False
+        
+        # Rule 3: >= 2 distinct X-position clusters repeating vertically
+        if len(x_clusters_all_rows) < 10:
+            logger.debug(f"Visual table candidate check: Only {len(x_clusters_all_rows)} X-positions, need >= 10")
+            return False
+        
+        # Cluster X-positions to find distinct column bands
+        x_clusters_all_rows = sorted(set(x_clusters_all_rows))
+        clusters = []
+        cluster_tolerance = 0.08  # 8% tolerance
+        
+        for x_pos in x_clusters_all_rows:
+            assigned = False
+            for cluster in clusters:
+                cluster_center = sum(cluster) / len(cluster)
+                if abs(x_pos - cluster_center) <= cluster_tolerance:
+                    cluster.append(x_pos)
+                    assigned = True
+                    break
+            if not assigned:
+                clusters.append([x_pos])
+        
+        # Count how many rows have blocks in each cluster (repeating vertically)
+        distinct_vertical_bands = 0
+        for cluster in clusters:
+            cluster_center = sum(cluster) / len(cluster)
+            row_count = 0
+            
+            for y_pos, row_blocks in blocks_by_y.items():
+                if len(row_blocks) >= 2:  # Only check rows with multiple blocks
+                    for block in row_blocks:
+                        bbox = block.get('bounding_box', {})
+                        x_center = (bbox.get('x_min', 0) + bbox.get('x_max', 0)) / 2
+                        if abs(x_center - cluster_center) <= cluster_tolerance:
+                            row_count += 1
+                            break  # Count each row only once
+            
+            # If same X-range appears in >= 2 rows → distinct vertical band
+            if row_count >= 2:
+                distinct_vertical_bands += 1
+        
+        # Rule 3: Need >= 2 distinct X-position clusters repeating vertically
+        if distinct_vertical_bands < 2:
+            logger.debug(f"Visual table candidate check: Only {distinct_vertical_bands} distinct vertical bands, need >= 2")
+            return False
+        
+        # Rule 4: Presence of numeric columns (IDs, Aadhaar, serial numbers)
+        # We already counted numeric_blocks_count above
+        if numeric_blocks_count < 2:
+            logger.debug(f"Visual table candidate check: Only {numeric_blocks_count} numeric blocks, need >= 2")
+            return False
+        
+        # All rules passed - eligible for promotion
+        logger.info(f"Visual table candidate check PASSED: {len(blocks)} blocks, {rows_with_horizontal_alignment} aligned rows, {distinct_vertical_bands} vertical bands, {numeric_blocks_count} numeric blocks")
+        return True
+    
     def _is_aadhaar_or_long_numeric(self, text: str) -> bool:
         """
         Detect long numeric sequences (10-12 digits with spaces) - Aadhaar protection.
@@ -2942,3 +3073,134 @@ class LayoutDecisionEngine:
         column_anchors.sort()
         
         return column_anchors
+    
+    def _check_visual_table_candidate(self, full_structure: Dict) -> bool:
+        """
+        Check if a TYPE_D document should be promoted to TYPE_A_CANDIDATE (visual table).
+        
+        Visual Table Candidate Rules:
+        1. blocks >= 30
+        2. repeated horizontal alignment across >= 3 rows
+        3. >= 2 distinct X-position clusters repeating vertically
+        4. presence of numeric columns (IDs, Aadhaar, serial numbers)
+        
+        Safety:
+        - Promotion allowed ONLY for digital_pdf (checked by caller)
+        - Promotion forbidden for scanned images, letters, paragraphs (checked by caller)
+        """
+        if not full_structure or 'blocks' not in full_structure:
+            return False
+        
+        blocks = [b for b in full_structure['blocks'] if b.get('bounding_box') and b.get('text', '').strip()]
+        
+        # Rule 1: blocks >= 30
+        if len(blocks) < 30:
+            logger.debug(f"Visual table candidate check: Only {len(blocks)} blocks, need >= 30")
+            return False
+        
+        # Group blocks by Y-position (rows) - use relaxed precision
+        blocks_by_y = {}
+        for block in blocks:
+            bbox = block.get('bounding_box', {})
+            y_center = (bbox.get('y_min', 0) + bbox.get('y_max', 0)) / 2
+            y_key = round(y_center * 50) / 50  # 0.02 precision (relaxed)
+            if y_key not in blocks_by_y:
+                blocks_by_y[y_key] = []
+            blocks_by_y[y_key].append(block)
+        
+        # Rule 2: repeated horizontal alignment across >= 3 rows
+        rows_with_horizontal_alignment = 0
+        x_clusters_all_rows = []  # Collect all X-positions
+        numeric_blocks_count = 0  # Count numeric blocks (Rule 4)
+        
+        for y_pos, row_blocks in blocks_by_y.items():
+            if len(row_blocks) >= 2:  # At least 2 blocks in row (horizontal alignment)
+                x_positions = []
+                for block in row_blocks:
+                    bbox = block.get('bounding_box', {})
+                    x_center = (bbox.get('x_min', 0) + bbox.get('x_max', 0)) / 2
+                    x_positions.append(x_center)
+                    
+                    # Check for numeric content (Rule 4)
+                    text = block.get('text', '').strip()
+                    if self._is_aadhaar_or_long_numeric(text):
+                        numeric_blocks_count += 1
+                    # Also check for short numeric sequences (serial numbers, IDs)
+                    digits_only = ''.join(c for c in text if c.isdigit())
+                    if 4 <= len(digits_only) <= 9 and len(text) <= 20:  # Short numeric IDs
+                        numeric_blocks_count += 1
+                
+                # Check if X-positions are distinct and separated
+                x_positions = sorted(set(x_positions))
+                if len(x_positions) >= 2:
+                    # Check if positions are reasonably separated (at least 5% of page width)
+                    min_separation = 0.05
+                    has_separation = False
+                    for i in range(len(x_positions) - 1):
+                        if x_positions[i + 1] - x_positions[i] >= min_separation:
+                            has_separation = True
+                            break
+                    
+                    if has_separation:
+                        rows_with_horizontal_alignment += 1
+                        x_clusters_all_rows.extend(x_positions)
+        
+        # Rule 2: Need >= 3 rows with horizontal alignment
+        if rows_with_horizontal_alignment < 3:
+            logger.debug(f"Visual table candidate check: Only {rows_with_horizontal_alignment} rows with horizontal alignment, need >= 3")
+            return False
+        
+        # Rule 3: >= 2 distinct X-position clusters repeating vertically
+        if len(x_clusters_all_rows) < 10:
+            logger.debug(f"Visual table candidate check: Only {len(x_clusters_all_rows)} X-positions, need >= 10")
+            return False
+        
+        # Cluster X-positions to find distinct column bands
+        x_clusters_all_rows = sorted(set(x_clusters_all_rows))
+        clusters = []
+        cluster_tolerance = 0.08  # 8% tolerance
+        
+        for x_pos in x_clusters_all_rows:
+            assigned = False
+            for cluster in clusters:
+                cluster_center = sum(cluster) / len(cluster)
+                if abs(x_pos - cluster_center) <= cluster_tolerance:
+                    cluster.append(x_pos)
+                    assigned = True
+                    break
+            if not assigned:
+                clusters.append([x_pos])
+        
+        # Count how many rows have blocks in each cluster (repeating vertically)
+        distinct_vertical_bands = 0
+        for cluster in clusters:
+            cluster_center = sum(cluster) / len(cluster)
+            row_count = 0
+            
+            for y_pos, row_blocks in blocks_by_y.items():
+                if len(row_blocks) >= 2:  # Only check rows with multiple blocks
+                    for block in row_blocks:
+                        bbox = block.get('bounding_box', {})
+                        x_center = (bbox.get('x_min', 0) + bbox.get('x_max', 0)) / 2
+                        if abs(x_center - cluster_center) <= cluster_tolerance:
+                            row_count += 1
+                            break  # Count each row only once
+            
+            # If same X-range appears in >= 2 rows → distinct vertical band
+            if row_count >= 2:
+                distinct_vertical_bands += 1
+        
+        # Rule 3: Need >= 2 distinct X-position clusters repeating vertically
+        if distinct_vertical_bands < 2:
+            logger.debug(f"Visual table candidate check: Only {distinct_vertical_bands} distinct vertical bands, need >= 2")
+            return False
+        
+        # Rule 4: Presence of numeric columns (IDs, Aadhaar, serial numbers)
+        # We already counted numeric_blocks_count above
+        if numeric_blocks_count < 2:
+            logger.debug(f"Visual table candidate check: Only {numeric_blocks_count} numeric blocks, need >= 2")
+            return False
+        
+        # All rules passed - eligible for promotion
+        logger.info(f"Visual table candidate check PASSED: {len(blocks)} blocks, {rows_with_horizontal_alignment} aligned rows, {distinct_vertical_bands} vertical bands, {numeric_blocks_count} numeric blocks")
+        return True
