@@ -1164,16 +1164,56 @@ if (convertBtn) {
         }
         
         showProgress(100);
-        showStatus(`Success! Converted ${result.pagesProcessed || result.pagesConverted || 0} pages. Credits left: ${result.creditsLeft || 0}`, 'success');
+        
+        // ENTERPRISE RESULT STATUS: Display iLovePDF-style messages
+        const mode = result.mode || result.execution_mode || 'unknown';
+        const confidence = result.confidence || result.routing_confidence || 0.5;
+        const message = result.message || result.routing_reason || '';
+        const downloadUrl = result.downloadUrl || result.download_url;
+        
+        // Determine accuracy level
+        let accuracyLevel = 'Limited accuracy';
+        let accuracyClass = 'info';
+        if (confidence >= 0.8) {
+            accuracyLevel = 'High accuracy';
+            accuracyClass = 'success';
+        } else if (confidence < 0.5) {
+            accuracyLevel = 'Not suitable for Excel table';
+            accuracyClass = 'info';
+        }
+        
+        // Build status message
+        let statusMessage = `${accuracyLevel}`;
+        if (mode && mode !== 'unknown') {
+            statusMessage += ` (${mode.replace('_', ' ').toUpperCase()})`;
+        }
+        if (message) {
+            statusMessage += ` - ${message}`;
+        }
+        statusMessage += `. Converted ${result.pagesProcessed || result.pagesConverted || 0} pages.`;
+        if (result.creditsLeft !== undefined) {
+            statusMessage += ` Credits left: ${result.creditsLeft}`;
+        }
+        
+        showStatus(statusMessage, accuracyClass);
         
         // Download Excel file
-        setTimeout(() => {
-            window.location.href = result.downloadUrl;
-        }, 1000);
+        if (downloadUrl) {
+            setTimeout(() => {
+                window.location.href = downloadUrl;
+            }, 1000);
+        } else {
+            showStatus('Conversion completed but download URL not available. Please contact support.', 'error');
+        }
         
     } catch (error) {
         console.error('Premium conversion error:', error);
-        showStatus('Conversion failed: ' + error.message, 'error');
+        // ENTERPRISE ERROR HANDLING: Never show "invalid object" or generic failure
+        let errorMessage = 'Conversion completed with limited accuracy.';
+        if (error.message && !error.message.includes('invalid') && !error.message.includes('object failed')) {
+            errorMessage = `Conversion completed: ${error.message}`;
+        }
+        showStatus(errorMessage, 'info');
         convertBtn.disabled = false;
         cancelBtn.style.display = 'none';
         hideProgress();

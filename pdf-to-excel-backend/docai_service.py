@@ -278,12 +278,16 @@ async def process_pdf_to_excel_docai(file_bytes: bytes, filename: str) -> Tuple[
             logger.info("Premium layout system: Starting enhanced extraction...")
             decision_engine = LayoutDecisionEngine()
             # CRITICAL: This call triggers:
-            # 1. Document type classification (PremiumDocCategory)
-            # 2. Table confidence calculation
-            # 3. TablePostProcessor.process_table() - 7-step pipeline
+            # 1. DecisionRouter selects ONE execution mode
+            # 2. Execute ONLY the selected mode
+            # 3. TablePostProcessor.process_table() - 7-step pipeline (for TABLE_STRICT)
             # 4. ProcessedTable -> UnifiedLayout conversion
             unified_layouts = decision_engine.process_document(document, document_text, native_tables)
             logger.info(f"LayoutDecisionEngine.process_document() returned {len(unified_layouts)} UnifiedLayout objects")
+            
+            # Store decision engine for metadata extraction (ENTERPRISE RESPONSE)
+            # This allows main.py to extract mode, confidence, message
+            decision_engine_instance = decision_engine
             
             # Check if any layout has content
             has_content = any(not layout.is_empty() for layout in unified_layouts)
@@ -433,7 +437,9 @@ async def process_pdf_to_excel_docai(file_bytes: bytes, filename: str) -> Tuple[
         download_url = upload_excel_to_gcs(excel_bytes, base_filename)
         logger.info(f"Excel uploaded. Download URL generated")
         
-        return download_url, pages_processed
+        # ENTERPRISE RESPONSE: Return unified_layouts for metadata extraction
+        # main.py will extract mode, confidence, message from unified_layouts metadata
+        return download_url, pages_processed, unified_layouts
         
     except gcp_exceptions.GoogleAPIError as e:
         raise Exception(f"Document AI API error: {str(e)}")

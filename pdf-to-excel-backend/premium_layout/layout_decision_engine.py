@@ -1,6 +1,7 @@
 """
-Layout Decision Engine
-Decides whether to use native Document AI tables or heuristic inference.
+Layout Decision Engine - Enterprise PDF to Excel Conversion
+Calls DecisionRouter to select ONE execution mode and executes ONLY that mode.
+No classification override, no mid-pipeline downgrades.
 """
 
 import logging
@@ -11,26 +12,30 @@ from .unified_layout_model import UnifiedLayout, Cell, CellStyle, CellAlignment
 from .document_type_classifier import DocumentTypeClassifier, DocumentType
 from .heuristic_table_builder import HeuristicTableBuilder
 from .full_ocr_extractor import FullOCRExtractor
+from .decision_router import DecisionRouter, ExecutionMode
 
 logger = logging.getLogger(__name__)
 
-class PremiumDocCategory(Enum):
-    TYPE_A_TRUE_TABULAR = "true_tabular"
-    TYPE_B_KEY_VALUE = "key_value"
-    TYPE_C_MIXED_LAYOUT = "mixed_layout"
-    TYPE_D_PLAIN_TEXT = "plain_text"
-
 
 class LayoutDecisionEngine:
-    """Makes decisions about layout extraction strategy"""
+    """
+    Enterprise-grade layout decision engine.
+    
+    Uses DecisionRouter to select ONE execution mode per document.
+    Executes ONLY the selected mode - no silent fallbacks, no mid-pipeline downgrades.
+    """
     
     def __init__(self):
         """Initialize decision engine"""
         self.classifier = DocumentTypeClassifier()
         self.heuristic_builder = HeuristicTableBuilder()
-        self.full_ocr_extractor = FullOCRExtractor(min_confidence=0.5)  # Use full OCR capabilities
-        self.document_category: Optional["PremiumDocCategory"] = None  # premium-only classification
-        self.table_confidence: float = 0.0  # premium-only confidence for TYPE_A tables
+        self.full_ocr_extractor = FullOCRExtractor(min_confidence=0.5)
+        self.decision_router = DecisionRouter()
+        
+        # Document-level metadata (set once, used for all pages)
+        self.selected_mode: Optional[ExecutionMode] = None
+        self.routing_confidence: float = 0.0
+        self.routing_reason: str = ""
     
     def process_document(
         self,
@@ -41,88 +46,71 @@ class LayoutDecisionEngine:
         """
         Process document and return unified layouts (one per page).
         
+        ENTERPRISE ROUTING:
+        1. Extract full OCR structure
+        2. Classify document type
+        3. Call DecisionRouter to select ONE execution mode
+        4. Execute ONLY the selected mode for all pages
+        5. No classification override, no mid-pipeline downgrades
+        
         Args:
             document: Document AI Document object
             document_text: Extracted text
             native_tables: List of native tables from Document AI (if any)
             
         Returns:
-            List of UnifiedLayout objects (one per page)
+            List of UnifiedLayout objects (one per page) with mode metadata
         """
-        # Step 1: Extract full OCR structure (use Document AI's complete capabilities)
-        logger.info("Extracting full OCR structure using Document AI's complete capabilities...")
+        logger.info("=" * 80)
+        logger.info("ENTERPRISE PDF TO EXCEL: Starting document processing")
+        logger.info("=" * 80)
+        
+        # Step 1: Extract full OCR structure
+        logger.info("Extracting full OCR structure...")
         full_structure = self.full_ocr_extractor.extract_full_structure(document)
         logger.info(f"Extracted: {len(full_structure['blocks'])} blocks, "
                    f"{len(full_structure['form_fields'])} form fields, "
-                   f"{len(full_structure['tables'])} tables, "
-                   f"avg confidence: {full_structure['avg_confidence']:.2f}")
+                   f"{len(full_structure['tables'])} tables")
         
-        # Step 2: Classify document type (CRITICAL: Before any table processing)
+        # Step 2: Classify document type
         doc_type = self.classifier.classify(document, document_text)
         logger.info(f"Document classified as: {doc_type.value}")
-
-        # Step 2.0: Premium document category (before any table/row/col/Excel logic)
-        self.document_category = self._classify_premium_category(full_structure, doc_type)
-        logger.info(f"Premium document category: {self.document_category.value}")
         
-        # CRITICAL: SECOND-PASS EVALUATION - TYPE_D → TYPE_A promotion for visual tables
-        self.is_promoted_from_type_d = False
-        if self.document_category == PremiumDocCategory.TYPE_D_PLAIN_TEXT:
-            # Check if document is digital_pdf (not scanned image)
-            if doc_type == DocumentType.DIGITAL_PDF:
-                # Perform VISUAL TABLE CANDIDATE CHECK
-                visual_table_eligible = self._check_visual_table_candidate(full_structure)
-                if visual_table_eligible:
-                    # Reclassify as TYPE_A (promoted from TYPE_D)
-                    logger.info("CRITICAL: TYPE_D promoted to TYPE_A_CANDIDATE (visual table detected)")
-                    self.document_category = PremiumDocCategory.TYPE_A_TRUE_TABULAR
-                    self.is_promoted_from_type_d = True
-                    logger.info("TYPE_D → TYPE_A promotion: Document will use SOFT TABLE MODE + VISUAL GRID RECONSTRUCTION without requiring native tables")
+        # Step 3: DECISION ROUTER - Select ONE execution mode
+        logger.info("=" * 80)
+        logger.info("DECISION ROUTER: Selecting execution mode")
+        logger.info("=" * 80)
+        self.selected_mode, self.routing_confidence, self.routing_reason = self.decision_router.route(
+            native_tables=native_tables,
+            doc_type=doc_type,
+            full_structure=full_structure,
+            document_text=document_text
+        )
+        logger.info(f"Selected mode: {self.selected_mode.value}")
+        logger.info(f"Routing confidence: {self.routing_confidence:.2f}")
+        logger.info(f"Routing reason: {self.routing_reason}")
+        logger.info("=" * 80)
         
-        # Reset table confidence per document
-        self.table_confidence = 0.0
-        
-        # Step 2.1: Check if document type allows table processing
-        # Form-style documents (key:value) should NOT force Excel table structure
-        # Resume/text documents should use simple row-wise export
-        allows_table_processing = self._allows_table_processing(doc_type, document, document_text)
-        logger.info(f"Table processing allowed: {allows_table_processing}")
-        
-        # Step 3: Process per page using full structure
-        page_layouts = []
-        
+        # Step 4: Process each page using the selected mode
         if not hasattr(document, 'pages') or not document.pages:
             logger.warning("No pages found in document")
-            return [UnifiedLayout(page_index=0)]
+            return [self._create_empty_layout(0)]
         
-        # Group native tables by page
-        tables_by_page = {}
-        if native_tables:
-            # Document AI tables have page reference
-            for table in native_tables:
-                page_idx = 0
-                if hasattr(table, 'layout') and hasattr(table.layout, 'bounding_poly'):
-                    # Try to determine page from bounding box
-                    # For now, we'll process all tables together and split by page later
-                    pass
-                tables_by_page.setdefault(page_idx, []).append(table)
-        
-        # Process each page using full structure
+        page_layouts = []
         for page_idx, page in enumerate(document.pages):
-            logger.info(f"Processing page {page_idx + 1} of {len(document.pages)}")
+            logger.info(f"Processing page {page_idx + 1} of {len(document.pages)} with mode: {self.selected_mode.value}")
             
             # Get page structure from full OCR extraction
             page_structure = None
-            if page_idx < len(full_structure['pages']):
+            if page_idx < len(full_structure.get('pages', [])):
                 page_structure = full_structure['pages'][page_idx]
             
-            # Get tables for this page (from full structure or native tables)
+            # Get tables for this page
             page_tables = []
             if page_structure and 'tables' in page_structure:
-                # Use enhanced tables from full OCR extraction
                 page_tables = page_structure['tables']
             elif native_tables:
-                # Fallback to native tables
+                # Distribute native tables across pages
                 if page_idx == 0:
                     page_tables = native_tables[:len(native_tables) // len(document.pages) + 1]
                 else:
@@ -130,252 +118,162 @@ class LayoutDecisionEngine:
                     end_idx = ((page_idx + 1) * len(native_tables)) // len(document.pages)
                     page_tables = native_tables[start_idx:end_idx]
             
-            # Check if native tables exist for this page
-            has_native_tables = len(page_tables) > 0
-            
-            # Check for form fields (use Document AI's form parser)
-            has_form_fields = False
+            # Get form fields for this page
             form_fields_list = []
-            if page_structure and 'form_fields' in page_structure and page_structure['form_fields']:
-                has_form_fields = True
+            if page_structure and 'form_fields' in page_structure:
                 form_fields_list = page_structure['form_fields']
-                logger.info(f"Page {page_idx + 1}: Found {len(form_fields_list)} form fields")
             
-            # Check for blocks with bounding boxes
-            has_blocks = False
-            blocks_list = []
-            if page_structure and 'blocks' in page_structure and page_structure['blocks']:
-                blocks_with_bbox = [b for b in page_structure['blocks'] if b.get('bounding_box')]
-                if blocks_with_bbox:
-                    has_blocks = True
-                    blocks_list = blocks_with_bbox
-                    logger.info(f"Page {page_idx + 1}: Found {len(blocks_list)} blocks with bounding boxes")
-            
-            # Layout strategy decision (NEVER fallback to text-only)
-            layout_strategy = "unknown"
-            category = "unknown"
-            page_table_confidence = 0.0
-
-            # Pre-table decision layer (premium only)
-            category_str, page_table_confidence = self._determine_layout_category(
-                doc_type=doc_type,
-                page_tables=page_tables,
-                page_structure=page_structure,
-                has_form_fields=has_form_fields,
-                has_blocks=has_blocks
-            )
-            
-            # Use document-level category (PremiumDocCategory enum) for routing
-            # This ensures consistent routing across all pages based on document classification
-            category = self.document_category  # This is PremiumDocCategory enum from _classify_premium_category
-            
-            # For TYPE_A, compute advanced table confidence
-            if category == PremiumDocCategory.TYPE_A_TRUE_TABULAR and page_tables:
-                page_table_confidence = self._compute_table_confidence_signals(page_tables)
-            logger.info(f"Page {page_idx + 1}: Document category={category.value}, page category={category_str}, table_confidence={page_table_confidence:.2f}")
-            self.table_confidence = page_table_confidence
-            
-            # DECISION ROUTING: Route by category FIRST (not by data availability)
+            # EXECUTE ONLY THE SELECTED MODE - No fallbacks, no downgrades
             try:
-                if category == PremiumDocCategory.TYPE_A_TRUE_TABULAR:
-                    # TYPE_A: TRUE_TABULAR - Only proceed if table_confidence >= 0.65
-                    layout_strategy = "type_a_tabular"
-                    
-                    # CRITICAL: If promoted from TYPE_D, allow SOFT TABLE MODE + VISUAL GRID without native tables
-                    if self.is_promoted_from_type_d:
-                        logger.info(f"Page {page_idx + 1}: TYPE_A (promoted from TYPE_D) - Allowing SOFT TABLE MODE + VISUAL GRID RECONSTRUCTION without native tables")
-                        # Skip native table requirement, go directly to SOFT TABLE MODE check
-                        has_native_tables = False  # Force SOFT TABLE MODE path
-                    
-                    if has_native_tables and allows_table_processing:
-                        is_native_docai_table = (
-                            page_tables and 
-                            hasattr(page_tables[0], 'header_rows') or hasattr(page_tables[0], 'body_rows')
-                        )
-                        
-                        if is_native_docai_table and page_table_confidence >= 0.65:
-                            logger.info(f"Page {page_idx + 1}: TYPE_A - Using premium 7-step table pipeline (confidence: {page_table_confidence:.2f})")
-                            page_layout = self._convert_native_tables_to_layout(
-                                page_tables, 
-                                document_text, 
-                                page_idx,
-                                page=page,
-                                doc_type=doc_type,
-                                table_confidence=page_table_confidence
-                            )
-                            page_layout.metadata['table_confidence'] = page_table_confidence
-                            page_layout = self._final_cleanup_and_normalize(
-                                page_layout,
-                                category=category,
-                                table_confidence=page_table_confidence
-                            )
-                        else:
-                            # SOFT TABLE MODE: TYPE_A with low confidence but visible body rows >= 3
-                            # NEW TRIGGER: Check body rows (NOT headers) for multi-column pattern
-                            body_rows_count, distinct_x_clusters = self._check_body_rows_for_soft_mode(page_structure, document_text)
-                            
-                            if body_rows_count >= 3 and distinct_x_clusters >= 2:
-                                # SOFT TABLE MODE: Infer columns using text alignment from BODY rows ONLY, ignore header completely
-                                logger.info(f"Page {page_idx + 1}: TYPE_A - Table confidence {page_table_confidence:.2f} < 0.65, but {body_rows_count} body rows with {distinct_x_clusters} X-clusters detected. Using SOFT TABLE MODE")
-                                page_layout = self._convert_to_soft_table_mode(
-                                    page_tables=page_tables,
-                                    document_text=document_text,
-                                    page_idx=page_idx,
-                                    page_structure=page_structure,
-                                    page=page
-                                )
-                                page_layout.metadata['body_rows_count'] = body_rows_count
-                                page_layout.metadata['distinct_x_clusters'] = distinct_x_clusters
-                                page_layout.metadata['table_confidence_status'] = 'SOFT_TABLE_MODE'
-                                page_layout.metadata['table_confidence'] = page_table_confidence
-                                page_layout.metadata['user_message'] = 'Multi-column table detected with weak headers - using soft column inference from body rows'
-                            elif body_rows_count >= 2 and distinct_x_clusters >= 2:
-                                # RELAXED TRIGGER: Even with 2 body rows, if we have distinct X-clusters, try SOFT TABLE MODE
-                                logger.info(f"Page {page_idx + 1}: TYPE_A - Table confidence {page_table_confidence:.2f} < 0.65, but {body_rows_count} body rows with {distinct_x_clusters} X-clusters detected (relaxed trigger). Using SOFT TABLE MODE")
-                                page_layout = self._convert_to_soft_table_mode(
-                                    page_tables=page_tables,
-                                    document_text=document_text,
-                                    page_idx=page_idx,
-                                    page_structure=page_structure,
-                                    page=page
-                                )
-                                page_layout.metadata['body_rows_count'] = body_rows_count
-                                page_layout.metadata['distinct_x_clusters'] = distinct_x_clusters
-                                page_layout.metadata['table_confidence_status'] = 'SOFT_TABLE_MODE_RELAXED'
-                                page_layout.metadata['table_confidence'] = page_table_confidence
-                                page_layout.metadata['user_message'] = 'Multi-column table detected with weak headers - using soft column inference from body rows (relaxed trigger)'
-                            else:
-                                # Log why SOFT TABLE MODE didn't trigger
-                                logger.warning(f"Page {page_idx + 1}: TYPE_A - Table confidence {page_table_confidence:.2f} < 0.65, but SOFT TABLE MODE not triggered. body_rows={body_rows_count}, distinct_x_clusters={distinct_x_clusters}")
-                                
-                                # OPTIONAL VISUAL GRID RECONSTRUCTION MODE (fallback when all else fails)
-                                # Trigger: no native tables AND stable X-position bands across >= 5 rows
-                                if not has_native_tables:
-                                    visual_grid_eligible, stable_rows = self._check_visual_grid_reconstruction_trigger(page_structure, document_text)
-                                    if visual_grid_eligible and stable_rows >= 5:
-                                        logger.info(f"Page {page_idx + 1}: TYPE_A - OPTIONAL VISUAL GRID RECONSTRUCTION MODE triggered ({stable_rows} stable rows with X-position bands)")
-                                        page_layout = self._convert_to_visual_grid_reconstruction_mode(
-                                            page_tables=page_tables,
-                                            document_text=document_text,
-                                            page_idx=page_idx,
-                                            page_structure=page_structure,
-                                            page=page
-                                        )
-                                        page_layout.metadata['table_confidence_status'] = 'VISUAL_GRID_RECONSTRUCTION'
-                                        page_layout.metadata['table_confidence'] = page_table_confidence
-                                        page_layout.metadata['stable_rows_count'] = stable_rows
-                                        page_layout.metadata['user_message'] = 'Visual grid reconstruction mode - reconstructed from text block alignment'
-                                    else:
-                                        # Visual grid reconstruction not eligible, fall back to template headers
-                                        logger.warning(f"Page {page_idx + 1}: TYPE_A - Visual grid reconstruction not eligible (eligible={visual_grid_eligible}, stable_rows={stable_rows})")
-                                        # USER-VISIBLE BEHAVIOR: TYPE_A with low confidence = "Template/Incomplete Table"
-                                        # Output minimal Excel (headers only), do NOT attempt full reconstruction
-                                        logger.warning(f"Page {page_idx + 1}: TYPE_A - Table confidence {page_table_confidence:.2f} < 0.65, treating as Template/Incomplete Table (headers only)")
-                                        page_layout = self._convert_to_template_headers_only(page_tables, document_text, page_idx)
-                                        page_layout.metadata['table_confidence_status'] = 'TEMPLATE_INCOMPLETE_TABLE'
-                                        page_layout.metadata['table_confidence'] = page_table_confidence
-                                        page_layout.metadata['user_message'] = 'Template or incomplete table detected - showing headers only'
-                                else:
-                                    # Native tables exist, so visual grid reconstruction not applicable
-                                    # USER-VISIBLE BEHAVIOR: TYPE_A with low confidence = "Template/Incomplete Table"
-                                    # Output minimal Excel (headers only), do NOT attempt full reconstruction
-                                    logger.warning(f"Page {page_idx + 1}: TYPE_A - Table confidence {page_table_confidence:.2f} < 0.65, treating as Template/Incomplete Table (headers only)")
-                                    page_layout = self._convert_to_template_headers_only(page_tables, document_text, page_idx)
-                                    page_layout.metadata['table_confidence_status'] = 'TEMPLATE_INCOMPLETE_TABLE'
-                                    page_layout.metadata['table_confidence'] = page_table_confidence
-                                    page_layout.metadata['user_message'] = 'Template or incomplete table detected - showing headers only'
-                    else:
-                        # No tables or not allowed - treat as template/blank
-                        logger.warning(f"Page {page_idx + 1}: TYPE_A - No tables or table processing not allowed, treating as template/blank")
-                        if page_tables:
-                            page_layout = self._convert_to_template_headers_only(page_tables, document_text, page_idx)
-                            page_layout.metadata['table_confidence_status'] = 'NO_TABLE_PROCESSING'
-                        else:
-                            # Blank document - return minimal valid Excel
-                            page_layout = self._create_minimal_structured_layout(page, document_text, page_idx)
-                            page_layout.metadata['document_type'] = 'blank_template'
-                            page_layout.metadata['user_message'] = 'Blank or template document - minimal structure returned'
-                
-                elif category == PremiumDocCategory.TYPE_B_KEY_VALUE:
-                    # TYPE_B: KEY_VALUE - Dedicated 2-column layout, NEVER send through table pipeline
-                    layout_strategy = "type_b_key_value"
-                    logger.info(f"Page {page_idx + 1}: TYPE_B - Using dedicated key-value layout (2 columns: Label | Value)")
-                    
-                    # Check if blank/template document
-                    if self._is_blank_or_template(document_text, form_fields_list, page_structure):
-                        logger.info(f"Page {page_idx + 1}: TYPE_B - Blank/template detected, returning minimal valid Excel")
-                        page_layout = self._create_minimal_structured_layout(page, document_text, page_idx)
-                        page_layout.metadata['document_type'] = 'blank_template'
-                        page_layout.metadata['user_message'] = 'Blank or template document - minimal structure returned'
-                    else:
-                        page_layout = self._convert_to_key_value_layout(
-                            page=page,
-                            document_text=document_text,
-                            page_idx=page_idx,
-                            form_fields=form_fields_list,
-                            page_structure=page_structure,
-                            page_tables=page_tables  # Line-item tables as separate sheet
-                        )
-                
-                elif category == PremiumDocCategory.TYPE_C_MIXED_LAYOUT:
-                    # TYPE_C: MIXED_LAYOUT - Do NOT fail, export page-wise blocks or controlled output
-                    layout_strategy = "type_c_mixed_layout"
-                    logger.info(f"Page {page_idx + 1}: TYPE_C - Exporting page-wise text blocks (no forced table)")
-                    if has_blocks:
-                        page_layout = self._build_layout_from_blocks(blocks_list, doc_type.value, page_idx, force_sequential=True)
-                    elif has_form_fields:
-                        page_layout = self._convert_form_fields_to_layout(form_fields_list, page_idx)
-                    else:
-                        # Controlled output - page-wise text blocks
-                        page_layout = self._build_layout_from_full_ocr(page_structure, page, document_text, doc_type.value, page_idx)
-                    # Ensure it doesn't look like a failed table
-                    page_layout.metadata['layout_type'] = 'mixed_layout_export'
-                
-                elif category == PremiumDocCategory.TYPE_D_PLAIN_TEXT:
-                    # TYPE_D: PLAIN_TEXT - Single-column Excel
-                    layout_strategy = "type_d_plain_text"
-                    logger.info(f"Page {page_idx + 1}: TYPE_D - Using single-column plain text layout")
-                    
-                    # Check if blank/template document
-                    if self._is_blank_or_template(document_text, form_fields_list, page_structure):
-                        logger.info(f"Page {page_idx + 1}: TYPE_D - Blank/template detected, returning minimal valid Excel")
-                        page_layout = self._create_minimal_structured_layout(page, document_text, page_idx)
-                        page_layout.metadata['document_type'] = 'blank_template'
-                        page_layout.metadata['user_message'] = 'Blank or template document - minimal structure returned'
-                    else:
-                        page_layout = self._convert_to_plain_text_layout(
-                            page=page,
-                            document_text=document_text,
-                            page_idx=page_idx,
-                            page_structure=page_structure
-                        )
-                
+                if self.selected_mode == ExecutionMode.TABLE_STRICT:
+                    page_layout = self._execute_table_strict_mode(
+                        page_tables=page_tables,
+                        document_text=document_text,
+                        page_idx=page_idx,
+                        page=page
+                    )
+                elif self.selected_mode == ExecutionMode.TABLE_VISUAL:
+                    page_layout = self._execute_table_visual_mode(
+                        page_structure=page_structure,
+                        document_text=document_text,
+                        page_idx=page_idx,
+                        page=page
+                    )
+                elif self.selected_mode == ExecutionMode.KEY_VALUE:
+                    page_layout = self._execute_key_value_mode(
+                        page=page,
+                        document_text=document_text,
+                        page_idx=page_idx,
+                        form_fields=form_fields_list,
+                        page_structure=page_structure
+                    )
+                elif self.selected_mode == ExecutionMode.PLAIN_TEXT:
+                    page_layout = self._execute_plain_text_mode(
+                        page=page,
+                        document_text=document_text,
+                        page_idx=page_idx,
+                        page_structure=page_structure
+                    )
                 else:
-                    # Unknown category - fail-safe: use minimal structured layout
-                    logger.warning(f"Page {page_idx + 1}: Unknown category, using fail-safe minimal layout")
-                    layout_strategy = "fail_safe_minimal"
-                    page_layout = self._create_minimal_structured_layout(page, document_text, page_idx)
-            
-            except Exception as routing_error:
-                # FAIL-SAFE RULE: No document type should cause API failure
-                logger.error(f"Page {page_idx + 1}: Routing error for category {category}: {routing_error}")
-                logger.info(f"Page {page_idx + 1}: Applying fail-safe: minimal valid Excel")
-                layout_strategy = "fail_safe_error_recovery"
-                page_layout = self._create_minimal_structured_layout(page, document_text, page_idx)
-                page_layout.metadata['error_recovered'] = True
-                page_layout.metadata['error_message'] = str(routing_error)
-            
-            # FAIL-SAFE: Ensure layout is never empty (always return valid Excel)
-            if page_layout.is_empty():
-                logger.warning(f"Page {page_idx + 1}: Layout is empty after {layout_strategy}, applying fail-safe")
-                page_layout = self._create_minimal_structured_layout(page, document_text, page_idx)
-                layout_strategy = f"{layout_strategy}_fail_safe"
-            
-            logger.info(f"Page {page_idx + 1}: Final layout - {page_layout.get_max_row()} rows, {page_layout.get_max_column()} columns, strategy: {layout_strategy}")
-            page_layouts.append(page_layout)
+                    # Should never happen, but fail-safe
+                    logger.error(f"Unknown execution mode: {self.selected_mode}")
+                    page_layout = self._create_empty_layout(page_idx)
+                
+                # Add mode metadata to layout
+                page_layout.metadata['execution_mode'] = self.selected_mode.value
+                page_layout.metadata['routing_confidence'] = self.routing_confidence
+                page_layout.metadata['routing_reason'] = self.routing_reason
+                
+                page_layouts.append(page_layout)
+                
+            except Exception as e:
+                logger.error(f"Error processing page {page_idx + 1} with mode {self.selected_mode.value}: {str(e)}")
+                # Fail-safe: Return minimal layout instead of crashing
+                page_layout = self._create_empty_layout(page_idx)
+                page_layout.metadata['execution_mode'] = self.selected_mode.value
+                page_layout.metadata['error'] = str(e)
+                page_layouts.append(page_layout)
         
-        logger.info(f"Processed {len(page_layouts)} pages")
+        logger.info(f"Processed {len(page_layouts)} pages with mode: {self.selected_mode.value}")
         return page_layouts
+    
+    def _execute_table_strict_mode(
+        self,
+        page_tables: List,
+        document_text: str,
+        page_idx: int,
+        page: Any
+    ) -> UnifiedLayout:
+        """
+        Execute TABLE_STRICT mode: Trust DocAI structure, preserve row/column spans.
+        """
+        logger.info(f"Page {page_idx + 1}: Executing TABLE_STRICT mode")
+        
+        if not page_tables:
+            logger.warning(f"Page {page_idx + 1}: TABLE_STRICT mode but no tables found")
+            return self._create_empty_layout(page_idx)
+        
+        # Use existing _convert_native_tables_to_layout method
+        return self._convert_native_tables_to_layout(
+            native_tables=page_tables,
+            document_text=document_text,
+            page_index=page_idx,
+            page=page,
+            doc_type=None,  # Not used in strict mode
+            table_confidence=None  # Not used in strict mode
+        )
+    
+    def _execute_table_visual_mode(
+        self,
+        page_structure: Optional[Dict],
+        document_text: str,
+        page_idx: int,
+        page: Any
+    ) -> UnifiedLayout:
+        """
+        Execute TABLE_VISUAL mode: Build grid from X/Y clustering.
+        Max columns = 10, never collapse to single column.
+        """
+        logger.info(f"Page {page_idx + 1}: Executing TABLE_VISUAL mode")
+        
+        # Use existing visual grid reconstruction method
+        return self._convert_to_visual_grid_reconstruction_mode(
+            page_tables=None,
+            document_text=document_text,
+            page_idx=page_idx,
+            page_structure=page_structure,
+            page=page
+        )
+    
+    def _execute_key_value_mode(
+        self,
+        page: Any,
+        document_text: str,
+        page_idx: int,
+        form_fields: List[Dict],
+        page_structure: Optional[Dict]
+    ) -> UnifiedLayout:
+        """
+        Execute KEY_VALUE mode: Always 2 columns (Label | Value).
+        """
+        logger.info(f"Page {page_idx + 1}: Executing KEY_VALUE mode")
+        
+        # Use existing key-value layout method
+        return self._convert_to_key_value_layout(
+            page=page,
+            document_text=document_text,
+            page_idx=page_idx,
+            form_fields=form_fields,
+            page_structure=page_structure
+        )
+    
+    def _execute_plain_text_mode(
+        self,
+        page: Any,
+        document_text: str,
+        page_idx: int,
+        page_structure: Optional[Dict]
+    ) -> UnifiedLayout:
+        """
+        Execute PLAIN_TEXT mode: Single-column text export.
+        """
+        logger.info(f"Page {page_idx + 1}: Executing PLAIN_TEXT mode")
+        
+        # Use existing plain text layout method
+        return self._convert_to_plain_text_layout(
+            page=page,
+            document_text=document_text,
+            page_idx=page_idx,
+            page_structure=page_structure
+        )
+    
+    def _create_empty_layout(self, page_idx: int) -> UnifiedLayout:
+        """Create minimal empty layout"""
+        layout = UnifiedLayout(page_index=page_idx)
+        layout.metadata['layout_type'] = 'empty'
+        return layout
+    
+    # Keep all existing helper methods below...
     
     def _allows_table_processing(self, doc_type: DocumentType, document: Any, document_text: str) -> bool:
         """
@@ -743,20 +641,16 @@ class LayoutDecisionEngine:
         for table_idx, table in enumerate(native_tables):
             logger.info(f"Processing table {table_idx + 1} with premium post-processing (page {page_index + 1})...")
             
-            # CRITICAL: Apply 7-step premium pipeline with document type and confidence
-            # Ensure document_type and table_confidence are propagated
-            logger.info(f"Calling TablePostProcessor.process_table() with:")
-            logger.info(f"  - doc_type: {self.document_category.value if self.document_category else None}")
-            logger.info(f"  - table_confidence: {table_confidence}")
+            # TABLE_STRICT mode: Trust DocAI structure, preserve spans/merges
+            logger.info(f"Calling TablePostProcessor.process_table() in TABLE_STRICT mode")
             
             processed_table = post_processor.process_table(
                 table=table,
                 document_text=document_text,
                 page=page,
-                # CRITICAL: Pass premium category for gating decisions
-                doc_type=self.document_category.value if self.document_category else None,
-                # CRITICAL: Pass precomputed table confidence for threshold checks
-                table_confidence=table_confidence
+                doc_type=None,  # Not used in enterprise rewrite
+                table_confidence=None,  # Not used in enterprise rewrite
+                execution_mode="table_strict"  # TABLE_STRICT mode: trust DocAI structure
             )
             
             logger.info(f"TablePostProcessor.process_table() returned ProcessedTable with {len(processed_table.rows)} rows")

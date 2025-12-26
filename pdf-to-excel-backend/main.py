@@ -98,7 +98,15 @@ app = FastAPI(
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
+    allow_origins=[
+        "https://easyjpgtopdf.com",
+        "https://www.easyjpgtopdf.com",
+        "http://localhost:3000",
+        "http://localhost:8080",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8080",
+        "*"  # Fallback for development
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -382,7 +390,9 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
         user_id = get_user_id(request)
         
         # Step 2: Check user type from header (FREE users blocked)
-        user_type = request.headers.get("X-User-Type", "").lower()
+        # Only block if header explicitly says 'free'
+        # If header is missing or empty, check credits instead (allow premium users)
+        user_type = request.headers.get("X-User-Type", "").strip().lower()
         if user_type == "free":
             logger.warning(f"FREE user {user_id} attempted to access PREMIUM endpoint")
             raise HTTPException(
@@ -394,6 +404,7 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
                     "required": "premium"
                 }
             )
+        # If user_type is empty or not 'free', continue to credit check (premium users allowed)
         
         # Step 3: Check minimum credits (30 required for premium - UPDATED)
         current_credits = get_credits(user_id)
@@ -454,9 +465,15 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
         # Step 5: Process PDF with Document AI (lazy import)
         # This will return page count and create Excel
         logger.info("Processing PDF with Google Document AI...")
+        download_url = None
+        pages_processed = 0
+        conversion_successful = False
+        
         try:
             from docai_service import process_pdf_to_excel_docai
-            download_url, pages_processed = await process_pdf_to_excel_docai(file_content, file.filename)
+            download_url, pages_processed, unified_layouts = await process_pdf_to_excel_docai(file_content, file.filename)
+            conversion_successful = True
+            logger.info(f"PDF processed successfully. Pages: {pages_processed}, Download URL: {download_url[:50]}...")
         except ImportError as e:
             logger.error(f"Failed to import docai_service: {e}")
             logger.error(traceback.format_exc())
@@ -464,29 +481,55 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
                 status_code=500,
                 detail=f"Document AI service import failed: {str(e)}. Please check google-cloud-documentai installation."
             )
+        except ValueError as e:
+            # Layout reconstruction failed - don't deduct credits
+            logger.error(f"Premium conversion failed (layout reconstruction): {e}")
+            logger.error(traceback.format_exc())
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "error": "Premium conversion failed",
+                    "message": str(e),
+                    "credits_not_deducted": True
+                }
+            )
         except Exception as e:
+            # Other processing errors - don't deduct credits
             logger.error(f"Document AI processing error: {e}")
             logger.error(traceback.format_exc())
             raise HTTPException(
                 status_code=500,
-                detail=f"Document AI processing failed: {str(e)}"
+                detail={
+                    "error": "Document AI processing failed",
+                    "message": str(e),
+                    "credits_not_deducted": True
+                }
             )
         
-        logger.info(f"PDF processed. Pages: {pages_processed}")
+        # Step 6: Only deduct credits if conversion was successful
+        if not conversion_successful or not download_url:
+            logger.error("Conversion failed - credits will not be deducted")
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "error": "Conversion failed",
+                    "message": "Excel generation failed. Credits not deducted.",
+                    "credits_not_deducted": True
+                }
+            )
         
-        # Step 6: Calculate credit cost based on document type
-        # For now, use default pricing (2 credits/page for clean tables)
-        # TODO: Detect document type and use appropriate pricing
+        # Step 7: Calculate credit cost based on document type
         credit_per_page = get_credit_cost_for_document_type(
             document_type=None,  # Could be enhanced to detect from filename/content
             is_scanned=False     # Could be detected from analysis
         )
         total_credits_required = pages_processed * credit_per_page
         
-        # Step 7: Check credits (after processing to know exact page count and cost)
+        # Step 8: Check credits (after processing to know exact page count and cost)
         # Note: Minimum 30 credits already checked, but verify again for actual cost
         current_credits = get_credits(user_id)
         if current_credits < total_credits_required:
+            logger.warning(f"Insufficient credits after processing: need {total_credits_required}, have {current_credits}")
             return JSONResponse(
                 status_code=402,
                 content={
@@ -495,20 +538,44 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
                     "required": total_credits_required,
                     "available": current_credits,
                     "credit_per_page": credit_per_page,
-                    "pages": pages_processed
+                    "pages": pages_processed,
+                    "credits_not_deducted": True
                 }
             )
         
-        # Step 8: Deduct credits (variable cost based on document type)
+        # Step 9: Deduct credits (only if conversion was successful)
         if not deduct_credits(user_id, int(total_credits_required)):
             logger.error(f"Failed to deduct credits for user {user_id}")
             return JSONResponse(
                 status_code=500,
-                content={"error": "Failed to deduct credits"}
+                content={
+                    "error": "Failed to deduct credits",
+                    "message": "Conversion succeeded but credit deduction failed. Please contact support.",
+                    "downloadUrl": download_url  # Still provide download URL
+                }
             )
         
         # Get remaining credits after deduction
         remaining_credits = get_credits(user_id)
+        
+        # ENTERPRISE RESPONSE: Extract mode, confidence, message from unified_layouts metadata
+        # unified_layouts are created in docai_service and have metadata set by layout_decision_engine
+        execution_mode = None
+        routing_confidence = 0.5
+        routing_reason = ""
+        
+        try:
+            # Extract from first layout metadata (all pages have same mode)
+            # unified_layouts is available in this scope from docai_service processing
+            if 'unified_layouts' in locals() and unified_layouts and len(unified_layouts) > 0:
+                first_layout = unified_layouts[0]
+                if hasattr(first_layout, 'metadata') and first_layout.metadata:
+                    execution_mode = first_layout.metadata.get('execution_mode')
+                    routing_confidence = first_layout.metadata.get('routing_confidence', 0.5)
+                    routing_reason = first_layout.metadata.get('routing_reason', '')
+                    logger.info(f"Extracted metadata: mode={execution_mode}, confidence={routing_confidence:.2f}, reason={routing_reason}")
+        except Exception as e:
+            logger.warning(f"Could not extract mode/confidence from layouts: {e}")
         
         return JSONResponse(
             status_code=200,
@@ -516,10 +583,18 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
                 "status": "success",
                 "engine": "docai",
                 "downloadUrl": download_url,
+                "download_url": download_url,  # Also include snake_case for consistency
                 "pagesProcessed": pages_processed,
                 "creditsLeft": remaining_credits,
                 "creditsDeducted": int(total_credits_required),
                 "creditPerPage": credit_per_page,
+                # ENTERPRISE RESPONSE: Mode, confidence, message
+                "mode": execution_mode or "unknown",
+                "execution_mode": execution_mode or "unknown",
+                "confidence": routing_confidence,
+                "routing_confidence": routing_confidence,
+                "message": routing_reason,
+                "routing_reason": routing_reason,
                 "pricing": {
                     "type": "per_page",
                     "cost_per_page": credit_per_page,
@@ -721,10 +796,18 @@ async def pdf_to_excel_free_server_endpoint(
     Completely isolated from Premium/Document AI.
     CPU-only processing, NO OCR, NO GPU.
     
+    Features:
+    - Multi-page support (all pages converted to separate sheets)
+    - Merged cells detection and preservation
+    - Font preservation
+    - Image/logo extraction
+    - Form document handling (resumes, letters, ID cards)
+    - LibreOffice integration with Python fallback
+    
     Limits (hidden):
-    - Max 20 pages per device/IP per 24 hours
+    - Max 5 PDFs per device/IP per 24 hours
     - Max file size: 2 MB
-    - Only first page processed
+    - All pages processed (separate sheets)
     """
     try:
         # Get client info for abuse control

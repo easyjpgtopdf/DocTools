@@ -67,25 +67,55 @@ class TablePostProcessor:
         document_text: str,
         page: Optional[Any] = None,
         doc_type: Optional[Any] = None,
-        table_confidence: Optional[float] = None
+        table_confidence: Optional[float] = None,
+        execution_mode: Optional[str] = "table_strict"
     ) -> ProcessedTable:
         """
-        Process a Document AI table with full post-processing.
+        Process a Document AI table with post-processing.
+        
+        For TABLE_STRICT mode:
+        - Trust DocAI structure completely
+        - Preserve row/column spans
+        - Preserve merges
+        - Apply 7-step premium pipeline
+        
+        For TABLE_VISUAL mode:
+        - This method is NOT used (handled in layout_decision_engine)
         
         Args:
             table: Document AI table object
             document_text: Full document text
             page: Document AI page object (for additional context)
-            doc_type: premium doc category (TYPE_A/B/C/D)
+            doc_type: premium doc category (deprecated, kept for compatibility)
             table_confidence: precomputed table confidence (0-1) for gating
+            execution_mode: "table_strict" or "table_visual" (default: "table_strict")
             
         Returns:
             ProcessedTable with enhanced structure
         """
         logger.info("=" * 80)
-        logger.info("PREMIUM 7-STEP PIPELINE: Starting table post-processing")
-        logger.info(f"Document type: {doc_type}, Table confidence: {table_confidence}")
+        logger.info(f"TABLE POST-PROCESSOR: Processing table in {execution_mode} mode")
         logger.info("=" * 80)
+        
+        # TABLE_STRICT mode: Trust DocAI structure, preserve spans and merges
+        if execution_mode == "table_strict":
+            return self._process_table_strict(table, document_text, page, table_confidence)
+        else:
+            # TABLE_VISUAL is handled in layout_decision_engine, not here
+            logger.warning(f"TABLE_VISUAL mode should not call process_table - handled in layout_decision_engine")
+            return ProcessedTable()
+    
+    def _process_table_strict(
+        self,
+        table: Any,
+        document_text: str,
+        page: Optional[Any] = None,
+        table_confidence: Optional[float] = None
+    ) -> ProcessedTable:
+        """
+        Process table in TABLE_STRICT mode: Trust DocAI structure, preserve spans/merges.
+        """
+        logger.info("TABLE_STRICT: Trusting DocAI structure, preserving row/column spans and merges")
         
         # PRE-PIPELINE: Extract raw cells and calculate line height
         raw_cells = self._extract_raw_cells(table, document_text)
@@ -112,26 +142,16 @@ class TablePostProcessor:
         header_row_indices = self._detect_header_rows(raw_cells, avg_line_height)
         logger.info(f"STEP 1 COMPLETE: Detected {len(header_row_indices)} header row(s): {header_row_indices}")
 
-        # Safety: if TYPE_A required but header missing, abort reconstruction
-        is_true_tabular = (doc_type == "true_tabular")
-        if hasattr(doc_type, "value"):
-            is_true_tabular = is_true_tabular or (getattr(doc_type, "value") == "true_tabular") or (getattr(doc_type, "value") == "TYPE_A_TRUE_TABULAR")
-
-        if is_true_tabular:
-            if not header_row_indices:
-                logger.warning("STEP 1 FAILED: Header not found for TYPE_A table. Marking HEADER_NOT_FOUND and aborting table reconstruction.")
-                pt = ProcessedTable(rows=[], metadata={"header_not_found": True})
-                return pt
+        # TABLE_STRICT: Trust DocAI structure - if header missing, still proceed (DocAI knows best)
+        if not header_row_indices:
+            logger.warning("STEP 1: No header detected, but TABLE_STRICT mode - trusting DocAI structure and proceeding")
         
         # ========================================================================
         # STEP 2: ROWSPAN AND COLSPAN MERGE (from Document AI metadata)
         # ========================================================================
         logger.info("STEP 2: Applying rowspan/colspan merges from Document AI...")
-        allow_spans = (
-            is_true_tabular
-            and (table_confidence is None or table_confidence >= 0.65)
-            and bool(header_row_indices)
-        )
+        # TABLE_STRICT: Always allow spans - trust DocAI structure completely
+        allow_spans = True
         processed_rows, span_conflict = self._apply_document_ai_merges(table, initial_rows, document_text, allow_spans)
         if span_conflict:
             logger.warning("STEP 2 FAILED: Span conflict detected. Marking SPAN_CONFLICT and aborting table reconstruction.")
