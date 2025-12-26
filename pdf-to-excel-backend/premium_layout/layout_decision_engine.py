@@ -1582,13 +1582,22 @@ class LayoutDecisionEngine:
         page_tables: Optional[List] = None
     ) -> UnifiedLayout:
         """
-        TYPE_B: KEY_VALUE layout - Exactly 2 columns: Label | Value
-        Preserves order of appearance.
-        NEVER sends through table pipeline.
+        TYPE_B: KEY_VALUE layout - MANDATORY: Always EXACTLY 2 columns (Label | Value)
+        
+        Rules:
+        1. Always create exactly 2 columns: Column A = Label, Column B = Value
+        2. Label-Value Detection:
+           - Contains ":" OR
+           - Two text blocks on same horizontal line with left/right separation
+        3. Multi-line Value: Append wrapped text to previous value (no new label row)
+        4. Strict Row Integrity: One label-value pair per row
+        5. Safety: Non-matching lines append to previous value
+        6. Output Guarantee: NEVER single-column Excel
         """
         layout = UnifiedLayout(page_index=page_idx)
         layout.metadata['layout_type'] = 'key_value'
         row_idx = 0
+        last_value_cell = None  # Track last value cell for multi-line appending
         
         # Priority 1: Use form fields if available (most reliable for key-value)
         if form_fields:
@@ -1600,92 +1609,219 @@ class LayoutDecisionEngine:
                 if field_name or field_value:
                     label_cell = Cell(
                         row=row_idx,
-                        column=0,
+                        column=0,  # Column A = Label
                         value=field_name,
                         style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
                     )
                     value_cell = Cell(
                         row=row_idx,
-                        column=1,
+                        column=1,  # Column B = Value
                         value=field_value,
                         style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
                     )
                     layout.add_row([label_cell, value_cell])
+                    last_value_cell = value_cell
                     row_idx += 1
         
-        # Priority 2: Extract key-value pairs from text (preserve order)
-        if row_idx == 0 and document_text:
-            logger.info(f"Page {page_idx + 1}: TYPE_B - Extracting key-value pairs from text")
-            lines = [line.strip() for line in document_text.split('\n') if line.strip()]
+        # Priority 2: Extract key-value pairs from text blocks with bounding boxes (if available)
+        if page_structure and 'blocks' in page_structure and page_structure['blocks']:
+            logger.info(f"Page {page_idx + 1}: TYPE_B - Extracting key-value pairs from text blocks with bounding boxes")
+            blocks = page_structure['blocks']
             
-            for line in lines[:200]:  # Limit to first 200 lines
-                # Look for key-value separators (preserve order)
-                separators = [':', '|', '\t', ' - ', ' – ', ' — ']
-                found = False
+            # Group blocks by Y-position (same horizontal line)
+            blocks_by_y = {}
+            for block in blocks:
+                bbox = block.get('bounding_box', {})
+                if bbox:
+                    y_center = (bbox.get('y_min', 0) + bbox.get('y_max', 0)) / 2
+                    y_key = round(y_center * 100) / 100  # Round to 0.01 precision
+                    if y_key not in blocks_by_y:
+                        blocks_by_y[y_key] = []
+                    blocks_by_y[y_key].append(block)
+            
+            # Process blocks line by line (sorted by Y)
+            for y_pos in sorted(blocks_by_y.keys()):
+                line_blocks = sorted(blocks_by_y[y_pos], key=lambda b: b.get('bounding_box', {}).get('x_min', 0))
                 
-                for sep in separators:
-                    if sep in line:
-                        parts = line.split(sep, 1)  # Split only on first occurrence
+                # Check if line has left/right separation (two distinct blocks)
+                if len(line_blocks) >= 2:
+                    # Get leftmost and rightmost blocks
+                    left_block = line_blocks[0]
+                    right_block = line_blocks[-1]
+                    
+                    left_bbox = left_block.get('bounding_box', {})
+                    right_bbox = right_block.get('bounding_box', {})
+                    
+                    left_x_max = left_bbox.get('x_max', 0)
+                    right_x_min = right_bbox.get('x_min', 1)
+                    
+                    # Check for clear left/right separation (gap between blocks)
+                    if right_x_min > left_x_max + 0.05:  # At least 5% gap
+                        left_text = left_block.get('text', '').strip()
+                        right_text = right_block.get('text', '').strip()
+                        
+                        if left_text and right_text:
+                            # Left block = Label, Right block = Value
+                            label_cell = Cell(
+                                row=row_idx,
+                                column=0,  # Column A = Label
+                                value=left_text,
+                                style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
+                            )
+                            value_cell = Cell(
+                                row=row_idx,
+                                column=1,  # Column B = Value
+                                value=right_text,
+                                style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                            )
+                            layout.add_row([label_cell, value_cell])
+                            last_value_cell = value_cell
+                            row_idx += 1
+                            continue
+                
+                # If not left/right separation, check for colon separator in combined text
+                combined_text = ' '.join([b.get('text', '').strip() for b in line_blocks if b.get('text', '').strip()])
+                if combined_text:
+                    if ':' in combined_text:
+                        parts = combined_text.split(':', 1)
                         if len(parts) == 2:
                             label = parts[0].strip()
                             value = parts[1].strip()
                             
-                            if label:  # Label is required, value can be empty
+                            if label:  # Label is required
                                 label_cell = Cell(
                                     row=row_idx,
-                                    column=0,
+                                    column=0,  # Column A = Label
                                     value=label,
                                     style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
                                 )
                                 value_cell = Cell(
                                     row=row_idx,
-                                    column=1,
+                                    column=1,  # Column B = Value
                                     value=value,
                                     style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
                                 )
                                 layout.add_row([label_cell, value_cell])
+                                last_value_cell = value_cell
                                 row_idx += 1
-                                found = True
-                                break
+                                continue
+                    
+                    # Safety Rule: Non-matching line - append to previous value
+                    if last_value_cell is not None:
+                        # Append to previous value (notes/address continuation)
+                        current_value = last_value_cell.value or ''
+                        last_value_cell.value = (current_value + ' ' + combined_text).strip()
+                        logger.debug(f"Page {page_idx + 1}: Appended non-matching line to previous value: {combined_text[:50]}")
+                    else:
+                        # First line without pattern - treat as label with empty value
+                        label_cell = Cell(
+                            row=row_idx,
+                            column=0,  # Column A = Label
+                            value=combined_text,
+                            style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
+                        )
+                        value_cell = Cell(
+                            row=row_idx,
+                            column=1,  # Column B = Value
+                            value='',
+                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                        )
+                        layout.add_row([label_cell, value_cell])
+                        last_value_cell = value_cell
+                        row_idx += 1
+        
+        # Priority 3: Fallback to text-based extraction (if no blocks available)
+        elif document_text and row_idx == 0:
+            logger.info(f"Page {page_idx + 1}: TYPE_B - Extracting key-value pairs from plain text (no blocks)")
+            lines = [line.strip() for line in document_text.split('\n') if line.strip()]
+            
+            for line in lines[:200]:  # Limit to first 200 lines
+                # Check for colon separator
+                if ':' in line:
+                    parts = line.split(':', 1)
+                    if len(parts) == 2:
+                        label = parts[0].strip()
+                        value = parts[1].strip()
+                        
+                        if label:  # Label is required
+                            label_cell = Cell(
+                                row=row_idx,
+                                column=0,  # Column A = Label
+                                value=label,
+                                style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
+                            )
+                            value_cell = Cell(
+                                row=row_idx,
+                                column=1,  # Column B = Value
+                                value=value,
+                                style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                            )
+                            layout.add_row([label_cell, value_cell])
+                            last_value_cell = value_cell
+                            row_idx += 1
+                            continue
                 
-                # If no separator found, treat entire line as label (value empty)
-                if not found and line:
+                # Safety Rule: Non-matching line - append to previous value
+                if last_value_cell is not None:
+                    # Multi-line Value Handling: Append wrapped text to previous value
+                    current_value = last_value_cell.value or ''
+                    last_value_cell.value = (current_value + ' ' + line).strip()
+                    logger.debug(f"Page {page_idx + 1}: Appended wrapped text to previous value: {line[:50]}")
+                else:
+                    # First line without pattern - treat as label with empty value
                     label_cell = Cell(
                         row=row_idx,
-                        column=0,
+                        column=0,  # Column A = Label
                         value=line,
                         style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
                     )
                     value_cell = Cell(
                         row=row_idx,
-                        column=1,
+                        column=1,  # Column B = Value
                         value='',
                         style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
                     )
                     layout.add_row([label_cell, value_cell])
+                    last_value_cell = value_cell
                     row_idx += 1
         
-        # Note: Line-item tables (page_tables) are handled separately as additional sheets
-        # This is done at the document level, not per-page
-        
+        # Output Guarantee: NEVER single-column Excel - always ensure 2 columns
         if row_idx == 0:
-            # Fail-safe: Create minimal key-value layout
-            logger.warning(f"Page {page_idx + 1}: TYPE_B - No key-value pairs found, creating minimal layout")
+            # Fail-safe: Create minimal 2-column key-value layout
+            logger.warning(f"Page {page_idx + 1}: TYPE_B - No key-value pairs found, creating minimal 2-column layout")
             label_cell = Cell(
                 row=0,
-                column=0,
+                column=0,  # Column A = Label
                 value="Content",
                 style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
             )
             value_cell = Cell(
                 row=0,
-                column=1,
+                column=1,  # Column B = Value
                 value=document_text[:100] if document_text else "No content extracted",
                 style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
             )
             layout.add_row([label_cell, value_cell])
+        else:
+            # Verify all rows have exactly 2 columns
+            for row_cells in layout.rows:
+                if len(row_cells) != 2:
+                    logger.warning(f"Page {page_idx + 1}: TYPE_B - Row has {len(row_cells)} columns, expected 2. Fixing...")
+                    # Ensure exactly 2 columns
+                    while len(row_cells) < 2:
+                        # Add empty cell if missing
+                        empty_cell = Cell(
+                            row=row_cells[0].row if row_cells else 0,
+                            column=len(row_cells),
+                            value='',
+                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                        )
+                        row_cells.append(empty_cell)
+                    # Remove extra columns (keep only first 2)
+                    if len(row_cells) > 2:
+                        row_cells[:] = row_cells[:2]
         
-        logger.info(f"Page {page_idx + 1}: TYPE_B - Created key-value layout with {row_idx} rows (2 columns: Label | Value)")
+        logger.info(f"Page {page_idx + 1}: TYPE_B - Created key-value layout with {row_idx} rows (EXACTLY 2 columns: Label | Value)")
         return layout
     
     def _convert_to_plain_text_layout(
