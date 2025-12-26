@@ -81,6 +81,7 @@ app.use('/api/pdf/pages', pagesRoutes);
 app.use('/api/razorpay', razorpayRoutes);
 app.use('/api/device', deviceRoutes);
 app.use('/api/credits', creditRoutes);
+app.use('/api/feedback', require('./routes/feedback'));
 
 // Donation endpoint (for index.html donate button)
 app.options('/api/create-order', (req, res) => {

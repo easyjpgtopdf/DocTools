@@ -18,6 +18,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY *.py ./
 COPY free_pdf_to_excel/ ./free_pdf_to_excel/
+COPY free_heuristic/ ./free_heuristic/
+COPY premium_layout/ ./premium_layout/
 
 # Expose port
 EXPOSE 8080

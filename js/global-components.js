@@ -907,3 +907,24 @@ if (typeof window !== 'undefined') {
 }
 
 })(); // Close IIFE to prevent duplicate execution
+
+// Load universal feedback handler script for ALL pages
+// Uses Firebase directly - NO backend dependency!
+// This auto-detects and handles ALL feedback/comment forms automatically
+(function() {
+    'use strict';
+    if (!document.getElementById('universal-feedback-script') && !window.universalFeedbackLoading) {
+        window.universalFeedbackLoading = true;
+        const script = document.createElement('script');
+        script.id = 'universal-feedback-script';
+        script.src = 'js/universal-feedback-firebase.js';
+        script.async = true;
+        script.onload = function() {
+            console.log('✓ Universal feedback handler loaded (Firebase direct)');
+        };
+        script.onerror = function() {
+            console.warn('⚠ Failed to load universal feedback handler');
+        };
+        (document.head || document.body).appendChild(script);
+    }
+})(); // Close IIFE to prevent duplicate execution

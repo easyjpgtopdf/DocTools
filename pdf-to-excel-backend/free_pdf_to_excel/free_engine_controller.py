@@ -23,14 +23,29 @@ from .free_table_inference import (
     detect_header_rows
 )
 try:
-    from free_heuristic.pre_grid_layout_inference import (
-        infer_document_type_from_text,
-        infer_pre_grid_from_text,
-        should_apply_pre_grid_heuristic
-    )
+    # Try absolute import first
+    try:
+        from free_heuristic.pre_grid_layout_inference import (
+            infer_document_type_from_text,
+            infer_pre_grid_from_text,
+            should_apply_pre_grid_heuristic
+        )
+    except ImportError:
+        # Fallback: try relative import if absolute fails
+        import sys
+        import os
+        parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if parent_dir not in sys.path:
+            sys.path.insert(0, parent_dir)
+        from free_heuristic.pre_grid_layout_inference import (
+            infer_document_type_from_text,
+            infer_pre_grid_from_text,
+            should_apply_pre_grid_heuristic
+        )
     PRE_GRID_AVAILABLE = True
 except ImportError:
     PRE_GRID_AVAILABLE = False
+    logger = logging.getLogger(__name__)
     logger.warning("Pre-grid heuristic module not available - will use standard grid detection")
 from .free_excel_writer import create_excel_workbook, create_excel_workbook_multi_page
 from .free_response_builder import build_success_response, build_error_response

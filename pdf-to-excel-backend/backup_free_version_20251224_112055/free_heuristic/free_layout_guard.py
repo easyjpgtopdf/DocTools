@@ -65,9 +65,9 @@ def apply_heuristic_layer_if_enabled(excel_path: str) -> Tuple[bool, Optional[st
             logger.warning(f"Could not create backup: {backup_error}")
             # Continue anyway - we'll try to revert if needed
         
-        # Step 4: Apply heuristic fixes (pass document type)
+        # Step 4: Apply heuristic fixes
         try:
-            applied = fix_table_layout(excel_path, doc_type=doc_type)
+            applied = fix_table_layout(excel_path)
             
             if applied:
                 logger.info(f"Heuristic fixes applied successfully for {doc_type}")

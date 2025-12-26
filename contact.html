@@ -268,7 +268,7 @@
         <h2 style="font-size: 2rem; color: #4361ee; margin-bottom: 30px; text-align: center;">Share Your Experience</h2>
         <p style="text-align: center; color: #56607a; margin-bottom: 30px;">We value your feedback! Help us improve by sharing your experience with this tool.</p>
         
-        <form id="feedback-form" style="max-width: 600px; margin: 0 auto;" onsubmit="return submitFeedback(event)">
+        <form id="feedback-form" style="max-width: 600px; margin: 0 auto;">
             <div style="margin-bottom: 20px;">
                 <label for="feedback-name" style="display: block; margin-bottom: 8px; color: #0b1630; font-weight: 600;">Your Name (Optional)</label>
                 <input type="text" id="feedback-name" name="name" style="width: 100%; padding: 12px; border: 2px solid #e2e6ff; border-radius: 8px; font-size: 1rem;">
@@ -302,24 +302,16 @@
     </section>
     
     <script>
-    function submitFeedback(event) {
-        event.preventDefault();
+    // Universal feedback handler (loaded via global-components.js) will handle form submission
+    // Listen for successful submission to show thank you message
+    document.addEventListener('feedbackSubmitted', function(event) {
         const form = document.getElementById('feedback-form');
         const thankyou = document.getElementById('feedback-thankyou');
-        
-        // Here you would send feedback to your backend
-        // For now, just show thank you message
-        form.style.display = 'none';
-        thankyou.style.display = 'block';
-        
-        // In production, send to your backend:
-        // fetch('/api/feedback', {
-        //     method: 'POST',
-        //     body: new FormData(form)
-        // });
-        
-        return false;
-    }
+        if (form && thankyou) {
+            form.style.display = 'none';
+            thankyou.style.display = 'block';
+        }
+    });
     </script>
     
     </main>

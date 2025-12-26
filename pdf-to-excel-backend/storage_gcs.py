@@ -55,11 +55,30 @@ def upload_excel_to_gcs(file_content: bytes, filename: str) -> str:
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
         
-        # Generate signed URL (valid for 1 hour)
-        download_url = blob.generate_signed_url(
-            expiration=timedelta(hours=1),
-            method='GET'
-        )
+        # Try to generate signed URL (requires private key)
+        # If that fails (e.g., on Cloud Run with default credentials), use public URL
+        try:
+            download_url = blob.generate_signed_url(
+                expiration=timedelta(hours=1),
+                method='GET'
+            )
+        except Exception as sign_error:
+            # Fallback: Make blob publicly accessible temporarily and use public URL
+            # This works when bucket has public access or IAM allows it
+            try:
+                blob.make_public()
+                download_url = blob.public_url
+            except Exception as public_error:
+                # Last resort: Use the blob's URI (user will need GCS access)
+                download_url = f"gs://{bucket_name}/{blob_name}"
+                # Log the issue but don't fail - the file is uploaded
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(
+                    f"Could not generate signed or public URL for {blob_name}. "
+                    f"Signed URL error: {sign_error}, Public URL error: {public_error}. "
+                    f"Using GCS URI: {download_url}"
+                )
         
         return download_url
     except Exception as e:
@@ -136,11 +155,30 @@ def upload_file_to_gcs(file_content: bytes, blob_name: str, content_type: str = 
             content_type=content_type
         )
         
-        # Generate signed URL (valid for 1 hour)
-        download_url = blob.generate_signed_url(
-            expiration=timedelta(hours=1),
-            method='GET'
-        )
+        # Try to generate signed URL (requires private key)
+        # If that fails (e.g., on Cloud Run with default credentials), use public URL
+        try:
+            download_url = blob.generate_signed_url(
+                expiration=timedelta(hours=1),
+                method='GET'
+            )
+        except Exception as sign_error:
+            # Fallback: Make blob publicly accessible temporarily and use public URL
+            # This works when bucket has public access or IAM allows it
+            try:
+                blob.make_public()
+                download_url = blob.public_url
+            except Exception as public_error:
+                # Last resort: Use the blob's URI (user will need GCS access)
+                download_url = f"gs://{bucket_name}/{blob_name}"
+                # Log the issue but don't fail - the file is uploaded
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(
+                    f"Could not generate signed or public URL for {blob_name}. "
+                    f"Signed URL error: {sign_error}, Public URL error: {public_error}. "
+                    f"Using GCS URI: {download_url}"
+                )
         
         return download_url
     except Exception as e:

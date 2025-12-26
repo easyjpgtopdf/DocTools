@@ -546,6 +546,14 @@
                         createdAtDate = new Date();
                     }
 
+                    const pageValue = data.page || 'unknown';
+                    const pageNameValue = data.pageName ||
+                        (data.page ? data.page.replace('.html', '').replace(/-/g, ' ') : 'Unknown page');
+
+                    const replies = Array.isArray(data.replies)
+                        ? data.replies
+                        : (data.reply ? [data.reply] : []);
+
                     const feedback = {
                         id: doc.id,
                         name: data.name || 'Anonymous',
@@ -553,9 +561,9 @@
                         rating: data.rating || null,
                         comment: data.comment || '',
                         message: data.comment || '',
-                        page: data.page || 'index.html',
-                        pageName: data.pageName || (data.page ? data.page.replace('.html', '').replace(/-/g, ' ') : 'Home'),
-                        replies: data.replies || [],
+                        page: pageValue,
+                        pageName: pageNameValue,
+                        replies,
                         createdAt: createdAtDate,
                         date: createdAtDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
                     };
@@ -654,7 +662,8 @@
                 const initials = (fb.name || 'Anonymous').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
                 const pageName = fb.pageName || fb.page?.replace('.html', '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Home';
                 const pageUrl = fb.page?.startsWith('http') ? fb.page : (fb.page || 'index.html');
-                const ratingStars = fb.rating ? renderStars(fb.rating) : '';
+                        const ratingStars = fb.rating ? renderStars(fb.rating) : '';
+                        const repliesArray = Array.isArray(fb.replies) ? fb.replies : (fb.reply ? [fb.reply] : []);
                 
                 return `
                     <div class="feedback-item">
@@ -671,13 +680,13 @@
                             <div class="feedback-date">${fb.date || formatDate(fb.createdAt) || 'Recently'}</div>
                         </div>
                         <div class="feedback-message">${escapeHtml(fb.message || fb.comment || '')}</div>
-                        ${Array.isArray(fb.replies) && fb.replies.length > 0 ? fb.replies.map(reply => `
+                        ${repliesArray.length > 0 ? repliesArray.map(reply => `
                             <div class="feedback-reply">
                                 <div class="feedback-reply-header">
                                     <i class="fas fa-reply"></i>
                                     <strong>${reply.name || 'Admin'} Reply:</strong>
                                 </div>
-                                <div class="feedback-reply-text">${escapeHtml(reply.comment || '')}</div>
+                                <div class="feedback-reply-text">${escapeHtml((reply.comment || reply.message || reply.text || '').toString())}</div>
                             </div>
                         `).join('') : ''}
                     </div>

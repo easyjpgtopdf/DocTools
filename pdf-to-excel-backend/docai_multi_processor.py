@@ -124,46 +124,68 @@ async def process_pdf_with_processor(
         
         # Configure the process request
         # Use the correct Document AI v1 API structure
+        # ProcessRequest available fields: gcs_document, raw_document, inline_document
+        # For GCS input, use gcs_document (NOT gcs_source)
         try:
-            # Import the types module
-            from google.cloud.documentai_v1 import types
+            from google.cloud.documentai_v1.types.document_processor_service import ProcessRequest
+            from google.cloud.documentai_v1.types import GcsDocument
             
-            # Construct GcsDocument
-            gcs_document = types.GcsDocument(
+            # Create GcsDocument
+            gcs_document = GcsDocument(
                 gcs_uri=gcs_temp_uri,
                 mime_type="application/pdf"
             )
             
-            # Construct InputConfig
-            input_config = types.InputConfig(
-                gcs_document=gcs_document,
-                mime_type="application/pdf"
+            # Create ProcessRequest with name and gcs_document
+            request = ProcessRequest(
+                name=processor_name,
+                gcs_document=gcs_document
             )
             
-            # Construct ProcessRequest
-            request = types.ProcessRequest(
-                name=processor_name,
-                input_config=input_config
-            )
-        except (ImportError, AttributeError) as e:
-            # Fallback: try alternative import structure
+        except (TypeError, AttributeError, ImportError) as e:
+            # Strategy 2: Try setting fields individually
             try:
-                from google.cloud.documentai_v1.types import document_processor_service
-                # Use the types from document_processor_service
-                gcs_document = document_processor_service.GcsDocument(
+                from google.cloud.documentai_v1.types.document_processor_service import ProcessRequest
+                from google.cloud.documentai_v1.types import GcsDocument
+                
+                request = ProcessRequest()
+                request.name = processor_name
+                
+                # Set gcs_document field directly
+                gcs_document = GcsDocument(
                     gcs_uri=gcs_temp_uri,
                     mime_type="application/pdf"
                 )
-                input_config = document_processor_service.InputConfig(
-                    gcs_document=gcs_document,
-                    mime_type="application/pdf"
-                )
-                request = document_processor_service.ProcessRequest(
-                    name=processor_name,
-                    input_config=input_config
-                )
-            except (ImportError, AttributeError) as e2:
-                raise ImportError(f"Could not import Document AI types. Error 1: {e}, Error 2: {e2}. Please check google-cloud-documentai installation.")
+                if hasattr(request, 'gcs_document'):
+                    request.gcs_document.CopyFrom(gcs_document)
+                else:
+                    # Try direct assignment
+                    request.gcs_document = gcs_document
+                
+            except (AttributeError, ImportError) as e2:
+                # Strategy 3: Try setting gcs_document fields directly
+                try:
+                    from google.cloud.documentai_v1.types.document_processor_service import ProcessRequest
+                    
+                    request = ProcessRequest()
+                    request.name = processor_name
+                    
+                    # Try setting gcs_document fields directly
+                    if hasattr(request, 'gcs_document'):
+                        request.gcs_document.gcs_uri = gcs_temp_uri
+                        request.gcs_document.mime_type = "application/pdf"
+                    else:
+                        raise AttributeError(
+                            f"ProcessRequest does not have 'gcs_document' field. "
+                            f"Available fields: {dir(request)[:20]}"
+                        )
+                        
+                except (AttributeError, ImportError) as e3:
+                    raise ImportError(
+                        f"Could not construct Document AI request. "
+                        f"Error 1: {e}, Error 2: {e2}, Error 3: {e3}. "
+                        f"Please check google-cloud-documentai installation and version."
+                    )
         
         # Process the document
         result = client.process_document(request=request)

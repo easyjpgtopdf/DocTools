@@ -731,7 +731,7 @@
   }
 
   // Backend API URL - Cloud Run deployment
-  const API_BASE_URL = 'https://pdf-to-excel-backend-564572183797.us-central1.run.app';
+  const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
   
   async function exportExcel(){
     if(!pdfDoc){
@@ -849,7 +849,7 @@
         // Try server-side FREE conversion first (NEW Engine v1)
         if (pdfFile && pdfFile.size <= 2 * 1024 * 1024) { // 2MB limit
           try {
-            const API_BASE_URL = window.API_BASE_URL || 'https://pdf-to-excel-backend-564572183797.us-central1.run.app';
+            const API_BASE_URL = window.API_BASE_URL || 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
             
             // First, check current usage limits (for debugging)
             try {
@@ -1140,7 +1140,7 @@
       const pdfFile = new File([rec.blob], rec.name || 'document.pdf', { type: 'application/pdf' });
       fd.append('file', pdfFile);
       
-      const API_BASE_URL = 'https://pdf-to-excel-backend-564572183797.us-central1.run.app';
+      const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
       // Get user ID - must be async to properly fetch Firebase user ID
       const userId = window.PDFExcelUserType ? await window.PDFExcelUserType.getUserId() : 'anonymous';
       const currentUserType = window.PDFExcelUserType ? window.PDFExcelUserType.getUserType() : 'free';
@@ -1205,7 +1205,7 @@
         }
         
         // Call ID card processing endpoint
-        const API_BASE_URL = 'https://pdf-to-excel-backend-564572183797.us-central1.run.app';
+        const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
         const fd = new FormData();
         const pdfFile = new File([rec.blob], rec.name || 'document.pdf', { type: 'application/pdf' });
         fd.append('file', pdfFile);
@@ -1257,7 +1257,7 @@
         }
         
         // Call ID card processing endpoint
-        const API_BASE_URL = 'https://pdf-to-excel-backend-564572183797.us-central1.run.app';
+        const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
         const fd = new FormData();
         const pdfFile = new File([rec.blob], rec.name || 'document.pdf', { type: 'application/pdf' });
         fd.append('file', pdfFile);
@@ -1621,6 +1621,7 @@
     }
     </style>
 
+    <script src="js/feedback-submit.js"></script>
     <script>
     // Store feedback in localStorage (in production, use backend API)
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
@@ -1721,7 +1722,7 @@
     // Handle feedback form submission
     const feedbackForm = document.getElementById('feedbackForm');
     if (feedbackForm) {
-        feedbackForm.addEventListener('submit', function(e) {
+        feedbackForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const name = document.getElementById('feedbackName').value.trim();
@@ -1739,13 +1740,44 @@
                 page: currentPage
             };
             
-            // Store in localStorage
-            const storedFeedbacks = JSON.parse(localStorage.getItem('feedbacks') || '{}');
-            if (!storedFeedbacks[currentPage]) {
-                storedFeedbacks[currentPage] = [];
+            // Save to MongoDB backend
+            try {
+                if (typeof submitFeedback === 'function') {
+                    await submitFeedback({
+                        name: name,
+                        comment: message,
+                        page: currentPage
+                    });
+                } else {
+                    // Fallback if script not loaded
+                    const pageName = currentPage.replace('.html', '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    const response = await fetch('https://pdf-to-word-converter-iwumaktavq-uc.a.run.app/api/feedback', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            name: name,
+                            comment: message,
+                            page: currentPage,
+                            pageName: pageName
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to save feedback');
+                    }
+                }
+            } catch (error) {
+                console.warn('Backend save failed, using localStorage as fallback:', error);
+                // Fallback to localStorage if backend fails
+                const storedFeedbacks = JSON.parse(localStorage.getItem('feedbacks') || '{}');
+                if (!storedFeedbacks[currentPage]) {
+                    storedFeedbacks[currentPage] = [];
+                }
+                storedFeedbacks[currentPage].unshift(feedback);
+                localStorage.setItem('feedbacks', JSON.stringify(storedFeedbacks));
             }
-            storedFeedbacks[currentPage].unshift(feedback);
-            localStorage.setItem('feedbacks', JSON.stringify(storedFeedbacks));
             
             // Reset form
             this.reset();

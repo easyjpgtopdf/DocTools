@@ -195,55 +195,25 @@ def _extract_images_with_pypdf2(pdf_bytes: bytes, page_num: int = 0, max_size_by
                             logger.info(f"Skipping large image: {size_bytes} bytes")
                             continue
                         
-                        # IMPROVED: Better image format detection
+                        # Detect image format
                         image_format = None
-                        
-                        # Method 1: Check magic bytes (most reliable)
-                        if len(image_data) >= 8:
-                            if image_data[:8] == b'\x89PNG\r\n\x1a\n':
-                                image_format = 'png'
-                            elif image_data[:2] == b'\xff\xd8':
-                                image_format = 'jpeg'
-                            elif image_data[:6] in [b'GIF87a', b'GIF89a']:
-                                image_format = 'gif'
-                            elif image_data[:4] == b'RIFF' and len(image_data) > 12 and image_data[8:12] == b'WEBP':
-                                image_format = 'webp'
-                            elif image_data[:2] == b'BM':
-                                image_format = 'bmp'
-                        
-                        # Method 2: Check image object name/attributes
-                        if not image_format:
-                            name_lower = img_name.lower() if img_name else ''
-                            if 'png' in name_lower or 'image/png' in name_lower:
-                                image_format = 'png'
-                            elif 'jpeg' in name_lower or 'jpg' in name_lower or 'image/jpeg' in name_lower:
-                                image_format = 'jpeg'
-                            elif 'gif' in name_lower:
-                                image_format = 'gif'
-                            elif 'webp' in name_lower:
-                                image_format = 'webp'
-                            elif 'bmp' in name_lower:
-                                image_format = 'bmp'
-                        
-                        # Method 3: Try to detect from image object attributes
-                        if not image_format and hasattr(img_obj, 'get_object'):
-                            try:
-                                img_raw = img_obj.get_object()
-                                if hasattr(img_raw, 'get'):
-                                    subtype = img_raw.get('/Subtype', '')
-                                    if '/Image' in str(subtype):
-                                        filter_type = img_raw.get('/Filter', '')
-                                        if '/DCTDecode' in str(filter_type):
-                                            image_format = 'jpeg'
-                                        elif '/FlateDecode' in str(filter_type) or '/LZWDecode' in str(filter_type):
-                                            image_format = 'png'  # Often PNG when compressed
-                            except:
-                                pass
-                        
-                        # Default to PNG if still unknown (most compatible)
-                        if not image_format:
+                        if len(image_data) >= 8 and image_data[:8] == b'\x89PNG\r\n\x1a\n':
                             image_format = 'png'
-                            logger.debug(f"Image format unknown, defaulting to PNG for {img_name}")
+                        elif len(image_data) >= 2 and image_data[:2] == b'\xff\xd8':
+                            image_format = 'jpeg'
+                        elif len(image_data) >= 6 and image_data[:6] in [b'GIF87a', b'GIF89a']:
+                            image_format = 'gif'
+                        else:
+                            # Try to detect from image object name
+                            if 'png' in img_name.lower() or 'image/png' in img_name.lower():
+                                image_format = 'png'
+                            elif 'jpeg' in img_name.lower() or 'jpg' in img_name.lower() or 'image/jpeg' in img_name.lower():
+                                image_format = 'jpeg'
+                            elif 'gif' in img_name.lower():
+                                image_format = 'gif'
+                        
+                        if not image_format:
+                            image_format = 'png'  # Default
                         
                         # Get image dimensions
                         width = 100  # Default
@@ -258,39 +228,11 @@ def _extract_images_with_pypdf2(pdf_bytes: bytes, page_num: int = 0, max_size_by
                                 width = float(img_raw.width) if img_raw.width else 100
                                 height = float(img_raw.height) if img_raw.height else 100
                         
-                        # Try to get actual position from pdfminer layout
-                        # PyPDF2 doesn't provide exact coordinates, so we'll use pdfminer as fallback
+                        # Estimate position (PyPDF2 doesn't provide exact coordinates)
                         x0 = 50.0  # Default left margin
                         y0 = page_height - height - 50.0  # Default top margin
                         x1 = x0 + width
                         y1 = y0 + height
-                        
-                        # Try to get better coordinates from pdfminer
-                        try:
-                            from pdfminer.high_level import extract_pages
-                            from pdfminer.layout import LTImage, LTFigure
-                            pdf_file_for_coords = io.BytesIO(pdf_bytes)
-                            for page_idx, page_layout in enumerate(extract_pages(pdf_file_for_coords)):
-                                if page_idx != page_num:
-                                    continue
-                                for element in page_layout:
-                                    if isinstance(element, (LTImage, LTFigure)):
-                                        if hasattr(element, 'bbox'):
-                                            elem_x0, elem_y0, elem_x1, elem_y1 = element.bbox
-                                            # Check if this might be the same image (similar size)
-                                            elem_width = abs(elem_x1 - elem_x0)
-                                            elem_height = abs(elem_y1 - elem_y0)
-                                            if abs(elem_width - width) < 20 and abs(elem_height - height) < 20:
-                                                x0 = float(elem_x0)
-                                                y0 = float(elem_y0)
-                                                x1 = float(elem_x1)
-                                                y1 = float(elem_y1)
-                                                logger.info(f"✅ Found better coordinates from pdfminer: ({x0}, {y0})")
-                                                break
-                                break
-                        except Exception as coord_error:
-                            logger.debug(f"Could not get coordinates from pdfminer: {coord_error}")
-                            # Use default coordinates
                         
                         # Check if full-page or too small
                         is_full_page = (width > page_width * 0.9 and height > page_height * 0.9)
