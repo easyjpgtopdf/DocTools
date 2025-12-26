@@ -64,6 +64,21 @@ class LayoutDecisionEngine:
         # Step 2.0: Premium document category (before any table/row/col/Excel logic)
         self.document_category = self._classify_premium_category(full_structure, doc_type)
         logger.info(f"Premium document category: {self.document_category.value}")
+        
+        # CRITICAL: SECOND-PASS EVALUATION - TYPE_D → TYPE_A promotion for visual tables
+        self.is_promoted_from_type_d = False
+        if self.document_category == PremiumDocCategory.TYPE_D_PLAIN_TEXT:
+            # Check if document is digital_pdf (not scanned image)
+            if doc_type == DocumentType.DIGITAL_PDF:
+                # Perform VISUAL TABLE CANDIDATE CHECK
+                visual_table_eligible = self._check_visual_table_candidate(full_structure)
+                if visual_table_eligible:
+                    # Reclassify as TYPE_A (promoted from TYPE_D)
+                    logger.info("CRITICAL: TYPE_D promoted to TYPE_A_CANDIDATE (visual table detected)")
+                    self.document_category = PremiumDocCategory.TYPE_A_TRUE_TABULAR
+                    self.is_promoted_from_type_d = True
+                    logger.info("TYPE_D → TYPE_A promotion: Document will use SOFT TABLE MODE + VISUAL GRID RECONSTRUCTION without requiring native tables")
+        
         # Reset table confidence per document
         self.table_confidence = 0.0
         
@@ -165,6 +180,13 @@ class LayoutDecisionEngine:
                 if category == PremiumDocCategory.TYPE_A_TRUE_TABULAR:
                     # TYPE_A: TRUE_TABULAR - Only proceed if table_confidence >= 0.65
                     layout_strategy = "type_a_tabular"
+                    
+                    # CRITICAL: If promoted from TYPE_D, allow SOFT TABLE MODE + VISUAL GRID without native tables
+                    if self.is_promoted_from_type_d:
+                        logger.info(f"Page {page_idx + 1}: TYPE_A (promoted from TYPE_D) - Allowing SOFT TABLE MODE + VISUAL GRID RECONSTRUCTION without native tables")
+                        # Skip native table requirement, go directly to SOFT TABLE MODE check
+                        has_native_tables = False  # Force SOFT TABLE MODE path
+                    
                     if has_native_tables and allows_table_processing:
                         is_native_docai_table = (
                             page_tables and 
