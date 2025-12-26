@@ -1024,6 +1024,14 @@ async function initializeUploadHandlers() {
 }
 
 function handleFileSelect(file) {
+    console.log('handleFileSelect called with file:', file ? file.name : 'null', 'Type:', file ? file.type : 'null');
+    
+    if (!file) {
+        console.error('No file provided to handleFileSelect');
+        showStatus('No file selected.', 'error');
+        return;
+    }
+    
     if (file.type !== 'application/pdf') {
         showStatus('Please select a PDF file.', 'error');
         return;
@@ -1036,18 +1044,29 @@ function handleFileSelect(file) {
     
     // Check credits before allowing file selection
     if (!creditsCheckPassed) {
+        console.warn('Credits check failed in handleFileSelect');
         showStatus('Insufficient credits. Minimum 30 credits required. Please purchase credits to continue.', 'error');
         return;
     }
     
+    console.log('File validated, storing blob and updating UI');
     window.premiumPdfBlob = file;
     window.premiumPdfFilename = file.name;
     
-    document.getElementById('fileName').textContent = file.name;
-    document.getElementById('fileSize').textContent = formatFileSize(file.size);
-    document.getElementById('fileInfo').classList.add('show');
+    const fileNameEl = document.getElementById('fileName');
+    const fileSizeEl = document.getElementById('fileSize');
+    const fileInfoEl = document.getElementById('fileInfo');
     const convertBtn = document.getElementById('convertBtn');
-    if (convertBtn) convertBtn.disabled = false;
+    
+    if (fileNameEl) fileNameEl.textContent = file.name;
+    if (fileSizeEl) fileSizeEl.textContent = formatFileSize(file.size);
+    if (fileInfoEl) fileInfoEl.classList.add('show');
+    if (convertBtn) {
+        convertBtn.disabled = false;
+        console.log('Convert button enabled');
+    }
+    
+    console.log('File selection complete');
 }
 
 // Convert button handler
