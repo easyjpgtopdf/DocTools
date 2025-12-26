@@ -513,15 +513,23 @@
 <!-- Footer -->
 <div id="footer-placeholder"></div>
 
-<script src="js/global-components.js" defer></script>
+<!-- Load scripts in correct order - no defer for critical scripts -->
+<script src="js/global-components.js"></script>
 <!-- Firebase Authentication - Required for user login and credits -->
 <script src="js/auth.js" type="module"></script>
 <script>
 // Load header and footer via global-components.js
 document.addEventListener('DOMContentLoaded', async function() {
+    console.log('Premium page DOMContentLoaded - starting initialization');
+    
+    // CRITICAL: Wait for scripts to load first
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     // Ensure account section loads (before header)
+    let accountSectionLoaded = false;
     if (typeof window.loadAccountSection === 'function') {
         window.loadAccountSection();
+        accountSectionLoaded = true;
     } else {
         // Wait for global-components.js to load
         let attempts = 0;
@@ -529,16 +537,20 @@ document.addEventListener('DOMContentLoaded', async function() {
             attempts++;
             if (typeof window.loadAccountSection === 'function') {
                 window.loadAccountSection();
+                accountSectionLoaded = true;
                 clearInterval(checkAccountSection);
-            } else if (attempts >= 20) {
+            } else if (attempts >= 50) {
                 clearInterval(checkAccountSection);
+                console.warn('loadAccountSection not found after 5 seconds');
             }
         }, 100);
     }
     
     // Ensure auth UI is initialized (for account section visibility)
+    let authUIInitialized = false;
     if (typeof window.initializeAuthUI === 'function') {
         window.initializeAuthUI();
+        authUIInitialized = true;
     } else {
         // Wait for auth.js to load
         let attempts = 0;
@@ -546,9 +558,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             attempts++;
             if (typeof window.initializeAuthUI === 'function') {
                 window.initializeAuthUI();
+                authUIInitialized = true;
                 clearInterval(checkAuthUI);
-            } else if (attempts >= 30) {
+            } else if (attempts >= 50) {
                 clearInterval(checkAuthUI);
+                console.warn('initializeAuthUI not found after 5 seconds');
             }
         }, 100);
     }
@@ -600,39 +614,92 @@ document.addEventListener('DOMContentLoaded', async function() {
     creditsCheckPassed = await checkCredits();
     
     // Force account section to show if user is logged in
-    if (window.auth && window.auth.currentUser) {
-        const accountSection = document.getElementById('account-section');
-        if (accountSection) {
-            accountSection.style.display = 'block';
-            accountSection.style.visibility = 'visible';
-            accountSection.removeAttribute('hidden');
+    // Multiple retries to ensure it shows
+    const showAccountSection = () => {
+        if (window.auth) {
+            const user = window.auth.currentUser;
+            if (user) {
+                console.log('User logged in, showing account section:', user.uid);
+                const accountSection = document.getElementById('account-section');
+                if (accountSection) {
+                    // Force show account section
+                    accountSection.style.setProperty('display', 'block', 'important');
+                    accountSection.style.setProperty('visibility', 'visible', 'important');
+                    accountSection.removeAttribute('hidden');
+                    accountSection.classList.remove('hidden');
+                    
+                    // Also ensure user menu is visible
+                    const userMenu = accountSection.querySelector('#user-menu');
+                    if (userMenu) {
+                        userMenu.style.display = 'block';
+                    }
+                }
+                // Force update UI
+                if (typeof window.updateUI === 'function') {
+                    window.updateUI(user);
+                }
+                // Also try to initialize auth UI again
+                if (typeof window.initializeAuthUI === 'function') {
+                    window.initializeAuthUI();
+                }
+                return true;
+            }
         }
-        // Force update UI
-        if (typeof window.updateUI === 'function') {
-            window.updateUI(window.auth.currentUser);
-        } else if (typeof window.forceUpdateUI === 'function') {
-            window.forceUpdateUI();
-        }
+        return false;
+    };
+    
+    // Try immediately
+    if (!showAccountSection()) {
+        // Retry after 500ms
+        setTimeout(() => {
+            if (!showAccountSection()) {
+                // Retry after 1 second
+                setTimeout(() => {
+                    if (!showAccountSection()) {
+                        // Final retry after 2 seconds
+                        setTimeout(showAccountSection, 2000);
+                    }
+                }, 1000);
+            }
+        }, 500);
     }
     
-    // Only load PDF and initialize handlers if credits check passed
+    // Also listen for auth state changes
+    if (window.auth) {
+        import("https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js").then(({ onAuthStateChanged }) => {
+            const unsubscribe = onAuthStateChanged(window.auth, (user) => {
+                if (user) {
+                    console.log('Auth state changed - user logged in:', user.uid);
+                    showAccountSection();
+                }
+            });
+            // Keep listener for 10 seconds
+            setTimeout(() => unsubscribe(), 10000);
+        }).catch(err => console.warn('Could not import onAuthStateChanged:', err));
+    }
+    
+    // Always initialize upload handlers, but they will check credits internally
+    // This ensures upload area is clickable even if credits check is delayed
+    await initializeUploadHandlers();
+    
+    // Load PDF from sessionStorage if available (only if credits passed)
     if (creditsCheckPassed) {
-        // Load PDF from sessionStorage if available
         loadPdfFromSession();
-        
-        // Initialize upload handlers
-        await initializeUploadHandlers();
-    } else {
-        // Even if credits check failed, ensure upload area is properly disabled
+    }
+    
+    // If credits check failed, show message but keep handlers initialized
+    if (!creditsCheckPassed) {
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
         const convertBtn = document.getElementById('convertBtn');
         if (uploadArea) {
-            uploadArea.style.pointerEvents = 'none';
-            uploadArea.style.opacity = '0.5';
+            uploadArea.style.opacity = '0.7';
         }
         if (fileInput) fileInput.disabled = true;
         if (convertBtn) convertBtn.disabled = true;
+        console.warn('Credits check failed - upload disabled');
+    } else {
+        console.log('Credits check passed - upload enabled');
     }
 });
 
@@ -827,52 +894,79 @@ async function initializeUploadHandlers() {
     const convertBtn = document.getElementById('convertBtn');
     const cancelBtn = document.getElementById('cancelBtn');
     
-    if (!uploadArea || !fileInput) return;
+    if (!uploadArea || !fileInput) {
+        console.error('Upload area or file input not found');
+        return;
+    }
     
-    // Only enable if credits check passed
+    console.log('Initializing upload handlers, creditsCheckPassed:', creditsCheckPassed);
+    
+    // Always add event handlers, but check credits inside
+    // Click handler
+    uploadArea.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Upload area clicked, creditsCheckPassed:', creditsCheckPassed);
+        if (creditsCheckPassed) {
+            fileInput.click();
+        } else {
+            showStatus('Insufficient credits. Minimum 30 credits required. Please purchase credits to continue.', 'error');
+        }
+    });
+    
+    // Enable upload area visually if credits passed
     if (creditsCheckPassed) {
-        // Enable upload area visually
         uploadArea.style.pointerEvents = 'auto';
         uploadArea.style.opacity = '1';
+        uploadArea.style.cursor = 'pointer';
         fileInput.disabled = false;
         if (convertBtn) convertBtn.disabled = false;
-        
         console.log('Upload handlers enabled - credits check passed');
-        
-        // Click handler
-        uploadArea.addEventListener('click', () => {
-            if (creditsCheckPassed) {
-                fileInput.click();
-            }
-        });
+    } else {
+        uploadArea.style.pointerEvents = 'auto'; // Still allow click to show error
+        uploadArea.style.opacity = '0.7';
+        uploadArea.style.cursor = 'not-allowed';
+        fileInput.disabled = true;
+        if (convertBtn) convertBtn.disabled = true;
+        console.log('Upload handlers initialized but disabled - credits check failed');
+    }
         
         // Drag and drop handlers
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             uploadArea.classList.add('dragover');
         });
         
-        uploadArea.addEventListener('dragleave', () => {
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             uploadArea.classList.remove('dragover');
         });
         
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             uploadArea.classList.remove('dragover');
+            console.log('File dropped, creditsCheckPassed:', creditsCheckPassed);
             if (!creditsCheckPassed) {
-                showStatus('Insufficient credits. Please purchase credits to use premium features.', 'error');
+                showStatus('Insufficient credits. Minimum 30 credits required. Please purchase credits to continue.', 'error');
                 return;
             }
             const files = e.dataTransfer.files;
             if (files.length > 0 && files[0].type === 'application/pdf') {
                 handleFileSelect(files[0]);
+            } else {
+                showStatus('Please drop a PDF file.', 'error');
             }
         });
         
         // File input change handler
         fileInput.addEventListener('change', (e) => {
+            console.log('File input changed, creditsCheckPassed:', creditsCheckPassed);
             if (!creditsCheckPassed) {
-                showStatus('Insufficient credits. Please purchase credits to use premium features.', 'error');
+                showStatus('Insufficient credits. Minimum 30 credits required. Please purchase credits to continue.', 'error');
+                e.target.value = ''; // Clear selection
                 return;
             }
             if (e.target.files.length > 0) {
