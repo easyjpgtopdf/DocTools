@@ -511,7 +511,7 @@
 </section>
 
 <!-- Footer -->
-<div id="footer-placeholder"></div>
+<div id="global-footer-placeholder"></div>
 
 <!-- Load scripts in correct order - no defer for critical scripts -->
 <script src="js/global-components.js"></script>
@@ -568,13 +568,22 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     
     // Global header is loaded by global-components.js
-    // Footer is loaded separately
-    fetch('footer.html')
-        .then(response => response.text())
-        .then(html => {
-            document.getElementById('footer-placeholder').innerHTML = html;
-        })
-        .catch(err => console.warn('Footer not found'));
+    // Footer is loaded via global-components.js
+    if (typeof window.loadGlobalFooter === 'function') {
+        window.loadGlobalFooter();
+    } else {
+        // Wait for global-components.js to load
+        let attempts = 0;
+        const checkFooter = setInterval(() => {
+            attempts++;
+            if (typeof window.loadGlobalFooter === 'function') {
+                window.loadGlobalFooter();
+                clearInterval(checkFooter);
+            } else if (attempts >= 20) {
+                clearInterval(checkFooter);
+            }
+        }, 100);
+    }
     
     // CRITICAL: Wait for auth to be ready before checking credits
     // This ensures we get the correct user ID
