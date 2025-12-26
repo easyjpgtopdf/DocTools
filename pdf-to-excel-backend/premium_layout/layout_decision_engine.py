@@ -13,6 +13,8 @@ from .document_type_classifier import DocumentTypeClassifier, DocumentType
 from .heuristic_table_builder import HeuristicTableBuilder
 from .full_ocr_extractor import FullOCRExtractor
 from .decision_router import DecisionRouter, ExecutionMode
+from .cell_normalizer import CellNormalizer, LogicalCell  # CRITICAL: Cell ownership resolution
+from .block_grid_normalizer import BlockGridNormalizer  # Grid normalization
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +33,8 @@ class LayoutDecisionEngine:
         self.heuristic_builder = HeuristicTableBuilder()
         self.full_ocr_extractor = FullOCRExtractor(min_confidence=0.5)
         self.decision_router = DecisionRouter()
+        self.cell_normalizer = CellNormalizer()  # CRITICAL: First step - cell ownership
+        self.grid_normalizer = BlockGridNormalizer()  # Second step - grid structure
         
         # Document-level metadata (set once, used for all pages)
         self.selected_mode: Optional[ExecutionMode] = None
@@ -71,6 +75,20 @@ class LayoutDecisionEngine:
         logger.info(f"Extracted: {len(full_structure['blocks'])} blocks, "
                    f"{len(full_structure['form_fields'])} form fields, "
                    f"{len(full_structure['tables'])} tables")
+        
+        # Step 1.5: CRITICAL - Normalize blocks into logical cells (cell ownership resolution)
+        logger.info("=" * 80)
+        logger.info("CELL NORMALIZATION: Grouping blocks into logical cells...")
+        logger.info("=" * 80)
+        logical_cells = self.cell_normalizer.normalize_to_cells(
+            full_structure['blocks'],
+            page_width=1.0,
+            page_height=1.0
+        )
+        logger.info(f"Cell normalization: {len(full_structure['blocks'])} blocks → {len(logical_cells)} logical cells")
+        
+        # Store logical cells in full_structure for downstream use
+        full_structure['logical_cells'] = logical_cells
         
         # Step 2: Classify document type
         doc_type = self.classifier.classify(document, document_text)

@@ -9,6 +9,8 @@ from typing import List, Dict, Any, Optional, Tuple, Set
 from dataclasses import dataclass, field
 from enum import Enum
 
+from .geometry_reconstructor import GeometryReconstructor
+
 logger = logging.getLogger(__name__)
 
 
@@ -60,6 +62,7 @@ class TablePostProcessor:
         self.column_snap_tolerance = 0.02  # 2% of page width for column snapping
         self.min_header_font_size = 10.0  # Minimum font size for header detection
         self.numeric_sequence_min_length = 10  # Minimum length for numeric protection
+        self.geometry_reconstructor = GeometryReconstructor()  # For missing geometry
         
     def process_table(
         self,
@@ -224,14 +227,25 @@ class TablePostProcessor:
     def _extract_raw_cells(
         self,
         table: Any,
-        document_text: str
+        document_text: str,
+        reconstructed_geometry: Optional[Dict[str, Any]] = None
     ) -> List[ProcessedCell]:
-        """Extract all cells from Document AI table with bounding boxes"""
+        """
+        Extract all cells from Document AI table with bounding boxes.
+        
+        ENHANCEMENT: If cell lacks geometry, try reconstructed_geometry first.
+        """
         raw_cells = []
         row_idx = 0
         
         logger.debug(f"Table has 'header_rows': {hasattr(table, 'header_rows')}")
         logger.debug(f"Table has 'body_rows': {hasattr(table, 'body_rows')}")
+        
+        # Get reconstructed geometries if available
+        cell_geometries = {}
+        if reconstructed_geometry and 'cell_geometries' in reconstructed_geometry:
+            cell_geometries = reconstructed_geometry['cell_geometries']
+            logger.info(f"Using {len(cell_geometries)} reconstructed geometries")
         
         # Process header rows
         if hasattr(table, 'header_rows') and table.header_rows:
@@ -240,7 +254,15 @@ class TablePostProcessor:
                 if hasattr(header_row, 'cells') and header_row.cells:
                     logger.debug(f"Header row {row_idx} has {len(header_row.cells)} cells")
                     for col_idx, cell in enumerate(header_row.cells):
-                        cell_data = self._extract_cell_data(cell, document_text, row_idx, col_idx, is_header=True)
+                        # Try with reconstructed geometry if available
+                        cell_key = (row_idx, col_idx)
+                        reconstructed_bbox = cell_geometries.get(cell_key)
+                        
+                        cell_data = self._extract_cell_data(
+                            cell, document_text, row_idx, col_idx, 
+                            is_header=True,
+                            fallback_bbox=reconstructed_bbox
+                        )
                         if cell_data:
                             raw_cells.append(cell_data)
                         else:
@@ -254,7 +276,15 @@ class TablePostProcessor:
                 if hasattr(body_row, 'cells') and body_row.cells:
                     logger.debug(f"Body row {row_idx} has {len(body_row.cells)} cells")
                     for col_idx, cell in enumerate(body_row.cells):
-                        cell_data = self._extract_cell_data(cell, document_text, row_idx, col_idx, is_header=False)
+                        # Try with reconstructed geometry if available
+                        cell_key = (row_idx, col_idx)
+                        reconstructed_bbox = cell_geometries.get(cell_key)
+                        
+                        cell_data = self._extract_cell_data(
+                            cell, document_text, row_idx, col_idx, 
+                            is_header=False,
+                            fallback_bbox=reconstructed_bbox
+                        )
                         if cell_data:
                             raw_cells.append(cell_data)
                         else:
@@ -270,23 +300,49 @@ class TablePostProcessor:
         document_text: str,
         row: int,
         column: int,
-        is_header: bool
+        is_header: bool,
+        fallback_bbox: Optional[Dict[str, float]] = None
     ) -> Optional[ProcessedCell]:
-        """Extract cell data including text, bounding box, and style"""
-        if not hasattr(cell, 'layout'):
+        """
+        Extract cell data including text, bounding box, and style.
+        
+        ENHANCEMENT: Use fallback_bbox if cell lacks geometry.
+        """
+        text = ""
+        layout = None
+        
+        if hasattr(cell, 'layout'):
+            layout = cell.layout
+            text = self._extract_text_from_layout(layout, document_text)
+        else:
             logger.debug(f"Cell ({row},{column}) has no 'layout' attribute")
-            return None
         
-        layout = cell.layout
+        # Extract bounding box (try fallback if primary fails)
+        bounding_box = None
+        if layout:
+            bounding_box = self._extract_bounding_box(layout)
         
-        # Extract text
-        text = self._extract_text_from_layout(layout, document_text)
+        if not bounding_box and fallback_bbox:
+            # Use reconstructed geometry
+            bounding_box = fallback_bbox
+            logger.debug(f"Cell ({row},{column}) using reconstructed geometry")
         
-        # Extract bounding box
-        bounding_box = self._extract_bounding_box(layout)
         if not bounding_box:
-            logger.debug(f"Cell ({row},{column}) has no bounding box, text: '{text[:30] if text else 'empty'}'")
-            return None
+            logger.debug(f"Cell ({row},{column}) has no bounding box (text: '{text[:30] if text else 'empty'}')")
+            # CRITICAL: Don't return None if we have text - create minimal bbox
+            if text and text.strip():
+                logger.warning(f"Cell ({row},{column}) has text but no bbox - creating minimal bbox")
+                # Create a minimal bounding box based on position
+                bounding_box = {
+                    'x_min': column * 0.15,  # Rough estimate
+                    'x_max': (column + 1) * 0.15,
+                    'y_min': row * 0.05,
+                    'y_max': (row + 1) * 0.05,
+                    'x_center': (column + 0.5) * 0.15,
+                    'y_center': (row + 0.5) * 0.05
+                }
+            else:
+                return None
         
         # Extract style information
         font_size = self._extract_font_size(layout)
