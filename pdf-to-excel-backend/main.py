@@ -558,11 +558,12 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
         # Get remaining credits after deduction
         remaining_credits = get_credits(user_id)
         
-        # ENTERPRISE RESPONSE: Extract mode, confidence, message from unified_layouts metadata
+        # ENTERPRISE RESPONSE: Extract mode, confidence, message, layout_source from unified_layouts metadata
         # unified_layouts are created in docai_service and have metadata set by layout_decision_engine
         execution_mode = None
         routing_confidence = 0.5
         routing_reason = ""
+        layout_source = "docai"  # Default to DocAI
         
         try:
             # Extract from first layout metadata (all pages have same mode)
@@ -573,7 +574,8 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
                     execution_mode = first_layout.metadata.get('execution_mode')
                     routing_confidence = first_layout.metadata.get('routing_confidence', 0.5)
                     routing_reason = first_layout.metadata.get('routing_reason', '')
-                    logger.info(f"Extracted metadata: mode={execution_mode}, confidence={routing_confidence:.2f}, reason={routing_reason}")
+                    layout_source = first_layout.metadata.get('layout_source', 'docai')
+                    logger.info(f"Extracted metadata: mode={execution_mode}, confidence={routing_confidence:.2f}, reason={routing_reason}, source={layout_source}")
         except Exception as e:
             logger.warning(f"Could not extract mode/confidence from layouts: {e}")
         
@@ -588,13 +590,14 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
                 "creditsLeft": remaining_credits,
                 "creditsDeducted": int(total_credits_required),
                 "creditPerPage": credit_per_page,
-                # ENTERPRISE RESPONSE: Mode, confidence, message
+                # ENTERPRISE RESPONSE: Mode, confidence, message, layout source
                 "mode": execution_mode or "unknown",
                 "execution_mode": execution_mode or "unknown",
                 "confidence": routing_confidence,
                 "routing_confidence": routing_confidence,
                 "message": routing_reason,
                 "routing_reason": routing_reason,
+                "layout_source": layout_source,  # "docai" or "adobe"
                 "pricing": {
                     "type": "per_page",
                     "cost_per_page": credit_per_page,

@@ -90,6 +90,110 @@ class DecisionRouter:
         logger.info(f"DecisionRouter selected mode: PLAIN_TEXT - {reason}")
         return (ExecutionMode.PLAIN_TEXT, 0.5, reason)
     
+    def should_enable_adobe_fallback(
+        self,
+        docai_confidence: float,
+        full_structure: Dict,
+        user_plan: str = "premium"
+    ) -> Tuple[bool, str]:
+        """
+        Determine if Adobe PDF Extract fallback should be enabled.
+        
+        SELECTIVE FALLBACK RULES:
+        - Document AI confidence < 0.65
+        - Visual complexity is HIGH (many blocks, merged cells, charts)
+        - User plan is "premium" (pay-per-use)
+        
+        Args:
+            docai_confidence: Confidence from Document AI routing (0.0-1.0)
+            full_structure: Full OCR structure with blocks
+            user_plan: User subscription plan (default: "premium")
+        
+        Returns:
+            Tuple of (enable_fallback, reason)
+        """
+        # Rule 1: Only for premium users (pay-per-use model)
+        if user_plan != "premium":
+            return (False, "Adobe fallback only available for premium plan")
+        
+        # Rule 2: Only if DocAI confidence is low
+        if docai_confidence >= 0.65:
+            return (False, f"Document AI confidence {docai_confidence:.2f} >= 0.65 - fallback not needed")
+        
+        # Rule 3: Check visual complexity
+        complexity_score, complexity_reason = self._assess_visual_complexity(full_structure)
+        
+        if complexity_score < 0.6:  # LOW or MEDIUM complexity
+            return (False, f"Visual complexity {complexity_reason} - fallback not needed")
+        
+        # All conditions met - enable Adobe fallback
+        reason = f"DocAI confidence {docai_confidence:.2f} < 0.65, complexity: {complexity_reason}"
+        logger.info(f"Adobe fallback ENABLED: {reason}")
+        return (True, reason)
+    
+    def _assess_visual_complexity(self, full_structure: Dict) -> Tuple[float, str]:
+        """
+        Assess visual complexity of document for Adobe fallback decision.
+        
+        HIGH complexity indicators:
+        - Many blocks (>100)
+        - Mixed content (tables + text + images)
+        - Potential merged cells
+        - Charts or diagrams
+        
+        Returns:
+            Tuple of (complexity_score, description)
+            - complexity_score: 0.0-1.0 (0.6+ is HIGH)
+            - description: Human-readable complexity level
+        """
+        if not full_structure:
+            return (0.0, "NONE")
+        
+        blocks = full_structure.get('blocks', [])
+        tables = full_structure.get('tables', [])
+        
+        # Factor 1: Block count
+        block_score = min(1.0, len(blocks) / 150.0)
+        
+        # Factor 2: Table presence (but incomplete)
+        table_score = 0.0
+        if tables and len(tables) > 0:
+            # Tables exist but confidence was low (otherwise we wouldn't be here)
+            table_score = 0.5
+        
+        # Factor 3: Block diversity (varied sizes suggest complex layout)
+        block_sizes = []
+        for block in blocks[:100]:  # Sample first 100 blocks
+            bbox = block.get('bounding_box', {})
+            if bbox:
+                width = bbox.get('x_max', 0) - bbox.get('x_min', 0)
+                height = bbox.get('y_max', 0) - bbox.get('y_min', 0)
+                block_sizes.append(width * height)
+        
+        diversity_score = 0.0
+        if block_sizes:
+            import statistics
+            try:
+                std_dev = statistics.stdev(block_sizes) if len(block_sizes) > 1 else 0
+                mean_size = statistics.mean(block_sizes)
+                if mean_size > 0:
+                    diversity_score = min(1.0, (std_dev / mean_size) * 0.5)
+            except:
+                pass
+        
+        # Weighted complexity score
+        complexity_score = (block_score * 0.4 + table_score * 0.3 + diversity_score * 0.3)
+        
+        # Classify complexity
+        if complexity_score >= 0.7:
+            description = "HIGH (complex tables/mixed content)"
+        elif complexity_score >= 0.5:
+            description = "MEDIUM (moderate structure)"
+        else:
+            description = "LOW (simple document)"
+        
+        return (complexity_score, description)
+    
     def _is_valid_table(self, table: Any) -> bool:
         """
         Check if a DocAI table object has valid structure.

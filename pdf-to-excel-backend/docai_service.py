@@ -294,6 +294,93 @@ async def process_pdf_to_excel_docai(file_bytes: bytes, filename: str) -> Tuple[
             # This allows main.py to extract mode, confidence, message
             decision_engine_instance = decision_engine
             
+            # STEP 6.5: ADOBE FALLBACK (SELECTIVE)
+            # Check if Adobe PDF Extract should be used as fallback
+            try:
+                from premium_layout.decision_router import DecisionRouter
+                from premium_layout.adobe_fallback_service import get_adobe_fallback_service
+                
+                # Extract DocAI confidence from unified_layouts metadata
+                docai_confidence = 0.5
+                if unified_layouts and len(unified_layouts) > 0:
+                    first_layout = unified_layouts[0]
+                    if hasattr(first_layout, 'metadata') and first_layout.metadata:
+                        docai_confidence = first_layout.metadata.get('routing_confidence', 0.5)
+                
+                # Create full_structure dict for complexity assessment
+                full_structure = {
+                    'blocks': [],
+                    'tables': native_tables or []
+                }
+                # Extract blocks from document pages
+                for page in document.pages:
+                    for block in page.blocks:
+                        block_dict = {
+                            'text': block.layout.text_anchor.content if hasattr(block.layout, 'text_anchor') else '',
+                            'bounding_box': {}
+                        }
+                        if block.layout.bounding_poly:
+                            vertices = block.layout.bounding_poly.normalized_vertices
+                            if len(vertices) >= 4:
+                                block_dict['bounding_box'] = {
+                                    'x_min': min(v.x for v in vertices),
+                                    'x_max': max(v.x for v in vertices),
+                                    'y_min': min(v.y for v in vertices),
+                                    'y_max': max(v.y for v in vertices)
+                                }
+                        full_structure['blocks'].append(block_dict)
+                
+                # Check if Adobe fallback should be enabled
+                router = DecisionRouter()
+                should_fallback, fallback_reason = router.should_enable_adobe_fallback(
+                    docai_confidence=docai_confidence,
+                    full_structure=full_structure,
+                    user_plan="premium"  # Always premium for this endpoint
+                )
+                
+                if should_fallback:
+                    adobe_service = get_adobe_fallback_service()
+                    
+                    if adobe_service.is_available():
+                        logger.info("=" * 80)
+                        logger.info("ADOBE FALLBACK: Attempting to improve layout quality")
+                        logger.info(f"Trigger reason: {fallback_reason}")
+                        logger.info("=" * 80)
+                        
+                        # Call Adobe PDF Extract API
+                        adobe_layouts, adobe_confidence, adobe_metadata = adobe_service.extract_pdf_structure(
+                            pdf_bytes=file_content,
+                            filename=filename,
+                            docai_confidence=docai_confidence
+                        )
+                        
+                        # Replace layouts ONLY if Adobe succeeded
+                        if adobe_layouts and len(adobe_layouts) > 0:
+                            logger.info(f"Adobe fallback SUCCESS: Replacing {len(unified_layouts)} DocAI layouts with {len(adobe_layouts)} Adobe layouts")
+                            unified_layouts = adobe_layouts
+                            
+                            # Update metadata to indicate Adobe was used
+                            for layout in unified_layouts:
+                                if hasattr(layout, 'metadata'):
+                                    layout.metadata['layout_source'] = 'adobe'
+                                    layout.metadata['adobe_fallback_reason'] = fallback_reason
+                                    layout.metadata['routing_confidence'] = adobe_confidence
+                                    layout.metadata['adobe_cost_info'] = adobe_metadata
+                            
+                            logger.info("=" * 80)
+                            logger.info("ADOBE FALLBACK: Complete - using Adobe layouts")
+                            logger.info("=" * 80)
+                        else:
+                            logger.warning("Adobe fallback returned no layouts - keeping Document AI results")
+                    else:
+                        logger.info(f"Adobe fallback requested but not available: {fallback_reason}")
+                else:
+                    logger.info(f"Adobe fallback NOT triggered: {fallback_reason}")
+                    
+            except Exception as adobe_error:
+                logger.warning(f"Adobe fallback check failed (non-critical): {adobe_error}")
+                # Continue with Document AI results
+            
             # Check if any layout has content
             has_content = any(not layout.is_empty() for layout in unified_layouts)
             
