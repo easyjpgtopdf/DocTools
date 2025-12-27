@@ -36,6 +36,34 @@ class DecisionRouter:
         """Initialize decision router"""
         pass
     
+    def _log_routing_decision(
+        self,
+        detected_columns: int,
+        selected_mode: ExecutionMode,
+        confidence: float,
+        reason: str,
+        key_value_blocked_reason: Optional[str] = None
+    ):
+        """
+        Log routing decision summary.
+        
+        Args:
+            detected_columns: Number of columns detected
+            selected_mode: Selected execution mode
+            confidence: Routing confidence (0.0-1.0)
+            reason: Human-readable reason
+            key_value_blocked_reason: Reason KEY_VALUE was blocked (if applicable)
+        """
+        logger.info("=" * 80)
+        logger.info("ROUTING DECISION SUMMARY")
+        logger.info(f"detected_columns: {detected_columns}")
+        logger.info(f"selected_mode: {selected_mode.value}")
+        logger.info(f"confidence: {confidence:.2f}")
+        logger.info(f"reason: {reason}")
+        if key_value_blocked_reason:
+            logger.info(f"key_value_blocked_reason: {key_value_blocked_reason}")
+        logger.info("=" * 80)
+    
     def route(
         self,
         native_tables: Optional[List],
@@ -58,6 +86,45 @@ class DecisionRouter:
             - confidence: Float 0.0-1.0 indicating routing confidence
             - reason: Human-readable explanation of routing decision
         """
+        # ====================================================================
+        # HARD BLOCK RULE 0: MULTI-COLUMN GUARANTEE (CRITICAL)
+        # ====================================================================
+        # If detected_columns >= 2, FORCE TABLE_MODE and BLOCK KEY_VALUE
+        # This rule MUST execute BEFORE any other routing logic
+        detected_columns, column_detection_reason = self._detect_column_count(full_structure, native_tables)
+        logger.info(f"Column detection: detected_columns={detected_columns}, reason={column_detection_reason}")
+        
+        if detected_columns >= 2:
+            # FORCE TABLE_MODE - never allow KEY_VALUE for multi-column documents
+            logger.warning(f"🚫 HARD BLOCK: detected_columns={detected_columns} >= 2 - FORCING TABLE_MODE, KEY_VALUE BLOCKED")
+            
+            # Check if we have native tables first
+            if native_tables and len(native_tables) > 0:
+                valid_tables = [t for t in native_tables if self._is_valid_table(t)]
+                if valid_tables:
+                    confidence = min(1.0, len(valid_tables) * 0.3 + 0.6)  # Higher confidence for forced table mode
+                    reason = f"TABLE_MODE FORCED: {detected_columns} columns detected (native tables present) - KEY_VALUE blocked"
+                    logger.info(f"DecisionRouter selected mode: TABLE_STRICT - {reason}")
+                    self._log_routing_decision(detected_columns, ExecutionMode.TABLE_STRICT, confidence, reason, "detected_columns >= 2")
+                    return (ExecutionMode.TABLE_STRICT, confidence, reason)
+            
+            # If no native tables, check for visual table patterns
+            if doc_type == DocumentType.DIGITAL_PDF:
+                visual_eligible, visual_confidence, visual_reason = self._check_visual_table_eligibility(full_structure)
+                if visual_eligible:
+                    confidence = min(1.0, visual_confidence + 0.2)  # Boost confidence for forced table mode
+                    reason = f"TABLE_MODE FORCED: {detected_columns} columns detected (visual patterns) - KEY_VALUE blocked: {visual_reason}"
+                    logger.info(f"DecisionRouter selected mode: TABLE_VISUAL - {reason}")
+                    self._log_routing_decision(detected_columns, ExecutionMode.TABLE_VISUAL, confidence, reason, "detected_columns >= 2")
+                    return (ExecutionMode.TABLE_VISUAL, confidence, reason)
+            
+            # Even without clear table structure, force TABLE_VISUAL for multi-column
+            confidence = 0.7
+            reason = f"TABLE_MODE FORCED: {detected_columns} columns detected - KEY_VALUE blocked (no clear table structure, using visual reconstruction)"
+            logger.warning(f"⚠️ Multi-column document ({detected_columns} columns) but no clear table structure - forcing TABLE_VISUAL")
+            self._log_routing_decision(detected_columns, ExecutionMode.TABLE_VISUAL, confidence, reason, "detected_columns >= 2")
+            return (ExecutionMode.TABLE_VISUAL, confidence, reason)
+        
         # ROUTING RULE 1: If native DocAI tables exist → TABLE_STRICT
         # CRITICAL FIX: Check tables FIRST, even for invoices/bills
         # Invoices often have line items tables that should use TABLE_STRICT
@@ -70,11 +137,13 @@ class DecisionRouter:
                     confidence = min(1.0, len(valid_tables) * 0.3 + 0.5)  # Higher confidence for structured invoices
                     reason = f"Invoice/Bill with native DocAI tables detected ({len(valid_tables)} tables) - using TABLE_STRICT for line items"
                     logger.info(f"DecisionRouter selected mode: TABLE_STRICT - {reason}")
+                    self._log_routing_decision(detected_columns, ExecutionMode.TABLE_STRICT, confidence, reason)
                     return (ExecutionMode.TABLE_STRICT, confidence, reason)
                 else:
                     confidence = min(1.0, len(valid_tables) * 0.3 + 0.4)  # More tables = higher confidence
                     reason = f"Native DocAI tables detected ({len(valid_tables)} tables)"
                     logger.info(f"DecisionRouter selected mode: TABLE_STRICT - {reason}")
+                    self._log_routing_decision(detected_columns, ExecutionMode.TABLE_STRICT, confidence, reason)
                     return (ExecutionMode.TABLE_STRICT, confidence, reason)
         
         # ROUTING RULE 2: Else if digital_pdf AND blocks show repeated X-aligned rows → TABLE_VISUAL
@@ -88,28 +157,53 @@ class DecisionRouter:
                 if doc_type in [DocumentType.INVOICE, DocumentType.BILL, DocumentType.BANK_STATEMENT]:
                     reason = f"Invoice/Bill with visual table patterns detected - using TABLE_VISUAL for line items: {visual_reason}"
                     logger.info(f"DecisionRouter selected mode: TABLE_VISUAL - {reason}")
+                    self._log_routing_decision(detected_columns, ExecutionMode.TABLE_VISUAL, visual_confidence, reason)
                     return (ExecutionMode.TABLE_VISUAL, visual_confidence, reason)
                 else:
                     logger.info(f"DecisionRouter selected mode: TABLE_VISUAL - {visual_reason}")
+                    self._log_routing_decision(detected_columns, ExecutionMode.TABLE_VISUAL, visual_confidence, visual_reason)
                     return (ExecutionMode.TABLE_VISUAL, visual_confidence, visual_reason)
         
         # ROUTING RULE 3: Else if key:value or invoice pattern → KEY_VALUE
-        # CRITICAL FIX: Only use KEY_VALUE for invoices if NO tables detected
-        # This handles invoice headers/metadata (Invoice #, Date, etc.) but NOT line items
-        key_value_eligible, kv_confidence, kv_reason = self._check_key_value_eligibility(
-            doc_type, full_structure, document_text
+        # CRITICAL SAFETY: KEY_VALUE only allowed if ALL safety conditions pass
+        # Safety conditions:
+        # - detected_columns <= 1 (already checked by hard block rule above)
+        # - table_confidence < 0.4
+        # - repeated label:value pattern detected
+        # - no row grid alignment
+        
+        # Calculate table confidence from native tables (if any)
+        table_confidence = 0.0
+        if native_tables and len(native_tables) > 0:
+            valid_tables = [t for t in native_tables if self._is_valid_table(t)]
+            if valid_tables:
+                table_confidence = min(1.0, len(valid_tables) * 0.3 + 0.4)
+        
+        # Check for row grid alignment (if present, block KEY_VALUE)
+        has_row_grid_alignment = self._has_row_grid_alignment(full_structure)
+        
+        key_value_eligible, kv_confidence, kv_reason, blocked_reasons = self._check_key_value_eligibility_with_safety(
+            doc_type, full_structure, document_text, detected_columns, table_confidence, has_row_grid_alignment
         )
+        
         if key_value_eligible:
             # For invoices without tables, use KEY_VALUE for header info only
             if doc_type in [DocumentType.INVOICE, DocumentType.BILL, DocumentType.BANK_STATEMENT]:
                 reason = f"Invoice/Bill without tables detected - using KEY_VALUE for header/metadata only: {kv_reason}"
                 logger.warning(f"⚠️ Invoice has no tables - line items may not be extracted. Consider Adobe fallback if premium enabled.")
             logger.info(f"DecisionRouter selected mode: KEY_VALUE - {kv_reason}")
+            self._log_routing_decision(detected_columns, ExecutionMode.KEY_VALUE, kv_confidence, kv_reason)
             return (ExecutionMode.KEY_VALUE, kv_confidence, kv_reason)
+        else:
+            # KEY_VALUE blocked - log reasons and fall through to PLAIN_TEXT
+            blocked_reason_str = ', '.join(blocked_reasons) if blocked_reasons else "Unknown"
+            logger.warning(f"🚫 KEY_VALUE MODE BLOCKED: {blocked_reason_str}")
+            logger.info(f"Falling back to PLAIN_TEXT mode")
         
         # ROUTING RULE 4: Else → PLAIN_TEXT
         reason = "No table patterns detected - using plain text export"
         logger.info(f"DecisionRouter selected mode: PLAIN_TEXT - {reason}")
+        self._log_routing_decision(detected_columns, ExecutionMode.PLAIN_TEXT, 0.5, reason)
         return (ExecutionMode.PLAIN_TEXT, 0.5, reason)
     
     def should_enable_adobe_fallback(
@@ -243,6 +337,107 @@ class DecisionRouter:
         
         return False
     
+    def _detect_column_count(
+        self,
+        full_structure: Dict,
+        native_tables: Optional[List]
+    ) -> Tuple[int, str]:
+        """
+        Detect the number of columns in the document.
+        
+        Priority:
+        1. Native DocAI tables (count columns from table structure)
+        2. Block X-position clusters (visual column detection)
+        
+        Returns:
+            Tuple of (detected_column_count, reason)
+        """
+        # Method 1: Check native tables first (most reliable)
+        if native_tables and len(native_tables) > 0:
+            max_columns = 0
+            for table in native_tables:
+                if not self._is_valid_table(table):
+                    continue
+                
+                # Count columns from header rows
+                if hasattr(table, 'header_rows') and table.header_rows:
+                    for header_row in table.header_rows:
+                        if hasattr(header_row, 'cells'):
+                            max_columns = max(max_columns, len(header_row.cells))
+                
+                # Count columns from body rows
+                if hasattr(table, 'body_rows') and table.body_rows:
+                    for body_row in table.body_rows:
+                        if hasattr(body_row, 'cells'):
+                            max_columns = max(max_columns, len(body_row.cells))
+            
+            if max_columns >= 2:
+                return (max_columns, f"Native table structure: {max_columns} columns detected")
+        
+        # Method 2: Detect columns from block X-position clusters
+        blocks = full_structure.get('blocks', []) if full_structure else []
+        if not blocks or len(blocks) < 3:
+            return (1, "Insufficient blocks for column detection")
+        
+        # Extract X-centroids from blocks
+        x_centroids = []
+        for block in blocks:
+            bbox = block.get('bounding_box', {}) if isinstance(block, dict) else {}
+            if not bbox:
+                # Try to get bounding box from block object
+                if hasattr(block, 'layout') and hasattr(block.layout, 'bounding_poly'):
+                    vertices = block.layout.bounding_poly.normalized_vertices
+                    if len(vertices) >= 4:
+                        xs = [v.x for v in vertices if hasattr(v, 'x')]
+                        if xs:
+                            x_centroid = (min(xs) + max(xs)) / 2
+                            x_centroids.append(x_centroid)
+                continue
+            
+            x_min = bbox.get('x_min', 0)
+            x_max = bbox.get('x_max', 0)
+            if x_max > x_min:
+                x_centroid = (x_min + x_max) / 2
+                x_centroids.append(x_centroid)
+        
+        if len(x_centroids) < 3:
+            return (1, "Insufficient X-positions for column detection")
+        
+        # Cluster X-positions to detect columns
+        # Sort X-positions
+        x_centroids_sorted = sorted(x_centroids)
+        
+        # Use adaptive tolerance (2% of page width)
+        tolerance = 0.02
+        
+        # Cluster X-positions
+        clusters = []
+        current_cluster = [x_centroids_sorted[0]]
+        
+        for x in x_centroids_sorted[1:]:
+            # Check if x is within tolerance of current cluster
+            cluster_center = sum(current_cluster) / len(current_cluster)
+            if abs(x - cluster_center) <= tolerance:
+                current_cluster.append(x)
+            else:
+                # Start new cluster
+                if len(current_cluster) >= 2:  # Require at least 2 blocks per column
+                    clusters.append(current_cluster)
+                current_cluster = [x]
+        
+        # Add last cluster
+        if len(current_cluster) >= 2:
+            clusters.append(current_cluster)
+        
+        detected_columns = len(clusters)
+        
+        if detected_columns >= 2:
+            reason = f"Block X-clustering: {detected_columns} distinct column positions detected (tolerance={tolerance})"
+        else:
+            reason = f"Block X-clustering: {detected_columns} column(s) detected (single column or insufficient alignment)"
+        
+        return (detected_columns, reason)
+    
     def _check_visual_table_eligibility(
         self,
         full_structure: Dict
@@ -370,6 +565,113 @@ class DecisionRouter:
         reason = f"Visual table detected: {len(blocks)} blocks, {rows_with_horizontal_alignment} aligned rows, {distinct_vertical_bands} vertical bands, {numeric_blocks_count} numeric blocks"
         return (True, confidence, reason)
     
+    def _has_row_grid_alignment(self, full_structure: Dict) -> bool:
+        """
+        Check if document has row grid alignment (indicating table structure).
+        
+        Returns:
+            True if row grid alignment detected, False otherwise
+        """
+        blocks = full_structure.get('blocks', []) if full_structure else []
+        if len(blocks) < 6:
+            return False
+        
+        # Group blocks by Y-position (rows)
+        blocks_by_y = {}
+        for block in blocks:
+            bbox = block.get('bounding_box', {}) if isinstance(block, dict) else {}
+            if not bbox:
+                continue
+            y_center = (bbox.get('y_min', 0) + bbox.get('y_max', 0)) / 2
+            y_key = round(y_center * 50) / 50  # 0.02 precision
+            if y_key not in blocks_by_y:
+                blocks_by_y[y_key] = []
+            blocks_by_y[y_key].append(block)
+        
+        # Check if we have >= 3 rows with >= 2 blocks each
+        aligned_rows = 0
+        for y_pos, row_blocks in blocks_by_y.items():
+            if len(row_blocks) >= 2:
+                aligned_rows += 1
+        
+        return aligned_rows >= 3
+    
+    def _check_key_value_eligibility_with_safety(
+        self,
+        doc_type: DocumentType,
+        full_structure: Dict,
+        document_text: str,
+        detected_columns: int,
+        table_confidence: float,
+        has_row_grid_alignment: bool
+    ) -> Tuple[bool, float, str, List[str]]:
+        """
+        Check if document is eligible for KEY_VALUE mode WITH SAFETY CONDITIONS.
+        
+        Safety Conditions (ALL must pass):
+        1. detected_columns <= 1
+        2. table_confidence < 0.4
+        3. repeated label:value pattern detected
+        4. no row grid alignment
+        
+        Returns:
+            Tuple of (eligible, confidence, reason, blocked_reasons)
+        """
+        blocked_reasons = []
+        
+        # SAFETY CONDITION 1: detected_columns <= 1
+        if detected_columns > 1:
+            blocked_reasons.append(f"detected_columns={detected_columns} > 1")
+            return (False, 0.0, "", blocked_reasons)
+        
+        # SAFETY CONDITION 2: table_confidence < 0.4
+        if table_confidence >= 0.4:
+            blocked_reasons.append(f"table_confidence={table_confidence:.2f} >= 0.4")
+            return (False, 0.0, "", blocked_reasons)
+        
+        # SAFETY CONDITION 3: repeated label:value pattern detected
+        kv_pattern_count = 0
+        if document_text:
+            lines = document_text.split('\n')
+            for line in lines[:50]:  # Check first 50 lines
+                line = line.strip()
+                if ':' in line and len(line.split(':')) == 2:
+                    parts = line.split(':')
+                    if len(parts[0].strip()) > 0 and len(parts[1].strip()) > 0:
+                        kv_pattern_count += 1
+        
+        if kv_pattern_count < 3:
+            blocked_reasons.append(f"insufficient key:value patterns ({kv_pattern_count} < 3)")
+            return (False, 0.0, "", blocked_reasons)
+        
+        # SAFETY CONDITION 4: no row grid alignment
+        if has_row_grid_alignment:
+            blocked_reasons.append("row grid alignment detected (table structure present)")
+            return (False, 0.0, "", blocked_reasons)
+        
+        # All safety conditions passed - check eligibility
+        # Check document type
+        if doc_type in [DocumentType.INVOICE, DocumentType.BILL, DocumentType.BANK_STATEMENT]:
+            confidence = 0.9
+            reason = f"Document type is {doc_type.value} (safety conditions passed)"
+            return (True, confidence, reason, blocked_reasons)
+        
+        # Check for form fields
+        form_fields = full_structure.get('form_fields', []) if full_structure else []
+        if form_fields and len(form_fields) > 0:
+            confidence = 0.8
+            reason = f"Form fields detected ({len(form_fields)} fields) (safety conditions passed)"
+            return (True, confidence, reason, blocked_reasons)
+        
+        # Key:value patterns already checked above
+        if kv_pattern_count >= 3:
+            confidence = 0.7
+            reason = f"Key:value patterns detected ({kv_pattern_count} patterns) (safety conditions passed)"
+            return (True, confidence, reason, blocked_reasons)
+        
+        blocked_reasons.append("No key-value eligibility criteria met")
+        return (False, 0.0, "", blocked_reasons)
+    
     def _check_key_value_eligibility(
         self,
         doc_type: DocumentType,
@@ -377,6 +679,8 @@ class DecisionRouter:
         document_text: str
     ) -> Tuple[bool, float, str]:
         """
+        DEPRECATED: Use _check_key_value_eligibility_with_safety instead.
+        
         Check if document is eligible for KEY_VALUE mode.
         
         Requirements:
