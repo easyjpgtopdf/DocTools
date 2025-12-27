@@ -132,15 +132,9 @@ class AdobeFallbackService:
         logger.info("=" * 80)
         
         try:
-            # Get access token
-            access_token = self._get_access_token()
-            if not access_token:
-                logger.error("Cannot proceed without access token")
-                return None, 0.0, {'error': 'Authentication failed'}
-            
-            # Call Adobe PDF Extract API
+            # Call Adobe PDF Extract API (handles auth internally)
             start_time = time.time()
-            adobe_result = self._call_adobe_api(pdf_bytes, access_token)
+            adobe_result = self._call_adobe_api(pdf_bytes, None)  # access_token handled by API client
             elapsed = time.time() - start_time
             
             if not adobe_result:
@@ -180,33 +174,42 @@ class AdobeFallbackService:
     
     def _call_adobe_api(self, pdf_bytes: bytes, access_token: str) -> Optional[Dict]:
         """
-        Call Adobe PDF Extract API.
+        Call Adobe PDF Extract API - PRODUCTION IMPLEMENTATION.
         
-        Note: This is a simplified implementation. In production, you would:
+        Complete flow:
         1. Upload PDF to Adobe's cloud storage
-        2. Poll for job completion
-        3. Download result JSON
-        
-        For now, returns mock structure for testing.
+        2. Submit extraction job
+        3. Poll for job completion
+        4. Download result JSON
         """
         
-        # PRODUCTION TODO: Implement full Adobe PDF Extract flow
-        # https://developer.adobe.com/document-services/docs/overview/pdf-extract-api/
-        
-        logger.warning("Adobe API integration is a PLACEHOLDER - implement production flow")
-        
-        # Mock response for testing infrastructure
-        mock_result = {
-            "elements": [],
-            "pages": [
-                {
-                    "page": 1,
-                    "tables": []
-                }
-            ]
-        }
-        
-        return mock_result
+        try:
+            # Use production Adobe API client
+            from .adobe_api_client import AdobeAPIClient
+            
+            logger.info("🚀 Calling REAL Adobe PDF Extract API...")
+            
+            api_client = AdobeAPIClient(
+                client_id=self.config.client_id,
+                client_secret=self.config.client_secret
+            )
+            
+            # Execute full extraction flow
+            result = api_client.extract_pdf_full_flow(pdf_bytes, "document.pdf")
+            
+            if result:
+                logger.info("✅ Adobe API returned structured data")
+                return result
+            else:
+                logger.error("❌ Adobe API returned no data")
+                return None
+                
+        except ImportError as import_err:
+            logger.error(f"❌ Adobe API client not available: {import_err}")
+            return None
+        except Exception as e:
+            logger.error(f"❌ Adobe API call failed: {e}", exc_info=True)
+            return None
     
     def _convert_adobe_to_unified(self, adobe_data: Dict) -> Optional[List[UnifiedLayout]]:
         """
@@ -264,7 +267,18 @@ class AdobeFallbackService:
                 if 'Figure' in path or 'Chart' in path or 'Graph' in path:
                     charts_found.append(elem)
             
-            # Process tables from pages
+            # Adobe PDF Extract returns two possible formats:
+            # Format 1: elements[] with table references (most common)
+            # Format 2: pages[] with direct table data (less common)
+            
+            # Check for Format 1 first (elements with table references)
+            if 'elements' in adobe_data and adobe_data['elements']:
+                logger.info("Adobe data contains 'elements' array - processing table elements")
+                unified_layouts = self._process_adobe_elements(adobe_data['elements'])
+                if unified_layouts:
+                    return unified_layouts
+            
+            # Fallback to Format 2 (pages with direct table data)
             for page_data in adobe_data.get('pages', []):
                 page_num = page_data.get('page', 1)
                 tables = page_data.get('tables', [])
@@ -347,6 +361,90 @@ class AdobeFallbackService:
             
         except Exception as e:
             logger.error(f"Adobe mapping failed: {e}", exc_info=True)
+            return None
+    
+    def _process_adobe_elements(self, elements: List[Dict]) -> Optional[List[UnifiedLayout]]:
+        """
+        Process Adobe elements format where tables are in elements[] array.
+        
+        Adobe returns:
+        {
+          "elements": [
+            {"Path": "//Document/Table", "Page": 1, "Cells": [...]}
+          ]
+        }
+        """
+        unified_layouts = []
+        
+        try:
+            for elem in elements:
+                path = elem.get('Path', '')
+                
+                # Look for table elements
+                if '/Table' in path or elem.get('type') == 'Table':
+                    logger.info(f"Processing table element: {path}")
+                    
+                    # Extract cells from element
+                    cells = elem.get('Cells', [])
+                    if not cells:
+                        # Try alternative formats
+                        cells = elem.get('cells', [])
+                    
+                    if not cells:
+                        logger.warning(f"Table element has no cells: {path}")
+                        continue
+                    
+                    # Get page number
+                    page_num = elem.get('Page', 1)
+                    if not page_num:
+                        page_num = elem.get('page', 1)
+                    
+                    # Build cell grid
+                    cell_grid, max_row, max_col, merge_count = self._build_cell_grid_from_adobe(
+                        cells, page_num, 0
+                    )
+                    
+                    # Validate
+                    if not self._validate_cell_integrity(cell_grid, max_row, max_col):
+                        logger.warning(f"Cell grid validation failed for {path}")
+                    
+                    # Detect headers and lock columns
+                    header_rows, locked_columns = self._detect_headers_and_lock_columns(
+                        cell_grid, max_row, max_col
+                    )
+                    
+                    # Normalize
+                    normalized_grid = self._normalize_row_column_dimensions(
+                        cell_grid, max_row, max_col, locked_columns
+                    )
+                    
+                    # Convert to rows
+                    rows = self._convert_grid_to_unified_rows(
+                        normalized_grid, max_row, max_col, header_rows
+                    )
+                    
+                    if rows:
+                        layout = UnifiedLayout(
+                            rows=rows,
+                            metadata={
+                                'source': 'adobe',
+                                'page': page_num,
+                                'table_path': path,
+                                'total_rows': len(rows),
+                                'total_columns': max_col + 1,
+                                'header_rows': header_rows,
+                                'merged_cells': merge_count,
+                                'locked_columns': len(locked_columns)
+                            }
+                        )
+                        unified_layouts.append(layout)
+                        
+                        logger.info(f"✅ Processed table: {path} ({len(rows)} rows × {max_col + 1} cols)")
+            
+            return unified_layouts if unified_layouts else None
+            
+        except Exception as e:
+            logger.error(f"Failed to process Adobe elements: {e}", exc_info=True)
             return None
     
     def _build_cell_grid_from_adobe(
