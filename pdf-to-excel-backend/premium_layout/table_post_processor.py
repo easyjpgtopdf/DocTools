@@ -133,9 +133,16 @@ class TablePostProcessor:
         raw_cells = self._extract_raw_cells(table, document_text)
         logger.info(f"Extracted {len(raw_cells)} raw cells from table")
         
+        # CRITICAL FIX: If _extract_raw_cells fails (Form Parser compatibility issue),
+        # fallback to parse_docai_table method which works for Form Parser tables
         if not raw_cells:
-            logger.warning("No cells extracted, returning empty table")
-            return ProcessedTable()
+            logger.warning("⚠️ No cells extracted via _extract_raw_cells - trying fallback parse_docai_table method")
+            raw_cells = self._extract_raw_cells_fallback(table, document_text)
+            if raw_cells:
+                logger.info(f"✅ Fallback successful: Extracted {len(raw_cells)} cells via fallback method")
+            else:
+                logger.error("❌ Both extraction methods failed - returning empty table")
+                return ProcessedTable()
         
         avg_line_height = self._calculate_avg_line_height(raw_cells)
         logger.debug(f"Average line height: {avg_line_height:.4f}")
@@ -364,6 +371,114 @@ class TablePostProcessor:
             logger.warning(f"❌ Table has no 'body_rows' attribute or body_rows is empty")
         
         logger.info(f"Extracted {len(raw_cells)} raw cells from table (from {row_idx} total rows)")
+        return raw_cells
+    
+    def _extract_raw_cells_fallback(
+        self,
+        table: Any,
+        document_text: str
+    ) -> List[ProcessedCell]:
+        """
+        Fallback extraction method using parse_docai_table logic.
+        This works for Form Parser tables where _extract_raw_cells might fail.
+        
+        Uses the same logic as docai_service.parse_docai_table which successfully
+        extracts cells from Form Parser tables.
+        """
+        raw_cells = []
+        row_idx = 0
+        
+        logger.info("🔄 FALLBACK: Using parse_docai_table-style extraction")
+        
+        # Combine header and body rows (same as parse_docai_table)
+        all_rows = []
+        if hasattr(table, 'header_rows') and table.header_rows:
+            all_rows.extend(table.header_rows)
+            logger.info(f"🔄 Fallback: Found {len(table.header_rows)} header rows")
+        if hasattr(table, 'body_rows') and table.body_rows:
+            all_rows.extend(table.body_rows)
+            logger.info(f"🔄 Fallback: Found {len(table.body_rows)} body rows")
+        
+        if not all_rows:
+            logger.warning("🔄 Fallback: No rows found in table")
+            return []
+        
+        # Process each row
+        for row in all_rows:
+            is_header = (row_idx < len(table.header_rows) if hasattr(table, 'header_rows') and table.header_rows else False)
+            
+            if hasattr(row, 'cells') and row.cells:
+                logger.info(f"🔄 Fallback: Processing row {row_idx} with {len(row.cells)} cells")
+                for col_idx, cell in enumerate(row.cells):
+                    # Extract text using text_anchor (same as parse_docai_table)
+                    cell_text = ""
+                    if hasattr(cell, 'layout') and cell.layout:
+                        layout = cell.layout
+                        if hasattr(layout, 'text_anchor') and layout.text_anchor:
+                            text_anchor = layout.text_anchor
+                            if hasattr(text_anchor, 'text_segments') and text_anchor.text_segments:
+                                text_parts = []
+                                for segment in text_anchor.text_segments:
+                                    if hasattr(segment, 'start_index') and hasattr(segment, 'end_index'):
+                                        start = int(segment.start_index) if segment.start_index else 0
+                                        end = int(segment.end_index) if segment.end_index else 0
+                                        if start < len(document_text) and end <= len(document_text):
+                                            text_parts.append(document_text[start:end])
+                                cell_text = ' '.join(text_parts).strip()
+                    
+                    # Extract bounding box
+                    bounding_box = None
+                    if hasattr(cell, 'layout') and cell.layout:
+                        layout = cell.layout
+                        if hasattr(layout, 'bounding_poly') and layout.bounding_poly:
+                            bounding_poly = layout.bounding_poly
+                            if hasattr(bounding_poly, 'normalized_vertices') and bounding_poly.normalized_vertices:
+                                vertices = bounding_poly.normalized_vertices
+                                if len(vertices) >= 2:
+                                    xs = [v.x for v in vertices if hasattr(v, 'x')]
+                                    ys = [v.y for v in vertices if hasattr(v, 'y')]
+                                    if xs and ys:
+                                        bounding_box = {
+                                            'x_min': min(xs),
+                                            'x_max': max(xs),
+                                            'y_min': min(ys),
+                                            'y_max': max(ys),
+                                            'x_center': (min(xs) + max(xs)) / 2,
+                                            'y_center': (min(ys) + max(ys)) / 2
+                                        }
+                    
+                    # Create minimal bbox if text exists but no bbox
+                    if not bounding_box and cell_text:
+                        bounding_box = {
+                            'x_min': col_idx * 0.15,
+                            'x_max': (col_idx + 1) * 0.15,
+                            'y_min': row_idx * 0.05,
+                            'y_max': (row_idx + 1) * 0.05,
+                            'x_center': (col_idx + 0.5) * 0.15,
+                            'y_center': (row_idx + 0.5) * 0.05
+                        }
+                    
+                    # Only create cell if we have text or bbox
+                    if cell_text or bounding_box:
+                        cell_data = ProcessedCell(
+                            value=cell_text,
+                            row=row_idx,
+                            column=col_idx,
+                            bounding_box=bounding_box,
+                            is_header=is_header,
+                            rowspan=1,
+                            colspan=1
+                        )
+                        raw_cells.append(cell_data)
+                        logger.info(f"✅ Fallback: Extracted cell ({row_idx},{col_idx}): '{cell_text[:30] if cell_text else 'EMPTY'}'")
+                    else:
+                        logger.warning(f"⚠️ Fallback: Cell ({row_idx},{col_idx}) has no text and no bbox - skipping")
+            else:
+                logger.warning(f"⚠️ Fallback: Row {row_idx} has no cells attribute")
+            
+            row_idx += 1
+        
+        logger.info(f"🔄 Fallback extraction complete: {len(raw_cells)} cells from {row_idx} rows")
         return raw_cells
     
     def _extract_cell_data(
