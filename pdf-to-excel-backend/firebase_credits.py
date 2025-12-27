@@ -109,6 +109,13 @@ def deduct_credits_from_firebase(user_id: str, amount: int) -> bool:
     Returns:
         True if successful, False if insufficient credits or error
     """
+    # CRITICAL DEBUG: Log exact amount received
+    logger.info("=" * 80)
+    logger.info("FIREBASE CREDIT DEDUCTION - INPUT")
+    logger.info(f"User ID: {user_id}")
+    logger.info(f"Amount received: {amount} (type: {type(amount)})")
+    logger.info("=" * 80)
+    
     try:
         db = get_firestore_client()
         if not db:
@@ -135,12 +142,17 @@ def deduct_credits_from_firebase(user_id: str, amount: int) -> bool:
         
         current_credits = int(current_credits) if current_credits >= 0 else 0
         
+        logger.info(f"Current credits in Firebase: {current_credits}")
+        logger.info(f"Amount to deduct: {amount}")
+        logger.info(f"Sufficient credits: {current_credits >= amount}")
+        
         # Check if sufficient credits
         if current_credits < amount:
-            logger.warning(f"Insufficient credits for user {user_id}: {current_credits} < {amount}")
+            logger.warning(f"❌ INSUFFICIENT CREDITS: {current_credits} < {amount}")
             return False
         
         # Deduct credits using update (atomic operation with Increment)
+        logger.info(f"🔄 Updating Firebase: credits -= {amount}")
         user_ref.update({
             'credits': firestore.Increment(-amount),
             'totalCreditsUsed': firestore.Increment(amount),
@@ -149,7 +161,12 @@ def deduct_credits_from_firebase(user_id: str, amount: int) -> bool:
         
         # Calculate new balance for logging
         new_credits = current_credits - amount
-        logger.info(f"Deducted {amount} credits from user {user_id}. Previous: {current_credits}, New balance: {new_credits}")
+        logger.info("=" * 80)
+        logger.info(f"✅ SUCCESS: Deducted {amount} credits from user {user_id}")
+        logger.info(f"Previous balance: {current_credits}")
+        logger.info(f"Amount deducted: {amount}")
+        logger.info(f"New balance: {new_credits}")
+        logger.info("=" * 80)
         return True
         
     except Exception as e:

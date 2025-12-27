@@ -571,14 +571,38 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
                     avg = total / pages
                     return (total, avg)
         
+        # CRITICAL DEBUG: Log all inputs before calculation
+        logger.info("=" * 80)
+        logger.info("CREDIT CALCULATION - INPUT VERIFICATION")
+        logger.info(f"pages_processed: {pages_processed} (type: {type(pages_processed)})")
+        logger.info(f"layout_source: '{layout_source}' (type: {type(layout_source)})")
+        logger.info(f"unified_layouts count: {len(unified_layouts) if unified_layouts else 0}")
+        if unified_layouts and len(unified_layouts) > 0:
+            first_layout = unified_layouts[0]
+            if hasattr(first_layout, 'metadata') and first_layout.metadata:
+                logger.info(f"First layout metadata keys: {list(first_layout.metadata.keys())}")
+                logger.info(f"First layout metadata['layout_source']: {first_layout.metadata.get('layout_source', 'NOT SET')}")
+        logger.info("=" * 80)
+        
         total_credits_required, credit_per_page = calculate_credits_based_on_engine(pages_processed, layout_source)
         
         logger.info("=" * 80)
-        logger.info("CREDIT CALCULATION")
+        logger.info("CREDIT CALCULATION - RESULT")
         logger.info(f"Pages processed: {pages_processed}")
         logger.info(f"Engine used: {layout_source}")
         logger.info(f"Average cost: {credit_per_page:.2f} credits/page")
         logger.info(f"Total cost: {total_credits_required} credits")
+        logger.info(f"Formula applied: {'Adobe' if layout_source == 'adobe' else 'DocAI'} pricing")
+        if layout_source == 'adobe':
+            if pages_processed <= 10:
+                logger.info(f"  → {pages_processed} pages × 15 credits/page = {total_credits_required} credits")
+            else:
+                logger.info(f"  → (10 pages × 15) + ({pages_processed - 10} pages × 5) = {total_credits_required} credits")
+        else:
+            if pages_processed <= 10:
+                logger.info(f"  → {pages_processed} pages × 5 credits/page = {total_credits_required} credits")
+            else:
+                logger.info(f"  → (10 pages × 5) + ({pages_processed - 10} pages × 2) = {total_credits_required} credits")
         logger.info("=" * 80)
         
         # Step 8: Check credits (after processing to know exact page count and cost)
@@ -601,8 +625,18 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
             )
         
         # Step 9: Deduct credits (only if conversion was successful)
-        if not deduct_credits(user_id, int(total_credits_required)):
-            logger.error(f"Failed to deduct credits for user {user_id}")
+        # CRITICAL DEBUG: Log exact amount being deducted
+        credits_to_deduct = int(total_credits_required)
+        logger.info("=" * 80)
+        logger.info("CREDIT DEDUCTION - CALLING deduct_credits()")
+        logger.info(f"User ID: {user_id}")
+        logger.info(f"Amount to deduct: {credits_to_deduct} credits")
+        logger.info(f"Type: {type(credits_to_deduct)}")
+        logger.info(f"Calculation: {pages_processed} pages × {credit_per_page:.2f} credits/page = {total_credits_required} credits")
+        logger.info("=" * 80)
+        
+        if not deduct_credits(user_id, credits_to_deduct):
+            logger.error(f"❌ FAILED to deduct {credits_to_deduct} credits from user {user_id}")
             return JSONResponse(
                 status_code=500,
                 content={
@@ -611,6 +645,8 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
                     "downloadUrl": download_url  # Still provide download URL
                 }
             )
+        
+        logger.info(f"✅ SUCCESS: Deducted {credits_to_deduct} credits from user {user_id}")
         
         # Get remaining credits after deduction
         remaining_credits = get_credits(user_id)

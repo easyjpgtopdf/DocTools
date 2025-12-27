@@ -443,6 +443,14 @@ async def process_pdf_to_excel_docai(
                 logger.warning(f"Adobe fallback check failed (non-critical): {adobe_error}")
                 # Continue with Document AI results
             
+            # CRITICAL FIX: Set layout_source metadata for DocAI (if not already set by Adobe)
+            # This ensures main.py can properly calculate credits based on engine used
+            for layout in unified_layouts:
+                if hasattr(layout, 'metadata') and layout.metadata:
+                    if 'layout_source' not in layout.metadata:
+                        layout.metadata['layout_source'] = 'docai'
+                        logger.info(f"✅ Set layout_source='docai' in metadata for credit calculation")
+            
             # Check if any layout has content
             has_content = any(not layout.is_empty() for layout in unified_layouts)
             
