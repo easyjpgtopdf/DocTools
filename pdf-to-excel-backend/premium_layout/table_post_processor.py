@@ -131,17 +131,19 @@ class TablePostProcessor:
         
         # PRE-PIPELINE: Extract raw cells and calculate line height
         raw_cells = self._extract_raw_cells(table, document_text)
-        logger.info(f"Extracted {len(raw_cells)} raw cells from table")
+        logger.info(f"Extracted {len(raw_cells)} raw cells from table (initial attempt)")
         
         # CRITICAL FIX: If _extract_raw_cells fails (Form Parser compatibility issue),
-        # fallback to parse_docai_table method which works for Form Parser tables
+        # ALWAYS invoke fallback extractor - this is especially critical for Form Parser tables
         if not raw_cells:
-            logger.warning("⚠️ No cells extracted via _extract_raw_cells - trying fallback parse_docai_table method")
+            logger.warning("⚠️ Raw cells empty — invoking Form Parser fallback extractor")
+            logger.warning("⚠️ This typically happens with Form Parser processor tables where standard extraction fails")
             raw_cells = self._extract_raw_cells_fallback(table, document_text)
             if raw_cells:
-                logger.info(f"✅ Fallback successful: Extracted {len(raw_cells)} cells via fallback method")
+                logger.info(f"✅ Fallback extracted {len(raw_cells)} cells via Form Parser fallback method")
             else:
-                logger.error("❌ Both extraction methods failed - returning empty table")
+                logger.error("❌ Fallback also empty — returning empty table")
+                logger.error("❌ Both extraction methods failed - this may indicate table structure issue")
                 return ProcessedTable()
         
         avg_line_height = self._calculate_avg_line_height(raw_cells)
