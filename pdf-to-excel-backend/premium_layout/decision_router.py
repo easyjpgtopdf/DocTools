@@ -59,29 +59,51 @@ class DecisionRouter:
             - reason: Human-readable explanation of routing decision
         """
         # ROUTING RULE 1: If native DocAI tables exist → TABLE_STRICT
+        # CRITICAL FIX: Check tables FIRST, even for invoices/bills
+        # Invoices often have line items tables that should use TABLE_STRICT
         if native_tables and len(native_tables) > 0:
             # Check if tables have valid structure
             valid_tables = [t for t in native_tables if self._is_valid_table(t)]
             if valid_tables:
-                confidence = min(1.0, len(valid_tables) * 0.3 + 0.4)  # More tables = higher confidence
-                reason = f"Native DocAI tables detected ({len(valid_tables)} tables)"
-                logger.info(f"DecisionRouter selected mode: TABLE_STRICT - {reason}")
-                return (ExecutionMode.TABLE_STRICT, confidence, reason)
+                # For invoices/bills with tables, use TABLE_STRICT (not KEY_VALUE)
+                if doc_type in [DocumentType.INVOICE, DocumentType.BILL, DocumentType.BANK_STATEMENT]:
+                    confidence = min(1.0, len(valid_tables) * 0.3 + 0.5)  # Higher confidence for structured invoices
+                    reason = f"Invoice/Bill with native DocAI tables detected ({len(valid_tables)} tables) - using TABLE_STRICT for line items"
+                    logger.info(f"DecisionRouter selected mode: TABLE_STRICT - {reason}")
+                    return (ExecutionMode.TABLE_STRICT, confidence, reason)
+                else:
+                    confidence = min(1.0, len(valid_tables) * 0.3 + 0.4)  # More tables = higher confidence
+                    reason = f"Native DocAI tables detected ({len(valid_tables)} tables)"
+                    logger.info(f"DecisionRouter selected mode: TABLE_STRICT - {reason}")
+                    return (ExecutionMode.TABLE_STRICT, confidence, reason)
         
         # ROUTING RULE 2: Else if digital_pdf AND blocks show repeated X-aligned rows → TABLE_VISUAL
+        # CRITICAL FIX: For invoices without native tables, check for visual table patterns
         if doc_type == DocumentType.DIGITAL_PDF:
             visual_eligible, visual_confidence, visual_reason = self._check_visual_table_eligibility(
                 full_structure
             )
             if visual_eligible:
-                logger.info(f"DecisionRouter selected mode: TABLE_VISUAL - {visual_reason}")
-                return (ExecutionMode.TABLE_VISUAL, visual_confidence, visual_reason)
+                # For invoices with visual table patterns, use TABLE_VISUAL (not KEY_VALUE)
+                if doc_type in [DocumentType.INVOICE, DocumentType.BILL, DocumentType.BANK_STATEMENT]:
+                    reason = f"Invoice/Bill with visual table patterns detected - using TABLE_VISUAL for line items: {visual_reason}"
+                    logger.info(f"DecisionRouter selected mode: TABLE_VISUAL - {reason}")
+                    return (ExecutionMode.TABLE_VISUAL, visual_confidence, reason)
+                else:
+                    logger.info(f"DecisionRouter selected mode: TABLE_VISUAL - {visual_reason}")
+                    return (ExecutionMode.TABLE_VISUAL, visual_confidence, visual_reason)
         
         # ROUTING RULE 3: Else if key:value or invoice pattern → KEY_VALUE
+        # CRITICAL FIX: Only use KEY_VALUE for invoices if NO tables detected
+        # This handles invoice headers/metadata (Invoice #, Date, etc.) but NOT line items
         key_value_eligible, kv_confidence, kv_reason = self._check_key_value_eligibility(
             doc_type, full_structure, document_text
         )
         if key_value_eligible:
+            # For invoices without tables, use KEY_VALUE for header info only
+            if doc_type in [DocumentType.INVOICE, DocumentType.BILL, DocumentType.BANK_STATEMENT]:
+                reason = f"Invoice/Bill without tables detected - using KEY_VALUE for header/metadata only: {kv_reason}"
+                logger.warning(f"⚠️ Invoice has no tables - line items may not be extracted. Consider Adobe fallback if premium enabled.")
             logger.info(f"DecisionRouter selected mode: KEY_VALUE - {kv_reason}")
             return (ExecutionMode.KEY_VALUE, kv_confidence, kv_reason)
         
