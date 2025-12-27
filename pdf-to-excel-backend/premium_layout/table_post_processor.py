@@ -120,6 +120,15 @@ class TablePostProcessor:
         """
         logger.info("TABLE_STRICT: Trusting DocAI structure, preserving row/column spans and merges")
         
+        # CRITICAL DEBUG: Log table object structure
+        logger.info(f"🔍 _process_table_strict: Table object type: {type(table)}")
+        logger.info(f"🔍 _process_table_strict: Table object: {table}")
+        logger.info(f"🔍 _process_table_strict: Table dir: {[attr for attr in dir(table) if not attr.startswith('_')][:20]}")
+        if hasattr(table, 'header_rows'):
+            logger.info(f"🔍 _process_table_strict: table.header_rows = {table.header_rows}")
+        if hasattr(table, 'body_rows'):
+            logger.info(f"🔍 _process_table_strict: table.body_rows = {table.body_rows}")
+        
         # PRE-PIPELINE: Extract raw cells and calculate line height
         raw_cells = self._extract_raw_cells(table, document_text)
         logger.info(f"Extracted {len(raw_cells)} raw cells from table")
@@ -238,8 +247,33 @@ class TablePostProcessor:
         raw_cells = []
         row_idx = 0
         
-        logger.debug(f"Table has 'header_rows': {hasattr(table, 'header_rows')}")
-        logger.debug(f"Table has 'body_rows': {hasattr(table, 'body_rows')}")
+        # CRITICAL DEBUG: Log table structure
+        logger.info(f"🔍 _extract_raw_cells: Table type: {type(table)}")
+        logger.info(f"🔍 _extract_raw_cells: Table object: {str(table)[:200]}")
+        logger.info(f"🔍 _extract_raw_cells: Table has 'header_rows': {hasattr(table, 'header_rows')}")
+        logger.info(f"🔍 _extract_raw_cells: Table has 'body_rows': {hasattr(table, 'body_rows')}")
+        
+        # Check if table is a dict (unlikely but possible)
+        if isinstance(table, dict):
+            logger.warning(f"⚠️ Table is a dict, not a DocAI table object! Keys: {list(table.keys())}")
+            # Try to extract from dict
+            if 'header_rows' in table:
+                logger.info(f"🔍 Found header_rows in dict: {table['header_rows']}")
+            if 'body_rows' in table:
+                logger.info(f"🔍 Found body_rows in dict: {table['body_rows']}")
+        
+        if hasattr(table, 'header_rows'):
+            logger.info(f"🔍 _extract_raw_cells: table.header_rows = {table.header_rows} (type: {type(table.header_rows)})")
+            if table.header_rows:
+                logger.info(f"🔍 _extract_raw_cells: len(table.header_rows) = {len(table.header_rows)}")
+                if len(table.header_rows) > 0:
+                    logger.info(f"🔍 _extract_raw_cells: First header_row type: {type(table.header_rows[0])}")
+        if hasattr(table, 'body_rows'):
+            logger.info(f"🔍 _extract_raw_cells: table.body_rows = {table.body_rows} (type: {type(table.body_rows)})")
+            if table.body_rows:
+                logger.info(f"🔍 _extract_raw_cells: len(table.body_rows) = {len(table.body_rows)}")
+                if len(table.body_rows) > 0:
+                    logger.info(f"🔍 _extract_raw_cells: First body_row type: {type(table.body_rows[0])}")
         
         # Get reconstructed geometries if available
         cell_geometries = {}
@@ -248,48 +282,86 @@ class TablePostProcessor:
             logger.info(f"Using {len(cell_geometries)} reconstructed geometries")
         
         # Process header rows
-        if hasattr(table, 'header_rows') and table.header_rows:
-            logger.debug(f"Processing {len(table.header_rows)} header rows")
-            for header_row in table.header_rows:
-                if hasattr(header_row, 'cells') and header_row.cells:
-                    logger.debug(f"Header row {row_idx} has {len(header_row.cells)} cells")
-                    for col_idx, cell in enumerate(header_row.cells):
+        # CRITICAL: Try multiple ways to access header_rows (form-parser-docai compatibility)
+        header_rows_list = None
+        if hasattr(table, 'header_rows'):
+            header_rows_list = table.header_rows
+            logger.info(f"🔍 Found header_rows via 'header_rows' attribute: {header_rows_list}")
+        elif hasattr(table, 'headerRows'):
+            header_rows_list = table.headerRows
+            logger.info(f"🔍 Found header_rows via 'headerRows' attribute: {header_rows_list}")
+        
+        if header_rows_list:
+            logger.info(f"✅ Processing {len(header_rows_list)} header rows")
+            for header_row in header_rows_list:
+                cells_list = None
+                if hasattr(header_row, 'cells'):
+                    cells_list = header_row.cells
+                elif hasattr(header_row, 'Cells'):
+                    cells_list = header_row.Cells
+                
+                if cells_list:
+                    logger.info(f"🔍 Header row {row_idx} has {len(cells_list)} cells")
+                    for col_idx, cell in enumerate(cells_list):
                         # Try with reconstructed geometry if available
                         cell_key = (row_idx, col_idx)
                         reconstructed_bbox = cell_geometries.get(cell_key)
                         
+                        logger.info(f"🔍 Extracting header cell ({row_idx},{col_idx}), cell type: {type(cell)}")
                         cell_data = self._extract_cell_data(
                             cell, document_text, row_idx, col_idx, 
                             is_header=True,
                             fallback_bbox=reconstructed_bbox
                         )
                         if cell_data:
+                            logger.info(f"✅ Header cell ({row_idx},{col_idx}) extracted: '{cell_data.value[:50] if cell_data.value else 'EMPTY'}'")
                             raw_cells.append(cell_data)
                         else:
-                            logger.debug(f"Header cell ({row_idx},{col_idx}) returned None")
+                            logger.warning(f"❌ Header cell ({row_idx},{col_idx}) returned None - cell type: {type(cell)}, has layout: {hasattr(cell, 'layout')}")
                 row_idx += 1
         
         # Process body rows
-        if hasattr(table, 'body_rows') and table.body_rows:
-            logger.debug(f"Processing {len(table.body_rows)} body rows")
-            for body_row in table.body_rows:
-                if hasattr(body_row, 'cells') and body_row.cells:
-                    logger.debug(f"Body row {row_idx} has {len(body_row.cells)} cells")
-                    for col_idx, cell in enumerate(body_row.cells):
+        # CRITICAL: Try multiple ways to access body_rows (form-parser-docai compatibility)
+        body_rows_list = None
+        if hasattr(table, 'body_rows'):
+            body_rows_list = table.body_rows
+            logger.info(f"🔍 Found body_rows via 'body_rows' attribute: {body_rows_list}")
+        elif hasattr(table, 'bodyRows'):
+            body_rows_list = table.bodyRows
+            logger.info(f"🔍 Found body_rows via 'bodyRows' attribute: {body_rows_list}")
+        
+        if body_rows_list:
+            logger.info(f"✅ Processing {len(body_rows_list)} body rows")
+            for body_row in body_rows_list:
+                cells_list = None
+                if hasattr(body_row, 'cells'):
+                    cells_list = body_row.cells
+                elif hasattr(body_row, 'Cells'):
+                    cells_list = body_row.Cells
+                
+                if cells_list:
+                    logger.info(f"🔍 Body row {row_idx} has {len(cells_list)} cells")
+                    for col_idx, cell in enumerate(cells_list):
                         # Try with reconstructed geometry if available
                         cell_key = (row_idx, col_idx)
                         reconstructed_bbox = cell_geometries.get(cell_key)
                         
+                        logger.info(f"🔍 Extracting body cell ({row_idx},{col_idx}), cell type: {type(cell)}")
                         cell_data = self._extract_cell_data(
                             cell, document_text, row_idx, col_idx, 
                             is_header=False,
                             fallback_bbox=reconstructed_bbox
                         )
                         if cell_data:
+                            logger.info(f"✅ Body cell ({row_idx},{col_idx}) extracted: '{cell_data.value[:50] if cell_data.value else 'EMPTY'}'")
                             raw_cells.append(cell_data)
                         else:
-                            logger.debug(f"Body cell ({row_idx},{col_idx}) returned None")
+                            logger.warning(f"❌ Body cell ({row_idx},{col_idx}) returned None - cell type: {type(cell)}, has layout: {hasattr(cell, 'layout')}")
+                else:
+                    logger.warning(f"❌ Body row {row_idx} has no 'cells' attribute or cells is empty")
                 row_idx += 1
+        else:
+            logger.warning(f"❌ Table has no 'body_rows' attribute or body_rows is empty")
         
         logger.info(f"Extracted {len(raw_cells)} raw cells from table (from {row_idx} total rows)")
         return raw_cells
@@ -311,27 +383,32 @@ class TablePostProcessor:
         text = ""
         layout = None
         
+        logger.info(f"🔍 _extract_cell_data: Cell ({row},{column}), cell type: {type(cell)}, has layout: {hasattr(cell, 'layout')}")
+        
         if hasattr(cell, 'layout'):
             layout = cell.layout
+            logger.info(f"🔍 _extract_cell_data: Cell ({row},{column}) layout type: {type(layout)}")
             text = self._extract_text_from_layout(layout, document_text)
+            logger.info(f"🔍 _extract_cell_data: Cell ({row},{column}) extracted text: '{text[:50] if text else 'EMPTY'}'")
         else:
-            logger.debug(f"Cell ({row},{column}) has no 'layout' attribute")
+            logger.warning(f"❌ Cell ({row},{column}) has no 'layout' attribute")
         
         # Extract bounding box (try fallback if primary fails)
         bounding_box = None
         if layout:
             bounding_box = self._extract_bounding_box(layout)
+            logger.info(f"🔍 _extract_cell_data: Cell ({row},{column}) bounding_box from layout: {bounding_box}")
         
         if not bounding_box and fallback_bbox:
             # Use reconstructed geometry
             bounding_box = fallback_bbox
-            logger.debug(f"Cell ({row},{column}) using reconstructed geometry")
+            logger.info(f"✅ Cell ({row},{column}) using reconstructed geometry: {bounding_box}")
         
         if not bounding_box:
-            logger.debug(f"Cell ({row},{column}) has no bounding box (text: '{text[:30] if text else 'empty'}')")
+            logger.warning(f"⚠️ Cell ({row},{column}) has no bounding box (text: '{text[:30] if text else 'empty'}')")
             # CRITICAL: Don't return None if we have text - create minimal bbox
             if text and text.strip():
-                logger.warning(f"Cell ({row},{column}) has text but no bbox - creating minimal bbox")
+                logger.warning(f"⚠️ Cell ({row},{column}) has text but no bbox - creating minimal bbox")
                 # Create a minimal bounding box based on position
                 bounding_box = {
                     'x_min': column * 0.15,  # Rough estimate
@@ -342,6 +419,7 @@ class TablePostProcessor:
                     'y_center': (row + 0.5) * 0.05
                 }
             else:
+                logger.error(f"❌ Cell ({row},{column}) has NO text AND NO bbox - returning None")
                 return None
         
         # Extract style information
