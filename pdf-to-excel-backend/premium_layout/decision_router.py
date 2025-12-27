@@ -400,4 +400,173 @@ class DecisionRouter:
             if ' ' in text:
                 return True
         return False
+    
+    def check_structural_failures(
+        self,
+        docai_result: Dict,
+        unified_layouts: List[Any]
+    ) -> Tuple[bool, List[str]]:
+        """
+        STRUCTURAL FAILURE GATE: Check if document has structural issues
+        requiring Adobe PDF Extract.
+        
+        Returns:
+            Tuple of (has_failures, list_of_failure_reasons)
+        """
+        failures = []
+        
+        # Extract metrics from layouts
+        detected_columns = 0
+        detected_rows = 0
+        merged_cell_count = 0
+        
+        if unified_layouts:
+            for layout in unified_layouts:
+                if hasattr(layout, 'rows') and layout.rows:
+                    detected_rows = max(detected_rows, len(layout.rows))
+                    
+                    for row in layout.rows:
+                        detected_columns = max(detected_columns, len(row))
+                        
+                        for cell in row:
+                            if hasattr(cell, 'row_span') and hasattr(cell, 'col_span'):
+                                if cell.row_span > 1 or cell.col_span > 1:
+                                    merged_cell_count += 1
+        
+        # FAILURE CHECK 1: Single-column collapse (multi-row doc becomes 1 column)
+        if detected_rows >= 3 and detected_columns == 1:
+            failures.append(f"Single-column collapse: {detected_rows} rows but only 1 column")
+        
+        # FAILURE CHECK 2: No columns detected (but has content)
+        if detected_columns < 2 and detected_rows > 0:
+            failures.append(f"Insufficient columns: {detected_columns} (need >= 2)")
+        
+        # FAILURE CHECK 3: Many merged cells indicate complex table
+        if merged_cell_count >= 3:
+            failures.append(f"Complex merges: {merged_cell_count} merged cells")
+        
+        # FAILURE CHECK 4: Visual complexity from blocks
+        blocks = docai_result.get('blocks', [])
+        if len(blocks) > 100:
+            # Check for mixed content patterns
+            varied_font_sizes = set()
+            for block in blocks[:50]:  # Sample first 50
+                if 'font_size' in block:
+                    varied_font_sizes.add(block['font_size'])
+            
+            if len(varied_font_sizes) >= 4:
+                failures.append(f"High visual complexity: {len(blocks)} blocks with {len(varied_font_sizes)} font sizes")
+        
+        # FAILURE CHECK 5: Document type indicators
+        doc_type = docai_result.get('document_type', '')
+        if doc_type in ['bank_statement', 'govt_form', 'utility_bill']:
+            failures.append(f"Complex document type: {doc_type}")
+        
+        has_failures = len(failures) > 0
+        return (has_failures, failures)
+    
+    def should_enable_adobe_with_guardrails(
+        self,
+        user_wants_premium: bool,
+        docai_confidence: float,
+        full_structure: Dict,
+        unified_layouts: List[Any],
+        page_count: int,
+        user_plan: str = "premium"
+    ) -> Tuple[bool, str, Dict[str, Any]]:
+        """
+        COMPREHENSIVE ADOBE FALLBACK GATING with cost guardrails.
+        
+        Gates (in order):
+        1. Premium Toggle Gate
+        2. Confidence Gate
+        3. Structural Failure Gate
+        4. Page Count Guard
+        5. Cost Caps
+        
+        Args:
+            user_wants_premium: User explicitly enabled premium toggle
+            docai_confidence: Document AI routing confidence
+            full_structure: Full OCR structure
+            unified_layouts: Processed layouts from DocAI
+            page_count: Number of pages in document
+            user_plan: User subscription plan
+        
+        Returns:
+            Tuple of (enable_adobe, reason, metadata)
+        """
+        metadata = {
+            'gates_passed': [],
+            'gates_failed': [],
+            'estimated_adobe_pages': 0,
+            'estimated_cost_credits': 0
+        }
+        
+        # GATE 1: Premium Toggle (User Control)
+        if not user_wants_premium:
+            metadata['gates_failed'].append('premium_toggle_off')
+            return (False, "User did not enable premium mode - Adobe skipped", metadata)
+        
+        metadata['gates_passed'].append('premium_toggle_on')
+        logger.info("✅ GATE 1 PASSED: User enabled premium toggle")
+        
+        # GATE 2: Confidence Threshold
+        if docai_confidence >= 0.75:
+            metadata['gates_failed'].append('high_confidence')
+            return (False, f"Document AI confidence {docai_confidence:.2f} >= 0.75 - Adobe not needed", metadata)
+        
+        metadata['gates_passed'].append('low_confidence')
+        logger.info(f"✅ GATE 2 PASSED: Low confidence ({docai_confidence:.2f} < 0.75)")
+        
+        # GATE 3: Structural Failure Detection
+        has_failures, failure_reasons = self.check_structural_failures(full_structure, unified_layouts)
+        
+        if not has_failures:
+            metadata['gates_failed'].append('no_structural_failures')
+            return (False, "No structural failures detected - Adobe not needed", metadata)
+        
+        metadata['gates_passed'].append('structural_failures')
+        metadata['failure_reasons'] = failure_reasons
+        logger.info(f"✅ GATE 3 PASSED: Structural failures detected: {', '.join(failure_reasons)}")
+        
+        # GATE 4: Page Count Guard
+        if page_count > 20:
+            metadata['gates_failed'].append('excessive_pages')
+            metadata['warning'] = f"Document has {page_count} pages (>20) - requires user confirmation"
+            logger.warning(f"⚠️ GATE 4 WARNING: {page_count} pages exceed threshold - would require confirmation")
+            # In production, this would prompt user
+            # For now, we allow but log
+        
+        metadata['gates_passed'].append('page_count_ok')
+        
+        # GATE 5: Cost Caps
+        MAX_ADOBE_PAGES_PER_DOC = 50
+        MAX_ADOBE_CALLS_PER_DOC = 3
+        
+        if page_count > MAX_ADOBE_PAGES_PER_DOC:
+            metadata['gates_failed'].append('page_limit_exceeded')
+            return (False, f"Document has {page_count} pages, exceeds Adobe limit of {MAX_ADOBE_PAGES_PER_DOC}", metadata)
+        
+        metadata['gates_passed'].append('within_cost_caps')
+        
+        # Calculate estimated cost
+        metadata['estimated_adobe_pages'] = page_count
+        if page_count <= 10:
+            metadata['estimated_cost_credits'] = page_count * 15
+        else:
+            metadata['estimated_cost_credits'] = (10 * 15) + ((page_count - 10) * 5)
+        
+        # ALL GATES PASSED
+        reason = f"Adobe fallback ALLOWED: {len(metadata['gates_passed'])} gates passed"
+        reason += f" | Failures: {', '.join(failure_reasons)}"
+        reason += f" | Estimated cost: {metadata['estimated_cost_credits']} credits for {page_count} pages"
+        
+        logger.info("=" * 80)
+        logger.info("🚀 ALL ADOBE GUARDRAILS PASSED")
+        logger.info(f"Gates passed: {', '.join(metadata['gates_passed'])}")
+        logger.info(f"Structural failures: {', '.join(failure_reasons)}")
+        logger.info(f"Estimated Adobe cost: {metadata['estimated_cost_credits']} credits ({page_count} pages)")
+        logger.info("=" * 80)
+        
+        return (True, reason, metadata)
 

@@ -7,7 +7,7 @@ import os
 # Lazy import for documentai to avoid startup errors
 # from google.cloud import documentai
 from google.api_core import exceptions as gcp_exceptions
-from typing import Tuple
+from typing import Tuple, List
 import openpyxl
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side
@@ -74,16 +74,21 @@ def upload_pdf_to_gcs_temp(file_content: bytes, filename: str) -> str:
         raise Exception(f"Failed to upload PDF to GCS: {str(e)}")
 
 
-async def process_pdf_to_excel_docai(file_bytes: bytes, filename: str) -> Tuple[str, int]:
+async def process_pdf_to_excel_docai(
+    file_bytes: bytes, 
+    filename: str,
+    user_wants_premium: bool = False
+) -> Tuple[str, int, List]:
     """
     Process PDF with Google Document AI and convert to Excel.
     
     Args:
         file_bytes: PDF file content as bytes
         filename: Original PDF filename
+        user_wants_premium: User explicitly enabled premium mode toggle (default: False)
     
     Returns:
-        Tuple of (download_url, pages_processed)
+        Tuple of (download_url, pages_processed, unified_layouts)
     
     Raises:
         Exception: If processing fails
@@ -181,8 +186,8 @@ async def process_pdf_to_excel_docai(file_bytes: bytes, filename: str) -> Tuple[
                 # Set gcs_document field directly
                 gcs_document = GcsDocument(
                     gcs_uri=gcs_uri,
-                    mime_type="application/pdf"
-                )
+            mime_type="application/pdf"
+        )
                 if hasattr(request, 'gcs_document'):
                     request.gcs_document.CopyFrom(gcs_document)
                 else:
@@ -212,7 +217,7 @@ async def process_pdf_to_excel_docai(file_bytes: bytes, filename: str) -> Tuple[
                         f"Could not construct Document AI request. "
                         f"Error 1: {e}, Error 2: {e2}, Error 3: {e3}. "
                         f"Please check google-cloud-documentai installation and version."
-                    )
+        )
         
         # Process the document
         result = client.process_document(request=request)
@@ -330,33 +335,54 @@ async def process_pdf_to_excel_docai(file_bytes: bytes, filename: str) -> Tuple[
                                 }
                         full_structure['blocks'].append(block_dict)
                 
-                # Check if Adobe fallback should be enabled
+                # =====================================================================
+                # STEP 6.5: ADOBE PDF EXTRACT API FALLBACK (WITH STRICT GUARDRAILS)
+                # =====================================================================
                 router = DecisionRouter()
-                should_fallback, fallback_reason = router.should_enable_adobe_fallback(
+                
+                # Extract page count for cost calculation
+                page_count = len(document.pages) if hasattr(document, 'pages') else 1
+                
+                # Apply comprehensive guardrails
+                should_fallback, fallback_reason, guardrail_metadata = router.should_enable_adobe_with_guardrails(
+                    user_wants_premium=user_wants_premium,
                     docai_confidence=docai_confidence,
                     full_structure=full_structure,
-                    user_plan="premium"  # Always premium for this endpoint
+                    unified_layouts=unified_layouts,
+                    page_count=page_count,
+                    user_plan="premium"
                 )
+                
+                # Log guardrail results (MANDATORY)
+                logger.info("=" * 80)
+                logger.info("ADOBE FALLBACK GUARDRAILS CHECK")
+                logger.info(f"Adobe fallback allowed: {'YES' if should_fallback else 'NO'}")
+                logger.info(f"Reason: {fallback_reason}")
+                logger.info(f"Gates passed: {', '.join(guardrail_metadata.get('gates_passed', []))}")
+                logger.info(f"Gates failed: {', '.join(guardrail_metadata.get('gates_failed', []))}")
+                logger.info(f"Estimated Adobe cost: {guardrail_metadata.get('estimated_cost_credits', 0)} credits for {page_count} pages")
+                logger.info("=" * 80)
                 
                 if should_fallback:
                     adobe_service = get_adobe_fallback_service()
                     
                     if adobe_service.is_available():
                         logger.info("=" * 80)
-                        logger.info("ADOBE FALLBACK: Attempting to improve layout quality")
-                        logger.info(f"Trigger reason: {fallback_reason}")
+                        logger.info("🚀 ADOBE FALLBACK: Starting extraction")
+                        logger.info(f"Structural failures: {', '.join(guardrail_metadata.get('failure_reasons', []))}")
+                        logger.info(f"Document: {filename} ({page_count} pages)")
                         logger.info("=" * 80)
                         
                         # Call Adobe PDF Extract API
                         adobe_layouts, adobe_confidence, adobe_metadata = adobe_service.extract_pdf_structure(
-                            pdf_bytes=file_content,
+                            pdf_bytes=file_bytes,
                             filename=filename,
                             docai_confidence=docai_confidence
                         )
                         
                         # Replace layouts ONLY if Adobe succeeded
                         if adobe_layouts and len(adobe_layouts) > 0:
-                            logger.info(f"Adobe fallback SUCCESS: Replacing {len(unified_layouts)} DocAI layouts with {len(adobe_layouts)} Adobe layouts")
+                            logger.info(f"✅ Adobe SUCCESS: Replacing {len(unified_layouts)} DocAI layouts with {len(adobe_layouts)} Adobe layouts")
                             unified_layouts = adobe_layouts
                             
                             # Update metadata to indicate Adobe was used
@@ -366,16 +392,20 @@ async def process_pdf_to_excel_docai(file_bytes: bytes, filename: str) -> Tuple[
                                     layout.metadata['adobe_fallback_reason'] = fallback_reason
                                     layout.metadata['routing_confidence'] = adobe_confidence
                                     layout.metadata['adobe_cost_info'] = adobe_metadata
+                                    layout.metadata['adobe_guardrails'] = guardrail_metadata
+                                    layout.metadata['estimated_adobe_pages'] = page_count
                             
                             logger.info("=" * 80)
-                            logger.info("ADOBE FALLBACK: Complete - using Adobe layouts")
+                            logger.info("✅ ADOBE FALLBACK: Complete - using Adobe layouts")
+                            logger.info(f"Rows: {layout.metadata.get('total_rows', 'N/A')}, Columns: {layout.metadata.get('total_columns', 'N/A')}")
+                            logger.info(f"Merged cells: {layout.metadata.get('merged_cells', 0)}")
                             logger.info("=" * 80)
                         else:
-                            logger.warning("Adobe fallback returned no layouts - keeping Document AI results")
+                            logger.warning("⚠️ Adobe fallback returned no layouts - keeping Document AI results")
                     else:
-                        logger.info(f"Adobe fallback requested but not available: {fallback_reason}")
+                        logger.info(f"❌ Adobe fallback requested but not available: credentials not configured")
                 else:
-                    logger.info(f"Adobe fallback NOT triggered: {fallback_reason}")
+                    logger.info(f"⏭️ Adobe fallback NOT triggered: {fallback_reason}")
                     
             except Exception as adobe_error:
                 logger.warning(f"Adobe fallback check failed (non-critical): {adobe_error}")

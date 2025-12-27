@@ -8,7 +8,7 @@ import logging
 from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from typing import Optional
+from typing import Optional, Tuple
 import traceback
 
 from credit import get_user_id, get_credits, deduct_credits, check_sufficient_credits, get_credit_info
@@ -406,6 +406,18 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
             )
         # If user_type is empty or not 'free', continue to credit check (premium users allowed)
         
+        # Step 2.5: Extract premium mode preference from form data
+        user_wants_premium = False
+        try:
+            form_data = await request.form()
+            if 'user_wants_premium' in form_data:
+                user_wants_premium_str = form_data.get('user_wants_premium', 'false')
+                user_wants_premium = str(user_wants_premium_str).lower() == 'true'
+                logger.info(f"User explicitly {'enabled' if user_wants_premium else 'disabled'} premium mode (Adobe fallback)")
+        except Exception as form_err:
+            logger.warning(f"Could not extract premium preference from form: {form_err}")
+            user_wants_premium = False
+        
         # Step 3: Check minimum credits (30 required for premium - UPDATED)
         current_credits = get_credits(user_id)
         if not can_access_premium(current_credits):
@@ -471,7 +483,11 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
         
         try:
             from docai_service import process_pdf_to_excel_docai
-            download_url, pages_processed, unified_layouts = await process_pdf_to_excel_docai(file_content, file.filename)
+            download_url, pages_processed, unified_layouts = await process_pdf_to_excel_docai(
+                file_content, 
+                file.filename,
+                user_wants_premium=user_wants_premium
+            )
             conversion_successful = True
             logger.info(f"PDF processed successfully. Pages: {pages_processed}, Download URL: {download_url[:50]}...")
         except ImportError as e:
@@ -518,12 +534,52 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
                 }
             )
         
-        # Step 7: Calculate credit cost based on document type
-        credit_per_page = get_credit_cost_for_document_type(
-            document_type=None,  # Could be enhanced to detect from filename/content
-            is_scanned=False     # Could be detected from analysis
-        )
-        total_credits_required = pages_processed * credit_per_page
+        # Step 7: Calculate credit cost based on ACTUAL ENGINE USED
+        # Extract layout_source early for credit calculation
+        layout_source = "docai"  # Default
+        if unified_layouts and len(unified_layouts) > 0:
+            first_layout = unified_layouts[0]
+            if hasattr(first_layout, 'metadata') and first_layout.metadata:
+                layout_source = first_layout.metadata.get('layout_source', 'docai')
+        
+        # NEW CREDIT MODEL: Based on engine used and page count
+        def calculate_credits_based_on_engine(pages: int, engine_source: str) -> Tuple[int, float]:
+            """
+            Calculate credits based on actual engine used.
+            
+            Returns:
+                Tuple of (total_credits, avg_credit_per_page)
+            
+            Pricing Model:
+            - Standard (DocAI): 5 credits/page (1-10 pages), 2 credits/page (11+ pages)
+            - Premium (Adobe): 15 credits/page (1-10 pages), 5 credits/page (11+ pages)
+            """
+            if engine_source == 'adobe':
+                # Premium pricing
+                if pages <= 10:
+                    return (pages * 15, 15.0)
+                else:
+                    total = (10 * 15) + ((pages - 10) * 5)
+                    avg = total / pages
+                    return (total, avg)
+            else:
+                # Standard pricing
+                if pages <= 10:
+                    return (pages * 5, 5.0)
+                else:
+                    total = (10 * 5) + ((pages - 10) * 2)
+                    avg = total / pages
+                    return (total, avg)
+        
+        total_credits_required, credit_per_page = calculate_credits_based_on_engine(pages_processed, layout_source)
+        
+        logger.info("=" * 80)
+        logger.info("CREDIT CALCULATION")
+        logger.info(f"Pages processed: {pages_processed}")
+        logger.info(f"Engine used: {layout_source}")
+        logger.info(f"Average cost: {credit_per_page:.2f} credits/page")
+        logger.info(f"Total cost: {total_credits_required} credits")
+        logger.info("=" * 80)
         
         # Step 8: Check credits (after processing to know exact page count and cost)
         # Note: Minimum 30 credits already checked, but verify again for actual cost
@@ -534,11 +590,12 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
                 status_code=402,
                 content={
                     "insufficient_credits": True,
-                    "message": f"Insufficient credits. Need {total_credits_required} credits ({credit_per_page} per page × {pages_processed} pages), have {current_credits}",
+                    "message": f"Insufficient credits. Need {total_credits_required} credits (avg {credit_per_page:.2f}/page × {pages_processed} pages using {layout_source}), have {current_credits}",
                     "required": total_credits_required,
                     "available": current_credits,
                     "credit_per_page": credit_per_page,
                     "pages": pages_processed,
+                    "engine_used": layout_source,
                     "credits_not_deducted": True
                 }
             )
@@ -558,12 +615,14 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
         # Get remaining credits after deduction
         remaining_credits = get_credits(user_id)
         
-        # ENTERPRISE RESPONSE: Extract mode, confidence, message, layout_source from unified_layouts metadata
+        # ENTERPRISE RESPONSE: Extract mode, confidence, message, guardrails from unified_layouts metadata
         # unified_layouts are created in docai_service and have metadata set by layout_decision_engine
         execution_mode = None
         routing_confidence = 0.5
         routing_reason = ""
-        layout_source = "docai"  # Default to DocAI
+        # layout_source already extracted earlier for credit calculation (do not re-extract)
+        adobe_guardrails = {}
+        estimated_adobe_pages = 0
         
         try:
             # Extract from first layout metadata (all pages have same mode)
@@ -574,8 +633,12 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
                     execution_mode = first_layout.metadata.get('execution_mode')
                     routing_confidence = first_layout.metadata.get('routing_confidence', 0.5)
                     routing_reason = first_layout.metadata.get('routing_reason', '')
-                    layout_source = first_layout.metadata.get('layout_source', 'docai')
+                    # Get additional Adobe-related metadata
+                    adobe_guardrails = first_layout.metadata.get('adobe_guardrails', {})
+                    estimated_adobe_pages = first_layout.metadata.get('estimated_adobe_pages', 0)
                     logger.info(f"Extracted metadata: mode={execution_mode}, confidence={routing_confidence:.2f}, reason={routing_reason}, source={layout_source}")
+                    if layout_source == 'adobe':
+                        logger.info(f"Adobe guardrails: {adobe_guardrails}")
         except Exception as e:
             logger.warning(f"Could not extract mode/confidence from layouts: {e}")
         
@@ -602,8 +665,13 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
                     "type": "per_page",
                     "cost_per_page": credit_per_page,
                     "total_cost": int(total_credits_required),
-                    "pages": pages_processed
-                }
+                    "pages": pages_processed,
+                    "engine": layout_source
+                },
+                # ADOBE GUARDRAILS METADATA (if Adobe was used)
+                "adobe_guardrails": adobe_guardrails if layout_source == 'adobe' else None,
+                "estimated_adobe_pages": estimated_adobe_pages if layout_source == 'adobe' else 0,
+                "user_requested_premium": user_wants_premium
             }
         )
         
@@ -855,7 +923,7 @@ async def pdf_to_excel_free_server_endpoint(
                 ("scanned" in error_message.lower() and "Upgrade to Pro" in error_message) or
                 ("scanned" in error_message.lower() and "OCR" in error_message)
             )
-        
+            
             if upgrade_required:
                 return JSONResponse(
                     status_code=403,
@@ -871,7 +939,7 @@ async def pdf_to_excel_free_server_endpoint(
                     content=build_error_response(
                         error_message,
                         upgrade_required=False,
-                        fallback_available=fallback_available
+                        fallback_available=False  # Set to False as no fallback available for free tier
                     )
                 )
         
