@@ -176,6 +176,50 @@
     .file-info.show {
         display: block;
     }
+    
+    /* Premium Mode Toggle Switch */
+    .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 24px;
+    }
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255,255,255,0.3);
+        transition: 0.4s;
+        border-radius: 24px;
+    }
+    .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.4s;
+        border-radius: 50%;
+    }
+    input:checked + .toggle-slider {
+        background-color: #10b981;
+    }
+    input:checked + .toggle-slider:before {
+        transform: translateX(26px);
+    }
+    .toggle-slider:hover {
+        box-shadow: 0 0 8px rgba(255,255,255,0.5);
+    }
     .back-link {
         display: inline-flex;
         align-items: center;
@@ -420,6 +464,50 @@
                 <strong>Selected File:</strong> <span id="fileName"></span>
                 <br>
                 <small>Size: <span id="fileSize"></span></small>
+            </div>
+
+            <!-- Premium Mode Toggle -->
+            <div class="premium-mode-toggle" id="premiumModeToggle" style="display: none; margin: 20px 0; padding: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <label class="toggle-switch" style="margin: 0;">
+                            <input type="checkbox" id="premiumModeCheckbox">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <strong style="font-size: 16px;">
+                            <i class="fas fa-star" style="color: #ffd700;"></i> High Accuracy Mode (Premium)
+                        </strong>
+                    </div>
+                    <span class="info-icon" id="premiumInfoIcon" style="cursor: help; font-size: 18px;" title="Click for details">
+                        <i class="fas fa-info-circle"></i>
+                    </span>
+                </div>
+                
+                <!-- Mode Description -->
+                <div id="modeDescription" style="font-size: 13px; line-height: 1.6; opacity: 0.95;">
+                    <div id="standardModeDesc" style="display: block;">
+                        <strong>📄 Standard Mode (Document AI):</strong><br>
+                        <span style="font-size: 12px;">Simple documents ke liye, sasta aur fast • 5 credits/page (first 10), 2 credits/page (11+)</span>
+                    </div>
+                    <div id="premiumModeDesc" style="display: none;">
+                        <strong>⭐ High Accuracy Mode (Adobe):</strong><br>
+                        <span style="font-size: 12px;">Complex tables, bank statements, charts ke liye best • 15 credits/page (first 10), 5 credits/page (11+)</span>
+                    </div>
+                </div>
+
+                <!-- Detailed Tooltip -->
+                <div id="premiumTooltip" style="display: none; margin-top: 12px; padding: 12px; background: rgba(255,255,255,0.15); border-radius: 8px; font-size: 12px; line-height: 1.5;">
+                    <strong>🌐 When to use High Accuracy Mode:</strong><br>
+                    • Complex multi-column tables<br>
+                    • Bank statements with merged cells<br>
+                    • Government forms (Hindi/English)<br>
+                    • Charts and mixed layouts<br>
+                    • Documents with low standard mode accuracy<br><br>
+                    <strong>💰 Transparent Pricing:</strong><br>
+                    Standard Mode: 5 credits/page (1-10), 2 credits/page (11+)<br>
+                    Premium Mode: 15 credits/page (1-10), 5 credits/page (11+)<br><br>
+                    <em>Note: Premium mode is never auto-enabled. You control when it's used.</em>
+                </div>
             </div>
 
             <div class="progress-bar" id="progressBar">
@@ -711,9 +799,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (convertBtn) {
             convertBtn.disabled = false;
         }
-        
-        // Load PDF from sessionStorage if available
-        loadPdfFromSession();
+    
+    // Load PDF from sessionStorage if available
+    loadPdfFromSession();
     } else {
         console.warn('❌ Credits check failed - upload disabled');
         const uploadArea = document.getElementById('uploadArea');
@@ -930,11 +1018,11 @@ let creditsCheckPassed = false;
 
 // Initialize upload handlers after credits check
 async function initializeUploadHandlers() {
-    const uploadArea = document.getElementById('uploadArea');
-    const fileInput = document.getElementById('fileInput');
-    const convertBtn = document.getElementById('convertBtn');
-    const cancelBtn = document.getElementById('cancelBtn');
-    
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+const convertBtn = document.getElementById('convertBtn');
+const cancelBtn = document.getElementById('cancelBtn');
+
     if (!uploadArea || !fileInput) {
         console.error('Upload area or file input not found');
         return;
@@ -976,37 +1064,37 @@ async function initializeUploadHandlers() {
     }
     
     // Drag and drop handlers (always add, check credits inside)
-    uploadArea.addEventListener('dragover', (e) => {
-        e.preventDefault();
+uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
         e.stopPropagation();
-        uploadArea.classList.add('dragover');
-    });
-    
+    uploadArea.classList.add('dragover');
+});
+
     uploadArea.addEventListener('dragleave', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        uploadArea.classList.remove('dragover');
-    });
-    
-    uploadArea.addEventListener('drop', (e) => {
-        e.preventDefault();
+    uploadArea.classList.remove('dragover');
+});
+
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
         e.stopPropagation();
-        uploadArea.classList.remove('dragover');
+    uploadArea.classList.remove('dragover');
         console.log('File dropped, creditsCheckPassed:', creditsCheckPassed);
         if (!creditsCheckPassed) {
             showStatus('Insufficient credits. Minimum 30 credits required. Please purchase credits to continue.', 'error');
             return;
         }
-        const files = e.dataTransfer.files;
-        if (files.length > 0 && files[0].type === 'application/pdf') {
-            handleFileSelect(files[0]);
+    const files = e.dataTransfer.files;
+    if (files.length > 0 && files[0].type === 'application/pdf') {
+        handleFileSelect(files[0]);
         } else {
             showStatus('Please drop a PDF file.', 'error');
-        }
-    });
-    
+    }
+});
+
     // File input change handler (always add, check credits inside)
-    fileInput.addEventListener('change', (e) => {
+fileInput.addEventListener('change', (e) => {
         console.log('File input changed, creditsCheckPassed:', creditsCheckPassed, 'Files:', e.target.files.length);
         // Re-check credits at the time of file selection (in case it changed)
         if (!creditsCheckPassed) {
@@ -1016,11 +1104,11 @@ async function initializeUploadHandlers() {
         }
         if (e.target.files && e.target.files.length > 0) {
             console.log('Calling handleFileSelect with file:', e.target.files[0].name);
-            handleFileSelect(e.target.files[0]);
+        handleFileSelect(e.target.files[0]);
         } else {
             console.warn('No files selected');
-        }
-    });
+    }
+});
 }
 
 function handleFileSelect(file) {
@@ -1057,6 +1145,7 @@ function handleFileSelect(file) {
     const fileSizeEl = document.getElementById('fileSize');
     const fileInfoEl = document.getElementById('fileInfo');
     const convertBtn = document.getElementById('convertBtn');
+    const premiumToggle = document.getElementById('premiumModeToggle');
     
     if (fileNameEl) fileNameEl.textContent = file.name;
     if (fileSizeEl) fileSizeEl.textContent = formatFileSize(file.size);
@@ -1066,23 +1155,29 @@ function handleFileSelect(file) {
         console.log('Convert button enabled');
     }
     
+    // Show premium mode toggle when file is selected
+    if (premiumToggle) {
+        premiumToggle.style.display = 'block';
+        console.log('Premium mode toggle shown');
+    }
+    
     console.log('File selection complete');
 }
 
 // Convert button handler
 const convertBtn = document.getElementById('convertBtn');
 if (convertBtn) {
-    convertBtn.addEventListener('click', async function() {
+convertBtn.addEventListener('click', async function() {
         // Double-check credits before conversion
         if (!creditsCheckPassed) {
             showStatus('Insufficient credits. Minimum 30 credits required. Please purchase credits to continue.', 'error');
             return;
         }
         
-        if (!window.premiumPdfBlob) {
-            showStatus('Please select a PDF file first.', 'error');
-            return;
-        }
+    if (!window.premiumPdfBlob) {
+        showStatus('Please select a PDF file first.', 'error');
+        return;
+    }
     
     convertBtn.disabled = true;
     cancelBtn.style.display = 'inline-flex';
@@ -1127,6 +1222,13 @@ if (convertBtn) {
         const fd = new FormData();
         const pdfFile = new File([window.premiumPdfBlob], window.premiumPdfFilename || 'document.pdf', { type: 'application/pdf' });
         fd.append('file', pdfFile);
+        
+        // Check if user enabled premium mode
+        const premiumCheckbox = document.getElementById('premiumModeCheckbox');
+        const userWantsPremium = premiumCheckbox ? premiumCheckbox.checked : false;
+        fd.append('user_wants_premium', userWantsPremium ? 'true' : 'false');
+        
+        console.log(`User selected mode: ${userWantsPremium ? '⭐ PREMIUM' : '📄 STANDARD'}`);
         
         showProgress(30);
         
@@ -1188,43 +1290,97 @@ if (convertBtn) {
         
         showProgress(100);
         
-        // ENTERPRISE RESULT STATUS: Display iLovePDF-style messages
+        // ENHANCED RESULT DISPLAY with Engine Info, Accuracy, Credits
         const mode = result.mode || result.execution_mode || 'unknown';
         const confidence = result.confidence || result.routing_confidence || 0.5;
         const message = result.message || result.routing_reason || '';
         const downloadUrl = result.downloadUrl || result.download_url;
+        const layoutSource = result.layout_source || result.layoutSource || 'docai';
+        const pages = result.pagesProcessed || result.pagesConverted || 0;
+        const creditsUsed = result.creditsDeducted || result.creditsUsed || 0;
+        const creditsLeft = result.creditsLeft || 0;
         
-        // Determine accuracy level
-        let accuracyLevel = 'Limited accuracy';
-        let accuracyClass = 'info';
-        if (confidence >= 0.8) {
-            accuracyLevel = 'High accuracy';
-            accuracyClass = 'success';
-        } else if (confidence < 0.5) {
-            accuracyLevel = 'Not suitable for Excel table';
-            accuracyClass = 'info';
+        // Determine engine display name and accuracy
+        let engineName = '';
+        let accuracyLevel = '';
+        let engineIcon = '';
+        let engineColor = '';
+        
+        if (layoutSource === 'adobe') {
+            engineName = 'Adobe PDF Extract';
+            accuracyLevel = 'Very High Accuracy';
+            engineIcon = '⭐';
+            engineColor = '#ffd700';
+        } else {
+            engineName = 'Google Document AI';
+            if (confidence >= 0.8) {
+                accuracyLevel = 'High Accuracy';
+                engineIcon = '✓';
+                engineColor = '#10b981';
+            } else {
+                accuracyLevel = 'Standard Accuracy';
+                engineIcon = '📄';
+                engineColor = '#6366f1';
+            }
         }
         
-        // Build status message
-        let statusMessage = `${accuracyLevel}`;
-        if (mode && mode !== 'unknown') {
-            statusMessage += ` (${mode.replace('_', ' ').toUpperCase()})`;
+        // Build enhanced result HTML
+        const statusEl = document.getElementById('statusMessage');
+        if (statusEl) {
+            statusEl.innerHTML = `
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; border-radius: 12px; margin: 20px 0; box-shadow: 0 8px 24px rgba(0,0,0,0.15);">
+                    <h3 style="margin: 0 0 20px 0; display: flex; align-items: center; gap: 12px; font-size: 22px;">
+                        <span style="font-size: 28px;">${engineIcon}</span>
+                        <span>Conversion Successful!</span>
+                    </h3>
+                    
+                    <div style="background: rgba(255,255,255,0.15); padding: 18px; border-radius: 10px; margin-bottom: 16px;">
+                        <div style="display: grid; grid-template-columns: auto 1fr; gap: 12px 16px; font-size: 15px; line-height: 1.8;">
+                            <strong>🚀 Engine Used:</strong>
+                            <span>${engineName}</span>
+                            
+                            <strong>🎯 Accuracy Level:</strong>
+                            <span>${accuracyLevel}</span>
+                            
+                            <strong>📄 Pages Converted:</strong>
+                            <span>${pages} page${pages !== 1 ? 's' : ''}</span>
+                            
+                            <strong>💳 Credits Used:</strong>
+                            <span>${creditsUsed} credits</span>
+                            
+                            <strong>💰 Credits Remaining:</strong>
+                            <span style="font-weight: 600; color: ${creditsLeft < 50 ? '#fbbf24' : '#10b981'};">${creditsLeft} credits</span>
+                        </div>
+                    </div>
+                    
+                    ${layoutSource === 'adobe' ? `
+                    <div style="background: rgba(255, 215, 0, 0.25); padding: 14px; border-radius: 8px; border-left: 4px solid #ffd700; margin-bottom: 16px; font-size: 14px;">
+                        <strong>ℹ️ Premium Engine Used</strong><br>
+                        <span style="font-size: 13px; opacity: 0.95;">
+                            Is document me advanced engine (Adobe) use hua hai isliye premium credits lage hain. 
+                            Complex tables aur charts ke liye best quality milti hai.
+                        </span>
+                    </div>
+                    ` : ''}
+                    
+                    ${downloadUrl ? `
+                    <div style="text-align: center; margin-top: 18px;">
+                        <a href="${downloadUrl}" download style="display: inline-block; background: white; color: #667eea; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                            <i class="fas fa-download"></i> Download Excel File
+                        </a>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+            statusEl.className = 'status-message success';
+            statusEl.style.display = 'block';
         }
-        if (message) {
-            statusMessage += ` - ${message}`;
-        }
-        statusMessage += `. Converted ${result.pagesProcessed || result.pagesConverted || 0} pages.`;
-        if (result.creditsLeft !== undefined) {
-            statusMessage += ` Credits left: ${result.creditsLeft}`;
-        }
-        
-        showStatus(statusMessage, accuracyClass);
         
         // Download Excel file
         if (downloadUrl) {
-            setTimeout(() => {
+        setTimeout(() => {
                 window.location.href = downloadUrl;
-            }, 1000);
+        }, 1000);
         } else {
             showStatus('Conversion completed but download URL not available. Please contact support.', 'error');
         }
@@ -1264,12 +1420,12 @@ if (convertBtn) {
         cancelBtn.style.display = 'none';
         hideProgress();
     }
-    });
+});
 }
 
 // Cancel button handler (already defined in initializeUploadHandlers, but adding here for safety)
 if (typeof cancelBtn !== 'undefined' && cancelBtn) {
-    cancelBtn.addEventListener('click', () => {
+cancelBtn.addEventListener('click', () => {
         window.premiumPdfBlob = null;
         window.premiumPdfFilename = null;
         const fileInfo = document.getElementById('fileInfo');
@@ -1308,6 +1464,57 @@ function formatFileSize(bytes) {
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
 }
+
+// Premium Mode Toggle Event Handlers
+(function() {
+    const premiumCheckbox = document.getElementById('premiumModeCheckbox');
+    const premiumInfoIcon = document.getElementById('premiumInfoIcon');
+    const premiumTooltip = document.getElementById('premiumTooltip');
+    const standardModeDesc = document.getElementById('standardModeDesc');
+    const premiumModeDesc = document.getElementById('premiumModeDesc');
+    
+    // Toggle change handler
+    if (premiumCheckbox) {
+        premiumCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                // Premium mode enabled
+                if (standardModeDesc) standardModeDesc.style.display = 'none';
+                if (premiumModeDesc) premiumModeDesc.style.display = 'block';
+                console.log('✅ Premium mode ENABLED by user');
+            } else {
+                // Standard mode
+                if (premiumModeDesc) premiumModeDesc.style.display = 'none';
+                if (standardModeDesc) standardModeDesc.style.display = 'block';
+                console.log('📄 Standard mode selected by user');
+            }
+        });
+    }
+    
+    // Info icon click handler - toggle tooltip
+    if (premiumInfoIcon) {
+        premiumInfoIcon.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (premiumTooltip) {
+                if (premiumTooltip.style.display === 'none' || !premiumTooltip.style.display) {
+                    premiumTooltip.style.display = 'block';
+                    console.log('Tooltip opened');
+                } else {
+                    premiumTooltip.style.display = 'none';
+                    console.log('Tooltip closed');
+                }
+            }
+        });
+    }
+    
+    // Close tooltip when clicking outside
+    document.addEventListener('click', function(e) {
+        if (premiumTooltip && premiumTooltip.style.display === 'block') {
+            if (!premiumTooltip.contains(e.target) && e.target !== premiumInfoIcon && !e.target.closest('#premiumInfoIcon')) {
+                premiumTooltip.style.display = 'none';
+            }
+        }
+    });
+})();
 </script>
 
 <script src="js/pdf-excel-user-type.js"></script>
