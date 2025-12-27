@@ -642,37 +642,91 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
         except Exception as e:
             logger.warning(f"Could not extract mode/confidence from layouts: {e}")
         
+        # =====================================================================
+        # STEP 10: ENTERPRISE QA VALIDATION (NEW)
+        # =====================================================================
+        qa_result = None
+        try:
+            from premium_layout.qa_validator import get_qa_validator
+            from feature_flags import get_feature_flags
+            
+            flags = get_feature_flags()
+            
+            if flags.QA_VALIDATION_ENABLED:
+                qa_validator = get_qa_validator()
+                qa_result = qa_validator.validate_conversion(
+                    document_name=file.filename,
+                    layout_source=layout_source,
+                    pages_processed=pages_processed,
+                    routing_confidence=routing_confidence,
+                    unified_layouts=unified_layouts,
+                    adobe_guardrails=adobe_guardrails,
+                    user_wants_premium=user_wants_premium
+                )
+                
+                # Check if QA strict mode is enabled and validation failed
+                if flags.QA_STRICT_MODE and qa_result.qa_status == "FAIL":
+                    logger.error(f"QA STRICT MODE: Blocking conversion due to QA FAIL status")
+                    logger.error(f"QA Errors: {'; '.join(qa_result.errors)}")
+                    raise HTTPException(
+                        status_code=500,
+                        detail={
+                            "error": "QA Validation Failed",
+                            "message": f"Conversion blocked by QA validation: {'; '.join(qa_result.errors)}",
+                            "qa_status": "FAIL",
+                            "qa_errors": qa_result.errors
+                        }
+                    )
+                
+                logger.info(f"QA Validation: {qa_result.qa_status} ({len(qa_result.warnings)} warnings, {len(qa_result.errors)} errors)")
+        except ImportError as import_err:
+            logger.warning(f"QA validation module not available: {import_err}")
+        except Exception as qa_err:
+            logger.error(f"QA validation failed (non-critical): {qa_err}")
+        
+        # Build response with QA metadata
+        response_content = {
+            "status": "success",
+            "engine": "docai",
+            "downloadUrl": download_url,
+            "download_url": download_url,  # Also include snake_case for consistency
+            "pagesProcessed": pages_processed,
+            "creditsLeft": remaining_credits,
+            "creditsDeducted": int(total_credits_required),
+            "creditPerPage": credit_per_page,
+            # ENTERPRISE RESPONSE: Mode, confidence, message, layout source
+            "mode": execution_mode or "unknown",
+            "execution_mode": execution_mode or "unknown",
+            "confidence": routing_confidence,
+            "routing_confidence": routing_confidence,
+            "message": routing_reason,
+            "routing_reason": routing_reason,
+            "layout_source": layout_source,  # "docai" or "adobe"
+            "pricing": {
+                "type": "per_page",
+                "cost_per_page": credit_per_page,
+                "total_cost": int(total_credits_required),
+                "pages": pages_processed,
+                "engine": layout_source
+            },
+            # ADOBE GUARDRAILS METADATA (if Adobe was used)
+            "adobe_guardrails": adobe_guardrails if layout_source == 'adobe' else None,
+            "estimated_adobe_pages": estimated_adobe_pages if layout_source == 'adobe' else 0,
+            "user_requested_premium": user_wants_premium
+        }
+        
+        # Add QA metadata if validation was performed
+        if qa_result:
+            response_content["qa_status"] = qa_result.qa_status
+            response_content["qa_warnings"] = qa_result.warnings
+            response_content["qa_errors"] = qa_result.errors
+            response_content["qa_metadata"] = qa_result.metadata
+            response_content["engine_chain"] = qa_result.engine_chain
+            response_content["billed_pages"] = qa_result.billed_pages
+        
         return JSONResponse(
             status_code=200,
-            content={
-                "status": "success",
-                "engine": "docai",
-                "downloadUrl": download_url,
-                "download_url": download_url,  # Also include snake_case for consistency
-                "pagesProcessed": pages_processed,
-                "creditsLeft": remaining_credits,
-                "creditsDeducted": int(total_credits_required),
-                "creditPerPage": credit_per_page,
-                # ENTERPRISE RESPONSE: Mode, confidence, message, layout source
-                "mode": execution_mode or "unknown",
-                "execution_mode": execution_mode or "unknown",
-                "confidence": routing_confidence,
-                "routing_confidence": routing_confidence,
-                "message": routing_reason,
-                "routing_reason": routing_reason,
-                "layout_source": layout_source,  # "docai" or "adobe"
-                "pricing": {
-                    "type": "per_page",
-                    "cost_per_page": credit_per_page,
-                    "total_cost": int(total_credits_required),
-                    "pages": pages_processed,
-                    "engine": layout_source
-                },
-                # ADOBE GUARDRAILS METADATA (if Adobe was used)
-                "adobe_guardrails": adobe_guardrails if layout_source == 'adobe' else None,
-                "estimated_adobe_pages": estimated_adobe_pages if layout_source == 'adobe' else 0,
-                "user_requested_premium": user_wants_premium
-            }
+            content=response_content
         )
         
     except HTTPException:

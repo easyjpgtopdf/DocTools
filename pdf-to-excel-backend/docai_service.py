@@ -338,30 +338,62 @@ async def process_pdf_to_excel_docai(
                 # =====================================================================
                 # STEP 6.5: ADOBE PDF EXTRACT API FALLBACK (WITH STRICT GUARDRAILS)
                 # =====================================================================
-                router = DecisionRouter()
                 
-                # Extract page count for cost calculation
-                page_count = len(document.pages) if hasattr(document, 'pages') else 1
+                # FEATURE FLAGS CHECK (FIRST)
+                adobe_allowed_by_flags = True
+                feature_flag_reason = ""
+                try:
+                    from feature_flags import get_feature_flags
+                    flags = get_feature_flags()
+                    
+                    adobe_allowed_by_flags, feature_flag_reason = flags.can_use_adobe(
+                        user_wants_premium=user_wants_premium,
+                        docai_confidence=docai_confidence,
+                        page_count=len(document.pages) if hasattr(document, 'pages') else 1
+                    )
+                    
+                    if not adobe_allowed_by_flags:
+                        logger.info(f"🚫 Adobe blocked by feature flags: {feature_flag_reason}")
+                except ImportError:
+                    logger.warning("Feature flags module not available - Adobe fallback will proceed")
+                except Exception as ff_err:
+                    logger.error(f"Feature flags check failed: {ff_err}")
                 
-                # Apply comprehensive guardrails
-                should_fallback, fallback_reason, guardrail_metadata = router.should_enable_adobe_with_guardrails(
-                    user_wants_premium=user_wants_premium,
-                    docai_confidence=docai_confidence,
-                    full_structure=full_structure,
-                    unified_layouts=unified_layouts,
-                    page_count=page_count,
-                    user_plan="premium"
-                )
-                
-                # Log guardrail results (MANDATORY)
-                logger.info("=" * 80)
-                logger.info("ADOBE FALLBACK GUARDRAILS CHECK")
-                logger.info(f"Adobe fallback allowed: {'YES' if should_fallback else 'NO'}")
-                logger.info(f"Reason: {fallback_reason}")
-                logger.info(f"Gates passed: {', '.join(guardrail_metadata.get('gates_passed', []))}")
-                logger.info(f"Gates failed: {', '.join(guardrail_metadata.get('gates_failed', []))}")
-                logger.info(f"Estimated Adobe cost: {guardrail_metadata.get('estimated_cost_credits', 0)} credits for {page_count} pages")
-                logger.info("=" * 80)
+                # Continue only if feature flags allow Adobe
+                if adobe_allowed_by_flags:
+                    router = DecisionRouter()
+                    
+                    # Extract page count for cost calculation
+                    page_count = len(document.pages) if hasattr(document, 'pages') else 1
+                    
+                    # Apply comprehensive guardrails
+                    should_fallback, fallback_reason, guardrail_metadata = router.should_enable_adobe_with_guardrails(
+                        user_wants_premium=user_wants_premium,
+                        docai_confidence=docai_confidence,
+                        full_structure=full_structure,
+                        unified_layouts=unified_layouts,
+                        page_count=page_count,
+                        user_plan="premium"
+                    )
+                    
+                    # Log guardrail results (MANDATORY)
+                    logger.info("=" * 80)
+                    logger.info("ADOBE FALLBACK GUARDRAILS CHECK")
+                    logger.info(f"Adobe fallback allowed: {'YES' if should_fallback else 'NO'}")
+                    logger.info(f"Reason: {fallback_reason}")
+                    logger.info(f"Gates passed: {', '.join(guardrail_metadata.get('gates_passed', []))}")
+                    logger.info(f"Gates failed: {', '.join(guardrail_metadata.get('gates_failed', []))}")
+                    logger.info(f"Estimated Adobe cost: {guardrail_metadata.get('estimated_cost_credits', 0)} credits for {page_count} pages")
+                    logger.info("=" * 80)
+                else:
+                    should_fallback = False
+                    fallback_reason = f"Feature flags blocked Adobe: {feature_flag_reason}"
+                    guardrail_metadata = {
+                        'gates_passed': [],
+                        'gates_failed': ['feature_flags_blocked'],
+                        'estimated_adobe_pages': 0,
+                        'estimated_cost_credits': 0
+                    }
                 
                 if should_fallback:
                     adobe_service = get_adobe_fallback_service()
