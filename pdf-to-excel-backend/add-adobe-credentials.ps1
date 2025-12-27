@@ -62,7 +62,7 @@ try {
     Write-Host "============================================================" -ForegroundColor Green
     Write-Host ""
     Write-Host "Adobe fallback is now ACTIVE and will trigger for:" -ForegroundColor White
-    Write-Host "  - Documents with Document AI confidence < 0.65" -ForegroundColor White
+    Write-Host "  - Documents with Document AI confidence less than 0.65" -ForegroundColor White
     Write-Host "  - Complex PDFs (merged cells, mixed content)" -ForegroundColor White
     Write-Host "  - Premium plan users" -ForegroundColor White
     Write-Host ""

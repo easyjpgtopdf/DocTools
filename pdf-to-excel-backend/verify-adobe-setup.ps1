@@ -64,10 +64,10 @@ if ($has_client_id -and $has_client_secret) {
     Write-Host "✅ Adobe PDF Extract API is CONFIGURED and ACTIVE!" -ForegroundColor Green
     Write-Host "============================================================" -ForegroundColor Green
     Write-Host ""
-    Write-Host "Adobe fallback will trigger for:" -ForegroundColor White
-    Write-Host "  ✓ Documents with Document AI confidence < 0.65" -ForegroundColor White
-    Write-Host "  ✓ Complex PDFs (merged cells, mixed content)" -ForegroundColor White
-    Write-Host "  ✓ Premium plan users" -ForegroundColor White
+Write-Host "Adobe fallback will trigger for:" -ForegroundColor White
+Write-Host "  - Documents with Document AI confidence less than 0.65" -ForegroundColor White
+Write-Host "  - Complex PDFs (merged cells, mixed content)" -ForegroundColor White
+Write-Host "  - Premium plan users" -ForegroundColor White
     Write-Host ""
     Write-Host "Test URL:" -ForegroundColor Yellow
     Write-Host "  https://www.easyjpgtopdf.com/pdf-to-excel-premium.html" -ForegroundColor Cyan
