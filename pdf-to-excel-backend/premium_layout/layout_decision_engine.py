@@ -2543,11 +2543,15 @@ class LayoutDecisionEngine:
                         existing_text = row_cells[nearest_col].value or ''
                         row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
                     else:
+                        # Enable wrap_text for long text or Unicode (Hindi) to prevent overflow
+                        has_unicode = any(ord(c) > 127 for c in text)
+                        wrap_text = len(text) > 50 or has_unicode
+                        
                         row_cells[nearest_col] = Cell(
                             row=row_idx,
                             column=nearest_col,
                             value=text,
-                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=wrap_text)
                         )
             
             # Add row with all cells (fill empty cells)
@@ -3083,11 +3087,15 @@ class LayoutDecisionEngine:
                         existing_text = row_cells[nearest_col].value or ''
                         row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
                     else:
+                        # Enable wrap_text for long text or Unicode (Hindi) to prevent overflow
+                        has_unicode = any(ord(c) > 127 for c in text)
+                        wrap_text = len(text) > 50 or has_unicode
+                        
                         row_cells[nearest_col] = Cell(
                             row=row_idx,
                             column=nearest_col,
                             value=text,
-                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=wrap_text)
                         )
                 else:
                     # Too much misalignment - try next nearest column or create new if within limit
@@ -3114,12 +3122,16 @@ class LayoutDecisionEngine:
                                     existing_text = row_cells[nearest_col].value or ''
                                     row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
                                 else:
-                                    row_cells[nearest_col] = Cell(
-                                        row=row_idx,
-                                        column=nearest_col,
-                                        value=text,
-                                        style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
-                                    )
+                        # Enable wrap_text for long text or Unicode (Hindi) to prevent overflow
+                        has_unicode = any(ord(c) > 127 for c in text)
+                        wrap_text = len(text) > 50 or has_unicode
+                        
+                        row_cells[nearest_col] = Cell(
+                            row=row_idx,
+                            column=nearest_col,
+                            value=text,
+                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=wrap_text)
+                        )
             
             # Add row with all cells (fill empty cells)
             final_row_cells = []
@@ -3247,8 +3259,22 @@ class LayoutDecisionEngine:
         
         # Step 4: Safety check - need at least 1 column
         if len(column_anchors) < 1:
-            logger.warning(f"Page {page_idx + 1}: GEOMETRIC_HYBRID - No columns detected, using fallback")
-            return self._soft_table_fallback_2column(document_text, page_idx)
+            logger.warning(f"Page {page_idx + 1}: GEOMETRIC_HYBRID - No columns detected, creating fallback")
+            # Create single-column layout from blocks (not forced 2-column)
+            if merged_blocks:
+                for idx, block in enumerate(merged_blocks[:100]):  # First 100 blocks
+                    block_text = block.get('text', '').strip()
+                    if block_text:
+                        cell = Cell(
+                            row=idx,
+                            column=0,
+                            value=block_text,
+                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                        )
+                        layout.add_row([cell])
+                return layout
+            else:
+                return self._create_minimal_fallback_layout(page_idx, document_text, 'docai')
         
         # Step 5: Reconstruct grid from geometric alignment (unlimited rows/columns)
         row_idx = 0
@@ -3271,31 +3297,87 @@ class LayoutDecisionEngine:
                 misalignment_threshold = 0.08
                 distance_to_anchor = abs(column_anchors[nearest_col] - x_center)
                 
+                # CRITICAL FIX: Prevent cell mixing - each block should be in its own cell
+                # Only combine if blocks are horizontally very close (same cell, e.g., Aadhaar numbers)
+                # Otherwise, use separate cells to preserve text boundaries
+                
                 if distance_to_anchor <= misalignment_threshold:
-                    # Acceptable misalignment - assign to column
+                    # Acceptable misalignment - check if we should combine or use separate cell
                     if row_cells[nearest_col] is not None:
-                        # Combine with existing cell (slight overlap)
-                        existing_text = row_cells[nearest_col].value or ''
-                        row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
+                        # Check if blocks are horizontally very close (likely same cell)
+                        existing_cell = row_cells[nearest_col]
+                        # Get X position of existing cell's block (we need to track this)
+                        # For now, only combine if text is very short (likely continuation)
+                        # Otherwise, use next available column or create new column
+                        if len(text) < 20 and len(existing_cell.value or '') < 50:
+                            # Short text - might be continuation (e.g., Aadhaar digits)
+                            existing_text = existing_cell.value or ''
+                            row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
+                        else:
+                            # Long text - should be separate cell
+                            # Find next available column or create new one
+                            next_col = nearest_col + 1
+                            if next_col < len(column_anchors):
+                                # Use next column
+                                if row_cells[next_col] is None:
+                                    # Enable wrap_text for long text or Unicode
+                                    has_unicode = any(ord(c) > 127 for c in text)
+                                    wrap_text = len(text) > 50 or has_unicode
+                                    
+                                    row_cells[next_col] = Cell(
+                                        row=row_idx,
+                                        column=next_col,
+                                        value=text,
+                                        style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=wrap_text)
+                                    )
+                                else:
+                                    # Next column also occupied - combine with existing (last resort)
+                                    existing_text = row_cells[nearest_col].value or ''
+                                    row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
+                            else:
+                                # No next column - combine (last resort)
+                                existing_text = existing_cell.value or ''
+                                row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
                     else:
+                        # No existing cell - create new
+                        # Enable wrap_text for long text or Unicode (Hindi) to prevent overflow
+                        has_unicode = any(ord(c) > 127 for c in text)
+                        wrap_text = len(text) > 50 or has_unicode
+                        
                         row_cells[nearest_col] = Cell(
                             row=row_idx,
                             column=nearest_col,
                             value=text,
-                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=wrap_text)
                         )
                 else:
-                    # Too much misalignment - append to nearest anyway (allow slight misalignment)
-                    if row_cells[nearest_col] is not None:
-                        existing_text = row_cells[nearest_col].value or ''
-                        row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
-                    else:
+                    # Too much misalignment - still assign to nearest column but don't combine
+                    if row_cells[nearest_col] is None:
+                        # Enable wrap_text for long text or Unicode (Hindi) to prevent overflow
+                        has_unicode = any(ord(c) > 127 for c in text)
+                        wrap_text = len(text) > 50 or has_unicode
+                        
                         row_cells[nearest_col] = Cell(
                             row=row_idx,
                             column=nearest_col,
                             value=text,
-                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=wrap_text)
                         )
+                    else:
+                        # Column occupied - try next column
+                        next_col = nearest_col + 1
+                        if next_col < len(column_anchors) and row_cells[next_col] is None:
+                            row_cells[next_col] = Cell(
+                                row=row_idx,
+                                column=next_col,
+                                value=text,
+                                style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                            )
+                        else:
+                            # No space - combine as last resort (but log warning)
+                            existing_text = row_cells[nearest_col].value or ''
+                            row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
+                            logger.warning(f"GEOMETRIC_HYBRID: Combined text in column {nearest_col} due to space constraint")
             
             # Add row with all cells (fill empty cells)
             final_row_cells = []

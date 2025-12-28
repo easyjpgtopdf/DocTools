@@ -1,5 +1,5 @@
 # Use Python 3.11 slim as base image
-# Build timestamp: 2025-12-28T17:00:00Z - Force cache invalidation for STEP-12/14: Fix pages_metadata extraction and credit calculation
+# Build timestamp: 2025-01-28T12:00:00Z - Force cache invalidation for CRITICAL BUG FIXES: Blank output prevention + dynamic columns + non-empty enforcement
 FROM python:3.11-slim
 
 # Set working directory
