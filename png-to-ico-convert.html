@@ -179,11 +179,8 @@ footer{background:var(--dark);color:#fff;padding:40px 0 20px;margin-top:24px}
                 outputFormat = 'image/jpeg';
                 outputExt = '.jpg';
             } else if (format === 'svg') {
-                // SVG conversion requires different approach
-                // For now, convert to PNG and then we'll need a library for SVG
-                outputFormat = 'image/png';
-                outputExt = '.png';
-                // Note: True SVG conversion would require additional library
+                outputFormat = 'image/svg+xml';
+                outputExt = '.svg';
             } else if (format === 'bmp') {
                 outputFormat = 'image/bmp';
                 outputExt = '.bmp';
@@ -211,9 +208,27 @@ footer{background:var(--dark);color:#fff;padding:40px 0 20px;margin-top:24px}
                         }
                     }, 'image/x-icon', 0.95);
                 } else if (format === 'svg') {
-                    // SVG conversion requires different approach
-                    // For now, convert to PNG
-                    canvas.toBlob(resolve, 'image/png', 0.95);
+                    // Convert canvas to SVG format
+                    canvas.toBlob((pngBlob) => {
+                        if (!pngBlob) {
+                            reject(new Error('Failed to convert to PNG for SVG'));
+                            return;
+                        }
+                        // Read PNG as base64
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            const base64Data = reader.result.split(',')[1];
+                            // Create SVG with embedded PNG image
+                            const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${canvas.width}" height="${canvas.height}">
+  <image width="${canvas.width}" height="${canvas.height}" xlink:href="data:image/png;base64,${base64Data}"/>
+</svg>`;
+                            const svgBlob = new Blob([svgContent], { type: 'image/svg+xml' });
+                            resolve(svgBlob);
+                        };
+                        reader.onerror = reject;
+                        reader.readAsDataURL(pngBlob);
+                    }, 'image/png', 0.95);
                 } else if (format === 'bmp' || format === 'tiff' || format === 'avif') {
                     // These formats may not be fully supported by canvas.toBlob
                     // Fallback to PNG if not supported
