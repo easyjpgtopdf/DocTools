@@ -536,11 +536,26 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
         
         # Step 7: Calculate credit cost based on ACTUAL ENGINE USED
         # Extract layout_source early for credit calculation
+        logger.info("=" * 80)
+        logger.info("STEP 7: CREDIT CALCULATION - STARTING")
+        logger.info(f"pages_processed from docai_service: {pages_processed}")
+        logger.info(f"unified_layouts available: {unified_layouts is not None}")
+        logger.info(f"unified_layouts count: {len(unified_layouts) if unified_layouts else 0}")
+        logger.info("=" * 80)
+        
         layout_source = "docai"  # Default
         if unified_layouts and len(unified_layouts) > 0:
             first_layout = unified_layouts[0]
             if hasattr(first_layout, 'metadata') and first_layout.metadata:
                 layout_source = first_layout.metadata.get('layout_source', 'docai')
+                logger.info(f"✅ Extracted layout_source from metadata: '{layout_source}'")
+            else:
+                logger.warning(f"⚠️ First layout has no metadata, using default: 'docai'")
+        else:
+            logger.warning(f"⚠️ No unified_layouts available, using default: 'docai'")
+        
+        logger.info(f"✅ Final layout_source for credit calculation: '{layout_source}'")
+        logger.info("=" * 80)
         
         # NEW CREDIT MODEL: Based on engine used and page count
         def calculate_credits_based_on_engine(pages: int, engine_source: str) -> Tuple[int, float]:

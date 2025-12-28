@@ -14,7 +14,7 @@ from typing import List, Dict, Any, Tuple, Optional
 from dataclasses import dataclass
 import requests
 
-from .unified_layout_model import UnifiedLayout, CellData, CellStyle
+from .unified_layout_model import UnifiedLayout, Cell, CellStyle
 
 logger = logging.getLogger(__name__)
 
@@ -630,7 +630,7 @@ class AdobeFallbackService:
         max_row: int,
         max_col: int,
         header_rows: List[int]
-    ) -> List[List[CellData]]:
+    ) -> List[List[Cell]]:
         """
         Convert cell grid to UnifiedLayout rows format.
         
@@ -653,23 +653,25 @@ class AdobeFallbackService:
                     # Determine if this is a header cell
                     is_header = row_idx in header_rows
                     
-                    # Create CellData
-                    cell_data = CellData(
-                        text=text,
-                        row_span=cell.get('row_span', 1) if cell.get('is_top_left', False) else 1,
-                        col_span=cell.get('col_span', 1) if cell.get('is_top_left', False) else 1,
+                    # Create Cell (mapping from CellData to Cell format)
+                    cell_data = Cell(
+                        row=row_idx,
+                        column=col_idx,
+                        value=text,
+                        rowspan=cell.get('row_span', 1) if cell.get('is_top_left', False) else 1,
+                        colspan=cell.get('col_span', 1) if cell.get('is_top_left', False) else 1,
                         style=CellStyle(
                             bold=cell.get('is_bold', False) or is_header,
                             background_color='FFE0E0E0' if is_header else None,
                             font_size=cell.get('text_size', 11)
                         ),
-                        is_header=is_header
+                        merged=(cell.get('row_span', 1) > 1 or cell.get('col_span', 1) > 1) if cell.get('is_top_left', False) else False
                     )
                     
                     row.append(cell_data)
                 else:
                     # Empty cell
-                    row.append(CellData(text=''))
+                    row.append(Cell(row=row_idx, column=col_idx, value=''))
             
             rows.append(row)
         
@@ -715,8 +717,8 @@ class AdobeFallbackService:
                 # Create a simple layout with chart caption
                 if text:
                     chart_rows = [
-                        [CellData(text="[Chart Visual]", style=CellStyle(bold=True))],
-                        [CellData(text=text)]
+                        [Cell(row=0, column=0, value="[Chart Visual]", style=CellStyle(bold=True))],
+                        [Cell(row=1, column=0, value=text)]
                     ]
                     
                     chart_layout = UnifiedLayout(

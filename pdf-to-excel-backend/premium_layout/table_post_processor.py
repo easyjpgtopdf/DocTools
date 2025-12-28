@@ -130,21 +130,35 @@ class TablePostProcessor:
             logger.info(f"🔍 _process_table_strict: table.body_rows = {table.body_rows}")
         
         # PRE-PIPELINE: Extract raw cells and calculate line height
+        logger.info("=" * 80)
+        logger.info("STEP 1: Calling _extract_raw_cells() for initial extraction")
+        logger.info("=" * 80)
         raw_cells = self._extract_raw_cells(table, document_text)
-        logger.info(f"Extracted {len(raw_cells)} raw cells from table (initial attempt)")
+        logger.info(f"✅ STEP 1 RESULT: Extracted {len(raw_cells)} raw cells from table (initial attempt)")
+        logger.info("=" * 80)
         
         # CRITICAL FIX: If _extract_raw_cells fails (Form Parser compatibility issue),
         # ALWAYS invoke fallback extractor - this is especially critical for Form Parser tables
-        if not raw_cells:
-            logger.warning("⚠️ Raw cells empty — invoking Form Parser fallback extractor")
+        if not raw_cells or len(raw_cells) == 0:
+            logger.warning("=" * 80)
+            logger.warning("⚠️ STEP 2: Raw cells empty — invoking Form Parser fallback extractor")
             logger.warning("⚠️ This typically happens with Form Parser processor tables where standard extraction fails")
+            logger.warning("=" * 80)
             raw_cells = self._extract_raw_cells_fallback(table, document_text)
-            if raw_cells:
-                logger.info(f"✅ Fallback extracted {len(raw_cells)} cells via Form Parser fallback method")
+            if raw_cells and len(raw_cells) > 0:
+                logger.info("=" * 80)
+                logger.info(f"✅ STEP 2 SUCCESS: Fallback extracted {len(raw_cells)} cells via Form Parser fallback method")
+                logger.info("=" * 80)
             else:
-                logger.error("❌ Fallback also empty — returning empty table")
+                logger.error("=" * 80)
+                logger.error("❌ STEP 2 FAILED: Fallback also empty — returning empty table")
                 logger.error("❌ Both extraction methods failed - this may indicate table structure issue")
+                logger.error("=" * 80)
                 return ProcessedTable()
+        else:
+            logger.info("=" * 80)
+            logger.info(f"✅ STEP 1 SUCCESS: {len(raw_cells)} cells extracted, skipping fallback")
+            logger.info("=" * 80)
         
         avg_line_height = self._calculate_avg_line_height(raw_cells)
         logger.debug(f"Average line height: {avg_line_height:.4f}")
