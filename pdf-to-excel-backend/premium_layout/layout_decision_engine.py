@@ -2054,11 +2054,15 @@ class LayoutDecisionEngine:
                     logger.debug(f"Page {page_idx + 1}: Appended wrapped text to previous value: {line[:50]}")
                 else:
                     # First line without pattern - create single-column row (not forced 2-column)
+                    # Enable wrap_text for Unicode
+                    has_unicode = any(ord(c) > 127 for c in line) if line else False
+                    wrap_text = len(line) > 50 or has_unicode if line else False
+                    
                     single_cell = Cell(
                         row=row_idx,
                         column=0,
                         value=line,
-                        style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
+                        style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT, wrap_text=wrap_text)
                     )
                     layout.add_row([single_cell])
                     row_idx += 1
