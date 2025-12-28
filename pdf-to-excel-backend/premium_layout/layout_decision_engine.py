@@ -1981,17 +1981,21 @@ class LayoutDecisionEngine:
                                         label_col = 0
                                         value_col = 1
                                     
+                                    # Enable wrap_text for Unicode
+                                    has_unicode_label = any(ord(c) > 127 for c in label) if label else False
+                                    has_unicode_value = any(ord(c) > 127 for c in value) if value else False
+                                    
                                     label_cell = Cell(
                                         row=row_idx,
                                         column=label_col,
                                         value=label,
-                                        style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
+                                        style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT, wrap_text=has_unicode_label or len(label) > 50 if label else False)
                                     )
                                     value_cell = Cell(
                                         row=row_idx,
                                         column=value_col,
                                         value=value,
-                                        style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                                        style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=has_unicode_value or len(value) > 50 if value else False)
                                     )
                                     layout.add_row([label_cell, value_cell])
                                     last_value_cell = value_cell
@@ -2029,17 +2033,21 @@ class LayoutDecisionEngine:
                         value = parts[1].strip()
                         
                         if label:  # Label is required
+                            # Enable wrap_text for Unicode
+                            has_unicode_label = any(ord(c) > 127 for c in label) if label else False
+                            has_unicode_value = any(ord(c) > 127 for c in value) if value else False
+                            
                             label_cell = Cell(
                                 row=row_idx,
                                 column=0,  # Column A = Label
                                 value=label,
-                                style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
+                                style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT, wrap_text=has_unicode_label or len(label) > 50 if label else False)
                             )
                             value_cell = Cell(
                                 row=row_idx,
                                 column=1,  # Column B = Value
                                 value=value,
-                                style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                                style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=has_unicode_value or len(value) > 50 if value else False)
                             )
                             layout.add_row([label_cell, value_cell])
                             last_value_cell = value_cell
@@ -2078,11 +2086,15 @@ class LayoutDecisionEngine:
                 for idx, block in enumerate(fallback_blocks):
                     block_text = block.get('text', '').strip()
                     if block_text:
+                        # Enable wrap_text for Unicode
+                        has_unicode = any(ord(c) > 127 for c in block_text) if block_text else False
+                        wrap_text = len(block_text) > 50 or has_unicode if block_text else False
+                        
                         fallback_row.append(Cell(
                             row=0,
                             column=idx,
                             value=block_text,
-                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=wrap_text)
                         ))
                 if fallback_row:
                     layout.add_row(fallback_row)
@@ -2090,11 +2102,16 @@ class LayoutDecisionEngine:
             else:
                 # No blocks available - create minimal single-column layout
                 logger.warning(f"Page {page_idx + 1}: KEY_VALUE - No blocks available, creating minimal layout")
+                # Enable wrap_text for Unicode
+                text_snippet = document_text[:200] if document_text else "No content extracted"
+                has_unicode = any(ord(c) > 127 for c in text_snippet) if text_snippet else False
+                wrap_text = len(text_snippet) > 50 or has_unicode if text_snippet else True
+                
                 content_cell = Cell(
                     row=0,
                     column=0,
-                    value=document_text[:200] if document_text else "No content extracted",
-                    style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                    value=text_snippet,
+                    style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=wrap_text)
                 )
                 layout.add_row([content_cell])
                 row_idx = 1
