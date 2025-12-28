@@ -142,6 +142,7 @@ async function convertFile(files, toolType) {
             case 'avif-to-jpg':
             case 'avif-to-png':
             case 'raw-to-jpg':
+            case 'psd-to-png':
                 return await convertImageInBrowser(files, toolType);
             
             // Text to PDF (can work in browser with jsPDF)
@@ -178,7 +179,21 @@ async function convertImageInBrowser(files, toolType) {
     
     for (const fileData of files) {
         const file = new File([fileData.data], fileData.name, { type: fileData.type });
-        const img = await loadImage(file);
+        
+        // Check if file is PSD format
+        const isPSD = /\.psd$/i.test(fileData.name) || fileData.type === 'image/vnd.adobe.photoshop' || fileData.type === 'application/octet-stream';
+        
+        let img;
+        try {
+            img = await loadImage(file);
+        } catch (error) {
+            // PSD files cannot be loaded directly in browsers
+            if (isPSD) {
+                throw new Error(`PSD files cannot be converted directly in the browser. PSD (Photoshop) files require specialized software for conversion. Please use Adobe Photoshop, GIMP, or online PSD converters that support server-side processing to convert PSD files to PNG first.`);
+            }
+            throw new Error(`Failed to load image "${fileData.name}": ${error.message}. The file may be corrupted or in an unsupported format.`);
+        }
+        
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         

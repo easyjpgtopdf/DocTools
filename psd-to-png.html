@@ -252,6 +252,14 @@ Reviews & Comments
           return;
         }
         
+        // Check file sizes (limit to 50MB per file to avoid sessionStorage issues)
+        const maxSize = 50 * 1024 * 1024; // 50MB
+        const oversizedFiles = files.filter(f => f.size > maxSize);
+        if (oversizedFiles.length > 0) {
+          alert(`Some files are too large (max 50MB per file). Please reduce file size or split files.`);
+          return;
+        }
+        
         try {
           // Show loading
           this.disabled = true;
@@ -259,13 +267,36 @@ Reviews & Comments
           
           // Store files for conversion
           const { storeFilesForConversion } = await import('./js/file-converter.js');
-          await storeFilesForConversion(files, 'psd-to-png');
+          
+          // Ensure files have proper MIME types (PSD files might not have them)
+          const processedFiles = Array.from(files).map(file => {
+            // If file doesn't have a type, try to determine it from extension
+            if (!file.type || file.type === '') {
+              const ext = file.name.split('.').pop().toLowerCase();
+              let mimeType = 'application/octet-stream';
+              
+              if (ext === 'psd') {
+                mimeType = 'image/vnd.adobe.photoshop'; // PSD MIME type
+              } else if (ext === 'jpg' || ext === 'jpeg') {
+                mimeType = 'image/jpeg';
+              } else if (ext === 'png') {
+                mimeType = 'image/png';
+              }
+              
+              // Create a new File object with proper type
+              return new File([file], file.name, { type: mimeType, lastModified: file.lastModified });
+            }
+            return file;
+          });
+          
+          await storeFilesForConversion(processedFiles, 'psd-to-png');
           
           // Redirect to convert page
           window.location.href = 'psd-to-png-convert.html';
         } catch (error) {
           console.error('Error storing files:', error);
-          alert('Error processing files. Please try again.');
+          const errorMessage = error.message || 'Error processing files. Please try again.';
+          alert(errorMessage + '\n\nIf the problem persists, try:\n- Using smaller files\n- Converting PSD files to PNG first using Photoshop or other software');
           this.disabled = false;
           this.innerHTML = 'Continue';
         }
