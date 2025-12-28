@@ -62,10 +62,11 @@ class ExcelWordRenderer:
                     images_by_page[page_idx] = []
                 images_by_page[page_idx].append(img)
         
-        # Create one sheet per page
+        # Create one sheet per page (Page-to-Sheet Mapping)
         for layout in layouts:
             page_num = layout.page_index + 1
-            sheet_name = f"Page {page_num}" if len(layouts) > 1 else "Document"
+            # Sheet naming: Page_1, Page_2, Page_3... (with underscore)
+            sheet_name = f"Page_{page_num}" if len(layouts) > 1 else "Document"
             # Excel sheet names max 31 characters
             if len(sheet_name) > 31:
                 sheet_name = sheet_name[:31]

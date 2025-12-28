@@ -292,7 +292,7 @@ async def process_pdf_to_excel_docai(
             # 2. Execute ONLY the selected mode
             # 3. TablePostProcessor.process_table() - 7-step pipeline (for TABLE_STRICT)
             # 4. ProcessedTable -> UnifiedLayout conversion
-            unified_layouts = decision_engine.process_document(document, document_text, native_tables)
+            unified_layouts = decision_engine.process_document(document, document_text, native_tables, processor_type=processor_type)
             logger.info(f"LayoutDecisionEngine.process_document() returned {len(unified_layouts)} UnifiedLayout objects")
             
             # Store decision engine for metadata extraction (ENTERPRISE RESPONSE)

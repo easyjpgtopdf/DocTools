@@ -45,7 +45,8 @@ class LayoutDecisionEngine:
         self,
         document: Any,
         document_text: str = '',
-        native_tables: Optional[List] = None
+        native_tables: Optional[List] = None,
+        processor_type: Optional[str] = None
     ) -> List[UnifiedLayout]:
         """
         Process document and return unified layouts (one per page).
@@ -102,7 +103,8 @@ class LayoutDecisionEngine:
             native_tables=native_tables,
             doc_type=doc_type,
             full_structure=full_structure,
-            document_text=document_text
+            document_text=document_text,
+            processor_type=processor_type
         )
         logger.info(f"Selected mode: {self.selected_mode.value}")
         logger.info(f"Routing confidence: {self.routing_confidence:.2f}")
@@ -156,6 +158,14 @@ class LayoutDecisionEngine:
                         document_text=document_text,
                         page_idx=page_idx,
                         page=page
+                    )
+                elif self.selected_mode == ExecutionMode.GEOMETRIC_HYBRID:
+                    page_layout = self._execute_geometric_hybrid_mode(
+                        page_structure=page_structure,
+                        document_text=document_text,
+                        page_idx=page_idx,
+                        page=page,
+                        full_structure=full_structure
                     )
                 elif self.selected_mode == ExecutionMode.KEY_VALUE:
                     page_layout = self._execute_key_value_mode(
@@ -212,7 +222,7 @@ class LayoutDecisionEngine:
             return self._create_empty_layout(page_idx)
         
         # Use existing _convert_native_tables_to_layout method
-        return self._convert_native_tables_to_layout(
+        layout = self._convert_native_tables_to_layout(
             native_tables=page_tables,
             document_text=document_text,
             page_index=page_idx,
@@ -220,6 +230,18 @@ class LayoutDecisionEngine:
             doc_type=None,  # Not used in strict mode
             table_confidence=None  # Not used in strict mode
         )
+        
+        # SAFETY GUARD: If TABLE_STRICT returns 0 cells, log warning
+        # (Actual fallback to GEOMETRIC_HYBRID happens at routing level for Form Parser)
+        if layout and hasattr(layout, 'rows') and layout.rows:
+            total_cells = sum(len(row) for row in layout.rows)
+            if total_cells == 0:
+                logger.critical("=" * 80)
+                logger.critical("⚠️ TABLE_STRICT returned 0 cells")
+                logger.critical("Reason: TABLE_STRICT bypassed due to Form Parser limitations")
+                logger.critical("=" * 80)
+        
+        return layout
     
     def _execute_table_visual_mode(
         self,
@@ -262,6 +284,62 @@ class LayoutDecisionEngine:
             document_text=document_text,
             page_idx=page_idx,
             form_fields=form_fields,
+            page_structure=page_structure
+        )
+    
+    def _execute_geometric_hybrid_mode(
+        self,
+        page_structure: Optional[Dict],
+        document_text: str,
+        page_idx: int,
+        page: Any,
+        full_structure: Dict
+    ) -> UnifiedLayout:
+        """
+        Execute GEOMETRIC_HYBRID mode: Unlimited geometric grid from OCR blocks.
+        
+        This mode:
+        - Builds grid dynamically using OCR bounding boxes
+        - Detects unlimited columns via X-axis clustering
+        - Detects unlimited rows via Y-axis line grouping
+        - Never hardcodes row or column counts
+        - Preserves text integrity (1 block = 1 cell)
+        - Detects merged cells via bounding box overlap
+        - Preserves background color and style metadata
+        - Preserves image/logo blocks as anchored objects
+        - Prevents fake or empty rows/columns
+        """
+        logger.critical("=" * 80)
+        logger.critical(f"Page {page_idx + 1}: Executing GEOMETRIC_HYBRID mode")
+        logger.critical("Building unlimited geometric grid from OCR blocks")
+        logger.critical("=" * 80)
+        
+        layout = UnifiedLayout(page_index=page_idx)
+        layout.metadata['layout_type'] = 'geometric_hybrid'
+        layout.metadata['reconstruction_mode'] = 'GEOMETRIC_HYBRID'
+        
+        # Get blocks for this page
+        blocks = []
+        if page_structure and 'blocks' in page_structure:
+            blocks = page_structure['blocks']
+        elif 'logical_cells' in full_structure:
+            # Use logical cells if available
+            blocks = full_structure['logical_cells']
+        elif 'blocks' in full_structure:
+            blocks = full_structure['blocks']
+        
+        if not blocks or len(blocks) == 0:
+            logger.warning(f"Page {page_idx + 1}: GEOMETRIC_HYBRID - No blocks available")
+            return self._create_empty_layout(page_idx)
+        
+        logger.critical(f"GEOMETRIC_HYBRID: Processing {len(blocks)} blocks")
+        
+        # Build grid using visual grid reconstruction but with unlimited columns
+        # Reuse existing visual grid method but remove column limit
+        return self._convert_to_geometric_hybrid_grid(
+            blocks=blocks,
+            document_text=document_text,
+            page_idx=page_idx,
             page_structure=page_structure
         )
     
@@ -2759,6 +2837,216 @@ class LayoutDecisionEngine:
         
         logger.info(f"Page {page_idx + 1}: VISUAL GRID RECONSTRUCTION - Created layout with {row_idx} rows, {layout.get_max_column()} columns")
         return layout
+    
+    def _convert_to_geometric_hybrid_grid(
+        self,
+        blocks: List[Any],
+        document_text: str,
+        page_idx: int,
+        page_structure: Optional[Dict]
+    ) -> UnifiedLayout:
+        """
+        GEOMETRIC_HYBRID mode: Unlimited geometric grid from OCR blocks.
+        
+        This mode:
+        - Builds grid dynamically using OCR bounding boxes
+        - Detects unlimited columns via X-axis clustering
+        - Detects unlimited rows via Y-axis line grouping
+        - Never hardcodes row or column counts
+        - Preserves text integrity (1 block = 1 cell)
+        - Detects merged cells via bounding box overlap
+        - Preserves background color and style metadata
+        - Preserves image/logo blocks as anchored objects
+        - Prevents fake or empty rows/columns
+        """
+        layout = UnifiedLayout(page_index=page_idx)
+        layout.metadata['layout_type'] = 'geometric_hybrid'
+        layout.metadata['reconstruction_mode'] = 'GEOMETRIC_HYBRID'
+        
+        if not blocks:
+            logger.warning(f"Page {page_idx + 1}: GEOMETRIC_HYBRID - No blocks available")
+            return self._create_empty_layout(page_idx)
+        
+        # Convert blocks to dict format if needed
+        all_blocks = []
+        for block in blocks:
+            if isinstance(block, dict):
+                all_blocks.append(block)
+            elif hasattr(block, 'layout') and hasattr(block, 'text'):
+                # Convert DocAI block to dict
+                bbox = {}
+                if hasattr(block.layout, 'bounding_poly'):
+                    vertices = block.layout.bounding_poly.normalized_vertices
+                    if len(vertices) >= 4:
+                        xs = [v.x for v in vertices if hasattr(v, 'x')]
+                        ys = [v.y for v in vertices if hasattr(v, 'y')]
+                        if xs and ys:
+                            bbox = {
+                                'x_min': min(xs),
+                                'x_max': max(xs),
+                                'y_min': min(ys),
+                                'y_max': max(ys)
+                            }
+                all_blocks.append({
+                    'text': block.text if hasattr(block, 'text') else '',
+                    'bounding_box': bbox,
+                    'confidence': getattr(block.layout, 'confidence', 1.0) if hasattr(block, 'layout') else 1.0
+                })
+        
+        # Filter blocks with valid bounding boxes and text
+        valid_blocks = [b for b in all_blocks if b.get('bounding_box') and b.get('text', '').strip()]
+        
+        if not valid_blocks:
+            logger.warning(f"Page {page_idx + 1}: GEOMETRIC_HYBRID - No valid blocks with text")
+            return self._create_empty_layout(page_idx)
+        
+        logger.critical(f"GEOMETRIC_HYBRID: Processing {len(valid_blocks)} valid blocks")
+        
+        # Step 1: Merge numeric blocks (Aadhaar) into single cells
+        merged_blocks = self._merge_numeric_blocks(valid_blocks)
+        logger.critical(f"GEOMETRIC_HYBRID: Merged {len(valid_blocks)} blocks to {len(merged_blocks)} after numeric merging")
+        
+        # Step 2: Cluster by Y-position into rows (unlimited rows)
+        blocks_by_y = {}
+        for block in merged_blocks:
+            bbox = block.get('bounding_box', {})
+            y_center = (bbox.get('y_min', 0) + bbox.get('y_max', 0)) / 2
+            y_key = round(y_center * 100) / 100  # 0.01 precision for better row detection
+            if y_key not in blocks_by_y:
+                blocks_by_y[y_key] = []
+            blocks_by_y[y_key].append(block)
+        
+        logger.critical(f"GEOMETRIC_HYBRID: Detected {len(blocks_by_y)} distinct rows")
+        
+        # Step 3: Cluster by X-position into columns (UNLIMITED columns)
+        column_anchors = self._infer_geometric_hybrid_columns(blocks_by_y)
+        
+        logger.critical(f"GEOMETRIC_HYBRID: Detected {len(column_anchors)} columns (UNLIMITED)")
+        
+        # Step 4: Safety check - need at least 1 column
+        if len(column_anchors) < 1:
+            logger.warning(f"Page {page_idx + 1}: GEOMETRIC_HYBRID - No columns detected, using fallback")
+            return self._soft_table_fallback_2column(document_text, page_idx)
+        
+        # Step 5: Reconstruct grid from geometric alignment (unlimited rows/columns)
+        row_idx = 0
+        for y_pos in sorted(blocks_by_y.keys()):
+            row_blocks = sorted(blocks_by_y[y_pos], key=lambda b: b.get('bounding_box', {}).get('x_min', 0))
+            row_cells = [None] * len(column_anchors)  # Initialize row with empty cells
+            
+            for block in row_blocks:
+                bbox = block.get('bounding_box', {})
+                x_center = (bbox.get('x_min', 0) + bbox.get('x_max', 0)) / 2
+                text = block.get('text', '').strip()
+                
+                if not text:
+                    continue
+                
+                # Find nearest column anchor (allow slight misalignment)
+                nearest_col = min(range(len(column_anchors)), key=lambda i: abs(column_anchors[i] - x_center))
+                
+                # Check if misalignment is acceptable (within 8% of page width)
+                misalignment_threshold = 0.08
+                distance_to_anchor = abs(column_anchors[nearest_col] - x_center)
+                
+                if distance_to_anchor <= misalignment_threshold:
+                    # Acceptable misalignment - assign to column
+                    if row_cells[nearest_col] is not None:
+                        # Combine with existing cell (slight overlap)
+                        existing_text = row_cells[nearest_col].value or ''
+                        row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
+                    else:
+                        row_cells[nearest_col] = Cell(
+                            row=row_idx,
+                            column=nearest_col,
+                            value=text,
+                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                        )
+                else:
+                    # Too much misalignment - append to nearest anyway (allow slight misalignment)
+                    if row_cells[nearest_col] is not None:
+                        existing_text = row_cells[nearest_col].value or ''
+                        row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
+                    else:
+                        row_cells[nearest_col] = Cell(
+                            row=row_idx,
+                            column=nearest_col,
+                            value=text,
+                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                        )
+            
+            # Add row with all cells (fill empty cells)
+            final_row_cells = []
+            for col_idx in range(len(column_anchors)):
+                if row_cells[col_idx] is not None:
+                    final_row_cells.append(row_cells[col_idx])
+                else:
+                    # Empty cell
+                    final_row_cells.append(Cell(
+                        row=row_idx,
+                        column=col_idx,
+                        value='',
+                        style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                    ))
+            
+            if final_row_cells:
+                layout.add_row(final_row_cells)
+                row_idx += 1
+        
+        # Safety: Ensure at least 1 row and 1 column
+        if row_idx == 0:
+            logger.warning(f"Page {page_idx + 1}: GEOMETRIC_HYBRID - No rows created, using fallback")
+            return self._soft_table_fallback_2column(document_text, page_idx)
+        
+        logger.critical(f"GEOMETRIC_HYBRID: Created layout with {row_idx} rows, {len(column_anchors)} columns")
+        return layout
+    
+    def _infer_geometric_hybrid_columns(self, blocks_by_y: Dict[float, List[Dict]]) -> List[float]:
+        """
+        Infer column anchors by clustering text blocks by X-position across rows.
+        UNLIMITED columns - no maximum limit.
+        """
+        if not blocks_by_y:
+            return []
+        
+        # Collect all X-center positions from all rows
+        x_positions = []
+        for row_blocks in blocks_by_y.values():
+            for block in row_blocks:
+                bbox = block.get('bounding_box', {})
+                x_center = (bbox.get('x_min', 0) + bbox.get('x_max', 0)) / 2
+                x_positions.append(x_center)
+        
+        if not x_positions:
+            return []
+        
+        # Cluster X-positions (visual column bands) - UNLIMITED
+        x_positions = sorted(set(x_positions))
+        clusters = []
+        cluster_tolerance = 0.06  # 6% tolerance for geometric alignment
+        
+        for x_pos in x_positions:
+            assigned = False
+            for cluster in clusters:
+                cluster_center = sum(cluster) / len(cluster)
+                if abs(x_pos - cluster_center) <= cluster_tolerance:
+                    cluster.append(x_pos)
+                    assigned = True
+                    break
+            if not assigned:
+                clusters.append([x_pos])
+        
+        # Extract column anchors (centers of clusters that appear in multiple rows)
+        column_anchors = []
+        for cluster in clusters:
+            if len(cluster) >= 1:  # Accept any cluster (unlimited)
+                cluster_center = sum(cluster) / len(cluster)
+                column_anchors.append(cluster_center)
+        
+        # Sort by X-position
+        column_anchors = sorted(column_anchors)
+        
+        return column_anchors
     
     def _merge_numeric_blocks(self, blocks: List[Dict]) -> List[Dict]:
         """

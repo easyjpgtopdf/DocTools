@@ -14,9 +14,10 @@ logger = logging.getLogger(__name__)
 
 
 class ExecutionMode(Enum):
-    """Four execution modes for premium PDF to Excel conversion"""
+    """Five execution modes for premium PDF to Excel conversion"""
     TABLE_STRICT = "table_strict"      # Native DocAI tables - trust structure
     TABLE_VISUAL = "table_visual"      # Visual grid reconstruction from blocks
+    GEOMETRIC_HYBRID = "geometric_hybrid"  # Unlimited geometric grid from OCR blocks (Form Parser compatible)
     KEY_VALUE = "key_value"            # 2-column label:value layout
     PLAIN_TEXT = "plain_text"          # Single-column text export
 
@@ -69,7 +70,8 @@ class DecisionRouter:
         native_tables: Optional[List],
         doc_type: DocumentType,
         full_structure: Dict,
-        document_text: str = ''
+        document_text: str = '',
+        processor_type: Optional[str] = None
     ) -> Tuple[ExecutionMode, float, str]:
         """
         Route document to ONE execution mode.
@@ -86,6 +88,21 @@ class DecisionRouter:
             - confidence: Float 0.0-1.0 indicating routing confidence
             - reason: Human-readable explanation of routing decision
         """
+        # ====================================================================
+        # HARD BLOCK RULE -1: FORM PARSER OVERRIDE (CRITICAL - MUST BE FIRST)
+        # ====================================================================
+        # Form Parser does NOT populate table.cells, so TABLE_STRICT will fail
+        # FORCE GEOMETRIC_HYBRID for form-parser-docai regardless of other factors
+        if processor_type == "form-parser-docai":
+            logger.critical("=" * 80)
+            logger.critical("🚫 FORM PARSER DETECTED: Blocking TABLE_STRICT, forcing GEOMETRIC_HYBRID")
+            logger.critical("Reason: Form Parser tables do not populate table.cells structure")
+            logger.critical("=" * 80)
+            confidence = 0.95
+            reason = "Form Parser tables require geometric extraction (unlimited rows/columns from OCR blocks)"
+            self._log_routing_decision(0, ExecutionMode.GEOMETRIC_HYBRID, confidence, reason)
+            return (ExecutionMode.GEOMETRIC_HYBRID, confidence, reason)
+        
         # ====================================================================
         # HARD BLOCK RULE 0: MULTI-COLUMN GUARANTEE (CRITICAL)
         # ====================================================================
@@ -126,6 +143,7 @@ class DecisionRouter:
             return (ExecutionMode.TABLE_VISUAL, confidence, reason)
         
         # ROUTING RULE 1: If native DocAI tables exist → TABLE_STRICT
+        # CRITICAL: Form Parser already handled above, so this only applies to non-Form-Parser processors
         # CRITICAL FIX: Check tables FIRST, even for invoices/bills
         # Invoices often have line items tables that should use TABLE_STRICT
         if native_tables and len(native_tables) > 0:

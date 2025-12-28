@@ -1,5 +1,5 @@
 # Use Python 3.11 slim as base image
-# Build timestamp: 2025-12-28T10:15:00Z - Force cache invalidation for critical logging + credit fix
+# Build timestamp: 2025-12-28T11:30:00Z - Force cache invalidation for GEOMETRIC_HYBRID mode + Form Parser fix
 FROM python:3.11-slim
 
 # Set working directory
