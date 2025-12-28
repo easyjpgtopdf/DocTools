@@ -1916,13 +1916,18 @@ class LayoutDecisionEngine:
                     # Determine if this is a label (first column or contains colon)
                     is_label = (col_idx == 0) or (':' in block_text)
                     
+                    # Enable wrap_text for long text or Unicode (Hindi)
+                    has_unicode = any(ord(c) > 127 for c in block_text)
+                    wrap_text = len(block_text) > 50 or has_unicode
+                    
                     cell = Cell(
                         row=row_idx,
                         column=col_idx,
                         value=block_text,
                         style=CellStyle(
                             bold=is_label,
-                            alignment_horizontal=CellAlignment.LEFT
+                            alignment_horizontal=CellAlignment.LEFT,
+                            wrap_text=wrap_text
                         )
                     )
                     row_cells.append(cell)
