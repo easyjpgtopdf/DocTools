@@ -459,10 +459,330 @@ class VoiceAssistant {
             { title: 'Terms of Service', url: 'terms-of-service.html', keywords: ['terms', 'service', 'conditions', 'शर्तें'], category: 'Legal', description: 'Terms and conditions' },
             { title: 'Refund Policy', url: 'refund-policy.html', keywords: ['refund', 'return', 'money back', 'वापसी'], category: 'Legal', description: 'Refund and return policy' },
             { title: 'KYC Support', url: 'kyc-support.html', keywords: ['kyc', 'support', 'verification', 'help', 'सहायता'], category: 'Support', description: 'KYC verification support' },
-            { title: 'Attributions', url: 'attributions.html', keywords: ['attribution', 'credit', 'acknowledgment', 'श्रेय'], category: 'Support', description: 'Third-party attributions' },
+            { title: 'Attributions', url: 'attributions.html', keywords: ['attribution', 'credit', 'acknowledgment', 'श्रेय'], category: 'Support', description: 'Third-party attributions' },,
+            { 
+                title: '7Z Extractor - Extract 7Z Files Online Free', 
+                url: '7z-extractor.html', 
+                keywords: ['7z extractor', 'extractor', 'extract', 'files', 'online', 'free', 'convert', 'unzip', 'open'], 
+                category: 'Archive Tools', 
+                description: 'Extract files from 7Z  archives'
+            },
+            { 
+                title: '7Z to ZIP Converter - Convert 7Z to ZIP Online Free', 
+                url: '7z-to-zip.html', 
+                keywords: ['7z to zip', 'zip', 'converter', 'convert', 'online', 'free', 'archive', 'compressed'], 
+                category: 'Archive Tools', 
+                description: 'Convert 7Z to Zip online for free'
+            },
+            { 
+                title: 'Ai To Png', 
+                url: 'ai-to-png.html', 
+                keywords: ['ai to png', 'png', 'image', 'photo', 'picture', 'convert', 'artificial intelligence', 'generate', 'create'], 
+                category: 'Image Tools', 
+                description: 'Convert Ai to Png online for free'
+            },
+            { 
+                title: 'Ai To Svg', 
+                url: 'ai-to-svg.html', 
+                keywords: ['ai to svg', 'svg', 'convert', 'artificial intelligence', 'generate', 'create'], 
+                category: 'Image Tools', 
+                description: 'Convert Ai to Svg online for free'
+            },
+            { 
+                title: 'Avif To Jpg', 
+                url: 'avif-to-jpg.html', 
+                keywords: ['avif to jpg', 'avif', 'jpg', 'image', 'photo', 'picture', 'convert'], 
+                category: 'Image Tools', 
+                description: 'Convert Avif to Jpg online for free'
+            },
+            { 
+                title: 'Avif To Png', 
+                url: 'avif-to-png.html', 
+                keywords: ['avif to png', 'avif', 'png', 'image', 'photo', 'picture', 'convert'], 
+                category: 'Image Tools', 
+                description: 'Convert Avif to Png online for free'
+            },
+            { 
+                title: 'Azw3 To Epub', 
+                url: 'azw3-to-epub.html', 
+                keywords: ['azw3 to epub', 'azw3', 'epub', 'convert'], 
+                category: 'E-book Tools', 
+                description: 'Convert Azw3 to Epub online for free'
+            },
+            { 
+                title: 'Batch Ziper', 
+                url: 'batch-zip-converter.html', 
+                keywords: ['batch zip converter', 'batch', 'ziper', 'convert', 'archive', 'compressed'], 
+                category: 'Archive Tools', 
+                description: 'Work with Batch Zip Converter archives online'
+            },
+            { 
+                title: 'Bmp To Jpg', 
+                url: 'bmp-to-jpg.html', 
+                keywords: ['bmp to jpg', 'bmp', 'jpg', 'image', 'photo', 'picture', 'convert'], 
+                category: 'Image Tools', 
+                description: 'Convert Bmp to Jpg online for free'
+            },
+            { 
+                title: 'Bmp To Png', 
+                url: 'bmp-to-png.html', 
+                keywords: ['bmp to png', 'bmp', 'png', 'image', 'photo', 'picture', 'convert'], 
+                category: 'Image Tools', 
+                description: 'Convert Bmp to Png online for free'
+            },
+            { 
+                title: 'Cr2 To Jpg', 
+                url: 'cr2-to-jpg.html', 
+                keywords: ['cr2 to jpg', 'cr2', 'jpg', 'image', 'photo', 'picture', 'convert'], 
+                category: 'Image Tools', 
+                description: 'Convert Cr2 to Jpg online for free'
+            },
+            { 
+                title: 'Eps To Png', 
+                url: 'eps-to-png.html', 
+                keywords: ['eps to png', 'eps', 'png', 'image', 'photo', 'picture', 'convert'], 
+                category: 'Image Tools', 
+                description: 'Convert Eps to Png online for free'
+            },
+            { 
+                title: 'Epub To Mobi', 
+                url: 'epub-to-mobi.html', 
+                keywords: ['epub to mobi', 'epub', 'mobi', 'convert'], 
+                category: 'E-book Tools', 
+                description: 'Convert Epub to Mobi online for free'
+            },
+            { 
+                title: 'Epub To Pdf', 
+                url: 'epub-to-pdf.html', 
+                keywords: ['epub to pdf', 'epub', 'pdf', 'document', 'convert'], 
+                category: 'PDF Tools', 
+                description: 'Convert Epub to Pdf online for free'
+            },
+            { 
+                title: 'Exif Data Remove', 
+                url: 'exif-data-remove.html', 
+                keywords: ['exif data remove', 'exif', 'data', 'remove', 'delete'], 
+                category: 'Image Tools', 
+                description: 'Exif Data Remove - Online free tool'
+            },
+            { 
+                title: 'Fb2 To Pdf', 
+                url: 'fb2-to-pdf.html', 
+                keywords: ['fb2 to pdf', 'fb2', 'pdf', 'document', 'convert'], 
+                category: 'PDF Tools', 
+                description: 'Convert Fb2 to Pdf online for free'
+            },
+            { 
+                title: 'Folder To Zip', 
+                url: 'folder-to-zip.html', 
+                keywords: ['folder to zip', 'folder', 'zip', 'convert', 'archive', 'compressed'], 
+                category: 'Archive Tools', 
+                description: 'Convert Folder to Zip online for free'
+            },
+            { 
+                title: 'Hdr To Jpg', 
+                url: 'hdr-to-jpg.html', 
+                keywords: ['hdr to jpg', 'hdr', 'jpg', 'image', 'photo', 'picture', 'convert'], 
+                category: 'Image Tools', 
+                description: 'Convert Hdr to Jpg online for free'
+            },
+            { 
+                title: 'Heic To Jpg', 
+                url: 'heic-to-jpg.html', 
+                keywords: ['heic to jpg', 'heic', 'jpg', 'image', 'photo', 'picture', 'convert'], 
+                category: 'Image Tools', 
+                description: 'Convert Heic to Jpg online for free'
+            },
+            { 
+                title: 'Image Cropper', 
+                url: 'image-cropper.html', 
+                keywords: ['image cropper', 'image', 'cropper', 'photo', 'picture', 'trim', 'cut'], 
+                category: 'Image Tools', 
+                description: 'Crop images to remove unwanted areas'
+            },
+            { 
+                title: 'Iso Extractor', 
+                url: 'iso-extractor.html', 
+                keywords: ['iso extractor', 'iso', 'extractor', 'convert', 'unzip', 'open', 'extract'], 
+                category: 'Archive Tools', 
+                description: 'Extract files from Iso  archives'
+            },
+            { 
+                title: 'Jpg To Webp', 
+                url: 'jpg-to-webp.html', 
+                keywords: ['jpg to webp', 'jpg', 'webp', 'image', 'photo', 'picture', 'convert'], 
+                category: 'Image Tools', 
+                description: 'Convert Jpg to Webp online for free'
+            },
+            { 
+                title: 'Mobi To Epub', 
+                url: 'mobi-to-epub.html', 
+                keywords: ['mobi to epub', 'mobi', 'epub', 'convert'], 
+                category: 'E-book Tools', 
+                description: 'Convert Mobi to Epub online for free'
+            },
+            { 
+                title: 'PDF to Excel Premium - OCR Conversion | High Accuracy Excel Export', 
+                url: 'pdf-to-excel-premium.html', 
+                keywords: ['pdf to excel premium', 'pdf', 'excel', 'premium', 'ocr', 'conversion', 'high', 'accuracy', 'export', 'document', 'convert'], 
+                category: 'PDF Tools', 
+                description: 'Convert Pdf to Excel Premium online for free'
+            },
+            { 
+                title: 'PDF to Word Premium - OCR Conversion | High Accuracy Word Export', 
+                url: 'pdf-to-word-premium.html', 
+                keywords: ['pdf to word premium', 'pdf', 'word', 'premium', 'ocr', 'conversion', 'high', 'accuracy', 'export', 'document', 'convert'], 
+                category: 'PDF Tools', 
+                description: 'Convert Pdf to Word Premium online for free'
+            },
+            { 
+                title: 'Pdf To Epub', 
+                url: 'pdf-to-epub.html', 
+                keywords: ['pdf to epub', 'pdf', 'epub', 'document', 'convert'], 
+                category: 'PDF Tools', 
+                description: 'Convert Pdf to Epub online for free'
+            },
+            { 
+                title: 'Pdf To Text', 
+                url: 'pdf-to-text.html', 
+                keywords: ['pdf to text', 'pdf', 'text', 'document', 'convert'], 
+                category: 'PDF Tools', 
+                description: 'Convert Pdf to Text online for free'
+            },
+            { 
+                title: 'Photo Enhancer', 
+                url: 'photo-enhancer.html', 
+                keywords: ['photo enhancer', 'photo', 'enhancer', 'convert'], 
+                category: 'Image Tools', 
+                description: 'Photo Enhancer - Online free tool'
+            },
+            { 
+                title: 'Png To Ico', 
+                url: 'png-to-ico.html', 
+                keywords: ['png to ico', 'png', 'ico', 'image', 'photo', 'picture', 'convert'], 
+                category: 'Image Tools', 
+                description: 'Convert Png to Ico online for free'
+            },
+            { 
+                title: 'Png To Webp', 
+                url: 'png-to-webp.html', 
+                keywords: ['png to webp', 'png', 'webp', 'image', 'photo', 'picture', 'convert'], 
+                category: 'Image Tools', 
+                description: 'Convert Png to Webp online for free'
+            },
+            { 
+                title: 'PowerPoint to PDF Converter - Convert PPT to PDF Online Free | PPT PDF Converter', 
+                url: 'ppt-to-pdf-new.html', 
+                keywords: ['ppt to pdf new', 'powerpoint', 'pdf', 'converter', 'convert', 'ppt', 'online', 'free', 'document'], 
+                category: 'PDF Tools', 
+                description: 'Convert Ppt to Pdf New online for free'
+            },
+            { 
+                title: 'Psd To Jpg', 
+                url: 'psd-to-jpg.html', 
+                keywords: ['psd to jpg', 'psd', 'jpg', 'image', 'photo', 'picture', 'convert'], 
+                category: 'Image Tools', 
+                description: 'Convert Psd to Jpg online for free'
+            },
+            { 
+                title: 'Psd To Png', 
+                url: 'psd-to-png.html', 
+                keywords: ['psd to png', 'psd', 'png', 'image', 'photo', 'picture', 'convert'], 
+                category: 'Image Tools', 
+                description: 'Convert Psd to Png online for free'
+            },
+            { 
+                title: 'Rar Extractor', 
+                url: 'rar-extractor.html', 
+                keywords: ['rar extractor', 'rar', 'extractor', 'convert', 'unzip', 'open', 'extract', 'archive'], 
+                category: 'Archive Tools', 
+                description: 'Extract files from Rar  archives'
+            },
+            { 
+                title: 'Rar To Zip', 
+                url: 'rar-to-zip.html', 
+                keywords: ['rar to zip', 'rar', 'zip', 'convert', 'archive', 'compressed'], 
+                category: 'Archive Tools', 
+                description: 'Convert Rar to Zip online for free'
+            },
+            { 
+                title: 'Raw To Jpg', 
+                url: 'raw-to-jpg.html', 
+                keywords: ['raw to jpg', 'raw', 'jpg', 'image', 'photo', 'picture', 'convert'], 
+                category: 'Image Tools', 
+                description: 'Convert Raw to Jpg online for free'
+            },
+            { 
+                title: 'Rtf To Pdf', 
+                url: 'rtf-to-pdf.html', 
+                keywords: ['rtf to pdf', 'rtf', 'pdf', 'document', 'convert'], 
+                category: 'PDF Tools', 
+                description: 'Convert Rtf to Pdf online for free'
+            },
+            { 
+                title: 'Svg To Jpg', 
+                url: 'svg-to-jpg.html', 
+                keywords: ['svg to jpg', 'svg', 'jpg', 'image', 'photo', 'picture', 'convert'], 
+                category: 'Image Tools', 
+                description: 'Convert Svg to Jpg online for free'
+            },
+            { 
+                title: 'Svg To Png', 
+                url: 'svg-to-png.html', 
+                keywords: ['svg to png', 'svg', 'png', 'image', 'photo', 'picture', 'convert'], 
+                category: 'Image Tools', 
+                description: 'Convert Svg to Png online for free'
+            },
+            { 
+                title: 'Tar To Zip', 
+                url: 'tar-to-zip.html', 
+                keywords: ['tar to zip', 'tar', 'zip', 'convert', 'archive', 'compressed'], 
+                category: 'Archive Tools', 
+                description: 'Convert Tar to Zip online for free'
+            },
+            { 
+                title: 'Tiff To Png', 
+                url: 'tiff-to-png.html', 
+                keywords: ['tiff to png', 'tiff', 'png', 'image', 'photo', 'picture', 'convert'], 
+                category: 'Image Tools', 
+                description: 'Convert Tiff to Png online for free'
+            },
+            { 
+                title: 'Transparent Background Maker', 
+                url: 'transparent-background-maker.html', 
+                keywords: ['transparent background maker', 'transparent', 'background', 'maker'], 
+                category: 'Image Tools', 
+                description: 'Transparent Background Maker - Online free tool'
+            },
+            { 
+                title: 'Txt To Pdf', 
+                url: 'txt-to-pdf.html', 
+                keywords: ['txt to pdf', 'txt', 'pdf', 'document', 'convert'], 
+                category: 'PDF Tools', 
+                description: 'Convert Txt to Pdf online for free'
+            },
+            { 
+                title: 'Webp To Png', 
+                url: 'webp-to-png.html', 
+                keywords: ['webp to png', 'webp', 'png', 'image', 'photo', 'picture', 'convert'], 
+                category: 'Image Tools', 
+                description: 'Convert Webp to Png online for free'
+            },
+            { 
+                title: 'Zip Extractor', 
+                url: 'zip-extractor.html', 
+                keywords: ['zip extractor', 'zip', 'extractor', 'convert', 'unzip', 'open', 'extract', 'archive', 'compressed'], 
+                category: 'Archive Tools', 
+                description: 'Extract files from Zip  archives'
+            },
+            { 
+                title: 'Zip To Rar', 
+                url: 'zip-to-rar.html', 
+                keywords: ['zip to rar', 'zip', 'rar', 'convert', 'archive', 'compressed'], 
+                category: 'Archive Tools', 
+                description: 'Convert Zip to Rar online for free'
+            }
         ];
-        
-        // Calculate relevance score
         for (const tool of toolDatabase) {
             let score = 0;
             const queryWords = query.split(' ');

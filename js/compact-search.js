@@ -153,6 +153,15 @@
         { title: 'EXIF Data Remove', url: 'exif-data-remove.html', keywords: ['remove exif', 'exif data remover', 'image metadata remover'], category: 'Image Tools', description: 'Convert exif data remove online for free', icon: 'fas fa-shield-alt' },
         { title: 'Image Cropper', url: 'image-cropper.html', keywords: ['crop image', 'image cropper', 'photo cropper'], category: 'Image Tools', description: 'Convert image cropper online for free', icon: 'fas fa-image' },
         { title: 'Photo Enhancer', url: 'photo-enhancer.html', keywords: ['photo enhancer', 'image enhancer', 'improve photo quality'], category: 'Image Tools', description: 'Convert photo enhancer online for free', icon: 'fas fa-image' },
+        
+        // Additional missing pages
+        { title: '7Z Extractor', url: '7z-extractor.html', keywords: ['7z', 'extract', '7zip', 'open 7z', '7z extractor', 'extract 7z'], category: 'Archive Tools', description: 'Extract files from 7Z archives online', icon: 'fas fa-file-archive' },
+        { title: '7Z to ZIP', url: '7z-to-zip.html', keywords: ['7z', 'zip', 'convert', '7zip to zip', 'archive converter'], category: 'Archive Tools', description: 'Convert 7Z archives to ZIP format', icon: 'fas fa-file-archive' },
+        { title: 'PDF to Text', url: 'pdf-to-text.html', keywords: ['pdf to text', 'extract text from pdf', 'pdf text converter'], category: 'E-book Tools', description: 'Convert pdf to text online for free', icon: 'fas fa-file-pdf' },
+        { title: 'PDF to EPUB', url: 'pdf-to-epub.html', keywords: ['pdf to epub', 'convert pdf to epub', 'pdf epub converter'], category: 'E-book Tools', description: 'Convert pdf to epub online for free', icon: 'fas fa-book' },
+        { title: 'PDF to Excel Premium', url: 'pdf-to-excel-premium.html', keywords: ['pdf to excel premium', 'premium pdf to excel', 'ocr excel', 'high accuracy'], category: 'PDF Tools', description: 'Premium PDF to Excel conversion with OCR technology', icon: 'fas fa-file-excel' },
+        { title: 'PDF to Word Premium', url: 'pdf-to-word-premium.html', keywords: ['pdf to word premium', 'premium pdf to word', 'ocr word'], category: 'PDF Tools', description: 'Premium PDF to Word conversion with OCR technology', icon: 'fas fa-file-word' },
+        { title: 'PPT to PDF New', url: 'ppt-to-pdf-new.html', keywords: ['ppt to pdf new', 'powerpoint to pdf', 'presentation to pdf'], category: 'Office Tools', description: 'Convert PowerPoint to PDF with new improved tool', icon: 'fas fa-file-powerpoint' },
 ];
 
     // Search function (same logic as voice assistant)
