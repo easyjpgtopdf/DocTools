@@ -14,6 +14,12 @@ from .geometry_reconstructor import GeometryReconstructor
 logger = logging.getLogger(__name__)
 
 
+# STEP-11: Exception for TABLE_STRICT failures
+class TableExtractionFailed(Exception):
+    """Raised when TABLE_STRICT mode fails to extract any cells"""
+    pass
+
+
 class CellMergeType(Enum):
     """Types of cell merges"""
     NONE = "none"
@@ -168,12 +174,16 @@ class TablePostProcessor:
                 logger.critical(f"✅ STEP 2 SUCCESS: Fallback extracted {len(raw_cells)} cells via Form Parser fallback method")
                 logger.critical("=" * 80)
             else:
+                # STEP-11: BLANK EXCEL IS NEVER A VALID RESULT
+                # Throw exception to trigger automatic fallback to OCR_GRID
                 logger.critical("=" * 80)
-                logger.critical("❌ STEP 2 FAILED: Fallback also empty — returning empty table")
-                logger.critical("❌ Both extraction methods failed - this may indicate table structure issue")
+                logger.critical("❌ STEP-11 FAIL-SAFE: TABLE_STRICT extracted 0 cells")
+                logger.critical("❌ This indicates Form Parser table with incompatible schema")
+                logger.critical("❌ BLANK EXCEL IS NEVER A VALID RESULT")
+                logger.critical("🚨 THROWING TableExtractionFailed exception to trigger OCR_GRID fallback")
                 logger.critical("=" * 80)
                 sys.stdout.flush()
-                return ProcessedTable()
+                raise TableExtractionFailed("TABLE_STRICT produced zero cells - automatic fallback to OCR_GRID required")
             sys.stdout.flush()
         else:
             sys.stdout.flush()

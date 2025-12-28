@@ -71,6 +71,20 @@ class ExcelWordRenderer:
             if len(sheet_name) > 31:
                 sheet_name = sheet_name[:31]
             
+            # STEP-10: Dynamic grid validation - check if layout has content BEFORE creating sheet
+            max_row = layout.get_max_row()
+            max_col = layout.get_max_column()
+            
+            # Validation guard: Detect blank sheets
+            if max_row == 0 or max_col == 0:
+                logger.critical("=" * 80)
+                logger.critical(f"⚠️ VALIDATION GUARD: Blank sheet detected for Page {page_num}")
+                logger.critical(f"   max_row={max_row}, max_col={max_col}")
+                logger.critical("   This should not happen - layout should have been routed to GEOMETRIC_HYBRID")
+                logger.critical("=" * 80)
+                # Still create sheet but log warning - let downstream handle fallback
+                # Don't skip sheet creation as it would break page-to-sheet mapping
+            
             sheet = workbook.create_sheet(title=sheet_name)
             
             # SINGLE SOURCE OF MERGE TRUTH: Build set of merged cell positions from layout.merged_cells only
@@ -188,6 +202,29 @@ class ExcelWordRenderer:
             page_images = images_by_page.get(layout.page_index, [])
             if page_images and IMAGE_SUPPORT:
                 self._insert_images_to_sheet(sheet, page_images, layout)
+            
+            # STEP-10: Post-generation validation guard
+            # Check if sheet is actually blank after rendering
+            actual_max_row = sheet.max_row if hasattr(sheet, 'max_row') else 0
+            actual_max_col = sheet.max_column if hasattr(sheet, 'max_column') else 0
+            
+            if actual_max_row == 0 or actual_max_col == 0:
+                logger.critical("=" * 80)
+                logger.critical(f"❌ VALIDATION GUARD FAILED: Sheet '{sheet_name}' is blank after rendering")
+                logger.critical(f"   actual_max_row={actual_max_row}, actual_max_col={actual_max_col}")
+                logger.critical(f"   layout.max_row={max_row}, layout.max_col={max_col}")
+                logger.critical("   This indicates a critical rendering failure")
+                logger.critical("=" * 80)
+                # Note: We can't fallback here as we're in renderer - this should be caught earlier
+                # But we log it for debugging
+        
+        # STEP-10: Final validation - ensure at least one sheet has content
+        if len(workbook.worksheets) == 0:
+            logger.critical("=" * 80)
+            logger.critical("❌ CRITICAL: No sheets created - creating minimal fallback sheet")
+            logger.critical("=" * 80)
+            fallback_sheet = workbook.create_sheet(title="Document")
+            fallback_sheet.cell(row=1, column=1, value="No data extracted from document")
         
         # Save to bytes
         output = io.BytesIO()
@@ -225,13 +262,18 @@ class ExcelWordRenderer:
                     position = img_info.get('position', (0.0, 0.0, 0.1, 0.1))
                     x_norm, y_norm = position[0], position[1]
                     
-                    # Convert normalized position to row/column
-                    # Assuming page height = 1.0, width = 1.0
+                    # STEP-10: Dynamic image placement - use actual layout dimensions
+                    # Convert normalized position to row/column based on actual grid size
                     max_row = layout.get_max_row()
+                    max_col = layout.get_max_column()
+                    
                     if max_row > 0:
+                        # Use actual row count for positioning
                         row_num = max(1, int(y_norm * max_row) + 1)
                     else:
-                        row_num = img_idx * 20 + 1
+                        # Fallback: If no rows, place at row 1 (not hardcoded offset)
+                        row_num = 1
+                        logger.warning(f"Image placement: No rows in layout, placing at row 1")
                     
                     # Anchor image to cell
                     from openpyxl.utils import get_column_letter
@@ -364,14 +406,29 @@ class ExcelWordRenderer:
     def _auto_adjust_columns(self, sheet, layout: UnifiedLayout):
         """
         Auto-adjust column widths based on content.
+        STEP-10: Fully dynamic - only processes columns that actually exist in layout.
         COLUMN STABILITY: Only adjusts width, does NOT infer new columns.
         Column indices from UnifiedLayout are final.
         """
+        # STEP-10: Dynamic column detection - determine max column from actual cells
         max_col = layout.get_max_column()
         
-        # COLUMN STABILITY: Only process columns that exist in UnifiedLayout
-        # Do NOT create or infer new columns
-        for col_idx in range(max_col):
+        if max_col == 0:
+            logger.warning("No columns detected in layout - skipping column width adjustment")
+            return
+        
+        # STEP-10: Dynamic column processing - only process columns that have cells
+        # Build set of actual column indices from cells (not assumptions)
+        actual_column_indices = set()
+        for row in layout.rows:
+            for cell in row:
+                actual_column_indices.add(cell.column)
+        
+        # Only process columns that actually exist (dynamic, no hardcoded range)
+        for col_idx in sorted(actual_column_indices):
+            if col_idx >= max_col:
+                continue  # Skip if beyond detected max
+                
             column_letter = get_column_letter(col_idx + 1)
             max_length = 0
             

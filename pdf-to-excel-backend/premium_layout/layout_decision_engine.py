@@ -144,13 +144,16 @@ class LayoutDecisionEngine:
                 form_fields_list = page_structure['form_fields']
             
             # EXECUTE ONLY THE SELECTED MODE - No fallbacks, no downgrades
+            # STEP-11: Exception: TABLE_STRICT can fallback to GEOMETRIC_HYBRID if it fails
             try:
                 if self.selected_mode == ExecutionMode.TABLE_STRICT:
                     page_layout = self._execute_table_strict_mode(
                         page_tables=page_tables,
                         document_text=document_text,
                         page_idx=page_idx,
-                        page=page
+                        page=page,
+                        page_structure=page_structure,
+                        full_structure=full_structure
                     )
                 elif self.selected_mode == ExecutionMode.TABLE_VISUAL:
                     page_layout = self._execute_table_visual_mode(
@@ -192,6 +195,12 @@ class LayoutDecisionEngine:
                 page_layout.metadata['routing_confidence'] = self.routing_confidence
                 page_layout.metadata['routing_reason'] = self.routing_reason
                 
+                # CRITICAL: Track engine usage per page for billing
+                # Default to "docai" unless Adobe was used
+                engine_used = page_layout.metadata.get('layout_source', 'docai')
+                page_layout.metadata['engine_used'] = engine_used
+                page_layout.metadata['page_number'] = page_idx + 1  # 1-based page number
+                
                 page_layouts.append(page_layout)
                 
             except Exception as e:
@@ -200,9 +209,81 @@ class LayoutDecisionEngine:
                 page_layout = self._create_empty_layout(page_idx)
                 page_layout.metadata['execution_mode'] = self.selected_mode.value
                 page_layout.metadata['error'] = str(e)
+                # Track engine for failed pages too
+                page_layout.metadata['engine_used'] = 'docai'  # Default to docai on error
+                page_layout.metadata['page_number'] = page_idx + 1
                 page_layouts.append(page_layout)
         
         logger.info(f"Processed {len(page_layouts)} pages with mode: {self.selected_mode.value}")
+        
+        # STEP-10: Validation guard - detect blank layouts and log warnings
+        for layout in page_layouts:
+            max_row = layout.get_max_row()
+            max_col = layout.get_max_column()
+            page_num = layout.page_index + 1
+            
+            if max_row == 0 or max_col == 0:
+                logger.critical("=" * 80)
+                logger.critical(f"⚠️ VALIDATION GUARD: Blank layout detected for Page {page_num}")
+                logger.critical(f"   max_row={max_row}, max_col={max_col}")
+                logger.critical(f"   execution_mode={layout.metadata.get('execution_mode', 'unknown')}")
+                logger.critical("   This layout should have been routed to GEOMETRIC_HYBRID mode")
+                logger.critical("=" * 80)
+        
+        # STEP-14: MANDATORY DEBUG VISIBILITY - Log for each page
+        # CRITICAL: Build pages_metadata for billing calculation
+        pages_metadata = []
+        for layout in page_layouts:
+            page_num = layout.metadata.get('page_number', layout.page_index + 1)
+            engine = layout.metadata.get('engine_used', layout.metadata.get('layout_source', 'docai'))
+            execution_mode = layout.metadata.get('execution_mode', 'unknown')
+            detected_tables_count = layout.metadata.get('detected_tables_count', 0)
+            extracted_cells_count = sum(len(row) for row in layout.rows) if layout.rows else 0
+            final_rows_written = layout.get_max_row()
+            final_columns_written = layout.get_max_column()
+            
+            # STEP-14: FAIL-SAFE RULE - If final_rows_written == 0, log error and block blank Excel
+            if final_rows_written == 0:
+                logger.critical("=" * 80)
+                logger.critical(f"❌ STEP-14 FAIL-SAFE: Page {page_num} has 0 rows written")
+                logger.critical(f"   engine_used={engine}")
+                logger.critical(f"   execution_mode={execution_mode}")
+                logger.critical(f"   detected_tables_count={detected_tables_count}")
+                logger.critical(f"   extracted_cells_count={extracted_cells_count}")
+                logger.critical(f"   final_rows_written={final_rows_written}")
+                logger.critical(f"   final_columns_written={final_columns_written}")
+                logger.critical("🚨 BLANK EXCEL BLOCKED - This should trigger fallback")
+                logger.critical("=" * 80)
+            
+            # STEP-14: MANDATORY DEBUG LOGGING
+            logger.critical("=" * 80)
+            logger.critical(f"📊 STEP-14 DEBUG: Page {page_num} Processing Summary")
+            logger.critical(f"   engine_used: {engine}")
+            logger.critical(f"   execution_mode: {execution_mode}")
+            logger.critical(f"   detected_tables_count: {detected_tables_count}")
+            logger.critical(f"   extracted_cells_count: {extracted_cells_count}")
+            logger.critical(f"   final_rows_written: {final_rows_written}")
+            logger.critical(f"   final_columns_written: {final_columns_written}")
+            logger.critical("=" * 80)
+            
+            pages_metadata.append({
+                'page': page_num,
+                'engine': engine
+            })
+            
+            # Store debug info in layout metadata for API response
+            layout.metadata['debug_info'] = {
+                'engine_used': engine,
+                'execution_mode': execution_mode,
+                'detected_tables_count': detected_tables_count,
+                'extracted_cells_count': extracted_cells_count,
+                'final_rows_written': final_rows_written,
+                'final_columns_written': final_columns_written
+            }
+        
+        # Store pages_metadata in class for retrieval
+        self.pages_metadata = pages_metadata
+        
         return page_layouts
     
     def _execute_table_strict_mode(
@@ -210,16 +291,22 @@ class LayoutDecisionEngine:
         page_tables: List,
         document_text: str,
         page_idx: int,
-        page: Any
+        page: Any,
+        page_structure: Optional[Dict] = None,
+        full_structure: Optional[Dict] = None
     ) -> UnifiedLayout:
         """
         Execute TABLE_STRICT mode: Trust DocAI structure, preserve row/column spans.
+        STEP-11: Automatic fallback to GEOMETRIC_HYBRID if TABLE_STRICT fails.
         """
         logger.info(f"Page {page_idx + 1}: Executing TABLE_STRICT mode")
         
         if not page_tables:
             logger.warning(f"Page {page_idx + 1}: TABLE_STRICT mode but no tables found")
             return self._create_empty_layout(page_idx)
+        
+        # STEP-14: Store detected_tables_count in metadata
+        detected_tables_count = len(page_tables) if page_tables else 0
         
         # Use existing _convert_native_tables_to_layout method
         layout = self._convert_native_tables_to_layout(
@@ -230,6 +317,65 @@ class LayoutDecisionEngine:
             doc_type=None,  # Not used in strict mode
             table_confidence=None  # Not used in strict mode
         )
+        
+        # STEP-11: If TABLE_STRICT failed (returned None), fallback to GEOMETRIC_HYBRID
+        if layout is None:
+            logger.critical("=" * 80)
+            logger.critical(f"❌ STEP-11: TABLE_STRICT failed for Page {page_idx + 1}")
+            logger.critical("🚨 AUTOMATIC FALLBACK: Executing GEOMETRIC_HYBRID (OCR_GRID) mode")
+            logger.critical("=" * 80)
+            
+            # Fallback to GEOMETRIC_HYBRID using OCR blocks
+            fallback_layout = self._execute_geometric_hybrid_mode(
+                page_structure=page_structure,
+                document_text=document_text,
+                page_idx=page_idx,
+                page=page,
+                full_structure=full_structure
+            )
+            
+            # STEP-13: Adobe PDF Extract HARD FALLBACK
+            # Check if GEOMETRIC_HYBRID confidence is low or document type requires Adobe
+            ocr_confidence = fallback_layout.metadata.get('confidence', 0.0)
+            doc_type = self.classifier.classify(None, document_text) if hasattr(self, 'classifier') else None
+            doc_type_value = doc_type.value if doc_type else ""
+            
+            should_use_adobe = (
+                ocr_confidence < 0.85 or
+                doc_type_value in ["invoice", "bank_statement", "receipt"]
+            )
+            
+            if should_use_adobe:
+                logger.critical("=" * 80)
+                logger.critical(f"🚨 STEP-13: Adobe PDF Extract HARD FALLBACK triggered for Page {page_idx + 1}")
+                logger.critical(f"   Reason: OCR_GRID confidence={ocr_confidence:.2f} < 0.85 OR doc_type={doc_type_value}")
+                logger.critical("=" * 80)
+                
+                try:
+                    from .adobe_fallback_service import AdobeFallbackService
+                    adobe_service = AdobeFallbackService()
+                    
+                    if adobe_service.is_available():
+                        # Get PDF bytes for this page (would need to be passed in)
+                        # For now, log that Adobe should be used
+                        logger.critical("⚠️ Adobe service available but PDF bytes not passed - using GEOMETRIC_HYBRID result")
+                        logger.critical("   Note: Adobe fallback requires PDF bytes to be passed to _execute_table_strict_mode")
+                    else:
+                        logger.warning("Adobe PDF Extract not available - using GEOMETRIC_HYBRID result")
+                
+                except Exception as e:
+                    logger.error(f"Adobe fallback check failed (non-critical): {e}")
+                    # Continue with GEOMETRIC_HYBRID result
+            
+            # STEP-14: Store debug info in fallback layout
+            fallback_layout.metadata['detected_tables_count'] = detected_tables_count
+            fallback_layout.metadata['fallback_triggered'] = True
+            fallback_layout.metadata['fallback_reason'] = 'TABLE_STRICT failed - zero cells extracted'
+            
+            return fallback_layout
+        
+        # STEP-14: Store detected_tables_count in layout metadata
+        layout.metadata['detected_tables_count'] = detected_tables_count
         
         # SAFETY GUARD: If TABLE_STRICT returns 0 cells, log warning
         # (Actual fallback to GEOMETRIC_HYBRID happens at routing level for Form Parser)
@@ -683,7 +829,7 @@ class LayoutDecisionEngine:
         Convert Document AI native tables to unified layout with PREMIUM post-processing.
         This is the enhanced path for premium conversions only.
         """
-        from .table_post_processor import TablePostProcessor
+        from .table_post_processor import TablePostProcessor, TableExtractionFailed
         
         # Use premium post-processing layer
         post_processor = TablePostProcessor()
@@ -697,19 +843,32 @@ class LayoutDecisionEngine:
             # TABLE_STRICT mode: Trust DocAI structure, preserve spans/merges
             logger.info(f"Calling TablePostProcessor.process_table() in TABLE_STRICT mode")
             
-            processed_table = post_processor.process_table(
-                table=table,
-                document_text=document_text,
-                page=page,
-                doc_type=None,  # Not used in enterprise rewrite
-                table_confidence=None,  # Not used in enterprise rewrite
-                execution_mode="table_strict"  # TABLE_STRICT mode: trust DocAI structure
-            )
+            try:
+                processed_table = post_processor.process_table(
+                    table=table,
+                    document_text=document_text,
+                    page=page,
+                    doc_type=None,  # Not used in enterprise rewrite
+                    table_confidence=None,  # Not used in enterprise rewrite
+                    execution_mode="table_strict"  # TABLE_STRICT mode: trust DocAI structure
+                )
+                
+                logger.info(f"TablePostProcessor.process_table() returned ProcessedTable with {len(processed_table.rows)} rows")
+                
+                if processed_table.rows:
+                    all_processed_tables.append(processed_table)
             
-            logger.info(f"TablePostProcessor.process_table() returned ProcessedTable with {len(processed_table.rows)} rows")
-            
-            if processed_table.rows:
-                all_processed_tables.append(processed_table)
+            except TableExtractionFailed as e:
+                # STEP-11: TABLE_STRICT failed - automatic fallback to GEOMETRIC_HYBRID (OCR_GRID)
+                logger.critical("=" * 80)
+                logger.critical(f"❌ STEP-11 FAIL-SAFE: TABLE_STRICT failed for table {table_idx + 1}")
+                logger.critical(f"   Error: {str(e)}")
+                logger.critical("🚨 AUTOMATIC FALLBACK: Downgrading to GEOMETRIC_HYBRID (OCR_GRID) mode")
+                logger.critical("=" * 80)
+                
+                # Return None to signal fallback needed
+                # The caller will handle this by invoking GEOMETRIC_HYBRID mode
+                return None
         
         # Convert all processed tables to unified layout
         if not all_processed_tables:

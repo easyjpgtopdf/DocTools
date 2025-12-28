@@ -1,5 +1,5 @@
 # Use Python 3.11 slim as base image
-# Build timestamp: 2025-12-28T11:30:00Z - Force cache invalidation for GEOMETRIC_HYBRID mode + Form Parser fix
+# Build timestamp: 2025-12-28T14:45:00Z - Force cache invalidation for STEP-11-14: Enterprise fail-safes + pricing + Adobe fallback + debug
 FROM python:3.11-slim
 
 # Set working directory
@@ -21,6 +21,7 @@ COPY *.py ./
 COPY free_pdf_to_excel/ ./free_pdf_to_excel/
 COPY free_heuristic/ ./free_heuristic/
 COPY premium_layout/ ./premium_layout/
+COPY billing/ ./billing/
 
 # Expose port
 EXPOSE 8080

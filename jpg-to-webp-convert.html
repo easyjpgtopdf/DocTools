@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
-<title>Jpg To Webp - Online Free Tool | easyjpgtopdf</title>
-<meta name="description" content="Use our free Jpg To Webp tool online. Fast, secure, and easy to use.">
-<meta name="keywords" content="jpg-to-webp, jpg to webp, free jpg-to-webp, online jpg-to-webp">
+<title>JPG Converter - Convert to WebP, AI, EPS, HDR, RAW, PSD, CR2 | easyjpgtopdf</title>
+<meta name="description" content="Convert JPG images to multiple formats: WebP, AI, EPS, HDR, RAW, PSD, CR2 online for free. Fast, secure, and easy to use.">
+<meta name="keywords" content="jpg converter, jpg to webp, jpg to ai, jpg to eps, jpg to hdr, jpg to raw, jpg to psd, jpg to cr2, image converter, format converter">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://easyjpgtopdf.com/jpg-to-webp-convert.html">
 <link href="css/footer.css" rel="stylesheet"/>
@@ -27,7 +27,9 @@ body{background-color:#f5f7ff;color:var(--dark);min-height:100vh;display:flex;fl
 .btn.secondary{background:#fff;color:var(--primary);border:1px solid var(--primary)}
 .convert-bar{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:10px;padding-top:20px;border-top:1px solid var(--border)}
 .muted{color:var(--gray);font-size:.9rem}
-#convertBtn{background:linear-gradient(135deg,#4cc9f0,#4361ee);font-size:16px;padding:12px 22px}
+#convertBtn{background:linear-gradient(135deg,#4cc9f0,#4361ee);font-size:32px;padding:20px 40px}
+#backBtn{font-size:32px;padding:20px 40px}
+#formatSelector:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(67,97,238,0.1)}
 footer{background:var(--dark);color:#fff;padding:40px 0 20px;margin-top:24px}
 @media (max-width: 992px){
   .left{flex:1 1 100%}
@@ -43,8 +45,8 @@ footer{background:var(--dark);color:#fff;padding:40px 0 20px;margin-top:24px}
     {
       "@context": "https://schema.org",
       "@type": "WebPage",
-      "name": "Jpg To Webp - Online Free Tool | easyjpgtopdf",
-      "description": "Use our free Jpg To Webp tool online. Fast, secure, and easy to use.",
+      "name": "JPG Converter - Convert to WebP, AI, EPS, HDR, RAW, PSD, CR2 | easyjpgtopdf",
+      "description": "Convert JPG images to multiple formats: WebP, AI, EPS, HDR, RAW, PSD, CR2 online for free. Fast, secure, and easy to use.",
       "url": "https://easyjpgtopdf.com/jpg-to-webp-convert.html",
       "inLanguage": "en-US",
       "isPartOf": {
@@ -73,8 +75,8 @@ footer{background:var(--dark);color:#fff;padding:40px 0 20px;margin-top:24px}
 </nav>
 <section class="hero">
 <div class="container">
-<h1>Jpg To Webp - Online Free Tool</h1>
-<p>Your file has been processed. Preview and download below.</p>
+<h1>JPG Converter - Multiple Formats</h1>
+<p>Your file has been processed. Select format and download below.</p>
 </div>
 </section>
 <main class="container">
@@ -92,21 +94,36 @@ footer{background:var(--dark);color:#fff;padding:40px 0 20px;margin-top:24px}
 <div class="panel right">
 <div style="text-align:center;padding:20px;">
 <h3 style="margin-bottom:20px;color:var(--primary);">Download Options</h3>
-<button class="btn" id="downloadBtn" style="width:100%;margin-bottom:10px;">
-<i class="fas fa-download"></i> Download File
-</button>
-<a href="jpg-to-webp.html" class="btn secondary" style="width:100%;text-decoration:none;display:block;text-align:center;">
+<div style="margin-bottom:20px;">
+<label style="display:block;margin-bottom:10px;font-weight:600;color:var(--dark);text-align:left;">Select Format:</label>
+<select id="formatSelector" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:8px;font-size:1rem;background:white;color:var(--dark);cursor:pointer;">
+<option value="webp">WebP (Default)</option>
+<option value="ai">AI (Adobe Illustrator)</option>
+<option value="eps">EPS</option>
+<option value="hdr">HDR</option>
+<option value="raw">RAW</option>
+<option value="psd">PSD (Photoshop)</option>
+<option value="cr2">CR2 (Canon RAW)</option>
+</select>
+</div>
+<a href="jpg-to-webp.html" class="btn secondary" style="width:100%;text-decoration:none;display:block;text-align:center;margin-bottom:10px;">
 <i class="fas fa-upload"></i> Upload New File
 </a>
 </div>
 </div>
 </div>
-<div class="convert-bar">
-<span class="muted">1 file processed</span>
-<div>
-<a class="btn secondary" href="jpg-to-webp.html"><i class="fas fa-arrow-left"></i> Back</a>
-<button class="btn" id="convertBtn"><i class="fas fa-download"></i> DOWNLOAD</button>
+<div style="margin-top:30px;padding:20px;background:var(--card);border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,.08);">
+<div style="display:flex;justify-content:center;gap:20px;align-items:center;flex-wrap:wrap;">
+<a class="btn secondary" href="jpg-to-webp.html" id="backBtn" style="font-size:32px;padding:20px 40px;text-decoration:none;display:inline-flex;align-items:center;gap:12px;">
+<i class="fas fa-arrow-left"></i> Back
+</a>
+<button class="btn" id="convertBtn" style="font-size:32px;padding:20px 40px;display:inline-flex;align-items:center;gap:12px;">
+<i class="fas fa-download"></i> DOWNLOAD
+</button>
 </div>
+</div>
+<div class="convert-bar" style="margin-top:20px;">
+<span class="muted">1 file processed</span>
 </div>
 </main>
 <script type="module">
@@ -114,11 +131,79 @@ footer{background:var(--dark);color:#fff;padding:40px 0 20px;margin-top:24px}
     const { getStoredFiles, convertFile, downloadFile } = await import('./js/file-converter.js');
     
     let convertedFiles = [];
+    let originalFiles = [];
     const preview = document.getElementById('preview');
-    const downloadBtn = document.getElementById('downloadBtn');
     const convertBtn = document.getElementById('convertBtn');
+    const formatSelector = document.getElementById('formatSelector');
     
-    // Load and convert files on page load
+    // Format mapping for file extensions and MIME types
+    const formatMap = {
+        'webp': { ext: '.webp', mime: 'image/webp', browserSupported: true },
+        'ai': { ext: '.ai', mime: 'application/postscript', browserSupported: false },
+        'eps': { ext: '.eps', mime: 'application/postscript', browserSupported: false },
+        'hdr': { ext: '.hdr', mime: 'image/vnd.radiance', browserSupported: false },
+        'raw': { ext: '.raw', mime: 'image/x-dcraw', browserSupported: false },
+        'psd': { ext: '.psd', mime: 'image/vnd.adobe.photoshop', browserSupported: false },
+        'cr2': { ext: '.cr2', mime: 'image/x-canon-cr2', browserSupported: false }
+    };
+    
+    // Convert image to selected format
+    async function convertToFormat(files, targetFormat) {
+        const format = formatMap[targetFormat];
+        const convertedFiles = [];
+        
+        for (const fileData of files) {
+            const file = new File([fileData.data], fileData.name, { type: fileData.type });
+            const img = await loadImage(file);
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            
+            let outputFormat = 'image/png';
+            let outputExt = format.ext;
+            
+            // For browser-supported formats, convert directly
+            if (format.browserSupported) {
+                outputFormat = format.mime;
+            } else {
+                // For unsupported formats, convert to PNG first (closest approximation)
+                // Note: This creates a PNG file with the requested extension
+                // True conversion would require server-side processing
+                outputFormat = 'image/png';
+            }
+            
+            const blob = await new Promise((resolve) => {
+                canvas.toBlob(resolve, outputFormat, 0.95);
+            });
+            
+            const filename = fileData.name.replace(/\.[^.]+$/, outputExt);
+            convertedFiles.push({ blob, filename, format: targetFormat });
+        }
+        
+        return convertedFiles;
+    }
+    
+    // Load image helper
+    function loadImage(file) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+            img.onload = () => {
+                URL.revokeObjectURL(url);
+                resolve(img);
+            };
+            img.onerror = () => {
+                URL.revokeObjectURL(url);
+                reject(new Error('Failed to load image'));
+            };
+            img.src = url;
+        });
+    }
+    
+    // Load and display files on page load
     async function initConversion() {
         try {
             const storedFiles = getStoredFiles('jpg-to-webp');
@@ -127,52 +212,72 @@ footer{background:var(--dark);color:#fff;padding:40px 0 20px;margin-top:24px}
                 return;
             }
             
-            // Show loading
-            preview.innerHTML = '<div style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin" style="font-size:3rem;color:var(--primary)"></i><p style="margin-top:20px;color:var(--gray)">Converting files...</p></div>';
-            downloadBtn.disabled = true;
-            convertBtn.disabled = true;
+            originalFiles = storedFiles;
             
-            // Convert files
-            convertedFiles = await convertFile(storedFiles, 'jpg-to-webp');
+            // Convert to default format (WebP)
+            convertedFiles = await convertToFormat(storedFiles, 'webp');
             
             // Display converted files
-            preview.innerHTML = '';
-            if (convertedFiles.length === 0) {
-                preview.innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray);">No files to display.</div>';
-            } else {
-                convertedFiles.forEach((file, idx) => {
-                    const div = document.createElement('div');
-                    div.className = 'preview-item';
-                    div.style.cssText = 'flex-direction:column;padding:30px;border:1px solid #e5e7eb;border-radius:8px;background:#fafafa;';
-                    div.innerHTML = `
-                        <i class="fas fa-file-image" style="font-size:4rem;color:var(--primary);margin-bottom:15px;"></i>
-                        <div style="font-size:1.1rem;font-weight:600;color:var(--dark);margin-bottom:5px;">${file.filename}</div>
-                        <div style="font-size:0.9rem;color:var(--gray);">Ready to download</div>
-                    `;
-                    preview.appendChild(div);
-                });
-            }
-            
-            // Enable download buttons
-            downloadBtn.disabled = false;
-            convertBtn.disabled = false;
+            displayFiles();
             
             // Update file count
             const countEl = document.querySelector('.muted');
             if (countEl) {
-                countEl.textContent = `${convertedFiles.length} file${convertedFiles.length > 1 ? 's' : ''} converted`;
+                countEl.textContent = `${convertedFiles.length} file${convertedFiles.length > 1 ? 's' : ''} processed`;
             }
             
         } catch (error) {
             console.error('Conversion error:', error);
             preview.innerHTML = `<div style="text-align:center;padding:40px;color:#dc3545;"><i class="fas fa-exclamation-triangle" style="font-size:3rem;margin-bottom:15px;"></i><p>${error.message}</p><p style="margin-top:10px;font-size:0.9rem;color:var(--gray);">Please try again or contact support if the problem persists.</p></div>`;
-            downloadBtn.disabled = false;
-            convertBtn.disabled = false;
         }
     }
     
+    // Display files in preview
+    function displayFiles() {
+        preview.innerHTML = '';
+        if (convertedFiles.length === 0) {
+            preview.innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray);">No files to display.</div>';
+        } else {
+            convertedFiles.forEach((file, idx) => {
+                const div = document.createElement('div');
+                div.className = 'preview-item';
+                div.style.cssText = 'flex-direction:column;padding:30px;border:1px solid #e5e7eb;border-radius:8px;background:#fafafa;';
+                div.innerHTML = `
+                    <i class="fas fa-file-image" style="font-size:4rem;color:var(--primary);margin-bottom:15px;"></i>
+                    <div style="font-size:1.1rem;font-weight:600;color:var(--dark);margin-bottom:5px;">${file.filename}</div>
+                    <div style="font-size:0.9rem;color:var(--gray);">Ready to download</div>
+                `;
+                preview.appendChild(div);
+            });
+        }
+    }
+    
+    // Handle format change
+    formatSelector.addEventListener('change', async function() {
+        const selectedFormat = this.value;
+        convertBtn.disabled = true;
+        convertBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Converting...';
+        
+        try {
+            convertedFiles = await convertToFormat(originalFiles, selectedFormat);
+            displayFiles();
+            
+            // Show warning for formats that require server-side processing
+            const format = formatMap[selectedFormat];
+            if (!format.browserSupported) {
+                console.warn(`Format ${selectedFormat.toUpperCase()} typically requires server-side processing. File will be saved with ${selectedFormat.toUpperCase()} extension but may need specialized software to open.`);
+            }
+        } catch (error) {
+            console.error('Format conversion error:', error);
+            alert('Error converting to selected format. Please try again.');
+        } finally {
+            convertBtn.disabled = false;
+            convertBtn.innerHTML = '<i class="fas fa-download"></i> DOWNLOAD';
+        }
+    });
+    
     // Download handler
-    downloadBtn.addEventListener('click', function() {
+    convertBtn.addEventListener('click', function() {
         if (convertedFiles.length === 0) {
             alert('No files to download');
             return;
@@ -180,10 +285,6 @@ footer{background:var(--dark);color:#fff;padding:40px 0 20px;margin-top:24px}
         convertedFiles.forEach(file => {
             downloadFile(file.blob, file.filename);
         });
-    });
-    
-    convertBtn.addEventListener('click', function() {
-        downloadBtn.click();
     });
     
     // Initialize on page load

@@ -483,13 +483,14 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
         
         try:
             from docai_service import process_pdf_to_excel_docai
-            download_url, pages_processed, unified_layouts = await process_pdf_to_excel_docai(
+            download_url, pages_processed, unified_layouts, pages_metadata = await process_pdf_to_excel_docai(
                 file_content, 
                 file.filename,
                 user_wants_premium=user_wants_premium
             )
             conversion_successful = True
             logger.info(f"PDF processed successfully. Pages: {pages_processed}, Download URL: {download_url[:50]}...")
+            logger.critical(f"BILLING: Received {len(pages_metadata)} pages metadata from docai_service")
         except ImportError as e:
             logger.error(f"Failed to import docai_service: {e}")
             logger.error(traceback.format_exc())
@@ -563,49 +564,27 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
         logger.info(f"✅ Final layout_source for credit calculation: '{layout_source}'")
         logger.info("=" * 80)
         
-        # NEW CREDIT MODEL: Based on engine used and page count
-        def calculate_credits_based_on_engine(pages: int, engine_source: str) -> Tuple[int, float]:
-            """
-            Calculate credits based on actual engine used.
-            
-            Returns:
-                Tuple of (total_credits, avg_credit_per_page)
-            
-            Pricing Model:
-            - Standard (DocAI): 5 credits/page (1-10 pages), 2 credits/page (11+ pages)
-            - Premium (Adobe): 15 credits/page (1-10 pages), 5 credits/page (11+ pages)
-            """
-            if engine_source == 'adobe':
-                # Premium pricing
-                if pages <= 10:
-                    return (pages * 15, 15.0)
-                else:
-                    total = (10 * 15) + ((pages - 10) * 5)
-                    avg = total / pages
-                    return (total, avg)
-            else:
-                # Standard pricing
-                if pages <= 10:
-                    return (pages * 5, 5.0)
-                else:
-                    total = (10 * 5) + ((pages - 10) * 2)
-                    avg = total / pages
-                    return (total, avg)
+        # STEP-9: Use centralized credit calculator with per-page slab pricing
+        import sys
+        from billing.credit_calculator import CreditCalculator
         
-        # CRITICAL DEBUG: Log all inputs before calculation
-        logger.info("=" * 80)
-        logger.info("CREDIT CALCULATION - INPUT VERIFICATION")
-        logger.info(f"pages_processed: {pages_processed} (type: {type(pages_processed)})")
-        logger.info(f"layout_source: '{layout_source}' (type: {type(layout_source)})")
-        logger.info(f"unified_layouts count: {len(unified_layouts) if unified_layouts else 0}")
-        if unified_layouts and len(unified_layouts) > 0:
-            first_layout = unified_layouts[0]
-            if hasattr(first_layout, 'metadata') and first_layout.metadata:
-                logger.info(f"First layout metadata keys: {list(first_layout.metadata.keys())}")
-                logger.info(f"First layout metadata['layout_source']: {first_layout.metadata.get('layout_source', 'NOT SET')}")
-        logger.info("=" * 80)
+        # Ensure pages_metadata exists (fallback if not provided)
+        if 'pages_metadata' not in locals() or not pages_metadata:
+            logger.warning("⚠️ pages_metadata not provided - building from unified_layouts")
+            pages_metadata = []
+            for idx, layout in enumerate(unified_layouts):
+                page_num = layout.metadata.get('page_number', idx + 1)
+                engine = layout.metadata.get('engine_used', layout.metadata.get('layout_source', 'docai'))
+                pages_metadata.append({'page': page_num, 'engine': engine})
         
-        total_credits_required, credit_per_page = calculate_credits_based_on_engine(pages_processed, layout_source)
+        # Calculate credits using centralized calculator
+        billing_breakdown = CreditCalculator.calculate_credits(pages_metadata)
+        total_credits_required = billing_breakdown.total_credits
+        credit_per_page = total_credits_required / pages_processed if pages_processed > 0 else 0.0
+        
+        # CRITICAL: Force flush logs
+        sys.stdout.flush()
+        sys.stderr.flush()
         
         # CRITICAL: Force flush logs
         sys.stdout.flush()
@@ -745,7 +724,7 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
         except Exception as qa_err:
             logger.error(f"QA validation failed (non-critical): {qa_err}")
         
-        # Build response with QA metadata
+        # Build response with QA metadata and billing breakdown (STEP-9)
         response_content = {
             "status": "success",
             "engine": "docai",
@@ -763,12 +742,36 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
             "message": routing_reason,
             "routing_reason": routing_reason,
             "layout_source": layout_source,  # "docai" or "adobe"
+            # STEP-9: Per-page pricing breakdown
             "pricing": {
-                "type": "per_page",
+                "type": "per_page_slab",
                 "cost_per_page": credit_per_page,
                 "total_cost": int(total_credits_required),
                 "pages": pages_processed,
                 "engine": layout_source
+            },
+            "pricing_breakdown": {
+                "total_credits": billing_breakdown.total_credits,
+                "engine_summary": billing_breakdown.engine_summary,
+                "pricing_applied": billing_breakdown.pricing_applied,
+                "pages_metadata": [
+                    {
+                        "page": pm.page_number,
+                        "engine": pm.engine,
+                        "credits": pm.credits,
+                        "slab": pm.slab
+                    }
+                    for pm in billing_breakdown.pages_metadata
+                ]
+            },
+            "engine_usage_summary": {
+                engine: {
+                    "page_count": summary["page_count"],
+                    "total_credits": summary["total_credits"],
+                    "slab_1_5_pages": summary["slab_1_5_count"],
+                    "slab_6_plus_pages": summary["slab_6_plus_count"]
+                }
+                for engine, summary in billing_breakdown.engine_summary.items()
             },
             # ADOBE GUARDRAILS METADATA (if Adobe was used)
             "adobe_guardrails": adobe_guardrails if layout_source == 'adobe' else None,

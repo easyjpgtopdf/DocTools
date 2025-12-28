@@ -417,10 +417,12 @@ async def process_pdf_to_excel_docai(
                             logger.info(f"✅ Adobe SUCCESS: Replacing {len(unified_layouts)} DocAI layouts with {len(adobe_layouts)} Adobe layouts")
                             unified_layouts = adobe_layouts
                             
-                            # Update metadata to indicate Adobe was used
-                            for layout in unified_layouts:
+                            # Update metadata to indicate Adobe was used (CRITICAL for billing)
+                            for idx, layout in enumerate(unified_layouts):
                                 if hasattr(layout, 'metadata'):
                                     layout.metadata['layout_source'] = 'adobe'
+                                    layout.metadata['engine_used'] = 'adobe'  # CRITICAL: For billing
+                                    layout.metadata['page_number'] = idx + 1  # CRITICAL: For billing
                                     layout.metadata['adobe_fallback_reason'] = fallback_reason
                                     layout.metadata['routing_confidence'] = adobe_confidence
                                     layout.metadata['adobe_cost_info'] = adobe_metadata
@@ -443,13 +445,18 @@ async def process_pdf_to_excel_docai(
                 logger.warning(f"Adobe fallback check failed (non-critical): {adobe_error}")
                 # Continue with Document AI results
             
-            # CRITICAL FIX: Set layout_source metadata for DocAI (if not already set by Adobe)
+            # CRITICAL FIX: Set layout_source, engine_used, and page_number metadata for DocAI (if not already set by Adobe)
             # This ensures main.py can properly calculate credits based on engine used
-            for layout in unified_layouts:
+            for idx, layout in enumerate(unified_layouts):
                 if hasattr(layout, 'metadata') and layout.metadata:
                     if 'layout_source' not in layout.metadata:
                         layout.metadata['layout_source'] = 'docai'
-                        logger.info(f"✅ Set layout_source='docai' in metadata for credit calculation")
+                    # Ensure engine_used and page_number are set for billing
+                    if 'engine_used' not in layout.metadata:
+                        layout.metadata['engine_used'] = layout.metadata.get('layout_source', 'docai')
+                    if 'page_number' not in layout.metadata:
+                        layout.metadata['page_number'] = idx + 1
+                    logger.info(f"✅ Page {idx + 1}: engine={layout.metadata.get('engine_used', 'docai')}, source={layout.metadata.get('layout_source', 'docai')}")
             
             # Check if any layout has content
             has_content = any(not layout.is_empty() for layout in unified_layouts)
@@ -605,7 +612,21 @@ async def process_pdf_to_excel_docai(
         # Ensure unified_layouts is always a list (even if empty)
         if unified_layouts is None:
             unified_layouts = []
-        return download_url, pages_processed, unified_layouts
+        
+        # CRITICAL: Extract pages_metadata for billing calculation (STEP-9)
+        pages_metadata = []
+        for layout in unified_layouts:
+            page_num = layout.metadata.get('page_number', layout.page_index + 1)
+            engine = layout.metadata.get('engine_used', layout.metadata.get('layout_source', 'docai'))
+            pages_metadata.append({
+                'page': page_num,
+                'engine': engine
+            })
+            logger.critical(f"BILLING METADATA: Page {page_num} → engine={engine}")
+        
+        logger.critical(f"BILLING: Extracted {len(pages_metadata)} pages metadata for credit calculation")
+        
+        return download_url, pages_processed, unified_layouts, pages_metadata
         
     except gcp_exceptions.GoogleAPIError as e:
         raise Exception(f"Document AI API error: {str(e)}")

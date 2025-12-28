@@ -97,9 +97,10 @@ class DecisionRouter:
             logger.critical("=" * 80)
             logger.critical("🚫 FORM PARSER DETECTED: Blocking TABLE_STRICT, forcing GEOMETRIC_HYBRID")
             logger.critical("Reason: Form Parser tables do not populate table.cells structure")
+            logger.critical("Form Parser detected — forcing GEOMETRIC_HYBRID to prevent blank Excel")
             logger.critical("=" * 80)
             confidence = 0.95
-            reason = "Form Parser tables require geometric extraction (unlimited rows/columns from OCR blocks)"
+            reason = "Form Parser detected — forcing GEOMETRIC_HYBRID to prevent blank Excel (TABLE_STRICT blocked)"
             self._log_routing_decision(0, ExecutionMode.GEOMETRIC_HYBRID, confidence, reason)
             return (ExecutionMode.GEOMETRIC_HYBRID, confidence, reason)
         
@@ -115,15 +116,52 @@ class DecisionRouter:
             # FORCE TABLE_MODE - never allow KEY_VALUE for multi-column documents
             logger.warning(f"🚫 HARD BLOCK: detected_columns={detected_columns} >= 2 - FORCING TABLE_MODE, KEY_VALUE BLOCKED")
             
+            # STEP-10: CRITICAL GUARD - Never use TABLE_STRICT for Form Parser
+            # Form Parser tables have incompatible cell schema → 0 cells extracted → blank Excel
+            if processor_type == "form-parser-docai":
+                logger.critical("=" * 80)
+                logger.critical("🚫 FORM PARSER DETECTED in multi-column routing: Blocking TABLE_STRICT")
+                logger.critical("Forcing TABLE_VISUAL to prevent blank Excel")
+                logger.critical("=" * 80)
+                confidence = 0.9
+                reason = f"TABLE_MODE FORCED: {detected_columns} columns detected (Form Parser - using TABLE_VISUAL, TABLE_STRICT blocked)"
+                self._log_routing_decision(detected_columns, ExecutionMode.TABLE_VISUAL, confidence, reason, "detected_columns >= 2 + Form Parser")
+                return (ExecutionMode.TABLE_VISUAL, confidence, reason)
+            
             # Check if we have native tables first
             if native_tables and len(native_tables) > 0:
                 valid_tables = [t for t in native_tables if self._is_valid_table(t)]
                 if valid_tables:
-                    confidence = min(1.0, len(valid_tables) * 0.3 + 0.6)  # Higher confidence for forced table mode
-                    reason = f"TABLE_MODE FORCED: {detected_columns} columns detected (native tables present) - KEY_VALUE blocked"
-                    logger.info(f"DecisionRouter selected mode: TABLE_STRICT - {reason}")
-                    self._log_routing_decision(detected_columns, ExecutionMode.TABLE_STRICT, confidence, reason, "detected_columns >= 2")
-                    return (ExecutionMode.TABLE_STRICT, confidence, reason)
+                    # STEP-10: Additional safety - only allow TABLE_STRICT if table has cells
+                    # Check if tables actually have cell structure (not Form Parser schema)
+                    has_valid_cells = False
+                    for table in valid_tables:
+                        if hasattr(table, 'header_rows') and table.header_rows:
+                            for row in table.header_rows:
+                                if hasattr(row, 'cells') and len(row.cells) > 0:
+                                    has_valid_cells = True
+                                    break
+                        if not has_valid_cells and hasattr(table, 'body_rows') and table.body_rows:
+                            for row in table.body_rows:
+                                if hasattr(row, 'cells') and len(row.cells) > 0:
+                                    has_valid_cells = True
+                                    break
+                        if has_valid_cells:
+                            break
+                    
+                    if has_valid_cells:
+                        confidence = min(1.0, len(valid_tables) * 0.3 + 0.6)  # Higher confidence for forced table mode
+                        reason = f"TABLE_MODE FORCED: {detected_columns} columns detected (native tables present) - KEY_VALUE blocked"
+                        logger.info(f"DecisionRouter selected mode: TABLE_STRICT - {reason}")
+                        self._log_routing_decision(detected_columns, ExecutionMode.TABLE_STRICT, confidence, reason, "detected_columns >= 2")
+                        return (ExecutionMode.TABLE_STRICT, confidence, reason)
+                    else:
+                        # Tables exist but no valid cells (likely Form Parser schema) - use TABLE_VISUAL
+                        logger.warning(f"⚠️ Tables detected but no valid cells found - likely Form Parser schema, using TABLE_VISUAL")
+                        confidence = 0.8
+                        reason = f"TABLE_MODE FORCED: {detected_columns} columns detected (tables without valid cells - using TABLE_VISUAL)"
+                        self._log_routing_decision(detected_columns, ExecutionMode.TABLE_VISUAL, confidence, reason, "detected_columns >= 2 + no valid cells")
+                        return (ExecutionMode.TABLE_VISUAL, confidence, reason)
             
             # If no native tables, check for visual table patterns
             if doc_type == DocumentType.DIGITAL_PDF:
@@ -143,13 +181,49 @@ class DecisionRouter:
             return (ExecutionMode.TABLE_VISUAL, confidence, reason)
         
         # ROUTING RULE 1: If native DocAI tables exist → TABLE_STRICT
+        # STEP-10: CRITICAL GUARD - Never use TABLE_STRICT for Form Parser
         # CRITICAL: Form Parser already handled above, so this only applies to non-Form-Parser processors
         # CRITICAL FIX: Check tables FIRST, even for invoices/bills
         # Invoices often have line items tables that should use TABLE_STRICT
         if native_tables and len(native_tables) > 0:
+            # STEP-10: Additional guard - block TABLE_STRICT for Form Parser even here
+            if processor_type == "form-parser-docai":
+                logger.critical("=" * 80)
+                logger.critical("🚫 FORM PARSER DETECTED in table routing: Blocking TABLE_STRICT")
+                logger.critical("Forcing TABLE_VISUAL to prevent blank Excel")
+                logger.critical("=" * 80)
+                confidence = 0.9
+                reason = "Form Parser detected — forcing TABLE_VISUAL to prevent blank Excel (TABLE_STRICT blocked)"
+                self._log_routing_decision(detected_columns, ExecutionMode.TABLE_VISUAL, confidence, reason)
+                return (ExecutionMode.TABLE_VISUAL, confidence, reason)
+            
             # Check if tables have valid structure
             valid_tables = [t for t in native_tables if self._is_valid_table(t)]
             if valid_tables:
+                # STEP-10: Safety check - verify tables have actual cells (not Form Parser schema)
+                has_valid_cells = False
+                for table in valid_tables:
+                    if hasattr(table, 'header_rows') and table.header_rows:
+                        for row in table.header_rows:
+                            if hasattr(row, 'cells') and len(row.cells) > 0:
+                                has_valid_cells = True
+                                break
+                    if not has_valid_cells and hasattr(table, 'body_rows') and table.body_rows:
+                        for row in table.body_rows:
+                            if hasattr(row, 'cells') and len(row.cells) > 0:
+                                has_valid_cells = True
+                                break
+                    if has_valid_cells:
+                        break
+                
+                if not has_valid_cells:
+                    # Tables exist but no valid cells (likely Form Parser schema) - use TABLE_VISUAL
+                    logger.warning(f"⚠️ Tables detected but no valid cells found - likely Form Parser schema, using TABLE_VISUAL")
+                    confidence = 0.8
+                    reason = f"Native tables detected but no valid cells (Form Parser schema) - using TABLE_VISUAL to prevent blank Excel"
+                    self._log_routing_decision(detected_columns, ExecutionMode.TABLE_VISUAL, confidence, reason)
+                    return (ExecutionMode.TABLE_VISUAL, confidence, reason)
+                
                 # For invoices/bills with tables, use TABLE_STRICT (not KEY_VALUE)
                 if doc_type in [DocumentType.INVOICE, DocumentType.BILL, DocumentType.BANK_STATEMENT]:
                     confidence = min(1.0, len(valid_tables) * 0.3 + 0.5)  # Higher confidence for structured invoices
