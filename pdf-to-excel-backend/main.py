@@ -536,12 +536,18 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
         
         # Step 7: Calculate credit cost based on ACTUAL ENGINE USED
         # Extract layout_source early for credit calculation
-        logger.info("=" * 80)
-        logger.info("STEP 7: CREDIT CALCULATION - STARTING")
-        logger.info(f"pages_processed from docai_service: {pages_processed}")
-        logger.info(f"unified_layouts available: {unified_layouts is not None}")
-        logger.info(f"unified_layouts count: {len(unified_layouts) if unified_layouts else 0}")
-        logger.info("=" * 80)
+        # CRITICAL: Force flush logs to ensure visibility
+        import sys
+        sys.stdout.flush()
+        sys.stderr.flush()
+        
+        logger.critical("=" * 80)
+        logger.critical("STEP 7: CREDIT CALCULATION - STARTING")
+        logger.critical(f"pages_processed from docai_service: {pages_processed}")
+        logger.critical(f"unified_layouts available: {unified_layouts is not None}")
+        logger.critical(f"unified_layouts count: {len(unified_layouts) if unified_layouts else 0}")
+        logger.critical("=" * 80)
+        sys.stdout.flush()
         
         layout_source = "docai"  # Default
         if unified_layouts and len(unified_layouts) > 0:
@@ -601,12 +607,16 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
         
         total_credits_required, credit_per_page = calculate_credits_based_on_engine(pages_processed, layout_source)
         
-        logger.info("=" * 80)
-        logger.info("CREDIT CALCULATION - RESULT")
-        logger.info(f"Pages processed: {pages_processed}")
-        logger.info(f"Engine used: {layout_source}")
-        logger.info(f"Average cost: {credit_per_page:.2f} credits/page")
-        logger.info(f"Total cost: {total_credits_required} credits")
+        # CRITICAL: Force flush logs
+        sys.stdout.flush()
+        sys.stderr.flush()
+        
+        logger.critical("=" * 80)
+        logger.critical("CREDIT CALCULATION - RESULT")
+        logger.critical(f"Pages processed: {pages_processed}")
+        logger.critical(f"Engine used: {layout_source}")
+        logger.critical(f"Average cost: {credit_per_page:.2f} credits/page")
+        logger.critical(f"Total cost: {total_credits_required} credits")
         logger.info(f"Formula applied: {'Adobe' if layout_source == 'adobe' else 'DocAI'} pricing")
         if layout_source == 'adobe':
             if pages_processed <= 10:

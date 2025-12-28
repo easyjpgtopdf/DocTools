@@ -130,35 +130,57 @@ class TablePostProcessor:
             logger.info(f"🔍 _process_table_strict: table.body_rows = {table.body_rows}")
         
         # PRE-PIPELINE: Extract raw cells and calculate line height
-        logger.info("=" * 80)
-        logger.info("STEP 1: Calling _extract_raw_cells() for initial extraction")
-        logger.info("=" * 80)
+        # CRITICAL: Force flush logs to ensure visibility
+        import sys
+        sys.stdout.flush()
+        sys.stderr.flush()
+        
+        logger.critical("=" * 80)
+        logger.critical("STEP 1: Calling _extract_raw_cells() for initial extraction")
+        logger.critical("=" * 80)
+        sys.stdout.flush()
+        
         raw_cells = self._extract_raw_cells(table, document_text)
-        logger.info(f"✅ STEP 1 RESULT: Extracted {len(raw_cells)} raw cells from table (initial attempt)")
-        logger.info("=" * 80)
+        
+        sys.stdout.flush()
+        sys.stderr.flush()
+        logger.critical(f"✅ STEP 1 RESULT: Extracted {len(raw_cells)} raw cells from table (initial attempt)")
+        logger.critical("=" * 80)
+        sys.stdout.flush()
         
         # CRITICAL FIX: If _extract_raw_cells fails (Form Parser compatibility issue),
         # ALWAYS invoke fallback extractor - this is especially critical for Form Parser tables
         if not raw_cells or len(raw_cells) == 0:
-            logger.warning("=" * 80)
-            logger.warning("⚠️ STEP 2: Raw cells empty — invoking Form Parser fallback extractor")
-            logger.warning("⚠️ This typically happens with Form Parser processor tables where standard extraction fails")
-            logger.warning("=" * 80)
+            sys.stdout.flush()
+            sys.stderr.flush()
+            logger.critical("=" * 80)
+            logger.critical("⚠️ STEP 2: Raw cells empty — invoking Form Parser fallback extractor")
+            logger.critical("⚠️ This typically happens with Form Parser processor tables where standard extraction fails")
+            logger.critical("=" * 80)
+            sys.stdout.flush()
+            
             raw_cells = self._extract_raw_cells_fallback(table, document_text)
+            
+            sys.stdout.flush()
+            sys.stderr.flush()
             if raw_cells and len(raw_cells) > 0:
-                logger.info("=" * 80)
-                logger.info(f"✅ STEP 2 SUCCESS: Fallback extracted {len(raw_cells)} cells via Form Parser fallback method")
-                logger.info("=" * 80)
+                logger.critical("=" * 80)
+                logger.critical(f"✅ STEP 2 SUCCESS: Fallback extracted {len(raw_cells)} cells via Form Parser fallback method")
+                logger.critical("=" * 80)
             else:
-                logger.error("=" * 80)
-                logger.error("❌ STEP 2 FAILED: Fallback also empty — returning empty table")
-                logger.error("❌ Both extraction methods failed - this may indicate table structure issue")
-                logger.error("=" * 80)
+                logger.critical("=" * 80)
+                logger.critical("❌ STEP 2 FAILED: Fallback also empty — returning empty table")
+                logger.critical("❌ Both extraction methods failed - this may indicate table structure issue")
+                logger.critical("=" * 80)
+                sys.stdout.flush()
                 return ProcessedTable()
+            sys.stdout.flush()
         else:
-            logger.info("=" * 80)
-            logger.info(f"✅ STEP 1 SUCCESS: {len(raw_cells)} cells extracted, skipping fallback")
-            logger.info("=" * 80)
+            sys.stdout.flush()
+            logger.critical("=" * 80)
+            logger.critical(f"✅ STEP 1 SUCCESS: {len(raw_cells)} cells extracted, skipping fallback")
+            logger.critical("=" * 80)
+            sys.stdout.flush()
         
         avg_line_height = self._calculate_avg_line_height(raw_cells)
         logger.debug(f"Average line height: {avg_line_height:.4f}")
