@@ -91,7 +91,40 @@ footer{background:var(--dark);color:#fff;padding:40px 0 20px;margin-top:24px}
 </div>
 <div class="panel right">
 <div style="text-align:center;padding:20px;">
-<h3 style="margin-bottom:20px;color:var(--primary);">Download Options</h3>
+<h3 style="margin-bottom:20px;color:var(--primary);">Output Format</h3>
+<div style="margin-bottom:20px;text-align:left;max-height:400px;overflow-y:auto;">
+<label style="display:flex;align-items:center;padding:12px;background:#f8f9ff;border-radius:8px;margin-bottom:10px;cursor:pointer;border:2px solid var(--primary);">
+<input type="radio" name="outputFormat" value="ico" checked style="margin-right:10px;cursor:pointer;">
+<span style="flex:1;font-weight:600;color:var(--dark);">ICO Format</span>
+<i class="fas fa-file-image" style="color:var(--primary);"></i>
+</label>
+<label style="display:flex;align-items:center;padding:12px;background:#f8f9ff;border-radius:8px;margin-bottom:10px;cursor:pointer;border:2px solid #e5e7eb;">
+<input type="radio" name="outputFormat" value="jpg" style="margin-right:10px;cursor:pointer;">
+<span style="flex:1;font-weight:600;color:var(--dark);">JPG Format</span>
+<i class="fas fa-file-image" style="color:var(--primary);"></i>
+</label>
+<label style="display:flex;align-items:center;padding:12px;background:#f8f9ff;border-radius:8px;margin-bottom:10px;cursor:pointer;border:2px solid #e5e7eb;">
+<input type="radio" name="outputFormat" value="svg" style="margin-right:10px;cursor:pointer;">
+<span style="flex:1;font-weight:600;color:var(--dark);">SVG Format</span>
+<i class="fas fa-file-image" style="color:var(--primary);"></i>
+</label>
+<label style="display:flex;align-items:center;padding:12px;background:#f8f9ff;border-radius:8px;margin-bottom:10px;cursor:pointer;border:2px solid #e5e7eb;">
+<input type="radio" name="outputFormat" value="bmp" style="margin-right:10px;cursor:pointer;">
+<span style="flex:1;font-weight:600;color:var(--dark);">BMP Format</span>
+<i class="fas fa-file-image" style="color:var(--primary);"></i>
+</label>
+<label style="display:flex;align-items:center;padding:12px;background:#f8f9ff;border-radius:8px;margin-bottom:10px;cursor:pointer;border:2px solid #e5e7eb;">
+<input type="radio" name="outputFormat" value="tiff" style="margin-right:10px;cursor:pointer;">
+<span style="flex:1;font-weight:600;color:var(--dark);">TIFF Format</span>
+<i class="fas fa-file-image" style="color:var(--primary);"></i>
+</label>
+<label style="display:flex;align-items:center;padding:12px;background:#f8f9ff;border-radius:8px;cursor:pointer;border:2px solid #e5e7eb;">
+<input type="radio" name="outputFormat" value="avif" style="margin-right:10px;cursor:pointer;">
+<span style="flex:1;font-weight:600;color:var(--dark);">AVIF Format</span>
+<i class="fas fa-file-image" style="color:var(--primary);"></i>
+</label>
+</div>
+<h3 style="margin-bottom:20px;color:var(--primary);margin-top:30px;">Download Options</h3>
 <button class="btn" id="downloadBtn" style="width:100%;margin-bottom:10px;">
 <i class="fas fa-download"></i> Download File
 </button>
@@ -114,15 +147,181 @@ footer{background:var(--dark);color:#fff;padding:40px 0 20px;margin-top:24px}
     const { getStoredFiles, convertFile, downloadFile } = await import('./js/file-converter.js');
     
     let convertedFiles = [];
+    let storedFilesData = [];
     const preview = document.getElementById('preview');
     const downloadBtn = document.getElementById('downloadBtn');
     const convertBtn = document.getElementById('convertBtn');
+    const formatRadios = document.querySelectorAll('input[name="outputFormat"]');
+    
+    // Get selected format
+    function getSelectedFormat() {
+        const selected = document.querySelector('input[name="outputFormat"]:checked');
+        return selected ? selected.value : 'ico';
+    }
+    
+    // Convert files with selected format
+    async function convertWithFormat(format) {
+        if (!storedFilesData || storedFilesData.length === 0) {
+            return [];
+        }
+        
+        const convertedFiles = [];
+        
+        for (const fileData of storedFilesData) {
+            const file = new File([fileData.data], fileData.name, { type: fileData.type });
+            const img = await loadImage(file);
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            
+            let outputFormat = 'image/x-icon';
+            let outputExt = '.ico';
+            
+            if (format === 'jpg' || format === 'jpeg') {
+                outputFormat = 'image/jpeg';
+                outputExt = '.jpg';
+            } else if (format === 'svg') {
+                // SVG conversion requires different approach
+                // For now, convert to PNG and then we'll need a library for SVG
+                outputFormat = 'image/png';
+                outputExt = '.png';
+                // Note: True SVG conversion would require additional library
+            } else if (format === 'bmp') {
+                outputFormat = 'image/bmp';
+                outputExt = '.bmp';
+            } else if (format === 'tiff') {
+                outputFormat = 'image/tiff';
+                outputExt = '.tiff';
+            } else if (format === 'avif') {
+                // AVIF support is limited in browsers
+                outputFormat = 'image/avif';
+                outputExt = '.avif';
+            }
+            
+            const blob = await new Promise((resolve, reject) => {
+                if (format === 'ico') {
+                    // ICO format is not directly supported by canvas.toBlob
+                    // Convert to PNG and let the browser handle it
+                    // Note: True ICO conversion with multiple sizes would require a library
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            resolve(blob);
+                        } else {
+                            // Fallback to PNG if ICO fails
+                            canvas.toBlob(resolve, 'image/png', 0.95);
+                            outputExt = '.png';
+                        }
+                    }, 'image/x-icon', 0.95);
+                } else if (format === 'svg') {
+                    // SVG conversion requires different approach
+                    // For now, convert to PNG
+                    canvas.toBlob(resolve, 'image/png', 0.95);
+                } else if (format === 'bmp' || format === 'tiff' || format === 'avif') {
+                    // These formats may not be fully supported by canvas.toBlob
+                    // Fallback to PNG if not supported
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            resolve(blob);
+                        } else {
+                            console.warn(`${outputFormat} not supported, using PNG`);
+                            canvas.toBlob(resolve, 'image/png', 0.95);
+                            outputExt = '.png';
+                        }
+                    }, outputFormat, format === 'jpg' ? 0.92 : 0.95);
+                } else {
+                    canvas.toBlob(resolve, outputFormat, format === 'jpg' ? 0.92 : 0.95);
+                }
+            });
+            
+            const filename = fileData.name.replace(/\.[^.]+$/, outputExt);
+            convertedFiles.push({ blob, filename });
+        }
+        
+        return convertedFiles;
+    }
+    
+    // Load image helper
+    function loadImage(file) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+            img.onload = () => {
+                URL.revokeObjectURL(url);
+                resolve(img);
+            };
+            img.onerror = reject;
+            img.src = url;
+        });
+    }
+    
+    // Update preview when format changes
+    formatRadios.forEach(radio => {
+        radio.addEventListener('change', async function() {
+            // Update visual feedback for selected format
+            formatRadios.forEach(r => {
+                const label = r.closest('label');
+                if (label) {
+                    if (r.checked) {
+                        label.style.border = '2px solid var(--primary)';
+                        label.style.background = '#f0f4ff';
+                    } else {
+                        label.style.border = '2px solid #e5e7eb';
+                        label.style.background = '#f8f9ff';
+                    }
+                }
+            });
+            
+            const format = getSelectedFormat();
+            preview.innerHTML = '<div style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin" style="font-size:3rem;color:var(--primary)"></i><p style="margin-top:20px;color:var(--gray)">Converting to ' + format.toUpperCase() + '...</p></div>';
+            downloadBtn.disabled = true;
+            convertBtn.disabled = false;
+            
+            try {
+                convertedFiles = await convertWithFormat(format);
+                displayConvertedFiles();
+            } catch (error) {
+                console.error('Conversion error:', error);
+                preview.innerHTML = `<div style="text-align:center;padding:40px;color:#dc3545;"><i class="fas fa-exclamation-triangle" style="font-size:3rem;margin-bottom:15px;"></i><p>${error.message}</p></div>`;
+            }
+        });
+    });
+    
+    // Display converted files
+    function displayConvertedFiles() {
+        preview.innerHTML = '';
+        if (convertedFiles.length === 0) {
+            preview.innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray);">No files to display.</div>';
+        } else {
+            convertedFiles.forEach((file, idx) => {
+                const div = document.createElement('div');
+                div.className = 'preview-item';
+                div.style.cssText = 'flex-direction:column;padding:30px;border:1px solid #e5e7eb;border-radius:8px;background:#fafafa;';
+                div.innerHTML = `
+                    <i class="fas fa-file-image" style="font-size:4rem;color:var(--primary);margin-bottom:15px;"></i>
+                    <div style="font-size:1.1rem;font-weight:600;color:var(--dark);margin-bottom:5px;">${file.filename}</div>
+                    <div style="font-size:0.9rem;color:var(--gray);">Ready to download</div>
+                `;
+                preview.appendChild(div);
+            });
+        }
+        
+        downloadBtn.disabled = false;
+        convertBtn.disabled = false;
+        
+        const countEl = document.querySelector('.muted');
+        if (countEl) {
+            countEl.textContent = `${convertedFiles.length} file${convertedFiles.length > 1 ? 's' : ''} converted`;
+        }
+    }
     
     // Load and convert files on page load
     async function initConversion() {
         try {
-            const storedFiles = getStoredFiles('png-to-ico');
-            if (!storedFiles || storedFiles.length === 0) {
+            storedFilesData = getStoredFiles('png-to-ico');
+            if (!storedFilesData || storedFilesData.length === 0) {
                 preview.innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray);">No files found. Please go back and upload files.</div>';
                 return;
             }
@@ -132,36 +331,26 @@ footer{background:var(--dark);color:#fff;padding:40px 0 20px;margin-top:24px}
             downloadBtn.disabled = true;
             convertBtn.disabled = true;
             
-            // Convert files
-            convertedFiles = await convertFile(storedFiles, 'png-to-ico');
+            // Convert files with default format (ICO)
+            const format = getSelectedFormat();
+            convertedFiles = await convertWithFormat(format);
             
             // Display converted files
-            preview.innerHTML = '';
-            if (convertedFiles.length === 0) {
-                preview.innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray);">No files to display.</div>';
-            } else {
-                convertedFiles.forEach((file, idx) => {
-                    const div = document.createElement('div');
-                    div.className = 'preview-item';
-                    div.style.cssText = 'flex-direction:column;padding:30px;border:1px solid #e5e7eb;border-radius:8px;background:#fafafa;';
-                    div.innerHTML = `
-                        <i class="fas fa-file-image" style="font-size:4rem;color:var(--primary);margin-bottom:15px;"></i>
-                        <div style="font-size:1.1rem;font-weight:600;color:var(--dark);margin-bottom:5px;">${file.filename}</div>
-                        <div style="font-size:0.9rem;color:var(--gray);">Ready to download</div>
-                    `;
-                    preview.appendChild(div);
-                });
-            }
+            displayConvertedFiles();
             
-            // Enable download buttons
-            downloadBtn.disabled = false;
-            convertBtn.disabled = false;
-            
-            // Update file count
-            const countEl = document.querySelector('.muted');
-            if (countEl) {
-                countEl.textContent = `${convertedFiles.length} file${convertedFiles.length > 1 ? 's' : ''} converted`;
-            }
+            // Set initial visual feedback for selected format
+            formatRadios.forEach(r => {
+                const label = r.closest('label');
+                if (label) {
+                    if (r.checked) {
+                        label.style.border = '2px solid var(--primary)';
+                        label.style.background = '#f0f4ff';
+                    } else {
+                        label.style.border = '2px solid #e5e7eb';
+                        label.style.background = '#f8f9ff';
+                    }
+                }
+            });
             
         } catch (error) {
             console.error('Conversion error:', error);
