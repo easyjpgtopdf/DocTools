@@ -370,7 +370,7 @@
 <!-- FREE: Basic Excel (Browser-based) -->
 <button class="btn" id="downloadExcelFree" style="background: #4361ee; font-size: 2.4em; padding: 30px 60px; font-weight: bold; transform: scale(1.0); min-width: 300px; min-height: 80px;"><i class="fas fa-file-excel"></i> Download Free</button>
 <!-- PREMIUM: OCR Excel (Document AI) - Locked for free users -->
-<button class="btn" id="downloadExcelPremium" style="background: #0f9d58; font-size: 2.4em; padding: 30px 60px; font-weight: bold; position: relative; min-width: 300px; min-height: 80px;" disabled><i class="fas fa-file-excel"></i> Download OCR Pro <i class="fas fa-lock" style="margin-left: 8px; font-size: 12px;"></i></button>
+<button class="btn" id="downloadExcelPremium" style="background: #0f9d58; font-size: 2.4em; padding: 30px 60px; font-weight: bold; position: relative; min-width: 300px; min-height: 80px;"><i class="fas fa-file-excel"></i> Download OCR Pro <i class="fas fa-lock" style="margin-left: 8px; font-size: 12px;"></i></button>
 <!-- Legacy buttons (hidden, kept for backward compatibility) -->
 <button class="btn" id="downloadExcel" style="display: none;"><i class="fas fa-file-excel"></i> Download Excel (Textract)</button>
 <button class="btn" id="downloadExcelDocAI" style="display: none; background: #0f9d58;"><i class="fas fa-file-excel"></i> Download Excel (DocAI)</button>
@@ -707,11 +707,12 @@
     
     // PREMIUM button: 
     if (isFreeUser) {
-      // Free users: Show locked button
-      downloadBtnPremium.disabled = true;
+      // Free users: Show locked button (but allow clicks to show upgrade popup)
+      downloadBtnPremium.disabled = false; // Keep enabled so click events work
       downloadBtnPremium.style.display = 'inline-flex';
       downloadBtnPremium.style.opacity = '0.7';
-      downloadBtnPremium.style.cursor = 'not-allowed';
+      downloadBtnPremium.style.cursor = 'pointer'; // Change to pointer to indicate clickable
+      downloadBtnPremium.innerHTML = '<i class="fas fa-file-excel"></i> Download OCR Pro <i class="fas fa-lock" style="margin-left: 8px; font-size: 12px;"></i>';
     } else {
       // Premium users: Show enabled button
       downloadBtnPremium.disabled = false;
@@ -1041,14 +1042,35 @@
   
   // PREMIUM conversion handler
   if (downloadBtnPremium) {
-    downloadBtnPremium.addEventListener('click', async function() {
-      // Check if user has premium access
+    downloadBtnPremium.addEventListener('click', async function(e) {
+      // Prevent default if button is disabled, but still handle the click
+      if (this.disabled) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Check if user has premium access
+        if (userType === 'free' || !hasPremiumAccess) {
+          // Show upgrade popup even if button is disabled
+          if (window.PDFExcelUpgradePopup) {
+            window.PDFExcelUpgradePopup.showUpgradePopup(
+              'This file needs OCR for accurate Excel conversion. Upgrade to Premium to unlock high-accuracy conversion.'
+            );
+          } else {
+            showToast('Upgrade to Premium to unlock OCR-powered conversion.', true);
+          }
+        }
+        return;
+      }
+      
+      // Check if user has premium access (double check)
       if (userType === 'free' || !hasPremiumAccess) {
         // Show upgrade popup
         if (window.PDFExcelUpgradePopup) {
           window.PDFExcelUpgradePopup.showUpgradePopup(
             'This file needs OCR for accurate Excel conversion. Upgrade to Premium to unlock high-accuracy conversion.'
           );
+        } else {
+          showToast('Upgrade to Premium to unlock OCR-powered conversion.', true);
         }
         return;
       }
