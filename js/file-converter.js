@@ -115,6 +115,7 @@ async function convertFile(files, toolType) {
             case 'svg-to-jpg':
             case 'avif-to-jpg':
             case 'avif-to-png':
+            case 'raw-to-jpg':
                 return await convertImageInBrowser(files, toolType);
             
             // Text to PDF (can work in browser with jsPDF)
