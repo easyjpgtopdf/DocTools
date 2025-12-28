@@ -6,35 +6,57 @@ function storeFilesForConversion(files, toolType) {
     const fileData = [];
     const promises = [];
     
+    // Check total size to avoid sessionStorage quota exceeded
+    const totalSize = Array.from(files).reduce((sum, file) => sum + file.size, 0);
+    const maxTotalSize = 5 * 1024 * 1024; // 5MB total limit for sessionStorage
+    
+    if (totalSize > maxTotalSize) {
+        return Promise.reject(new Error(`Total file size (${(totalSize / 1024 / 1024).toFixed(2)}MB) exceeds limit of ${(maxTotalSize / 1024 / 1024).toFixed(0)}MB. Please upload smaller files or fewer files.`));
+    }
+    
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const promise = new Promise((resolve) => {
+        const promise = new Promise((resolve, reject) => {
             const reader = new FileReader();
+            
+            // Add timeout for large files
+            const timeout = setTimeout(() => {
+                reader.abort();
+                reject(new Error(`File "${file.name}" is too large or taking too long to process.`));
+            }, 30000); // 30 second timeout
+            
             reader.onload = (e) => {
-                // Convert ArrayBuffer to base64 for storage
-                const arrayBuffer = e.target.result;
-                const uint8Array = new Uint8Array(arrayBuffer);
-                
-                // Convert to base64 in chunks to avoid call stack overflow
-                let base64 = '';
-                const chunkSize = 8192; // Process 8KB at a time
-                for (let i = 0; i < uint8Array.length; i += chunkSize) {
-                    const chunk = uint8Array.subarray(i, i + chunkSize);
-                    base64 += String.fromCharCode.apply(null, chunk);
+                clearTimeout(timeout);
+                try {
+                    // Convert ArrayBuffer to base64 for storage
+                    const arrayBuffer = e.target.result;
+                    const uint8Array = new Uint8Array(arrayBuffer);
+                    
+                    // Convert to base64 in chunks to avoid call stack overflow
+                    let base64 = '';
+                    const chunkSize = 8192; // Process 8KB at a time
+                    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                        const chunk = uint8Array.subarray(i, i + chunkSize);
+                        base64 += String.fromCharCode.apply(null, chunk);
+                    }
+                    base64 = btoa(base64);
+                    
+                    fileData.push({
+                        name: file.name,
+                        size: file.size,
+                        type: file.type || 'application/octet-stream',
+                        data: base64  // Store as base64 string
+                    });
+                    resolve();
+                } catch (error) {
+                    clearTimeout(timeout);
+                    reject(new Error(`Failed to process file "${file.name}": ${error.message}`));
                 }
-                base64 = btoa(base64);
-                
-                fileData.push({
-                    name: file.name,
-                    size: file.size,
-                    type: file.type,
-                    data: base64  // Store as base64 string
-                });
-                resolve();
             };
             reader.onerror = (error) => {
+                clearTimeout(timeout);
                 console.error('Error reading file:', error);
-                resolve(); // Continue even if one file fails
+                reject(new Error(`Failed to read file "${file.name}". Please check if the file is corrupted.`));
             };
             reader.readAsArrayBuffer(file);
         });
@@ -43,11 +65,15 @@ function storeFilesForConversion(files, toolType) {
     
     return Promise.all(promises).then(() => {
         try {
-            sessionStorage.setItem(`file_${toolType}_files`, JSON.stringify(fileData));
+            const jsonData = JSON.stringify(fileData);
+            sessionStorage.setItem(`file_${toolType}_files`, jsonData);
             sessionStorage.setItem(`file_${toolType}_tool`, toolType);
             return fileData;
         } catch (error) {
             console.error('Error storing files in sessionStorage:', error);
+            if (error.name === 'QuotaExceededError') {
+                throw new Error('Storage limit exceeded. Please try with fewer or smaller files.');
+            }
             throw new Error('Failed to store files. Please try with fewer or smaller files.');
         }
     });

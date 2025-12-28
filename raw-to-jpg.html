@@ -252,6 +252,14 @@ Reviews & Comments
           return;
         }
         
+        // Check file sizes (limit to 50MB per file to avoid sessionStorage issues)
+        const maxSize = 50 * 1024 * 1024; // 50MB
+        const oversizedFiles = files.filter(f => f.size > maxSize);
+        if (oversizedFiles.length > 0) {
+          alert(`Some files are too large (max 50MB per file). Please reduce file size or split files.`);
+          return;
+        }
+        
         try {
           // Show loading
           this.disabled = true;
@@ -259,13 +267,36 @@ Reviews & Comments
           
           // Store files for conversion
           const { storeFilesForConversion } = await import('./js/file-converter.js');
-          await storeFilesForConversion(files, 'raw-to-jpg');
+          
+          // Ensure files have proper MIME types (RAW files might not have them)
+          const processedFiles = Array.from(files).map(file => {
+            // If file doesn't have a type, try to determine it from extension
+            if (!file.type || file.type === '') {
+              const ext = file.name.split('.').pop().toLowerCase();
+              let mimeType = 'application/octet-stream';
+              
+              if (['raw', 'dng', 'nef', 'orf', 'arw', 'cr2', 'crw', 'raf', 'rw2'].includes(ext)) {
+                mimeType = 'image/x-raw'; // Generic RAW format
+              } else if (ext === 'jpg' || ext === 'jpeg') {
+                mimeType = 'image/jpeg';
+              } else if (ext === 'png') {
+                mimeType = 'image/png';
+              }
+              
+              // Create a new File object with proper type
+              return new File([file], file.name, { type: mimeType, lastModified: file.lastModified });
+            }
+            return file;
+          });
+          
+          await storeFilesForConversion(processedFiles, 'raw-to-jpg');
           
           // Redirect to convert page
           window.location.href = 'raw-to-jpg-convert.html';
         } catch (error) {
           console.error('Error storing files:', error);
-          alert('Error processing files. Please try again.');
+          const errorMessage = error.message || 'Error processing files. Please try again.';
+          alert(errorMessage + '\n\nIf the problem persists, try:\n- Using smaller files\n- Converting RAW files to JPG/PNG first using specialized software');
           this.disabled = false;
           this.innerHTML = 'Continue';
         }
