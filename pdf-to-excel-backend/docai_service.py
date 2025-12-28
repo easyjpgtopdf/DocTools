@@ -302,6 +302,16 @@ async def process_pdf_to_excel_docai(
             )
             logger.info(f"LayoutDecisionEngine.process_document() returned {len(unified_layouts)} UnifiedLayout objects")
             
+            # CRITICAL: Extract pages_metadata from decision_engine (STEP-14 builds it)
+            # This is the source of truth for billing
+            pages_metadata_from_engine = getattr(decision_engine, 'pages_metadata', None)
+            if pages_metadata_from_engine:
+                logger.critical(f"✅ STEP-14: Retrieved {len(pages_metadata_from_engine)} pages metadata from decision_engine")
+                for pm in pages_metadata_from_engine:
+                    logger.critical(f"   Page {pm.get('page')}: engine={pm.get('engine')}")
+            else:
+                logger.warning("⚠️ STEP-14: pages_metadata not found in decision_engine - will extract from unified_layouts")
+            
             # Store decision engine for metadata extraction (ENTERPRISE RESPONSE)
             # This allows main.py to extract mode, confidence, message
             decision_engine_instance = decision_engine
@@ -620,18 +630,27 @@ async def process_pdf_to_excel_docai(
         if unified_layouts is None:
             unified_layouts = []
         
-        # CRITICAL: Extract pages_metadata for billing calculation (STEP-9)
+        # CRITICAL: Extract pages_metadata for billing calculation (STEP-12)
+        # First try to get from decision_engine (STEP-14 builds it)
         pages_metadata = []
-        for layout in unified_layouts:
-            page_num = layout.metadata.get('page_number', layout.page_index + 1)
-            engine = layout.metadata.get('engine_used', layout.metadata.get('layout_source', 'docai'))
-            pages_metadata.append({
-                'page': page_num,
-                'engine': engine
-            })
-            logger.critical(f"BILLING METADATA: Page {page_num} → engine={engine}")
+        if 'decision_engine_instance' in locals() and hasattr(decision_engine_instance, 'pages_metadata'):
+            pages_metadata = decision_engine_instance.pages_metadata
+            logger.critical(f"✅ STEP-12: Using pages_metadata from decision_engine: {len(pages_metadata)} pages")
+            for pm in pages_metadata:
+                logger.critical(f"   Page {pm.get('page')}: engine={pm.get('engine')}")
+        else:
+            # Fallback: Extract from unified_layouts metadata
+            logger.warning("⚠️ STEP-12: Extracting pages_metadata from unified_layouts (fallback)")
+            for layout in unified_layouts:
+                page_num = layout.metadata.get('page_number', layout.page_index + 1)
+                engine = layout.metadata.get('engine_used', layout.metadata.get('layout_source', 'docai'))
+                pages_metadata.append({
+                    'page': page_num,
+                    'engine': engine
+                })
+                logger.critical(f"BILLING METADATA: Page {page_num} → engine={engine}")
         
-        logger.critical(f"BILLING: Extracted {len(pages_metadata)} pages metadata for credit calculation")
+        logger.critical(f"BILLING: Final pages_metadata count: {len(pages_metadata)} for credit calculation")
         
         return download_url, pages_processed, unified_layouts, pages_metadata
         

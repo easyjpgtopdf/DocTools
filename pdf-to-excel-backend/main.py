@@ -564,23 +564,40 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
         logger.info(f"✅ Final layout_source for credit calculation: '{layout_source}'")
         logger.info("=" * 80)
         
-        # STEP-9: Use centralized credit calculator with per-page slab pricing
+        # STEP-12: Use centralized credit calculator with per-page slab pricing (ENGINE-BASED)
         import sys
         from billing.credit_calculator import CreditCalculator
         
-        # Ensure pages_metadata exists (fallback if not provided)
+        # CRITICAL: Ensure pages_metadata exists and is valid
         if 'pages_metadata' not in locals() or not pages_metadata:
-            logger.warning("⚠️ pages_metadata not provided - building from unified_layouts")
+            logger.warning("⚠️ STEP-12: pages_metadata not provided - building from unified_layouts")
             pages_metadata = []
             for idx, layout in enumerate(unified_layouts):
                 page_num = layout.metadata.get('page_number', idx + 1)
                 engine = layout.metadata.get('engine_used', layout.metadata.get('layout_source', 'docai'))
                 pages_metadata.append({'page': page_num, 'engine': engine})
+                logger.critical(f"   Built metadata: Page {page_num} → engine={engine}")
         
-        # Calculate credits using centralized calculator
+        # CRITICAL: Log pages_metadata before calculation
+        logger.critical("=" * 80)
+        logger.critical("STEP-12: CREDIT CALCULATION - INPUT")
+        logger.critical(f"pages_metadata count: {len(pages_metadata)}")
+        for pm in pages_metadata:
+            logger.critical(f"   Page {pm.get('page')}: engine={pm.get('engine')}")
+        logger.critical("=" * 80)
+        
+        # Calculate credits using centralized calculator (ENGINE-BASED, not execution_mode)
         billing_breakdown = CreditCalculator.calculate_credits(pages_metadata)
         total_credits_required = billing_breakdown.total_credits
         credit_per_page = total_credits_required / pages_processed if pages_processed > 0 else 0.0
+        
+        # CRITICAL: Log calculation result
+        logger.critical("=" * 80)
+        logger.critical("STEP-12: CREDIT CALCULATION - RESULT")
+        logger.critical(f"Total credits required: {total_credits_required}")
+        logger.critical(f"Credit per page: {credit_per_page:.2f}")
+        logger.critical(f"Engine summary: {billing_breakdown.engine_summary}")
+        logger.critical("=" * 80)
         
         # CRITICAL: Force flush logs
         sys.stdout.flush()
