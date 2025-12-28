@@ -203,17 +203,49 @@ class LayoutDecisionEngine:
                 page_layout.metadata['engine_used'] = engine_used
                 page_layout.metadata['page_number'] = page_idx + 1  # 1-based page number
                 
+                # CRITICAL FIX: Non-empty enforcement - if layout is empty, create fallback from text
+                if page_layout.is_empty() or page_layout.get_max_row() == 0:
+                    logger.critical("=" * 80)
+                    logger.critical(f"🚨 BLANK LAYOUT DETECTED for Page {page_idx + 1}")
+                    logger.critical(f"   Original mode: {self.selected_mode.value}")
+                    logger.critical(f"   Document text length: {len(document_text) if document_text else 0}")
+                    logger.critical("   Creating fallback from document text")
+                    logger.critical("=" * 80)
+                    
+                    # Create fallback layout from document text
+                    if document_text and len(document_text.strip()) > 10:
+                        # Use PLAIN_TEXT mode as fallback
+                        logger.critical("   Using PLAIN_TEXT fallback")
+                        page_layout = self._execute_plain_text_mode(
+                            page=page,
+                            document_text=document_text,
+                            page_idx=page_idx,
+                            page_structure=page_structure
+                        )
+                        page_layout.metadata['execution_mode'] = 'plain_text_fallback'
+                        page_layout.metadata['original_mode'] = self.selected_mode.value
+                        page_layout.metadata['fallback_reason'] = 'Empty layout detected - using text fallback'
+                        page_layout.metadata['engine_used'] = engine_used
+                        page_layout.metadata['page_number'] = page_idx + 1
+                        
+                        # Re-check after fallback
+                        if page_layout.is_empty():
+                            logger.critical("   ⚠️  PLAIN_TEXT fallback also empty - creating minimal structure")
+                            page_layout = self._create_minimal_fallback_layout(page_idx, document_text, engine_used)
+                    else:
+                        logger.critical("   ⚠️  No document text available - creating minimal structure")
+                        page_layout = self._create_minimal_fallback_layout(page_idx, document_text, engine_used)
+                
                 page_layouts.append(page_layout)
                 
             except Exception as e:
                 logger.error(f"Error processing page {page_idx + 1} with mode {self.selected_mode.value}: {str(e)}")
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
                 # Fail-safe: Return minimal layout instead of crashing
-                page_layout = self._create_empty_layout(page_idx)
+                page_layout = self._create_minimal_fallback_layout(page_idx, document_text, 'docai')
                 page_layout.metadata['execution_mode'] = self.selected_mode.value
                 page_layout.metadata['error'] = str(e)
-                # Track engine for failed pages too
-                page_layout.metadata['engine_used'] = 'docai'  # Default to docai on error
-                page_layout.metadata['page_number'] = page_idx + 1
                 page_layouts.append(page_layout)
         
         logger.info(f"Processed {len(page_layouts)} pages with mode: {self.selected_mode.value}")
@@ -545,6 +577,39 @@ class LayoutDecisionEngine:
         """Create minimal empty layout"""
         layout = UnifiedLayout(page_index=page_idx)
         layout.metadata['layout_type'] = 'empty'
+        return layout
+    
+    def _create_minimal_fallback_layout(self, page_idx: int, document_text: str, engine_used: str = 'docai') -> UnifiedLayout:
+        """Create minimal fallback layout when all other modes fail"""
+        layout = UnifiedLayout(page_index=page_idx)
+        layout.metadata['layout_type'] = 'minimal_fallback'
+        layout.metadata['execution_mode'] = 'minimal_fallback'
+        layout.metadata['engine_used'] = engine_used
+        layout.metadata['page_number'] = page_idx + 1
+        layout.metadata['fallback_reason'] = 'All extraction modes failed - using minimal structure'
+        
+        # Create at least one row with available text
+        if document_text and len(document_text.strip()) > 0:
+            # Use first 500 characters
+            text_snippet = document_text[:500].strip()
+            cell = Cell(
+                row=0,
+                column=0,
+                value=text_snippet,
+                style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=True)
+            )
+            layout.add_row([cell])
+        else:
+            # Last resort: create a single cell with message
+            cell = Cell(
+                row=0,
+                column=0,
+                value="Content extracted but could not be structured",
+                style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+            )
+            layout.add_row([cell])
+        
+        logger.critical(f"Created minimal fallback layout for Page {page_idx + 1} with {layout.get_max_row()} row(s)")
         return layout
     
     # Keep all existing helper methods below...
@@ -1749,40 +1814,43 @@ class LayoutDecisionEngine:
         page_tables: Optional[List] = None
     ) -> UnifiedLayout:
         """
-        TYPE_B: KEY_VALUE layout - MANDATORY: Always EXACTLY 2 columns (Label | Value)
+        KEY_VALUE layout - DYNAMIC COLUMNS (2 → N columns based on detected structure)
         
         Rules:
-        1. Always create exactly 2 columns: Column A = Label, Column B = Value
-        2. Label-Value Detection:
+        1. Detect columns dynamically from X-axis clustering of blocks
+        2. Support 2 → N columns automatically (no hard-coded limit)
+        3. Label-Value Detection:
            - Contains ":" OR
-           - Two text blocks on same horizontal line with left/right separation
-        3. Multi-line Value: Append wrapped text to previous value (no new label row)
-        4. Strict Row Integrity: One label-value pair per row
-        5. Safety: Non-matching lines append to previous value
-        6. Output Guarantee: NEVER single-column Excel
+           - Multiple text blocks on same horizontal line with clear X-separation
+        4. Multi-line Value: Append wrapped text to previous value (no new label row)
+        5. Strict Row Integrity: One row per detected line
+        6. Output Guarantee: Columns = detected vertical bands (unlimited)
         """
         layout = UnifiedLayout(page_index=page_idx)
         layout.metadata['layout_type'] = 'key_value'
         row_idx = 0
         last_value_cell = None  # Track last value cell for multi-line appending
+        column_anchors = None  # Will be set from blocks if available
         
         # Priority 1: Use form fields if available (most reliable for key-value)
+        # Note: Form fields use default 2 columns, but will respect column_anchors if set later
         if form_fields:
-            logger.info(f"Page {page_idx + 1}: TYPE_B - Using {len(form_fields)} form fields for key-value layout")
+            logger.info(f"Page {page_idx + 1}: KEY_VALUE - Using {len(form_fields)} form fields")
             for field in form_fields:
                 field_name = field.get('name', '').strip()
                 field_value = field.get('value', '').strip()
                 
                 if field_name or field_value:
+                    # Use default 2 columns for form fields (can be overridden by column_anchors later)
                     label_cell = Cell(
                         row=row_idx,
-                        column=0,  # Column A = Label
+                        column=0,
                         value=field_name,
                         style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
                     )
                     value_cell = Cell(
                         row=row_idx,
-                        column=1,  # Column B = Value
+                        column=1,
                         value=field_value,
                         style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
                     )
@@ -1806,95 +1874,140 @@ class LayoutDecisionEngine:
                         blocks_by_y[y_key] = []
                     blocks_by_y[y_key].append(block)
             
+            # CRITICAL FIX: Detect column anchors dynamically from X-axis clustering
+            # Build column anchors from all blocks (not just 2 columns)
+            all_x_positions = []
+            for block in blocks:
+                bbox = block.get('bounding_box', {})
+                if bbox:
+                    x_center = (bbox.get('x_min', 0) + bbox.get('x_max', 0)) / 2
+                    all_x_positions.append(x_center)
+            
+            # Cluster X positions to detect column anchors (unlimited columns)
+            column_anchors = self._detect_column_anchors_from_x_positions(all_x_positions)
+            logger.info(f"Page {page_idx + 1}: KEY_VALUE - Detected {len(column_anchors)} dynamic columns from X-clustering")
+            
+            # If no column anchors detected, use default 2 columns for compatibility
+            if not column_anchors:
+                column_anchors = [0.0, 0.5]  # Default: left and right halves
+                logger.info(f"Page {page_idx + 1}: KEY_VALUE - No columns detected, using default 2-column layout")
+            
             # Process blocks line by line (sorted by Y)
             for y_pos in sorted(blocks_by_y.keys()):
                 line_blocks = sorted(blocks_by_y[y_pos], key=lambda b: b.get('bounding_box', {}).get('x_min', 0))
                 
-                # Check if line has left/right separation (two distinct blocks)
-                if len(line_blocks) >= 2:
-                    # Get leftmost and rightmost blocks
-                    left_block = line_blocks[0]
-                    right_block = line_blocks[-1]
+                # CRITICAL FIX: Support multiple columns (not just 2)
+                # Map each block to its nearest column anchor
+                row_cells = []
+                for block in line_blocks:
+                    bbox = block.get('bounding_box', {})
+                    if not bbox:
+                        continue
                     
-                    left_bbox = left_block.get('bounding_box', {})
-                    right_bbox = right_block.get('bounding_box', {})
+                    x_center = (bbox.get('x_min', 0) + bbox.get('x_max', 0)) / 2
+                    block_text = block.get('text', '').strip()
                     
-                    left_x_max = left_bbox.get('x_max', 0)
-                    right_x_min = right_bbox.get('x_min', 1)
+                    if not block_text:
+                        continue
                     
-                    # Check for clear left/right separation (gap between blocks)
-                    if right_x_min > left_x_max + 0.05:  # At least 5% gap
+                    # Find nearest column anchor
+                    col_idx = self._find_nearest_column_anchor(x_center, column_anchors)
+                    
+                    # Determine if this is a label (first column or contains colon)
+                    is_label = (col_idx == 0) or (':' in block_text)
+                    
+                    cell = Cell(
+                        row=row_idx,
+                        column=col_idx,
+                        value=block_text,
+                        style=CellStyle(
+                            bold=is_label,
+                            alignment_horizontal=CellAlignment.LEFT
+                        )
+                    )
+                    row_cells.append(cell)
+                
+                # If we have blocks but no cells created, use simple 2-column fallback for this line
+                if line_blocks and not row_cells:
+                    # Fallback: Use leftmost and rightmost blocks as 2 columns
+                    if len(line_blocks) >= 2:
+                        left_block = line_blocks[0]
+                        right_block = line_blocks[-1]
                         left_text = left_block.get('text', '').strip()
                         right_text = right_block.get('text', '').strip()
                         
-                        if left_text and right_text:
-                            # Left block = Label, Right block = Value
-                            label_cell = Cell(
+                        if left_text or right_text:
+                            left_cell = Cell(
                                 row=row_idx,
-                                column=0,  # Column A = Label
+                                column=0,
                                 value=left_text,
                                 style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
                             )
-                            value_cell = Cell(
+                            right_cell = Cell(
                                 row=row_idx,
-                                column=1,  # Column B = Value
+                                column=1,
                                 value=right_text,
                                 style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
                             )
-                            layout.add_row([label_cell, value_cell])
-                            last_value_cell = value_cell
-                            row_idx += 1
-                            continue
+                            row_cells = [left_cell, right_cell]
                 
-                # If not left/right separation, check for colon separator in combined text
-                combined_text = ' '.join([b.get('text', '').strip() for b in line_blocks if b.get('text', '').strip()])
-                if combined_text:
-                    if ':' in combined_text:
-                        parts = combined_text.split(':', 1)
-                        if len(parts) == 2:
-                            label = parts[0].strip()
-                            value = parts[1].strip()
-                            
-                            if label:  # Label is required
-                                label_cell = Cell(
-                                    row=row_idx,
-                                    column=0,  # Column A = Label
-                                    value=label,
-                                    style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
-                                )
-                                value_cell = Cell(
-                                    row=row_idx,
-                                    column=1,  # Column B = Value
-                                    value=value,
-                                    style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
-                                )
-                                layout.add_row([label_cell, value_cell])
-                                last_value_cell = value_cell
-                                row_idx += 1
-                                continue
+                if row_cells:
+                    layout.add_row(row_cells)
+                    row_idx += 1
+                    continue
+                
+                # CRITICAL FIX: Handle colon-separated text with dynamic columns
+                # If blocks are not mapped to columns, check for colon separator
+                if not row_cells:
+                    combined_text = ' '.join([b.get('text', '').strip() for b in line_blocks if b.get('text', '').strip()])
+                    if combined_text:
+                        if ':' in combined_text:
+                            parts = combined_text.split(':', 1)
+                            if len(parts) == 2:
+                                label = parts[0].strip()
+                                value = parts[1].strip()
+                                
+                                if label:  # Label is required
+                                    # Use column anchors if available, otherwise use 2 columns
+                                    if column_anchors and len(column_anchors) >= 2:
+                                        label_col = 0
+                                        value_col = min(1, len(column_anchors) - 1)
+                                    else:
+                                        label_col = 0
+                                        value_col = 1
+                                    
+                                    label_cell = Cell(
+                                        row=row_idx,
+                                        column=label_col,
+                                        value=label,
+                                        style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
+                                    )
+                                    value_cell = Cell(
+                                        row=row_idx,
+                                        column=value_col,
+                                        value=value,
+                                        style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                                    )
+                                    layout.add_row([label_cell, value_cell])
+                                    last_value_cell = value_cell
+                                    row_idx += 1
+                                    continue
                     
-                    # Safety Rule: Non-matching line - append to previous value
+                    # Safety Rule: Non-matching line - append to previous value OR create new row
                     if last_value_cell is not None:
                         # Append to previous value (notes/address continuation)
                         current_value = last_value_cell.value or ''
                         last_value_cell.value = (current_value + ' ' + combined_text).strip()
                         logger.debug(f"Page {page_idx + 1}: Appended non-matching line to previous value: {combined_text[:50]}")
                     else:
-                        # First line without pattern - treat as label with empty value
-                        label_cell = Cell(
+                        # First line without pattern - create single-column row (not forced 2-column)
+                        single_cell = Cell(
                             row=row_idx,
-                            column=0,  # Column A = Label
+                            column=0,
                             value=combined_text,
                             style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
                         )
-                        value_cell = Cell(
-                            row=row_idx,
-                            column=1,  # Column B = Value
-                            value='',
-                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
-                        )
-                        layout.add_row([label_cell, value_cell])
-                        last_value_cell = value_cell
+                        layout.add_row([single_cell])
                         row_idx += 1
         
         # Priority 3: Fallback to text-based extraction (if no blocks available)
@@ -1928,67 +2041,59 @@ class LayoutDecisionEngine:
                             row_idx += 1
                             continue
                 
-                # Safety Rule: Non-matching line - append to previous value
+                # Safety Rule: Non-matching line - append to previous value OR create new row
                 if last_value_cell is not None:
                     # Multi-line Value Handling: Append wrapped text to previous value
                     current_value = last_value_cell.value or ''
                     last_value_cell.value = (current_value + ' ' + line).strip()
                     logger.debug(f"Page {page_idx + 1}: Appended wrapped text to previous value: {line[:50]}")
                 else:
-                    # First line without pattern - treat as label with empty value
-                    label_cell = Cell(
+                    # First line without pattern - create single-column row (not forced 2-column)
+                    single_cell = Cell(
                         row=row_idx,
-                        column=0,  # Column A = Label
+                        column=0,
                         value=line,
                         style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
                     )
-                    value_cell = Cell(
-                        row=row_idx,
-                        column=1,  # Column B = Value
-                        value='',
-                        style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
-                    )
-                    layout.add_row([label_cell, value_cell])
-                    last_value_cell = value_cell
+                    layout.add_row([single_cell])
                     row_idx += 1
         
-        # Output Guarantee: NEVER single-column Excel - always ensure 2 columns
+        # CRITICAL FIX: Non-empty enforcement - if blocks detected, Excel MUST have data
         if row_idx == 0:
-            # Fail-safe: Create minimal 2-column key-value layout
-            logger.warning(f"Page {page_idx + 1}: TYPE_B - No key-value pairs found, creating minimal 2-column layout")
-            label_cell = Cell(
-                row=0,
-                column=0,  # Column A = Label
-                value="Content",
-                style=CellStyle(bold=True, alignment_horizontal=CellAlignment.LEFT)
-            )
-            value_cell = Cell(
-                row=0,
-                column=1,  # Column B = Value
-                value=document_text[:100] if document_text else "No content extracted",
-                style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
-            )
-            layout.add_row([label_cell, value_cell])
-        else:
-            # Verify all rows have exactly 2 columns
-            for row_cells in layout.rows:
-                if len(row_cells) != 2:
-                    logger.warning(f"Page {page_idx + 1}: TYPE_B - Row has {len(row_cells)} columns, expected 2. Fixing...")
-                    # Ensure exactly 2 columns
-                    while len(row_cells) < 2:
-                        # Add empty cell if missing
-                        empty_cell = Cell(
-                            row=row_cells[0].row if row_cells else 0,
-                            column=len(row_cells),
-                            value='',
+            # If we have blocks but no rows created, create a single-row layout with detected columns
+            if page_structure and 'blocks' in page_structure and page_structure['blocks']:
+                logger.warning(f"Page {page_idx + 1}: KEY_VALUE - No rows created from blocks, creating fallback layout")
+                # Use first few blocks as columns
+                fallback_blocks = page_structure['blocks'][:10]  # Use first 10 blocks
+                fallback_row = []
+                for idx, block in enumerate(fallback_blocks):
+                    block_text = block.get('text', '').strip()
+                    if block_text:
+                        fallback_row.append(Cell(
+                            row=0,
+                            column=idx,
+                            value=block_text,
                             style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
-                        )
-                        row_cells.append(empty_cell)
-                    # Remove extra columns (keep only first 2)
-                    if len(row_cells) > 2:
-                        row_cells[:] = row_cells[:2]
+                        ))
+                if fallback_row:
+                    layout.add_row(fallback_row)
+                    row_idx = 1
+            else:
+                # No blocks available - create minimal single-column layout
+                logger.warning(f"Page {page_idx + 1}: KEY_VALUE - No blocks available, creating minimal layout")
+                content_cell = Cell(
+                    row=0,
+                    column=0,
+                    value=document_text[:200] if document_text else "No content extracted",
+                    style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                )
+                layout.add_row([content_cell])
+                row_idx = 1
         
-        logger.info(f"Page {page_idx + 1}: TYPE_B - Created key-value layout with {row_idx} rows (EXACTLY 2 columns: Label | Value)")
+        # CRITICAL FIX: Remove hard-coded 2-column enforcement
+        # Columns are now dynamic based on detected structure
+        max_columns = layout.get_max_column() if layout.rows else 0
+        logger.info(f"Page {page_idx + 1}: KEY_VALUE - Created layout with {row_idx} rows, {max_columns} dynamic columns")
         return layout
     
     def _convert_to_plain_text_layout(
@@ -2463,10 +2568,23 @@ class LayoutDecisionEngine:
                 layout.add_row(final_row_cells)
                 row_idx += 1
         
-        # Output Guarantee: Ensure at least 2 columns
-        if layout.get_max_column() < 2:
-            logger.warning(f"Page {page_idx + 1}: SOFT TABLE MODE - Layout has < 2 columns, using 2-column fallback")
-            return self._soft_table_fallback_2column(document_text, page_idx)
+        # CRITICAL FIX: Remove 2-column fallback - columns must be dynamic
+        # If layout has columns, use it as-is (even if 1 column)
+        # Only create fallback if NO data detected at all
+        if layout.get_max_column() == 0 and row_idx == 0:
+            logger.warning(f"Page {page_idx + 1}: SOFT TABLE MODE - No columns detected, creating fallback from text")
+            # Create single-column layout from text (not forced 2-column)
+            if document_text:
+                lines = document_text.split('\n')[:50]  # First 50 lines
+                for idx, line in enumerate(lines):
+                    if line.strip():
+                        cell = Cell(
+                            row=idx,
+                            column=0,
+                            value=line.strip(),
+                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                        )
+                        layout.add_row([cell])
         
         logger.info(f"Page {page_idx + 1}: SOFT TABLE MODE - Created layout with {row_idx} rows, {layout.get_max_column()} columns")
         return layout
@@ -3021,10 +3139,23 @@ class LayoutDecisionEngine:
                 layout.add_row(final_row_cells)
                 row_idx += 1
         
-        # Output Guarantee: Ensure at least 2 columns
-        if layout.get_max_column() < 2:
-            logger.warning(f"Page {page_idx + 1}: VISUAL GRID RECONSTRUCTION - Layout has < 2 columns, using 2-column fallback")
-            return self._soft_table_fallback_2column(document_text, page_idx)
+        # CRITICAL FIX: Remove 2-column fallback - columns must be dynamic
+        # If layout has columns, use it as-is (even if 1 column)
+        # Only create fallback if NO data detected at all
+        if layout.get_max_column() == 0 and row_idx == 0:
+            logger.warning(f"Page {page_idx + 1}: VISUAL GRID RECONSTRUCTION - No columns detected, creating fallback from text")
+            # Create single-column layout from text (not forced 2-column)
+            if document_text:
+                lines = document_text.split('\n')[:50]  # First 50 lines
+                for idx, line in enumerate(lines):
+                    if line.strip():
+                        cell = Cell(
+                            row=idx,
+                            column=0,
+                            value=line.strip(),
+                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                        )
+                        layout.add_row([cell])
         
         logger.info(f"Page {page_idx + 1}: VISUAL GRID RECONSTRUCTION - Created layout with {row_idx} rows, {layout.get_max_column()} columns")
         return layout
@@ -3184,10 +3315,35 @@ class LayoutDecisionEngine:
                 layout.add_row(final_row_cells)
                 row_idx += 1
         
-        # Safety: Ensure at least 1 row and 1 column
+        # CRITICAL FIX: Non-empty enforcement - if blocks detected, Excel MUST have data
         if row_idx == 0:
-            logger.warning(f"Page {page_idx + 1}: GEOMETRIC_HYBRID - No rows created, using fallback")
-            return self._soft_table_fallback_2column(document_text, page_idx)
+            logger.warning(f"Page {page_idx + 1}: GEOMETRIC_HYBRID - No rows created, creating fallback from blocks")
+            # Create single-column layout from blocks (not forced 2-column)
+            if blocks:
+                for idx, block in enumerate(blocks[:50]):  # First 50 blocks
+                    block_text = block.get('text', '').strip()
+                    if block_text:
+                        cell = Cell(
+                            row=idx,
+                            column=0,
+                            value=block_text,
+                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                        )
+                        layout.add_row([cell])
+                        row_idx += 1
+            elif document_text:
+                # Fallback to text if no blocks
+                lines = document_text.split('\n')[:50]
+                for idx, line in enumerate(lines):
+                    if line.strip():
+                        cell = Cell(
+                            row=idx,
+                            column=0,
+                            value=line.strip(),
+                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                        )
+                        layout.add_row([cell])
+                        row_idx += 1
         
         logger.critical(f"GEOMETRIC_HYBRID: Created layout with {row_idx} rows, {len(column_anchors)} columns")
         return layout
@@ -3238,6 +3394,53 @@ class LayoutDecisionEngine:
         column_anchors = sorted(column_anchors)
         
         return column_anchors
+    
+    def _detect_column_anchors_from_x_positions(self, x_positions: List[float]) -> List[float]:
+        """
+        Detect column anchors from X positions using clustering (for KEY_VALUE mode).
+        UNLIMITED columns - no maximum limit.
+        """
+        if not x_positions:
+            return []
+        
+        # Cluster X-positions (visual column bands) - UNLIMITED
+        x_positions = sorted(set(x_positions))
+        clusters = []
+        cluster_tolerance = 0.06  # 6% tolerance for geometric alignment
+        
+        for x_pos in x_positions:
+            assigned = False
+            for cluster in clusters:
+                cluster_center = sum(cluster) / len(cluster)
+                if abs(x_pos - cluster_center) <= cluster_tolerance:
+                    cluster.append(x_pos)
+                    assigned = True
+                    break
+            if not assigned:
+                clusters.append([x_pos])
+        
+        # Extract column anchors (centers of clusters)
+        column_anchors = []
+        for cluster in clusters:
+            if len(cluster) >= 1:  # Accept any cluster (unlimited)
+                cluster_center = sum(cluster) / len(cluster)
+                column_anchors.append(cluster_center)
+        
+        # Sort by X-position
+        column_anchors = sorted(column_anchors)
+        
+        return column_anchors
+    
+    def _find_nearest_column_anchor(self, x_center: float, column_anchors: List[float]) -> int:
+        """
+        Find the nearest column anchor for a given X position.
+        Returns column index (0-based).
+        """
+        if not column_anchors:
+            return 0
+        
+        nearest_idx = min(range(len(column_anchors)), key=lambda i: abs(column_anchors[i] - x_center))
+        return nearest_idx
     
     def _merge_numeric_blocks(self, blocks: List[Dict]) -> List[Dict]:
         """

@@ -653,7 +653,7 @@ class AdobeFallbackService:
                     # Determine if this is a header cell
                     is_header = row_idx in header_rows
                     
-                    # Create Cell (mapping from CellData to Cell format)
+                    # Create Cell (mapping from Adobe table cell to UnifiedLayout Cell format)
                     cell_data = Cell(
                         row=row_idx,
                         column=col_idx,
