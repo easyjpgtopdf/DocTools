@@ -25,9 +25,7 @@ body{background-color:#f5f7ff;color:var(--dark);min-height:100vh;display:flex;fl
 .btn{display:inline-flex;align-items:center;gap:8px;background:var(--primary);color:#fff;border:none;border-radius:40px;padding:10px 16px;cursor:pointer;transition:.2s transform,.2s box-shadow}
 .btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(67,97,238,.25)}
 .btn.secondary{background:#fff;color:var(--primary);border:1px solid var(--primary)}
-.convert-bar{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:10px;padding-top:20px;border-top:1px solid var(--border)}
 .muted{color:var(--gray);font-size:.9rem}
-#convertBtn{background:linear-gradient(135deg,#4cc9f0,#4361ee);font-size:16px;padding:12px 22px}
 footer{background:var(--dark);color:#fff;padding:40px 0 20px;margin-top:24px}
 @media (max-width: 992px){
   .left{flex:1 1 100%}
@@ -88,6 +86,10 @@ footer{background:var(--dark);color:#fff;padding:40px 0 20px;margin-top:24px}
 <div style="font-size:0.9rem;color:var(--gray);">Ready to download</div>
 </div>
 </div>
+<div style="margin-top:30px;display:flex;justify-content:space-between;align-items:center;gap:15px;padding-top:20px;border-top:1px solid var(--border);">
+<a class="btn secondary" href="png-to-ico.html" style="font-size:32px;padding:20px 32px;flex:1;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:12px;"><i class="fas fa-arrow-left"></i> Back</a>
+<button class="btn" id="convertBtn" style="font-size:32px;padding:20px 32px;flex:1;background:linear-gradient(135deg,#4cc9f0,#4361ee);display:flex;align-items:center;justify-content:center;gap:12px;"><i class="fas fa-download"></i> DOWNLOAD</button>
+</div>
 </div>
 <div class="panel right">
 <div style="text-align:center;padding:20px;">
@@ -132,13 +134,6 @@ footer{background:var(--dark);color:#fff;padding:40px 0 20px;margin-top:24px}
 <i class="fas fa-upload"></i> Upload New File
 </a>
 </div>
-</div>
-</div>
-<div class="convert-bar">
-<span class="muted">1 file processed</span>
-<div>
-<a class="btn secondary" href="png-to-ico.html"><i class="fas fa-arrow-left"></i> Back</a>
-<button class="btn" id="convertBtn"><i class="fas fa-download"></i> DOWNLOAD</button>
 </div>
 </div>
 </main>
@@ -310,11 +305,6 @@ footer{background:var(--dark);color:#fff;padding:40px 0 20px;margin-top:24px}
         
         downloadBtn.disabled = false;
         convertBtn.disabled = false;
-        
-        const countEl = document.querySelector('.muted');
-        if (countEl) {
-            countEl.textContent = `${convertedFiles.length} file${convertedFiles.length > 1 ? 's' : ''} converted`;
-        }
     }
     
     // Load and convert files on page load
