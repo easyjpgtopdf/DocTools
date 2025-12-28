@@ -1,5 +1,5 @@
 # Use Python 3.11 slim as base image
-# Build timestamp: 2025-12-28T14:45:00Z - Force cache invalidation for STEP-11-14: Enterprise fail-safes + pricing + Adobe fallback + debug
+# Build timestamp: 2025-12-28T16:00:00Z - Force cache invalidation for STEP-10-14: All enterprise features deployment
 FROM python:3.11-slim
 
 # Set working directory

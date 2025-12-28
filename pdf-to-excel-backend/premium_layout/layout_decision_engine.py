@@ -46,7 +46,8 @@ class LayoutDecisionEngine:
         document: Any,
         document_text: str = '',
         native_tables: Optional[List] = None,
-        processor_type: Optional[str] = None
+        processor_type: Optional[str] = None,
+        pdf_bytes: Optional[bytes] = None  # STEP-13: For Adobe fallback
     ) -> List[UnifiedLayout]:
         """
         Process document and return unified layouts (one per page).
@@ -153,7 +154,8 @@ class LayoutDecisionEngine:
                         page_idx=page_idx,
                         page=page,
                         page_structure=page_structure,
-                        full_structure=full_structure
+                        full_structure=full_structure,
+                        pdf_bytes=self.pdf_bytes  # STEP-13: Pass PDF bytes for Adobe fallback
                     )
                 elif self.selected_mode == ExecutionMode.TABLE_VISUAL:
                     page_layout = self._execute_table_visual_mode(
@@ -293,7 +295,8 @@ class LayoutDecisionEngine:
         page_idx: int,
         page: Any,
         page_structure: Optional[Dict] = None,
-        full_structure: Optional[Dict] = None
+        full_structure: Optional[Dict] = None,
+        pdf_bytes: Optional[bytes] = None  # STEP-13: For Adobe fallback
     ) -> UnifiedLayout:
         """
         Execute TABLE_STRICT mode: Trust DocAI structure, preserve row/column spans.
@@ -356,10 +359,39 @@ class LayoutDecisionEngine:
                     adobe_service = AdobeFallbackService()
                     
                     if adobe_service.is_available():
-                        # Get PDF bytes for this page (would need to be passed in)
-                        # For now, log that Adobe should be used
-                        logger.critical("⚠️ Adobe service available but PDF bytes not passed - using GEOMETRIC_HYBRID result")
-                        logger.critical("   Note: Adobe fallback requires PDF bytes to be passed to _execute_table_strict_mode")
+                        # STEP-13: Call Adobe PDF Extract API if PDF bytes available
+                        if pdf_bytes:
+                            try:
+                                logger.critical("🚀 STEP-13: Calling Adobe PDF Extract API...")
+                                adobe_layouts, adobe_confidence, adobe_metadata = adobe_service.extract_pdf_structure(
+                                    pdf_bytes=pdf_bytes,
+                                    filename=f"page_{page_idx + 1}.pdf",  # Use page number as filename
+                                    docai_confidence=ocr_confidence
+                                )
+                                
+                                if adobe_layouts and len(adobe_layouts) > page_idx:
+                                    # Use Adobe layout for this page
+                                    adobe_layout = adobe_layouts[page_idx]
+                                    adobe_layout.metadata['layout_source'] = 'adobe'
+                                    adobe_layout.metadata['engine_used'] = 'adobe'
+                                    adobe_layout.metadata['page_number'] = page_idx + 1
+                                    adobe_layout.metadata['detected_tables_count'] = detected_tables_count
+                                    adobe_layout.metadata['fallback_triggered'] = True
+                                    adobe_layout.metadata['fallback_reason'] = 'TABLE_STRICT failed + Adobe fallback triggered'
+                                    
+                                    logger.critical("✅ STEP-13: Adobe PDF Extract successful - using Adobe layout")
+                                    logger.critical(f"   Adobe layout: {adobe_layout.get_max_row()} rows, {adobe_layout.get_max_column()} columns")
+                                    
+                                    return adobe_layout
+                                else:
+                                    logger.warning("⚠️ Adobe returned no layout for this page - using GEOMETRIC_HYBRID result")
+                            except Exception as adobe_error:
+                                logger.error(f"⚠️ Adobe fallback failed (non-critical): {adobe_error}")
+                                logger.error("   Falling back to GEOMETRIC_HYBRID result")
+                                # Continue with GEOMETRIC_HYBRID result
+                        else:
+                            logger.critical("⚠️ Adobe service available but PDF bytes not passed - using GEOMETRIC_HYBRID result")
+                            logger.critical("   Note: Adobe fallback requires PDF bytes to be passed to _execute_table_strict_mode")
                     else:
                         logger.warning("Adobe PDF Extract not available - using GEOMETRIC_HYBRID result")
                 
