@@ -242,9 +242,9 @@ class ExcelWordRenderer:
             extractor = ImageExtractor()
             
             max_col = layout.get_max_column()
-            image_col = max_col + 2  # Place images after data columns
+            max_row = layout.get_max_row()
             
-            for img_idx, img_info in enumerate(images[:5]):  # Limit to 5 images per sheet
+            for img_idx, img_info in enumerate(images[:10]):  # Limit to 10 images per sheet
                 try:
                     image_bytes = img_info.get('image_bytes')
                     if not image_bytes:
@@ -258,31 +258,34 @@ class ExcelWordRenderer:
                     # Create Excel image
                     img = ExcelImage(io.BytesIO(prepared_bytes))
                     
-                    # Calculate position (use normalized coordinates to determine cell)
+                    # CRITICAL FIX: Use actual bounding box position to place image
+                    # Convert normalized coordinates to Excel cell position
                     position = img_info.get('position', (0.0, 0.0, 0.1, 0.1))
                     x_norm, y_norm = position[0], position[1]
                     
-                    # STEP-10: Dynamic image placement - use actual layout dimensions
                     # Convert normalized position to row/column based on actual grid size
-                    max_row = layout.get_max_row()
-                    max_col = layout.get_max_column()
-                    
-                    if max_row > 0:
-                        # Use actual row count for positioning
+                    if max_row > 0 and max_col > 0:
+                        # Calculate row and column from normalized position
                         row_num = max(1, int(y_norm * max_row) + 1)
+                        col_num = max(1, int(x_norm * max_col) + 1)
+                        
+                        # Ensure row/column are within bounds
+                        row_num = min(row_num, max_row)
+                        col_num = min(col_num, max_col)
                     else:
-                        # Fallback: If no rows, place at row 1 (not hardcoded offset)
+                        # Fallback: If no rows/columns, place at top-left
                         row_num = 1
-                        logger.warning(f"Image placement: No rows in layout, placing at row 1")
+                        col_num = 1
+                        logger.warning(f"Image placement: No rows/columns in layout, placing at A1")
                     
-                    # Anchor image to cell
+                    # Anchor image to cell at its detected position
                     from openpyxl.utils import get_column_letter
-                    anchor_col = get_column_letter(image_col)
+                    anchor_col = get_column_letter(col_num)
                     anchor_cell = f"{anchor_col}{row_num}"
                     
-                    # Add image to sheet
+                    # Add image to sheet at detected position
                     sheet.add_image(img, anchor_cell)
-                    logger.debug(f"Inserted image {img_idx + 1} at {anchor_cell}")
+                    logger.debug(f"Inserted image {img_idx + 1} at {anchor_cell} (position: x={x_norm:.3f}, y={y_norm:.3f})")
                     
                 except Exception as img_error:
                     logger.warning(f"Failed to insert image {img_idx + 1}: {img_error}")
