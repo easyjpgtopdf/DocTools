@@ -6,6 +6,74 @@
 
 (function() {
     'use strict';
+    
+    // Add CSS styles for search results
+    if (!document.getElementById('compact-search-styles')) {
+        const style = document.createElement('style');
+        style.id = 'compact-search-styles';
+        style.textContent = `
+            .compact-result-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 12px 16px;
+                color: #fff;
+                text-decoration: none;
+                border-bottom: 1px solid #444;
+                transition: background 0.2s;
+            }
+            .compact-result-item:hover {
+                background: rgba(67, 97, 238, 0.1);
+            }
+            .compact-result-item:last-child {
+                border-bottom: none;
+            }
+            .compact-result-icon {
+                width: 40px;
+                height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(67, 97, 238, 0.1);
+                border-radius: 8px;
+                color: #4361ee;
+                font-size: 1.2rem;
+            }
+            .compact-result-content {
+                flex: 1;
+                min-width: 0;
+            }
+            .compact-result-title {
+                font-weight: 600;
+                color: #fff;
+                margin-bottom: 4px;
+                font-size: 0.95rem;
+            }
+            .compact-result-description {
+                font-size: 0.85rem;
+                color: #aaa;
+            }
+            .compact-result-arrow {
+                color: #666;
+                font-size: 0.9rem;
+            }
+            #compact-search-results {
+                scrollbar-width: thin;
+                scrollbar-color: #4361ee #2a2a2a;
+            }
+            #compact-search-results::-webkit-scrollbar {
+                width: 6px;
+            }
+            #compact-search-results::-webkit-scrollbar-track {
+                background: #2a2a2a;
+            }
+            #compact-search-results::-webkit-scrollbar-thumb {
+                background: #4361ee;
+                border-radius: 3px;
+            }
+        `;
+        document.head.appendChild(style);
+    }
 
     // Complete tool database (same as voice assistant)
     const toolDatabase = [
@@ -177,43 +245,54 @@
         for (const tool of toolDatabase) {
             let score = 0;
             const queryWords = queryLower.split(' ').filter(w => w.length > 0);
+            const titleLower = tool.title.toLowerCase();
+            const descLower = tool.description.toLowerCase();
             
             // Exact title match
-            if (tool.title.toLowerCase() === queryLower) {
+            if (titleLower === queryLower) {
                 score += 100;
             }
             
-            // Title contains query
-            if (tool.title.toLowerCase().includes(queryLower)) {
+            // Title contains full query
+            if (titleLower.includes(queryLower)) {
                 score += 50;
             }
             
-            // Keyword matching
-            for (const keyword of tool.keywords) {
-                const keywordLower = keyword.toLowerCase();
-                if (queryLower.includes(keywordLower)) {
-                    score += 20;
+            // Title contains query words
+            for (const word of queryWords) {
+                if (word.length > 2 && titleLower.includes(word)) {
+                    score += 15;
                 }
             }
             
-            // Partial word matching
+            // Keyword matching - exact match
+            for (const keyword of tool.keywords) {
+                const keywordLower = keyword.toLowerCase();
+                if (queryLower === keywordLower) {
+                    score += 30;
+                } else if (queryLower.includes(keywordLower)) {
+                    score += 20;
+                } else if (keywordLower.includes(queryLower)) {
+                    score += 15;
+                }
+            }
+            
+            // Partial word matching in keywords
             for (const word of queryWords) {
                 if (word.length > 2) {
-                    // Check title
-                    if (tool.title.toLowerCase().includes(word)) {
-                        score += 15;
-                    }
-                    // Check keywords
                     for (const keyword of tool.keywords) {
                         const keywordLower = keyword.toLowerCase();
                         if (keywordLower.includes(word) || word.includes(keywordLower)) {
                             score += 10;
                         }
                     }
-                    // Check description
-                    if (tool.description.toLowerCase().includes(word)) {
-                        score += 5;
-                    }
+                }
+            }
+            
+            // Description matching
+            for (const word of queryWords) {
+                if (word.length > 2 && descLower.includes(word)) {
+                    score += 5;
                 }
             }
             
@@ -330,14 +409,35 @@
             }
         });
 
+        // Handle search button click
+        const searchBtn = document.getElementById('compact-search-btn');
+        if (searchBtn) {
+            searchBtn.addEventListener('click', function() {
+                const query = searchInput.value.trim();
+                if (query.length > 0) {
+                    const results = smartSearch(query);
+                    if (results.length > 0) {
+                        window.location.href = results[0].url;
+                    } else {
+                        // If no results, go to search page
+                        window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+                    }
+                }
+            });
+        }
+        
         // Handle Enter key
         searchInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
+                e.preventDefault();
                 const query = e.target.value.trim();
                 if (query.length > 0) {
                     const results = smartSearch(query);
                     if (results.length > 0) {
                         window.location.href = results[0].url;
+                    } else {
+                        // If no results, go to search page
+                        window.location.href = `search.html?q=${encodeURIComponent(query)}`;
                     }
                 }
             } else if (e.key === 'Escape') {

@@ -281,15 +281,16 @@ const globalFooterHTML = `
                     <span style="font-size: 0.9rem;">App Coming Soon</span>
                 </div>
             </div>
-            <div class="footer-search" style="flex: 1; min-width: 200px; max-width: 300px;">
-                <form action="search.html" method="get" style="display: flex; gap: 5px;">
-                    <input type="text" name="q" placeholder="Search our site..." style="flex: 1; padding: 8px 12px; border: 1px solid #555; border-radius: 4px; background: #2a2a2a; color: #fff; font-size: 0.9rem; outline: none;" onfocus="this.style.borderColor='#4361ee'" onblur="this.style.borderColor='#555'">
-                    <button type="submit" style="padding: 8px 15px; background: #4361ee; border: none; border-radius: 4px; color: #fff; cursor: pointer; transition: background 0.3s;" onmouseover="this.style.background='#3a0ca3'" onmouseout="this.style.background='#4361ee'">
+            <div class="footer-search" style="flex: 1; min-width: 200px; max-width: 300px; position: relative;">
+                <div class="compact-search-bar" style="display: flex; gap: 5px; position: relative;">
+                    <input type="text" id="compact-search-input" placeholder="Search our site..." style="flex: 1; padding: 8px 12px; border: 1px solid #555; border-radius: 4px; background: #2a2a2a; color: #fff; font-size: 0.9rem; outline: none;" onfocus="this.style.borderColor='#4361ee'" onblur="this.style.borderColor='#555'">
+                    <button type="button" id="compact-search-btn" style="padding: 8px 15px; background: #4361ee; border: none; border-radius: 4px; color: #fff; cursor: pointer; transition: background 0.3s;" onmouseover="this.style.background='#3a0ca3'" onmouseout="this.style.background='#4361ee'">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
                         </svg>
                     </button>
-                </form>
+                </div>
+                <div id="compact-search-results" style="display: none; position: absolute; top: 100%; left: 0; right: 0; margin-top: 5px; background: #2a2a2a; border: 1px solid #555; border-radius: 8px; max-height: 400px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.3);"></div>
             </div>
         </div>
     </div>
@@ -735,6 +736,16 @@ function loadGlobalFooter() {
     const footerPlaceholder = document.getElementById('global-footer-placeholder');
     if (footerPlaceholder) {
         footerPlaceholder.outerHTML = globalFooterHTML;
+        
+        // Load compact search script after footer is loaded
+        setTimeout(() => {
+            if (!document.querySelector('script[src*="compact-search.js"]')) {
+                const searchScript = document.createElement('script');
+                searchScript.src = 'js/compact-search.js';
+                searchScript.async = true;
+                document.body.appendChild(searchScript);
+            }
+        }, 100);
     }
 }
 

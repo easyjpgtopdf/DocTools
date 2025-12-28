@@ -459,7 +459,7 @@ class VoiceAssistant {
             { title: 'Terms of Service', url: 'terms-of-service.html', keywords: ['terms', 'service', 'conditions', 'शर्तें'], category: 'Legal', description: 'Terms and conditions' },
             { title: 'Refund Policy', url: 'refund-policy.html', keywords: ['refund', 'return', 'money back', 'वापसी'], category: 'Legal', description: 'Refund and return policy' },
             { title: 'KYC Support', url: 'kyc-support.html', keywords: ['kyc', 'support', 'verification', 'help', 'सहायता'], category: 'Support', description: 'KYC verification support' },
-            { title: 'Attributions', url: 'attributions.html', keywords: ['attribution', 'credit', 'acknowledgment', 'श्रेय'], category: 'Support', description: 'Third-party attributions' },,
+            { title: 'Attributions', url: 'attributions.html', keywords: ['attribution', 'credit', 'acknowledgment', 'श्रेय'], category: 'Support', description: 'Third-party attributions' },
             { 
                 title: '7Z Extractor - Extract 7Z Files Online Free', 
                 url: '7z-extractor.html', 
@@ -783,30 +783,63 @@ class VoiceAssistant {
                 description: 'Convert Zip to Rar online for free'
             }
         ];
+        
+        const queryLower = query.toLowerCase().trim();
+        if (!queryLower) {
+            return [];
+        }
+        
         for (const tool of toolDatabase) {
             let score = 0;
-            const queryWords = query.split(' ');
+            const queryWords = queryLower.split(' ').filter(w => w.length > 0);
+            const titleLower = tool.title.toLowerCase();
+            const descLower = tool.description.toLowerCase();
             
             // Exact title match
-            if (tool.title.toLowerCase() === query) {
+            if (titleLower === queryLower) {
                 score += 100;
             }
             
-            // Keyword matching
-            for (const keyword of tool.keywords) {
-                if (query.includes(keyword)) {
-                    score += 20;
+            // Title contains full query
+            if (titleLower.includes(queryLower)) {
+                score += 50;
+            }
+            
+            // Title contains query words
+            for (const word of queryWords) {
+                if (word.length > 2 && titleLower.includes(word)) {
+                    score += 15;
                 }
             }
             
-            // Partial word matching
+            // Keyword matching - exact match
+            for (const keyword of tool.keywords) {
+                const keywordLower = keyword.toLowerCase();
+                if (queryLower === keywordLower) {
+                    score += 30;
+                } else if (queryLower.includes(keywordLower)) {
+                    score += 20;
+                } else if (keywordLower.includes(queryLower)) {
+                    score += 15;
+                }
+            }
+            
+            // Partial word matching in keywords
             for (const word of queryWords) {
                 if (word.length > 2) {
                     for (const keyword of tool.keywords) {
-                        if (keyword.includes(word) || word.includes(keyword)) {
+                        const keywordLower = keyword.toLowerCase();
+                        if (keywordLower.includes(word) || word.includes(keywordLower)) {
                             score += 10;
                         }
                     }
+                }
+            }
+            
+            // Description matching
+            for (const word of queryWords) {
+                if (word.length > 2 && descLower.includes(word)) {
+                    score += 5;
                 }
             }
             
@@ -851,8 +884,20 @@ class VoiceAssistant {
 
     // Speak in user's detected language
     speakInUserLanguage(englishText, hindiText) {
+        // Cancel any ongoing speech
+        if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+        }
+        
+        // Reset speaking flag
+        this.isSpeaking = false;
+        
         const isHindi = this.detectedUserLanguage && this.detectedUserLanguage.startsWith('hi');
         const text = isHindi && hindiText ? hindiText : englishText;
+        
+        if (!text || text.trim() === '') {
+            return;
+        }
         
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = this.detectedUserLanguage || this.currentLanguage;
@@ -860,11 +905,43 @@ class VoiceAssistant {
         utterance.pitch = 1.0;
         utterance.volume = 1.0;
         
-        window.speechSynthesis.speak(utterance);
+        utterance.onstart = () => {
+            this.isSpeaking = true;
+            this.updateUI('speaking');
+        };
+
+        utterance.onend = () => {
+            this.isSpeaking = false;
+            this.updateUI('idle');
+        };
+
+        utterance.onerror = (error) => {
+            console.error('Speech synthesis error:', error);
+            this.isSpeaking = false;
+            this.updateUI('idle');
+        };
+        
+        try {
+            window.speechSynthesis.speak(utterance);
+        } catch (error) {
+            console.error('Error speaking:', error);
+            this.isSpeaking = false;
+            this.updateUI('idle');
+        }
     }
 
     speak(text) {
-        if (this.isSpeaking) return;
+        // Cancel any ongoing speech
+        if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+        }
+        
+        // Reset speaking flag
+        this.isSpeaking = false;
+
+        if (!text || text.trim() === '') {
+            return;
+        }
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = 1.0;
@@ -874,13 +951,27 @@ class VoiceAssistant {
 
         utterance.onstart = () => {
             this.isSpeaking = true;
+            this.updateUI('speaking');
         };
 
         utterance.onend = () => {
             this.isSpeaking = false;
+            this.updateUI('idle');
         };
 
-        window.speechSynthesis.speak(utterance);
+        utterance.onerror = (error) => {
+            console.error('Speech synthesis error:', error);
+            this.isSpeaking = false;
+            this.updateUI('idle');
+        };
+
+        try {
+            window.speechSynthesis.speak(utterance);
+        } catch (error) {
+            console.error('Error speaking:', error);
+            this.isSpeaking = false;
+            this.updateUI('idle');
+        }
     }
 
     createUI() {
