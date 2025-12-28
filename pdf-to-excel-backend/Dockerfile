@@ -1,5 +1,5 @@
 # Use Python 3.11 slim as base image
-# Build timestamp: 2025-12-28T06:45:00Z - Force cache invalidation for Form Parser fallback fix
+# Build timestamp: 2025-12-28T07:25:00Z - Force cache invalidation for fallback + credit fix
 FROM python:3.11-slim
 
 # Set working directory
