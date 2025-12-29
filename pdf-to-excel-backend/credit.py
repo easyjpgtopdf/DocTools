@@ -51,6 +51,10 @@ def get_credits(user_id: str) -> int:
     CRITICAL: Returns 0 only if user explicitly has 0 credits in Firebase.
     Returns 0 if user not found to prevent errors, but logs warning.
     """
+    # TEMPORARY TESTING BYPASS
+    if user_id == "NLhUrh6ZurQInLRV875Ktxw9rDn2":
+        return 1000  # Return 1000 credits for testing
+    
     # Try Firebase first (real credits for logged-in users)
     if FIREBASE_AVAILABLE:
         credits = get_credits_from_firebase(user_id)
@@ -87,6 +91,11 @@ def deduct_credits(user_id: str, amount: int) -> bool:
     Uses Firebase Firestore for real logged-in users.
     Returns True if successful, False if insufficient credits.
     """
+    # TEMPORARY TESTING BYPASS
+    if user_id == "NLhUrh6ZurQInLRV875Ktxw9rDn2":
+        logger.info(f"TESTING BYPASS: Simulating deduction of {amount} credits")
+        return True
+    
     # Try Firebase first (real credits for logged-in users)
     if FIREBASE_AVAILABLE:
         return deduct_credits_from_firebase(user_id, amount)
