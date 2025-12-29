@@ -93,17 +93,30 @@ class DecisionRouter:
         # ====================================================================
         # Form Parser does NOT populate table.cells, so TABLE_STRICT will fail
         # FORCE GEOMETRIC_HYBRID for form-parser-docai regardless of other factors
-        logger.critical(f"🔍 DECISION ROUTER: processor_type = {processor_type} (type: {type(processor_type)})")
-        if processor_type and str(processor_type).strip().lower() == "form-parser-docai":
+        # CRITICAL DEBUG: Log processor_type to understand why check might fail
+        logger.critical(f"🔍 DECISION ROUTER: processor_type = {repr(processor_type)} (type: {type(processor_type)})")
+        
+        # CRITICAL FIX: Check processor_type with multiple variations
+        processor_type_str = str(processor_type).strip().lower() if processor_type else ""
+        is_form_parser = (
+            processor_type_str == "form-parser-docai" or
+            processor_type_str == "form_parser_docai" or
+            "form-parser" in processor_type_str or
+            "form_parser" in processor_type_str
+        )
+        
+        if is_form_parser:
             logger.critical("=" * 80)
             logger.critical("🚫 FORM PARSER DETECTED: Blocking TABLE_STRICT, forcing GEOMETRIC_HYBRID")
-            logger.critical("Reason: Form Parser tables do not populate table.cells structure")
+            logger.critical(f"Reason: processor_type='{processor_type}' → Form Parser tables do not populate table.cells structure")
             logger.critical("Form Parser detected — forcing GEOMETRIC_HYBRID to prevent blank Excel")
             logger.critical("=" * 80)
             confidence = 0.95
             reason = "Form Parser detected — forcing GEOMETRIC_HYBRID to prevent blank Excel (TABLE_STRICT blocked)"
             self._log_routing_decision(0, ExecutionMode.GEOMETRIC_HYBRID, confidence, reason)
             return (ExecutionMode.GEOMETRIC_HYBRID, confidence, reason)
+        else:
+            logger.critical(f"✅ NOT Form Parser: processor_type='{processor_type}' (normalized: '{processor_type_str}')")
         
         # ====================================================================
         # HARD BLOCK RULE 0: MULTI-COLUMN GUARANTEE (CRITICAL)
