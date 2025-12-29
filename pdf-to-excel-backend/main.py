@@ -419,15 +419,17 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
             user_wants_premium = False
         
         # Step 3: Check minimum credits (30 required for premium - UPDATED)
-        # TEMPORARY TESTING BYPASS
+        # TEMPORARY TESTING BYPASS - Check BEFORE calling get_credits
         TESTING_UID = "NLhUrh6ZurQInLRV875Ktxw9rDn2"
         if user_id == TESTING_UID:
-            logger.warning(f"🧪 TESTING MODE: Bypassing credit check for {user_id} in main.py")
+            logger.warning(f"🧪 TESTING MODE: Bypassing ALL credit checks for {user_id} in main.py")
             current_credits = 1000  # Bypass credit check
+            # Skip all credit checks for testing UID
         else:
             current_credits = get_credits(user_id)
         
-        if not can_access_premium(current_credits):
+        # Skip credit check for testing UID
+        if user_id != TESTING_UID and not can_access_premium(current_credits):
             logger.warning(f"User {user_id} has insufficient credits for premium: {current_credits} < {MIN_PREMIUM_CREDITS}")
             return JSONResponse(
                 status_code=402,
@@ -635,8 +637,14 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
         
         # Step 8: Check credits (after processing to know exact page count and cost)
         # Note: Minimum 30 credits already checked, but verify again for actual cost
-        current_credits = get_credits(user_id)
-        if current_credits < total_credits_required:
+        # TESTING BYPASS
+        TESTING_UID = "NLhUrh6ZurQInLRV875Ktxw9rDn2"
+        if user_id == TESTING_UID:
+            current_credits = 1000  # Bypass
+        else:
+            current_credits = get_credits(user_id)
+        
+        if user_id != TESTING_UID and current_credits < total_credits_required:
             logger.warning(f"Insufficient credits after processing: need {total_credits_required}, have {current_credits}")
             return JSONResponse(
                 status_code=402,
