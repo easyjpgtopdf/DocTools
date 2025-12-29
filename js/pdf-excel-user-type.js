@@ -56,7 +56,7 @@ function setUserType(type) {
 async function hasPremiumAccess() {
     // Check credits via API - this is the primary check
     try {
-        const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
+        const API_BASE_URL = 'https://pdf-to-excel-backend-564572183797.us-central1.run.app';
         const userId = await getUserId(); // Use async getUserId to get Firebase user ID
         const response = await fetch(`${API_BASE_URL}/api/credits`, {
             method: 'GET',
@@ -159,7 +159,7 @@ function getLocalStorageUserId() {
  */
 async function getCreditBalance() {
     try {
-        const API_BASE_URL = 'https://pdf-to-excel-backend-iwumaktavq-uc.a.run.app';
+        const API_BASE_URL = 'https://pdf-to-excel-backend-564572183797.us-central1.run.app';
         const userId = await getUserId(); // Use async getUserId to get Firebase user ID
         const response = await fetch(`${API_BASE_URL}/api/credits`, {
             method: 'GET',
