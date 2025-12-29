@@ -419,7 +419,14 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
             user_wants_premium = False
         
         # Step 3: Check minimum credits (30 required for premium - UPDATED)
-        current_credits = get_credits(user_id)
+        # TEMPORARY TESTING BYPASS
+        TESTING_UID = "NLhUrh6ZurQInLRV875Ktxw9rDn2"
+        if user_id == TESTING_UID:
+            logger.warning(f"🧪 TESTING MODE: Bypassing credit check for {user_id} in main.py")
+            current_credits = 1000  # Bypass credit check
+        else:
+            current_credits = get_credits(user_id)
+        
         if not can_access_premium(current_credits):
             logger.warning(f"User {user_id} has insufficient credits for premium: {current_credits} < {MIN_PREMIUM_CREDITS}")
             return JSONResponse(
