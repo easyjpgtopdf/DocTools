@@ -51,12 +51,6 @@ def get_credits(user_id: str) -> int:
     CRITICAL: Returns 0 only if user explicitly has 0 credits in Firebase.
     Returns 0 if user not found to prevent errors, but logs warning.
     """
-    # TEMPORARY TESTING BYPASS
-    TESTING_UID = "NLhUrh6ZurQInLRV875Ktxw9rDn2"
-    if user_id == TESTING_UID:
-        logger.warning(f"🧪 TESTING MODE: Bypassing credit fetch in credit.py for {user_id}, returning 1000")
-        return 1000
-    
     # Try Firebase first (real credits for logged-in users)
     if FIREBASE_AVAILABLE:
         credits = get_credits_from_firebase(user_id)

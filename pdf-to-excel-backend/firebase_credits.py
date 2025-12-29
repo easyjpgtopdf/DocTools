@@ -39,13 +39,6 @@ def get_credits_from_firebase(user_id: str) -> Optional[int]:
     Returns:
         Credit balance (int) or None if user not found or error
     """
-    # TEMPORARY TESTING BYPASS - Remove after testing
-    # Allow testing with specific UID without credit check
-    TESTING_UID = "NLhUrh6ZurQInLRV875Ktxw9rDn2"
-    if user_id == TESTING_UID:
-        logger.warning(f"🧪 TESTING MODE: Bypassing credit fetch for {user_id}, returning 1000 credits")
-        return 1000  # Return high credits for testing
-    
     try:
         db = get_firestore_client()
         if not db:
@@ -116,13 +109,6 @@ def deduct_credits_from_firebase(user_id: str, amount: int) -> bool:
     Returns:
         True if successful, False if insufficient credits or error
     """
-    # TEMPORARY TESTING BYPASS - Remove after testing
-    TESTING_UID = "NLhUrh6ZurQInLRV875Ktxw9rDn2"
-    if user_id == TESTING_UID:
-        logger.warning(f"🧪 TESTING MODE: Bypassing credit deduction for {user_id}, amount: {amount}")
-        logger.warning(f"   In production, {amount} credits would be deducted")
-        return True  # Pretend deduction succeeded
-    
     # CRITICAL DEBUG: Log exact amount received
     logger.info("=" * 80)
     logger.info("FIREBASE CREDIT DEDUCTION - INPUT")
