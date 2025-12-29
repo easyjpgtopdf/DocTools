@@ -1,5 +1,5 @@
 # Use Python 3.11 slim as base image
-# Build timestamp: 2025-01-28T12:00:00Z - Force cache invalidation for CRITICAL BUG FIXES: Blank output prevention + dynamic columns + non-empty enforcement
+# Build timestamp: 2025-01-28T18:30:00Z - Force cache invalidation: Cell mixing fix + wrap_text + image placement + credit calculator + invoice fix
 FROM python:3.11-slim
 
 # Set working directory
