@@ -3152,16 +3152,16 @@ class LayoutDecisionEngine:
                                     existing_text = row_cells[nearest_col].value or ''
                                     row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
                                 else:
-                        # Enable wrap_text for long text or Unicode (Hindi) to prevent overflow
-                        has_unicode = any(ord(c) > 127 for c in text)
-                        wrap_text = len(text) > 50 or has_unicode
-                        
-                        row_cells[nearest_col] = Cell(
-                            row=row_idx,
-                            column=nearest_col,
-                            value=text,
-                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=wrap_text)
-                        )
+                                    # Enable wrap_text for long text or Unicode (Hindi) to prevent overflow
+                                    has_unicode = any(ord(c) > 127 for c in text)
+                                    wrap_text = len(text) > 50 or has_unicode
+                                    
+                                    row_cells[nearest_col] = Cell(
+                                        row=row_idx,
+                                        column=nearest_col,
+                                        value=text,
+                                        style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=wrap_text)
+                                    )
             
             # Add row with all cells (fill empty cells)
             final_row_cells = []
