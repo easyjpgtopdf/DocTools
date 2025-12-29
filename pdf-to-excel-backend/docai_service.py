@@ -277,6 +277,7 @@ async def process_pdf_to_excel_docai(
         unified_layouts = []
         excel_bytes = None
         layout_strategy = "unknown"
+        decision_engine_instance = None  # CRITICAL: Initialize in function scope
         
         try:
             from premium_layout.layout_decision_engine import LayoutDecisionEngine
@@ -633,7 +634,9 @@ async def process_pdf_to_excel_docai(
         # CRITICAL: Extract pages_metadata for billing calculation (STEP-12)
         # First try to get from decision_engine (STEP-14 builds it)
         pages_metadata = []
-        if 'decision_engine_instance' in locals() and hasattr(decision_engine_instance, 'pages_metadata'):
+        
+        # CRITICAL FIX: decision_engine_instance is now in function scope
+        if decision_engine_instance and hasattr(decision_engine_instance, 'pages_metadata'):
             pages_metadata = decision_engine_instance.pages_metadata
             logger.critical(f"✅ STEP-12: Using pages_metadata from decision_engine: {len(pages_metadata)} pages")
             for pm in pages_metadata:
@@ -641,6 +644,11 @@ async def process_pdf_to_excel_docai(
         else:
             # Fallback: Extract from unified_layouts metadata
             logger.warning("⚠️ STEP-12: Extracting pages_metadata from unified_layouts (fallback)")
+            if decision_engine_instance:
+                logger.warning(f"   decision_engine_instance exists but no pages_metadata attr")
+            else:
+                logger.warning(f"   decision_engine_instance is None")
+            
             for layout in unified_layouts:
                 page_num = layout.metadata.get('page_number', layout.page_index + 1)
                 engine = layout.metadata.get('engine_used', layout.metadata.get('layout_source', 'docai'))
@@ -649,6 +657,18 @@ async def process_pdf_to_excel_docai(
                     'engine': engine
                 })
                 logger.critical(f"BILLING METADATA: Page {page_num} → engine={engine}")
+        
+        # CRITICAL: Ensure pages_metadata is never empty if we have layouts
+        if not pages_metadata and unified_layouts:
+            logger.critical("⚠️ CRITICAL: pages_metadata is empty but unified_layouts exist - building from layouts")
+            for idx, layout in enumerate(unified_layouts):
+                page_num = layout.metadata.get('page_number', layout.page_index + 1)
+                engine = layout.metadata.get('engine_used', layout.metadata.get('layout_source', 'docai'))
+                pages_metadata.append({
+                    'page': page_num,
+                    'engine': engine
+                })
+                logger.critical(f"   Built metadata: Page {page_num} → engine={engine}")
         
         logger.critical(f"BILLING: Final pages_metadata count: {len(pages_metadata)} for credit calculation")
         

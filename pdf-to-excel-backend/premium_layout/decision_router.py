@@ -93,7 +93,8 @@ class DecisionRouter:
         # ====================================================================
         # Form Parser does NOT populate table.cells, so TABLE_STRICT will fail
         # FORCE GEOMETRIC_HYBRID for form-parser-docai regardless of other factors
-        if processor_type == "form-parser-docai":
+        logger.critical(f"🔍 DECISION ROUTER: processor_type = {processor_type} (type: {type(processor_type)})")
+        if processor_type and str(processor_type).strip().lower() == "form-parser-docai":
             logger.critical("=" * 80)
             logger.critical("🚫 FORM PARSER DETECTED: Blocking TABLE_STRICT, forcing GEOMETRIC_HYBRID")
             logger.critical("Reason: Form Parser tables do not populate table.cells structure")

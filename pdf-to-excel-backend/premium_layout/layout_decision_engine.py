@@ -100,6 +100,7 @@ class LayoutDecisionEngine:
         logger.info("=" * 80)
         logger.info("DECISION ROUTER: Selecting execution mode")
         logger.info("=" * 80)
+        logger.critical(f"🔍 LAYOUT DECISION ENGINE: Passing processor_type='{processor_type}' to DecisionRouter")
         self.selected_mode, self.routing_confidence, self.routing_reason = self.decision_router.route(
             native_tables=native_tables,
             doc_type=doc_type,
@@ -107,6 +108,7 @@ class LayoutDecisionEngine:
             document_text=document_text,
             processor_type=processor_type
         )
+        logger.critical(f"🔍 LAYOUT DECISION ENGINE: DecisionRouter returned mode={self.selected_mode.value}, reason={self.routing_reason}")
         logger.info(f"Selected mode: {self.selected_mode.value}")
         logger.info(f"Routing confidence: {self.routing_confidence:.2f}")
         logger.info(f"Routing reason: {self.routing_reason}")
