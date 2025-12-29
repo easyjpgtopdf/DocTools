@@ -1,0 +1,124 @@
+<!-- Non-Convertible Document Popup -->
+<style>
+#non-convertible-popup {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    z-index: 10000;
+    max-width: 500px;
+    width: 90%;
+}
+
+#non-convertible-popup h3 {
+    color: #e74c3c;
+    margin: 0 0 15px 0;
+    font-size: 24px;
+}
+
+#non-convertible-popup p {
+    color: #555;
+    line-height: 1.6;
+    margin: 0 0 20px 0;
+}
+
+#non-convertible-popup .btn-container {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+#non-convertible-popup button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+#non-convertible-popup .btn-primary {
+    background: #3498db;
+    color: white;
+}
+
+#non-convertible-popup .btn-primary:hover {
+    background: #2980b9;
+}
+
+#non-convertible-popup .btn-secondary {
+    background: #95a5a6;
+    color: white;
+}
+
+#non-convertible-popup .btn-secondary:hover {
+    background: #7f8c8d;
+}
+
+#popup-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 9999;
+}
+</style>
+
+<div id="popup-overlay"></div>
+<div id="non-convertible-popup">
+    <h3>⚠️ Document Not Suitable for Excel Conversion</h3>
+    <p id="popup-message">
+        This document is better suited for Word conversion. 
+        Excel is designed for structured data like tables, spreadsheets, and forms.
+    </p>
+    <div class="btn-container">
+        <button class="btn-primary" onclick="redirectToPdfToWord()">
+            Convert to Word Instead
+        </button>
+        <button class="btn-secondary" onclick="closeNonConvertiblePopup()">
+            Close
+        </button>
+    </div>
+</div>
+
+<script>
+function showNonConvertiblePopup(reason) {
+    const popup = document.getElementById('non-convertible-popup');
+    const overlay = document.getElementById('popup-overlay');
+    const message = document.getElementById('popup-message');
+    
+    // Customize message based on reason
+    if (reason === 'too_large') {
+        message.textContent = 'यह file बहुत बड़ी है (>10MB). कृपया छोटी file upload करें या PDF को छोटे parts में divide करें।';
+    } else if (reason === 'page_limit') {
+        message.textContent = 'यह document में बहुत ज़्यादा pages हैं (>30). कृपया document को छोटे parts में divide करें।';
+    } else if (reason === 'image_document') {
+        message.textContent = 'यह document mainly images contain करता है। Excel structured data के लिए best है। आप PDF to Word converter use कर सकते हैं।';
+    } else if (reason === 'text_heavy') {
+        message.textContent = 'यह document text-heavy है और Excel के लिए suitable नहीं है। PDF to Word converter try करें।';
+    } else {
+        message.textContent = 'यह document Excel conversion के लिए suitable नहीं है। PDF to Word या PDF Editor try करें।';
+    }
+    
+    popup.style.display = 'block';
+    overlay.style.display = 'block';
+}
+
+function closeNonConvertiblePopup() {
+    document.getElementById('non-convertible-popup').style.display = 'none';
+    document.getElementById('popup-overlay').style.display = 'none';
+}
+
+function redirectToPdfToWord() {
+    window.location.href = 'https://easyjpgtopdf.com/pdf-to-word-converter.html';
+}
+</script>
+
