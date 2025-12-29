@@ -479,6 +479,16 @@ async def process_pdf_to_excel_docai(
             # Check if any layout has content
             has_content = any(not layout.is_empty() for layout in unified_layouts)
             
+            # CRITICAL DEBUG: Log each layout's empty status
+            logger.critical("=" * 80)
+            logger.critical("LAYOUT EMPTY STATUS CHECK")
+            for idx, layout in enumerate(unified_layouts):
+                logger.critical(f"Layout {idx}: is_empty()={layout.is_empty()}, rows={len(layout.rows)}, has_rows={bool(layout.rows)}")
+                if layout.rows:
+                    logger.critical(f"  First row has {len(layout.rows[0])} cells" if layout.rows[0] else "  First row is empty list")
+            logger.critical(f"Overall has_content: {has_content}")
+            logger.critical("=" * 80)
+            
             if has_content:
                 layout_strategy = "premium_layout_system"
                 logger.info(f"Layout strategy: {layout_strategy}")
@@ -545,42 +555,20 @@ async def process_pdf_to_excel_docai(
             logger.error(f"Premium layout system not available: {import_err}")
             raise Exception("Premium layout system not available. Please check deployment.")
         except Exception as premium_error:
-            # USER-VISIBLE BEHAVIOR: Never return "object failed" for TYPE_A/B/D
-            # Return minimal valid Excel instead
-            logger.error(f"Premium layout system failed: {premium_error}")
-            logger.error(f"Error details: {str(premium_error)}")
-            logger.warning("Returning minimal valid Excel instead of failing")
+            # CRITICAL DEBUG: DO NOT SWALLOW EXCEPTION - LET IT SURFACE
+            logger.error("=" * 80)
+            logger.error("🚨 PREMIUM LAYOUT SYSTEM EXCEPTION - EXPOSING REAL ERROR")
+            logger.error("=" * 80)
+            logger.error(f"Error type: {type(premium_error).__name__}")
+            logger.error(f"Error message: {str(premium_error)}")
+            logger.error(f"Error details: {repr(premium_error)}")
+            logger.error("\n📋 FULL STACK TRACE:")
+            import traceback
+            logger.error(traceback.format_exc())
+            logger.error("=" * 80)
             
-            # Create minimal valid Excel
-            from premium_layout.unified_layout_model import UnifiedLayout, Cell, CellStyle, CellAlignment
-            from premium_layout.excel_word_renderer import ExcelWordRenderer  # CRITICAL: Re-import in except block
-            
-            minimal_layout = UnifiedLayout(page_index=0)
-            minimal_cell = Cell(
-                row=0,
-                column=0,
-                value="Document processing encountered an issue - minimal structure returned",
-                style=CellStyle(
-                    bold=True,
-                    alignment_horizontal=CellAlignment.CENTER,
-                    background_color='FFE0E0E0'  # aRGB format (alpha + RGB)
-                )
-            )
-            minimal_layout.add_row([minimal_cell])
-            minimal_layout.metadata['error_recovered'] = True
-            minimal_layout.metadata['error_message'] = str(premium_error)
-            minimal_layout.metadata['user_message'] = 'Document processing encountered an issue - minimal structure returned'
-            
-            try:
-                renderer = ExcelWordRenderer()
-                excel_bytes = renderer.render_to_excel([minimal_layout], [])
-                unified_layouts = [minimal_layout]  # Set unified_layouts for return
-                logger.info(f"Generated minimal Excel after error: {len(excel_bytes)} bytes")
-            except Exception as render_error:
-                # Last resort: create absolute minimal Excel
-                logger.error(f"Even minimal Excel generation failed: {render_error}")
-                # This should never happen, but if it does, we'll let the outer exception handler deal with it
-                raise Exception(f"Critical error: Cannot generate Excel even with minimal structure: {str(render_error)}")
+            # RE-RAISE THE EXCEPTION - DO NOT SWALLOW IT
+            raise premium_error
         
         # Safety check: Ensure Excel was generated
         if excel_bytes is None or len(excel_bytes) == 0:

@@ -52,6 +52,8 @@ class LayoutDecisionEngine:
         """
         Process document and return unified layouts (one per page).
         
+        CRITICAL DEBUG MODE ENABLED - Enhanced logging for blank Excel issue
+        
         ENTERPRISE ROUTING:
         1. Extract full OCR structure
         2. Classify document type
