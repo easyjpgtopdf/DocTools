@@ -553,6 +553,8 @@ async def process_pdf_to_excel_docai(
             
             # Create minimal valid Excel
             from premium_layout.unified_layout_model import UnifiedLayout, Cell, CellStyle, CellAlignment
+            from premium_layout.excel_word_renderer import ExcelWordRenderer  # CRITICAL: Re-import in except block
+            
             minimal_layout = UnifiedLayout(page_index=0)
             minimal_cell = Cell(
                 row=0,
@@ -586,6 +588,8 @@ async def process_pdf_to_excel_docai(
             # USER-VISIBLE BEHAVIOR: Return minimal valid Excel instead of failing
             logger.warning("Returning minimal valid Excel instead of failing")
             from premium_layout.unified_layout_model import UnifiedLayout, Cell, CellStyle, CellAlignment
+            from premium_layout.excel_word_renderer import ExcelWordRenderer  # CRITICAL: Re-import for safety check
+            
             minimal_layout = UnifiedLayout(page_index=0)
             minimal_cell = Cell(
                 row=0,
