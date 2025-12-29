@@ -130,6 +130,25 @@ class LayoutDecisionEngine:
             if page_idx < len(full_structure.get('pages', [])):
                 page_structure = full_structure['pages'][page_idx]
             
+            # CRITICAL FIX: If page_structure is None or has no blocks, extract blocks from full_structure
+            if not page_structure or 'blocks' not in page_structure or not page_structure.get('blocks'):
+                logger.warning(f"Page {page_idx + 1}: page_structure missing blocks, extracting from full_structure")
+                # Extract blocks for this page from full_structure
+                all_blocks = full_structure.get('blocks', [])
+                if all_blocks:
+                    # Filter blocks by page (if page info available) or use all blocks for first page
+                    if page_idx == 0:
+                        page_blocks = all_blocks[:len(all_blocks) // len(document.pages) + 1] if len(document.pages) > 1 else all_blocks
+                    else:
+                        start_idx = (page_idx * len(all_blocks)) // len(document.pages)
+                        end_idx = ((page_idx + 1) * len(all_blocks)) // len(document.pages)
+                        page_blocks = all_blocks[start_idx:end_idx]
+                    
+                    if not page_structure:
+                        page_structure = {}
+                    page_structure['blocks'] = page_blocks
+                    logger.info(f"Page {page_idx + 1}: Extracted {len(page_blocks)} blocks from full_structure")
+            
             # Get tables for this page
             page_tables = []
             if page_structure and 'tables' in page_structure:
@@ -3052,12 +3071,13 @@ class LayoutDecisionEngine:
         layout.metadata['layout_type'] = 'visual_grid_reconstruction'
         layout.metadata['reconstruction_mode'] = 'VISUAL_GRID'
         
-        if not page_structure or 'blocks' not in page_structure:
-            logger.warning(f"Page {page_idx + 1}: VISUAL GRID RECONSTRUCTION - No blocks available, using 2-column fallback")
+        if not page_structure or 'blocks' not in page_structure or not page_structure.get('blocks'):
+            logger.warning(f"Page {page_idx + 1}: VISUAL GRID RECONSTRUCTION - No blocks in page_structure, using 2-column fallback")
             return self._soft_table_fallback_2column(document_text, page_idx)
         
         all_blocks = [b for b in page_structure['blocks'] if b.get('bounding_box') and b.get('text', '').strip()]
         if not all_blocks:
+            logger.warning(f"Page {page_idx + 1}: VISUAL GRID RECONSTRUCTION - No valid blocks after filtering, using 2-column fallback")
             return self._soft_table_fallback_2column(document_text, page_idx)
         
         logger.info(f"Page {page_idx + 1}: VISUAL GRID RECONSTRUCTION - Processing {len(all_blocks)} text blocks")
@@ -3228,8 +3248,18 @@ class LayoutDecisionEngine:
         layout.metadata['reconstruction_mode'] = 'GEOMETRIC_HYBRID'
         
         if not blocks:
-            logger.warning(f"Page {page_idx + 1}: GEOMETRIC_HYBRID - No blocks available")
-            return self._create_empty_layout(page_idx)
+            logger.warning(f"Page {page_idx + 1}: GEOMETRIC_HYBRID - No blocks available, trying page_structure")
+            # CRITICAL FIX: Try to get blocks from page_structure if not provided
+            if page_structure and 'blocks' in page_structure:
+                blocks = page_structure['blocks']
+                logger.info(f"Page {page_idx + 1}: Found {len(blocks)} blocks in page_structure")
+            
+            if not blocks:
+                logger.warning(f"Page {page_idx + 1}: GEOMETRIC_HYBRID - Still no blocks, using document_text fallback")
+                # Last resort: create layout from document_text
+                if document_text and len(document_text.strip()) > 10:
+                    return self._create_minimal_fallback_layout(page_idx, document_text, 'docai')
+                return self._create_empty_layout(page_idx)
         
         # Convert blocks to dict format if needed
         all_blocks = []
