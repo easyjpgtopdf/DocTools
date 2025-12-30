@@ -432,16 +432,16 @@
 <!-- Non-Convertible Document Popup -->
 <div id="popup-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999;"></div>
 <div id="non-convertible-popup" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 10000; max-width: 500px; width: 90%;">
-    <h3 style="color: #e74c3c; margin: 0 0 15px 0; font-size: 24px;">⚠️ यह PDF Word में कन्वर्ट नहीं हो सकती</h3>
+    <h3 style="color: #e74c3c; margin: 0 0 15px 0; font-size: 24px;">⚠️ This PDF Cannot Be Converted to Word</h3>
     <p id="popup-message" style="color: #555; line-height: 1.6; margin: 0 0 20px 0;">
-        यह document Word conversion के लिए suitable नहीं है।
+        This document is not suitable for Word conversion.
     </p>
     <div style="display: flex; gap: 10px; justify-content: center;">
         <button class="btn btn-primary" onclick="redirectToPdfToExcel()" style="padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; background: #3498db; color: white;">
-            PDF को Excel में बदलें
+            Convert PDF to Excel Instead
         </button>
         <button class="btn btn-secondary" onclick="closeNonConvertiblePopup()" style="padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; background: #95a5a6; color: white;">
-            बंद करें
+            Close
         </button>
     </div>
 </div>
@@ -915,9 +915,9 @@ function showNonConvertiblePopup(errorType) {
     
     // Customize message based on reason
     if (errorType === 'image_document' || errorType === 'table_document') {
-        if (message) message.textContent = 'यह document mainly tables/structured data contain करता है। Word text documents के लिए best है। आप PDF to Excel converter use कर सकते हैं।';
+        if (message) message.textContent = 'This document contains mainly tables or structured data. Excel is best for structured data. You can use the PDF to Excel converter instead.';
     } else {
-        if (message) message.textContent = 'यह document Word conversion के लिए suitable नहीं है। PDF to Excel या PDF Editor try करें।';
+        if (message) message.textContent = 'This document is not suitable for Word conversion. Please try PDF to Excel converter or PDF Editor instead.';
     }
     
     if (popup) popup.style.display = 'block';
