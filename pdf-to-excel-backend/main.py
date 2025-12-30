@@ -512,17 +512,81 @@ async def pdf_to_excel_docai_endpoint(request: Request, file: UploadFile = File(
                 }
             )
         except Exception as e:
-            # Other processing errors - don't deduct credits
-            logger.error(f"Document AI processing error: {e}")
-            logger.error(traceback.format_exc())
-            raise HTTPException(
-                status_code=500,
-                detail={
-                    "error": "Document AI processing failed",
-                    "message": str(e),
-                    "credits_not_deducted": True
-                }
+            error_message = str(e)
+            error_detail = repr(e)
+            
+            # Check if this is a page limit error (can be handled by splitting)
+            is_page_limit_error = (
+                "PAGE_LIMIT_EXCEEDED" in error_detail or
+                "pages exceed the limit" in error_message.lower() or
+                "30 got" in error_message
             )
+            
+            # Check if this is a file size error (can be handled)
+            is_file_size_error = (
+                "413" in error_detail or
+                "Request Entity Too Large" in error_message or
+                "file too large" in error_message.lower()
+            )
+            
+            # Check if this is truly non-convertible (image-only, corrupted, etc.)
+            is_truly_non_convertible = (
+                "corrupted" in error_message.lower() or
+                "invalid pdf" in error_message.lower() or
+                "no text" in error_message.lower() and "image" in error_message.lower()
+            ) and not is_page_limit_error and not is_file_size_error
+            
+            if is_page_limit_error:
+                logger.warning(f"Page limit exceeded - will attempt to split document: {error_message}")
+                # Try to handle by splitting (will be implemented in next step)
+                # For now, return a specific error code that frontend can handle
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "error": "Page limit exceeded",
+                        "message": error_message,
+                        "can_split": True,
+                        "error_type": "page_limit",
+                        "credits_not_deducted": True
+                    }
+                )
+            elif is_file_size_error:
+                logger.warning(f"File too large - will attempt alternative processing: {error_message}")
+                raise HTTPException(
+                    status_code=413,
+                    detail={
+                        "error": "File too large",
+                        "message": error_message,
+                        "can_split": True,
+                        "error_type": "file_size",
+                        "credits_not_deducted": True
+                    }
+                )
+            elif is_truly_non_convertible:
+                logger.error(f"Document is truly non-convertible: {error_message}")
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "error": "Document not suitable for Excel conversion",
+                        "message": error_message,
+                        "can_split": False,
+                        "error_type": "non_convertible",
+                        "show_popup": True,
+                        "credits_not_deducted": True
+                    }
+                )
+            else:
+                # Other processing errors - don't deduct credits
+                logger.error(f"Document AI processing error: {e}")
+                logger.error(traceback.format_exc())
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "error": "Document AI processing failed",
+                        "message": str(e),
+                        "credits_not_deducted": True
+                    }
+                )
         
         # Step 6: Only deduct credits if conversion was successful
         if not conversion_successful or not download_url:

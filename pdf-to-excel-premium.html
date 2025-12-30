@@ -1254,11 +1254,31 @@ convertBtn.addEventListener('click', async function() {
         // Check if response is ok before parsing JSON
         if (!response.ok) {
             let errorMessage = 'Conversion failed. Please try again.';
+            let errorData = null;
+            let showPopup = false;
+            let errorType = null;
+            
             try {
-                const errorData = await response.json();
+                errorData = await response.json();
                 errorMessage = errorData.detail?.message || errorData.detail?.error || errorData.message || errorData.error || errorMessage;
                 if (errorData.detail && typeof errorData.detail === 'string') {
                     errorMessage = errorData.detail;
+                }
+                
+                // Check if this is a truly non-convertible file (show popup)
+                if (errorData.detail && errorData.detail.show_popup === true) {
+                    showPopup = true;
+                    errorType = errorData.detail.error_type || 'non_convertible';
+                }
+                // Check if this is page limit or file size (can be handled, don't show popup)
+                else if (errorData.detail && (errorData.detail.can_split === true || errorData.detail.error_type === 'page_limit' || errorData.detail.error_type === 'file_size')) {
+                    // These can be handled - show informative message but no popup
+                    errorMessage = errorData.detail.message || errorMessage;
+                    if (errorData.detail.error_type === 'page_limit') {
+                        errorMessage = `Document has too many pages (>30). Please split the document into smaller parts (max 30 pages each) and convert separately.`;
+                    } else if (errorData.detail.error_type === 'file_size') {
+                        errorMessage = `File is too large (>100MB). Please compress or split the PDF into smaller files.`;
+                    }
                 }
             } catch (e) {
                 // If response is not JSON, try to get text
@@ -1271,6 +1291,17 @@ convertBtn.addEventListener('click', async function() {
                     errorMessage = `Server error (${response.status}): ${response.statusText}`;
                 }
             }
+            
+            // Show popup only for truly non-convertible files
+            if (showPopup && typeof showNonConvertiblePopup === 'function') {
+                showNonConvertiblePopup(errorType || 'non_convertible');
+                showStatus(errorMessage, 'error');
+                convertBtn.disabled = false;
+                cancelBtn.style.display = 'none';
+                hideProgress();
+                return;
+            }
+            
             throw new Error(errorMessage);
         }
         
@@ -1518,6 +1549,54 @@ function formatFileSize(bytes) {
 </script>
 
 <script src="js/pdf-excel-user-type.js"></script>
+
+<!-- Non-Convertible Document Popup -->
+<div id="popup-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999;"></div>
+<div id="non-convertible-popup" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 10000; max-width: 500px; width: 90%;">
+    <h3 style="color: #e74c3c; margin: 0 0 15px 0; font-size: 24px;">⚠️ यह PDF Excel में कन्वर्ट नहीं हो सकती</h3>
+    <p id="popup-message" style="color: #555; line-height: 1.6; margin: 0 0 20px 0;">
+        यह document Excel conversion के लिए suitable नहीं है।
+    </p>
+    <div style="display: flex; gap: 10px; justify-content: center;">
+        <button class="btn btn-primary" onclick="redirectToPdfToWord()" style="padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; background: #3498db; color: white;">
+            PDF को Word में बदलें
+        </button>
+        <button class="btn btn-secondary" onclick="closeNonConvertiblePopup()" style="padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; background: #95a5a6; color: white;">
+            बंद करें
+        </button>
+    </div>
+</div>
+
+<script>
+function showNonConvertiblePopup(reason) {
+    const popup = document.getElementById('non-convertible-popup');
+    const overlay = document.getElementById('popup-overlay');
+    const message = document.getElementById('popup-message');
+    
+    // Customize message based on reason
+    if (reason === 'image_document') {
+        message.textContent = 'यह document mainly images contain करता है। Excel structured data के लिए best है। आप PDF to Word converter use कर सकते हैं।';
+    } else if (reason === 'text_heavy') {
+        message.textContent = 'यह document text-heavy है और Excel के लिए suitable नहीं है। PDF to Word converter try करें।';
+    } else {
+        message.textContent = 'यह document Excel conversion के लिए suitable नहीं है। PDF to Word या PDF Editor try करें।';
+    }
+    
+    if (popup) popup.style.display = 'block';
+    if (overlay) overlay.style.display = 'block';
+}
+
+function closeNonConvertiblePopup() {
+    const popup = document.getElementById('non-convertible-popup');
+    const overlay = document.getElementById('popup-overlay');
+    if (popup) popup.style.display = 'none';
+    if (overlay) overlay.style.display = 'none';
+}
+
+function redirectToPdfToWord() {
+    window.location.href = 'pdf-to-word-converter.html';
+}
+</script>
 </body>
 </html>
 

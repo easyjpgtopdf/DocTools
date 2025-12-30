@@ -471,10 +471,16 @@
                 <div class="panel option-card" style="gap:10px">
                     <h3 class="section-title"><i class="fas fa-lightbulb"></i> Tips</h3>
                     <ul style="list-style:none;display:grid;gap:8px;color:var(--muted);font-size:0.93rem;padding-left:0">
-                        <li><i class="fas fa-check-circle" style="color:var(--primary);"></i> Text-based PDFs convert with perfect quality.</li>
-                        <li><i class="fas fa-check-circle" style="color:var(--primary);"></i> Scanned PDFs use advanced OCR technology.</li>
+                        <li><i class="fas fa-check-circle" style="color:var(--primary);"></i> <strong>FREE:</strong> Text-based PDFs convert with perfect quality (browser-based)</li>
+                        <li><i class="fas fa-check-circle" style="color:var(--success);"></i> <strong>PREMIUM:</strong> OCR-powered conversion for scanned PDFs with enterprise-level accuracy</li>
                         <li><i class="fas fa-check-circle" style="color:var(--primary);"></i> Supports Hindi, Unicode, and international fonts.</li>
                     </ul>
+                    
+                    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+                        <a href="pdf-to-word-premium.html" class="btn" style="display: block; text-align: center; text-decoration: none; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; padding: 12px 24px; border-radius: 8px; font-weight: 600;">
+                            <i class="fas fa-star"></i> Upgrade to Premium OCR
+                        </a>
+                    </div>
                     
                     <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
                         <h4 style="font-size:0.95rem;font-weight:600;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
@@ -747,9 +753,24 @@
                 return;
             }
             
-            // PREMIUM VERSION: Logged-in users - use API (existing premium pipeline)
-            console.log('PREMIUM VERSION: Using API conversion (credits-based)');
-            await convertToWord();
+            // PREMIUM VERSION: Logged-in users - redirect to premium page
+            console.log('PREMIUM VERSION: User is logged in, redirecting to premium page');
+            // Store file for premium page
+            if (currentFile) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const fileData = {
+                        name: currentFile.name,
+                        data: e.target.result.split(',')[1]
+                    };
+                    sessionStorage.setItem('pdfFileForPremium', JSON.stringify(fileData));
+                    window.location.href = '/pdf-to-word-premium.html';
+                };
+                reader.readAsDataURL(currentFile);
+            } else {
+                window.location.href = '/pdf-to-word-premium.html';
+            }
+            return;
         });
         
         /**

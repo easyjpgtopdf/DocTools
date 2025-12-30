@@ -196,12 +196,15 @@ class LayoutDecisionEngine:
                         full_structure=full_structure
                     )
                 elif self.selected_mode == ExecutionMode.KEY_VALUE:
+                    # Check if KEY_VALUE_STRICT was selected (from routing reason)
+                    strict_mode = 'KEY_VALUE_STRICT' in self.routing_reason or 'STRICT' in self.routing_reason
                     page_layout = self._execute_key_value_mode(
                         page=page,
                         document_text=document_text,
                         page_idx=page_idx,
                         form_fields=form_fields_list,
-                        page_structure=page_structure
+                        page_structure=page_structure,
+                        strict_mode=strict_mode
                     )
                 elif self.selected_mode == ExecutionMode.PLAIN_TEXT:
                     page_layout = self._execute_plain_text_mode(
@@ -227,10 +230,29 @@ class LayoutDecisionEngine:
                 page_layout.metadata['page_number'] = page_idx + 1  # 1-based page number
                 
                 # CRITICAL FIX: Non-empty enforcement - if layout is empty, create fallback from text
-                if page_layout.is_empty() or page_layout.get_max_row() == 0:
+                # BUT: Check if layout actually has content before triggering fallback
+                max_row = page_layout.get_max_row()
+                max_col = page_layout.get_max_column()
+                has_content = False
+                if page_layout.rows:
+                    for row in page_layout.rows:
+                        if row:
+                            for cell in row:
+                                if cell.value and str(cell.value).strip():
+                                    has_content = True
+                                    break
+                            if has_content:
+                                break
+                
+                # CRITICAL: Log layout status before fallback check
+                logger.critical(f"🔍 Page {page_idx + 1} Layout Check: max_row={max_row}, max_col={max_col}, has_content={has_content}, rows_count={len(page_layout.rows) if page_layout.rows else 0}")
+                
+                # Only trigger fallback if truly empty (no rows OR no content)
+                if not has_content and (max_row == 0 or not page_layout.rows):
                     logger.critical("=" * 80)
                     logger.critical(f"🚨 BLANK LAYOUT DETECTED for Page {page_idx + 1}")
                     logger.critical(f"   Original mode: {self.selected_mode.value}")
+                    logger.critical(f"   max_row={max_row}, max_col={max_col}, has_content={has_content}")
                     logger.critical(f"   Document text length: {len(document_text) if document_text else 0}")
                     logger.critical("   Creating fallback from document text")
                     logger.critical("=" * 80)
@@ -259,6 +281,57 @@ class LayoutDecisionEngine:
                         logger.critical("   ⚠️  No document text available - creating minimal structure")
                         page_layout = self._create_minimal_fallback_layout(page_idx, document_text, engine_used)
                 
+                # ENTERPRISE FIX: Apply Column Governor, Row Locker, Layout Cleaner, and Font Consistency
+                from .column_governor import ColumnGovernor
+                from .row_locker import RowLocker
+                from .layout_cleaner import LayoutCleaner
+                from .font_consistency import FontConsistencyEnforcer
+                
+                # Get original blocks for semantic analysis
+                original_blocks = page_structure.get('blocks', []) if page_structure else []
+                page_count = len(full_structure.get('pages', [])) if isinstance(full_structure.get('pages'), list) else 1
+                
+                # Step 1: Apply Column Governor (prevent extra columns) - HARD SEMANTIC LOCK
+                # Get filename from metadata or use default
+                filename = getattr(self, 'filename', '') or full_structure.get('filename', '') or ''
+                document_type = self._detect_document_type(document_text, filename)
+                column_governor = ColumnGovernor()
+                page_layout = column_governor.apply_governor(
+                    page_layout, 
+                    document_type, 
+                    original_blocks=original_blocks,
+                    page_count=page_count
+                )
+                
+                # Step 2: Apply Row Locker (prevent word spill) - ZERO WORD SPILL
+                row_locker = RowLocker(overlap_threshold=0.7)
+                page_layout = row_locker.enforce_row_boundaries(page_layout, original_blocks=original_blocks)
+                
+                # Step 3: Clean empty rows and columns (NO fake rows/columns)
+                layout_cleaner = LayoutCleaner()
+                page_layout = layout_cleaner.clean(page_layout)
+                
+                # Step 6: Enforce font consistency (one row = one font) - STRICT ROW FONT POLICY
+                font_enforcer = FontConsistencyEnforcer()
+                page_layout = font_enforcer.enforce_per_row(page_layout)
+                
+                # Step 7: Apply cell value splitting for cases like Nov 2018 PDF
+                # Split cells that contain multiple values (e.g., "502702 30-01-2019 20:50 1922021539")
+                from .cell_value_splitter import apply_cell_splitting
+                page_layout = apply_cell_splitting(page_layout, max_columns_per_row=10)
+                
+                # DEBUG LOGS: Final column count, row count, mode selected
+                final_cols = page_layout.get_max_column() + 1 if not page_layout.is_empty() else 0
+                final_rows = len(page_layout.rows) if page_layout.rows else 0
+                logger.critical("=" * 80)
+                logger.critical(f"🔒 ENTERPRISE FIX APPLIED - Page {page_idx + 1}")
+                logger.critical(f"   Mode: {self.selected_mode.value}")
+                logger.critical(f"   Final columns: {final_cols}")
+                logger.critical(f"   Final rows: {final_rows}")
+                logger.critical(f"   Document type: {document_type}")
+                logger.critical(f"   Forced override: {'KEY_VALUE_STRICT' in self.routing_reason}")
+                logger.critical("=" * 80)
+                
                 page_layouts.append(page_layout)
                 
             except Exception as e:
@@ -272,6 +345,14 @@ class LayoutDecisionEngine:
                 page_layouts.append(page_layout)
         
         logger.info(f"Processed {len(page_layouts)} pages with mode: {self.selected_mode.value}")
+        
+        # ENTERPRISE FIX: Apply post-processing (Column Governor, Row Locker, Layout Cleaner)
+        # This is done per-page above, but we also need to apply quality gate here
+        
+        # STEP-9: QUALITY GATE (MANDATORY)
+        from .quality_gate import QualityGate
+        quality_gate = QualityGate()
+        page_layouts = quality_gate.validate_and_fix(page_layouts)
         
         # STEP-10: Validation guard - detect blank layouts and log warnings
         for layout in page_layouts:
@@ -504,21 +585,35 @@ class LayoutDecisionEngine:
         document_text: str,
         page_idx: int,
         form_fields: List[Dict],
-        page_structure: Optional[Dict]
+        page_structure: Optional[Dict],
+        strict_mode: bool = False
     ) -> UnifiedLayout:
         """
         Execute KEY_VALUE mode: Always 2 columns (Label | Value).
+        
+        Args:
+            strict_mode: If True, enforce exactly 2 columns (no third column)
         """
-        logger.info(f"Page {page_idx + 1}: Executing KEY_VALUE mode")
+        logger.info(f"Page {page_idx + 1}: Executing KEY_VALUE mode (strict={strict_mode})")
         
         # Use existing key-value layout method
-        return self._convert_to_key_value_layout(
+        layout = self._convert_to_key_value_layout(
             page=page,
             document_text=document_text,
             page_idx=page_idx,
             form_fields=form_fields,
             page_structure=page_structure
         )
+        
+        # ENTERPRISE FIX: If strict_mode, enforce exactly 2 columns
+        if strict_mode:
+            from .column_governor import ColumnGovernor
+            column_governor = ColumnGovernor()
+            document_type = self._detect_document_type(document_text, '')
+            layout = column_governor.enforce_column_limit(layout, 2, document_type)
+            logger.info(f"KEY_VALUE STRICT: Enforced 2-column structure (Column A = Label, Column B = Value)")
+        
+        return layout
     
     def _execute_geometric_hybrid_mode(
         self,
@@ -595,6 +690,62 @@ class LayoutDecisionEngine:
             page_idx=page_idx,
             page_structure=page_structure
         )
+    
+    def _detect_document_type(self, document_text: str, filename: str = '') -> str:
+        """
+        Detect document type from text and filename.
+        
+        Returns:
+            Document type: 'invoice', 'bill', 'receipt', or 'other'
+        """
+        text_lower = (document_text or '').lower()
+        filename_lower = (filename or '').lower()
+        
+        logger.info(f"Document type detection: filename='{filename}', text_length={len(document_text)}")
+        
+        # Check filename first (most reliable)
+        if 'bill' in filename_lower:
+            logger.info("Document type detected: bill (from filename)")
+            return 'bill'
+        if 'receipt' in filename_lower:
+            logger.info("Document type detected: receipt (from filename)")
+            return 'receipt'
+        if 'invoice' in filename_lower:
+            logger.info("Document type detected: invoice (from filename)")
+            return 'invoice'
+        
+        # Check text content
+        bill_keywords = ['bill payment', 'biller', 'payment receipt', 'transaction', 'spice money']
+        receipt_keywords = ['receipt', 'payment received']
+        invoice_keywords = ['invoice', 'invoice number']
+        
+        # Check for bill keywords
+        for keyword in bill_keywords:
+            if keyword in text_lower:
+                logger.info(f"Document type detected: bill (keyword: {keyword})")
+                return 'bill'
+        
+        # Check for receipt keywords
+        for keyword in receipt_keywords:
+            if keyword in text_lower:
+                logger.info(f"Document type detected: receipt (keyword: {keyword})")
+                return 'receipt'
+        
+        # Check for invoice keywords
+        for keyword in invoice_keywords:
+            if keyword in text_lower:
+                logger.info(f"Document type detected: invoice (keyword: {keyword})")
+                return 'invoice'
+        
+        # Generic financial document check
+        financial_keywords = ['payment', 'amount', 'total', 'transaction date']
+        financial_count = sum(1 for kw in financial_keywords if kw in text_lower)
+        if financial_count >= 2:
+            logger.info(f"Document type detected: bill (generic financial document with {financial_count} keywords)")
+            return 'bill'
+        
+        logger.info("Document type detected: other")
+        return 'other'
     
     def _create_empty_layout(self, page_idx: int) -> UnifiedLayout:
         """Create minimal empty layout"""
@@ -2721,12 +2872,11 @@ class LayoutDecisionEngine:
         if not x_positions:
             return []
         
-        # Cluster X-positions (simple k-means-like approach)
-        # Group X-positions that are close together
-        # RELAXED tolerance for Hindi/Devanagari tables (0.08 = 8% instead of 5%)
+        # CRITICAL FIX: Use stricter clustering tolerance (5% instead of 8%)
+        # This prevents multiple distinct columns from being merged into one
         x_positions = sorted(set(x_positions))
         clusters = []
-        cluster_tolerance = 0.08  # 8% tolerance (more relaxed for Hindi tables)
+        cluster_tolerance = 0.05  # 5% tolerance (stricter to prevent column merging)
         
         for x_pos in x_positions:
             # Find existing cluster or create new one
@@ -3132,10 +3282,53 @@ class LayoutDecisionEngine:
                 
                 if distance_to_anchor <= misalignment_threshold:
                     # Acceptable misalignment - assign to column
+                    # CRITICAL FIX: Only combine if blocks actually overlap horizontally (same physical cell)
                     if row_cells[nearest_col] is not None:
-                        # Combine with existing cell (slight overlap)
-                        existing_text = row_cells[nearest_col].value or ''
-                        row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
+                        # Check if this block overlaps with existing cell's block
+                        # Get X-range of this block
+                        block_x_min = bbox.get('x_min', 0)
+                        block_x_max = bbox.get('x_max', 0)
+                        
+                        # Try to find existing block's X-range (we need to track this)
+                        # For now, use a stricter check: only combine if X-centers are very close (< 2% of page)
+                        horizontal_overlap_threshold = 0.02  # 2% of page width
+                        
+                        # Check if blocks are horizontally overlapping (same physical cell)
+                        # If X-centers are very close, they're likely the same cell
+                        if distance_to_anchor <= horizontal_overlap_threshold:
+                            # Same cell - combine text (e.g., Aadhaar digits split across blocks)
+                            existing_text = row_cells[nearest_col].value or ''
+                            row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
+                        else:
+                            # Different cell - create new column instead of combining
+                            if len(column_anchors) < 20:  # Max 20 columns
+                                column_anchors.append(x_center)
+                                column_anchors = sorted(column_anchors)
+                                new_col = column_anchors.index(x_center)
+                                # Expand row_cells array
+                                while len(row_cells) < len(column_anchors):
+                                    row_cells.append(None)
+                                
+                                has_unicode = any(ord(c) > 127 for c in text)
+                                wrap_text = len(text) > 50 or has_unicode
+                                
+                                row_cells[new_col] = Cell(
+                                    row=row_idx,
+                                    column=new_col,
+                                    value=text,
+                                    style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=wrap_text)
+                                )
+                            else:
+                                # Too many columns - use nearest empty column
+                                for col_idx in range(len(column_anchors)):
+                                    if row_cells[col_idx] is None:
+                                        row_cells[col_idx] = Cell(
+                                            row=row_idx,
+                                            column=col_idx,
+                                            value=text,
+                                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                                        )
+                                        break
                     else:
                         # Enable wrap_text for long text or Unicode (Hindi) to prevent overflow
                         has_unicode = any(ord(c) > 127 for c in text)
@@ -3156,9 +3349,28 @@ class LayoutDecisionEngine:
                             second_nearest = sorted_cols[1]
                             distance_2 = abs(column_anchors[second_nearest] - x_center)
                             if distance_2 <= misalignment_threshold:
+                                # CRITICAL FIX: Only combine if blocks actually overlap
                                 if row_cells[second_nearest] is not None:
-                                    existing_text = row_cells[second_nearest].value or ''
-                                    row_cells[second_nearest].value = (existing_text + ' ' + text).strip()
+                                    # Check horizontal overlap
+                                    horizontal_overlap_threshold = 0.02
+                                    if distance_2 <= horizontal_overlap_threshold:
+                                        # Same cell - combine
+                                        existing_text = row_cells[second_nearest].value or ''
+                                        row_cells[second_nearest].value = (existing_text + ' ' + text).strip()
+                                    else:
+                                        # Different cell - create new column
+                                        if len(column_anchors) < 20:
+                                            column_anchors.append(x_center)
+                                            column_anchors = sorted(column_anchors)
+                                            new_col = column_anchors.index(x_center)
+                                            while len(row_cells) < len(column_anchors):
+                                                row_cells.append(None)
+                                            row_cells[new_col] = Cell(
+                                                row=row_idx,
+                                                column=new_col,
+                                                value=text,
+                                                style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                                            )
                                 else:
                                     row_cells[second_nearest] = Cell(
                                         row=row_idx,
@@ -3167,11 +3379,36 @@ class LayoutDecisionEngine:
                                         style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
                                     )
                             else:
-                                # Still too misaligned - append to nearest anyway (allow slight misalignment)
-                                if row_cells[nearest_col] is not None:
-                                    existing_text = row_cells[nearest_col].value or ''
-                                    row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
-                                else:
+                                # Still too misaligned - create new column instead of forcing into nearest
+                                if len(column_anchors) < 20:
+                                    column_anchors.append(x_center)
+                                    column_anchors = sorted(column_anchors)
+                                    new_col = column_anchors.index(x_center)
+                                    while len(row_cells) < len(column_anchors):
+                                        row_cells.append(None)
+                                    
+                                    has_unicode = any(ord(c) > 127 for c in text)
+                                    wrap_text = len(text) > 50 or has_unicode
+                                    
+                                    row_cells[new_col] = Cell(
+                                        row=row_idx,
+                                        column=new_col,
+                                        value=text,
+                                        style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=wrap_text)
+                                    )
+                                elif row_cells[nearest_col] is None:
+                                    # Only use nearest if it's empty and we can't create new column
+                                    has_unicode = any(ord(c) > 127 for c in text)
+                                    wrap_text = len(text) > 50 or has_unicode
+                                    
+                                    row_cells[nearest_col] = Cell(
+                                        row=row_idx,
+                                        column=nearest_col,
+                                        value=text,
+                                        style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=wrap_text)
+                                    )
+                                # If nearest column already has content and we can't create new, skip this block
+                                # (Don't combine - it would merge different columns)
                                     # Enable wrap_text for long text or Unicode (Hindi) to prevent overflow
                                     has_unicode = any(ord(c) > 127 for c in text)
                                     wrap_text = len(text) > 50 or has_unicode
@@ -3350,94 +3587,96 @@ class LayoutDecisionEngine:
                 if not text:
                     continue
                 
-                # Find nearest column anchor (allow slight misalignment)
-                nearest_col = min(range(len(column_anchors)), key=lambda i: abs(column_anchors[i] - x_center))
+                # CRITICAL FIX: Find nearest column anchor, but also check if we need a NEW column
+                # If block is far from all existing columns, create a new column anchor
+                if len(column_anchors) == 0:
+                    # No columns yet - create first column at this X position
+                    column_anchors.append(x_center)
+                    nearest_col = 0
+                else:
+                    nearest_col = min(range(len(column_anchors)), key=lambda i: abs(column_anchors[i] - x_center))
                 
                 # Check if misalignment is acceptable (within 8% of page width)
                 misalignment_threshold = 0.08
-                distance_to_anchor = abs(column_anchors[nearest_col] - x_center)
+                distance_to_anchor = abs(column_anchors[nearest_col] - x_center) if column_anchors else 1.0
                 
-                # CRITICAL FIX: Prevent cell mixing - each block should be in its own cell
-                # Only combine if blocks are horizontally very close (same cell, e.g., Aadhaar numbers)
-                # Otherwise, use separate cells to preserve text boundaries
+                # CRITICAL: If block is too far from nearest column, create NEW column
+                if distance_to_anchor > misalignment_threshold and len(column_anchors) < 20:  # Max 20 columns to prevent explosion
+                    # This block needs its own column
+                    column_anchors.append(x_center)
+                    column_anchors = sorted(column_anchors)  # Keep sorted
+                    # Recalculate nearest_col after adding new column
+                    nearest_col = len(column_anchors) - 1
+                    # Expand row_cells array to accommodate new column
+                    while len(row_cells) < len(column_anchors):
+                        row_cells.append(None)
+                    distance_to_anchor = 0  # Now it's perfectly aligned
                 
-                if distance_to_anchor <= misalignment_threshold:
-                    # Acceptable misalignment - check if we should combine or use separate cell
-                    if row_cells[nearest_col] is not None:
-                        # Check if blocks are horizontally very close (likely same cell)
-                        existing_cell = row_cells[nearest_col]
-                        # Get X position of existing cell's block (we need to track this)
-                        # For now, only combine if text is very short (likely continuation)
-                        # Otherwise, use next available column or create new column
-                        if len(text) < 20 and len(existing_cell.value or '') < 50:
-                            # Short text - might be continuation (e.g., Aadhaar digits)
-                            existing_text = existing_cell.value or ''
-                            row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
-                        else:
-                            # Long text - should be separate cell
-                            # Find next available column or create new one
-                            next_col = nearest_col + 1
-                            if next_col < len(column_anchors):
-                                # Use next column
-                                if row_cells[next_col] is None:
-                                    # Enable wrap_text for long text or Unicode
-                                    has_unicode = any(ord(c) > 127 for c in text)
-                                    wrap_text = len(text) > 50 or has_unicode
-                                    
-                                    row_cells[next_col] = Cell(
-                                        row=row_idx,
-                                        column=next_col,
-                                        value=text,
-                                        style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=wrap_text)
-                                    )
-                                else:
-                                    # Next column also occupied - combine with existing (last resort)
-                                    existing_text = row_cells[nearest_col].value or ''
-                                    row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
-                            else:
-                                # No next column - combine (last resort)
-                                existing_text = existing_cell.value or ''
-                                row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
+                # CRITICAL FIX: Each block gets its OWN cell - never combine unless truly same cell
+                # Only combine if blocks are horizontally overlapping (same physical cell)
+                if row_cells[nearest_col] is not None:
+                    # Column already has a cell - check if blocks actually overlap horizontally
+                    existing_cell = row_cells[nearest_col]
+                    
+                    # CRITICAL: Only combine if blocks are very close horizontally (< 2% of page width)
+                    # This means they're likely the same physical cell (e.g., Aadhaar digits split)
+                    horizontal_overlap_threshold = 0.02  # 2% of page width
+                    
+                    # Check if this block overlaps with existing cell's block
+                    # If X-centers are very close, they're likely the same cell
+                    if distance_to_anchor <= horizontal_overlap_threshold:
+                        # Same cell - combine text (e.g., Aadhaar digits split across blocks)
+                        existing_text = existing_cell.value or ''
+                        row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
+                        logger.debug(f"GEOMETRIC_HYBRID: Combined blocks in column {nearest_col} (overlap: {distance_to_anchor:.4f} <= {horizontal_overlap_threshold})")
                     else:
-                        # No existing cell - create new
-                        # Enable wrap_text for long text or Unicode (Hindi) to prevent overflow
-                        has_unicode = any(ord(c) > 127 for c in text)
-                        wrap_text = len(text) > 50 or has_unicode
-                        
-                        row_cells[nearest_col] = Cell(
-                            row=row_idx,
-                            column=nearest_col,
-                            value=text,
-                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=wrap_text)
-                        )
-                else:
-                    # Too much misalignment - still assign to nearest column but don't combine
-                    if row_cells[nearest_col] is None:
-                        # Enable wrap_text for long text or Unicode (Hindi) to prevent overflow
-                        has_unicode = any(ord(c) > 127 for c in text)
-                        wrap_text = len(text) > 50 or has_unicode
-                        
-                        row_cells[nearest_col] = Cell(
-                            row=row_idx,
-                            column=nearest_col,
-                            value=text,
-                            style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=wrap_text)
-                        )
-                    else:
-                        # Column occupied - try next column
-                        next_col = nearest_col + 1
-                        if next_col < len(column_anchors) and row_cells[next_col] is None:
-                            row_cells[next_col] = Cell(
+                        # Different cell - create new column instead of combining
+                        # This prevents multiple columns' text from merging into one cell
+                        if len(column_anchors) < 50:  # Max 50 columns
+                            column_anchors.append(x_center)
+                            column_anchors = sorted(column_anchors)
+                            new_col = column_anchors.index(x_center)
+                            # Expand row_cells array
+                            while len(row_cells) < len(column_anchors):
+                                row_cells.append(None)
+                            
+                            has_unicode = any(ord(c) > 127 for c in text)
+                            wrap_text = len(text) > 50 or has_unicode
+                            
+                            row_cells[new_col] = Cell(
                                 row=row_idx,
-                                column=next_col,
+                                column=new_col,
                                 value=text,
-                                style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                                style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=wrap_text)
                             )
+                            logger.debug(f"GEOMETRIC_HYBRID: Created new column {new_col} for block (distance: {distance_to_anchor:.4f} > {horizontal_overlap_threshold})")
                         else:
-                            # No space - combine as last resort (but log warning)
-                            existing_text = row_cells[nearest_col].value or ''
-                            row_cells[nearest_col].value = (existing_text + ' ' + text).strip()
-                            logger.warning(f"GEOMETRIC_HYBRID: Combined text in column {nearest_col} due to space constraint")
+                            # Too many columns - use nearest empty column (don't combine)
+                            for col_idx in range(len(column_anchors)):
+                                if row_cells[col_idx] is None:
+                                    row_cells[col_idx] = Cell(
+                                        row=row_idx,
+                                        column=col_idx,
+                                        value=text,
+                                        style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                                    )
+                                    logger.debug(f"GEOMETRIC_HYBRID: Used empty column {col_idx} (max columns reached)")
+                                    break
+                            else:
+                                # All columns occupied - skip this block rather than combining
+                                # Combining would merge different columns' text
+                                logger.warning(f"GEOMETRIC_HYBRID: Skipping block - all columns occupied, would merge columns: {text[:50]}")
+                else:
+                    # No existing cell - create new
+                    has_unicode = any(ord(c) > 127 for c in text)
+                    wrap_text = len(text) > 50 or has_unicode
+                    
+                    row_cells[nearest_col] = Cell(
+                        row=row_idx,
+                        column=nearest_col,
+                        value=text,
+                        style=CellStyle(alignment_horizontal=CellAlignment.LEFT, wrap_text=wrap_text)
+                    )
             
             # Add row with all cells (fill empty cells)
             final_row_cells = []
@@ -3668,10 +3907,11 @@ class LayoutDecisionEngine:
         if not x_positions:
             return []
         
-        # Cluster X-positions (visual column bands)
+        # CRITICAL FIX: Use stricter clustering tolerance (5% instead of 8%)
+        # This prevents multiple distinct columns from being merged into one
         x_positions = sorted(set(x_positions))
         clusters = []
-        cluster_tolerance = 0.08  # 8% tolerance for visual alignment
+        cluster_tolerance = 0.05  # 5% tolerance (stricter to prevent column merging)
         
         for x_pos in x_positions:
             assigned = False

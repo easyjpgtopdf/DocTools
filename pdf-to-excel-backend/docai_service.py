@@ -521,8 +521,13 @@ async def process_pdf_to_excel_docai(
                 logger.info("STEP 7: Writing UnifiedLayout to Excel (openpyxl Workbook)")
                 logger.info("=" * 80)
                 renderer = ExcelWordRenderer()
-                excel_bytes = renderer.render_to_excel(unified_layouts, images)
-                logger.info(f"STEP 7 COMPLETE: Premium layout system generated Excel: {len(excel_bytes)} bytes with {len(unified_layouts)} pages")
+                try:
+                    excel_bytes = renderer.render_to_excel(unified_layouts, images)
+                    logger.info(f"STEP 7 COMPLETE: Premium layout system generated Excel: {len(excel_bytes)} bytes with {len(unified_layouts)} pages")
+                except ValueError as ve:
+                    # Layout empty error - re-raise with clear message
+                    logger.critical(f"❌ LAYOUT EMPTY ERROR: {str(ve)}")
+                    raise Exception(f"Layout empty — conversion aborted: {str(ve)}")
                 logger.info("=" * 80)
                 logger.info("PREMIUM PIPELINE: Complete")
                 logger.info("=" * 80)

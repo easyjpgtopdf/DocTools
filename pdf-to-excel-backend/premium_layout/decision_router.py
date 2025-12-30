@@ -253,22 +253,78 @@ class DecisionRouter:
                     return (ExecutionMode.TABLE_STRICT, confidence, reason)
         
         # ROUTING RULE 2: Else if digital_pdf AND blocks show repeated X-aligned rows → TABLE_VISUAL
-        # CRITICAL FIX: For invoices without native tables, check for visual table patterns
+        # CRITICAL FIX: TABLE_VISUAL allowed ONLY if:
+        # - page_count > 1 AND
+        # - no clear headers AND
+        # - numeric grid confidence > 0.8
+        # ❌ NEVER use TABLE_VISUAL for single-page invoices/bills/receipts
+        page_count = len(full_structure.get('pages', [])) if isinstance(full_structure.get('pages'), list) else 1
+        
         if doc_type == DocumentType.DIGITAL_PDF:
             visual_eligible, visual_confidence, visual_reason = self._check_visual_table_eligibility(
                 full_structure
             )
             if visual_eligible:
-                # For invoices with visual table patterns, use TABLE_VISUAL (not KEY_VALUE)
-                if doc_type in [DocumentType.INVOICE, DocumentType.BILL, DocumentType.BANK_STATEMENT]:
+                # Check if this is a single-page invoice/bill/receipt
+                is_single_page_invoice = (
+                    page_count == 1 and 
+                    doc_type in [DocumentType.INVOICE, DocumentType.BILL, DocumentType.RECEIPT]
+                )
+                
+                # Check if there are clear headers (native tables)
+                has_clear_headers = bool(native_tables and len(native_tables) > 0)
+                
+                if is_single_page_invoice:
+                    logger.critical("=" * 80)
+                    logger.critical(f"🔒 TABLE MODE OVERRIDE: BLOCKING TABLE_VISUAL for single-page {doc_type}")
+                    logger.critical("   Forcing KEY_VALUE_STRICT or TABLE_SEMANTIC instead")
+                    logger.critical("=" * 80)
+                    # Force KEY_VALUE_STRICT instead (will be handled by STEP 2 below)
+                    # Don't return here, let it fall through to KEY_VALUE_STRICT override
+                elif page_count > 1 and not has_clear_headers and visual_confidence >= 0.8:
+                    # TABLE_VISUAL allowed: multi-page, no headers, high confidence
                     reason = f"Invoice/Bill with visual table patterns detected - using TABLE_VISUAL for line items: {visual_reason}"
                     logger.info(f"DecisionRouter selected mode: TABLE_VISUAL - {reason}")
                     self._log_routing_decision(detected_columns, ExecutionMode.TABLE_VISUAL, visual_confidence, reason)
                     return (ExecutionMode.TABLE_VISUAL, visual_confidence, reason)
-                else:
+                elif visual_confidence >= 0.8 and doc_type not in [DocumentType.INVOICE, DocumentType.BILL, DocumentType.RECEIPT]:
+                    # High confidence, not invoice/bill/receipt - allow TABLE_VISUAL
                     logger.info(f"DecisionRouter selected mode: TABLE_VISUAL - {visual_reason}")
                     self._log_routing_decision(detected_columns, ExecutionMode.TABLE_VISUAL, visual_confidence, visual_reason)
                     return (ExecutionMode.TABLE_VISUAL, visual_confidence, visual_reason)
+                else:
+                    # Block TABLE_VISUAL - fall through to other modes
+                    logger.warning(f"🔒 TABLE_VISUAL blocked: page_count={page_count}, has_headers={has_clear_headers}, confidence={visual_confidence:.2f}")
+        
+        # STEP 2: KEY_VALUE STRICT OVERRIDE (SMALL BILLS)
+        # If ALL conditions match:
+        # - page_count == 1 (single page document)
+        # - no native DocAI table
+        # - left-aligned labels + right-aligned values detected
+        # THEN: FORCE mode = KEY_VALUE_STRICT (2 columns: Label | Value)
+        
+        # page_count already calculated above
+        has_native_tables = native_tables and len(native_tables) > 0
+        
+        # STEP 2: KEY_VALUE STRICT OVERRIDE (SMALL BILLS)
+        # If document classified as invoice/bill/receipt AND page_count == 1:
+        # - Force mode = KEY_VALUE_STRICT or TABLE_SEMANTIC
+        # - ❌ NEVER use TABLE_VISUAL for single-page invoices
+        if page_count == 1 and not has_native_tables:
+            # Check for left-aligned labels + right-aligned values
+            left_right_alignment_detected = self._detect_left_right_alignment(full_structure)
+            
+            if left_right_alignment_detected:
+                logger.critical("=" * 80)
+                logger.critical("🔒 KEY_VALUE STRICT OVERRIDE: Forcing 2-column KEY_VALUE mode")
+                logger.critical("   Conditions: page_count=1, no native tables, left-right alignment detected")
+                logger.critical("   Schema: Column A = Label, Column B = Value")
+                logger.critical("   NO third column under any circumstance")
+                logger.critical("=" * 80)
+                confidence = 0.95
+                reason = "KEY_VALUE_STRICT: Single-page document with left-right alignment (no tables) - forcing 2-column structure"
+                self._log_routing_decision(detected_columns, ExecutionMode.KEY_VALUE, confidence, reason)
+                return (ExecutionMode.KEY_VALUE, confidence, reason)
         
         # ROUTING RULE 3: Else if key:value or invoice pattern → KEY_VALUE
         # CRITICAL SAFETY: KEY_VALUE only allowed if ALL safety conditions pass
@@ -671,6 +727,46 @@ class DecisionRouter:
         reason = f"Visual table detected: {len(blocks)} blocks, {rows_with_horizontal_alignment} aligned rows, {distinct_vertical_bands} vertical bands, {numeric_blocks_count} numeric blocks"
         return (True, confidence, reason)
     
+    def _detect_left_right_alignment(self, full_structure: Dict) -> bool:
+        """
+        Detect left-aligned labels + right-aligned values pattern.
+        
+        Returns:
+            True if left-right alignment pattern detected, False otherwise
+        """
+        blocks = full_structure.get('blocks', [])
+        if len(blocks) < 4:  # Need at least 4 blocks for pattern
+            return False
+        
+        left_aligned_count = 0
+        right_aligned_count = 0
+        
+        for block in blocks:
+            bbox = block.get('bounding_box', {})
+            if not bbox:
+                continue
+            
+            x_min = bbox.get('x_min', 0)
+            x_max = bbox.get('x_max', 0)
+            x_center = (x_min + x_max) / 2
+            page_width = 1.0  # Normalized coordinates
+            
+            # Left-aligned: x_min < 0.3 (left third of page)
+            if x_min < 0.3:
+                left_aligned_count += 1
+            
+            # Right-aligned: x_center > 0.7 (right third of page)
+            if x_center > 0.7:
+                right_aligned_count += 1
+        
+        # Pattern detected if we have both left and right aligned blocks
+        has_pattern = left_aligned_count >= 2 and right_aligned_count >= 2
+        
+        if has_pattern:
+            logger.info(f"Left-right alignment detected: {left_aligned_count} left-aligned, {right_aligned_count} right-aligned blocks")
+        
+        return has_pattern
+    
     def _has_row_grid_alignment(self, full_structure: Dict) -> bool:
         """
         Check if document has row grid alignment (indicating table structure).
@@ -865,13 +961,50 @@ class DecisionRouter:
                                 if cell.row_span > 1 or cell.col_span > 1:
                                     merged_cell_count += 1
         
-        # FAILURE CHECK 1: Single-column collapse (multi-row doc becomes 1 column)
-        if detected_rows >= 3 and detected_columns == 1:
-            failures.append(f"Single-column collapse: {detected_rows} rows but only 1 column")
+        # CRITICAL FIX: Check if all content is in single column (column A only)
+        # This is a major structural failure - should trigger Adobe
+        if detected_rows > 0 and detected_columns == 1:
+            # Check if there's actually multi-column content in blocks
+            blocks = docai_result.get('blocks', [])
+            if len(blocks) > 5:
+                # Check X positions of blocks - if they span multiple columns, this is a failure
+                x_positions = []
+                for block in blocks[:50]:  # Sample first 50 blocks
+                    bbox = block.get('bounding_box', {})
+                    if bbox:
+                        x_center = (bbox.get('x_min', 0) + bbox.get('x_max', 0)) / 2
+                        x_positions.append(x_center)
+                
+                if x_positions:
+                    x_min = min(x_positions)
+                    x_max = max(x_positions)
+                    x_span = x_max - x_min
+                    # If blocks span more than 30% of page width but only 1 column detected, it's a failure
+                    if x_span > 0.3:
+                        failures.append(f"CRITICAL: Single-column collapse - {detected_rows} rows, {detected_columns} column, but blocks span {x_span:.2%} of page width")
         
-        # FAILURE CHECK 2: No columns detected (but has content)
-        if detected_columns < 2 and detected_rows > 0:
-            failures.append(f"Insufficient columns: {detected_columns} (need >= 2)")
+        # FAILURE CHECK 1: Single-column collapse (ONLY if multi-column content was collapsed)
+        # CRITICAL: Don't flag single column as failure - many documents are legitimately single column
+        # Only flag if there's evidence that multi-column content was collapsed
+        if detected_rows >= 5 and detected_columns == 1:
+            # Check if blocks span multiple X positions (indicating multi-column content)
+            blocks = docai_result.get('blocks', [])
+            if len(blocks) > 10:
+                x_positions = []
+                for block in blocks[:50]:
+                    bbox = block.get('bounding_box', {})
+                    if bbox:
+                        x_center = (bbox.get('x_min', 0) + bbox.get('x_max', 0)) / 2
+                        x_positions.append(x_center)
+                
+                if x_positions:
+                    x_span = max(x_positions) - min(x_positions)
+                    # Only flag if blocks span > 40% of page (indicating multi-column content was collapsed)
+                    if x_span > 0.4:
+                        failures.append(f"Multi-column collapse: {detected_rows} rows, 1 column, but blocks span {x_span:.2%} of page")
+        
+        # FAILURE CHECK 2: No columns detected (but has content) - REMOVED
+        # Single column is valid for many document types (letters, forms, etc.)
         
         # FAILURE CHECK 3: Many merged cells indicate complex table
         if merged_cell_count >= 3:
@@ -942,20 +1075,63 @@ class DecisionRouter:
         metadata['gates_passed'].append('premium_toggle_on')
         logger.info("✅ GATE 1 PASSED: User enabled premium toggle")
         
-        # GATE 2: Confidence Threshold
-        if docai_confidence >= 0.75:
-            metadata['gates_failed'].append('high_confidence')
-            return (False, f"Document AI confidence {docai_confidence:.2f} >= 0.75 - Adobe not needed", metadata)
+        # GATE 2: Confidence Threshold (MUCH MORE RESTRICTIVE)
+        # CRITICAL: Adobe should ONLY be used for very heavy OCR/table content
+        # DocAI should handle most documents - only use Adobe as last resort
+        if docai_confidence >= 0.3:  # Changed from 0.75 to 0.3 - much more restrictive
+            metadata['gates_failed'].append('confidence_too_high')
+            return (False, f"Document AI confidence {docai_confidence:.2f} >= 0.3 - DocAI sufficient, Adobe not needed", metadata)
         
-        metadata['gates_passed'].append('low_confidence')
-        logger.info(f"✅ GATE 2 PASSED: Low confidence ({docai_confidence:.2f} < 0.75)")
+        metadata['gates_passed'].append('very_low_confidence')
+        logger.info(f"✅ GATE 2 PASSED: Very low confidence ({docai_confidence:.2f} < 0.3) - Adobe may be needed")
         
-        # GATE 3: Structural Failure Detection
+        # GATE 3: Structural Failure Detection (MUCH MORE RESTRICTIVE)
+        # CRITICAL: Only trigger Adobe for REAL structural failures, not normal single-column documents
         has_failures, failure_reasons = self.check_structural_failures(full_structure, unified_layouts)
+        
+        # CRITICAL FIX: Only force Adobe if confidence is EXTREMELY low (< 0.2) AND has structural issues
+        if docai_confidence < 0.2 and has_failures:
+            logger.warning(f"⚠️ EXTREME CASE: Very low confidence ({docai_confidence:.2f} < 0.2) + structural failures - Adobe needed")
+        elif docai_confidence < 0.2:
+            # Even with very low confidence, don't force Adobe if no structural failures
+            has_failures = False
+            failure_reasons = []
+            logger.info(f"ℹ️ Low confidence ({docai_confidence:.2f}) but no structural failures - DocAI sufficient")
+        
+        # CRITICAL: Don't trigger Adobe just for single column - many documents are legitimately single column
+        # Only trigger if single column + multiple rows + blocks span multiple X positions (indicating multi-column content was collapsed)
+        if unified_layouts:
+            for layout in unified_layouts:
+                if hasattr(layout, 'get_max_column'):
+                    max_col = layout.get_max_column()
+                    max_row = layout.get_max_row() if hasattr(layout, 'get_max_row') else 0
+                    
+                    # Only flag as failure if:
+                    # 1. Single column AND
+                    # 2. Multiple rows (> 5) AND  
+                    # 3. Blocks actually span multiple X positions (indicating multi-column content)
+                    if max_col == 0 and max_row > 5:
+                        blocks = full_structure.get('blocks', [])
+                        if len(blocks) > 10:
+                            x_positions = []
+                            for block in blocks[:50]:
+                                bbox = block.get('bounding_box', {})
+                                if bbox:
+                                    x_center = (bbox.get('x_min', 0) + bbox.get('x_max', 0)) / 2
+                                    x_positions.append(x_center)
+                            
+                            if x_positions:
+                                x_span = max(x_positions) - min(x_positions)
+                                # Only flag if blocks span > 40% of page width (indicating multi-column content)
+                                if x_span > 0.4:
+                                    has_failures = True
+                                    failure_reasons.append(f"CRITICAL: Multi-column content collapsed to single column ({max_row} rows, X-span: {x_span:.2%})")
+                                    logger.critical(f"🚨 STRUCTURAL FAILURE: {max_row} rows, single column, but blocks span {x_span:.2%} - triggering Adobe")
+                                    break
         
         if not has_failures:
             metadata['gates_failed'].append('no_structural_failures')
-            return (False, "No structural failures detected - Adobe not needed", metadata)
+            return (False, "No structural failures detected - DocAI sufficient, Adobe not needed", metadata)
         
         metadata['gates_passed'].append('structural_failures')
         metadata['failure_reasons'] = failure_reasons

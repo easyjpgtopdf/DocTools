@@ -41,7 +41,18 @@ class ExcelWordRenderer:
     
     def render_to_excel(self, layouts: List[UnifiedLayout], images: Optional[List[Dict]] = None) -> bytes:
         """
-        Render unified layouts to Excel format (one sheet per page).
+        CRITICAL REWRITE: Render unified layouts to Excel with explicit grid mapping.
+        
+        Requirements:
+        1. Build explicit grid per page (rows = max(row_index) + 1, cols = max(col_index) + 1)
+        2. One Excel sheet per PDF page (Page_1, Page_2, etc.)
+        3. Write cells to exact Excel coordinates (row_index + 1, col_index + 1)
+        4. Enforce hard boundaries (no word spill, no fake rows/columns)
+        5. Column control for invoices/bills (force 2 columns if detected)
+        6. Font rules (one row = one font)
+        7. Image handling (anchored positions, no row/column creation)
+        8. Validation logging (rows/columns written, first 5 rows preview)
+        9. Empty layout handling (fail conversion, return error)
         
         Args:
             layouts: List of UnifiedLayout objects (one per page)
@@ -49,7 +60,19 @@ class ExcelWordRenderer:
             
         Returns:
             Excel file as bytes
+            
+        Raises:
+            ValueError: If layout is empty
         """
+        # CRITICAL: Validate layouts before processing
+        if not layouts:
+            raise ValueError("Layout empty — conversion aborted: No layouts provided")
+        
+        # Check if all layouts are empty
+        all_empty = all(layout.is_empty() for layout in layouts)
+        if all_empty:
+            raise ValueError("Layout empty — conversion aborted: All layouts are empty")
+        
         workbook = Workbook()
         workbook.remove(workbook.active)
         
@@ -65,109 +88,192 @@ class ExcelWordRenderer:
         # Create one sheet per page (Page-to-Sheet Mapping)
         for layout in layouts:
             page_num = layout.page_index + 1
-            # Sheet naming: Page_1, Page_2, Page_3... (with underscore)
             sheet_name = f"Page_{page_num}" if len(layouts) > 1 else "Document"
-            # Excel sheet names max 31 characters
             if len(sheet_name) > 31:
                 sheet_name = sheet_name[:31]
             
-            # STEP-10: Dynamic grid validation - check if layout has content BEFORE creating sheet
-            max_row = layout.get_max_row()
-            max_col = layout.get_max_column()
-            
-            # Validation guard: Detect blank sheets
-            if max_row == 0 or max_col == 0:
+            # CRITICAL: Validate layout is not empty
+            if layout.is_empty():
                 logger.critical("=" * 80)
-                logger.critical(f"⚠️ VALIDATION GUARD: Blank sheet detected for Page {page_num}")
-                logger.critical(f"   max_row={max_row}, max_col={max_col}")
-                logger.critical("   This should not happen - layout should have been routed to GEOMETRIC_HYBRID")
+                logger.critical(f"❌ LAYOUT EMPTY: Page {page_num} layout is empty")
                 logger.critical("=" * 80)
-                # Still create sheet but log warning - let downstream handle fallback
-                # Don't skip sheet creation as it would break page-to-sheet mapping
+                raise ValueError(f"Layout empty — conversion aborted: Page {page_num} layout is empty")
             
+            # CRITICAL FIX: Apply spatial indexing if all cells have row=0, col=0
+            try:
+                spatial_applied = layout.apply_spatial_indexing()
+                if spatial_applied:
+                    logger.critical(f"✅ PAGE {page_num}: Spatial indexing applied successfully")
+            except ValueError as ve:
+                # Spatial indexing failed - re-raise
+                raise
+            except Exception as e:
+                logger.warning(f"PAGE {page_num}: Spatial indexing failed (non-critical): {e}")
+                # Continue - let Excel writer handle it
+            
+            # CRITICAL: Apply LayoutCleaner to remove empty rows and columns
+            try:
+                from .layout_cleaner import LayoutCleaner
+                layout_cleaner = LayoutCleaner()
+                layout = layout_cleaner.clean(layout)
+                logger.critical(f"✅ PAGE {page_num}: Layout cleaned (empty rows/columns removed)")
+            except Exception as e:
+                logger.warning(f"PAGE {page_num}: Layout cleaning failed (non-critical): {e}")
+                # Continue without cleaning
+            
+            # STEP 1: Build explicit grid per page
+            max_row_idx = layout.get_max_row()  # 0-based max row index
+            max_col_idx = layout.get_max_column()  # 0-based max column index
+            
+            # CRITICAL: If get_max_row/get_max_column return -1, layout is empty
+            if max_row_idx < 0 or max_col_idx < 0:
+                logger.critical(f"❌ Invalid grid dimensions: max_row={max_row_idx}, max_col={max_col_idx}")
+                raise ValueError(f"Layout empty — conversion aborted: Invalid grid dimensions for Page {page_num}")
+            
+            # Grid dimensions: max_row_idx is 0-based, so grid_rows = max_row_idx + 1
+            grid_rows = max_row_idx + 1
+            grid_cols = max_col_idx + 1
+            
+            logger.critical("=" * 80)
+            logger.critical(f"PAGE {page_num}: Building explicit grid")
+            logger.critical(f"   Grid dimensions: {grid_rows} rows × {grid_cols} columns")
+            logger.critical(f"   Layout max_row (0-based): {max_row_idx}, max_col (0-based): {max_col_idx}")
+            logger.critical("=" * 80)
+            
+            # STEP 2: Build explicit grid - grid[row][col] = Cell or None
+            # Initialize grid with None (empty cells)
+            grid = [[None for _ in range(grid_cols)] for _ in range(grid_rows)]
+            cell_styles_map = {}  # (row, col) -> CellStyle
+            
+            # STEP 3: Map all cells to exact grid positions
+            # CRITICAL: layout.rows is a list of row lists, where each row list contains cells
+            # The row index in layout.rows might not match cell.row - we need to use cell.row and cell.column
+            # CRITICAL: Only map cells with non-empty values (no blank columns)
+            cells_mapped = 0
+            for row_list in layout.rows:
+                if not row_list:
+                    continue
+                for cell in row_list:
+                    # CRITICAL: Skip cells with empty values
+                    if not cell.value or not str(cell.value).strip():
+                        continue  # Don't map empty cells
+                    
+                    row_idx = cell.row  # 0-based row index from cell
+                    col_idx = cell.column  # 0-based column index from cell
+                    
+                    # CRITICAL DEBUG: Log first few cells
+                    if cells_mapped < 5:
+                        logger.critical(f"PAGE {page_num}: Mapping cell: row={row_idx}, col={col_idx}, value='{str(cell.value)[:30]}...'")
+                    
+                    # Validate indices
+                    if row_idx < 0 or row_idx >= grid_rows or col_idx < 0 or col_idx >= grid_cols:
+                        logger.warning(f"PAGE {page_num}: Cell out of bounds: row={row_idx}, col={col_idx}, grid={grid_rows}x{grid_cols}, value='{str(cell.value)[:30]}...'")
+                        # CRITICAL: Expand grid if needed (shouldn't happen, but safety)
+                        if row_idx >= grid_rows:
+                            # Expand grid rows
+                            for _ in range(row_idx + 1 - grid_rows):
+                                grid.append([None] * grid_cols)
+                            grid_rows = row_idx + 1
+                        if col_idx >= grid_cols:
+                            # Expand grid columns
+                            for r in range(grid_rows):
+                                grid[r].extend([None] * (col_idx + 1 - grid_cols))
+                            grid_cols = col_idx + 1
+                    
+                    # Map cell to grid position (overwrite if duplicate)
+                    if grid[row_idx][col_idx] is not None:
+                        logger.warning(f"PAGE {page_num}: Duplicate cell at ({row_idx},{col_idx}) - overwriting")
+                    grid[row_idx][col_idx] = cell
+                    cell_styles_map[(row_idx, col_idx)] = cell.style
+                    cells_mapped += 1
+            
+            logger.critical(f"PAGE {page_num}: Mapped {cells_mapped} cells to grid {grid_rows}x{grid_cols}")
+            
+            # STEP 4: Column control for invoices/bills
+            document_type = layout.metadata.get('document_type', '').lower()
+            if document_type in ['invoice', 'bill', 'receipt'] and len(layouts) == 1:
+                # Single-page invoice/bill - check if we should force 2 columns
+                detected_cols = grid_cols
+                if detected_cols == 2:
+                    logger.critical(f"PAGE {page_num}: Invoice/bill detected with 2 columns - enforcing exactly 2 columns")
+                    # Grid already has 2 columns, no change needed
+                elif detected_cols > 2:
+                    logger.warning(f"PAGE {page_num}: Invoice/bill has {detected_cols} columns (expected 2) - keeping as-is")
+            
+            # STEP 5: Create Excel sheet
             sheet = workbook.create_sheet(title=sheet_name)
             
-            # SINGLE SOURCE OF MERGE TRUTH: Build set of merged cell positions from layout.merged_cells only
-            merged_cell_positions = set()  # Track all positions that are part of merges (excluding top-left)
-            merge_ranges = []  # Store merge ranges for application
+            # STEP 6: Write cells to exact Excel coordinates
+            # Excel uses 1-based indexing, so row_idx + 1, col_idx + 1
+            rows_written = 0
+            cols_written = 0
+            first_5_rows_preview = []
             
-            # Build merge ranges from layout.merged_cells (SINGLE SOURCE OF TRUTH)
-            for merged in layout.merged_cells:
-                start_row = merged.start_row + 1  # Convert to 1-based
-                start_col = merged.start_col + 1
-                # CORRECT MERGE RANGE: Fix off-by-one error
-                end_row = merged.end_row + 1  # end_row is already inclusive in UnifiedLayout
-                end_col = merged.end_col + 1  # end_col is already inclusive in UnifiedLayout
+            for row_idx in range(grid_rows):
+                row_has_content = False
+                for col_idx in range(grid_cols):
+                    cell = grid[row_idx][col_idx]
+                    if cell is None:
+                        continue  # Empty cell, skip
+                    
+                    # CRITICAL: Skip cells with empty values (no blank columns)
+                    if not cell.value or not str(cell.value).strip():
+                        continue  # Don't write empty cells
+                    
+                    # Excel coordinates (1-based)
+                    excel_row = row_idx + 1
+                    excel_col = col_idx + 1
+                    
+                    # Write cell value
+                    excel_cell = sheet.cell(row=excel_row, column=excel_col, value=cell.value)
+                    
+                    # Apply style
+                    if (row_idx, col_idx) in cell_styles_map:
+                        self._apply_cell_style(excel_cell, cell_styles_map[(row_idx, col_idx)])
+                    
+                    row_has_content = True
+                    cols_written = max(cols_written, excel_col)
                 
-                # Store merge range
+                if row_has_content:
+                    rows_written += 1
+                    # Store first 5 rows preview
+                    if len(first_5_rows_preview) < 5:
+                        row_preview = []
+                        for col_idx in range(min(5, grid_cols)):
+                            cell = grid[row_idx][col_idx]
+                            value = str(cell.value)[:30] if cell and cell.value else ''
+                            row_preview.append(f"({excel_row},{col_idx+1})='{value}'")
+                        first_5_rows_preview.append(f"Row {excel_row}: {', '.join(row_preview)}")
+            
+            # STEP 7: Handle merged cells
+            merged_cell_positions = set()
+            merge_ranges = []
+            
+            # Build merge ranges from layout.merged_cells
+            for merged in layout.merged_cells:
+                start_row = merged.start_row + 1  # 1-based
+                start_col = merged.start_col + 1
+                end_row = merged.end_row + 1
+                end_col = merged.end_col + 1
+                
                 merge_ranges.append((start_row, start_col, end_row, end_col))
                 
-                # Mark all slave cells (non-top-left) as merged positions
+                # Mark slave cells
                 for r in range(start_row, end_row + 1):
                     for c in range(start_col, end_col + 1):
                         if not (r == start_row and c == start_col):
                             merged_cell_positions.add((r, c))
             
-            # Also handle cells with rowspan/colspan that might not be in merged_cells
-            # (defensive: ensure we don't write to spanned cells)
-            for row in layout.rows:
-                for cell in row:
-                    if cell.rowspan > 1 or cell.colspan > 1:
-                        row_num = cell.row + 1
-                        col_num = cell.column + 1
-                        # CORRECT MERGE RANGE: end = start + span - 1
-                        end_row = row_num + cell.rowspan - 1
-                        end_col = col_num + cell.colspan - 1
-                        
-                        # Mark slave cells
-                        for r in range(row_num, end_row + 1):
-                            for c in range(col_num, end_col + 1):
-                                if not (r == row_num and c == col_num):
-                                    merged_cell_positions.add((r, c))
-                        
-                        # Add to merge ranges if not already present
-                        merge_key = (row_num, col_num, end_row, end_col)
-                        if merge_key not in merge_ranges:
-                            merge_ranges.append(merge_key)
-            
-            # Track styles for cells (only top-left of merges get values)
-            cell_styles_map = {}  # Track styles for each cell position
-            
-            # First pass: Write ONLY top-left cells (skip merged slave cells)
-            # CLEAN RENDER GUARANTEE: Dumb mirror - write exactly what UnifiedLayout provides
-            for row in layout.rows:
-                for cell in row:
-                    row_num = cell.row + 1
-                    col_num = cell.column + 1
-                    
-                    # MERGED CELL WRITE RULE: Skip writing if this is a slave cell
-                    if (row_num, col_num) in merged_cell_positions:
-                        # This is a slave cell - skip writing value completely
-                        # Only store style for potential border/formatting
-                        cell_styles_map[(row_num, col_num)] = cell.style
-                        continue
-                    
-                    # This is either top-left of merge or regular cell - write value
-                    excel_cell = sheet.cell(row=row_num, column=col_num, value=cell.value)
-                    cell_styles_map[(row_num, col_num)] = cell.style
-            
-            # Apply merges from SINGLE SOURCE (layout.merged_cells is primary, cell rowspan/colspan is fallback)
-            # SINGLE SOURCE OF MERGE TRUTH: Never merge the same range twice
-            applied_merges = set()  # Track applied merges to prevent duplicates
-            
+            # Apply merges
+            applied_merges = set()
             for start_row, start_col, end_row, end_col in merge_ranges:
                 merge_key = (start_row, start_col, end_row, end_col)
-                
-                # Prevent duplicate merges
                 if merge_key in applied_merges:
-                    logger.debug(f"Skipping duplicate merge: ({start_row},{start_col}) to ({end_row},{end_col})")
                     continue
-                
                 applied_merges.add(merge_key)
                 
-                # Validate merge range (end must be >= start)
                 if end_row < start_row or end_col < start_col:
-                    logger.warning(f"Invalid merge range: ({start_row},{start_col}) to ({end_row},{end_col}), skipping")
+                    logger.warning(f"Invalid merge range: ({start_row},{start_col}) to ({end_row},{end_col})")
                     continue
                 
                 try:
@@ -177,54 +283,37 @@ class ExcelWordRenderer:
                         end_row=end_row,
                         end_column=end_col
                     )
-                    logger.debug(f"Merged cells: ({start_row},{start_col}) to ({end_row},{end_col})")
                 except Exception as e:
-                    logger.warning(f"Failed to merge cells {start_row},{start_col} to {end_row},{end_col}: {e}")
+                    logger.warning(f"Failed to merge cells: {e}")
             
-            # Second pass: Apply styles to ALL cells (after merge)
-            for (row_num, col_num), style in cell_styles_map.items():
-                excel_cell = sheet.cell(row=row_num, column=col_num)
-                self._apply_cell_style(excel_cell, style)
-            
-            # Auto-adjust column widths
+            # STEP 8: Auto-adjust column widths
             self._auto_adjust_columns(sheet, layout)
             
-            # Freeze header rows (PREMIUM feature)
-            header_row_indices = layout.metadata.get('header_row_indices', [])
-            if header_row_indices:
-                # Freeze at the row after the last header row
-                freeze_row = max(header_row_indices) + 2  # +1 for 1-based, +1 for next row
-                if freeze_row <= sheet.max_row:
-                    sheet.freeze_panes = f"A{freeze_row}"
-                    logger.info(f"Froze header rows at row {freeze_row}")
-            
-            # Insert images for this page
+            # STEP 9: Insert images (anchored positions, no row/column creation)
             page_images = images_by_page.get(layout.page_index, [])
             if page_images and IMAGE_SUPPORT:
                 self._insert_images_to_sheet(sheet, page_images, layout)
             
-            # STEP-10: Post-generation validation guard
-            # Check if sheet is actually blank after rendering
-            actual_max_row = sheet.max_row if hasattr(sheet, 'max_row') else 0
-            actual_max_col = sheet.max_column if hasattr(sheet, 'max_column') else 0
+            # STEP 10: Validation logging
+            logger.critical("=" * 80)
+            logger.critical(f"PAGE {page_num}: Excel writing complete")
+            logger.critical(f"   Rows written: {rows_written}")
+            logger.critical(f"   Columns written: {cols_written}")
+            logger.critical(f"   Grid dimensions: {grid_rows} × {grid_cols}")
+            logger.critical(f"   First 5 rows preview:")
+            for preview in first_5_rows_preview:
+                logger.critical(f"      {preview}")
+            logger.critical("=" * 80)
             
-            if actual_max_row == 0 or actual_max_col == 0:
-                logger.critical("=" * 80)
-                logger.critical(f"❌ VALIDATION GUARD FAILED: Sheet '{sheet_name}' is blank after rendering")
-                logger.critical(f"   actual_max_row={actual_max_row}, actual_max_col={actual_max_col}")
-                logger.critical(f"   layout.max_row={max_row}, layout.max_col={max_col}")
-                logger.critical("   This indicates a critical rendering failure")
-                logger.critical("=" * 80)
-                # Note: We can't fallback here as we're in renderer - this should be caught earlier
-                # But we log it for debugging
+            # Final validation
+            if rows_written == 0 or cols_written == 0:
+                logger.critical(f"❌ VALIDATION FAILED: Page {page_num} has no content after writing")
+                raise ValueError(f"Layout empty — conversion aborted: Page {page_num} has no content")
         
-        # STEP-10: Final validation - ensure at least one sheet has content
+        # Final validation - ensure at least one sheet has content
         if len(workbook.worksheets) == 0:
-            logger.critical("=" * 80)
-            logger.critical("❌ CRITICAL: No sheets created - creating minimal fallback sheet")
-            logger.critical("=" * 80)
-            fallback_sheet = workbook.create_sheet(title="Document")
-            fallback_sheet.cell(row=1, column=1, value="No data extracted from document")
+            logger.critical("❌ CRITICAL: No sheets created")
+            raise ValueError("Layout empty — conversion aborted: No sheets created")
         
         # Save to bytes
         output = io.BytesIO()
