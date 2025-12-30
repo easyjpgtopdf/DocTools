@@ -494,7 +494,7 @@
                                 <div style="color:#555;line-height:1.6;">
                                     • Maximum <strong>10 pages/day</strong> text conversion<br>
                                     • Maximum <strong>3 pages/day</strong> OCR conversion<br>
-                                    • Maximum <strong>10MB</strong> file size
+                                    • Maximum <strong>2MB</strong> file size
                                 </div>
                             </div>
                             <div style="background:linear-gradient(135deg,#fff8e1,#fff3c4);padding:10px;border-radius:6px;border-left:3px solid #FF9800;">
@@ -583,9 +583,9 @@
         
         // Check if file was passed from previous page
         window.addEventListener('DOMContentLoaded', async () => {
-            // Login NOT required - users can use free tier (10 pages, 20MB) without login
+            // Login NOT required - users can use free tier (10 pages, 2MB) without login
             // Login will only be prompted when free tier limits are exceeded or credits are needed
-            console.log('Page loaded - Free tier available without login (10 pages, 20MB max)');
+            console.log('Page loaded - Free tier available without login (10 pages, 2MB max)');
             
             // Load file from sessionStorage
             const storedFile = sessionStorage.getItem('pdfFile');
@@ -714,11 +714,11 @@
             if (!authToken) {
                 console.log('FREE VERSION: Using browser-based conversion (no API calls)');
                 
-                // Check file size limit (10MB for free tier)
+                // Check file size limit (2MB for free tier)
                 const fileSizeMB = currentFile.size / (1024 * 1024);
-                if (fileSizeMB > 10) {
-                    showStatus('Free tier limit: Maximum 10MB file size. Please sign in for higher limits (50MB).', 'error');
-                    showToast('File size exceeds free tier limit (10MB). Sign in for 50MB limit.', true);
+                if (fileSizeMB > 2) {
+                    showStatus('Free tier limit: Maximum 2MB file size. For larger files, use Premium OCR.', 'error');
+                    showToast('File size exceeds free tier limit (2MB). Use Premium OCR for larger files.', true);
                     setTimeout(() => {
                         if (confirm('File too large for free tier. Would you like to sign in?')) {
                             window.location.href = `/accounts.html#login?returnTo=${encodeURIComponent(window.location.href)}`;
@@ -758,11 +758,11 @@
             // Premium features available on premium page, but main page remains free
             console.log('FREE VERSION: Logged-in user using browser-based conversion (free on main page)');
             
-            // Check file size limit (10MB for free tier on main page)
+            // Check file size limit (2MB for free tier on main page)
             const fileSizeMB = currentFile.size / (1024 * 1024);
-            if (fileSizeMB > 10) {
-                showStatus('Free tier limit: Maximum 10MB file size. For larger files, use Premium OCR.', 'error');
-                showToast('File size exceeds free tier limit (10MB). Use Premium OCR for larger files.', true);
+            if (fileSizeMB > 2) {
+                showStatus('Free tier limit: Maximum 2MB file size. For larger files, use Premium OCR.', 'error');
+                showToast('File size exceeds free tier limit (2MB). Use Premium OCR for larger files.', true);
                 setTimeout(() => {
                     if (confirm('File too large for free tier. Would you like to use Premium OCR?')) {
                         // Store file for premium page
