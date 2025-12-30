@@ -754,23 +754,67 @@
                 return;
             }
             
-            // PREMIUM VERSION: Logged-in users - redirect to premium page
-            console.log('PREMIUM VERSION: User is logged in, redirecting to premium page');
-            // Store file for premium page
-            if (currentFile) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const fileData = {
-                        name: currentFile.name,
-                        data: e.target.result.split(',')[1]
-                    };
-                    sessionStorage.setItem('pdfFileForPremium', JSON.stringify(fileData));
-                    window.location.href = '/pdf-to-word-premium.html';
-                };
-                reader.readAsDataURL(currentFile);
-            } else {
-                window.location.href = '/pdf-to-word-premium.html';
+            // LOGGED-IN USERS: Also use free browser-based conversion on main page
+            // Premium features available on premium page, but main page remains free
+            console.log('FREE VERSION: Logged-in user using browser-based conversion (free on main page)');
+            
+            // Check file size limit (10MB for free tier on main page)
+            const fileSizeMB = currentFile.size / (1024 * 1024);
+            if (fileSizeMB > 10) {
+                showStatus('Free tier limit: Maximum 10MB file size. For larger files, use Premium OCR.', 'error');
+                showToast('File size exceeds free tier limit (10MB). Use Premium OCR for larger files.', true);
+                setTimeout(() => {
+                    if (confirm('File too large for free tier. Would you like to use Premium OCR?')) {
+                        // Store file for premium page
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const fileData = {
+                                name: currentFile.name,
+                                data: e.target.result.split(',')[1]
+                            };
+                            sessionStorage.setItem('pdfFileForPremium', JSON.stringify(fileData));
+                            window.location.href = '/pdf-to-word-premium.html';
+                        };
+                        reader.readAsDataURL(currentFile);
+                    }
+                }, 2000);
+                return;
             }
+            
+            // Check page limit (10 pages for free tier)
+            if (!pdfDoc) {
+                try {
+                    const arrayBuffer = await currentFile.arrayBuffer();
+                    pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                } catch (e) {
+                    showStatus('Error loading PDF', 'error');
+                    return;
+                }
+            }
+            
+            if (pdfDoc.numPages > 10) {
+                showStatus('Free tier limit: Maximum 10 pages. For more pages, use Premium OCR.', 'error');
+                showToast(`Your PDF has ${pdfDoc.numPages} pages. Free tier allows 10 pages max. Use Premium OCR for more.`, true);
+                setTimeout(() => {
+                    if (confirm('Page limit exceeded. Would you like to use Premium OCR?')) {
+                        // Store file for premium page
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const fileData = {
+                                name: currentFile.name,
+                                data: e.target.result.split(',')[1]
+                            };
+                            sessionStorage.setItem('pdfFileForPremium', JSON.stringify(fileData));
+                            window.location.href = '/pdf-to-word-premium.html';
+                        };
+                        reader.readAsDataURL(currentFile);
+                    }
+                }, 2000);
+                return;
+            }
+            
+            // Use browser-based conversion (FREE - works for both anonymous and logged-in users on main page)
+            await convertToWordBrowser();
             return;
         });
         
