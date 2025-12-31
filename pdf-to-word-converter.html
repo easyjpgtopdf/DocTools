@@ -46,10 +46,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
     
-    <!-- JSZip for DOCX creation (FREE Browser-Based Converter) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <!-- FREE Browser-Based Converter (Zero Server Costs) -->
-    <script src="/js/pdf-to-word-free-browser.js"></script>
+    <!-- Server-based conversion (both free and premium) -->
     
     <style>
         * {
@@ -448,8 +445,8 @@
                             <h3 style="font-size: 1rem; font-weight: 700; color: var(--primary); margin-bottom: 8px;">
                                 <i class="fas fa-star"></i> Free Version
                             </h3>
-                            <span class="method-badge" id="primaryMethod">Browser-Based</span>
-                            <p class="muted" style="margin: 8px 0;">Converted with browser-based free conversion</p>
+                            <span class="method-badge" id="primaryMethod">LibreOffice</span>
+                            <p class="muted" style="margin: 8px 0;">Converted with LibreOffice</p>
                             <a href="#" id="primaryDownload" class="download-link" download>
                                 <i class="fas fa-download"></i> Download Free Version
                             </a>
@@ -471,7 +468,7 @@
                 <div class="panel option-card" style="gap:10px">
                     <h3 class="section-title"><i class="fas fa-lightbulb"></i> Tips</h3>
                     <ul style="list-style:none;display:grid;gap:8px;color:var(--muted);font-size:0.93rem;padding-left:0">
-                        <li><i class="fas fa-check-circle" style="color:var(--primary);"></i> <strong>FREE:</strong> Text-based PDFs convert with perfect quality (browser-based)</li>
+                        <li><i class="fas fa-check-circle" style="color:var(--primary);"></i> <strong>FREE:</strong> Text-based PDFs convert with perfect quality (server-based LibreOffice)</li>
                         <li><i class="fas fa-check-circle" style="color:var(--success);"></i> <strong>PREMIUM:</strong> OCR-powered conversion for scanned PDFs with enterprise-level accuracy</li>
                         <li><i class="fas fa-check-circle" style="color:var(--primary);"></i> Supports Hindi, Unicode, and international fonts.</li>
                     </ul>
@@ -492,9 +489,9 @@
                                     <i class="fas fa-user" style="margin-right:6px;"></i>Free Tier (Without Sign In Only)
                                 </div>
                                 <div style="color:#555;line-height:1.6;">
-                                    • Maximum <strong>10 pages/day</strong> text conversion<br>
-                                    • Maximum <strong>3 pages/day</strong> OCR conversion<br>
-                                    • Maximum <strong>2MB</strong> file size
+                                    • Maximum <strong>1 page</strong> per PDF<br>
+                                    • Maximum <strong>2MB</strong> file size<br>
+                                    • Text PDFs only (No OCR)
                                 </div>
                             </div>
                             <div style="background:linear-gradient(135deg,#fff8e1,#fff3c4);padding:10px;border-radius:6px;border-left:3px solid #FF9800;">
@@ -503,9 +500,10 @@
                                 </div>
                                 <div style="color:#555;line-height:1.6;">
                                     • <strong>Unlimited conversions</strong> (based on credits)<br>
-                                    • Maximum <strong>50MB</strong> file size<br>
+                                    • Maximum <strong>100MB</strong> file size<br>
+                                    • Maximum <strong>100 pages</strong> per PDF<br>
                                     • OCR support for scanned PDFs<br>
-                                    • Cost: <strong>1 credit/page</strong> (text) or <strong>1.5 credits/page</strong> (OCR)
+                                    • Cost: <strong>2 credits/page</strong> (text) or <strong>5 credits/page</strong> (OCR)
                                 </div>
                             </div>
                         </div>
@@ -539,8 +537,8 @@
         // Set PDF.js worker
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         
-        // API_BASE_URL no longer needed - free version is completely browser-based
-        // Premium conversions are handled on pdf-to-word-premium.html page
+        // API_BASE_URL for server-based conversion (both free and premium)
+        const API_BASE_URL = 'https://pdf-to-word-converter-iwumaktavq-uc.a.run.app';
         
         const previewGrid = document.getElementById('previewGrid');
         const pdfName = document.getElementById('pdfName');
@@ -550,11 +548,11 @@
         const status = document.getElementById('status');
         const resultsSection = document.getElementById('resultsSection');
         const primaryCard = document.getElementById('primaryCard');
-        const altCard = document.getElementById('altCard');
+        const altCard = document.getElementById('altCard'); // May not exist on free version page
         const primaryDownload = document.getElementById('primaryDownload');
-        const altDownload = document.getElementById('altDownload');
+        const altDownload = document.getElementById('altDownload'); // May not exist on free version page
         const primaryMethod = document.getElementById('primaryMethod');
-        const altMethod = document.getElementById('altMethod');
+        const altMethod = document.getElementById('altMethod'); // May not exist on free version page
         const toast = document.getElementById('toast');
         const toastMessage = document.getElementById('toastMessage');
         const selectAllBtn = document.getElementById('selectAll');
@@ -569,23 +567,25 @@
         let selectedPages = new Set();
         
         function showToast(message, isError) {
+            if (!toastMessage || !toast) return;
             toastMessage.textContent = message;
             toast.className = 'toast' + (isError ? ' error' : '');
-            toast.style.display = 'flex';
-            setTimeout(() => { toast.style.display = 'none'; }, 3000);
+            if (toast.style) toast.style.display = 'flex';
+            setTimeout(() => { if (toast && toast.style) toast.style.display = 'none'; }, 3000);
         }
         
         function showStatus(message, type) {
+            if (!status) return;
             status.textContent = message;
             status.className = `status ${type}`;
-            status.style.display = 'block';
+            if (status.style) status.style.display = 'block';
         }
         
         // Check if file was passed from previous page
         window.addEventListener('DOMContentLoaded', async () => {
-            // Login NOT required - users can use free tier (10 pages, 2MB) without login
+            // Login NOT required - users can use free tier (1 page, 2MB) without login
             // Login will only be prompted when free tier limits are exceeded or credits are needed
-            console.log('Page loaded - Free tier available without login (10 pages, 2MB max)');
+            console.log('Page loaded - Free tier available without login (1 page, 2MB max)');
             
             // Load file from sessionStorage
             const storedFile = sessionStorage.getItem('pdfFile');
@@ -617,15 +617,17 @@
                 return;
             }
             
-            if (file.size > 50 * 1024 * 1024) {
-                showStatus('File is too large. Maximum size is 50MB', 'error');
+            if (file.size > 100 * 1024 * 1024) {
+                showStatus('File is too large. Maximum size is 100MB', 'error');
                 return;
             }
             
             currentFile = file;
             pdfName.textContent = file.name;
             convertBtn.disabled = false;
-            resultsSection.style.display = 'none';
+            if (resultsSection) {
+                resultsSection.style.display = 'none';
+            }
             
             // Load PDF for preview
             try {
@@ -707,64 +709,19 @@
                     authToken = await authModule.auth.currentUser.getIdToken();
                 }
             } catch (e) {
-                console.log('Auth check - proceeding as anonymous user (FREE browser-based conversion)');
+                console.log('Auth check - proceeding as anonymous user (FREE server-based conversion)');
             }
             
-            // FREE VERSION: Anonymous users - browser-based conversion (zero server costs)
-            if (!authToken) {
-                console.log('FREE VERSION: Using browser-based conversion (no API calls)');
-                
-                // Check file size limit (2MB for free tier)
-                const fileSizeMB = currentFile.size / (1024 * 1024);
-                if (fileSizeMB > 2) {
-                    showStatus('Free tier limit: Maximum 2MB file size. For larger files, use Premium OCR.', 'error');
-                    showToast('File size exceeds free tier limit (2MB). Use Premium OCR for larger files.', true);
-                    setTimeout(() => {
-                        if (confirm('File too large for free tier. Would you like to sign in?')) {
-                            window.location.href = `/accounts.html#login?returnTo=${encodeURIComponent(window.location.href)}`;
-                        }
-                    }, 2000);
-                    return;
-                }
-                
-                // Check page limit (10 pages for free tier)
-                if (!pdfDoc) {
-                    try {
-                        const arrayBuffer = await currentFile.arrayBuffer();
-                        pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-                    } catch (e) {
-                        showStatus('Error loading PDF', 'error');
-                        return;
-                    }
-                }
-                
-                if (pdfDoc.numPages > 10) {
-                    showStatus('Free tier limit: Maximum 10 pages. Please sign in for unlimited pages.', 'error');
-                    showToast(`Your PDF has ${pdfDoc.numPages} pages. Free tier allows 10 pages max. Sign in for unlimited.`, true);
-                    setTimeout(() => {
-                        if (confirm('Page limit exceeded. Would you like to sign in?')) {
-                            window.location.href = `/accounts.html#login?returnTo=${encodeURIComponent(window.location.href)}`;
-                        }
-                    }, 2000);
-                    return;
-                }
-                
-                // Use browser-based conversion (FREE - zero server costs)
-                await convertToWordBrowser();
-                return;
-            }
+            // FREE VERSION: Server-based conversion (both anonymous and logged-in users)
+            console.log('FREE VERSION: Using server-based conversion (LibreOffice)');
             
-            // LOGGED-IN USERS: Also use free browser-based conversion on main page
-            // Premium features available on premium page, but main page remains free
-            console.log('FREE VERSION: Logged-in user using browser-based conversion (free on main page)');
-            
-            // Check file size limit (2MB for free tier on main page)
+            // Check file size limit (2MB for free tier)
             const fileSizeMB = currentFile.size / (1024 * 1024);
             if (fileSizeMB > 2) {
-                showStatus('Free tier limit: Maximum 2MB file size. For larger files, use Premium OCR.', 'error');
-                showToast('File size exceeds free tier limit (2MB). Use Premium OCR for larger files.', true);
+                showStatus('Free tier limit: Maximum 2MB file size. Please upgrade to Premium for larger files (up to 100MB).', 'error');
+                showToast('File size exceeds free tier limit (2MB). Upgrade to Premium for up to 100MB.', true);
                 setTimeout(() => {
-                    if (confirm('File too large for free tier. Would you like to use Premium OCR?')) {
+                    if (confirm('File too large for free tier. Would you like to upgrade to Premium?')) {
                         // Store file for premium page
                         const reader = new FileReader();
                         reader.onload = function(e) {
@@ -781,7 +738,7 @@
                 return;
             }
             
-            // Check page limit (10 pages for free tier)
+            // Check page limit (1 page for free tier)
             if (!pdfDoc) {
                 try {
                     const arrayBuffer = await currentFile.arrayBuffer();
@@ -792,11 +749,11 @@
                 }
             }
             
-            if (pdfDoc.numPages > 10) {
-                showStatus('Free tier limit: Maximum 10 pages. For more pages, use Premium OCR.', 'error');
-                showToast(`Your PDF has ${pdfDoc.numPages} pages. Free tier allows 10 pages max. Use Premium OCR for more.`, true);
+            if (pdfDoc.numPages > 1) {
+                showStatus('Free tier limit: Maximum 1 page per PDF. Please upgrade to Premium for multi-page conversion (up to 100 pages).', 'error');
+                showToast(`Your PDF has ${pdfDoc.numPages} pages. Free tier allows 1 page max. Upgrade to Premium for up to 100 pages.`, true);
                 setTimeout(() => {
-                    if (confirm('Page limit exceeded. Would you like to use Premium OCR?')) {
+                    if (confirm('Page limit exceeded. Would you like to upgrade to Premium?')) {
                         // Store file for premium page
                         const reader = new FileReader();
                         reader.onload = function(e) {
@@ -813,88 +770,138 @@
                 return;
             }
             
-            // Use browser-based conversion (FREE - works for both anonymous and logged-in users on main page)
-            await convertToWordBrowser();
+            // Use server-based conversion (FREE - LibreOffice)
+            await convertToWordServer();
             return;
         });
         
         /**
-         * FREE VERSION: Browser-based conversion (zero server costs)
+         * FREE VERSION: Server-based conversion (LibreOffice)
          */
-        async function convertToWordBrowser() {
-            if (!currentFile || !pdfDoc) {
+        async function convertToWordServer() {
+            if (!currentFile) {
                 showStatus('Please select a PDF file first', 'error');
                 return;
             }
             
             convertBtn.disabled = true;
-            progressBar.style.display = 'block';
-            progressFill.style.width = '0%';
-            showStatus('Starting browser-based conversion...', 'info');
+            if (progressBar && progressBar.style) progressBar.style.display = 'block';
+            if (progressFill && progressFill.style) progressFill.style.width = '0%';
+            showStatus('Uploading PDF and converting to Word...', 'info');
             
             try {
-                // Check if browser converter is available
-                if (typeof window.convertPdfToWordBrowser === 'undefined') {
-                    throw new Error('Browser converter not loaded. Please refresh the page.');
+                // Get auth token (optional for free tier)
+                let authToken = null;
+                let userId = 'anonymous';
+                try {
+                    const authModule = await import('/js/auth.js').catch(() => null);
+                    if (authModule && authModule.auth && authModule.auth.currentUser) {
+                        authToken = await authModule.auth.currentUser.getIdToken();
+                        userId = authModule.auth.currentUser.uid;
+                    }
+                } catch (e) {
+                    console.log('Auth check - proceeding as anonymous user');
                 }
                 
-                progressFill.style.width = '5%';
-                showStatus('Converting PDF to Word (browser-based, free)...', 'info');
+                if (progressFill && progressFill.style) progressFill.style.width = '20%';
+                showStatus('Converting PDF to Word (LibreOffice)...', 'info');
                 
-                // Use browser-based conversion
-                const progressCallback = (percent, message) => {
-                    progressFill.style.width = `${percent}%`;
-                    showStatus(message, 'info');
-                };
+                // Create FormData
+                const formData = new FormData();
+                formData.append('file', currentFile);
                 
-                const blob = await window.convertPdfToWordBrowser(pdfDoc, progressCallback);
-                
-                // Create download link
-                const url = URL.createObjectURL(blob);
-                primaryDownload.href = url;
-                primaryDownload.download = (currentFile.name || 'converted').replace(/\.pdf$/i, '.docx');
-                primaryMethod.textContent = 'Browser-Based (Free)';
-                primaryMethod.className = 'method-badge libreoffice';
-                
-                // Show premium card and hide alternative card
-                if (document.getElementById('premiumCard')) {
-                    document.getElementById('premiumCard').style.display = 'block';
+                // Prepare headers
+                const headers = {};
+                if (authToken) {
+                    headers['Authorization'] = `Bearer ${authToken}`;
+                    headers['X-User-ID'] = userId;
                 }
-                altCard.style.display = 'none';
                 
-                progressFill.style.width = '100%';
-                showStatus('Conversion successful! (Browser-based, zero server costs)', 'success');
-                resultsSection.style.display = 'block';
-                showToast('Conversion successful! Download your Word file.', false);
+                if (progressFill && progressFill.style) progressFill.style.width = '40%';
                 
-                // Auto-trigger download
-                setTimeout(() => {
-                    primaryDownload.click();
-                }, 500);
+                // Call API endpoint
+                console.log('Calling API:', `${API_BASE_URL}/api/convert/pdf-to-word`);
+                console.log('File:', currentFile.name, 'Size:', currentFile.size);
+                const response = await fetch(`${API_BASE_URL}/api/convert/pdf-to-word`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: formData
+                });
+                console.log('Response status:', response.status, response.statusText);
                 
-                setTimeout(() => {
-                    progressBar.style.display = 'none';
-                }, 2000);
+                if (progressFill && progressFill.style) progressFill.style.width = '70%';
                 
-            } catch (error) {
-                const errorMsg = error.message || 'Browser-based conversion failed. Please try again.';
-                showStatus(`Error: ${errorMsg}`, 'error');
-                showToast(errorMsg, true);
-                console.error('Browser conversion error:', error);
-                progressBar.style.display = 'none';
-                progressFill.style.width = '0%';
-                resultsSection.style.display = 'none';
-                
-                // If visual PDF detected, suggest premium
-                if (errorMsg.includes('complex visual layout') || errorMsg.includes('Premium')) {
-                    setTimeout(() => {
-                        if (confirm('This PDF requires premium conversion. Would you like to sign in for premium features?')) {
-                            window.location.href = `/accounts.html#login?returnTo=${encodeURIComponent(window.location.href)}`;
+                if (!response.ok) {
+                    let errorMessage = 'Conversion failed. Please try again.';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.detail?.message || errorData.detail?.error || errorData.message || errorData.error || errorMessage;
+                    } catch (e) {
+                        try {
+                            const errorText = await response.text();
+                            if (errorText) errorMessage = errorText;
+                        } catch (e2) {
+                            errorMessage = `Server error (${response.status}): ${response.statusText}`;
                         }
-                    }, 2000);
+                    }
+                    
+                    showStatus(errorMessage, 'error');
+                    convertBtn.disabled = false;
+                    if (progressBar && progressBar.style) progressBar.style.display = 'none';
+                    return;
                 }
+                
+                const result = await response.json();
+                console.log('API Response:', result);
+                
+                if (result.status !== 'success' && !result.success) {
+                    console.error('Conversion failed:', result);
+                    throw new Error(result.error || result.detail || result.message || 'Conversion failed');
+                }
+                
+                if (progressFill && progressFill.style) progressFill.style.width = '100%';
+                showStatus('Conversion successful! Downloading...', 'success');
+                
+                // Download Word file
+                const downloadUrl = result.primary_download_url || result.download_url;
+                console.log('Download URL:', downloadUrl);
+                if (downloadUrl) {
+                    if (primaryDownload) {
+                        primaryDownload.href = downloadUrl;
+                        primaryDownload.download = (currentFile.name || 'converted').replace(/\.pdf$/i, '.docx');
+                    }
+                    if (primaryMethod) {
+                        primaryMethod.textContent = 'LibreOffice (Free)';
+                        primaryMethod.className = 'method-badge libreoffice';
+                    }
+                    
+                    // Show premium card and hide alternative card (if exists)
+                    const premiumCard = document.getElementById('premiumCard');
+                    if (premiumCard) {
+                        premiumCard.style.display = 'block';
+                    }
+                    if (altCard) {
+                        altCard.style.display = 'none';
+                    }
+                    
+                    if (resultsSection) {
+                        resultsSection.style.display = 'block';
+                    }
+                    showToast('Conversion successful! Download your Word file.', false);
+                    
+                    setTimeout(() => {
+                        window.location.href = downloadUrl;
+                    }, 1000);
+                } else {
+                    throw new Error('No download URL received');
+                }
+            } catch (error) {
+                console.error('Conversion error:', error);
+                console.error('Error stack:', error.stack);
+                showStatus('Conversion failed: ' + error.message, 'error');
             } finally {
                 convertBtn.disabled = false;
+                if (progressBar && progressBar.style) progressBar.style.display = 'none';
             }
         }
         
