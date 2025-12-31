@@ -1253,10 +1253,6 @@
                         <!-- Font controls will be rendered here by FontControlsController -->
                     </div>
                     
-                    <!-- Editor Notice Banner -->
-                    <div id="editor-notice-banner" style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 12px 16px; margin: 12px 16px; color: #856404; font-size: 13px; line-height: 1.5;">
-                        <strong>ℹ️ Note:</strong> This is a best-effort PDF editor optimized for short text fields (name, address, roll number, exam center, etc.). Exact layout may not be 100% perfect on all PDFs. For heavy editing and complex layouts, use our <strong>Desktop Pro Editor</strong> (coming soon).
-                    </div>
                     <div class="preview-toolbar">
                         <button class="preview-toolbar-btn" id="prev-page" disabled>
                             <i class="fas fa-chevron-left"></i> Prev
@@ -3172,11 +3168,29 @@ SSL Security & Trust Section -->
                             
                             // File ID storage removed - using session-based approach
                             
+                        // PERMANENT FIX: Ensure preview container is visible BEFORE rendering
+                        const previewContainer = document.getElementById('preview-container');
+                        const pdfPageWrapper = document.getElementById('pdf-page-wrapper');
+                        if (previewContainer) {
+                            previewContainer.style.display = 'flex';
+                            previewContainer.style.visibility = 'visible';
+                            previewContainer.style.opacity = '1';
+                            previewContainer.style.minHeight = '600px';
+                            console.log('✅ Preview container made visible (server URL)');
+                        }
+                        if (pdfPageWrapper) {
+                            pdfPageWrapper.style.display = 'block';
+                            pdfPageWrapper.style.visibility = 'visible';
+                            pdfPageWrapper.style.opacity = '1';
+                            pdfPageWrapper.setAttribute('data-loaded', 'true');
+                            console.log('✅ PDF page wrapper made visible (server URL)');
+                        }
+                        
                         await renderPDF(arrayBuffer);
                         window.pdfEditorVars.loadedInitialPdf = true;
                         window.pdfEditorVars.loadedFromStorage = true;
                             hideLoading();
-                            console.log('PDF loaded from server successfully');
+                            console.log('✅ PDF loaded from server successfully');
                             return;
                         } else {
                             console.warn('Failed to load PDF from server URL:', response.status);
@@ -3211,6 +3225,24 @@ SSL Security & Trust Section -->
                         
                         // Store as current PDF data
                         window.pdfEditorVars.currentPdfData = `data:application/pdf;base64,${pdfFileBase64}`;
+                        
+                        // PERMANENT FIX: Ensure preview container is visible BEFORE rendering
+                        const previewContainer = document.getElementById('preview-container');
+                        const pdfPageWrapper = document.getElementById('pdf-page-wrapper');
+                        if (previewContainer) {
+                            previewContainer.style.display = 'flex';
+                            previewContainer.style.visibility = 'visible';
+                            previewContainer.style.opacity = '1';
+                            previewContainer.style.minHeight = '600px';
+                            console.log('✅ Preview container made visible (base64)');
+                        }
+                        if (pdfPageWrapper) {
+                            pdfPageWrapper.style.display = 'block';
+                            pdfPageWrapper.style.visibility = 'visible';
+                            pdfPageWrapper.style.opacity = '1';
+                            pdfPageWrapper.setAttribute('data-loaded', 'true');
+                            console.log('✅ PDF page wrapper made visible (base64)');
+                        }
                         
                         // Render PDF
                         console.log('Rendering PDF from base64, arrayBuffer size:', arrayBuffer.byteLength);
@@ -3254,6 +3286,24 @@ SSL Security & Trust Section -->
                         
                         // Also store base64 for future use
                         sessionStorage.setItem('pdfFileBase64', base64);
+                        
+                        // PERMANENT FIX: Ensure preview container is visible BEFORE rendering
+                        const previewContainer = document.getElementById('preview-container');
+                        const pdfPageWrapper = document.getElementById('pdf-page-wrapper');
+                        if (previewContainer) {
+                            previewContainer.style.display = 'flex';
+                            previewContainer.style.visibility = 'visible';
+                            previewContainer.style.opacity = '1';
+                            previewContainer.style.minHeight = '600px';
+                            console.log('✅ Preview container made visible (blob URL)');
+                        }
+                        if (pdfPageWrapper) {
+                            pdfPageWrapper.style.display = 'block';
+                            pdfPageWrapper.style.visibility = 'visible';
+                            pdfPageWrapper.style.opacity = '1';
+                            pdfPageWrapper.setAttribute('data-loaded', 'true');
+                            console.log('✅ PDF page wrapper made visible (blob URL)');
+                        }
                         
                         // Render PDF
                         await renderPDF(arrayBuffer);
