@@ -769,6 +769,21 @@
         
         // Get API base URL
         function getApiBaseUrl() {
+            // Check if we're in development
+            const hostname = window.location.hostname;
+            const isDevelopment = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
+            
+            if (isDevelopment) {
+                // Development: Use local server if available
+                return 'http://localhost:3000';
+            }
+            
+            // Production: Use current origin (same domain)
+            return window.location.origin;
+        }
+        
+        // OLD getApiBaseUrl function (kept for compatibility):
+        function getApiBaseUrl_OLD() {
             if (window.location.protocol === 'file:') {
                 return 'http://localhost:3000';
             }
@@ -995,8 +1010,9 @@
                             const serverUrl = `${apiBaseUrl}/api/pdf/load/${uploadResult.fileId}`;
                             sessionStorage.setItem('pdfFileId', uploadResult.fileId);
                             sessionStorage.setItem('pdfServerUrl', serverUrl);
-                            sessionStorage.setItem('pdfFileName', uploadResult.filename);
-                            sessionStorage.setItem('pdfFileSize', uploadResult.size.toString());
+                            sessionStorage.setItem('pdfFileName', uploadResult.filename || file.name);
+                            sessionStorage.setItem('pdfFileSize', (uploadResult.size || file.size).toString());
+                            sessionStorage.setItem('pdfFileType', file.type);
                             sessionStorage.setItem('pdfFileMetadata', JSON.stringify({
                                 fileId: uploadResult.fileId,
                                 filename: uploadResult.filename,
@@ -1026,6 +1042,11 @@
                                 }
                                 base64 = btoa(base64);
                                 sessionStorage.setItem('pdfFileBase64', base64);
+                                
+                                // Also ensure fileName and fileSize are stored
+                                sessionStorage.setItem('pdfFileName', file.name);
+                                sessionStorage.setItem('pdfFileSize', file.size.toString());
+                                sessionStorage.setItem('pdfFileType', file.type);
                                 
                                 // Update UI
                                 fileName.textContent = uploadResult.filename;

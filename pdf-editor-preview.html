@@ -966,6 +966,10 @@
             </ol>
         </div>
     </nav>
+    <!-- Load Firebase and Auth for authentication UI -->
+    <script type="module" src="js/firebase-init.js?v=2004"></script>
+    <script type="module" src="js/auth.js?v=2004"></script>
+    
     <script src="js/global-components.js?v=3000"></script>
     <script>
     // Ensure header loads - multiple attempts to guarantee it works
@@ -974,6 +978,12 @@
             if (typeof loadGlobalHeader === 'function') {
                 try {
                     loadGlobalHeader();
+                    // After header loads, ensure auth UI is initialized
+                    setTimeout(function() {
+                        if (typeof window.initializeAuthUI === 'function') {
+                            window.initializeAuthUI();
+                        }
+                    }, 200);
                     return true;
                 } catch (e) {
                     console.error('Error calling loadGlobalHeader:', e);
@@ -1017,6 +1027,12 @@
                 if (!document.querySelector('header') && typeof loadGlobalHeader === 'function') {
                     loadGlobalHeader();
                 }
+                // Ensure auth UI is initialized after everything loads
+                setTimeout(function() {
+                    if (typeof window.initializeAuthUI === 'function') {
+                        window.initializeAuthUI();
+                    }
+                }, 300);
             }, 100);
         });
     })();
@@ -2900,27 +2916,22 @@ SSL Security & Trust Section -->
                     return;
                 }
                 
-                // Check device quota before uploading
+                // PREMIUM ACCESS CHECK: Verify user has minimum 30 credits
                 try {
-                    const { checkDeviceQuota } = await import('./js/device-fingerprint.js?v=3000');
-                    const quotaCheck = await checkDeviceQuota('pdfEdit');
+                    const { getUserCreditInfo } = await import('./js/pdf-editor-api.js?v=3000');
+                    const creditInfo = await getUserCreditInfo();
+                    const MIN_CREDITS_REQUIRED = 30;
                     
-                    if (!quotaCheck.allowed) {
-                        alert(`Quota exceeded: ${quotaCheck.message}\n\nYou have used ${quotaCheck.currentUsage.count || 0} of ${quotaCheck.limit} PDFs this month.\n\nPlease upgrade to Premium for unlimited PDF editing.`);
+                    if (!creditInfo.unlimited && creditInfo.credits < MIN_CREDITS_REQUIRED) {
+                        alert(`PDF editing is a Premium feature. Minimum ${MIN_CREDITS_REQUIRED} credits required.\n\nYour current balance: ${creditInfo.credits} credits\n\nPlease upgrade to Premium to access PDF Editor.`);
                         newFileInput.value = ''; // Clear file input
                         return;
                     }
-                    
-                    // Check file size limit (50 MB for free)
-                    const fileSizeMB = file.size / (1024 * 1024);
-                    if (fileSizeMB > 50) {
-                        alert(`File size limit exceeded: ${fileSizeMB.toFixed(2)} MB\n\nFree plan allows up to 50 MB per PDF.\n\nPlease upgrade to Premium for larger files.`);
-                        newFileInput.value = '';
-                        return;
-                    }
-                } catch (quotaError) {
-                    console.warn('Quota check failed, continuing:', quotaError);
-                    // Continue on error (fail-open)
+                } catch (creditError) {
+                    console.error('Credit check failed:', creditError);
+                    alert('Unable to verify premium access. Please try again.');
+                    newFileInput.value = '';
+                    return;
                 }
                 
                 try {
@@ -4627,35 +4638,37 @@ SSL Security & Trust Section -->
                 throw new Error('No active session');
             }
             
-            const apiBaseUrl = getApiBaseUrl();
+            // iLovePDF-style bbox-based editing
+            // Use bbox for precise editing (not string replacement)
             const sessionId = window.pdfEditorVars.currentSessionId;
             const pageNumber = window.pdfEditorVars.currentPage || clickedItem.pageNumber || 1;
             const oldText = clickedItem.text || clickedItem.originalText || '';
             
-            const body = {
-                session_id: sessionId,
-                page_number: pageNumber,
-                old_text: oldText,
-                new_text: newText,
-                max_replacements: 1
-            };
+            // Get PDF bbox for bbox-based editing
+            const pdfBbox = clickedItem.pdfBbox || null;
             
             try {
                 showLoading('Applying text edit...', 40);
                 
-                const res = await fetch(`${apiBaseUrl}/text/edit`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
+                // Use editText API with bbox for iLovePDF-style editing
+                const { editText } = await import('./js/pdf-editor-api.js?v=3000');
+                const userId = await getCurrentUserId();
                 
-                if (!res.ok) {
-                    const errText = await res.text();
-                    console.error('❌ Error from /text/edit:', res.status, errText);
-                    throw new Error(`Backend edit failed: ${res.status} ${errText}`);
+                if (!userId) {
+                    throw new Error('User ID required. Please sign in.');
                 }
                 
-                const result = await res.json();
+                // Pass bbox for bbox-based editing (iLovePDF style)
+                // Backend will: delete_text_by_bbox(bbox) then add_text_to_same_bbox(new_text)
+                await editText(
+                    sessionId,
+                    pageNumber,
+                    oldText,
+                    newText,
+                    1, // max_replacements
+                    userId,
+                    pdfBbox  // bbox for precise editing
+                );
                 
                 // Clear selection
                 window.pdfEditorVars.selectedTextItem = null;
@@ -4665,7 +4678,7 @@ SSL Security & Trust Section -->
                 await renderPage(pageNumber, currentZoom);
                 
                 hideLoading();
-                console.log('Applied edit:', newText.substring(0, 50));
+                console.log('Applied bbox-based edit:', newText.substring(0, 50));
             } catch (err) {
                 hideLoading();
                 console.error('❌ Error applying native edit', err);
@@ -5733,25 +5746,31 @@ SSL Security & Trust Section -->
             
             // Upload button (single-click, single input dialog)
             // PERMANENT FIX: Ensure file input exists and upload button works
-            const currentFileInput = document.getElementById('file-input');
-            if (uploadBtn && currentFileInput) {
-                // Remove old listener if exists
+            if (uploadBtn) {
+                // Remove old listener if exists by cloning
                 const newUploadBtn = uploadBtn.cloneNode(true);
                 uploadBtn.parentNode.replaceChild(newUploadBtn, uploadBtn);
                 
                 newUploadBtn.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Upload button clicked');
+                    console.log('✅ Upload button clicked');
                     try {
-                        // Ensure file input exists and is accessible
-                        const fileInput = document.getElementById('file-input');
+                        // Try to get file input
+                        let fileInput = document.getElementById('file-input');
                         if (!fileInput) {
-                            console.error('File input not found when button clicked');
-                            alert('File input not found. Please refresh the page.');
-                            return;
+                            // Create file input if it doesn't exist
+                            fileInput = document.createElement('input');
+                            fileInput.type = 'file';
+                            fileInput.id = 'file-input';
+                            fileInput.accept = 'application/pdf,.pdf';
+                            fileInput.style.display = 'none';
+                            document.body.appendChild(fileInput);
+                            // Setup handler for new input
+                            setupFileUploadHandler();
                         }
                         fileInput.click();
+                        console.log('✅ File input clicked');
                     } catch (error) {
                         console.error('Error clicking file input:', error);
                         alert('Error opening file dialog. Please try again.');
@@ -5759,19 +5778,26 @@ SSL Security & Trust Section -->
                 });
                 console.log('✅ Upload button listener added');
             } else {
-                console.error('❌ Upload button or file input not found!', { 
-                    uploadBtn: !!uploadBtn, 
-                    fileInput: !!currentFileInput 
-                });
+                console.error('❌ Upload button not found!');
                 // Retry after a delay
                 setTimeout(function() {
-                    const retryFileInput = document.getElementById('file-input');
                     const retryUploadBtn = document.getElementById('upload-btn');
-                    if (retryFileInput && retryUploadBtn) {
+                    if (retryUploadBtn) {
                         console.log('Retrying upload button setup...');
                         initButtonEventListeners();
                     }
                 }, 500);
+            }
+            
+            // Ensure file input exists
+            if (!fileInput) {
+                const newFileInput = document.createElement('input');
+                newFileInput.type = 'file';
+                newFileInput.id = 'file-input';
+                newFileInput.accept = 'application/pdf,.pdf';
+                newFileInput.style.display = 'none';
+                document.body.appendChild(newFileInput);
+                console.log('✅ File input created');
             }
             
             // Download button - already has listener, but verify
@@ -6535,8 +6561,45 @@ SSL Security & Trust Section -->
         
         // Initialize - ensure DOM is ready
         async function initPDFEditor() {
-            // Initialize button event listeners first
+            // STEP 1: Initialize button event listeners FIRST (before any checks)
             initButtonEventListeners();
+            
+            // STEP 2: Check for PDF from edit-pdf.html on page load FIRST
+            // Load PDF even if premium check fails (user can still view)
+            await checkForStoredPDF();
+            
+            // STEP 3: PREMIUM ACCESS CHECK - Block editing if < 30 credits
+            const MIN_CREDITS_REQUIRED = 30;
+            
+            try {
+                const { getUserCreditInfo } = await import('./js/pdf-editor-api.js?v=3000');
+                const creditInfo = await getUserCreditInfo();
+                
+                // Check if user has sufficient credits (or is unlimited)
+                const hasAccess = creditInfo.unlimited || (creditInfo.credits >= MIN_CREDITS_REQUIRED);
+                
+                if (!hasAccess) {
+                    // Show premium access modal
+                    showPremiumAccessModal(MIN_CREDITS_REQUIRED, creditInfo.credits);
+                    
+                    // Disable editor buttons (but keep upload button working for viewing)
+                    const editButtons = ['download-btn', 'ocr-btn', 'add-text-btn', 'add-image-btn', 'highlight-btn'];
+                    editButtons.forEach(btnId => {
+                        const btn = document.getElementById(btnId);
+                        if (btn) btn.disabled = true;
+                    });
+                    
+                    // Block all editor functionality (but allow viewing)
+                    console.warn('PDF Editor blocked: Insufficient credits (viewing only)');
+                } else {
+                    // User has access - enable all features
+                    console.log('✅ Premium access granted');
+                }
+            } catch (error) {
+                console.error('Error checking credits:', error);
+                // On error, show modal but don't block viewing
+                showPremiumAccessModal(MIN_CREDITS_REQUIRED, 0);
+            }
             
             // Initialize advanced features
             initAdvancedFeatures();
@@ -6546,10 +6609,6 @@ SSL Security & Trust Section -->
             
             // Refresh credit balance every 30 seconds
             setInterval(loadCreditBalance, 30000);
-            
-            // Check for PDF from edit-pdf.html on page load
-            // This function handles all PDF loading scenarios (server URL, file ID, blob URL, base64)
-            await checkForStoredPDF();
             
             // Note: checkForStoredPDF() already handles all PDF loading cases properly
             // No need for duplicate blob URL fetching here - it causes errors
@@ -6565,6 +6624,76 @@ SSL Security & Trust Section -->
             }
         }
         
+        // Show premium access modal
+        function showPremiumAccessModal(requiredCredits, currentCredits) {
+            // Remove existing modal if any
+            const existingModal = document.getElementById('premium-access-modal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // Create modal
+            const modal = document.createElement('div');
+            modal.id = 'premium-access-modal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.7);
+                z-index: 100000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            `;
+            
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: white;
+                padding: 40px;
+                border-radius: 12px;
+                max-width: 500px;
+                text-align: center;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            `;
+            
+            modalContent.innerHTML = `
+                <h2 style="margin: 0 0 20px 0; color: #1a1a1a; font-size: 24px;">
+                    PDF Editing is a Premium Feature
+                </h2>
+                <p style="margin: 0 0 20px 0; color: #666; font-size: 16px; line-height: 1.6;">
+                    PDF editing requires a minimum of <strong>${requiredCredits} credits</strong> to access.
+                </p>
+                <p style="margin: 0 0 30px 0; color: #666; font-size: 14px;">
+                    Your current balance: <strong>${currentCredits} credits</strong>
+                </p>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <a href="pricing.html" style="
+                        padding: 12px 24px;
+                        background: #4361ee;
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 6px;
+                        font-weight: 600;
+                        display: inline-block;
+                    ">Upgrade to Premium</a>
+                    <button onclick="this.closest('#premium-access-modal').remove()" style="
+                        padding: 12px 24px;
+                        background: #e5e7eb;
+                        color: #333;
+                        border: none;
+                        border-radius: 6px;
+                        font-weight: 600;
+                        cursor: pointer;
+                    ">Close</button>
+                </div>
+            `;
+            
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+        }
+        
         // Run initialization when DOM is ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initPDFEditor);
@@ -6572,6 +6701,19 @@ SSL Security & Trust Section -->
             // DOM already loaded
             initPDFEditor();
         }
+        
+        // Ensure auth UI is initialized after page loads
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (typeof window.initializeAuthUI === 'function') {
+                    window.initializeAuthUI();
+                }
+                // Also force UI update if auth is already initialized
+                if (typeof window.forceUpdateUI === 'function') {
+                    window.forceUpdateUI();
+                }
+            }, 500);
+        });
     </script>
 
         
