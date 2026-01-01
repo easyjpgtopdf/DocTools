@@ -1273,10 +1273,6 @@
                         <!-- Font controls will be rendered here by FontControlsController -->
                     </div>
                     
-                    <!-- Editor Notice Banner -->
-                    <div id="editor-notice-banner" style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 12px 16px; margin: 12px 16px; color: #856404; font-size: 13px; line-height: 1.5;">
-                        <strong>ℹ️ Note:</strong> This is a best-effort PDF editor optimized for short text fields (name, address, roll number, exam center, etc.). Exact layout may not be 100% perfect on all PDFs. For heavy editing and complex layouts, use our <strong>Desktop Pro Editor</strong> (coming soon).
-                    </div>
                     <div class="preview-toolbar">
                         <button class="preview-toolbar-btn" id="prev-page" disabled>
                             <i class="fas fa-chevron-left"></i> Prev
@@ -2963,7 +2959,11 @@ SSL Security & Trust Section -->
                         const { startSession } = await import('./js/pdf-editor-api.js?v=3000');
                         const userId = await getCurrentUserId();
                         
-                        const sessionResult = await startSession(file);
+                        if (!userId) {
+                            throw new Error('User ID required. Please sign in to access PDF Editor.');
+                        }
+                        
+                        const sessionResult = await startSession(file, userId);
                         currentSessionId = sessionResult.session_id;
                         window.pdfEditorVars.sessionId = currentSessionId;
                         window.pdfEditorVars.currentSessionId = currentSessionId; // Sync for zoom checks
