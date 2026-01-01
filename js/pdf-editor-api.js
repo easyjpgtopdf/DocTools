@@ -111,16 +111,18 @@ async function getDeviceId() {
 
 /**
  * Start a new PDF editing session
+ * REQUIRES: userId (premium access only)
  */
 export async function startSession(pdfFile) {
   try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      throw new Error('User ID required. Please sign in to access PDF Editor.');
+    }
+    
     const formData = new FormData();
     formData.append('file', pdfFile);
-    
-    const userId = await getCurrentUserId();
-    if (userId) {
-      formData.append('userId', userId);
-    }
+    formData.append('userId', userId);
     
     const deviceId = await getDeviceId();
     formData.append('deviceId', deviceId);
@@ -146,9 +148,15 @@ export async function startSession(pdfFile) {
 /**
  * Render a PDF page as PNG with text layer
  * Returns: { image: base64, pageWidth, pageHeight, textLayer: [...] }
+ * DEDUCTS: 6 credits per page
  */
 export async function renderPage(sessionId, pageNumber, zoom = 1.5) {
   try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      throw new Error('User ID required. Please sign in to access PDF Editor.');
+    }
+    
     const response = await fetch(`${BACKEND_URL}/page/render`, {
       method: 'POST',
       headers: {
@@ -157,12 +165,14 @@ export async function renderPage(sessionId, pageNumber, zoom = 1.5) {
       body: JSON.stringify({
         session_id: sessionId,
         page_number: pageNumber,
-        zoom: zoom
+        zoom: zoom,
+        userId: userId
       })
     });
     
     if (!response.ok) {
-      throw new Error('Failed to render page');
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to render page');
     }
     
     const data = await response.json();
@@ -202,10 +212,23 @@ export async function searchText(sessionId, query) {
 }
 
 /**
- * Edit/replace text in PDF
+ * Edit/replace text in PDF using bbox-based editing (iLovePDF style)
+ * DEDUCTS: 6 credits per page
  */
-export async function editText(sessionId, pageNumber, oldText, newText, maxReplacements = 1, userId = null) {
+export async function editText(sessionId, pageNumber, oldText, newText, maxReplacements = 1, userId = null, bbox = null, fontName = null, fontSize = null, color = null) {
   try {
+    if (!userId) {
+      userId = await getCurrentUserId();
+      if (!userId) {
+        throw new Error('User ID required. Please sign in to access PDF Editor.');
+      }
+    }
+    
+    // MANDATORY: bbox is required for PDF editing (iLovePDF style)
+    if (!bbox || !Array.isArray(bbox) || bbox.length < 4) {
+      throw new Error('bbox is required for text editing. PDF editing uses bbox-based replacement, not string matching.');
+    }
+    
     const deviceId = await getDeviceId();
     
     const response = await fetch(`${BACKEND_URL}/text/edit`, {
@@ -220,7 +243,11 @@ export async function editText(sessionId, pageNumber, oldText, newText, maxRepla
         new_text: newText,
         max_replacements: maxReplacements,
         userId: userId,
-        deviceId: deviceId
+        deviceId: deviceId,
+        bbox: bbox,  // REQUIRED: bbox for bbox-based editing (iLovePDF style)
+        font_name: fontName,  // Optional: preserve original font
+        font_size: fontSize,  // Optional: preserve original size
+        color: color  // Optional: preserve original color
       })
     });
     
@@ -250,9 +277,17 @@ export async function editText(sessionId, pageNumber, oldText, newText, maxRepla
 
 /**
  * Add new text to PDF
+ * DEDUCTS: 6 credits per page
  */
 export async function addText(sessionId, pageNumber, x, y, text, fontName, fontSize, color, userId, canvasWidth = null, canvasHeight = null) {
   try {
+    if (!userId) {
+      userId = await getCurrentUserId();
+      if (!userId) {
+        throw new Error('User ID required. Please sign in to access PDF Editor.');
+      }
+    }
+    
     const deviceId = await getDeviceId();
     
     const response = await fetch(`${BACKEND_URL}/text/add`, {
@@ -301,10 +336,18 @@ export async function addText(sessionId, pageNumber, x, y, text, fontName, fontS
 }
 
 /**
- * Delete text from PDF
+ * Delete text from PDF by bbox (iLovePDF style)
+ * DEDUCTS: 6 credits per page
  */
 export async function deleteText(sessionId, pageNumber, bbox, userId) {
   try {
+    if (!userId) {
+      userId = await getCurrentUserId();
+      if (!userId) {
+        throw new Error('User ID required. Please sign in to access PDF Editor.');
+      }
+    }
+    
     const deviceId = await getDeviceId();
     
     const response = await fetch(`${BACKEND_URL}/text/delete`, {
@@ -347,9 +390,15 @@ export async function deleteText(sessionId, pageNumber, bbox, userId) {
 
 /**
  * Run OCR on a PDF page (returns OCR results)
+ * DEDUCTS: 6 credits per page
  */
 export async function ocrPage(sessionId, pageNumber, lang = 'en') {
   try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      throw new Error('User ID required. Please sign in to access PDF Editor.');
+    }
+    
     const response = await fetch(`${BACKEND_URL}/ocr/page`, {
       method: 'POST',
       headers: {
@@ -358,7 +407,8 @@ export async function ocrPage(sessionId, pageNumber, lang = 'en') {
       body: JSON.stringify({
         session_id: sessionId,
         page_number: pageNumber,
-        lang: lang
+        lang: lang,
+        userId: userId
       })
     });
     
@@ -376,10 +426,17 @@ export async function ocrPage(sessionId, pageNumber, lang = 'en') {
 }
 
 /**
- * Apply OCR to PDF page (embeds invisible text)
+ * Apply OCR to PDF page (embeds native text, not overlays)
+ * OCR is text-layer creation, not edit mode.
+ * DEDUCTS: 6 credits per page
  */
 export async function applyOCR(sessionId, pageNumber, lang = 'en') {
   try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      throw new Error('User ID required. Please sign in to access PDF Editor.');
+    }
+    
     const response = await fetch(`${BACKEND_URL}/ocr/apply`, {
       method: 'POST',
       headers: {
@@ -388,7 +445,8 @@ export async function applyOCR(sessionId, pageNumber, lang = 'en') {
       body: JSON.stringify({
         session_id: sessionId,
         page_number: pageNumber,
-        lang: lang
+        lang: lang,
+        userId: userId
       })
     });
     

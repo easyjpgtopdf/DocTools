@@ -1,5 +1,7 @@
 import io
 import logging
+import os
+import requests
 from typing import Optional
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request
@@ -34,6 +36,10 @@ from .ocr_engine import run_ocr_on_image_bytes
 
 logger = logging.getLogger(__name__)
 
+# Premium access constants
+MIN_CREDITS_TO_ENTER = 30
+CREDITS_PER_PAGE_ACTION = 6
+
 app = FastAPI(title="PDF Native Editor Backend", version="1.0.0")
 
 app.add_middleware(
@@ -50,31 +56,98 @@ async def health():
     return {"status": "ok", "service": "pdf-native-editor"}
 
 
+# ============================================================================
+# PREMIUM ACCESS & CREDIT MANAGEMENT
+# ============================================================================
+
+async def get_user_credit_info(user_id: str) -> dict:
+    """
+    Fetch user credit balance and premium status from API.
+    Returns: {credits: int, unlimited: bool, isPremium: bool}
+    """
+    if not user_id:
+        return {"credits": 0, "unlimited": False, "isPremium": False}
+    
+    try:
+        api_base = os.environ.get('API_BASE_URL', 'https://easyjpgtopdf.com')
+        response = requests.get(
+            f"{api_base}/api/credits/balance",
+            params={"userId": user_id},
+            timeout=5
+        )
+        if response.status_code == 200:
+            data = response.json()
+            return {
+                "credits": data.get("credits", 0),
+                "unlimited": data.get("unlimited", False),
+                "isPremium": data.get("isPremium", False)
+            }
+    except Exception as e:
+        logger.error(f"Error fetching user credits: {e}")
+    
+    # Default: no credits
+    return {"credits": 0, "unlimited": False, "isPremium": False}
+
+
+async def deduct_credits(user_id: str, amount: int, reason: str) -> bool:
+    """
+    Deduct credits from user account atomically.
+    Returns True if deduction successful, False otherwise.
+    """
+    if not user_id:
+        return False
+    
+    try:
+        api_base = os.environ.get('API_BASE_URL', 'https://easyjpgtopdf.com')
+        response = requests.post(
+            f"{api_base}/api/credits/deduct",
+            json={
+                "userId": user_id,
+                "amount": amount,
+                "reason": reason,
+                "metadata": {}
+            },
+            timeout=5
+        )
+        return response.status_code == 200
+    except Exception as e:
+        logger.error(f"Error deducting credits: {e}")
+        return False
+
+
+async def requirePremiumAccess(user_id: Optional[str], required_credits: int = MIN_CREDITS_TO_ENTER):
+    """
+    Enforce premium access requirement.
+    Raises HTTPException 403 if user doesn't have sufficient credits.
+    """
+    if not user_id:
+        raise HTTPException(
+            status_code=403,
+            detail="User ID required. Please sign in to access PDF Editor."
+        )
+    
+    credit_info = await get_user_credit_info(user_id)
+    
+    # Unlimited users bypass credit check
+    if credit_info.get("unlimited", False):
+        return
+    
+    # Check if user has sufficient credits
+    available_credits = credit_info.get("credits", 0)
+    if available_credits < required_credits:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Upgrade to Premium. Minimum {required_credits} credits required."
+        )
+
+
 @app.get("/user/credits")
 async def get_user_credits(userId: Optional[str] = None):
     """
     Get user credit balance and premium status.
-    For now, returns default values. In production, this should query a database.
+    Queries the main API for actual credit information.
     """
-    if not userId:
-        return {
-            "credits": 0,
-            "unlimited": False,
-            "isPremium": False
-        }
-    
-    # TODO: Query database for actual user credits
-    # For now, return default values
-    # In production, implement:
-    # - Query user table for credits balance
-    # - Check premium subscription status
-    # - Return actual values
-    
-    return {
-        "credits": 0,  # Placeholder - replace with actual query
-        "unlimited": False,  # Placeholder - replace with actual query
-        "isPremium": False  # Placeholder - replace with actual query
-    }
+    return await get_user_credit_info(userId or "")
 
 
 @app.get("/device/ip")
@@ -86,10 +159,27 @@ async def device_ip(request: Request):
 
 
 @app.post("/session/start", response_model=StartSessionResponse)
-async def start_session(file: UploadFile = File(...)):
+async def start_session(
+    file: UploadFile = File(...),
+    userId: Optional[str] = None
+):
+    """
+    Start a new PDF editing session.
+    REQUIRES: userId and minimum 30 credits (premium access).
+    """
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
-
+    
+    # PREMIUM ACCESS ENFORCEMENT: Require userId and 30 credits
+    if not userId:
+        raise HTTPException(
+            status_code=403,
+            detail="User ID required. Please sign in to access PDF Editor."
+        )
+    
+    # Check premium access (30 credits minimum)
+    await requirePremiumAccess(userId, MIN_CREDITS_TO_ENTER)
+    
     pdf_bytes = await file.read()
     session_id = create_session(pdf_bytes)
     pages = get_page_count(pdf_bytes)
@@ -99,10 +189,36 @@ async def start_session(file: UploadFile = File(...)):
 
 @app.post("/page/render")
 async def render_page(req: RenderPageRequest):
+    """
+    Render PDF page as PNG with text layer.
+    DEDUCTS: 6 credits per page (premium only).
+    """
     try:
         pdf_bytes = get_pdf_bytes(req.session_id)
     except KeyError:
         raise HTTPException(status_code=404, detail="Session not found")
+    
+    # PREMIUM ACCESS: Deduct 6 credits per page
+    if req.userId:
+        credit_info = await get_user_credit_info(req.userId)
+        if not credit_info.get("unlimited", False):
+            # Check if user has sufficient credits
+            if credit_info.get("credits", 0) < CREDITS_PER_PAGE_ACTION:
+                raise HTTPException(
+                    status_code=402,  # Payment Required
+                    detail=f"Insufficient credits. {CREDITS_PER_PAGE_ACTION} credits required per page."
+                )
+            # Deduct credits atomically
+            success = await deduct_credits(
+                req.userId,
+                CREDITS_PER_PAGE_ACTION,
+                f"PDF page render (page {req.page_number})"
+            )
+            if not success:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Failed to deduct credits. Please try again."
+                )
 
     # Render PNG and extract text layer
     png_bytes, text_layer, page_width, page_height = render_page_with_text_layer(
@@ -124,10 +240,34 @@ async def render_page(req: RenderPageRequest):
 
 @app.post("/text/add")
 async def add_text(req: AddTextRequest):
+    """
+    Add new text to PDF page.
+    DEDUCTS: 6 credits per page (premium only).
+    """
     try:
         pdf_bytes = get_pdf_bytes(req.session_id)
     except KeyError:
         raise HTTPException(status_code=404, detail="Session not found")
+    
+    # PREMIUM ACCESS: Deduct 6 credits per page
+    if req.userId:
+        credit_info = await get_user_credit_info(req.userId)
+        if not credit_info.get("unlimited", False):
+            if credit_info.get("credits", 0) < CREDITS_PER_PAGE_ACTION:
+                raise HTTPException(
+                    status_code=402,  # Payment Required
+                    detail=f"Insufficient credits. {CREDITS_PER_PAGE_ACTION} credits required per page."
+                )
+            success = await deduct_credits(
+                req.userId,
+                CREDITS_PER_PAGE_ACTION,
+                f"PDF text add (page {req.page_number})"
+            )
+            if not success:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Failed to deduct credits. Please try again."
+                )
 
     # Normalize color
     color_hex = "#000000"
@@ -157,7 +297,8 @@ async def add_text(req: AddTextRequest):
 @app.post("/text/edit")
 async def edit_text(request: FastAPIRequest):
     """
-    Edit text in PDF using native replacement.
+    Edit text in PDF using bbox-based replacement (iLovePDF style).
+    DEDUCTS: 6 credits per page (premium only).
     Uses Request instead of Pydantic model to avoid 422 validation errors.
     """
     try:
@@ -171,6 +312,8 @@ async def edit_text(request: FastAPIRequest):
     old_text = (body.get("old_text") or "").strip()
     new_text = (body.get("new_text") or "").strip()
     max_replacements = int(body.get("max_replacements") or 1)
+    userId = body.get("userId") or body.get("user_id")  # Support both formats
+    bbox = body.get("bbox")  # Optional: bbox for precise editing
     
     # Validate required fields
     if not session_id:
@@ -180,19 +323,64 @@ async def edit_text(request: FastAPIRequest):
     if not new_text:
         raise HTTPException(status_code=400, detail="new_text is required")
     
+    # PREMIUM ACCESS: Deduct 6 credits per page
+    if userId:
+        credit_info = await get_user_credit_info(userId)
+        if not credit_info.get("unlimited", False):
+            if credit_info.get("credits", 0) < CREDITS_PER_PAGE_ACTION:
+                raise HTTPException(
+                    status_code=402,  # Payment Required
+                    detail=f"Insufficient credits. {CREDITS_PER_PAGE_ACTION} credits required per page."
+                )
+            success = await deduct_credits(
+                userId,
+                CREDITS_PER_PAGE_ACTION,
+                f"PDF text edit (page {page_number})"
+            )
+            if not success:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Failed to deduct credits. Please try again."
+                )
+    
     # Get PDF bytes
     try:
         pdf_bytes = get_pdf_bytes(session_id)
     except KeyError:
         raise HTTPException(status_code=404, detail="Session not found")
     
-    # Replace text using native replacement
-    updated = replace_text_native(
-        pdf_bytes,
+    # MANDATORY: ONLY bbox-based editing (iLovePDF/Acrobat style)
+    # DO NOT use string replacement - PDF text is fragmented
+    if not bbox or len(bbox) < 4:
+        raise HTTPException(
+            status_code=400,
+            detail="bbox is required for text editing. PDF editing uses bbox-based replacement, not string matching."
+        )
+    
+    # Bbox-based edit: delete old text by bbox, then add new text at same position
+    # This EXACTLY matches iLovePDF/Acrobat behavior
+    updated = delete_text_by_bbox(pdf_bytes, page_number, bbox)
+    
+    # Extract position and dimensions from bbox
+    x0, y0, x1, y1 = bbox[:4]
+    x = x0
+    y = y1  # Use top of bbox for text baseline
+    
+    # Extract font info from request if provided, otherwise use defaults
+    font_name = body.get("font_name") or body.get("fontName") or "Helvetica"
+    font_size = body.get("font_size") or body.get("fontSize") or 12
+    color_hex = body.get("color") or body.get("color_hex") or "#000000"
+    
+    # Add new text at the same bbox position
+    updated = add_text_to_page(
+        updated,
         page_number=page_number,
-        old_text=old_text,
-        new_text=new_text,
-        max_replacements=max_replacements,
+        x=x,
+        y=y,
+        text=new_text,
+        font_name=font_name,
+        font_size=font_size,
+        color_hex=color_hex,
     )
     
     # Update PDF in storage
@@ -203,6 +391,10 @@ async def edit_text(request: FastAPIRequest):
 
 @app.post("/text/delete")
 async def delete_text(req: DeleteTextRequest):
+    """
+    Delete text from PDF by bbox (iLovePDF style).
+    DEDUCTS: 6 credits per page (premium only).
+    """
     try:
         pdf_bytes = get_pdf_bytes(req.session_id)
     except KeyError:
@@ -210,6 +402,26 @@ async def delete_text(req: DeleteTextRequest):
 
     if not req.bbox:
         raise HTTPException(status_code=400, detail="bbox is required for delete")
+    
+    # PREMIUM ACCESS: Deduct 6 credits per page
+    if req.userId:
+        credit_info = await get_user_credit_info(req.userId)
+        if not credit_info.get("unlimited", False):
+            if credit_info.get("credits", 0) < CREDITS_PER_PAGE_ACTION:
+                raise HTTPException(
+                    status_code=402,  # Payment Required
+                    detail=f"Insufficient credits. {CREDITS_PER_PAGE_ACTION} credits required per page."
+                )
+            success = await deduct_credits(
+                req.userId,
+                CREDITS_PER_PAGE_ACTION,
+                f"PDF text delete (page {req.page_number})"
+            )
+            if not success:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Failed to deduct credits. Please try again."
+                )
 
     updated = delete_text_by_bbox(pdf_bytes, req.page_number, req.bbox)
     update_pdf_bytes(req.session_id, updated)
@@ -229,10 +441,34 @@ async def search_text_route(req: SearchRequest):
 
 @app.post("/ocr/page")
 async def ocr_page(req: OcrPageRequest):
+    """
+    Run OCR on PDF page (returns OCR results, does not embed).
+    DEDUCTS: 6 credits per page (premium only).
+    """
     try:
         pdf_bytes = get_pdf_bytes(req.session_id)
     except KeyError:
         raise HTTPException(status_code=404, detail="Session not found")
+    
+    # PREMIUM ACCESS: Deduct 6 credits per page
+    if req.userId:
+        credit_info = await get_user_credit_info(req.userId)
+        if not credit_info.get("unlimited", False):
+            if credit_info.get("credits", 0) < CREDITS_PER_PAGE_ACTION:
+                raise HTTPException(
+                    status_code=402,  # Payment Required
+                    detail=f"Insufficient credits. {CREDITS_PER_PAGE_ACTION} credits required per page."
+                )
+            success = await deduct_credits(
+                req.userId,
+                CREDITS_PER_PAGE_ACTION,
+                f"PDF OCR (page {req.page_number})"
+            )
+            if not success:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Failed to deduct credits. Please try again."
+                )
 
     # Render page at higher zoom for better OCR accuracy
     png = render_page_to_png(pdf_bytes, req.page_number, zoom=2.0)
@@ -299,13 +535,35 @@ async def ocr_page(req: OcrPageRequest):
 @app.post("/ocr/apply")
 async def ocr_apply(req: OcrPageRequest):
     """
-    Apply OCR to PDF page by embedding invisible text (render_mode=3).
+    Apply OCR to PDF page by embedding native text (not overlays).
+    OCR is text-layer creation, not edit mode.
     Only applies if page has no existing text.
+    DEDUCTS: 6 credits per page (premium only).
     """
     try:
         pdf_bytes = get_pdf_bytes(req.session_id)
     except KeyError:
         raise HTTPException(status_code=404, detail="Session not found")
+    
+    # PREMIUM ACCESS: Deduct 6 credits per page
+    if req.userId:
+        credit_info = await get_user_credit_info(req.userId)
+        if not credit_info.get("unlimited", False):
+            if credit_info.get("credits", 0) < CREDITS_PER_PAGE_ACTION:
+                raise HTTPException(
+                    status_code=402,  # Payment Required
+                    detail=f"Insufficient credits. {CREDITS_PER_PAGE_ACTION} credits required per page."
+                )
+            success = await deduct_credits(
+                req.userId,
+                CREDITS_PER_PAGE_ACTION,
+                f"PDF OCR apply (page {req.page_number})"
+            )
+            if not success:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Failed to deduct credits. Please try again."
+                )
 
     # First, run OCR to get text results
     png = render_page_to_png(pdf_bytes, req.page_number, zoom=2.0)

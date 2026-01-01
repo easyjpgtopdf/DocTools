@@ -978,12 +978,22 @@
             if (typeof loadGlobalHeader === 'function') {
                 try {
                     loadGlobalHeader();
+                    // Load account section after header
+                    if (typeof loadAccountSection === 'function') {
+                        setTimeout(function() {
+                            loadAccountSection();
+                        }, 100);
+                    }
                     // After header loads, ensure auth UI is initialized
                     setTimeout(function() {
                         if (typeof window.initializeAuthUI === 'function') {
                             window.initializeAuthUI();
                         }
-                    }, 200);
+                        // Force UI update to show account bar
+                        if (typeof window.forceUpdateUI === 'function') {
+                            window.forceUpdateUI();
+                        }
+                    }, 300);
                     return true;
                 } catch (e) {
                     console.error('Error calling loadGlobalHeader:', e);
@@ -1027,12 +1037,22 @@
                 if (!document.querySelector('header') && typeof loadGlobalHeader === 'function') {
                     loadGlobalHeader();
                 }
+                // Load account section
+                if (typeof loadAccountSection === 'function') {
+                    setTimeout(function() {
+                        loadAccountSection();
+                    }, 200);
+                }
                 // Ensure auth UI is initialized after everything loads
                 setTimeout(function() {
                     if (typeof window.initializeAuthUI === 'function') {
                         window.initializeAuthUI();
                     }
-                }, 300);
+                    // Force UI update to show account bar
+                    if (typeof window.forceUpdateUI === 'function') {
+                        window.forceUpdateUI();
+                    }
+                }, 500);
             }, 100);
         });
     })();
@@ -1253,6 +1273,10 @@
                         <!-- Font controls will be rendered here by FontControlsController -->
                     </div>
                     
+                    <!-- Editor Notice Banner -->
+                    <div id="editor-notice-banner" style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 12px 16px; margin: 12px 16px; color: #856404; font-size: 13px; line-height: 1.5;">
+                        <strong>ℹ️ Note:</strong> This is a best-effort PDF editor optimized for short text fields (name, address, roll number, exam center, etc.). Exact layout may not be 100% perfect on all PDFs. For heavy editing and complex layouts, use our <strong>Desktop Pro Editor</strong> (coming soon).
+                    </div>
                     <div class="preview-toolbar">
                         <button class="preview-toolbar-btn" id="prev-page" disabled>
                             <i class="fas fa-chevron-left"></i> Prev
@@ -2926,8 +2950,8 @@ SSL Security & Trust Section -->
                 } catch (creditError) {
                     console.error('Credit check failed:', creditError);
                     alert('Unable to verify premium access. Please try again.');
-                    newFileInput.value = '';
-                    return;
+                        newFileInput.value = '';
+                        return;
                 }
                 
                 try {
@@ -3168,24 +3192,24 @@ SSL Security & Trust Section -->
                             
                             // File ID storage removed - using session-based approach
                             
-                        // PERMANENT FIX: Ensure preview container is visible BEFORE rendering
-                        const previewContainer = document.getElementById('preview-container');
-                        const pdfPageWrapper = document.getElementById('pdf-page-wrapper');
-                        if (previewContainer) {
-                            previewContainer.style.display = 'flex';
-                            previewContainer.style.visibility = 'visible';
-                            previewContainer.style.opacity = '1';
-                            previewContainer.style.minHeight = '600px';
-                            console.log('✅ Preview container made visible (server URL)');
-                        }
-                        if (pdfPageWrapper) {
-                            pdfPageWrapper.style.display = 'block';
-                            pdfPageWrapper.style.visibility = 'visible';
-                            pdfPageWrapper.style.opacity = '1';
-                            pdfPageWrapper.setAttribute('data-loaded', 'true');
-                            console.log('✅ PDF page wrapper made visible (server URL)');
-                        }
-                        
+                            // PERMANENT FIX: Ensure preview container is visible BEFORE rendering
+                            const previewContainer = document.getElementById('preview-container');
+                            const pdfPageWrapper = document.getElementById('pdf-page-wrapper');
+                            if (previewContainer) {
+                                previewContainer.style.display = 'flex';
+                                previewContainer.style.visibility = 'visible';
+                                previewContainer.style.opacity = '1';
+                                previewContainer.style.minHeight = '600px';
+                                console.log('✅ Preview container made visible (server URL)');
+                            }
+                            if (pdfPageWrapper) {
+                                pdfPageWrapper.style.display = 'block';
+                                pdfPageWrapper.style.visibility = 'visible';
+                                pdfPageWrapper.style.opacity = '1';
+                                pdfPageWrapper.setAttribute('data-loaded', 'true');
+                                console.log('✅ PDF page wrapper made visible (server URL)');
+                            }
+                            
                         await renderPDF(arrayBuffer);
                         window.pdfEditorVars.loadedInitialPdf = true;
                         window.pdfEditorVars.loadedFromStorage = true;
@@ -3470,6 +3494,7 @@ SSL Security & Trust Section -->
                 
                 currentSessionId = sessionResult.session_id;
                 window.pdfEditorVars.sessionId = currentSessionId;
+                window.pdfEditorVars.currentSessionId = currentSessionId;
                 window.pdfEditorVars.totalPages = sessionResult.page_count;
                 
                 // Store PDF data
@@ -3480,32 +3505,44 @@ SSL Security & Trust Section -->
                 }
                 
                 // PERMANENT FIX: Ensure preview container is visible BEFORE rendering
-                // Use existing variables (declared at top level) - no duplicate declarations
-                if (previewContainer) {
-                    previewContainer.style.display = 'flex';
-                    previewContainer.style.visibility = 'visible';
-                    previewContainer.style.minHeight = '600px';
-                    previewContainer.style.opacity = '1';
-                    previewContainer.style.position = 'relative';
-                    console.log('✅ Preview container made visible');
+                const previewContainerEl = document.getElementById('preview-container');
+                const pdfPageWrapperEl = document.getElementById('pdf-page-wrapper');
+                if (previewContainerEl) {
+                    previewContainerEl.style.display = 'flex';
+                    previewContainerEl.style.visibility = 'visible';
+                    previewContainerEl.style.minHeight = '600px';
+                    previewContainerEl.style.opacity = '1';
+                    previewContainerEl.style.position = 'relative';
+                    console.log('✅ Preview container made visible (renderPDF)');
                 } else {
                     console.error('❌ Preview container not found!');
                 }
-                if (pdfPageWrapper) {
-                    pdfPageWrapper.style.display = 'block';
-                    pdfPageWrapper.style.visibility = 'visible';
-                    pdfPageWrapper.style.opacity = '1';
-                    pdfPageWrapper.setAttribute('data-loaded', 'true');
-                    console.log('✅ PDF page wrapper made visible');
+                if (pdfPageWrapperEl) {
+                    pdfPageWrapperEl.style.display = 'block';
+                    pdfPageWrapperEl.style.visibility = 'visible';
+                    pdfPageWrapperEl.style.opacity = '1';
+                    pdfPageWrapperEl.setAttribute('data-loaded', 'true');
+                    console.log('✅ PDF page wrapper made visible (renderPDF)');
                 } else {
                     console.error('❌ PDF page wrapper not found!');
                 }
-                if (pdfCanvas) {
-                    pdfCanvas.style.display = 'block';
-                    pdfCanvas.style.visibility = 'visible';
-                    console.log('✅ PDF canvas made visible');
-                } else {
-                    console.error('❌ PDF canvas not found!');
+                const baseCanvasEl = document.getElementById('pdf-canvas-base');
+                const textCanvasEl = document.getElementById('pdf-canvas-text');
+                const highlightCanvasEl = document.getElementById('pdf-canvas-highlight');
+                if (baseCanvasEl) {
+                    baseCanvasEl.style.display = 'block';
+                    baseCanvasEl.style.visibility = 'visible';
+                    console.log('✅ Base canvas made visible');
+                }
+                if (textCanvasEl) {
+                    textCanvasEl.style.display = 'block';
+                    textCanvasEl.style.visibility = 'visible';
+                    console.log('✅ Text canvas made visible');
+                }
+                if (highlightCanvasEl) {
+                    highlightCanvasEl.style.display = 'block';
+                    highlightCanvasEl.style.visibility = 'visible';
+                    console.log('✅ Highlight canvas made visible');
                 }
                 
                 if (pageCount) pageCount.textContent = sessionResult.page_count;
@@ -4710,6 +4747,15 @@ SSL Security & Trust Section -->
                 
                 // Pass bbox for bbox-based editing (iLovePDF style)
                 // Backend will: delete_text_by_bbox(bbox) then add_text_to_same_bbox(new_text)
+                // Extract font info from clickedItem to preserve original styling
+                const fontName = clickedItem.fontName || clickedItem.font || 'Helvetica';
+                const fontSize = clickedItem.fontSize || clickedItem.size || 12;
+                const color = clickedItem.color || clickedItem.fontColor || '#000000';
+                
+                if (!pdfBbox || !Array.isArray(pdfBbox) || pdfBbox.length < 4) {
+                    throw new Error('PDF bbox is required for editing. Please click on text to edit.');
+                }
+                
                 await editText(
                     sessionId,
                     pageNumber,
@@ -4717,7 +4763,10 @@ SSL Security & Trust Section -->
                     newText,
                     1, // max_replacements
                     userId,
-                    pdfBbox  // bbox for precise editing
+                    pdfBbox,  // REQUIRED: bbox for precise editing
+                    fontName,  // Preserve original font
+                    fontSize,  // Preserve original size
+                    color  // Preserve original color
                 );
                 
                 // Clear selection
@@ -6755,10 +6804,15 @@ SSL Security & Trust Section -->
         // Ensure auth UI is initialized after page loads
         window.addEventListener('load', function() {
             setTimeout(function() {
+                // Load account section first
+                if (typeof loadAccountSection === 'function') {
+                    loadAccountSection();
+                }
+                // Then initialize auth UI
                 if (typeof window.initializeAuthUI === 'function') {
                     window.initializeAuthUI();
                 }
-                // Also force UI update if auth is already initialized
+                // Force UI update to show account bar
                 if (typeof window.forceUpdateUI === 'function') {
                     window.forceUpdateUI();
                 }
