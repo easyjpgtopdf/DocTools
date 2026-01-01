@@ -320,23 +320,46 @@ class UnifiedLayout:
             self.rows = []
         
         # STEP 4: Post-processing - Detect label-value pairs and merge into 2 columns
-        # If we have many rows but only 1 column, try to detect label-value pattern
+        # CRITICAL FIX: Also work for multi-column layouts where Col2 is mostly empty
         unique_rows = set(c.row for c in new_cells)
         unique_cols = set(c.column for c in new_cells)
         
+        # Check if we need label-value pairing:
+        # 1. Single column layout (original case)
+        # 2. Multi-column layout but Col2 is mostly empty (new case)
+        needs_label_value_pairing = False
         if len(unique_cols) == 1 and len(unique_rows) >= 4:
+            needs_label_value_pairing = True
+            logger.critical("SPATIAL INDEXING: Detected single column with multiple rows - attempting label-value pairing")
+        elif len(unique_cols) >= 2:
+            # Check if Col2 is mostly empty (less than 30% of rows have Col2 content)
+            rows_with_col2 = set()
+            for cell in new_cells:
+                if cell.column >= 1:  # Col2 or higher
+                    rows_with_col2.add(cell.row)
+            
+            col2_coverage = len(rows_with_col2) / len(unique_rows) if unique_rows else 0
+            if col2_coverage < 0.3 and len(unique_rows) >= 4:
+                needs_label_value_pairing = True
+                logger.critical(f"SPATIAL INDEXING: Detected multi-column layout but Col2 is mostly empty ({col2_coverage:.1%} coverage) - attempting label-value pairing")
+        
+        if needs_label_value_pairing:
             # Likely label-value pairs - merge adjacent rows into 2 columns
             logger.critical("SPATIAL INDEXING: Detected single column with multiple rows - attempting label-value pairing")
             
             # Sort cells by row
             sorted_cells = sorted(new_cells, key=lambda c: c.row)
             
-            # Detect label patterns (case-insensitive)
+            # Detect label patterns (case-insensitive) - Enhanced with more patterns
             label_patterns = [
                 r'name\s+of\s+the\s+customer', r'biller\s+name', r'biller\s+id', r'consumer\s+number',
-                r'mobile\s+number', r'payment\s+mode', r'date', r'amount', r'total', r'transaction',
+                r'mobile\s+number', r'payment\s+mode', r'payment\s+status', r'payment\s+channel',
+                r'approval\s+ref\s+no', r'approval\s+ref', r'customer\s+convenience\s+fee',
+                r'biller\s+platform\s+fee', r'digital\s+fee', r'date', r'amount', r'total', r'transaction',
                 r'account', r'address', r'email', r'phone', r'id', r'number', r'b-connect\s+txn\s+id',
-                r'receipt', r'invoice', r'bill'
+                r'receipt', r'invoice', r'bill', r'agent', r'merchant', r'customer', r'consumer',
+                # Hindi patterns
+                r'नाम', r'पिता', r'पति', r'आधार', r'जाती', r'कार्ड', r'प्रकार', r'समग्र', r'परिवार', r'क्र'
             ]
             
             import re
@@ -353,8 +376,16 @@ class UnifiedLayout:
                 is_label = any(re.search(pattern, current_value_lower) for pattern in label_patterns)
                 
                 # Also check if it's short text (likely label) vs long text (likely value)
-                is_short = len(current_value) < 30
-                is_likely_label = is_label or (is_short and not current_value[0].isupper() and ' ' in current_value)
+                # Enhanced: Check for common label characteristics
+                is_short = len(current_value) < 50  # Increased threshold
+                is_all_caps = current_value.isupper() and len(current_value) > 1
+                starts_with_caps = current_value and current_value[0].isupper()
+                has_colon = ':' in current_value
+                
+                # Label characteristics: short, has spaces, not all caps, may have colon
+                is_likely_label = (is_label or 
+                                 (is_short and has_colon) or
+                                 (is_short and ' ' in current_value and not is_all_caps and not current_value.replace(' ', '').isdigit()))
                 
                 if is_likely_label and i + 1 < len(sorted_cells):
                     # Current is label, next should be value

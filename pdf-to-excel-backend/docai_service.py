@@ -77,18 +77,24 @@ def upload_pdf_to_gcs_temp(file_content: bytes, filename: str) -> str:
 async def process_pdf_to_excel_docai(
     file_bytes: bytes, 
     filename: str,
-    user_wants_premium: bool = False
+    user_wants_premium: bool = False,
+    high_accuracy_mode: bool = False
 ) -> Tuple[str, int, List]:
     """
     Process PDF with Google Document AI and convert to Excel.
+    
+    Modes:
+    - Standard Mode (high_accuracy_mode=False): LibreOffice + DocAI
+    - High Accuracy Mode (high_accuracy_mode=True): LibreOffice + DocAI + Adobe Extract (when needed)
     
     Args:
         file_bytes: PDF file content as bytes
         filename: Original PDF filename
         user_wants_premium: User explicitly enabled premium mode toggle (default: False)
+        high_accuracy_mode: High Accuracy Mode - uses Adobe Extract when needed (default: False)
     
     Returns:
-        Tuple of (download_url, pages_processed, unified_layouts)
+        Tuple of (download_url, pages_processed, unified_layouts, pages_metadata)
     
     Raises:
         Exception: If processing fails
@@ -263,6 +269,35 @@ async def process_pdf_to_excel_docai(
             logger.warning("WARNING: No tables extracted from Document AI response!")
             logger.warning("Will attempt structure reconstruction from form fields and blocks")
         
+        # Step 6.5: LibreOffice Pre-processing (Standard Mode & High Accuracy Mode)
+        # Try LibreOffice conversion first to get better table structure
+        libreoffice_success = False
+        libreoffice_excel_bytes = None
+        try:
+            from free_pdf_to_excel.free_libreoffice_converter import convert_with_libreoffice, is_libreoffice_available
+            if is_libreoffice_available():
+                logger.info("=" * 80)
+                logger.info("📄 LIBREOFFICE PRE-PROCESSING: Attempting LibreOffice conversion")
+                logger.info("=" * 80)
+                import tempfile
+                import os
+                temp_xlsx = tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx')
+                temp_xlsx.close()
+                
+                libreoffice_success, libreoffice_error = convert_with_libreoffice(file_bytes, temp_xlsx.name)
+                if libreoffice_success:
+                    with open(temp_xlsx.name, 'rb') as f:
+                        libreoffice_excel_bytes = f.read()
+                    logger.info(f"✅ LibreOffice conversion successful: {len(libreoffice_excel_bytes)} bytes")
+                    # Cleanup
+                    os.unlink(temp_xlsx.name)
+                else:
+                    logger.warning(f"LibreOffice conversion failed: {libreoffice_error}")
+                    if os.path.exists(temp_xlsx.name):
+                        os.unlink(temp_xlsx.name)
+        except Exception as lo_err:
+            logger.warning(f"LibreOffice pre-processing error (non-critical): {lo_err}")
+        
         # Step 7: Create Excel workbook
         logger.info("Creating Excel workbook...")
         # Pass document.text for fallback text extraction
@@ -384,15 +419,50 @@ async def process_pdf_to_excel_docai(
                     # Extract page count for cost calculation
                     page_count = len(document.pages) if hasattr(document, 'pages') else 1
                     
-                    # Apply comprehensive guardrails
-                    should_fallback, fallback_reason, guardrail_metadata = router.should_enable_adobe_with_guardrails(
-                        user_wants_premium=user_wants_premium,
-                        docai_confidence=docai_confidence,
-                        full_structure=full_structure,
-                        unified_layouts=unified_layouts,
-                        page_count=page_count,
-                        user_plan="premium"
-                    )
+                    # CRITICAL: High Accuracy Mode forces Adobe when needed
+                    # Standard Mode: Only use Adobe if guardrails allow
+                    # High Accuracy Mode: Use Adobe more aggressively for complex forms
+                    if high_accuracy_mode:
+                        logger.critical("=" * 80)
+                        logger.critical("🎯 HIGH ACCURACY MODE: Adobe Extract will be used when needed")
+                        logger.critical("=" * 80)
+                        # In high accuracy mode, be more aggressive with Adobe
+                        # Check if document is complex form (application, government forms)
+                        from premium_layout.layout_decision_engine import LayoutDecisionEngine
+                        temp_engine = LayoutDecisionEngine()
+                        complex_form_type = temp_engine._detect_complex_form_type(document_text, filename)
+                        
+                        if complex_form_type in ['application_form', 'government_form', 'mixed_column_form']:
+                            logger.critical(f"🚨 Complex form detected ({complex_form_type}) - Adobe Extract recommended in High Accuracy Mode")
+                            # Force Adobe for complex forms in high accuracy mode
+                            should_fallback = True
+                            fallback_reason = f"High Accuracy Mode: Complex form ({complex_form_type}) requires Adobe Extract"
+                            guardrail_metadata = {
+                                'gates_passed': ['high_accuracy_mode', 'complex_form_detected'],
+                                'gates_failed': [],
+                                'estimated_adobe_pages': page_count,
+                                'estimated_cost_credits': page_count * 5  # Estimate 5 credits per page for Adobe
+                            }
+                        else:
+                            # Apply normal guardrails but be more lenient
+                            should_fallback, fallback_reason, guardrail_metadata = router.should_enable_adobe_with_guardrails(
+                                user_wants_premium=True,  # Force premium in high accuracy mode
+                                docai_confidence=docai_confidence,
+                                full_structure=full_structure,
+                                unified_layouts=unified_layouts,
+                                page_count=page_count,
+                                user_plan="premium"
+                            )
+                    else:
+                        # Standard Mode: Apply normal guardrails
+                        should_fallback, fallback_reason, guardrail_metadata = router.should_enable_adobe_with_guardrails(
+                            user_wants_premium=user_wants_premium,
+                            docai_confidence=docai_confidence,
+                            full_structure=full_structure,
+                            unified_layouts=unified_layouts,
+                            page_count=page_count,
+                            user_plan="premium"
+                        )
                     
                     # Log guardrail results (MANDATORY)
                     logger.info("=" * 80)

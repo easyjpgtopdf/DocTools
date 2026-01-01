@@ -12,6 +12,7 @@ class RenderPageRequest(BaseModel):
     session_id: str
     page_number: int
     zoom: float = 1.0
+    userId: Optional[str] = None
 
 
 class AddTextRequest(BaseModel):
@@ -25,6 +26,7 @@ class AddTextRequest(BaseModel):
     color: str | list[float] | None = "#000000"  # hex string or [r,g,b]
     canvas_width: Optional[float] = None  # Canvas width in pixels for coordinate conversion
     canvas_height: Optional[float] = None  # Canvas height in pixels for coordinate conversion
+    userId: Optional[str] = None
 
 
 class EditTextRequest(BaseModel):
@@ -39,6 +41,7 @@ class DeleteTextRequest(BaseModel):
     session_id: str
     page_number: int
     bbox: Optional[list[float]] = None  # [x0, y0, x1, y1]
+    userId: Optional[str] = None
 
 
 class SearchRequest(BaseModel):
@@ -50,6 +53,7 @@ class OcrPageRequest(BaseModel):
     session_id: str
     page_number: int
     lang: str = "en"
+    userId: Optional[str] = None
 
 
 class ExportRequest(BaseModel):

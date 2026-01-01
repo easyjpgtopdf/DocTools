@@ -290,9 +290,10 @@
         cursor: not-allowed;
         pointer-events: none;
     }
-</style>
+    </style>
 </head>
 <body>
+<div id="account-section"></div>
 <div id="global-header-placeholder"></div>
 
 <!-- Breadcrumb Navigation -->
@@ -330,13 +331,13 @@
             <div id="creditInfo" class="credit-info" style="display: none;">
                 <strong>Your Credits:</strong> <span id="creditBalance">0</span>
                 <br>
-                <small>Premium conversion requires minimum 30 credits. Credits are deducted per page after successful conversion (2 credits/page).</small>
+                <small>Premium conversion requires minimum 30 credits. Credits are deducted per page after successful conversion (2 credits/page for text, 5 credits/page for OCR).</small>
             </div>
 
             <div class="upload-area" id="uploadArea">
                 <i class="fas fa-cloud-upload-alt"></i>
                 <h3>Drop PDF file here or click to browse</h3>
-                <p style="color: var(--muted); margin-top: 8px;">Maximum file size: 50 MB</p>
+                <p style="color: var(--muted); margin-top: 8px;">Maximum file size: 100 MB | Maximum pages: 100</p>
                 <input type="file" id="fileInput" accept=".pdf" style="display: none;">
             </div>
 
@@ -407,7 +408,7 @@
         
         <h3>How Premium Conversion Works</h3>
         <h4>Step 1: Upload Your PDF</h4>
-        <p>Upload your scanned PDF or complex document. Maximum file size is 50 MB.</p>
+        <p>Upload your scanned PDF or complex document. Maximum file size is 100 MB and maximum 100 pages per PDF.</p>
         
         <h4>Step 2: Automatic Processing</h4>
         <p>Our system analyzes your document and processes it with Google Document AI for best results.</p>
@@ -419,7 +420,7 @@
         <p>Receive your converted Word file with preserved formatting, structure, and text accuracy.</p>
         
         <h3>Credit System</h3>
-        <p>Premium conversion uses a pay-per-page credit system. Credits are deducted only after successful conversion. Minimum 30 credits required to access premium features. Cost: 2 credits per page for OCR conversion.</p>
+        <p>Premium conversion uses a pay-per-page credit system. Credits are deducted only after successful conversion. Minimum 30 credits required to access premium features. Cost: 2 credits per page for text conversion, 5 credits per page for OCR conversion.</p>
         
         <h3>Security & Privacy</h3>
         <p>All conversions are processed securely with SSL encryption. Files are automatically deleted after processing. Your data privacy is our priority.</p>
@@ -449,7 +450,7 @@
 <script src="js/global-components.js" defer></script>
 <script type="module" src="/js/auth.js"></script>
 <script>
-const API_BASE_URL = 'https://pdf-to-word-converter-iwumaktavq-uc.a.run.app';
+const API_BASE_URL = 'https://pdf-to-word-converter-564572183797.us-central1.run.app';
 
 // Load PDF from sessionStorage if available
 async function loadPdfFromSession() {
@@ -615,6 +616,25 @@ async function checkCredits() {
                 // Credits sufficient - allow access
                 console.log(`✅ Premium page access granted: User ${userId} has ${credits} credits (>= ${MIN_REQUIRED_CREDITS})`);
                 creditsCheckPassed = true;
+                
+                // Enable upload area and inputs
+                const uploadArea = document.getElementById('uploadArea');
+                const fileInput = document.getElementById('fileInput');
+                const convertBtn = document.getElementById('convertBtn');
+                
+                if (uploadArea) {
+                    uploadArea.classList.remove('disabled');
+                    uploadArea.style.pointerEvents = 'auto';
+                    uploadArea.style.cursor = 'pointer';
+                    uploadArea.style.opacity = '1';
+                }
+                if (fileInput) {
+                    fileInput.disabled = false;
+                }
+                if (convertBtn) {
+                    convertBtn.disabled = false;
+                }
+                
                 return true; // Access granted
             }
         } else {
@@ -649,6 +669,17 @@ async function initializeUploadHandlers() {
     if (!uploadArea || !fileInput) {
         console.error('Upload area or file input not found');
         return;
+    }
+    
+    // Enable upload area if credits check passed
+    if (creditsCheckPassed) {
+        uploadArea.classList.remove('disabled');
+        uploadArea.style.pointerEvents = 'auto';
+        uploadArea.style.cursor = 'pointer';
+        uploadArea.style.opacity = '1';
+        if (fileInput) fileInput.disabled = false;
+        if (convertBtn) convertBtn.disabled = false;
+        console.log('✅ Upload area enabled - credits sufficient');
     }
 
     uploadArea.addEventListener('click', () => {
@@ -695,7 +726,7 @@ async function initializeUploadHandlers() {
     });
 }
 
-function handleFileSelect(file) {
+async function handleFileSelect(file) {
     if (!file) {
         showStatus('No file selected.', 'error');
         return;
@@ -706,9 +737,22 @@ function handleFileSelect(file) {
         return;
     }
     
-    if (file.size > 50 * 1024 * 1024) {
-        showStatus('File size exceeds 50 MB limit.', 'error');
+    if (file.size > 100 * 1024 * 1024) {
+        showStatus('File size exceeds 100 MB limit.', 'error');
         return;
+    }
+    
+    // Check page limit (100 pages for premium)
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        if (pdfDoc.numPages > 100) {
+            showStatus('Premium limit: Maximum 100 pages per PDF. Your document has ' + pdfDoc.numPages + ' pages.', 'error');
+            return;
+        }
+    } catch (e) {
+        console.error('Error checking PDF pages:', e);
+        // Continue anyway - backend will validate
     }
     
     // Check credits before allowing file selection
@@ -959,6 +1003,33 @@ window.addEventListener('DOMContentLoaded', async function() {
     
     // Check credits AFTER auth is ready
     creditsCheckPassed = await checkCredits();
+    
+    // Force account section to show if user is logged in
+    // Multiple retries to ensure it shows
+    const showAccountSection = () => {
+        if (window.auth) {
+            const user = window.auth.currentUser;
+            if (user) {
+                console.log('User logged in, showing account section:', user.uid);
+                const accountSection = document.getElementById('account-section');
+                if (accountSection) {
+                    // Force show account section
+                    accountSection.style.setProperty('display', 'block', 'important');
+                    accountSection.style.setProperty('visibility', 'visible', 'important');
+                    accountSection.removeAttribute('hidden');
+                    accountSection.classList.remove('hidden');
+                }
+            }
+        }
+    };
+    
+    // Try immediately
+    showAccountSection();
+    
+    // Try again after a short delay
+    setTimeout(showAccountSection, 500);
+    setTimeout(showAccountSection, 1000);
+    setTimeout(showAccountSection, 2000);
     
     // Initialize upload handlers after credits check
     await initializeUploadHandlers();

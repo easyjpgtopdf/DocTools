@@ -3,7 +3,7 @@
  * Shows credit cost and allows user to proceed or purchase credits
  */
 
-const API_BASE_URL = 'https://pdf-to-word-converter-iwumaktavq-uc.a.run.app';
+const API_BASE_URL = 'https://pdf-to-word-converter-564572183797.us-central1.run.app';
 
 // Credit Modal HTML
 const creditModalHTML = `

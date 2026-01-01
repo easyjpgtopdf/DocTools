@@ -9,7 +9,7 @@ function getFeedbackApiUrl() {
   if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.')) {
     return 'http://localhost:3000/api/feedback';
   }
-  return 'https://pdf-to-word-converter-iwumaktavq-uc.a.run.app/api/feedback';
+  return 'https://pdf-to-word-converter-564572183797.us-central1.run.app/api/feedback';
 }
 
 const FEEDBACK_API_URL = getFeedbackApiUrl();

@@ -72,19 +72,22 @@ class GCSStorage:
         bucket_name: str,
         blob_name: str,
         expiration_seconds: int = 3600,
-        method: str = "GET"
+        method: str = "GET",
+        fallback_download_url: Optional[str] = None
     ) -> str:
         """
         Generate a signed URL for accessing a blob.
+        If signing fails (e.g., no private key in credentials), returns fallback URL or raises error.
         
         Args:
             bucket_name: GCS bucket name
             blob_name: Blob name in bucket
             expiration_seconds: URL expiration time in seconds
             method: HTTP method (GET, PUT, etc.)
+            fallback_download_url: Optional fallback URL to return if signing fails (for free tier)
             
         Returns:
-            Signed URL string
+            Signed URL string or fallback URL if signing fails
         """
         try:
             bucket = self.client.bucket(bucket_name)
@@ -101,13 +104,27 @@ class GCSStorage:
             )
             logger.info(f"Generated signed URL for gs://{bucket_name}/{blob_name} (expires in {expiration_seconds}s)")
             return url
-        except GoogleCloudError as e:
-            error_msg = f"Error generating signed URL for gs://{bucket_name}/{blob_name}: {str(e)}"
-            logger.error(error_msg, exc_info=True)
-            raise RuntimeError(error_msg) from e
+        except (GoogleCloudError, ValueError, AttributeError) as e:
+            error_msg = str(e)
+            # Check if it's a credentials/private key issue
+            if "private key" in error_msg.lower() or "credentials" in error_msg.lower() or "sign" in error_msg.lower():
+                if fallback_download_url:
+                    logger.warning(f"Cannot generate signed URL (missing private key in credentials). Using fallback: {fallback_download_url}")
+                    return fallback_download_url
+                else:
+                    logger.error(f"Error generating signed URL for gs://{bucket_name}/{blob_name}: {error_msg}")
+                    raise RuntimeError(f"Cannot generate signed URL: {error_msg}. Please use service account with private key or provide fallback_download_url.") from e
+            else:
+                error_msg = f"Error generating signed URL for gs://{bucket_name}/{blob_name}: {error_msg}"
+                logger.error(error_msg, exc_info=True)
+                raise RuntimeError(error_msg) from e
         except Exception as e:
             error_msg = f"Unexpected error generating signed URL: {str(e)}"
             logger.error(error_msg, exc_info=True)
+            # If fallback is available, use it
+            if fallback_download_url and ("private key" in error_msg.lower() or "credentials" in error_msg.lower()):
+                logger.warning(f"Using fallback URL due to signing error: {fallback_download_url}")
+                return fallback_download_url
             raise RuntimeError(error_msg) from e
     
     def delete_file(self, bucket_name: str, blob_name: str) -> None:

@@ -556,7 +556,8 @@ class TablePostProcessor:
         else:
             logger.warning(f"❌ Cell ({row},{column}) has no 'layout' attribute")
         
-        # Extract bounding box (try fallback if primary fails)
+        # CRITICAL: Extract bounding box from cell.layout.bounding_poly.normalized_vertices
+        # TABLE_STRICT mode: Bounding box MUST come from DocAI, not heuristics
         bounding_box = None
         if layout:
             bounding_box = self._extract_bounding_box(layout)
@@ -567,14 +568,24 @@ class TablePostProcessor:
             bounding_box = fallback_bbox
             logger.info(f"✅ Cell ({row},{column}) using reconstructed geometry: {bounding_box}")
         
+        # ENTERPRISE RULE: HARD ASSERT for TABLE_STRICT mode
+        # If cell lacks bounding box, this is a data integrity issue
         if not bounding_box:
-            logger.warning(f"⚠️ Cell ({row},{column}) has no bounding box (text: '{text[:30] if text else 'empty'}')")
-            # CRITICAL: Don't return None if we have text - create minimal bbox
+            logger.error(f"❌ CRITICAL: Cell ({row},{column}) has NO bounding box")
+            logger.error(f"   Cell type: {type(cell)}")
+            logger.error(f"   Has layout: {hasattr(cell, 'layout')}")
+            if hasattr(cell, 'layout'):
+                logger.error(f"   Layout type: {type(cell.layout)}")
+                if hasattr(cell.layout, 'bounding_poly'):
+                    logger.error(f"   Has bounding_poly: {cell.layout.bounding_poly}")
+            
+            # For TABLE_STRICT: Fail fast if bounding box missing
+            # This indicates DocAI table structure is incomplete
             if text and text.strip():
-                logger.warning(f"⚠️ Cell ({row},{column}) has text but no bbox - creating minimal bbox")
-                # Create a minimal bounding box based on position
+                # CRITICAL: Create minimal bbox but log warning
+                logger.warning(f"⚠️ Cell ({row},{column}) has text but no bbox - creating minimal bbox (DATA INTEGRITY ISSUE)")
                 bounding_box = {
-                    'x_min': column * 0.15,  # Rough estimate
+                    'x_min': column * 0.15,
                     'x_max': (column + 1) * 0.15,
                     'y_min': row * 0.05,
                     'y_max': (row + 1) * 0.05,
@@ -584,6 +595,9 @@ class TablePostProcessor:
             else:
                 logger.error(f"❌ Cell ({row},{column}) has NO text AND NO bbox - returning None")
                 return None
+        
+        # HARD ASSERT: Bounding box must exist
+        assert bounding_box is not None, f"Cell ({row},{column}) must have bounding box"
         
         # Extract style information
         font_size = self._extract_font_size(layout)
@@ -1209,15 +1223,198 @@ class TablePostProcessor:
         """
         Convert ProcessedTable to UnifiedLayout for Excel rendering.
         
+        CRITICAL: This is where spatial indexing and newline splitting MUST happen.
+        Order:
+        1. Extract cells with bounding boxes
+        2. Split cells by newlines (each split gets its own bbox slice)
+        3. Apply spatial indexing (assign row/column based on bbox)
+        4. Build UnifiedLayout
+        5. FREEZE layout (no further row/column mutation)
+        
         Args:
             processed_table: Post-processed table
             page_index: Page index for the layout
             
         Returns:
-            UnifiedLayout ready for Excel rendering
+            UnifiedLayout ready for Excel rendering (FROZEN - no row/column changes allowed)
         """
         from .unified_layout_model import UnifiedLayout, Cell, CellStyle, CellAlignment, MergedCell
         
+        logger.critical("=" * 80)
+        logger.critical("🔍 COMPREHENSIVE DEBUG: CONVERT_TO_UNIFIED_LAYOUT")
+        logger.critical("=" * 80)
+        
+        # STEP 1: Extract all cells with bounding boxes
+        # CRITICAL: Ignore existing row/column indices from DocAI - we'll reassign based on bounding boxes
+        cells_with_bbox = []
+        cells_without_bbox = 0
+        
+        logger.critical(f"📊 STEP 1: Extracting cells from ProcessedTable")
+        logger.critical(f"   Total rows in ProcessedTable: {len(processed_table.rows)}")
+        
+        for row_idx, row_cells in enumerate(processed_table.rows):
+            logger.critical(f"   Row {row_idx}: {len(row_cells)} cells")
+            for cell_idx, processed_cell in enumerate(row_cells):
+                cell_text = str(processed_cell.value)[:30] if processed_cell.value else 'EMPTY'
+                
+                # CRITICAL: Each cell MUST have bounding box
+                if processed_cell.bounding_box:
+                    bbox = processed_cell.bounding_box
+                    cells_with_bbox.append({
+                        'cell': processed_cell,
+                        'original_row': row_idx,  # Store original for reference
+                        'original_col': processed_cell.column,  # Store original for reference
+                        'bbox': bbox
+                    })
+                    
+                    # Log first 10 cells
+                    if len(cells_with_bbox) <= 10:
+                        logger.critical(f"      Cell[{row_idx},{cell_idx}]: '{cell_text}' bbox={bbox}")
+                else:
+                    cells_without_bbox += 1
+                    logger.warning(f"      ❌ Cell ({row_idx},{processed_cell.column}) '{cell_text}' - NO BBOX!")
+        
+        logger.critical("=" * 80)
+        logger.critical(f"📊 STEP 1 RESULT:")
+        logger.critical(f"   ✅ Cells WITH bbox: {len(cells_with_bbox)}")
+        logger.critical(f"   ❌ Cells WITHOUT bbox: {cells_without_bbox}")
+        logger.critical("=" * 80)
+        
+        # STEP 2: NEWLINE SPLITTING (before spatial indexing)
+        # Split cells with newlines - each split gets its own bbox slice
+        split_cells = []
+        for cell_data in cells_with_bbox:
+            cell = cell_data['cell']
+            cell_value = str(cell.value) if cell.value else ''
+            
+            if '\n' in cell_value and len(cell_value) > 20:
+                # Split by newlines - each line gets Y-axis slice of bbox
+                lines = cell_value.split('\n')
+                bbox = cell_data['bbox']
+                bbox_height = bbox.get('y_max', 1.0) - bbox.get('y_min', 0.0)
+                line_height = bbox_height / len(lines) if lines else 0.01
+                
+                for line_idx, line in enumerate(lines):
+                    line = line.strip()
+                    if line:
+                        # Create bbox slice for this line
+                        line_bbox = {
+                            'x_min': bbox.get('x_min', 0.0),
+                            'x_max': bbox.get('x_max', 1.0),
+                            'y_min': bbox.get('y_min', 0.0) + (line_idx * line_height),
+                            'y_max': bbox.get('y_min', 0.0) + ((line_idx + 1) * line_height),
+                            'x_center': bbox.get('x_center', 0.5),
+                            'y_center': bbox.get('y_min', 0.0) + ((line_idx + 0.5) * line_height)
+                        }
+                        
+                        split_cells.append({
+                            'cell': cell,
+                            'row': cell_data['row'],
+                            'col': cell_data['col'],
+                            'bbox': line_bbox,
+                            'value': line,
+                            'is_split': True
+                        })
+            else:
+                # No newlines - keep as is
+                split_cells.append({
+                    'cell': cell,
+                    'row': cell_data['row'],
+                    'col': cell_data['col'],
+                    'bbox': cell_data['bbox'],
+                    'value': cell_value,
+                    'is_split': False
+                })
+        
+        logger.critical(f"📊 STEP 2 RESULT: {len(split_cells)} cells after newline splitting (from {len(cells_with_bbox)} original)")
+        
+        # STEP 3: SPATIAL INDEXING (assign row/column based on bbox)
+        logger.critical("=" * 80)
+        logger.critical(f"📊 STEP 3: SPATIAL INDEXING (assigning row/col based on bbox)")
+        logger.critical("=" * 80)
+        
+        # Group by Y-center for rows, X-center for columns
+        if split_cells:
+            # Sort by Y-center (top to bottom)
+            split_cells.sort(key=lambda c: c['bbox'].get('y_center', 0.0))
+            
+            # Log first 10 cells sorted by Y
+            logger.critical(f"   First 10 cells sorted by Y-center:")
+            for idx, cell_data in enumerate(split_cells[:10]):
+                val = str(cell_data.get('value', ''))[:30]
+                y = cell_data['bbox'].get('y_center', 0.0)
+                logger.critical(f"      [{idx}] Y={y:.4f} | '{val}'")
+            
+            # Group into rows using Y-threshold
+            # CRITICAL FIX: More lenient threshold to allow labels and values in same row
+            y_positions = [c['bbox'].get('y_center', 0.0) for c in split_cells]
+            if len(y_positions) > 1:
+                y_diffs = [abs(y_positions[i+1] - y_positions[i]) for i in range(len(y_positions)-1) if abs(y_positions[i+1] - y_positions[i]) > 0.001]
+                if y_diffs:
+                    avg_y_diff = sum(y_diffs) / len(y_diffs)
+                    # CRITICAL: Use 2.0x threshold to be very lenient
+                    # This allows labels and values that are close together to be in same row
+                    # For invoices/bills, labels and values are often on same visual line
+                    y_threshold = avg_y_diff * 2.0
+                    logger.critical(f"   Y-threshold calculation:")
+                    logger.critical(f"      avg_y_diff: {avg_y_diff:.4f}")
+                    logger.critical(f"      y_threshold (2.0x): {y_threshold:.4f}")
+                else:
+                    y_threshold = 0.03  # Increased default
+                    logger.critical(f"   Using default Y-threshold: {y_threshold:.4f}")
+            else:
+                y_threshold = 0.03  # Increased default
+                logger.critical(f"   Using default Y-threshold (single cell): {y_threshold:.4f}")
+            
+            rows_groups = []
+            if split_cells:
+                current_row = [split_cells[0]]
+                current_y = split_cells[0]['bbox'].get('y_center', 0.0)
+                
+                for cell_data in split_cells[1:]:
+                    cell_y = cell_data['bbox'].get('y_center', 0.0)
+                    y_diff = abs(cell_y - current_y)
+                    
+                    if y_diff <= y_threshold:
+                        # Same row
+                        current_row.append(cell_data)
+                    else:
+                        # New row
+                        rows_groups.append(current_row)
+                        current_row = [cell_data]
+                        current_y = cell_y
+                
+                if current_row:
+                    rows_groups.append(current_row)
+            
+            logger.critical("=" * 80)
+            logger.critical(f"📊 SPATIAL INDEXING RESULT:")
+            logger.critical(f"   Detected rows: {len(rows_groups)}")
+            logger.critical("=" * 80)
+            
+            # Assign row/column indices
+            for row_idx, row_group in enumerate(rows_groups):
+                # Sort within row by X-center (left to right)
+                row_group.sort(key=lambda c: c['bbox'].get('x_center', 0.0))
+                
+                # Log first 10 rows
+                if row_idx < 10:
+                    logger.critical(f"   Row {row_idx}: {len(row_group)} cells")
+                    for col_idx, cell_data in enumerate(row_group[:5]):  # First 5 cells per row
+                        val = str(cell_data.get('value', ''))[:30]
+                        x = cell_data['bbox'].get('x_center', 0.0)
+                        logger.critical(f"      Col {col_idx}: X={x:.4f} | '{val}'")
+                
+                for col_idx, cell_data in enumerate(row_group):
+                    cell_data['final_row'] = row_idx
+                    cell_data['final_col'] = col_idx
+        else:
+            rows_groups = []
+            logger.critical("=" * 80)
+            logger.critical("❌ NO CELLS AFTER SPLITTING - EMPTY LAYOUT!")
+            logger.critical("=" * 80)
+        
+        # STEP 4: Build UnifiedLayout with spatial indices
         layout = UnifiedLayout(page_index=page_index)
         
         # Store metadata
@@ -1225,12 +1422,19 @@ class TablePostProcessor:
         layout.metadata['header_row_indices'] = processed_table.header_row_indices
         layout.metadata['table_confidence'] = processed_table.table_confidence
         layout.metadata['avg_line_height'] = processed_table.avg_line_height
+        layout.metadata['spatial_indexing_applied'] = True
         
-        # Convert rows
-        for row_idx, row_cells in enumerate(processed_table.rows):
-            unified_cells = []
+        # Build rows with spatial indices
+        max_row_idx = max((c.get('final_row', -1) for c in split_cells), default=-1)
+        if max_row_idx >= 0:
+            layout.rows = [[] for _ in range(max_row_idx + 1)]
             
-            for processed_cell in row_cells:
+            for cell_data in split_cells:
+                processed_cell = cell_data['cell']
+                final_row = cell_data.get('final_row', 0)
+                final_col = cell_data.get('final_col', 0)
+                cell_value = cell_data.get('value', str(processed_cell.value) if processed_cell.value else '')
+                
                 # Convert style
                 cell_style = CellStyle(
                     bold=processed_cell.is_bold or processed_cell.is_header,
@@ -1239,33 +1443,281 @@ class TablePostProcessor:
                     background_color="4472C4" if processed_cell.is_header else None
                 )
                 
-                # Create unified cell
+                # Create unified cell with SPATIAL indices (not original row/col)
                 unified_cell = Cell(
-                    row=row_idx,
-                    column=processed_cell.column,
-                    value=processed_cell.value,
+                    row=final_row,  # SPATIAL row index
+                    column=final_col,  # SPATIAL column index
+                    value=cell_value,
                     style=cell_style,
-                    rowspan=processed_cell.rowspan,
-                    colspan=processed_cell.colspan,
-                    merged=(processed_cell.rowspan > 1 or processed_cell.colspan > 1)
+                    rowspan=1,  # Reset spans after spatial indexing
+                    colspan=1,
+                    merged=False
                 )
                 
-                unified_cells.append(unified_cell)
-                
-                # Add merged cell range if needed
-                if processed_cell.rowspan > 1 or processed_cell.colspan > 1:
-                    end_row = row_idx + processed_cell.rowspan - 1
-                    end_col = processed_cell.column + processed_cell.colspan - 1
-                    layout.add_merged_cell(
-                        start_row=row_idx,
-                        start_col=processed_cell.column,
-                        end_row=end_row,
-                        end_col=end_col
-                    )
-            
-            if unified_cells:
-                layout.add_row(unified_cells)
+                if 0 <= final_row <= max_row_idx:
+                    layout.rows[final_row].append(unified_cell)
+        else:
+            logger.warning("No valid rows after spatial indexing - creating empty layout")
         
-        logger.info(f"Converted ProcessedTable to UnifiedLayout: {len(layout.rows)} rows")
+        # Sort cells within each row by column
+        for row in layout.rows:
+            row.sort(key=lambda c: c.column)
+        
+        # Log final layout build result
+        logger.critical("=" * 80)
+        logger.critical(f"📊 STEP 4 RESULT: UnifiedLayout Built")
+        logger.critical(f"   Total rows in layout: {len(layout.rows)}")
+        logger.critical(f"   Total cells in layout: {sum(len(row) for row in layout.rows)}")
+        
+        if layout.rows:
+            max_row = max(max(cell.row for cell in row) if row else -1 for row in layout.rows)
+            max_col = max(max(cell.column for cell in row) if row else -1 for row in layout.rows)
+            logger.critical(f"   max_row: {max_row}, max_col: {max_col}")
+            
+            # Log first 10 rows
+            logger.critical(f"   First 10 rows:")
+            for row_idx, row in enumerate(layout.rows[:10]):
+                cells_info = [f"({c.row},{c.column})='{str(c.value)[:20]}'" for c in row[:3]]
+                logger.critical(f"      Row {row_idx}: {len(row)} cells | {', '.join(cells_info)}")
+        else:
+            logger.critical("   ❌ LAYOUT IS EMPTY!")
+        
+        logger.critical("=" * 80)
+        
+        # STEP 4.5: POST-PROCESSING - Label-Value Pairing for Multi-Column Layouts
+        # CRITICAL FIX: Merge adjacent rows where Col1 has label and next row Col1 has value
+        # NOTE: This runs BEFORE layout is frozen, so we can mutate row/column indices
+        logger.critical("=" * 80)
+        logger.critical("🔧 POST-PROCESSING: Applying label-value pairing (BEFORE FREEZE)")
+        logger.critical("=" * 80)
+        
+        # Check if Col2 is mostly empty
+        rows_with_col2 = set()
+        all_cells_flat = []
+        for row in layout.rows:
+            for cell in row:
+                all_cells_flat.append(cell)
+                if cell.column >= 1:
+                    rows_with_col2.add(cell.row)
+        
+        total_rows = len(layout.rows)
+        col2_coverage = len(rows_with_col2) / total_rows if total_rows > 0 else 0
+        
+        logger.critical(f"Col2 coverage: {col2_coverage:.1%}, Total rows: {total_rows}")
+        
+        # CRITICAL: Always apply label-value pairing if Col2 coverage is low OR if we have many rows with empty Col2
+        rows_with_empty_col2 = total_rows - len(rows_with_col2)
+        empty_col2_ratio = rows_with_empty_col2 / total_rows if total_rows > 0 else 0
+        
+        logger.critical(f"Rows with empty Col2: {rows_with_empty_col2} ({empty_col2_ratio:.1%})")
+        
+        # Apply if: Col2 coverage is low OR many rows have empty Col2
+        # CRITICAL: ALWAYS apply for ANY document with empty Col2 rows (most aggressive)
+        should_apply = (col2_coverage < 0.7 or empty_col2_ratio > 0.3) and total_rows >= 3
+        logger.critical(f"Condition check: col2_coverage < 0.7 = {col2_coverage < 0.7}, empty_col2_ratio > 0.3 = {empty_col2_ratio > 0.3}, total_rows >= 3 = {total_rows >= 3}")
+        logger.critical(f"Should apply label-value pairing: {should_apply}")
+        
+        # CRITICAL: ALWAYS apply if we have ANY rows with empty Col2 (MOST AGGRESSIVE)
+        if should_apply or (empty_col2_ratio > 0.2 and total_rows >= 3):
+            logger.critical(f"✅ APPLYING label-value pairing (Col2 coverage: {col2_coverage:.1%}, Empty Col2 ratio: {empty_col2_ratio:.1%})")
+            
+            # Label patterns (same as unified_layout_model)
+            import re
+            label_patterns = [
+                r'name\s+of\s+the\s+customer', r'biller\s+name', r'biller\s+id', r'consumer\s+number',
+                r'mobile\s+number', r'payment\s+mode', r'payment\s+status', r'payment\s+channel',
+                r'approval\s+ref\s+no', r'approval\s+ref', r'customer\s+convenience\s+fee',
+                r'biller\s+platform\s+fee', r'digital\s+fee', r'date', r'amount', r'total', r'transaction',
+                r'account', r'address', r'email', r'phone', r'id', r'number', r'b-connect\s+txn\s+id',
+                r'receipt', r'invoice', r'bill', r'agent', r'merchant', r'customer', r'consumer',
+                r'नाम', r'पिता', r'पति', r'आधार', r'जाती', r'कार्ड', r'प्रकार', r'समग्र', r'परिवार', r'क्र'
+            ]
+            
+            # Sort cells by row
+            all_cells_flat.sort(key=lambda c: (c.row, c.column))
+            
+            # Group by row
+            cells_by_row = {}
+            for cell in all_cells_flat:
+                if cell.row not in cells_by_row:
+                    cells_by_row[cell.row] = []
+                cells_by_row[cell.row].append(cell)
+            
+            # Process adjacent rows for label-value pairing
+            merged_cells = []
+            rows_to_remove = set()
+            row_idx = 0
+            
+            sorted_row_indices = sorted(cells_by_row.keys())
+            logger.critical(f"Processing {len(sorted_row_indices)} rows for label-value pairing")
+            logger.critical(f"Row indices: {sorted_row_indices[:10]}...")
+            
+            i = 0
+            merge_attempts = 0
+            successful_merges = 0
+            
+            while i < len(sorted_row_indices):
+                current_row_idx = sorted_row_indices[i]
+                current_row_cells = cells_by_row[current_row_idx]
+                
+                # Get Col1 cell (label candidate)
+                col1_cell = next((c for c in current_row_cells if c.column == 0), None)
+                col2_cell = next((c for c in current_row_cells if c.column >= 1), None)
+                
+                # CRITICAL: Check if Col1 has content but Col2 is empty or missing
+                if col1_cell and (not col2_cell or not (col2_cell.value and str(col2_cell.value).strip())):
+                    # Col1 has content, Col2 is empty - might be a label
+                    current_value = str(col1_cell.value).strip() if col1_cell.value else ""
+                    current_value_lower = current_value.lower()
+                    
+                    is_label = any(re.search(pattern, current_value_lower) for pattern in label_patterns)
+                    is_short = len(current_value) < 50
+                    has_colon = ':' in current_value
+                    is_all_caps = current_value.isupper() and len(current_value) > 1
+                    
+                    # CRITICAL: Enhanced label detection - check for common label keywords
+                    has_label_keywords = any(keyword in current_value_lower for keyword in 
+                                           ['name', 'id', 'number', 'date', 'amount', 'status', 'channel', 
+                                            'mode', 'fee', 'ref', 'approval', 'biller', 'customer', 'payment',
+                                            'agent', 'transaction', 'consumer', 'mobile'])
+                    
+                    is_likely_label = (is_label or has_label_keywords or
+                                     (is_short and has_colon) or
+                                     (is_short and ' ' in current_value and not is_all_caps and not current_value.replace(' ', '').isdigit()))
+                    
+                    if i < 15:  # Log first 15 rows to avoid too much output
+                        logger.critical(f"Row {current_row_idx}: Checking '{current_value[:40]}' - is_label={is_label}, has_keywords={has_label_keywords}, is_likely={is_likely_label}")
+                    
+                    if is_likely_label and i + 1 < len(sorted_row_indices):
+                        merge_attempts += 1
+                        # Check next row
+                        next_row_idx = sorted_row_indices[i + 1]
+                        next_row_cells = cells_by_row[next_row_idx]
+                        next_col1_cell = next((c for c in next_row_cells if c.column == 0), None)
+                        next_col2_cell = next((c for c in next_row_cells if c.column == 1), None)
+                        
+                        next_col2_cell_check = next((c for c in next_row_cells if c.column >= 1), None)
+                        next_has_col2 = next_col2_cell_check and (next_col2_cell_check.value and str(next_col2_cell_check.value).strip())
+                        
+                        if merge_attempts <= 10:  # Log first 10 merge attempts
+                            logger.critical(f"  -> Row {current_row_idx} is label, checking Row {next_row_idx} for value")
+                            logger.critical(f"     Next Col1: {str(next_col1_cell.value)[:40] if next_col1_cell else 'None'}")
+                            logger.critical(f"     Next has Col2: {next_has_col2}")
+                        
+                        if next_col1_cell and not next_has_col2:
+                            # Next row also has Col1 only or empty Col2 - might be value
+                            next_value = str(next_col1_cell.value).strip() if next_col1_cell.value else ""
+                            next_value_lower = next_value.lower()
+                            next_is_label = any(re.search(pattern, next_value_lower) for pattern in label_patterns)
+                            
+                            # CRITICAL: Also check if next value looks like a value (not a label)
+                            # Values are usually: numbers, long text, or specific formats
+                            is_numeric = next_value.replace('.', '').replace('-', '').replace(' ', '').isdigit()
+                            is_long_text = len(next_value) > 20
+                            is_date_like = any(x in next_value for x in ['-', '/', 'DEC', 'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV'])
+                            
+                            # CRITICAL: More lenient value detection
+                            # Values can be: numbers, long text, dates, or any non-label text
+                            is_value = (is_numeric or is_long_text or is_date_like or 
+                                      len(next_value) > 3 or 
+                                      (not next_is_label and next_value and not next_value.replace(' ', '').isdigit()))
+                            
+                            if not next_is_label and is_value:
+                                # Current is label, next is value - merge them
+                                successful_merges += 1
+                                if successful_merges <= 10:  # Log first 10 successful merges
+                                    logger.critical(f"  -> ✅ MERGING: Row {current_row_idx} (label='{current_value[:30]}') + Row {next_row_idx} (value='{next_value[:30]}') into Row {row_idx}")
+                                
+                                col1_cell.row = row_idx
+                                col1_cell.column = 0
+                                
+                                next_col1_cell.row = row_idx
+                                next_col1_cell.column = 1
+                                
+                                merged_cells.append(col1_cell)
+                                merged_cells.append(next_col1_cell)
+                                
+                                # Add any other cells from current row
+                                for cell in current_row_cells:
+                                    if cell.column != 0:
+                                        cell.row = row_idx
+                                        merged_cells.append(cell)
+                                
+                                rows_to_remove.add(current_row_idx)
+                                rows_to_remove.add(next_row_idx)
+                                row_idx += 1
+                                i += 2  # Skip both rows
+                                continue
+                            elif merge_attempts <= 10:
+                                logger.critical(f"  -> ❌ NOT MERGING: next_is_label={next_is_label}, is_value={is_value}, next_value='{next_value[:30]}'")
+                
+                # Not a label-value pair, keep as is
+                # CRITICAL: Only add cells that weren't already merged
+                if current_row_idx not in rows_to_remove:
+                    for cell in current_row_cells:
+                        # CRITICAL: Don't re-add cells that were already added in merge
+                        # Check if this cell was already added
+                        cell_already_added = any(id(c) == id(cell) for c in merged_cells)
+                        if not cell_already_added:
+                            cell.row = row_idx
+                            merged_cells.append(cell)
+                    row_idx += 1
+                i += 1
+            
+            # Rebuild layout with merged cells
+            if merged_cells:
+                max_row_idx = max(c.row for c in merged_cells)
+                new_rows = [[] for _ in range(max_row_idx + 1)]
+                
+                for cell in merged_cells:
+                    if 0 <= cell.row <= max_row_idx:
+                        new_rows[cell.row].append(cell)
+                
+                # Sort cells within each row by column
+                for row in new_rows:
+                    row.sort(key=lambda c: c.column)
+                
+                # Remove empty rows
+                new_rows = [row for row in new_rows if row]
+                
+                # Re-assign row indices
+                final_cells = []
+                for new_row_idx, row in enumerate(new_rows):
+                    for cell in row:
+                        cell.row = new_row_idx
+                        final_cells.append(cell)
+                
+                layout.rows = new_rows
+                logger.critical("=" * 80)
+                logger.critical(f"POST-PROCESSING: Label-Value Pairing Complete")
+                logger.critical(f"   Merge attempts: {merge_attempts}")
+                logger.critical(f"   Successful merges: {successful_merges}")
+                logger.critical(f"   Rows removed: {len(rows_to_remove)}")
+                logger.critical(f"   Final layout: {len(new_rows)} rows (was {total_rows})")
+                logger.critical(f"   Unique merged cells: {len(unique_merged_cells)}")
+                logger.critical("=" * 80)
+        
+        # STEP 5: QUALITY FAIL-SAFE - Reject invalid layouts
+        max_row = layout.get_max_row()
+        max_col = layout.get_max_column()
+        
+        if max_row < 0 or max_col < 0:
+            logger.critical("=" * 80)
+            logger.critical("❌ QUALITY FAIL-SAFE: Layout has invalid dimensions")
+            logger.critical(f"   max_row={max_row}, max_col={max_col}")
+            logger.critical("   BLANK EXCEL IS NEVER A VALID RESULT")
+            logger.critical("=" * 80)
+            raise TableExtractionFailed(f"Layout has invalid dimensions: max_row={max_row}, max_col={max_col}")
+        
+        # STEP 6: FREEZE LAYOUT - Mark as frozen (no further row/column mutation)
+        layout.metadata['frozen'] = True
+        layout.metadata['spatial_indexing_applied'] = True
+        
+        logger.critical("=" * 80)
+        logger.critical(f"CONVERT_TO_UNIFIED_LAYOUT: Complete")
+        logger.critical(f"   Rows: {max_row + 1}, Columns: {max_col + 1}")
+        logger.critical(f"   Layout FROZEN - no further row/column mutation allowed")
+        logger.critical("=" * 80)
+        
         return layout
 

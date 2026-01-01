@@ -111,10 +111,14 @@ class LayoutDecisionEngine:
             processor_type=processor_type
         )
         logger.critical(f"🔍 LAYOUT DECISION ENGINE: DecisionRouter returned mode={self.selected_mode.value}, reason={self.routing_reason}")
-        logger.info(f"Selected mode: {self.selected_mode.value}")
-        logger.info(f"Routing confidence: {self.routing_confidence:.2f}")
-        logger.info(f"Routing reason: {self.routing_reason}")
-        logger.info("=" * 80)
+        logger.critical("=" * 80)
+        logger.critical(f"📊 EXECUTION MODE SELECTED:")
+        logger.critical(f"   Mode: {self.selected_mode.value}")
+        logger.critical(f"   Confidence: {self.routing_confidence:.2f}")
+        logger.critical(f"   Reason: {self.routing_reason}")
+        logger.critical(f"   Native tables: {len(native_tables) if native_tables else 0}")
+        logger.critical(f"   Document type: {doc_type.value}")
+        logger.critical("=" * 80)
         
         # Step 4: Process each page using the selected mode
         if not hasattr(document, 'pages') or not document.pages:
@@ -169,6 +173,10 @@ class LayoutDecisionEngine:
             
             # EXECUTE ONLY THE SELECTED MODE - No fallbacks, no downgrades
             # STEP-11: Exception: TABLE_STRICT can fallback to GEOMETRIC_HYBRID if it fails
+            logger.critical("=" * 80)
+            logger.critical(f"📊 EXECUTING MODE: {self.selected_mode.value} for Page {page_idx + 1}")
+            logger.critical("=" * 80)
+            
             try:
                 if self.selected_mode == ExecutionMode.TABLE_STRICT:
                     page_layout = self._execute_table_strict_mode(
@@ -291,34 +299,221 @@ class LayoutDecisionEngine:
                 original_blocks = page_structure.get('blocks', []) if page_structure else []
                 page_count = len(full_structure.get('pages', [])) if isinstance(full_structure.get('pages'), list) else 1
                 
-                # Step 1: Apply Column Governor (prevent extra columns) - HARD SEMANTIC LOCK
-                # Get filename from metadata or use default
+                # ENTERPRISE RULE: Post-processors MUST NOT mutate row/column indices if layout is FROZEN
+                # Layout is FROZEN after spatial indexing in convert_to_unified_layout (TABLE_STRICT mode)
+                is_frozen = page_layout.metadata.get('frozen', False)
+                
+                # Get document type for post-processing
                 filename = getattr(self, 'filename', '') or full_structure.get('filename', '') or ''
                 document_type = self._detect_document_type(document_text, filename)
-                column_governor = ColumnGovernor()
-                page_layout = column_governor.apply_governor(
-                    page_layout, 
-                    document_type, 
-                    original_blocks=original_blocks,
-                    page_count=page_count
-                )
                 
-                # Step 2: Apply Row Locker (prevent word spill) - ZERO WORD SPILL
-                row_locker = RowLocker(overlap_threshold=0.7)
-                page_layout = row_locker.enforce_row_boundaries(page_layout, original_blocks=original_blocks)
+                # CRITICAL: Detect complex form types (application forms, government forms)
+                complex_form_type = self._detect_complex_form_type(document_text, filename)
+                page_layout.metadata['complex_form_type'] = complex_form_type
                 
-                # Step 3: Clean empty rows and columns (NO fake rows/columns)
-                layout_cleaner = LayoutCleaner()
-                page_layout = layout_cleaner.clean(page_layout)
+                # CRITICAL: Check if this document requires 2-column structure
+                requires_2_cols = self._requires_2_columns(document_text, filename)
                 
-                # Step 6: Enforce font consistency (one row = one font) - STRICT ROW FONT POLICY
-                font_enforcer = FontConsistencyEnforcer()
-                page_layout = font_enforcer.enforce_per_row(page_layout)
+                if is_frozen:
+                    logger.critical(f"Page {page_idx + 1}: Layout is FROZEN - post-processors will NOT mutate row/column indices")
+                    # Post-processors may only:
+                    # - Remove empty rows/columns (LayoutCleaner)
+                    # - Clean formatting
+                    # - NOT change row/column indices
+                    
+                    # DYNAMIC STRUCTURE: Preserve natural structure for frozen layouts
+                    # Only clean empty rows/columns, don't force column count
+                    layout_cleaner = LayoutCleaner()
+                    page_layout = layout_cleaner.clean(page_layout)  # Only removes empty rows/cols, preserves structure
+                    
+                    # CRITICAL FIX: Apply label-value pairing even for frozen layouts
+                    # This is safe because it only merges adjacent rows, doesn't change spatial indices
+                    # It rebuilds the layout but preserves the row/column assignments
+                    logger.critical(f"Page {page_idx + 1}: Applying label-value pairing to FROZEN layout (safe merge)")
+                    page_layout = self._apply_label_value_pairing_post_processing(page_layout, document_type)
+                else:
+                    # Layout not frozen - apply all post-processors (for non-TABLE_STRICT modes)
+                    # Step 1: Apply Column Governor (prevent extra columns) - HARD SEMANTIC LOCK
+                    column_governor = ColumnGovernor()
+                    page_layout = column_governor.apply_governor(
+                        page_layout, 
+                        document_type, 
+                        original_blocks=original_blocks,
+                        page_count=page_count
+                    )
+                    
+                    # Step 2: Apply Row Locker (prevent word spill) - ZERO WORD SPILL
+                    row_locker = RowLocker(overlap_threshold=0.7)
+                    page_layout = row_locker.enforce_row_boundaries(page_layout, original_blocks=original_blocks)
+                    
+                    # Step 3: Clean empty rows and columns (NO fake rows/columns)
+                    layout_cleaner = LayoutCleaner()
+                    page_layout = layout_cleaner.clean(page_layout)
+                    
+                    # Step 6: Enforce font consistency (one row = one font) - STRICT ROW FONT POLICY
+                    font_enforcer = FontConsistencyEnforcer()
+                    page_layout = font_enforcer.enforce_per_row(page_layout)
+                    
+                    # Step 7: Apply label-value pairing post-processing (for all modes)
+                    # CRITICAL: This fixes label-value pairs split across rows
+                    page_layout = self._apply_label_value_pairing_post_processing(page_layout, document_type)
+                
+                # DYNAMIC STRUCTURE: Preserve natural column/row structure
+                # Only apply minimal cleanup - don't force column count
+                max_col = page_layout.get_max_column()
+                total_rows = len(page_layout.rows) if page_layout.rows else 0
+                
+                # Only apply splitting for single-column layouts with colon patterns
+                # Multi-column layouts keep their natural structure
+                should_split_single_col = False
+                if max_col == 0 and total_rows > 1:  # Single column with multiple rows
+                    # Check if any cells contain colons (label:value pattern)
+                    has_colon_pattern = False
+                    for row in page_layout.rows:
+                        for cell in row:
+                            if cell.value and ':' in str(cell.value):
+                                has_colon_pattern = True
+                                break
+                        if has_colon_pattern:
+                            break
+                    should_split_single_col = has_colon_pattern  # Only split if colon pattern detected
+                
+                if should_split_single_col and total_rows > 0:
+                    logger.critical("=" * 80)
+                    logger.critical(f"📊 SPLITTING: Single column with colon pattern → 2 columns (Page {page_idx + 1})")
+                    logger.critical(f"   Original: {total_rows} rows × 1 column")
+                    logger.critical("=" * 80)
+                    
+                    split_layout = UnifiedLayout(page_index=page_layout.page_index)
+                    split_layout.metadata = page_layout.metadata.copy()
+                    split_layout.metadata['columns_split'] = True
+                    
+                    new_row_idx = 0
+                    for orig_row in page_layout.rows:
+                        if not orig_row:
+                            continue
+                        
+                        # Collect all non-empty cells from original row
+                        non_empty = [cell for cell in orig_row if cell.value and str(cell.value).strip()]
+                        
+                        if not non_empty:
+                            continue  # Skip completely empty rows
+                        
+                        # Single column: Split on colon
+                        cell_text = str(non_empty[0].value).strip()
+                        if ':' in cell_text:
+                            # Split on colon
+                            parts = cell_text.split(':', 1)
+                            label_text = parts[0].strip()
+                            value_text = parts[1].strip() if len(parts) > 1 else ''
+                            
+                            label_cell = Cell(
+                                row=new_row_idx,
+                                column=0,
+                                value=label_text,
+                                style=non_empty[0].style
+                            )
+                            value_cell = Cell(
+                                row=new_row_idx,
+                                column=1,
+                                value=value_text,
+                                style=non_empty[0].style
+                            )
+                            
+                            split_layout.add_row([label_cell, value_cell])
+                            new_row_idx += 1
+                        else:
+                            # No colon - keep as single column
+                            single_cell = Cell(
+                                row=new_row_idx,
+                                column=0,
+                                value=cell_text,
+                                style=non_empty[0].style
+                            )
+                            split_layout.add_row([single_cell])
+                            new_row_idx += 1
+                    
+                    if len(split_layout.rows) > 0:
+                        page_layout = split_layout
+                        logger.critical(f"📊 SPLIT RESULT: {len(page_layout.rows)} rows × {page_layout.get_max_column() + 1} columns")
+                    else:
+                        logger.critical(f"⚠️  SPLIT: No rows after splitting - keeping original layout")
+                    logger.critical("=" * 80)
                 
                 # Step 7: Apply cell value splitting for cases like Nov 2018 PDF
                 # Split cells that contain multiple values (e.g., "502702 30-01-2019 20:50 1922021539")
                 from .cell_value_splitter import apply_cell_splitting
                 page_layout = apply_cell_splitting(page_layout, max_columns_per_row=10)
+                
+                # STEP 8: Force 2 columns for specific document types (Resume, Spicemoney, Pan Link, Fee Receipt)
+                if requires_2_cols:
+                    max_col = page_layout.get_max_column()
+                    total_rows = len(page_layout.rows) if page_layout.rows else 0
+                    
+                    if max_col >= 2 and total_rows > 0:
+                        logger.critical("=" * 80)
+                        logger.critical(f"📊 FORCING 2 COLUMNS: {filename} (Page {page_idx + 1})")
+                        logger.critical(f"   Original: {total_rows} rows × {max_col + 1} columns")
+                        logger.critical("=" * 80)
+                        
+                        trimmed_layout = UnifiedLayout(page_index=page_layout.page_index)
+                        trimmed_layout.metadata = page_layout.metadata.copy()
+                        trimmed_layout.metadata['forced_2_columns'] = True
+                        trimmed_layout.metadata['original_columns'] = max_col + 1
+                        
+                        new_row_idx = 0
+                        for orig_row in page_layout.rows:
+                            if not orig_row:
+                                continue
+                            
+                            # Collect all non-empty cells from original row
+                            non_empty = [cell for cell in orig_row if cell.value and str(cell.value).strip()]
+                            
+                            if not non_empty:
+                                continue  # Skip completely empty rows
+                            
+                            # Strategy: Pair consecutive cells as label-value
+                            # If odd number of cells, last one gets empty value
+                            i = 0
+                            while i < len(non_empty):
+                                label_cell = non_empty[i]
+                                value_cell = non_empty[i + 1] if i + 1 < len(non_empty) else None
+                                
+                                # Create label cell (column 0)
+                                label = Cell(
+                                    row=new_row_idx,
+                                    column=0,
+                                    value=label_cell.value,
+                                    style=label_cell.style
+                                )
+                                
+                                # Create value cell (column 1)
+                                if value_cell:
+                                    value = Cell(
+                                        row=new_row_idx,
+                                        column=1,
+                                        value=value_cell.value,
+                                        style=value_cell.style
+                                    )
+                                else:
+                                    value = Cell(
+                                        row=new_row_idx,
+                                        column=1,
+                                        value='',
+                                        style=CellStyle(alignment_horizontal=CellAlignment.LEFT)
+                                    )
+                                
+                                trimmed_layout.add_row([label, value])
+                                new_row_idx += 1
+                                i += 2  # Move to next pair
+                        
+                        # Safety check: Only use trimmed layout if it has reasonable number of rows
+                        if len(trimmed_layout.rows) > 0 and len(trimmed_layout.rows) >= (total_rows * 0.3):
+                            page_layout = trimmed_layout
+                            logger.critical(f"📊 FORCED 2 COLUMNS RESULT: {len(page_layout.rows)} rows × 2 columns")
+                        else:
+                            logger.critical(f"⚠️  Trimming resulted in {len(trimmed_layout.rows)} rows (expected ~{total_rows}) - keeping original layout")
+                        logger.critical("=" * 80)
                 
                 # DEBUG LOGS: Final column count, row count, mode selected
                 final_cols = page_layout.get_max_column() + 1 if not page_layout.is_empty() else 0
@@ -329,16 +524,38 @@ class LayoutDecisionEngine:
                 logger.critical(f"   Final columns: {final_cols}")
                 logger.critical(f"   Final rows: {final_rows}")
                 logger.critical(f"   Document type: {document_type}")
+                logger.critical(f"   Requires 2 columns: {requires_2_cols}")
                 logger.critical(f"   Forced override: {'KEY_VALUE_STRICT' in self.routing_reason}")
                 logger.critical("=" * 80)
                 
                 page_layouts.append(page_layout)
                 
             except Exception as e:
-                logger.error(f"Error processing page {page_idx + 1} with mode {self.selected_mode.value}: {str(e)}")
                 import traceback
-                logger.error(f"Traceback: {traceback.format_exc()}")
-                # Fail-safe: Return minimal layout instead of crashing
+                logger.error(f"Error processing page {page_idx + 1} with mode {self.selected_mode.value}: {str(e)}")
+                logger.error(f"Full traceback:\n{traceback.format_exc()}")
+                
+                # Try PLAIN_TEXT fallback before minimal fallback
+                if document_text and len(document_text.strip()) > 10:
+                    try:
+                        logger.critical(f"🔄 Attempting PLAIN_TEXT fallback for Page {page_idx + 1}")
+                        page_layout = self._execute_plain_text_mode(
+                            page=page,
+                            document_text=document_text,
+                            page_idx=page_idx,
+                            page_structure=page_structure
+                        )
+                        page_layout.metadata['execution_mode'] = 'plain_text_fallback'
+                        page_layout.metadata['original_mode'] = self.selected_mode.value
+                        page_layout.metadata['fallback_reason'] = f'Exception in {self.selected_mode.value}: {str(e)}'
+                        page_layout.metadata['error'] = str(e)
+                        page_layouts.append(page_layout)
+                        continue
+                    except Exception as fallback_error:
+                        logger.error(f"PLAIN_TEXT fallback also failed: {fallback_error}")
+                
+                # Last resort: minimal fallback
+                logger.critical(f"⚠️  Creating minimal fallback for Page {page_idx + 1}")
                 page_layout = self._create_minimal_fallback_layout(page_idx, document_text, 'docai')
                 page_layout.metadata['execution_mode'] = self.selected_mode.value
                 page_layout.metadata['error'] = str(e)
@@ -438,11 +655,16 @@ class LayoutDecisionEngine:
         Execute TABLE_STRICT mode: Trust DocAI structure, preserve row/column spans.
         STEP-11: Automatic fallback to GEOMETRIC_HYBRID if TABLE_STRICT fails.
         """
-        logger.info(f"Page {page_idx + 1}: Executing TABLE_STRICT mode")
+        logger.critical("=" * 80)
+        logger.critical(f"🔍 TABLE_STRICT MODE: Page {page_idx + 1}")
+        logger.critical("=" * 80)
         
         if not page_tables:
-            logger.warning(f"Page {page_idx + 1}: TABLE_STRICT mode but no tables found")
+            logger.critical(f"❌ TABLE_STRICT: No tables found on Page {page_idx + 1}")
+            logger.critical("   Returning empty layout - will trigger fallback")
             return self._create_empty_layout(page_idx)
+        
+        logger.critical(f"✅ TABLE_STRICT: Found {len(page_tables)} table(s) on Page {page_idx + 1}")
         
         # STEP-14: Store detected_tables_count in metadata
         detected_tables_count = len(page_tables) if page_tables else 0
@@ -479,10 +701,18 @@ class LayoutDecisionEngine:
             doc_type = self.classifier.classify(None, document_text) if hasattr(self, 'classifier') else None
             doc_type_value = doc_type.value if doc_type else ""
             
+            # CRITICAL: Use Adobe for complex forms (application forms, government forms)
+            complex_form_type = self._detect_complex_form_type(document_text, filename)
+            requires_adobe = complex_form_type in ['application_form', 'government_form', 'mixed_column_form']
+            
             should_use_adobe = (
+                requires_adobe or
                 ocr_confidence < 0.85 or
                 doc_type_value in ["invoice", "bank_statement", "receipt"]
             )
+            
+            if requires_adobe:
+                logger.critical(f"🚨 Complex form detected ({complex_form_type}) - Adobe fallback recommended")
             
             if should_use_adobe:
                 logger.critical("=" * 80)
@@ -638,7 +868,7 @@ class LayoutDecisionEngine:
         - Prevents fake or empty rows/columns
         """
         logger.critical("=" * 80)
-        logger.critical(f"Page {page_idx + 1}: Executing GEOMETRIC_HYBRID mode")
+        logger.critical(f"🔍 GEOMETRIC_HYBRID MODE: Page {page_idx + 1}")
         logger.critical("Building unlimited geometric grid from OCR blocks")
         logger.critical("=" * 80)
         
@@ -648,19 +878,30 @@ class LayoutDecisionEngine:
         
         # Get blocks for this page
         blocks = []
+        logger.critical(f"📊 STEP 1: Getting blocks for Page {page_idx + 1}")
+        
         if page_structure and 'blocks' in page_structure:
             blocks = page_structure['blocks']
+            logger.critical(f"   ✅ Found {len(blocks)} blocks in page_structure")
         elif 'logical_cells' in full_structure:
             # Use logical cells if available
             blocks = full_structure['logical_cells']
+            logger.critical(f"   ✅ Found {len(blocks)} logical_cells in full_structure")
         elif 'blocks' in full_structure:
             blocks = full_structure['blocks']
+            logger.critical(f"   ✅ Found {len(blocks)} blocks in full_structure")
+        else:
+            logger.critical(f"   ❌ No blocks found in page_structure or full_structure")
         
         if not blocks or len(blocks) == 0:
-            logger.warning(f"Page {page_idx + 1}: GEOMETRIC_HYBRID - No blocks available")
+            logger.critical(f"❌ GEOMETRIC_HYBRID: No blocks available - returning empty layout")
+            logger.critical(f"   page_structure keys: {list(page_structure.keys()) if page_structure else 'None'}")
+            logger.critical(f"   full_structure keys: {list(full_structure.keys()) if full_structure else 'None'}")
+            logger.critical(f"   page_structure type: {type(page_structure)}")
+            logger.critical(f"   full_structure type: {type(full_structure)}")
             return self._create_empty_layout(page_idx)
         
-        logger.critical(f"GEOMETRIC_HYBRID: Processing {len(blocks)} blocks")
+        logger.critical(f"✅ GEOMETRIC_HYBRID: Processing {len(blocks)} blocks")
         
         # Build grid using visual grid reconstruction but with unlimited columns
         # Reuse existing visual grid method but remove column limit
@@ -690,6 +931,95 @@ class LayoutDecisionEngine:
             page_idx=page_idx,
             page_structure=page_structure
         )
+    
+    def _detect_complex_form_type(self, document_text: str, filename: str = '') -> str:
+        """
+        Detect complex form types that need special handling.
+        
+        Returns:
+            'application_form' - Application forms with mixed columns (4, 3, 2)
+            'government_form' - Government forms with complex layouts
+            'mixed_column_form' - Forms with varying column counts
+            'standard' - Standard documents
+        """
+        text_lower = (document_text or '').lower()
+        filename_lower = (filename or '').lower()
+        
+        # Check for application forms
+        application_keywords = [
+            'application', 'staff selection commission', 'registration no',
+            'candidate', 'application completed', 'constable', 'ssc'
+        ]
+        if any(kw in filename_lower for kw in ['application', 'form']):
+            if any(kw in text_lower for kw in application_keywords):
+                logger.info("Complex form detected: Application Form (from filename + text)")
+                return 'application_form'
+        
+        # Check text content for application forms
+        if any(kw in text_lower for kw in ['staff selection commission', 'application completed', 'registration no:']):
+            logger.info("Complex form detected: Application Form (from text)")
+            return 'application_form'
+        
+        # Check for government forms
+        govt_keywords = ['government', 'ministry', 'department', 'commission', 'board']
+        if any(kw in text_lower for kw in govt_keywords) and ('form' in text_lower or 'application' in text_lower):
+            logger.info("Complex form detected: Government Form (from text)")
+            return 'government_form'
+        
+        return 'standard'
+    
+    def _requires_2_columns(self, document_text: str, filename: str = '') -> bool:
+        """
+        Check if document requires 2-column structure.
+        
+        Returns True for:
+        - Resume
+        - Spicemoney bill
+        - Pan Link Receipt
+        - Fee Receipt
+        
+        Returns False for:
+        - Application forms (they need natural structure)
+        - Complex forms with mixed columns
+        """
+        # Complex forms should NOT be forced to 2 columns
+        form_type = self._detect_complex_form_type(document_text, filename)
+        if form_type in ['application_form', 'government_form', 'mixed_column_form']:
+            logger.info(f"Complex form detected ({form_type}) - preserving natural structure")
+            return False
+        
+        text_lower = (document_text or '').lower()
+        filename_lower = (filename or '').lower()
+        
+        # Check filename first (most reliable)
+        if 'resume' in filename_lower:
+            logger.info("2-column required: Resume (from filename)")
+            return True
+        if 'spice' in filename_lower or 'spicemoney' in filename_lower:
+            logger.info("2-column required: Spicemoney (from filename)")
+            return True
+        if 'pan link' in filename_lower or 'panlink' in filename_lower:
+            logger.info("2-column required: Pan Link (from filename)")
+            return True
+        if 'fee rcpt' in filename_lower or 'fee receipt' in filename_lower or 'fee rcpt' in filename_lower:
+            logger.info("2-column required: Fee Receipt (from filename)")
+            return True
+        
+        # Check text content
+        if 'spice money' in text_lower or 'spicemoney' in text_lower or 'b-connect' in text_lower:
+            logger.info("2-column required: Spicemoney (from text)")
+            return True
+        if 'pan link' in text_lower or 'income tax department' in text_lower:
+            logger.info("2-column required: Pan Link (from text)")
+            return True
+        if 'fee receipt' in text_lower or 'enrollment no' in text_lower:
+            logger.info("2-column required: Fee Receipt (from text)")
+            return True
+        if 'resume' in text_lower or ('objective' in text_lower and 'education' in text_lower):
+            logger.info("2-column required: Resume (from text)")
+            return True
+        
+        return False
     
     def _detect_document_type(self, document_text: str, filename: str = '') -> str:
         """
@@ -746,6 +1076,218 @@ class LayoutDecisionEngine:
         
         logger.info("Document type detected: other")
         return 'other'
+    
+    def _apply_label_value_pairing_post_processing(self, layout: UnifiedLayout, document_type: str) -> UnifiedLayout:
+        """
+        Apply label-value pairing post-processing to fix labels and values split across rows.
+        This is called for ALL modes (not just TABLE_STRICT) to ensure consistent behavior.
+        """
+        logger.critical("=" * 80)
+        logger.critical("🔍 LABEL-VALUE PAIRING POST-PROCESSING - ENTRY")
+        logger.critical("=" * 80)
+        
+        # Check if Col2 is mostly empty
+        rows_with_col2 = set()
+        all_cells_flat = []
+        for row in layout.rows:
+            for cell in row:
+                all_cells_flat.append(cell)
+                if cell.column >= 1:
+                    rows_with_col2.add(cell.row)
+        
+        total_rows = len(layout.rows)
+        col2_coverage = len(rows_with_col2) / total_rows if total_rows > 0 else 0
+        rows_with_empty_col2 = total_rows - len(rows_with_col2)
+        empty_col2_ratio = rows_with_empty_col2 / total_rows if total_rows > 0 else 0
+        
+        logger.critical(f"📊 STATS: Total rows={total_rows}, Rows with Col2={len(rows_with_col2)}, Total cells={len(all_cells_flat)}")
+        logger.critical(f"📊 COVERAGE: Col2 coverage={col2_coverage:.1%}, Empty Col2 ratio={empty_col2_ratio:.1%}")
+        
+        # Apply if: Col2 coverage is low OR many rows have empty Col2
+        should_apply = (col2_coverage < 0.7 or empty_col2_ratio > 0.3) and total_rows >= 3
+        
+        logger.critical(f"🔍 CONDITION: col2_coverage < 0.7 = {col2_coverage < 0.7}")
+        logger.critical(f"🔍 CONDITION: empty_col2_ratio > 0.3 = {empty_col2_ratio > 0.3}")
+        logger.critical(f"🔍 CONDITION: total_rows >= 3 = {total_rows >= 3}")
+        logger.critical(f"🔍 RESULT: should_apply = {should_apply}")
+        
+        if should_apply:
+            logger.critical("=" * 80)
+            logger.critical("✅ CONDITION PASSED - APPLYING LABEL-VALUE PAIRING")
+            logger.critical("=" * 80)
+            
+            # Use the same logic from table_post_processor
+            import re
+            label_patterns = [
+                r'name\s+of\s+the\s+customer', r'biller\s+name', r'biller\s+id', r'consumer\s+number',
+                r'mobile\s+number', r'payment\s+mode', r'payment\s+status', r'payment\s+channel',
+                r'approval\s+ref\s+no', r'approval\s+ref', r'customer\s+convenience\s+fee',
+                r'biller\s+platform\s+fee', r'digital\s+fee', r'date', r'amount', r'total', r'transaction',
+                r'account', r'address', r'email', r'phone', r'id', r'number', r'b-connect\s+txn\s+id',
+                r'receipt', r'invoice', r'bill', r'agent', r'merchant', r'customer', r'consumer',
+                r'नाम', r'पिता', r'पति', r'आधार', r'जाती', r'कार्ड', r'प्रकार', r'समग्र', r'परिवार', r'क्र'
+            ]
+            
+            # Group cells by row
+            cells_by_row = {}
+            for cell in all_cells_flat:
+                if cell.row not in cells_by_row:
+                    cells_by_row[cell.row] = []
+                cells_by_row[cell.row].append(cell)
+            
+            logger.critical(f"📦 Grouped cells into {len(cells_by_row)} rows")
+            
+            # Process adjacent rows for label-value pairing
+            merged_cells = []
+            rows_to_remove = set()
+            row_idx = 0
+            
+            sorted_row_indices = sorted(cells_by_row.keys())
+            logger.critical(f"🔄 Processing {len(sorted_row_indices)} rows for label-value pairing...")
+            i = 0
+            
+            while i < len(sorted_row_indices):
+                current_row_idx = sorted_row_indices[i]
+                current_row_cells = cells_by_row[current_row_idx]
+                
+                # Get Col1 cell (label candidate)
+                col1_cell = next((c for c in current_row_cells if c.column == 0), None)
+                col2_cell = next((c for c in current_row_cells if c.column >= 1), None)
+                
+                # Check if Col1 has content but Col2 is empty
+                if col1_cell and (not col2_cell or not (col2_cell.value and str(col2_cell.value).strip())):
+                    current_value = str(col1_cell.value).strip() if col1_cell.value else ""
+                    current_value_lower = current_value.lower()
+                    
+                    is_label = any(re.search(pattern, current_value_lower) for pattern in label_patterns)
+                    has_label_keywords = any(keyword in current_value_lower for keyword in 
+                                           ['name', 'id', 'number', 'date', 'amount', 'status', 'channel', 
+                                            'mode', 'fee', 'ref', 'approval', 'biller', 'customer', 'payment',
+                                            'agent', 'transaction', 'consumer', 'mobile'])
+                    is_short = len(current_value) < 50
+                    has_colon = ':' in current_value
+                    is_all_caps = current_value.isupper() and len(current_value) > 1
+                    
+                    is_likely_label = (is_label or has_label_keywords or
+                                     (is_short and has_colon) or
+                                     (is_short and ' ' in current_value and not is_all_caps and not current_value.replace(' ', '').isdigit()))
+                    
+                    if is_likely_label and i + 1 < len(sorted_row_indices):
+                        # Check next row
+                        next_row_idx = sorted_row_indices[i + 1]
+                        next_row_cells = cells_by_row[next_row_idx]
+                        next_col1_cell = next((c for c in next_row_cells if c.column == 0), None)
+                        next_col2_cell_check = next((c for c in next_row_cells if c.column >= 1), None)
+                        next_has_col2 = next_col2_cell_check and (next_col2_cell_check.value and str(next_col2_cell_check.value).strip())
+                        
+                        logger.critical(f"  -> Checking Row {current_row_idx} (label='{current_value[:40]}') vs Row {next_row_idx}")
+                        logger.critical(f"     Next row Col1: {str(next_col1_cell.value)[:40] if next_col1_cell and next_col1_cell.value else 'NONE'}")
+                        logger.critical(f"     Next row has Col2: {next_has_col2}")
+                        
+                        if next_col1_cell and not next_has_col2:
+                            next_value = str(next_col1_cell.value).strip() if next_col1_cell.value else ""
+                            next_value_lower = next_value.lower()
+                            next_is_label = any(re.search(pattern, next_value_lower) for pattern in label_patterns)
+                            
+                            # Additional check: next row should NOT be a label
+                            # Check if it has label keywords (more strict)
+                            next_has_label_keywords = any(keyword in next_value_lower for keyword in 
+                                                         ['biller name', 'consumer number', 'mobile number', 'approval ref',
+                                                          'payment status', 'payment channel', 'payment mode', 'convenience fee',
+                                                          'platform fee', 'transaction id', 'receipt no', 'invoice no'])
+                            next_is_short = len(next_value) < 30  # Stricter: values are usually longer
+                            next_has_colon = ':' in next_value
+                            
+                            # Next row is a label if: has specific label keywords OR (is very short AND has colon)
+                            next_is_likely_label = next_is_label or next_has_label_keywords or (next_is_short and next_has_colon)
+                            
+                            logger.critical(f"     Next value is_label: {next_is_label}, is_likely_label: {next_is_likely_label}, value='{next_value[:40]}'")
+                            
+                            if not next_is_likely_label:
+                                # Current is label, next is value - merge them
+                                logger.critical(f"  ✅ MERGING: Row {current_row_idx} (label='{current_value[:30]}') + Row {next_row_idx} (value='{next_value[:30]}') into Row {row_idx}")
+                                
+                                col1_cell.row = row_idx
+                                col1_cell.column = 0
+                                
+                                next_col1_cell.row = row_idx
+                                next_col1_cell.column = 1
+                                
+                                merged_cells.append(col1_cell)
+                                merged_cells.append(next_col1_cell)
+                                
+                                # Add any other cells from current row
+                                for cell in current_row_cells:
+                                    if cell.column != 0:
+                                        cell.row = row_idx
+                                        merged_cells.append(cell)
+                                
+                                rows_to_remove.add(current_row_idx)
+                                rows_to_remove.add(next_row_idx)
+                                row_idx += 1
+                                i += 2  # Skip both rows
+                                continue
+                            else:
+                                logger.critical(f"     ❌ Skipping merge - next row is also a label (is_likely_label={next_is_likely_label})")
+                        else:
+                            logger.critical(f"     ❌ Skipping merge - next row has Col2 or no Col1")
+                
+                # Not a label-value pair, keep as is
+                if current_row_idx not in rows_to_remove:
+                    for cell in current_row_cells:
+                        cell_already_added = any(id(c) == id(cell) for c in merged_cells)
+                        if not cell_already_added:
+                            cell.row = row_idx
+                            merged_cells.append(cell)
+                    row_idx += 1
+                i += 1
+            
+            # Rebuild layout with merged cells
+            if merged_cells:
+                seen_cells = {}
+                unique_merged_cells = []
+                for cell in merged_cells:
+                    cell_key = (id(cell), str(cell.value)[:50] if cell.value else '')
+                    if cell_key not in seen_cells:
+                        seen_cells[cell_key] = cell
+                        unique_merged_cells.append(cell)
+                
+                if unique_merged_cells:
+                    max_row_idx = max(c.row for c in unique_merged_cells)
+                    new_rows = [[] for _ in range(max_row_idx + 1)]
+                    
+                    for cell in unique_merged_cells:
+                        if 0 <= cell.row <= max_row_idx:
+                            new_rows[cell.row].append(cell)
+                    
+                    # Sort cells within each row by column
+                    for row in new_rows:
+                        row.sort(key=lambda c: c.column)
+                    
+                    # Remove empty rows
+                    new_rows = [row for row in new_rows if row]
+                    
+                    # Re-assign row indices
+                    for new_row_idx, row in enumerate(new_rows):
+                        for cell in row:
+                            cell.row = new_row_idx
+                    
+                    layout.rows = new_rows
+                    logger.critical("=" * 80)
+                    logger.critical(f"✅ MERGE COMPLETE: Merged {len(rows_to_remove)} rows into label-value pairs")
+                    logger.critical(f"   Original rows: {total_rows}, Final rows: {len(new_rows)}")
+                    logger.critical("=" * 80)
+                else:
+                    logger.critical("⚠️  No merged cells to rebuild")
+        else:
+            logger.critical("=" * 80)
+            logger.critical("❌ CONDITION FAILED - SKIPPING LABEL-VALUE PAIRING")
+            logger.critical(f"   Reason: col2_coverage={col2_coverage:.1%}, empty_col2_ratio={empty_col2_ratio:.1%}, total_rows={total_rows}")
+            logger.critical("=" * 80)
+        
+        logger.critical("🔍 LABEL-VALUE PAIRING POST-PROCESSING - EXIT")
+        logger.critical("=" * 80)
+        return layout
     
     def _create_empty_layout(self, page_idx: int) -> UnifiedLayout:
         """Create minimal empty layout"""
@@ -1158,16 +1700,37 @@ class LayoutDecisionEngine:
                 processed_table,
                 page_index=page_index
             )
-            logger.info(f"UnifiedLayout created: {table_layout.get_max_row()} rows, {table_layout.get_max_column()} columns")
             
-            # Add rows with offset
+            # QUALITY FAIL-SAFE: Reject invalid layouts
+            max_row = table_layout.get_max_row()
+            max_col = table_layout.get_max_column()
+            
+            if max_row < 0 or max_col < 0:
+                logger.critical("=" * 80)
+                logger.critical(f"❌ QUALITY FAIL-SAFE: Table {table_idx + 1} layout has invalid dimensions")
+                logger.critical(f"   max_row={max_row}, max_col={max_col}")
+                logger.critical("   BLANK EXCEL IS NEVER A VALID RESULT")
+                logger.critical("=" * 80)
+                # Skip this table, continue with others
+                continue
+            
+            logger.info(f"UnifiedLayout created: {max_row + 1} rows, {max_col + 1} columns")
+            
+            # CRITICAL: If layout is frozen, preserve spatial indices exactly
+            # Only adjust row_offset for combining multiple tables
+            is_frozen = table_layout.metadata.get('frozen', False)
+            
+            if is_frozen:
+                logger.critical(f"Table {table_idx + 1}: Layout is FROZEN - preserving spatial indices, only adjusting row_offset")
+            
+            # Add rows with offset (for combining multiple tables)
             for row_cells in table_layout.rows:
-                # Adjust row indices
                 adjusted_cells = []
                 for cell in row_cells:
+                    # Adjust row index for table combination, but preserve column index
                     adjusted_cell = Cell(
-                        row=row_offset,
-                        column=cell.column,
+                        row=row_offset + cell.row,  # Add offset for table combination
+                        column=cell.column,  # Preserve spatial column index
                         value=cell.value,
                         style=cell.style,
                         rowspan=cell.rowspan,
@@ -1178,10 +1741,10 @@ class LayoutDecisionEngine:
                     
                     # Adjust merged cell ranges
                     if cell.rowspan > 1 or cell.colspan > 1:
-                        end_row = row_offset + cell.rowspan - 1
+                        end_row = row_offset + cell.row + cell.rowspan - 1
                         end_col = cell.column + cell.colspan - 1
                         combined_layout.add_merged_cell(
-                            start_row=row_offset,
+                            start_row=row_offset + cell.row,
                             start_col=cell.column,
                             end_row=end_row,
                             end_col=end_col
@@ -1189,7 +1752,9 @@ class LayoutDecisionEngine:
                 
                 if adjusted_cells:
                     combined_layout.add_row(adjusted_cells)
-                    row_offset += 1
+                # Update row_offset to max row + 1 for next table
+                max_row_in_table = max((c.row for c in adjusted_cells), default=-1) if adjusted_cells else -1
+                row_offset = max_row_in_table + 1
             
             # Store table metadata
             if table_idx == 0:  # Use first table's metadata
@@ -3492,10 +4057,16 @@ class LayoutDecisionEngine:
                 logger.info(f"Page {page_idx + 1}: Found {len(blocks)} blocks in page_structure")
             
             if not blocks:
-                logger.warning(f"Page {page_idx + 1}: GEOMETRIC_HYBRID - Still no blocks, using document_text fallback")
-                # Last resort: create layout from document_text
+                logger.warning(f"Page {page_idx + 1}: GEOMETRIC_HYBRID - No blocks found, using PLAIN_TEXT fallback")
+                # Use PLAIN_TEXT mode instead of minimal fallback - preserves structure better
                 if document_text and len(document_text.strip()) > 10:
-                    return self._create_minimal_fallback_layout(page_idx, document_text, 'docai')
+                    logger.critical(f"   Falling back to PLAIN_TEXT mode for Page {page_idx + 1}")
+                    return self._convert_to_plain_text_layout(
+                        page=page,
+                        document_text=document_text,
+                        page_idx=page_idx,
+                        page_structure=page_structure
+                    )
                 return self._create_empty_layout(page_idx)
         
         # Convert blocks to dict format if needed
@@ -3527,15 +4098,26 @@ class LayoutDecisionEngine:
         # Filter blocks with valid bounding boxes and text
         valid_blocks = [b for b in all_blocks if b.get('bounding_box') and b.get('text', '').strip()]
         
-        if not valid_blocks:
-            logger.warning(f"Page {page_idx + 1}: GEOMETRIC_HYBRID - No valid blocks with text")
-            return self._create_empty_layout(page_idx)
+        logger.critical("=" * 80)
+        logger.critical(f"📊 STEP 2: Filtering blocks")
+        logger.critical(f"   Total blocks received: {len(all_blocks)}")
+        logger.critical(f"   Valid blocks (with bbox + text): {len(valid_blocks)}")
         
-        logger.critical(f"GEOMETRIC_HYBRID: Processing {len(valid_blocks)} valid blocks")
+        if valid_blocks:
+            logger.critical(f"   First 10 valid blocks:")
+            for idx, block in enumerate(valid_blocks[:10]):
+                text = block.get('text', '')[:30]
+                bbox = block.get('bounding_box', {})
+                logger.critical(f"      [{idx}] '{text}' bbox={bbox}")
+        logger.critical("=" * 80)
+        
+        if not valid_blocks:
+            logger.critical(f"❌ GEOMETRIC_HYBRID: No valid blocks with text - returning empty layout")
+            return self._create_empty_layout(page_idx)
         
         # Step 1: Merge numeric blocks (Aadhaar) into single cells
         merged_blocks = self._merge_numeric_blocks(valid_blocks)
-        logger.critical(f"GEOMETRIC_HYBRID: Merged {len(valid_blocks)} blocks to {len(merged_blocks)} after numeric merging")
+        logger.critical(f"📊 STEP 3: Numeric merging: {len(valid_blocks)} blocks → {len(merged_blocks)} blocks")
         
         # Step 2: Cluster by Y-position into rows (unlimited rows)
         blocks_by_y = {}
@@ -3547,12 +4129,26 @@ class LayoutDecisionEngine:
                 blocks_by_y[y_key] = []
             blocks_by_y[y_key].append(block)
         
-        logger.critical(f"GEOMETRIC_HYBRID: Detected {len(blocks_by_y)} distinct rows")
+        logger.critical("=" * 80)
+        logger.critical(f"📊 STEP 4: Y-axis clustering (row detection)")
+        logger.critical(f"   Detected {len(blocks_by_y)} distinct Y-positions (rows)")
+        
+        if blocks_by_y:
+            logger.critical(f"   First 10 rows:")
+            for idx, (y_key, row_blocks) in enumerate(sorted(blocks_by_y.items())[:10]):
+                texts = [b.get('text', '')[:20] for b in row_blocks[:3]]
+                logger.critical(f"      Row {idx} (Y={y_key:.4f}): {len(row_blocks)} blocks | {texts}")
+        logger.critical("=" * 80)
         
         # Step 3: Cluster by X-position into columns (UNLIMITED columns)
         column_anchors = self._infer_geometric_hybrid_columns(blocks_by_y)
         
-        logger.critical(f"GEOMETRIC_HYBRID: Detected {len(column_anchors)} columns (UNLIMITED)")
+        logger.critical("=" * 80)
+        logger.critical(f"📊 STEP 5: X-axis clustering (column detection)")
+        logger.critical(f"   Detected {len(column_anchors)} columns (UNLIMITED)")
+        if column_anchors:
+            logger.critical(f"   Column anchors (X positions): {[f'{x:.4f}' for x in column_anchors[:10]]}")
+        logger.critical("=" * 80)
         
         # Step 4: Safety check - need at least 1 column
         if len(column_anchors) < 1:
@@ -3574,10 +4170,19 @@ class LayoutDecisionEngine:
                 return self._create_minimal_fallback_layout(page_idx, document_text, 'docai')
         
         # Step 5: Reconstruct grid from geometric alignment (unlimited rows/columns)
+        logger.critical("=" * 80)
+        logger.critical(f"📊 STEP 6: Building grid from {len(blocks_by_y)} rows × {len(column_anchors)} columns")
+        logger.critical("=" * 80)
+        
         row_idx = 0
+        cells_created = 0
+        
         for y_pos in sorted(blocks_by_y.keys()):
             row_blocks = sorted(blocks_by_y[y_pos], key=lambda b: b.get('bounding_box', {}).get('x_min', 0))
             row_cells = [None] * len(column_anchors)  # Initialize row with empty cells
+            
+            if row_idx < 10:  # Log first 10 rows
+                logger.critical(f"   Processing Row {row_idx} (Y={y_pos:.4f}): {len(row_blocks)} blocks")
             
             for block in row_blocks:
                 bbox = block.get('bounding_box', {})
@@ -3694,11 +4299,20 @@ class LayoutDecisionEngine:
             
             if final_row_cells:
                 layout.add_row(final_row_cells)
+                cells_created += len([c for c in final_row_cells if c.value and str(c.value).strip()])
                 row_idx += 1
+        
+        logger.critical("=" * 80)
+        logger.critical(f"📊 STEP 7: Grid construction complete")
+        logger.critical(f"   Rows created: {row_idx}")
+        logger.critical(f"   Cells created: {cells_created}")
+        logger.critical(f"   Total layout rows: {len(layout.rows)}")
+        logger.critical("=" * 80)
         
         # CRITICAL FIX: Non-empty enforcement - if blocks detected, Excel MUST have data
         if row_idx == 0:
-            logger.warning(f"Page {page_idx + 1}: GEOMETRIC_HYBRID - No rows created, creating fallback from blocks")
+            logger.critical(f"❌ GEOMETRIC_HYBRID: No rows created from {len(blocks_by_y)} Y-groups and {len(column_anchors)} columns")
+            logger.critical("   Creating fallback from blocks")
             # Create single-column layout from blocks (not forced 2-column)
             if blocks:
                 for idx, block in enumerate(blocks[:50]):  # First 50 blocks
@@ -3727,6 +4341,11 @@ class LayoutDecisionEngine:
                         row_idx += 1
         
         logger.critical(f"GEOMETRIC_HYBRID: Created layout with {row_idx} rows, {len(column_anchors)} columns")
+        logger.critical(f"🔍 Page {page_idx + 1} Layout Check: max_row={layout.get_max_row()}, max_col={layout.get_max_column()}, has_content=True, rows_count={len(layout.rows) if layout.rows else 0}")
+        
+        # DYNAMIC STRUCTURE: Preserve natural column/row structure
+        # No forced column trimming - documents use their natural structure
+        
         return layout
     
     def _infer_geometric_hybrid_columns(self, blocks_by_y: Dict[float, List[Dict]]) -> List[float]:

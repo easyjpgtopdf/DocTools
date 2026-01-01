@@ -493,29 +493,107 @@ async def convert_pdf_to_word(
             # Free tier: Rename files to standard names for download endpoint, then return direct download URLs
             logger.info(f"[Job {job.id}] Free tier: Using direct download endpoint (no GCS)")
             
+            # CRITICAL: Verify primary_docx_path exists and is valid
+            if not primary_docx_path or not os.path.exists(primary_docx_path):
+                # Try to find any .docx file in temp_dir as fallback
+                logger.warning(f"[Job {job.id}] Primary DOCX path doesn't exist: {primary_docx_path}")
+                if os.path.exists(temp_dir):
+                    docx_files = [f for f in os.listdir(temp_dir) if f.lower().endswith('.docx')]
+                    if docx_files:
+                        primary_docx_path = os.path.join(temp_dir, docx_files[0])
+                        logger.info(f"[Job {job.id}] Found DOCX file in temp dir: {primary_docx_path}")
+                    else:
+                        error_msg = f"Conversion completed but output file not found. Expected: {primary_docx_path}"
+                        logger.error(f"[Job {job.id}] {error_msg}")
+                        if job:
+                            update_job_status(job.id, "error", error_message=error_msg)
+                        raise HTTPException(
+                            status_code=500,
+                            detail={
+                                "error": "CONVERSION_OUTPUT_MISSING",
+                                "message": "Conversion completed but output file was not found. Please try again.",
+                                "suggestion": "Try converting again or contact support"
+                            }
+                        )
+                else:
+                    error_msg = f"Temp directory doesn't exist: {temp_dir}"
+                    logger.error(f"[Job {job.id}] {error_msg}")
+                    if job:
+                        update_job_status(job.id, "error", error_message=error_msg)
+                    raise HTTPException(
+                        status_code=500,
+                        detail={
+                            "error": "CONVERSION_OUTPUT_MISSING",
+                            "message": "Conversion output directory not found. Please try again.",
+                            "suggestion": "Try converting again"
+                        }
+                    )
+            
             # Rename primary file to "primary.docx" if needed
             standard_primary_path = os.path.join(temp_dir, "primary.docx")
             if primary_docx_path != standard_primary_path and os.path.exists(primary_docx_path):
                 import shutil
-                shutil.move(primary_docx_path, standard_primary_path)
-                primary_docx_path = standard_primary_path
-                logger.info(f"[Job {job.id}] Renamed primary file to: {standard_primary_path}")
+                try:
+                    # Remove existing primary.docx if it exists
+                    if os.path.exists(standard_primary_path):
+                        os.remove(standard_primary_path)
+                    shutil.move(primary_docx_path, standard_primary_path)
+                    primary_docx_path = standard_primary_path
+                    logger.info(f"[Job {job.id}] Renamed primary file to: {standard_primary_path}")
+                except Exception as rename_error:
+                    logger.error(f"[Job {job.id}] Failed to rename file: {rename_error}")
+                    # Continue with original path - download endpoint will handle it
+            
+            # Verify file exists after rename
+            if not os.path.exists(primary_docx_path):
+                error_msg = f"Primary DOCX file not found after rename: {primary_docx_path}"
+                logger.error(f"[Job {job.id}] {error_msg}")
+                if job:
+                    update_job_status(job.id, "error", error_message=error_msg)
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "error": "CONVERSION_OUTPUT_MISSING",
+                        "message": "Conversion output file not found. Please try again.",
+                        "suggestion": "Try converting again"
+                    }
+                )
             
             # Rename alternative file to "alternative.docx" if needed
             if alt_docx_path and os.path.exists(alt_docx_path):
                 standard_alt_path = os.path.join(temp_dir, "alternative.docx")
                 if alt_docx_path != standard_alt_path:
                     import shutil
-                    shutil.move(alt_docx_path, standard_alt_path)
-                    alt_docx_path = standard_alt_path
-                    logger.info(f"[Job {job.id}] Renamed alternative file to: {standard_alt_path}")
+                    try:
+                        if os.path.exists(standard_alt_path):
+                            os.remove(standard_alt_path)
+                        shutil.move(alt_docx_path, standard_alt_path)
+                        alt_docx_path = standard_alt_path
+                        logger.info(f"[Job {job.id}] Renamed alternative file to: {standard_alt_path}")
+                    except Exception as rename_error:
+                        logger.warning(f"[Job {job.id}] Failed to rename alternative file: {rename_error}")
             
-            # Build full URL for download endpoint
+            # Build full URL for download endpoint (only if file exists)
             if request:
                 base_url = f"{request.url.scheme}://{request.url.netloc}"
             else:
                 base_url = f"https://pdf-to-word-converter-564572183797.us-central1.run.app"
-            primary_signed_url = f"{base_url}/api/download/{job.id}/primary.docx"
+            
+            # Only generate download URL if file actually exists
+            if os.path.exists(primary_docx_path):
+                primary_signed_url = f"{base_url}/api/download/{job.id}/primary.docx"
+            else:
+                error_msg = f"Cannot generate download URL: file doesn't exist at {primary_docx_path}"
+                logger.error(f"[Job {job.id}] {error_msg}")
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "error": "CONVERSION_OUTPUT_MISSING",
+                        "message": "Conversion output file not found. Please try again.",
+                        "suggestion": "Try converting again"
+                    }
+                )
+            
             alt_signed_url = None
             if alt_docx_path and os.path.exists(alt_docx_path):
                 alt_signed_url = f"{base_url}/api/download/{job.id}/alternative.docx"
@@ -550,7 +628,7 @@ async def convert_pdf_to_word(
                 if request:
                     base_url = f"{request.url.scheme}://{request.url.netloc}"
                 else:
-                    base_url = f"https://pdf-to-word-converter-iwumaktavq-uc.a.run.app"
+                    base_url = f"https://pdf-to-word-converter-564572183797.us-central1.run.app"
                 primary_signed_url = f"{base_url}/api/download/{job.id}/primary.docx"
             print(f"DEBUG: Upload path: {primary_signed_url}")
             
@@ -578,7 +656,7 @@ async def convert_pdf_to_word(
                     if request:
                         base_url = f"{request.url.scheme}://{request.url.netloc}"
                     else:
-                        base_url = f"https://pdf-to-word-converter-iwumaktavq-uc.a.run.app"
+                        base_url = f"https://pdf-to-word-converter-564572183797.us-central1.run.app"
                     alt_signed_url = f"{base_url}/api/download/{job.id}/alternative.docx"
         
         # Record daily usage or deduct credits based on tier
@@ -1230,15 +1308,47 @@ async def download_file(
         temp_dir = os.path.join(ensure_temp_dir(), job_id)
         file_path = os.path.join(temp_dir, filename)
         
+        logger.info(f"Download request: job_id={job_id}, filename={filename}")
+        logger.info(f"Looking for file at: {file_path}")
+        logger.info(f"Temp directory exists: {os.path.exists(temp_dir)}")
+        
         # Security: Verify file exists and is within allowed directory
         if not os.path.exists(file_path):
-            raise HTTPException(status_code=404, detail="File not found")
+            # List files in temp_dir for debugging
+            if os.path.exists(temp_dir):
+                files_in_dir = os.listdir(temp_dir)
+                logger.warning(f"File not found at {file_path}. Files in directory: {files_in_dir}")
+                # Try to find any .docx file as fallback
+                docx_files = [f for f in files_in_dir if f.lower().endswith('.docx')]
+                if docx_files:
+                    logger.info(f"Found {len(docx_files)} DOCX file(s) in directory, trying first one: {docx_files[0]}")
+                    file_path = os.path.join(temp_dir, docx_files[0])
+                    filename = docx_files[0]  # Update filename to match actual file
+                else:
+                    raise HTTPException(
+                        status_code=404, 
+                        detail=f"File not found. Expected: {filename}. Files in directory: {files_in_dir}"
+                    )
+            else:
+                logger.error(f"Temp directory doesn't exist: {temp_dir}")
+                raise HTTPException(
+                    status_code=404, 
+                    detail=f"File not found. Directory {temp_dir} doesn't exist."
+                )
         
         # Verify file is within temp directory (prevent path traversal)
         real_path = os.path.realpath(file_path)
         real_temp_dir = os.path.realpath(temp_dir)
         if not real_path.startswith(real_temp_dir):
+            logger.error(f"Path traversal attempt: {real_path} not in {real_temp_dir}")
             raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Verify file is actually a file and readable
+        if not os.path.isfile(file_path):
+            raise HTTPException(status_code=404, detail="File path is not a file")
+        
+        file_size = os.path.getsize(file_path)
+        logger.info(f"Serving file: {file_path}, size: {file_size} bytes")
         
         # Return file with appropriate headers
         return FileResponse(

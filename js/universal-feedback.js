@@ -17,7 +17,7 @@
     }
     
     // Production - use Cloud Run URL
-    return 'https://pdf-to-word-converter-iwumaktavq-uc.a.run.app/api/feedback';
+    return 'https://pdf-to-word-converter-564572183797.us-central1.run.app/api/feedback';
   }
   
   const FEEDBACK_API_URL = getFeedbackApiUrl();

@@ -1,13 +1,13 @@
 steps:
-  # Build the container image
+  # Build the Docker image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/pdf-to-word-converter', './backend']
-
-  # Push the container image to Container Registry
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/pdf-to-word-converter', '.']
+  
+  # Push the Docker image
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/pdf-to-word-converter']
-
-  # Deploy container image to Cloud Run
+  
+  # Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -16,21 +16,29 @@ steps:
       - 'pdf-to-word-converter'
       - '--image'
       - 'gcr.io/$PROJECT_ID/pdf-to-word-converter'
-      - '--region'
-      - 'us-central1'
       - '--platform'
       - 'managed'
+      - '--region'
+      - 'us-central1'
+      - '--allow-unauthenticated'
       - '--memory'
-      - '2Gi'
+      - '512Mi'
       - '--cpu'
-      - '2'
+      - '1'
+      - '--concurrency'
+      - 'default'
       - '--timeout'
       - '540'
-      - '--allow-unauthenticated'
+      - '--min-instances'
+      - '0'
+      - '--max-instances'
+      - '10'
+      - '--set-env-vars'
+      - 'PROJECT_ID=$PROJECT_ID,GCS_INPUT_BUCKET=easyjpgtopdf-word-exports,GCS_OUTPUT_BUCKET=easyjpgtopdf-word-exports,DOCAI_PROCESSOR_ID=ffaa7bcd30a9c788,DOCAI_LOCATION=us,FIREBASE_PROJECT_ID=$PROJECT_ID'
 
 images:
   - 'gcr.io/$PROJECT_ID/pdf-to-word-converter'
 
 options:
   logging: CLOUD_LOGGING_ONLY
-
+  machineType: 'E2_HIGHCPU_8'

@@ -4,7 +4,7 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies including LibreOffice and fonts
+# Install system dependencies including LibreOffice and fonts for Unicode support
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libreoffice-writer \
     libreoffice-common \
@@ -12,8 +12,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-dejavu-core \
     fonts-noto-cjk \
     fonts-noto-color-emoji \
+    fonts-noto-core \
+    fonts-noto-extra \
+    fonts-noto-ui-core \
     fonts-liberation \
     fonts-liberation2 \
+    fonts-indic \
     poppler-utils \
     libjpeg-dev \
     zlib1g-dev \

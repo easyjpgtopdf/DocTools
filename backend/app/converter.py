@@ -7,7 +7,7 @@ import subprocess
 import os
 import time
 import logging
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional, List, Any
 from pathlib import Path
 from enum import Enum
 from dataclasses import dataclass
@@ -19,7 +19,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 
 from app.docai_client import process_pdf_to_layout, ParsedDocument, get_docai_confidence
-from app.free_pipeline_converter import convert_pdf_to_docx_free_pipeline, detect_visual_pdf
+# Removed unused import
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +54,7 @@ class SmartConversionResult:
     pages: int
     used_docai: bool
     conversion_time_ms: int
+    used_adobe_extract: bool = False  # Adobe Extract used as fallback (rare cases, 20 credits/page)
     docai_confidence: Optional[float] = None  # Average confidence from DocAI if used
     parsed_document: Optional[ParsedDocument] = None  # Store parsed doc for confidence extraction
 
@@ -83,9 +84,12 @@ def pdf_has_text(pdf_path: str, max_pages_to_check: int = 3) -> bool:
         # Clean and check if meaningful text exists
         cleaned_text = text.strip().replace('\n', '').replace(' ', '')
         
-        has_text = len(cleaned_text) > 50  # At least 50 characters
+        # Very low threshold for invoices/digital documents (10 characters minimum)
+        # Many invoices and forms have minimal extractable text but are still digital PDFs
+        # LibreOffice can convert many PDFs that pdfminer can't extract text from
+        has_text = len(cleaned_text) > 10  # At least 10 characters (lowered from 20)
         
-        logger.info(f"PDF has text: {has_text} (found {len(cleaned_text)} characters)")
+        logger.info(f"PDF has text: {has_text} (found {len(cleaned_text)} characters, threshold: 20)")
         return has_text
         
     except Exception as e:
@@ -166,7 +170,13 @@ def convert_pdf_to_docx_with_libreoffice(pdf_path: str, output_dir: str) -> str:
         # Log directory contents before conversion
         logger.info(f"Files in output_dir before conversion: {os.listdir(output_dir) if os.path.exists(output_dir) else 'directory does not exist'}")
         
+        # Ensure PDF path is absolute and exists
+        pdf_path_abs = os.path.abspath(pdf_path)
+        if not os.path.exists(pdf_path_abs):
+            raise FileNotFoundError(f"PDF file not found: {pdf_path_abs}")
+        
         # Build LibreOffice command with robust options
+        # Use absolute path to avoid file loading issues
         cmd = [
             soffice_binary,
             "--headless",
@@ -176,7 +186,7 @@ def convert_pdf_to_docx_with_libreoffice(pdf_path: str, output_dir: str) -> str:
             "--norestore",
             "--convert-to", "docx:writer6",
             "--outdir", output_dir,
-            pdf_path
+            pdf_path_abs  # Use absolute path
         ]
         
         logger.info(f"Executing LibreOffice command: {' '.join(cmd)}")
@@ -513,37 +523,30 @@ def smart_convert_pdf_to_word(
     output_dir: str,
     settings,
     generate_alternative: bool = True,
-    use_free_pipeline: bool = False
+    use_free_pipeline: bool = False,
+    allow_docai_fallback: bool = True  # For free tier, set to False to prevent DocAI fallback
 ) -> SmartConversionResult:
     """
-    Intelligently convert PDF to Word, choosing best method and optionally generating alternative.
+    Convert PDF to Word with LibreOffice first, fallback to DocAI if LibreOffice fails.
     
-    This function automatically detects if the PDF has extractable text:
-    - If text exists: Uses LibreOffice (primary), Document AI (alternative if requested)
-    - If no text (scanned): Uses Document AI (primary), LibreOffice (alternative if requested)
+    Strategy:
+    - Always try LibreOffice first (for both text and scanned PDFs)
+    - If LibreOffice fails or produces poor results, fallback to DocAI (if allowed)
+    - For free tier: If DocAI is needed, raise error to show premium upgrade popup
     
     Args:
         pdf_path: Path to input PDF file
         output_dir: Directory for output DOCX files
         settings: Settings object with project_id, docai_location, docai_processor_id
         generate_alternative: Whether to generate alternative conversion
+        use_free_pipeline: Whether this is free tier (deprecated, kept for compatibility)
+        allow_docai_fallback: Whether to allow DocAI fallback (False for free tier)
         
     Returns:
         SmartConversionResult with primary and optional alternative conversions
     """
     start_time = time.time()
-    
-    # Check if PDF has text
-    has_text = pdf_has_text(pdf_path)
     pages = get_page_count(pdf_path)
-    
-    # Determine primary method
-    if has_text:
-        primary_method = ConversionMethod.LIBREOFFICE
-        logger.info("Using LibreOffice as primary method (text-based PDF)")
-    else:
-        primary_method = ConversionMethod.DOCAI
-        logger.info("Using Document AI as primary method (scanned PDF)")
     
     # Initialize variables
     docai_confidence = None
@@ -551,32 +554,31 @@ def smart_convert_pdf_to_word(
     primary_docx = None
     alt_docx = None
     alt_method = None
+    used_docai = False
+    used_adobe_extract = False  # Free version: Always False (Adobe Extract not available)
     
-    # Generate primary conversion
+    # STEP 1: Always try LibreOffice first
     primary_start = time.time()
-    if primary_method == ConversionMethod.LIBREOFFICE:
-        # For free tier, use improved free pipeline converter
-        if use_free_pipeline:
-            try:
-                logger.info("Using FREE pipeline converter with layout reconstruction")
-                primary_docx = os.path.join(output_dir, f"primary-{Path(pdf_path).stem}.docx")
-                convert_pdf_to_docx_free_pipeline(pdf_path, primary_docx)
-                used_docai = False
-            except ValueError as ve:
-                # Visual PDF detected - block conversion
-                logger.warning(f"FREE pipeline blocked conversion: {ve}")
-                raise ValueError(f"FREE conversion blocked: {str(ve)}")
-            except Exception as free_error:
-                # Fallback to LibreOffice if free pipeline fails
-                logger.warning(f"FREE pipeline failed, falling back to LibreOffice: {free_error}")
-                primary_docx = convert_pdf_to_docx_with_libreoffice(pdf_path, output_dir)
-                used_docai = False
-        else:
-            # Premium/LibreOffice path
-            primary_docx = convert_pdf_to_docx_with_libreoffice(pdf_path, output_dir)
-            used_docai = False
-    else:
-        # DocAI conversion
+    logger.info("Attempting conversion with LibreOffice first (primary method)")
+    
+    try:
+        primary_docx = convert_pdf_to_docx_with_libreoffice(pdf_path, output_dir)
+        used_docai = False
+        logger.info(f"LibreOffice conversion successful: {primary_docx}")
+    except Exception as libreoffice_error:
+        logger.warning(f"LibreOffice conversion failed: {libreoffice_error}")
+        
+        # Check if DocAI fallback is allowed
+        if not allow_docai_fallback:
+            # Free tier: LibreOffice failed
+            # For free tier, if LibreOffice fails, we cannot fallback to DocAI (requires Premium)
+            # Show a helpful error message suggesting to try again or upgrade
+            error_msg = f"LibreOffice conversion failed: {str(libreoffice_error)}. Please try again or upgrade to Premium for advanced OCR processing if this is a scanned PDF."
+            logger.error(f"Free tier: LibreOffice conversion failed. {error_msg}")
+            raise Exception(error_msg)
+        
+        # Premium tier: Fallback to DocAI
+        logger.info("Falling back to Document AI (LibreOffice failed)")
         try:
             # Validate Document AI settings
             if not settings.project_id:
@@ -586,7 +588,7 @@ def smart_convert_pdf_to_word(
             if not settings.docai_location:
                 settings.docai_location = "us"  # Default location
             
-            logger.info(f"Using Document AI: project_id={settings.project_id}, processor_id={settings.docai_processor_id}, location={settings.docai_location}")
+            logger.info(f"Using Document AI fallback: project_id={settings.project_id}, processor_id={settings.docai_processor_id}, location={settings.docai_location}")
             
             with open(pdf_path, "rb") as f:
                 pdf_bytes = f.read()
@@ -606,20 +608,30 @@ def smart_convert_pdf_to_word(
             primary_docx = os.path.join(output_dir, f"primary-{Path(pdf_path).stem}.docx")
             convert_pdf_to_docx_with_docai(pdf_path, primary_docx, parsed_doc)
             used_docai = True
+            logger.info(f"Document AI fallback conversion successful: {primary_docx}")
         except Exception as docai_error:
-            logger.error(f"Document AI conversion failed: {docai_error}", exc_info=True)
-            # Fallback to basic text extraction if DocAI fails
-            logger.warning("Falling back to basic text extraction due to Document AI failure")
-            # For now, re-raise the error - in future we can implement basic fallback
-            raise Exception(f"Document AI failed: {str(docai_error)}. Please check DOCAI_PROCESSOR_ID, project_id, and credentials.")
+            logger.error(f"Document AI fallback also failed: {docai_error}", exc_info=True)
+            
+            # STEP 3: Premium tier only - Try Adobe Extract as final fallback (rare cases, 20 credits/page)
+            # Only use if has tables/structured content that DocAI couldn't handle
+            # NOTE: Adobe Extract integration is currently disabled (requires additional implementation)
+            # This will be enabled in future updates
+            logger.warning("Adobe Extract API fallback is currently disabled")
+            raise Exception(f"Both LibreOffice and Document AI conversion failed. LibreOffice error: {str(libreoffice_error)}. DocAI error: {str(docai_error)}")
     
     primary_time = time.time() - primary_start
     
-    # Generate alternative conversion if requested
+    # Determine primary method for result
+    if used_docai:
+        primary_method = ConversionMethod.DOCAI
+    else:
+        primary_method = ConversionMethod.LIBREOFFICE
+    
+    # Generate alternative conversion if requested (premium only)
     if generate_alternative:
         alt_start = time.time()
-        if primary_method == ConversionMethod.LIBREOFFICE:
-            # Alternative: Use DocAI
+        if not used_docai:
+            # Primary was LibreOffice, alternative: Use DocAI
             alt_method = ConversionMethod.DOCAI
             logger.info("Generating alternative using Document AI")
             try:
@@ -646,13 +658,19 @@ def smart_convert_pdf_to_word(
                 alt_docx = None
                 alt_method = None
         else:
-            # Alternative: Use LibreOffice
+            # Primary was DocAI, alternative: Try LibreOffice (unlikely to work if DocAI was needed, but try anyway)
             alt_method = ConversionMethod.LIBREOFFICE
             logger.info("Generating alternative using LibreOffice")
-            alt_docx = convert_pdf_to_docx_with_libreoffice(pdf_path, output_dir)
+            try:
+                alt_docx = convert_pdf_to_docx_with_libreoffice(pdf_path, output_dir)
+            except Exception as alt_error:
+                logger.warning(f"Alternative LibreOffice conversion failed: {alt_error}. Skipping alternative.")
+                alt_docx = None
+                alt_method = None
         
         alt_time = time.time() - alt_start
-        logger.info(f"Alternative conversion completed in {alt_time:.2f}s")
+        if alt_docx:
+            logger.info(f"Alternative conversion completed in {alt_time:.2f}s")
     
     total_time_ms = int((time.time() - start_time) * 1000)
     
@@ -663,6 +681,7 @@ def smart_convert_pdf_to_word(
         alt_method=alt_method,
         pages=pages,
         used_docai=used_docai,
+        used_adobe_extract=used_adobe_extract,
         conversion_time_ms=total_time_ms,
         docai_confidence=docai_confidence,
         parsed_document=parsed_doc if used_docai else None

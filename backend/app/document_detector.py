@@ -164,7 +164,8 @@ def detect_document(
         requires_premium = False  # Can use free tier for text PDFs
         reason = "Text-based PDF. Word conversion recommended."
         engine = "libreoffice"
-        credit_cost_per_page = 2.0 if requires_premium else 0.0
+        from app.credit_manager import CREDITS_PER_PAGE_TEXT
+        credit_cost_per_page = CREDITS_PER_PAGE_TEXT  # 2 credits per page for text (when premium)
         
         logger.info("Routing to Word: Text-based PDF")
         return DocumentAnalysis(
@@ -189,7 +190,8 @@ def detect_document(
         requires_premium = True  # OCR requires premium
         reason = "Scanned PDF detected. OCR required (Premium feature)."
         engine = "docai"  # OCR uses Document AI
-        credit_cost_per_page = 2.0  # OCR pricing
+        from app.credit_manager import CREDITS_PER_PAGE_OCR
+        credit_cost_per_page = CREDITS_PER_PAGE_OCR  # 5 credits per page for OCR
         
         logger.info("Routing to Word: Scanned PDF (OCR required)")
         return DocumentAnalysis(
@@ -242,8 +244,8 @@ def check_free_tier_eligibility(
     
     Free tier rules:
     - Anonymous users only (logged-in users must use credits)
-    - Max 10 pages
-    - Max 20MB file size
+    - Max 1 page per PDF
+    - Max 2MB file size
     - Text/digital PDFs only (no OCR)
     - No tables/ID cards (must use Excel Pro)
     
@@ -261,35 +263,35 @@ def check_free_tier_eligibility(
             'requires_premium': True
         }
     
-    # Free tier: Max 10 pages
-    if analysis.page_count > 10:
+    # Free tier: Max 1 page
+    from app.daily_usage import FREE_TIER_MAX_PAGES
+    if analysis.page_count > FREE_TIER_MAX_PAGES:
         return {
             'allowed': False,
-            'reason': f'Free tier limit: Maximum 10 pages. Your document has {analysis.page_count} pages.',
+            'reason': f'Free tier limit: Maximum 1 page per PDF. Your document has {analysis.page_count} pages. Please upgrade to Premium for multi-page conversion.',
             'requires_premium': True,
             'exceeds_pages': True
         }
     
-    # Free tier: Max 20MB
+    # Free tier: Max 2MB
     from app.daily_usage import FREE_TIER_MAX_FILE_SIZE_MB
     max_size_mb = FREE_TIER_MAX_FILE_SIZE_MB
     file_size_mb = analysis.file_size_bytes / (1024 * 1024)
     if file_size_mb > max_size_mb:
         return {
             'allowed': False,
-            'reason': f'Free tier limit: Maximum {max_size_mb}MB file size. Your file is {file_size_mb:.2f}MB.',
+            'reason': f'Free tier limit: Maximum {max_size_mb}MB file size. Your file is {file_size_mb:.2f}MB. Please upgrade to Premium for larger files (up to 100MB).',
             'requires_premium': True,
             'exceeds_size': True
         }
     
-    # Free tier: Text PDFs only (no OCR)
-    if analysis.is_scanned:
-        return {
-            'allowed': False,
-            'reason': 'Free tier: Text/digital PDFs only. This appears to be a scanned PDF (OCR required).',
-            'requires_premium': True,
-            'requires_ocr': True
-        }
+    # Free tier: Allow LibreOffice to try first for all PDFs
+    # Don't reject based on is_scanned - let LibreOffice attempt conversion first
+    # Many digital PDFs (like invoices) might have minimal extractable text but LibreOffice can still convert them
+    # If LibreOffice fails, the conversion function will handle the error appropriately
+    # This allows digital PDFs that pdfminer can't extract text from to still work
+    # We only reject if the PDF truly requires OCR AND LibreOffice fails (handled in conversion)
+    pass  # Allow all PDFs to attempt LibreOffice conversion
     
     # Free tier: No tables/ID cards (must use Excel)
     if analysis.has_tables or analysis.is_id_card_like:
@@ -309,6 +311,10 @@ def check_free_tier_eligibility(
     }
 
 
+# Premium tier limits
+PREMIUM_MAX_PAGES = 100  # Maximum 100 pages per PDF for premium tier
+PREMIUM_MAX_FILE_SIZE_MB = 100  # Maximum 100MB file size for premium tier
+
 def check_premium_requirements(
     analysis: DocumentAnalysis,
     user_credits: float
@@ -320,6 +326,8 @@ def check_premium_requirements(
     - Login required
     - Credits >= 30 (minimum threshold)
     - Sufficient credits for conversion
+    - Max 100 pages per PDF
+    - Max 100MB file size
     
     Args:
         analysis: DocumentAnalysis result
@@ -337,6 +345,25 @@ def check_premium_requirements(
             'reason': f'Premium requires minimum {MIN_CREDITS_THRESHOLD} credits. You have {user_credits:.1f} credits.',
             'required_minimum': MIN_CREDITS_THRESHOLD,
             'current_credits': user_credits
+        }
+    
+    # Premium: Max 100 pages per PDF
+    if analysis.page_count > PREMIUM_MAX_PAGES:
+        return {
+            'eligible': False,
+            'reason': f'Premium limit: Maximum {PREMIUM_MAX_PAGES} pages per PDF. Your document has {analysis.page_count} pages.',
+            'exceeds_pages': True,
+            'max_pages': PREMIUM_MAX_PAGES
+        }
+    
+    # Premium: Max 100MB file size
+    file_size_mb = analysis.file_size_bytes / (1024 * 1024)
+    if file_size_mb > PREMIUM_MAX_FILE_SIZE_MB:
+        return {
+            'eligible': False,
+            'reason': f'Premium limit: Maximum {PREMIUM_MAX_FILE_SIZE_MB}MB file size. Your file is {file_size_mb:.2f}MB.',
+            'exceeds_size': True,
+            'max_size_mb': PREMIUM_MAX_FILE_SIZE_MB
         }
     
     # Calculate required credits for this conversion

@@ -11,18 +11,18 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     # GCP Project Configuration
-    project_id: str = Field(..., env="PROJECT_ID", description="Google Cloud Project ID")
+    project_id: Optional[str] = Field(default=None, env="PROJECT_ID", description="Google Cloud Project ID")
 
     # Google Cloud Storage Configuration
-    gcs_input_bucket: str = Field(..., env="GCS_INPUT_BUCKET", description="GCS bucket for input files")
-    gcs_output_bucket: str = Field(..., env="GCS_OUTPUT_BUCKET", description="GCS bucket for output files")
+    gcs_input_bucket: Optional[str] = Field(default=None, env="GCS_INPUT_BUCKET", description="GCS bucket for input files")
+    gcs_output_bucket: Optional[str] = Field(default=None, env="GCS_OUTPUT_BUCKET", description="GCS bucket for output files")
 
     # Document AI Configuration
     docai_location: str = Field(default="us", env="DOCAI_LOCATION", description="Document AI location (e.g. 'us')")
-    docai_processor_id: str = Field(..., env="DOCAI_PROCESSOR_ID", description="Document AI processor ID")
+    docai_processor_id: Optional[str] = Field(default=None, env="DOCAI_PROCESSOR_ID", description="Document AI processor ID")
 
     # Firebase Configuration
-    firebase_project_id: str = Field(..., env="FIREBASE_PROJECT_ID", description="Firebase project ID")
+    firebase_project_id: Optional[str] = Field(default=None, env="FIREBASE_PROJECT_ID", description="Firebase project ID")
 
     # Google Application Credentials
     google_application_credentials: Optional[str] = Field(
@@ -38,6 +38,33 @@ class Settings(BaseSettings):
     # Conversion Settings
     max_file_size_mb: int = Field(default=50, env="MAX_FILE_SIZE_MB", description="Maximum file size in MB")
     signed_url_expiration: int = Field(default=3600, env="SIGNED_URL_EXPIRATION", description="Signed URL expiration in seconds")
+    
+    # Adobe Extract API Configuration (Optional - Premium fallback only)
+    adobe_client_id: Optional[str] = Field(
+        default=None,
+        env="ADOBE_CLIENT_ID",
+        description="Adobe Extract API Client ID (premium fallback only)"
+    )
+    adobe_client_secret: Optional[str] = Field(
+        default=None,
+        env="ADOBE_CLIENT_SECRET",
+        description="Adobe Extract API Client Secret (premium fallback only)"
+    )
+    adobe_tech_account_id: Optional[str] = Field(
+        default=None,
+        env="ADOBE_TECH_ACCOUNT_ID",
+        description="Adobe Technical Account ID (premium fallback only)"
+    )
+    adobe_tech_account_email: Optional[str] = Field(
+        default=None,
+        env="ADOBE_TECH_ACCOUNT_EMAIL",
+        description="Adobe Technical Account Email (premium fallback only)"
+    )
+    adobe_org_id: Optional[str] = Field(
+        default=None,
+        env="ADOBE_ORG_ID",
+        description="Adobe Organization ID (premium fallback only)"
+    )
 
     class Config:
         env_file = ".env"

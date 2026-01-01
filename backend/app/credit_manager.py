@@ -26,11 +26,12 @@ def get_firestore_client():
 # Credit pricing constants (for logged-in/premium users)
 # Word conversion pricing
 CREDITS_PER_PAGE_TEXT = 2.0   # 2 credits per text page (Premium)
-CREDITS_PER_PAGE_OCR = 2.0    # 2 credits per OCR page (Premium)
+CREDITS_PER_PAGE_OCR = 5.0    # 5 credits per OCR page (Premium - DocAI)
+CREDITS_PER_PAGE_ADOBE_EXTRACT = 20.0  # 20 credits per page (Premium - Adobe Extract fallback, rare cases only)
 # Excel conversion pricing (Premium Pro)
 CREDITS_PER_PAGE_EXCEL = 2.0  # 2 credits per page for Excel conversion
 # Premium user file size limit
-PREMIUM_MAX_FILE_SIZE_MB = 50  # Maximum 50MB file size for logged-in users
+PREMIUM_MAX_FILE_SIZE_MB = 100  # Maximum 100MB file size for logged-in users
 
 
 def calculate_required_credits(pages: int, used_docai: bool) -> float:

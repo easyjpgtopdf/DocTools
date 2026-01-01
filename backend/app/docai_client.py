@@ -236,6 +236,17 @@ class DocumentAIClient:
             logger.warning(f"Error extracting text from layout: {e}")
         return ""
     
+    def _get_font_name(self, layout: Any) -> Optional[str]:
+        """Extract font name from layout element."""
+        try:
+            # Document AI doesn't directly provide font names in layout elements
+            # Return None - font names will be detected from text patterns if needed
+            # This is a placeholder method to prevent AttributeError
+            return None
+        except Exception as e:
+            logger.warning(f"Error extracting font name: {e}")
+            return None
+    
     def _get_font_size(self, layout: Any) -> Optional[float]:
         """Extract font size from layout element."""
         try:

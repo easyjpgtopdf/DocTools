@@ -99,27 +99,37 @@ class ExcelWordRenderer:
                 logger.critical("=" * 80)
                 raise ValueError(f"Layout empty — conversion aborted: Page {page_num} layout is empty")
             
-            # CRITICAL FIX: Apply spatial indexing if all cells have row=0, col=0
-            try:
-                spatial_applied = layout.apply_spatial_indexing()
-                if spatial_applied:
-                    logger.critical(f"✅ PAGE {page_num}: Spatial indexing applied successfully")
-            except ValueError as ve:
-                # Spatial indexing failed - re-raise
-                raise
-            except Exception as e:
-                logger.warning(f"PAGE {page_num}: Spatial indexing failed (non-critical): {e}")
-                # Continue - let Excel writer handle it
+            # ENTERPRISE RULE: Renderer is DUMB WRITER - NO layout inference
+            # Spatial indexing, newline splitting, and layout cleaning MUST happen BEFORE renderer
+            # Renderer responsibility: Write rows, columns, merged cells EXACTLY as provided
             
-            # CRITICAL: Apply LayoutCleaner to remove empty rows and columns
-            try:
-                from .layout_cleaner import LayoutCleaner
-                layout_cleaner = LayoutCleaner()
-                layout = layout_cleaner.clean(layout)
-                logger.critical(f"✅ PAGE {page_num}: Layout cleaned (empty rows/columns removed)")
-            except Exception as e:
-                logger.warning(f"PAGE {page_num}: Layout cleaning failed (non-critical): {e}")
-                # Continue without cleaning
+            # LOG WHAT RENDERER RECEIVES
+            logger.critical("=" * 80)
+            logger.critical(f"📊 RENDERER INPUT (Page {page_num}):")
+            logger.critical(f"   Layout.rows count: {len(layout.rows)}")
+            logger.critical(f"   Total cells: {sum(len(row) for row in layout.rows)}")
+            logger.critical(f"   Execution mode: {layout.metadata.get('execution_mode', 'unknown')}")
+            logger.critical(f"   Frozen: {layout.metadata.get('frozen', False)}")
+            
+            # Log first 10 cells
+            all_cells = [cell for row in layout.rows for cell in row]
+            if all_cells:
+                logger.critical(f"   First 10 cells (row,col,value):")
+                for idx, cell in enumerate(all_cells[:10]):
+                    logger.critical(f"      [{idx}] ({cell.row},{cell.column}) = '{str(cell.value)[:30]}'")
+            else:
+                logger.critical("   ❌ NO CELLS IN LAYOUT!")
+            logger.critical("=" * 80)
+            
+            # Quality fail-safe: Reject invalid layouts
+            max_row = layout.get_max_row()
+            max_col = layout.get_max_column()
+            logger.critical(f"   get_max_row() returned: {max_row}")
+            logger.critical(f"   get_max_column() returned: {max_col}")
+            
+            if max_row < 0 or max_col < 0:
+                logger.critical(f"❌ INVALID LAYOUT: Page {page_num} has invalid dimensions (max_row={max_row}, max_col={max_col})")
+                raise ValueError(f"Layout empty — conversion aborted: Page {page_num} has invalid dimensions")
             
             # STEP 1: Build explicit grid per page
             max_row_idx = layout.get_max_row()  # 0-based max row index
@@ -134,9 +144,11 @@ class ExcelWordRenderer:
             grid_rows = max_row_idx + 1
             grid_cols = max_col_idx + 1
             
+            # DYNAMIC STRUCTURE: Use natural column/row count from layout
+            # Each document can have as many columns/rows as needed
             logger.critical("=" * 80)
             logger.critical(f"PAGE {page_num}: Building explicit grid")
-            logger.critical(f"   Grid dimensions: {grid_rows} rows × {grid_cols} columns")
+            logger.critical(f"   Grid dimensions: {grid_rows} rows × {grid_cols} columns (natural structure)")
             logger.critical(f"   Layout max_row (0-based): {max_row_idx}, max_col (0-based): {max_col_idx}")
             logger.critical("=" * 80)
             
@@ -189,6 +201,18 @@ class ExcelWordRenderer:
             
             logger.critical(f"PAGE {page_num}: Mapped {cells_mapped} cells to grid {grid_rows}x{grid_cols}")
             
+            # DEBUG: Log first 10 rows of grid BEFORE merge
+            logger.critical("=" * 80)
+            logger.critical(f"PAGE {page_num}: GRID STATE BEFORE MERGE (first 10 rows)")
+            for row_idx in range(min(10, grid_rows)):
+                col0_val = str(grid[row_idx][0].value)[:40] if grid[row_idx][0] and grid[row_idx][0].value else "NONE"
+                col1_val = str(grid[row_idx][1].value)[:40] if grid_cols > 1 and grid[row_idx][1] and grid[row_idx][1].value else "NONE"
+                logger.critical(f"   Row {row_idx}: Col0='{col0_val}' | Col1='{col1_val}'")
+            logger.critical("=" * 80)
+            
+            # STEP 3.5: SKIP OLD MERGE METHOD - Using EXTREME SIMPLIFICATION instead
+            logger.critical(f"PAGE {page_num}: Skipping old merge method, will use EXTREME SIMPLIFICATION")
+            
             # STEP 4: Column control for invoices/bills
             document_type = layout.metadata.get('document_type', '').lower()
             if document_type in ['invoice', 'bill', 'receipt'] and len(layouts) == 1:
@@ -203,13 +227,61 @@ class ExcelWordRenderer:
             # STEP 5: Create Excel sheet
             sheet = workbook.create_sheet(title=sheet_name)
             
-            # STEP 6: Write cells to exact Excel coordinates
+            # STEP 6: Write cells to exact Excel coordinates WITH INLINE MERGING
             # Excel uses 1-based indexing, so row_idx + 1, col_idx + 1
             rows_written = 0
             cols_written = 0
             first_5_rows_preview = []
+            rows_to_skip = set()  # Track rows to skip (merged values)
+            inline_merges = 0
+            
+            # EXTREME SIMPLIFICATION: Merge ANY consecutive rows where both have Col1 only
+            # NO keyword checking, NO label detection, JUST merge if both rows have Col1 only
+            logger.critical("=" * 80)
+            logger.critical(f"PAGE {page_num}: EXTREME SIMPLIFICATION - MERGE ALL COL1-ONLY PAIRS")
+            logger.critical(f"   Grid size: {grid_rows} rows x {grid_cols} cols")
+            logger.critical("=" * 80)
+            
+            for row_idx in range(grid_rows - 1):
+                # Skip if already marked to skip
+                if row_idx in rows_to_skip or (row_idx + 1) in rows_to_skip:
+                    continue
+                
+                col0 = grid[row_idx][0] if grid_cols > 0 else None
+                col1 = grid[row_idx][1] if grid_cols > 1 else None
+                
+                next_col0 = grid[row_idx + 1][0] if grid_cols > 0 else None
+                next_col1 = grid[row_idx + 1][1] if grid_cols > 1 else None
+                
+                # SIMPLE RULE: Both rows have Col0 but not Col1
+                current_has_col0_only = (col0 and col0.value and str(col0.value).strip() and 
+                                        (not col1 or not col1.value or not str(col1.value).strip()))
+                
+                next_has_col0_only = (next_col0 and next_col0.value and str(next_col0.value).strip() and
+                                     (not next_col1 or not next_col1.value or not str(next_col1.value).strip()))
+                
+                if current_has_col0_only and next_has_col0_only:
+                    # MERGE: Move next row's Col0 to current row's Col1
+                    grid[row_idx][1] = next_col0
+                    rows_to_skip.add(row_idx + 1)
+                    inline_merges += 1
+                    
+                    if inline_merges <= 15:
+                        curr_val = str(col0.value).strip()[:40]
+                        next_val = str(next_col0.value).strip()[:40]
+                        logger.critical(f"   MERGE #{inline_merges}: Row {row_idx} + Row {row_idx+1}")
+                        logger.critical(f"      '{curr_val}' | '{next_val}'")
+            
+            logger.critical("=" * 80)
+            logger.critical(f"   TOTAL MERGES: {inline_merges}")
+            logger.critical(f"   ROWS TO SKIP: {len(rows_to_skip)}")
+            logger.critical("=" * 80)
             
             for row_idx in range(grid_rows):
+                # Skip rows that were merged
+                if row_idx in rows_to_skip:
+                    continue
+                    
                 row_has_content = False
                 for col_idx in range(grid_cols):
                     cell = grid[row_idx][col_idx]
@@ -321,6 +393,197 @@ class ExcelWordRenderer:
         output.seek(0)
         return output.getvalue()
     
+    def _merge_label_value_pairs_in_grid(self, grid: List[List], grid_rows: int, grid_cols: int, page_num: int) -> int:
+        """
+        DIRECT GRID MERGE: Merge label-value pairs directly in the grid.
+        This is the MOST DIRECT approach - modifies grid in-place.
+        
+        Strategy:
+        - For each row in grid with Col0 only (Col1 is None)
+        - Check if next row also has Col0 only
+        - If current=label AND next=value, merge them
+        - Move next row's Col0 to current row's Col1
+        - Clear next row
+        """
+        label_keywords = ['name', 'id', 'number', 'date', 'amount', 'status', 'channel', 
+                         'mode', 'fee', 'ref', 'approval', 'biller', 'customer', 'payment',
+                         'agent', 'transaction', 'consumer', 'mobile', 'bill']
+        
+        merges_done = 0
+        rows_to_clear = set()
+        
+        for row_idx in range(grid_rows - 1):  # Don't check last row (no next row)
+            # Current row: Check if it has Col0 only (Col1 is None or empty)
+            col0_cell = grid[row_idx][0] if grid_cols > 0 else None
+            col1_cell = grid[row_idx][1] if grid_cols > 1 else None
+            
+            # Current row has Col0 but not Col1
+            if col0_cell and col0_cell.value and str(col0_cell.value).strip():
+                if not col1_cell or not col1_cell.value or not str(col1_cell.value).strip():
+                    current_value = str(col0_cell.value).strip()
+                    current_value_lower = current_value.lower()
+                    
+                    # Check if current is a label
+                    has_label_keyword = any(kw in current_value_lower for kw in label_keywords)
+                    is_short = len(current_value) < 50
+                    
+                    is_likely_label = has_label_keyword or is_short
+                    
+                    if is_likely_label:
+                        # Check next row
+                        next_row_idx = row_idx + 1
+                        if next_row_idx < grid_rows:
+                            next_col0_cell = grid[next_row_idx][0] if grid_cols > 0 else None
+                            next_col1_cell = grid[next_row_idx][1] if grid_cols > 1 else None
+                            
+                            # Next row has Col0 but not Col1
+                            if next_col0_cell and next_col0_cell.value and str(next_col0_cell.value).strip():
+                                if not next_col1_cell or not next_col1_cell.value or not str(next_col1_cell.value).strip():
+                                    next_value = str(next_col0_cell.value).strip()
+                                    next_value_lower = next_value.lower()
+                                    
+                                    # Check if next is NOT a label (it's a value)
+                                    next_has_label_keyword = any(kw in next_value_lower for kw in label_keywords)
+                                    
+                                    if not next_has_label_keyword:
+                                        # MERGE: Move next row's Col0 to current row's Col1
+                                        grid[row_idx][1] = next_col0_cell
+                                        
+                                        # Clear next row (will be removed later)
+                                        grid[next_row_idx][0] = None
+                                        rows_to_clear.add(next_row_idx)
+                                        
+                                        merges_done += 1
+                                        if merges_done <= 10:
+                                            logger.critical(f"      ✅ GRID MERGE: Row {row_idx+1} '{current_value[:30]}' + Row {next_row_idx+1} '{next_value[:30]}'")
+        
+        return merges_done
+    
+    def _merge_label_value_pairs_in_layout(self, layout: UnifiedLayout, page_num: int) -> UnifiedLayout:
+        """
+        RENDERER LABEL-VALUE PAIRING: Merge adjacent rows where label and value are split.
+        This is the FINAL guaranteed place for merging - runs right before Excel writing.
+        
+        Strategy:
+        - For each row with Col1 only (no Col2)
+        - Check if next row also has Col1 only
+        - If current=label AND next=value, merge them
+        - Current row gets: Col1=label, Col2=value
+        - Next row is skipped
+        """
+        import re
+        
+        # Check if we need to apply (Col2 mostly empty)
+        rows_with_col2 = set()
+        for row in layout.rows:
+            for cell in row:
+                if cell.column >= 1 and cell.value and str(cell.value).strip():
+                    rows_with_col2.add(cell.row)
+        
+        total_rows = len(layout.rows)
+        col2_coverage = len(rows_with_col2) / total_rows if total_rows > 0 else 0
+        
+        logger.critical(f"   Total rows: {total_rows}, Rows with Col2: {len(rows_with_col2)}, Coverage: {col2_coverage:.1%}")
+        
+        # Only apply if Col2 coverage is low (< 70%)
+        if col2_coverage >= 0.7:
+            logger.critical(f"   ❌ Col2 coverage is high ({col2_coverage:.1%}) - skipping merge")
+            return layout
+        
+        logger.critical(f"   ✅ Col2 coverage is low ({col2_coverage:.1%}) - applying merge")
+        
+        # Label keywords for detection
+        label_keywords = ['name', 'id', 'number', 'date', 'amount', 'status', 'channel', 
+                         'mode', 'fee', 'ref', 'approval', 'biller', 'customer', 'payment',
+                         'agent', 'transaction', 'consumer', 'mobile', 'bill']
+        
+        # Group cells by row
+        cells_by_row = {}
+        for row in layout.rows:
+            for cell in row:
+                if cell.row not in cells_by_row:
+                    cells_by_row[cell.row] = []
+                cells_by_row[cell.row].append(cell)
+        
+        sorted_row_indices = sorted(cells_by_row.keys())
+        rows_to_skip = set()
+        merges_done = 0
+        
+        logger.critical(f"   Processing {len(sorted_row_indices)} rows...")
+        
+        for i in range(len(sorted_row_indices)):
+            if i in rows_to_skip:
+                continue
+                
+            current_row_idx = sorted_row_indices[i]
+            current_row_cells = cells_by_row[current_row_idx]
+            
+            # Get Col1 and Col2 cells
+            col1_cell = next((c for c in current_row_cells if c.column == 0), None)
+            col2_cell = next((c for c in current_row_cells if c.column >= 1 and c.value and str(c.value).strip()), None)
+            
+            # Current row has Col1 only (no Col2)
+            if col1_cell and not col2_cell:
+                current_value = str(col1_cell.value).strip() if col1_cell.value else ""
+                current_value_lower = current_value.lower()
+                
+                # Check if current row is a label
+                has_label_keyword = any(kw in current_value_lower for kw in label_keywords)
+                is_short = len(current_value) < 50
+                has_colon = ':' in current_value
+                
+                is_likely_label = has_label_keyword or (is_short and has_colon) or (is_short and ' ' in current_value)
+                
+                # Check next row
+                if is_likely_label and i + 1 < len(sorted_row_indices):
+                    next_i = i + 1
+                    next_row_idx = sorted_row_indices[next_i]
+                    next_row_cells = cells_by_row[next_row_idx]
+                    
+                    next_col1_cell = next((c for c in next_row_cells if c.column == 0), None)
+                    next_col2_cell = next((c for c in next_row_cells if c.column >= 1 and c.value and str(c.value).strip()), None)
+                    
+                    # Next row also has Col1 only (no Col2)
+                    if next_col1_cell and not next_col2_cell:
+                        next_value = str(next_col1_cell.value).strip() if next_col1_cell.value else ""
+                        next_value_lower = next_value.lower()
+                        
+                        # Check if next row is NOT a label (it's a value)
+                        next_has_label_keyword = any(kw in next_value_lower for kw in label_keywords)
+                        
+                        if not next_has_label_keyword:
+                            # MERGE: Current=label, Next=value
+                            # Move next_col1_cell value to current row's Col2
+                            next_col1_cell.row = current_row_idx
+                            next_col1_cell.column = 1
+                            
+                            # Add to current row cells
+                            current_row_cells.append(next_col1_cell)
+                            
+                            # Mark next row to be skipped
+                            rows_to_skip.add(next_i)
+                            
+                            merges_done += 1
+                            if merges_done <= 10:
+                                logger.critical(f"      ✅ MERGED: Row {current_row_idx} '{current_value[:30]}' + Row {next_row_idx} '{next_value[:30]}'")
+        
+        # Rebuild layout.rows removing skipped rows
+        new_rows = []
+        for i, row_idx in enumerate(sorted_row_indices):
+            if i not in rows_to_skip:
+                # Sort cells in this row by column
+                row_cells = sorted(cells_by_row[row_idx], key=lambda c: c.column)
+                new_rows.append(row_cells)
+        
+        layout.rows = new_rows
+        
+        logger.critical("=" * 80)
+        logger.critical(f"   RENDERER MERGE COMPLETE: {merges_done} pairs merged")
+        logger.critical(f"   Original rows: {len(sorted_row_indices)}, Final rows: {len(new_rows)}")
+        logger.critical("=" * 80)
+        
+        return layout
+    
     def _insert_images_to_sheet(self, sheet, images: List[Dict], layout: UnifiedLayout):
         """Insert images into Excel sheet at appropriate positions"""
         if not IMAGE_SUPPORT:
@@ -367,10 +630,22 @@ class ExcelWordRenderer:
                         col_num = 1
                         logger.warning(f"Image placement: No rows/columns in layout, placing at A1")
                     
-                    # Anchor image to cell at its detected position
+                    # CRITICAL: Images should be FLOATING objects, not anchored to cells
+                    # Position image relative to text using pixel coordinates
                     from openpyxl.utils import get_column_letter
+                    
+                    # Get cell position for reference
                     anchor_col = get_column_letter(col_num)
                     anchor_cell = f"{anchor_col}{row_num}"
+                    
+                    # Calculate pixel offset from cell (for floating positioning)
+                    # Images should be positioned above/below text, not in cells
+                    pixel_offset_x = 0  # Horizontal offset from cell
+                    pixel_offset_y = 0  # Vertical offset from cell (negative = above, positive = below)
+                    
+                    # For logos/images, position them above the text row
+                    if img_info.get('type') in ['logo', 'image', 'visual']:
+                        pixel_offset_y = -20  # Position 20 pixels above the cell
                     
                     # Add image to sheet at detected position
                     sheet.add_image(img, anchor_cell)

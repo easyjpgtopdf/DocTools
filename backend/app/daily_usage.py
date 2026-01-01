@@ -11,8 +11,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Free tier daily limits (ONLY for anonymous/unauthenticated users)
-FREE_TIER_DAILY_PAGES_TEXT = 10  # 10 pages per day for text-based conversion
-FREE_TIER_DAILY_PAGES_OCR = 3    # 3 pages per day for OCR conversion
+FREE_TIER_MAX_PAGES = 1  # Maximum 1 page per PDF for free tier
+FREE_TIER_DAILY_PAGES_TEXT = 1  # 1 page per day for text-based conversion
+FREE_TIER_DAILY_PAGES_OCR = 0   # 0 pages per day for OCR (OCR not supported in free tier)
 FREE_TIER_MAX_FILE_SIZE_MB = 2  # Maximum 2MB file size for anonymous users (free tier)
 
 def get_firestore_client():
