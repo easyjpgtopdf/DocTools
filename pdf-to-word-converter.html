@@ -866,9 +866,13 @@
                 const downloadUrl = result.primary_download_url || result.download_url;
                 console.log('Download URL:', downloadUrl);
                 if (downloadUrl) {
+                    const downloadFileName = (currentFile.name || 'converted').replace(/\.pdf$/i, '.docx');
+                    
                     if (primaryDownload) {
                         primaryDownload.href = downloadUrl;
-                        primaryDownload.download = (currentFile.name || 'converted').replace(/\.pdf$/i, '.docx');
+                        primaryDownload.download = downloadFileName;
+                        // Set download attribute to force download instead of navigation
+                        primaryDownload.setAttribute('download', downloadFileName);
                     }
                     if (primaryMethod) {
                         primaryMethod.textContent = 'LibreOffice (Free)';
@@ -889,9 +893,23 @@
                     }
                     showToast('Conversion successful! Download your Word file.', false);
                     
+                    // Trigger download instead of navigating to URL
                     setTimeout(() => {
-                        window.location.href = downloadUrl;
-                    }, 1000);
+                        // Create a temporary anchor element to trigger download
+                        const a = document.createElement('a');
+                        a.href = downloadUrl;
+                        a.download = downloadFileName;
+                        a.style.display = 'none';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        
+                        // Also update the primary download link for user to click again if needed
+                        if (primaryDownload) {
+                            primaryDownload.href = downloadUrl;
+                            primaryDownload.download = downloadFileName;
+                        }
+                    }, 500);
                 } else {
                     throw new Error('No download URL received');
                 }
