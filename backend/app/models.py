@@ -16,10 +16,12 @@ class ConvertResponse(BaseModel):
     """PDF to Word conversion response model with smart conversion support."""
     status: str
     job_id: str
-    primary_download_url: str
+    primary_download_url: Optional[str] = None  # URL for premium tier, None for free tier with file_data
     primary_method: str  # "libreoffice" or "docai"
     alt_download_url: Optional[str] = None
     alt_method: Optional[str] = None  # "libreoffice" or "docai"
+    file_data: Optional[str] = None  # Base64 encoded file content for direct download (free tier)
+    alt_file_data: Optional[str] = None  # Base64 encoded alternative file content
     pages: Optional[int] = None
     used_docai: bool
     conversion_time_ms: int

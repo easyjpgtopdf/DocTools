@@ -537,12 +537,36 @@ async def convert_pdf_to_word(
                     # Remove existing primary.docx if it exists
                     if os.path.exists(standard_primary_path):
                         os.remove(standard_primary_path)
-                    shutil.move(primary_docx_path, standard_primary_path)
-                    primary_docx_path = standard_primary_path
-                    logger.info(f"[Job {job.id}] Renamed primary file to: {standard_primary_path}")
+                    # Copy instead of move to ensure file exists even if there's an issue
+                    shutil.copy2(primary_docx_path, standard_primary_path)
+                    # Verify copy succeeded before removing original
+                    if os.path.exists(standard_primary_path) and os.path.getsize(standard_primary_path) > 0:
+                        # Only remove original if copy succeeded
+                        if primary_docx_path != standard_primary_path:
+                            try:
+                                os.remove(primary_docx_path)
+                            except:
+                                pass  # Continue even if original removal fails
+                        primary_docx_path = standard_primary_path
+                        logger.info(f"[Job {job.id}] Renamed primary file to: {standard_primary_path} (verified: {os.path.getsize(standard_primary_path)} bytes)")
+                    else:
+                        raise Exception("Copy verification failed - file size is 0 or doesn't exist")
                 except Exception as rename_error:
-                    logger.error(f"[Job {job.id}] Failed to rename file: {rename_error}")
-                    # Continue with original path - download endpoint will handle it
+                    logger.error(f"[Job {job.id}] Failed to rename file: {rename_error}", exc_info=True)
+                    # If rename fails, check if primary.docx already exists
+                    if os.path.exists(standard_primary_path):
+                        logger.info(f"[Job {job.id}] Using existing primary.docx file")
+                        primary_docx_path = standard_primary_path
+                    else:
+                        # Rename failed - raise error instead of continuing
+                        raise HTTPException(
+                            status_code=500,
+                            detail={
+                                "error": "FILE_RENAME_FAILED",
+                                "message": f"Failed to prepare file for download: {str(rename_error)}",
+                                "suggestion": "Please try converting again"
+                            }
+                        )
             
             # Verify file exists after rename
             if not os.path.exists(primary_docx_path):
@@ -579,10 +603,8 @@ async def convert_pdf_to_word(
             else:
                 base_url = f"https://pdf-to-word-converter-564572183797.us-central1.run.app"
             
-            # Only generate download URL if file actually exists
-            if os.path.exists(primary_docx_path):
-                primary_signed_url = f"{base_url}/api/download/{job.id}/primary.docx"
-            else:
+            # CRITICAL: Double-check file exists and has content before generating URL
+            if not os.path.exists(primary_docx_path):
                 error_msg = f"Cannot generate download URL: file doesn't exist at {primary_docx_path}"
                 logger.error(f"[Job {job.id}] {error_msg}")
                 raise HTTPException(
@@ -594,15 +616,113 @@ async def convert_pdf_to_word(
                     }
                 )
             
+            # Verify file has content (not empty)
+            file_size = os.path.getsize(primary_docx_path)
+            if file_size == 0:
+                error_msg = f"Converted file is empty at {primary_docx_path}"
+                logger.error(f"[Job {job.id}] {error_msg}")
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "error": "CONVERSION_OUTPUT_EMPTY",
+                        "message": "Conversion completed but output file is empty. Please try again.",
+                        "suggestion": "Try converting again"
+                    }
+                )
+            
+            logger.info(f"[Job {job.id}] File verified: {primary_docx_path} ({file_size} bytes)")
+            
+            # CRITICAL FIX: For free tier, return file content directly in response
+            # Cloud Run's /tmp is ephemeral and download endpoint might hit different container
+            # Read file content and return as base64 in response
+            try:
+                with open(primary_docx_path, 'rb') as f:
+                    file_content = f.read()
+                    import base64
+                    file_base64 = base64.b64encode(file_content).decode('utf-8')
+                    logger.info(f"[Job {job.id}] File read successfully: {len(file_content)} bytes, base64: {len(file_base64)} chars")
+            except Exception as read_error:
+                logger.error(f"[Job {job.id}] Failed to read file for direct download: {read_error}")
+                # Fallback to download URL if file read fails
+                primary_signed_url = f"{base_url}/api/download/{job.id}/primary.docx"
+                file_base64 = None
+            else:
+                # Use direct file content instead of download URL
+                primary_signed_url = None  # Will be replaced with file_data
+                logger.info(f"[Job {job.id}] Using direct file content in response (no download URL needed)")
+            
             alt_signed_url = None
+            alt_file_base64 = None
             if alt_docx_path and os.path.exists(alt_docx_path):
-                alt_signed_url = f"{base_url}/api/download/{job.id}/alternative.docx"
+                try:
+                    with open(alt_docx_path, 'rb') as f:
+                        alt_content = f.read()
+                        import base64
+                        alt_file_base64 = base64.b64encode(alt_content).decode('utf-8')
+                except Exception:
+                    alt_file_base64 = None
         else:
             # Premium tier: Upload to GCS and generate signed URLs
+            # CRITICAL: Ensure file exists and standardize name before GCS upload
+            if not primary_docx_path or not os.path.exists(primary_docx_path):
+                # Try to find any .docx file in temp_dir as fallback
+                logger.warning(f"[Job {job.id}] Primary DOCX path doesn't exist: {primary_docx_path}")
+                if os.path.exists(temp_dir):
+                    docx_files = [f for f in os.listdir(temp_dir) if f.lower().endswith('.docx')]
+                    if docx_files:
+                        primary_docx_path = os.path.join(temp_dir, docx_files[0])
+                        logger.info(f"[Job {job.id}] Found DOCX file in temp dir: {primary_docx_path}")
+                    else:
+                        error_msg = f"Conversion completed but output file not found. Expected: {primary_docx_path}"
+                        logger.error(f"[Job {job.id}] {error_msg}")
+                        if job:
+                            update_job_status(job.id, "error", error_message=error_msg)
+                        raise HTTPException(
+                            status_code=500,
+                            detail={
+                                "error": "CONVERSION_OUTPUT_MISSING",
+                                "message": "Conversion completed but output file was not found. Please try again.",
+                                "suggestion": "Try converting again or contact support"
+                            }
+                        )
+            
+            # Standardize file name to "primary.docx" for premium tier as well (for consistency)
+            standard_primary_path = os.path.join(temp_dir, "primary.docx")
+            if primary_docx_path != standard_primary_path and os.path.exists(primary_docx_path):
+                import shutil
+                try:
+                    # Remove existing primary.docx if it exists
+                    if os.path.exists(standard_primary_path):
+                        os.remove(standard_primary_path)
+                    # Copy to standard name
+                    shutil.copy2(primary_docx_path, standard_primary_path)
+                    # Verify copy succeeded
+                    if os.path.exists(standard_primary_path) and os.path.getsize(standard_primary_path) > 0:
+                        primary_docx_path = standard_primary_path
+                        logger.info(f"[Job {job.id}] Standardized premium tier file to: {standard_primary_path} ({os.path.getsize(standard_primary_path)} bytes)")
+                    else:
+                        raise Exception("File copy verification failed")
+                except Exception as rename_error:
+                    logger.warning(f"[Job {job.id}] Failed to standardize file name: {rename_error}. Continuing with original path.")
+                    # Continue with original path if rename fails
+            
+            # Verify file exists before GCS upload
+            if not os.path.exists(primary_docx_path):
+                error_msg = f"File does not exist before GCS upload: {primary_docx_path}"
+                logger.error(f"[Job {job.id}] {error_msg}")
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "error": "CONVERSION_OUTPUT_MISSING",
+                        "message": "Conversion output file not found. Please try again.",
+                        "suggestion": "Try converting again"
+                    }
+                )
+            
             storage_client = GCSStorage(settings.project_id)
             primary_blob_name = f"converted/{job.id}/primary.docx"
             
-            logger.info(f"[Job {job.id}] Uploading primary DOCX to GCS: {primary_blob_name}")
+            logger.info(f"[Job {job.id}] Uploading primary DOCX to GCS: {primary_blob_name} from {primary_docx_path}")
             try:
                 storage_client.upload_file_to_gcs(
                     primary_docx_path,
@@ -733,7 +853,7 @@ async def convert_pdf_to_word(
         return ConvertResponse(
             status="success",
             job_id=job.id,
-            primary_download_url=primary_signed_url,
+            primary_download_url=primary_signed_url,  # URL for premium tier, None for free tier with file_data
             primary_method=conversion_result.main_method.value,
             alt_download_url=alt_signed_url,
             alt_method=conversion_result.alt_method.value if conversion_result.alt_method else None,
@@ -741,10 +861,12 @@ async def convert_pdf_to_word(
             used_docai=conversion_result.used_docai,
             conversion_time_ms=conversion_result.conversion_time_ms,
             file_size_bytes=os.path.getsize(primary_docx_path),
-            download_url=primary_signed_url,  # Backward compatibility
+            download_url=primary_signed_url if primary_signed_url else None,  # Backward compatibility
             job_status=job_status,
             engine=engine,
-            docai_confidence=docai_confidence
+            docai_confidence=docai_confidence,
+            file_data=file_base64 if 'file_base64' in locals() and file_base64 else None,  # Direct file content for free tier
+            alt_file_data=alt_file_base64 if 'alt_file_base64' in locals() and alt_file_base64 else None
         )
         
     except HTTPException as e:

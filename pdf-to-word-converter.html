@@ -862,12 +862,29 @@
                 if (progressFill && progressFill.style) progressFill.style.width = '100%';
                 showStatus('Conversion successful! Downloading...', 'success');
                 
-                // Download Word file
-                const downloadUrl = result.primary_download_url || result.download_url;
-                console.log('Download URL:', downloadUrl);
+                // Download Word file - use direct file data if available (free tier)
+                const downloadFileName = (currentFile.name || 'converted').replace(/\.pdf$/i, '.docx');
+                let downloadUrl = result.primary_download_url || result.download_url;
+                
+                // CRITICAL FIX: Use direct file data if available (avoids ephemeral storage issue)
+                if (result.file_data) {
+                    console.log('Using direct file data for download (base64 length:', result.file_data.length, ')');
+                    // Convert base64 to blob and create download URL
+                    const binaryString = atob(result.file_data);
+                    const bytes = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+                    downloadUrl = URL.createObjectURL(blob);
+                    console.log('Created blob URL for direct download');
+                } else if (downloadUrl) {
+                    console.log('Using download URL:', downloadUrl);
+                } else {
+                    throw new Error('No download URL or file data received');
+                }
+                
                 if (downloadUrl) {
-                    const downloadFileName = (currentFile.name || 'converted').replace(/\.pdf$/i, '.docx');
-                    
                     if (primaryDownload) {
                         primaryDownload.href = downloadUrl;
                         primaryDownload.download = downloadFileName;
@@ -891,27 +908,29 @@
                     if (resultsSection) {
                         resultsSection.style.display = 'block';
                     }
-                    showToast('Conversion successful! Download your Word file.', false);
+                    showToast('Conversion successful! Downloading your Word file...', false);
                     
-                    // Trigger download instead of navigating to URL
-                    setTimeout(() => {
-                        // Create a temporary anchor element to trigger download
-                        const a = document.createElement('a');
-                        a.href = downloadUrl;
-                        a.download = downloadFileName;
-                        a.style.display = 'none';
-                        document.body.appendChild(a);
-                        a.click();
+                    // Trigger download immediately - no setTimeout needed
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = downloadFileName;
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    
+                    // Clean up blob URL after a delay
+                    if (result.file_data && downloadUrl.startsWith('blob:')) {
+                        setTimeout(() => {
+                            URL.revokeObjectURL(downloadUrl);
+                            document.body.removeChild(a);
+                        }, 100);
+                    } else {
                         document.body.removeChild(a);
-                        
-                        // Also update the primary download link for user to click again if needed
-                        if (primaryDownload) {
-                            primaryDownload.href = downloadUrl;
-                            primaryDownload.download = downloadFileName;
-                        }
-                    }, 500);
+                    }
+                    
+                    console.log('Download triggered successfully');
                 } else {
-                    throw new Error('No download URL received');
+                    throw new Error('No download URL or file data received');
                 }
             } catch (error) {
                 console.error('Conversion error:', error);
