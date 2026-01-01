@@ -6,7 +6,7 @@ import os
 import time
 import logging
 from fastapi import FastAPI, File, UploadFile, Depends, HTTPException, Header, Request, Form
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 
@@ -96,9 +96,13 @@ async def startup_event():
         ensure_temp_dir()
         logger.info("Temp directory ensured")
         
-        # Get settings (this will fail if required env vars are missing)
-        settings = get_settings()
-        logger.info(f"Settings loaded: project_id={settings.project_id}")
+        # Get settings (non-blocking - allow app to start with partial config)
+        try:
+            settings = get_settings()
+            logger.info(f"Settings loaded: project_id={settings.project_id}")
+        except Exception as settings_error:
+            logger.warning(f"Settings loading failed (non-critical): {settings_error}")
+            logger.info("Continuing with minimal configuration")
         
         # Initialize Firebase (non-blocking - fail gracefully)
         try:
@@ -203,9 +207,10 @@ async def health_check():
 @app.post("/api/convert/pdf-to-word", response_model=ConvertResponse)
 async def convert_pdf_to_word(
     file: UploadFile = File(...),
+    request: Request = None,
     user: dict = Depends(get_current_user_dep),
     settings: Settings = Depends(get_app_settings)
-):
+) -> ConvertResponse:
     """
     Smart PDF to Word conversion with automatic method selection and alternative generation.
     
@@ -220,6 +225,8 @@ async def convert_pdf_to_word(
     temp_dir = None
     primary_docx_path = None
     alt_docx_path = None
+    is_authenticated = False
+    free_tier_allowed = False
     
     try:
         # Create job for tracking
@@ -372,27 +379,16 @@ async def convert_pdf_to_word(
                 if job:
                     update_job_status(job.id, "error", error_message=error_msg)
                 
-                # Check daily usage for more specific error details
-                from app.daily_usage import can_use_free_tier, FREE_TIER_DAILY_PAGES_TEXT, FREE_TIER_DAILY_PAGES_OCR
-                daily_limit_check = can_use_free_tier(user_id, pages_count, will_use_docai, db)
-                
-                if free_tier_eligibility.get('requires_ocr'):
-                    raise HTTPException(
-                        status_code=403,
-                        detail={
-                            "error": "FREE_TIER_OCR_NOT_ALLOWED",
-                            "message": error_msg,
-                            "suggestion": "Sign in to use OCR (Premium feature)"
-                        }
-                    )
-                elif free_tier_eligibility.get('exceeds_pages'):
+                # Free tier now only allows 1 page per PDF (no daily limits check needed)
+                # Note: We don't check requires_ocr anymore - all PDFs can attempt LibreOffice conversion
+                if free_tier_eligibility.get('exceeds_pages'):
                     raise HTTPException(
                         status_code=403,
                         detail={
                             "error": "FREE_TIER_PAGE_LIMIT_EXCEEDED",
                             "message": error_msg,
-                            "daily_limit": FREE_TIER_DAILY_PAGES_TEXT,
-                            "suggestion": "Sign in for higher limits"
+                            "max_pages": 1,
+                            "suggestion": "Upgrade to Premium for multi-page conversion (up to 100 pages)"
                         }
                     )
                 elif free_tier_eligibility.get('exceeds_size'):
@@ -401,7 +397,8 @@ async def convert_pdf_to_word(
                         detail={
                             "error": "FREE_TIER_SIZE_LIMIT_EXCEEDED",
                             "message": error_msg,
-                            "suggestion": "Sign in for higher limits (50MB max)"
+                            "max_size_mb": 2,
+                            "suggestion": "Upgrade to Premium for larger files (up to 100MB)"
                         }
                     )
                 else:
@@ -425,16 +422,53 @@ async def convert_pdf_to_word(
         engine = None
         docai_confidence = None
         
-        # Determine if we should use free pipeline (anonymous users with free tier)
-        use_free_pipeline = (not is_authenticated and free_tier_allowed and has_text)
+        # Both free and premium tiers try LibreOffice first, fallback to DocAI if needed
+        # Free tier: LibreOffice only, no DocAI fallback (will show premium upgrade popup if DocAI needed)
+        # Premium tier: LibreOffice first, DocAI fallback if LibreOffice fails (with alternative conversion)
+        use_free_pipeline = (not is_authenticated and free_tier_allowed)
         
-        conversion_result = smart_convert_pdf_to_word(
-            temp_pdf_path,
-            temp_dir,
-            settings,
-            generate_alternative=not use_free_pipeline,  # Don't generate alternative for free tier
-            use_free_pipeline=use_free_pipeline
-        )
+        try:
+            conversion_result = smart_convert_pdf_to_word(
+                temp_pdf_path,
+                temp_dir,
+                settings,
+                generate_alternative=is_authenticated,  # Generate alternative only for premium users
+                use_free_pipeline=False,  # Deprecated, kept for compatibility
+                allow_docai_fallback=is_authenticated  # Only allow DocAI fallback for premium (logged-in) users
+            )
+        except Exception as conversion_error:
+            error_msg = str(conversion_error)
+            logger.error(f"[Job {job.id}] Conversion failed: {error_msg}", exc_info=True)
+            
+            # For free tier, if conversion fails, show a helpful error
+            # Don't assume it needs OCR - LibreOffice might fail for technical reasons
+            if not is_authenticated:
+                # Log the error for debugging
+                logger.error(f"[Job {job.id}] Free tier conversion failed: {error_msg}")
+                if job:
+                    update_job_status(job.id, "error", error_message=error_msg)
+                
+                # Show a helpful error message that doesn't assume OCR is needed
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "error": "CONVERSION_FAILED",
+                        "message": f"Conversion failed: {error_msg}. Please try again or upgrade to Premium for advanced processing.",
+                        "suggestion": "Try again or upgrade to Premium for advanced processing",
+                        "show_premium_upgrade": True
+                    }
+                )
+            
+            # Generic conversion error
+            if job:
+                update_job_status(job.id, "error", error_message=error_msg)
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "error": "CONVERSION_FAILED",
+                    "message": error_msg
+                }
+            )
         
         primary_docx_path = conversion_result.main_docx_path
         alt_docx_path = conversion_result.alt_docx_path
@@ -453,48 +487,99 @@ async def convert_pdf_to_word(
         
         logger.info(f"[Job {job.id}] Conversion completed. Primary: {conversion_result.main_method.value}, Alternative: {conversion_result.alt_method.value if conversion_result.alt_method else 'None'}")
         
-        # Upload primary file to GCS
-        storage_client = GCSStorage(settings.project_id)
-        primary_blob_name = f"converted/{job.id}/primary.docx"
-        
-        logger.info(f"[Job {job.id}] Uploading primary DOCX to GCS: {primary_blob_name}")
-        try:
-            storage_client.upload_file_to_gcs(
-                primary_docx_path,
-                settings.gcs_output_bucket,
-                primary_blob_name,
-                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            )
-        except Exception as gcs_error:
-            error_msg = f"GCS upload failed: {str(gcs_error)}. Bucket: {settings.gcs_output_bucket}, File: {primary_docx_path}"
-            logger.error(f"[Job {job.id}] {error_msg}", exc_info=True)
-            raise Exception(error_msg)
-        
-        primary_signed_url = storage_client.generate_signed_url(
-            settings.gcs_output_bucket,
-            primary_blob_name,
-            expiration_seconds=settings.signed_url_expiration
-        )
-        print(f"DEBUG: Upload path: {primary_signed_url}")
-        
-        # Upload alternative file if available
-        alt_signed_url = None
-        if alt_docx_path and os.path.exists(alt_docx_path):
-            alt_blob_name = f"converted/{job.id}/alternative.docx"
-            logger.info(f"[Job {job.id}] Uploading alternative DOCX to GCS: {alt_blob_name}")
+        # FREE TIER: Use direct download endpoint (no GCS signed URL needed)
+        # PREMIUM: Upload to GCS and use signed URLs
+        if not is_authenticated and free_tier_allowed:
+            # Free tier: Rename files to standard names for download endpoint, then return direct download URLs
+            logger.info(f"[Job {job.id}] Free tier: Using direct download endpoint (no GCS)")
             
-            storage_client.upload_file_to_gcs(
-                alt_docx_path,
-                settings.gcs_output_bucket,
-                alt_blob_name,
-                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            )
+            # Rename primary file to "primary.docx" if needed
+            standard_primary_path = os.path.join(temp_dir, "primary.docx")
+            if primary_docx_path != standard_primary_path and os.path.exists(primary_docx_path):
+                import shutil
+                shutil.move(primary_docx_path, standard_primary_path)
+                primary_docx_path = standard_primary_path
+                logger.info(f"[Job {job.id}] Renamed primary file to: {standard_primary_path}")
             
-            alt_signed_url = storage_client.generate_signed_url(
-                settings.gcs_output_bucket,
-                alt_blob_name,
-                expiration_seconds=settings.signed_url_expiration
-            )
+            # Rename alternative file to "alternative.docx" if needed
+            if alt_docx_path and os.path.exists(alt_docx_path):
+                standard_alt_path = os.path.join(temp_dir, "alternative.docx")
+                if alt_docx_path != standard_alt_path:
+                    import shutil
+                    shutil.move(alt_docx_path, standard_alt_path)
+                    alt_docx_path = standard_alt_path
+                    logger.info(f"[Job {job.id}] Renamed alternative file to: {standard_alt_path}")
+            
+            # Build full URL for download endpoint
+            if request:
+                base_url = f"{request.url.scheme}://{request.url.netloc}"
+            else:
+                base_url = f"https://pdf-to-word-converter-564572183797.us-central1.run.app"
+            primary_signed_url = f"{base_url}/api/download/{job.id}/primary.docx"
+            alt_signed_url = None
+            if alt_docx_path and os.path.exists(alt_docx_path):
+                alt_signed_url = f"{base_url}/api/download/{job.id}/alternative.docx"
+        else:
+            # Premium tier: Upload to GCS and generate signed URLs
+            storage_client = GCSStorage(settings.project_id)
+            primary_blob_name = f"converted/{job.id}/primary.docx"
+            
+            logger.info(f"[Job {job.id}] Uploading primary DOCX to GCS: {primary_blob_name}")
+            try:
+                storage_client.upload_file_to_gcs(
+                    primary_docx_path,
+                    settings.gcs_output_bucket,
+                    primary_blob_name,
+                    content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                )
+            except Exception as gcs_error:
+                error_msg = f"GCS upload failed: {str(gcs_error)}. Bucket: {settings.gcs_output_bucket}, File: {primary_docx_path}"
+                logger.error(f"[Job {job.id}] {error_msg}", exc_info=True)
+                raise Exception(error_msg)
+            
+            # Generate signed URL with fallback to direct download if signing fails
+            try:
+                primary_signed_url = storage_client.generate_signed_url(
+                    settings.gcs_output_bucket,
+                    primary_blob_name,
+                    expiration_seconds=settings.signed_url_expiration
+                )
+            except Exception as sign_error:
+                # If signing fails (no private key), use direct download endpoint as fallback
+                logger.warning(f"[Job {job.id}] Signed URL generation failed: {sign_error}. Using direct download endpoint.")
+                if request:
+                    base_url = f"{request.url.scheme}://{request.url.netloc}"
+                else:
+                    base_url = f"https://pdf-to-word-converter-iwumaktavq-uc.a.run.app"
+                primary_signed_url = f"{base_url}/api/download/{job.id}/primary.docx"
+            print(f"DEBUG: Upload path: {primary_signed_url}")
+            
+            # Upload alternative file if available
+            alt_signed_url = None
+            if alt_docx_path and os.path.exists(alt_docx_path):
+                alt_blob_name = f"converted/{job.id}/alternative.docx"
+                logger.info(f"[Job {job.id}] Uploading alternative DOCX to GCS: {alt_blob_name}")
+                
+                try:
+                    storage_client.upload_file_to_gcs(
+                        alt_docx_path,
+                        settings.gcs_output_bucket,
+                        alt_blob_name,
+                        content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    )
+                    
+                    alt_signed_url = storage_client.generate_signed_url(
+                        settings.gcs_output_bucket,
+                        alt_blob_name,
+                        expiration_seconds=settings.signed_url_expiration
+                    )
+                except Exception as alt_sign_error:
+                    logger.warning(f"[Job {job.id}] Alternative signed URL generation failed: {alt_sign_error}. Using direct download endpoint.")
+                    if request:
+                        base_url = f"{request.url.scheme}://{request.url.netloc}"
+                    else:
+                        base_url = f"https://pdf-to-word-converter-iwumaktavq-uc.a.run.app"
+                    alt_signed_url = f"{base_url}/api/download/{job.id}/alternative.docx"
         
         # Record daily usage or deduct credits based on tier
         if not is_authenticated and free_tier_allowed:
@@ -509,7 +594,11 @@ async def convert_pdf_to_word(
             # Premium user - deduct credits after successful conversion
             try:
                 from app.credit_manager import calculate_required_credits
-                required_credits = calculate_required_credits(conversion_result.pages, conversion_result.used_docai)
+                required_credits = calculate_required_credits(
+                    conversion_result.pages,
+                    conversion_result.used_docai,
+                    conversion_result.used_adobe_extract
+                )
                 
                 deduct_result = deduct_credits(
                     user_id=user_id,
@@ -606,20 +695,26 @@ async def convert_pdf_to_word(
         )
     
     finally:
-        # Cleanup temporary files
-        if temp_pdf_path:
-            cleanup_file(temp_pdf_path)
-        if primary_docx_path:
-            cleanup_file(primary_docx_path)
-        if alt_docx_path and alt_docx_path != primary_docx_path:
-            cleanup_file(alt_docx_path)
-        # Cleanup job directory if empty
-        if temp_dir and os.path.exists(temp_dir):
-            try:
-                if not os.listdir(temp_dir):
-                    os.rmdir(temp_dir)
-            except:
-                pass
+        # Cleanup temporary files ONLY for premium users (free tier files need to stay for download endpoint)
+        if is_authenticated or not free_tier_allowed:
+            # Premium users: Cleanup immediately after GCS upload
+            if temp_pdf_path:
+                cleanup_file(temp_pdf_path)
+            if primary_docx_path:
+                cleanup_file(primary_docx_path)
+            if alt_docx_path and alt_docx_path != primary_docx_path:
+                cleanup_file(alt_docx_path)
+            # Cleanup job directory if empty
+            if temp_dir and os.path.exists(temp_dir):
+                try:
+                    if not os.listdir(temp_dir):
+                        os.rmdir(temp_dir)
+                except:
+                    pass
+        else:
+            # Free tier: Keep files in temp directory for download endpoint
+            # Files will be cleaned up by a background task or after expiration
+            logger.info(f"[Job {job.id if job else 'N/A'}] Free tier: Keeping files for direct download")
 
 
 # Temporary file - copy these endpoints to main.py before exception_handler
@@ -1114,6 +1209,54 @@ async def get_job_status(job_id: str):
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return job
+
+
+@app.get("/api/download/{job_id}/{filename}")
+async def download_file(
+    job_id: str,
+    filename: str,
+    settings: Settings = Depends(get_app_settings)
+):
+    """
+    Direct file download endpoint for free tier (bypasses GCS signed URLs).
+    Files are served directly from temp directory.
+    """
+    try:
+        # Security: Only allow .docx files from job directories
+        if not filename.endswith('.docx'):
+            raise HTTPException(status_code=400, detail="Invalid file type")
+        
+        # Construct file path
+        temp_dir = os.path.join(ensure_temp_dir(), job_id)
+        file_path = os.path.join(temp_dir, filename)
+        
+        # Security: Verify file exists and is within allowed directory
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Verify file is within temp directory (prevent path traversal)
+        real_path = os.path.realpath(file_path)
+        real_temp_dir = os.path.realpath(temp_dir)
+        if not real_path.startswith(real_temp_dir):
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Return file with appropriate headers
+        return FileResponse(
+            file_path,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            filename=filename,
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Download error for job {job_id}, file {filename}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Download failed: {str(e)}")
 
 
 # ==================== CREDIT SYSTEM ENDPOINTS ====================
