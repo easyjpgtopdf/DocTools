@@ -862,76 +862,88 @@
                 if (progressFill && progressFill.style) progressFill.style.width = '100%';
                 showStatus('Conversion successful! Downloading...', 'success');
                 
-                // Download Word file - use direct file data if available (free tier)
+                // Download Word file - prefer direct file data; otherwise fetch the download URL as a blob
                 const downloadFileName = (currentFile.name || 'converted').replace(/\.pdf$/i, '.docx');
                 let downloadUrl = result.primary_download_url || result.download_url;
-                
-                // CRITICAL FIX: Use direct file data if available (avoids ephemeral storage issue)
+
+                // Prepare a final URL we will actually download from (may be an object URL)
+                let finalDownloadUrl = null;
+                let revokeFinalUrl = false;
+
+                // If API returned raw file data (base64), create a blob URL immediately
                 if (result.file_data) {
-                    console.log('Using direct file data for download (base64 length:', result.file_data.length, ')');
-                    // Convert base64 to blob and create download URL
-                    const binaryString = atob(result.file_data);
-                    const bytes = new Uint8Array(binaryString.length);
-                    for (let i = 0; i < binaryString.length; i++) {
-                        bytes[i] = binaryString.charCodeAt(i);
+                    try {
+                        const binaryString = atob(result.file_data);
+                        const bytes = new Uint8Array(binaryString.length);
+                        for (let i = 0; i < binaryString.length; i++) {
+                            bytes[i] = binaryString.charCodeAt(i);
+                        }
+                        const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+                        finalDownloadUrl = URL.createObjectURL(blob);
+                        revokeFinalUrl = true;
+                        console.log('Created blob URL for direct file_data download');
+                    } catch (e) {
+                        console.warn('Failed to create blob from file_data:', e);
                     }
-                    const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-                    downloadUrl = URL.createObjectURL(blob);
-                    console.log('Created blob URL for direct download');
-                } else if (downloadUrl) {
-                    console.log('Using download URL:', downloadUrl);
-                } else {
+                }
+
+                // If we don't have file_data blob, but have a download URL, try to fetch it as a blob
+                if (!finalDownloadUrl && downloadUrl) {
+                    try {
+                        // Attempt to fetch the download URL and convert to blob so we can force a local download
+                        const dlResp = await fetch(downloadUrl, { method: 'GET' });
+                        if (!dlResp.ok) throw new Error(`Remote file fetch failed (${dlResp.status})`);
+                        const dlBlob = await dlResp.blob();
+                        finalDownloadUrl = URL.createObjectURL(dlBlob);
+                        revokeFinalUrl = true;
+                        console.log('Fetched remote download URL as blob and created object URL');
+                    } catch (e) {
+                        // If fetching the URL fails (404, CORS, auth), fall back to using the URL directly
+                        console.warn('Fetching download URL as blob failed, falling back to direct link:', e);
+                        finalDownloadUrl = downloadUrl;
+                        revokeFinalUrl = false;
+                    }
+                }
+
+                if (!finalDownloadUrl) {
                     throw new Error('No download URL or file data received');
                 }
-                
-                if (downloadUrl) {
-                    if (primaryDownload) {
-                        primaryDownload.href = downloadUrl;
-                        primaryDownload.download = downloadFileName;
-                        // Set download attribute to force download instead of navigation
-                        primaryDownload.setAttribute('download', downloadFileName);
-                    }
-                    if (primaryMethod) {
-                        primaryMethod.textContent = 'LibreOffice (Free)';
-                        primaryMethod.className = 'method-badge libreoffice';
-                    }
-                    
-                    // Show premium card and hide alternative card (if exists)
-                    const premiumCard = document.getElementById('premiumCard');
-                    if (premiumCard) {
-                        premiumCard.style.display = 'block';
-                    }
-                    if (altCard) {
-                        altCard.style.display = 'none';
-                    }
-                    
-                    if (resultsSection) {
-                        resultsSection.style.display = 'block';
-                    }
-                    showToast('Conversion successful! Downloading your Word file...', false);
-                    
-                    // Trigger download immediately - no setTimeout needed
-                    const a = document.createElement('a');
-                    a.href = downloadUrl;
-                    a.download = downloadFileName;
-                    a.style.display = 'none';
-                    document.body.appendChild(a);
-                    a.click();
-                    
-                    // Clean up blob URL after a delay
-                    if (result.file_data && downloadUrl.startsWith('blob:')) {
-                        setTimeout(() => {
-                            URL.revokeObjectURL(downloadUrl);
-                            document.body.removeChild(a);
-                        }, 100);
-                    } else {
-                        document.body.removeChild(a);
-                    }
-                    
-                    console.log('Download triggered successfully');
-                } else {
-                    throw new Error('No download URL or file data received');
+
+                // Update the visible download anchor so users can retry if needed
+                if (primaryDownload) {
+                    primaryDownload.href = finalDownloadUrl;
+                    primaryDownload.download = downloadFileName;
+                    primaryDownload.setAttribute('download', downloadFileName);
                 }
+                if (primaryMethod) {
+                    primaryMethod.textContent = 'LibreOffice (Free)';
+                    primaryMethod.className = 'method-badge libreoffice';
+                }
+
+                const premiumCard = document.getElementById('premiumCard');
+                if (premiumCard) premiumCard.style.display = 'block';
+                if (altCard) altCard.style.display = 'none';
+                if (resultsSection) resultsSection.style.display = 'block';
+                showToast('Conversion successful! Downloading your Word file...', false);
+
+                // Trigger download immediately by creating and clicking a temporary anchor
+                const a = document.createElement('a');
+                a.href = finalDownloadUrl;
+                a.download = downloadFileName;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+
+                // Clean up object URL if we created one
+                if (revokeFinalUrl && finalDownloadUrl.startsWith('blob:')) {
+                    setTimeout(() => {
+                        try { URL.revokeObjectURL(finalDownloadUrl); } catch (e) { /* ignore */ }
+                        try { document.body.removeChild(a); } catch (e) { /* ignore */ }
+                    }, 200);
+                } else {
+                    try { document.body.removeChild(a); } catch (e) { /* ignore */ }
+                }
+                console.log('Download triggered successfully');
             } catch (error) {
                 console.error('Conversion error:', error);
                 console.error('Error stack:', error.stack);
